@@ -302,10 +302,10 @@ void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
 // interior_point_iterate_acceptable), for the preconditions of the restoration tests: their
 // fixtures are meaningful only if the row the solve ends on would pass it.
 bool row_acceptable(const hven::IpmIterate &row, const hven::IpmOptions &o) {
-    return row.kkt_inf < o.termination.acceptable_kkt_tol &&
+    return row.kkt_inf < o.termination.acceptable_stationarity_tol &&
            row.econ_inf < o.termination.acceptable_equality_tol &&
            row.icon_inf < o.termination.acceptable_inequality_tol &&
-           row.barr_inf < o.termination.acceptable_barrier_tol;
+           row.barr_inf < o.termination.acceptable_complementarity_tol;
 }
 
 // The iteration a no-numerics message names ("... at iteration <i> ..."), or -1.
@@ -588,10 +588,10 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
 TEST_P(IpmNoNumericsRestorationSeam, AnAcceptableIterateStopsBeforeRestorationIsEntered) {
     hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
     o.advanced.restoration_mode = GetParam();
-    o.termination.acceptable_kkt_tol = 1e6;
+    o.termination.acceptable_stationarity_tol = 1e6;
     o.termination.acceptable_equality_tol = 1e6;
     o.termination.acceptable_inequality_tol = 1e6;
-    o.termination.acceptable_barrier_tol = 1e6;
+    o.termination.acceptable_complementarity_tol = 1e6;
     RecordedSolve run;
     {
         const Armed armed(1);
@@ -708,10 +708,10 @@ TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesItsBarrierObjective) {
 TEST(IpmNoNumericsSeam, AnAcceptableRestorationRowIsNeverAnAcceptableStop) {
     hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
     o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
-    o.termination.acceptable_kkt_tol = 1e6;
+    o.termination.acceptable_stationarity_tol = 1e6;
     o.termination.acceptable_equality_tol = 1e6;
     o.termination.acceptable_inequality_tol = 1.04e-3;
-    o.termination.acceptable_barrier_tol = 1e6;
+    o.termination.acceptable_complementarity_tol = 1e6;
     RecordedSolve run;
     {
         const Armed armed(1);
@@ -738,10 +738,10 @@ TEST(IpmNoNumericsSeam, AnAcceptableRestorationRowIsNeverAnAcceptableStop) {
 TEST(IpmNoNumericsSeam, AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop) {
     hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
     o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
-    o.termination.acceptable_kkt_tol = 5.0;
+    o.termination.acceptable_stationarity_tol = 5.0;
     o.termination.acceptable_equality_tol = 1e6;
     o.termination.acceptable_inequality_tol = 1e6;
-    o.termination.acceptable_barrier_tol = 1e6;
+    o.termination.acceptable_complementarity_tol = 1e6;
     auto nlp = std::make_shared<TrialRefusingHs071>();
     TrialRefusingHs071 *model = nlp.get();
     RecordedSolve run;

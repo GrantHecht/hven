@@ -2205,6 +2205,16 @@ struct SqpSolverAccess {
         return d.qp_stop_ == nullptr && off(d.engine_) && off(d.ssn_engine_) &&
                off(d.ipqp_engine_) && off(d.elastic_ipqp_engine_) && off(d.cap_retry_engine_);
     }
+    /// The thread count in force on the SSN tier's live factor, or -1 before the
+    /// solver has built that tier (the tiers are built lazily at first use).
+    static int ssn_tier_threads(const SqpSolver &solver) {
+        return solver.impl().ssn_tier_num_threads();
+    }
+    /// The thread count in force on the IPQP tier's live KKT factorization, or -1
+    /// before the solver has built that tier.
+    static int ipqp_tier_threads(const SqpSolver &solver) {
+        return solver.impl().ipqp_tier_num_threads();
+    }
 };
 
 } // namespace hven::detail

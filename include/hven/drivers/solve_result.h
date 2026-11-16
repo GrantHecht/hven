@@ -254,8 +254,8 @@ struct SolveResult {
     bool returned_best_iterate = false;
 
     /// @brief True when the returned point is the one feasibility restoration was
-    ///        entered from, because a stop (a callback kStop on an SQP restoration
-    ///        row, or a requested SolveBudget::stop) cut restoration short. Only
+    ///        entered from, because a stop (a callback kStop on a `recovering`
+    ///        event, or a requested SolveBudget::stop) cut restoration short. Only
     ///        with SolveStatus::kInterrupted; the message gains
     ///        "; returned the point before feasibility restoration".
     bool returned_pre_restoration_point = false;
@@ -366,8 +366,8 @@ struct SolveResult {
     ///
     /// INFORMATIONAL, NEVER ASSERTED: counters, not timings, are this project's
     /// currency of correctness (CLAUDE.md §7). This is deliberately NOT either
-    /// engine's own measurement -- IpmResult::timing.total stops before final
-    /// reporting, SqpResult::engine_seconds starts after setup.
+    /// engine's own measurement -- IpmResult::timing.total_seconds stops before final
+    /// reporting, SqpResult::timing.engine_seconds starts after setup.
     double wall_seconds = 0.0;
 
     /// @brief The solve's exit state as warm-start currency, snapshotted at
@@ -523,9 +523,10 @@ struct IterationEvent {
     Index iteration = 0;
     /// @brief The point is inside feasibility restoration. INTERIOR-POINT:
     ///        restoration is in place and its rows are delivered under either
-    ///        CallbackScope with this set; the point a token stop returns from
-    ///        inside restoration is the last non-recovering event's. SQP:
-    ///        exactly the depth-1 rows (only under kIncludeRestoration).
+    ///        CallbackScope with this set. SQP: exactly the depth-1 rows (only
+    ///        under kIncludeRestoration). On both, a stop (callback kStop or
+    ///        token) that lands in restoration returns the point restoration was
+    ///        entered from, not the event's point.
     bool recovering = false;
     /// @brief Objective value at the event's point, on the caller's scale.
     double f = std::numeric_limits<double>::quiet_NaN();

@@ -52,7 +52,7 @@ const hven::IpmResult r = solver.solve(problem, x0);
 applies a **thread-local** MKL override at backend-call scope and undoes it on
 every exit, so an instance pinned to one backend thread does not reach out and
 re-point any other MKL user in the process — see "`MklThreadScope`" below. For
-the interior-point engine, `hven::ipm_worker_options(base)`
+the interior-point engine, `hven::worker_options(base)`
 (`include/hven/drivers/ipm_options.h`) is the named preset that
 writes exactly `common.threads = 1` and `common.verbosity = Verbosity::kSilent`
 and nothing else; it is the replacement for the retired `NLPSolver::jet_initialize()`.

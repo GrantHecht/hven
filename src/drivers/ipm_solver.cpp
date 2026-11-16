@@ -99,10 +99,10 @@ namespace {
 // of aborting. Both call sites must agree, so neither open-codes the four
 // comparisons.
 bool interior_point_iterate_acceptable(const hven::IpmIterate &it, const hven::IpmOptions &opts) {
-    return (it.kkt_inf < opts.termination.acceptable_kkt_tol) &&
+    return (it.kkt_inf < opts.termination.acceptable_stationarity_tol) &&
            (it.econ_inf < opts.termination.acceptable_equality_tol) &&
            (it.icon_inf < opts.termination.acceptable_inequality_tol) &&
-           (it.barr_inf < opts.termination.acceptable_barrier_tol);
+           (it.barr_inf < opts.termination.acceptable_complementarity_tol);
 }
 
 } // namespace
@@ -1587,10 +1587,11 @@ void hven::detail::IpmSolverImpl::dispatch_restoration_entry(
     // THE RESTORATION-ENTRY STASH (M8 AP-5 G2), taken here -- the one function
     // every entry door goes through -- and BEFORE enter_feasibility_restoration
     // writes anything (its nested arm zeroes the equality multipliers and clamps
-    // the slack ones). Armed only when a token can fire -- a callback stop returns
-    // the point it was shown and never reads the stash -- otherwise nothing below
-    // runs. Observation only; it writes no solver state but the stash.
-    if (this->stop_token_.stop_possible()) {
+    // the slack ones). Armed when a stop can arrive inside restoration: a token
+    // that can fire, or a callback (restoration rows reach it under either scope;
+    // a stop on them returns this point too, G7). Otherwise nothing below runs.
+    // Observation only; it writes no solver state but the stash.
+    if (this->stop_token_.stop_possible() || this->iteration_callback_) {
         RestorationStash &stash = this->resto_stash_;
         stash.xsl = XSL;
         stash.rhs = RHS;
@@ -1897,21 +1898,22 @@ hven::SolveStatus hven::detail::IpmSolverImpl::converge_check(std::vector<IpmIte
     // in ipm_solver.h). Splitting the two keeps the hard-error path immediate while
     // giving genuinely recoverable overshoots (Maratos-class) room to recover.
     auto iterate_divergent = [this](const IpmIterate &it) {
-        return (it.kkt_inf > opts_.termination.divergence_kkt_tol) || !std::isfinite(it.kkt_inf) ||
+        return (it.kkt_inf > opts_.termination.divergence_stationarity_tol) ||
+               !std::isfinite(it.kkt_inf) ||
                (it.econ_inf > opts_.termination.divergence_equality_tol) ||
                !std::isfinite(it.econ_inf) ||
                (it.icon_inf > opts_.termination.divergence_inequality_tol) ||
                !std::isfinite(it.icon_inf) ||
-               (it.barr_inf > opts_.termination.divergence_barrier_tol) ||
+               (it.barr_inf > opts_.termination.divergence_complementarity_tol) ||
                !std::isfinite(it.barr_inf);
     };
 
     bool nan_inf = !std::isfinite(last.kkt_inf) || !std::isfinite(last.econ_inf) ||
                    !std::isfinite(last.icon_inf) || !std::isfinite(last.barr_inf);
-    bool beyond_thresholds = (last.kkt_inf > opts_.termination.divergence_kkt_tol) ||
+    bool beyond_thresholds = (last.kkt_inf > opts_.termination.divergence_stationarity_tol) ||
                              (last.econ_inf > opts_.termination.divergence_equality_tol) ||
                              (last.icon_inf > opts_.termination.divergence_inequality_tol) ||
-                             (last.barr_inf > opts_.termination.divergence_barrier_tol);
+                             (last.barr_inf > opts_.termination.divergence_complementarity_tol);
 
     if (nan_inf) {
         // Non-finite residual: unrecoverable, abort immediately regardless of
@@ -3943,17 +3945,18 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 best_substituted = true;
                 stop_best_applied = true;
             }
-            // A TOKEN STOP INSIDE FEASIBILITY RESTORATION RETURNS THE POINT
-            // RESTORATION WAS ENTERED FROM (M8 AP-5 G2, design page section 3.2),
-            // not the restoration iterate: the pair, the bound duals and the
-            // evaluation's provenance are put back from the stash dispatch took
-            // before the entry's multiplier initialisation, and the teardown below
-            // leaves restoration exactly as it does on every other exit that finds
-            // it active. A CALLBACK stop returns the point the callback was shown,
-            // even on a `recovering` event (the event must not be a lie), so it
-            // takes no stash. With no stash (nothing armed cannot reach a token
-            // stop, so this is a defence) the old behaviour stands.
-            if (!callback_stop && this->resto_stash_.valid && this->restoration_ &&
+            // A STOP INSIDE FEASIBILITY RESTORATION RETURNS THE POINT RESTORATION
+            // WAS ENTERED FROM (M8 AP-5 G2; G7 extends it from the token to a
+            // callback kStop on a `recovering` event, the SQP's rule): not the
+            // restoration iterate, whose multipliers are the restoration
+            // subproblem's. The pair, the bound duals and the evaluation's
+            // provenance are put back from the stash dispatch took before the
+            // entry's multiplier initialisation, and the teardown below leaves
+            // restoration exactly as it does on every other exit that finds it
+            // active. A kStopReturnBest that found a best returns the best instead.
+            // With no stash (nothing armed cannot reach a stop, so this is a
+            // defence) the restoration iterate stands.
+            if (!stop_best_applied && this->resto_stash_.valid && this->restoration_ &&
                 this->restoration_->is_active()) {
                 const RestorationStash &stash = this->resto_stash_;
                 XSL = stash.xsl;
@@ -4073,6 +4076,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             break;
         }
         Citer.h_facs = h_facs;
+        this->result_.counters.inertia_corrections += h_facs;
         // A LADDER THAT ENDED ON A FAILED FACTORIZATION LEFT NO NUMERICS. Nothing
         // below reads the factorization -- not the PROBE predictor, not the step
         // solve -- so the iteration has no direction. What happens instead is
@@ -4261,6 +4265,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     kkt_exhausted, kkt_dc_applied);
                 if (extra > 0) {
                     Citer.h_facs += extra;
+                    this->result_.counters.inertia_corrections += extra;
                     Hpert0 = std::max(opts_.advanced.inertia_correction_initial,
                                       nhpert * opts_.advanced.inertia_correction_decrease);
                     FirstPert = false;
@@ -5217,10 +5222,14 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // tracker recorded anything (a limit at its first row) substituted nothing.
     this->result_.returned_best_iterate = return_best_applied && best_recorded;
     this->result_.returned_pre_restoration_point = stash_exit;
-    this->result_.convergence.kkt = ret_row.kkt_inf;
-    this->result_.convergence.barrier = ret_row.barr_inf;
+    this->result_.convergence.stationarity = ret_row.kkt_inf;
+    this->result_.convergence.complementarity = ret_row.barr_inf;
     this->result_.convergence.equality = ret_row.econ_inf;
     this->result_.convergence.inequality = ret_row.icon_inf;
+    this->result_.convergence.feasibility =
+        (std::isnan(ret_row.econ_inf) || std::isnan(ret_row.icon_inf))
+            ? std::numeric_limits<double>::quiet_NaN()
+            : std::max(ret_row.econ_inf, ret_row.icon_inf);
     // WHAT THE PHASE-EXIT EVENT NEEDS, LEFT WHERE `print_exit_stats()` STOOD
     // (M6 W5 T8.7b). `run_phase_sequence` emits `ipm.phase.exit` one statement
     // after this function returns -- after it has filled the phase's
@@ -6204,6 +6213,12 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             }
         }
     }
+    // WHAT WAS APPLIED, not what was offered (SqpCounters::start_level_used's rule):
+    // the point is applied at entry; a multipliers-only seed becomes kSeeded at
+    // its application site below, and only if that phase is reached.
+    if (have_warm) {
+        this->result_.counters.start_level_used = StartLevel::kWarm;
+    }
 
     if (have_seed) {
         int idx = 0;
@@ -6571,10 +6586,10 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // internal fixing-row count is carried separately is that `vars_fixed`
         // above is the DECLARED BOX's census, which equals the fixing-row count
         // only under the MakeConstraint treatment.
-        begin_event.acc_kkt_tol = opts_.termination.acceptable_kkt_tol;
+        begin_event.acc_kkt_tol = opts_.termination.acceptable_stationarity_tol;
         begin_event.acc_econ_tol = opts_.termination.acceptable_equality_tol;
         begin_event.acc_icon_tol = opts_.termination.acceptable_inequality_tol;
-        begin_event.acc_bar_tol = opts_.termination.acceptable_barrier_tol;
+        begin_event.acc_bar_tol = opts_.termination.acceptable_complementarity_tol;
         begin_event.wide_console = opts_.wide_console;
         begin_event.kkt_dim = this->kkt_dim_;
         begin_event.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
@@ -6682,6 +6697,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         if (have_seed && current_phase_idx == first_opt_phase_idx) {
             this->apply_staged_multipliers(XSL, seed_eq_mults, seed_iq_mults);
             have_seed = false;
+            if (this->result_.counters.start_level_used == StartLevel::kCold) {
+                this->result_.counters.start_level_used = StartLevel::kSeeded;
+            }
         }
 
         // Conditional steps only run if the PRECEDING phase didn't converge.

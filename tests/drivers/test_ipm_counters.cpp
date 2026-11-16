@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -118,7 +119,7 @@ TEST(IpmCounters, TheWatchdogArmsAreCountedAsWatchdogActivationsAndNotAsSocSteps
 TEST(IpmCounters, TheTableNamesEveryFieldOfTheGroup) {
     // A field added to or dropped from the struct without its X() entry moves
     // sizeof; the array counts for five.
-    EXPECT_EQ(hven::kIpmCountersFieldCount, 12u);
+    EXPECT_EQ(hven::kIpmCountersFieldCount, 14u);
     static_assert(sizeof(hven::IpmCounters) ==
                   (hven::kIpmCountersFieldCount + 4) * sizeof(hven::Index));
     // Shared names, spelled as the SQP group spells them.
@@ -131,6 +132,8 @@ TEST(IpmCounters, TheTableNamesEveryFieldOfTheGroup) {
     c.soc_steps = s.soc_steps;
     c.nonfinite_step_rollbacks = s.nonfinite_step_rollbacks;
     c.polish_ignored = s.polish_ignored;
+    c.start_level_used = s.start_level_used;
+    c.payload_ignored = s.payload_ignored;
     c.dense_solve_residual_refusals = s.dense_solve_residual_refusals;
     c.dense_factorizations = s.dense_factorizations;
     SUCCEED();
@@ -149,6 +152,22 @@ TEST(IpmCounters, ASolveFillsTheWholeSolveGroupAndTheWorkAgrees) {
     EXPECT_EQ(r.counters.restoration_entries, 0);
     EXPECT_EQ(r.counters.restoration_iters, 0);
     EXPECT_EQ(r.counters.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(r.counters.start_level_used, hven::StartLevel::kCold) << "no payload";
+}
+
+// M8 AP-5 G7 (Q7): the convergence block's feasibility summary is max(equality,
+// inequality) of the same row, on a problem with both kinds of row.
+TEST(IpmConvergence, FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals) {
+    hven::IpmOptions o;
+    o.common.max_iterations = 3; // an unconverged row, so both residuals are nonzero
+    const IpmResult r = ipm_counters_solve_hs071(o);
+    ASSERT_EQ(r.status, hven::SolveStatus::kIterationLimit);
+    const hven::IpmConvergence &c = r.convergence;
+    ASSERT_TRUE(std::isfinite(c.equality) && std::isfinite(c.inequality));
+    ASSERT_NE(c.equality, c.inequality) << "premise: the max is not decided by a tie";
+    EXPECT_EQ(c.feasibility, std::max(c.equality, c.inequality));
+    EXPECT_TRUE(std::isfinite(c.stationarity));
+    EXPECT_TRUE(std::isfinite(c.complementarity));
 }
 
 TEST(IpmCounters, TheLedgerRecordCarriesTheResultsCounters) {

@@ -2346,6 +2346,10 @@ struct SqpCounters {
     ///        equality or working row residual is past 1x of row_tolerance. Appended
     ///        last.
     Index optimal_row_gray_exits = 0;
+    /// @brief 1 when a non-empty warm start (payload or native) was ignored because
+    ///        `common.start_level` is kCold, as `IpmCounters::payload_ignored`.
+    ///        Appended last.
+    Index payload_ignored = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2442,7 +2446,8 @@ struct SqpCounters {
     X(dense_shifted_terminations, counter_never_absent)                                            \
     X(dense_solve_residual_refusals, counter_never_absent)                                         \
     X(dense_factorizations, counter_never_absent)                                                  \
-    X(optimal_row_gray_exits, counter_never_absent)
+    X(optimal_row_gray_exits, counter_never_absent)                                                \
+    X(payload_ignored, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2493,12 +2498,19 @@ struct IpmCounters {
     Index nonfinite_step_rollbacks = 0;
     /// 1 when a polish extension was handed in and not consumed.
     Index polish_ignored = 0;
+    /// The level the payload was applied at: kWarm (its point), kSeeded (its
+    /// multipliers only), else kCold (none given, ignored, or never applied).
+    StartLevel start_level_used = StartLevel::kCold;
     /// 1 when a payload was handed in and ignored (`start_level` kCold).
     Index payload_ignored = 0;
     /// Times the watchdog armed (not `SqpCounters::watchdog_restores`).
     Index watchdog_activations = 0;
     /// Per-rejection recovery depth, indexed by the kRecoveryDepth* constants.
     std::array<Index, 5> recovery_depth_histogram{};
+    /// Inertia-correction factorizations the iteration KKT ladders took, the whole
+    /// solve (restoration and abandoned iterations included); `IpmIterate::h_facs`
+    /// summed at the ladder, before its -1 sentinel.
+    Index inertia_corrections = 0;
     /// Dense solves refused by the residual check.
     Index dense_solve_residual_refusals = 0;
     /// Factorizations on the dense arm.
@@ -2513,9 +2525,11 @@ struct IpmCounters {
     X(soc_steps, counter_never_absent)                                                             \
     X(nonfinite_step_rollbacks, counter_never_absent)                                              \
     X(polish_ignored, counter_never_absent)                                                        \
+    X(start_level_used, counter_never_absent)                                                      \
     X(payload_ignored, counter_never_absent)                                                       \
     X(watchdog_activations, counter_never_absent)                                                  \
     X(recovery_depth_histogram, counter_never_absent)                                              \
+    X(inertia_corrections, counter_never_absent)                                                   \
     X(dense_solve_residual_refusals, counter_never_absent)                                         \
     X(dense_factorizations, counter_never_absent)
 
@@ -2534,7 +2548,7 @@ inline constexpr std::size_t kOffsetsIpmCounters[] = {
 };
 static_assert(sizeof(IpmCounters) == (kIpmCountersFieldCount + 4) * sizeof(Index),
               "IpmCounters and HVEN_IPM_COUNTERS_FIELDS disagree: give the new field an X() entry "
-              "(the histogram array counts for five).");
+              "(the histogram array counts for five; start_level_used pads to one Index).");
 static_assert(counters_offsets_increase(kOffsetsIpmCounters, kIpmCountersFieldCount),
               "IpmCounters and HVEN_IPM_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
               "declaration position.");

@@ -605,16 +605,16 @@ void configure_interior_solver(IpmSolver &ipm, IpmFixedVariableTreatment treatme
         o.common.feasibility_tol = variant.con_tol;
     }
     if (variant.acc_con_tol > 0.0) {
-        o.termination.acceptable_kkt_tol = variant.acc_kkt_tol;
+        o.termination.acceptable_stationarity_tol = variant.acc_kkt_tol;
         o.termination.acceptable_equality_tol = variant.acc_con_tol;
         o.termination.acceptable_inequality_tol = variant.acc_con_tol;
-        o.termination.acceptable_barrier_tol = variant.acc_barr_tol;
+        o.termination.acceptable_complementarity_tol = variant.acc_barr_tol;
     }
     if (variant.div_tol > 0.0) {
-        o.termination.divergence_kkt_tol = variant.div_tol;
+        o.termination.divergence_stationarity_tol = variant.div_tol;
         o.termination.divergence_equality_tol = variant.div_tol;
         o.termination.divergence_inequality_tol = variant.div_tol;
-        o.termination.divergence_barrier_tol = variant.div_tol;
+        o.termination.divergence_complementarity_tol = variant.div_tol;
     }
     if (variant.restoration_mode != IpmRestorationMode::kOff) {
         o.advanced.restoration_mode = variant.restoration_mode;
@@ -847,8 +847,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.status = crossover::flag_string(flag);
     row.iter_num = result.iterations;
     row.obj_val = result.f;
-    row.kkt_inf = result.convergence.kkt;
-    row.barr_inf = result.convergence.barrier;
+    row.kkt_inf = result.convergence.stationarity;
+    row.barr_inf = result.convergence.complementarity;
     row.econ_inf = result.convergence.equality;
     row.icon_inf = result.convergence.inequality;
     row.factorizations = result.kkt_factor_counters.factorize_count;

@@ -172,14 +172,14 @@ void hven::validate(const IpmOptions &o) {
         pos_finite(*t.complementarity_tol, "termination.complementarity_tol");
     const double comp_tol = t.complementarity_tol.value_or(o.common.optimality_tol);
     pos_int(t.acceptable_iterations, "termination.acceptable_iterations");
-    pos_finite(t.acceptable_kkt_tol, "termination.acceptable_kkt_tol");
+    pos_finite(t.acceptable_stationarity_tol, "termination.acceptable_stationarity_tol");
     pos_finite(t.acceptable_equality_tol, "termination.acceptable_equality_tol");
     pos_finite(t.acceptable_inequality_tol, "termination.acceptable_inequality_tol");
-    pos_finite(t.acceptable_barrier_tol, "termination.acceptable_barrier_tol");
-    pos_finite(t.divergence_kkt_tol, "termination.divergence_kkt_tol");
+    pos_finite(t.acceptable_complementarity_tol, "termination.acceptable_complementarity_tol");
+    pos_finite(t.divergence_stationarity_tol, "termination.divergence_stationarity_tol");
     pos_finite(t.divergence_equality_tol, "termination.divergence_equality_tol");
     pos_finite(t.divergence_inequality_tol, "termination.divergence_inequality_tol");
-    pos_finite(t.divergence_barrier_tol, "termination.divergence_barrier_tol");
+    pos_finite(t.divergence_complementarity_tol, "termination.divergence_complementarity_tol");
 
     // --- Cross-field: convergence tol <= acceptable tol <= divergence tol ---
     const auto ordered = [](double lo, const char *lo_name, double hi, const char *hi_name) {
@@ -187,8 +187,8 @@ void hven::validate(const IpmOptions &o) {
             throw std::invalid_argument(
                 fmt::format("{} ({}) must be <= {} ({})", lo_name, lo, hi_name, hi));
     };
-    ordered(o.common.optimality_tol, "common.optimality_tol", t.acceptable_kkt_tol,
-            "termination.acceptable_kkt_tol");
+    ordered(o.common.optimality_tol, "common.optimality_tol", t.acceptable_stationarity_tol,
+            "termination.acceptable_stationarity_tol");
     ordered(o.common.feasibility_tol, "common.feasibility_tol", t.acceptable_equality_tol,
             "termination.acceptable_equality_tol");
     ordered(o.common.feasibility_tol, "common.feasibility_tol", t.acceptable_inequality_tol,
@@ -196,15 +196,15 @@ void hven::validate(const IpmOptions &o) {
     ordered(comp_tol,
             t.complementarity_tol ? "termination.complementarity_tol"
                                   : "common.optimality_tol (the complementarity tolerance)",
-            t.acceptable_barrier_tol, "termination.acceptable_barrier_tol");
-    ordered(t.acceptable_kkt_tol, "termination.acceptable_kkt_tol", t.divergence_kkt_tol,
-            "termination.divergence_kkt_tol");
+            t.acceptable_complementarity_tol, "termination.acceptable_complementarity_tol");
+    ordered(t.acceptable_stationarity_tol, "termination.acceptable_stationarity_tol",
+            t.divergence_stationarity_tol, "termination.divergence_stationarity_tol");
     ordered(t.acceptable_equality_tol, "termination.acceptable_equality_tol",
             t.divergence_equality_tol, "termination.divergence_equality_tol");
     ordered(t.acceptable_inequality_tol, "termination.acceptable_inequality_tol",
             t.divergence_inequality_tol, "termination.divergence_inequality_tol");
-    ordered(t.acceptable_barrier_tol, "termination.acceptable_barrier_tol",
-            t.divergence_barrier_tol, "termination.divergence_barrier_tol");
+    ordered(t.acceptable_complementarity_tol, "termination.acceptable_complementarity_tol",
+            t.divergence_complementarity_tol, "termination.divergence_complementarity_tol");
 
     // --- Barrier parameters ---
     pos_finite(o.barrier_initial, "barrier_initial");
@@ -380,7 +380,7 @@ hven::IpmOptions hven::ipm_preset(std::string_view name) {
         "Unrecognized IpmSolver preset '{}'. Valid options are: {}", name, valid_names));
 }
 
-hven::IpmOptions hven::ipm_worker_options(IpmOptions base) {
+hven::IpmOptions hven::worker_options(IpmOptions base) {
     // One backend thread and silent output. The partition count is the
     // PROGRAM's, documented on the declaration -- no options value reaches a
     // layout.
@@ -700,14 +700,14 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_opt_dbl(os, "termination.complementarity_tol", t.complementarity_tol);
     kv_int(os, "termination.acceptable_iterations",
            static_cast<long long>(t.acceptable_iterations));
-    kv_dbl(os, "termination.acceptable_kkt_tol", t.acceptable_kkt_tol);
+    kv_dbl(os, "termination.acceptable_stationarity_tol", t.acceptable_stationarity_tol);
     kv_dbl(os, "termination.acceptable_equality_tol", t.acceptable_equality_tol);
     kv_dbl(os, "termination.acceptable_inequality_tol", t.acceptable_inequality_tol);
-    kv_dbl(os, "termination.acceptable_barrier_tol", t.acceptable_barrier_tol);
-    kv_dbl(os, "termination.divergence_kkt_tol", t.divergence_kkt_tol);
+    kv_dbl(os, "termination.acceptable_complementarity_tol", t.acceptable_complementarity_tol);
+    kv_dbl(os, "termination.divergence_stationarity_tol", t.divergence_stationarity_tol);
     kv_dbl(os, "termination.divergence_equality_tol", t.divergence_equality_tol);
     kv_dbl(os, "termination.divergence_inequality_tol", t.divergence_inequality_tol);
-    kv_dbl(os, "termination.divergence_barrier_tol", t.divergence_barrier_tol);
+    kv_dbl(os, "termination.divergence_complementarity_tol", t.divergence_complementarity_tol);
     kv_dbl(os, "barrier_initial", o.barrier_initial);
     kv_dbl(os, "barrier_max", o.barrier_max);
     kv_dbl(os, "barrier_min", o.barrier_min);

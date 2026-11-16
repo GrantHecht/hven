@@ -75,15 +75,6 @@ class SqpSolver {
     /// @throws std::logic_error if a solve is in flight on this solver.
     void set_options(SqpOptions o);
 
-    /// The thread count in force on the SSN tier's live factor, or -1 when this
-    /// solver has not built that tier yet. The tier engines are built lazily at
-    /// first use, so a solver that has not run in that tier reads -1.
-    int ssn_tier_threads() const;
-
-    /// The thread count in force on the IPQP tier's live KKT factorization, or
-    /// -1 when this solver has not built that tier yet.
-    int ipqp_tier_threads() const;
-
     /// Solves `problem` from `x0`, optionally starting from a warm start.
     ///
     /// The problem is borrowed for the call. Its per-solve re-read runs first
@@ -166,10 +157,12 @@ class SqpSolver {
     /// escaped -- an argument refusal included: what the interrupted solve
     /// reached, finished into the problem's row space: status `kInterrupted`,
     /// the majors taken, the current iterate and its multipliers (`x`,
-    /// `lambda`), the work spent and a `message` naming the exception; the start
-    /// point with no majors when nothing was reached. Its evaluation-derived
-    /// fields are unmeasured (`g` and `z` empty, `f` and the shared diagnostics
-    /// NaN): the exception may have arrived mid-evaluation. A `solve()` that
+    /// `lambda`, `z`), the work spent and a `message` naming the exception; the
+    /// start point with no majors when nothing was reached. `z` is read off the
+    /// iterate's last evaluation, and is empty when there is none for it. The
+    /// other evaluation-derived fields are unmeasured (`g` empty, `f` and the
+    /// shared diagnostics NaN): the exception may have arrived mid-evaluation. A
+    /// `solve()` that
     /// returns leaves it empty (default-constructed): the returned value is the
     /// result. Cleared at the start of every `solve()`; default-constructed
     /// before the first solve.
@@ -203,7 +196,8 @@ class SqpSolver {
     /// (under `kIncludeRestoration`) latches on this solver too; when it cuts the
     /// sub-solve short the solve ends `kInterrupted` at the point restoration was
     /// entered from (SolveResult::returned_pre_restoration_point), and a stop on
-    /// the sub-solve's converged row changes nothing. `kStopReturnBest` stops the
+    /// the sub-solve's converged row, or on a row the token already stopped it
+    /// at, changes nothing (the token's label stands). `kStopReturnBest` stops the
     /// same way and returns SolveResult::best_iterate instead (also from a
     /// restoration row); see docs/migration-0.2.md. A stop on the public call's
     /// own terminal row is a no-op. `SolveBudget::stop` is honoured at the same

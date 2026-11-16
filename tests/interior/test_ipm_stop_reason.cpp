@@ -200,18 +200,18 @@ hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols
         o.common.feasibility_tol = 0.02;
         o.common.feasibility_tol = 0.02;
         o.termination.complementarity_tol = 1.0e-8;
-        o.termination.acceptable_kkt_tol = 1.0e-6;
+        o.termination.acceptable_stationarity_tol = 1.0e-6;
         o.termination.acceptable_equality_tol = 0.2;
         o.termination.acceptable_inequality_tol = 0.2;
-        o.termination.acceptable_barrier_tol = 1.0e-6;
+        o.termination.acceptable_complementarity_tol = 1.0e-6;
         c.engine->set_options(std::move(o));
     }
     if (lift_div_tols) {
         auto o = c.engine->options();
-        o.termination.divergence_kkt_tol = 1.0e300;
+        o.termination.divergence_stationarity_tol = 1.0e300;
         o.termination.divergence_equality_tol = 1.0e300;
         o.termination.divergence_inequality_tol = 1.0e300;
-        o.termination.divergence_barrier_tol = 1.0e300;
+        o.termination.divergence_complementarity_tol = 1.0e300;
         c.engine->set_options(std::move(o));
     }
     {
@@ -391,10 +391,10 @@ make_anchor_only_solver(bool acceptable_tier_contains_the_iterate, bool restorat
     // thresholds; and pinched shut onto the convergence tolerances themselves,
     // where the fixture's ~5 constraint violation cannot fit.
     const double acc = acceptable_tier_contains_the_iterate ? 1.0e10 : 1.0e-6;
-    o.termination.acceptable_kkt_tol = acc;
+    o.termination.acceptable_stationarity_tol = acc;
     o.termination.acceptable_equality_tol = acc;
     o.termination.acceptable_inequality_tol = acc;
-    o.termination.acceptable_barrier_tol = acc;
+    o.termination.acceptable_complementarity_tol = acc;
     o.advanced.optimize_line_search_mode = ls;
     if (restoration_on) {
         o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;

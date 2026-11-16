@@ -14,8 +14,8 @@
 //
 //   READ HERE, AT THE DRIVER, AFTER A SOLVE. The driver's own K0 factor,
 //   through the hot handle a walk solve emits; and the two LAZY tiers' live
-//   factors, through `SqpSolver::ssn_tier_threads()` /
-//   `ipqp_tier_num_threads()` (added by M6 W5 T8.8 fix1 for exactly this,
+//   factors, through `detail::SqpSolverAccess::ssn_tier_threads()` /
+//   `ipqp_tier_threads()` (added by M6 W5 T8.8 fix1 for exactly this,
 //   astra I2 (a)). Those two read the engine THIS DRIVER built at first use, so
 //   deleting either driver-to-tier hand-off -- the `opts_.common.threads`
 //   argument at `SqpSolver::ssn_engine()` / `ipqp_engine()` -- fails the pins
@@ -485,10 +485,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // M8 DN-1d appended `dense_flagged_factorizations` and `dense_singular_refactors`, then
 // `dense_shifted_solve_refusals`, then `dense_shifted_k0_fallbacks`, then
 // `dense_shifted_terminations`; 92 until M8 DN-3a appended `dense_solve_residual_refusals`; 93
-// until M8 DN-3 appended `dense_factorizations`; 94 since M8 kopt-1x appended
-// `optimal_row_gray_exits`.)
+// until M8 DN-3 appended `dense_factorizations`; 94 until M8 kopt-1x appended
+// `optimal_row_gray_exits`; 95 since M8 AP-5 G7 appended `payload_ignored`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 94 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 95 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -585,12 +585,13 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, dense_solve_residual_refusals);
     HVEN_EXPECT_SAME(a, b, dense_factorizations);
     HVEN_EXPECT_SAME(a, b, optimal_row_gray_exits);
+    HVEN_EXPECT_SAME(a, b, payload_ignored);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }
 
 // The deterministic half of the result object itself. The two TIMING fields
-// (`wall_seconds`, `engine_seconds`) are deliberately NOT compared: CLAUDE.md
+// (`wall_seconds`, `timing.engine_seconds`) are deliberately NOT compared: CLAUDE.md
 // section 7 makes wall clock informational, and comparing it here would make
 // this pin a clock test. `export_snapshot_` is the ingest payload, compared
 // through nothing here because the histories and counters above already carry
@@ -666,22 +667,24 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
         SqpSolver driver(base_options(mode, 0));
         // PREMISE: neither lazy tier exists before the solve, so a reading of 0
         // after it is the engine THIS SOLVE built and not a default.
-        ASSERT_EQ(driver.ssn_tier_threads(), -1);
-        ASSERT_EQ(driver.ipqp_tier_threads(), -1);
+        ASSERT_EQ(hven::detail::SqpSolverAccess::ssn_tier_threads(driver), -1);
+        ASSERT_EQ(hven::detail::SqpSolverAccess::ipqp_tier_threads(driver), -1);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         if (mode == QpMode::kWalk) {
             EXPECT_EQ(driver_k0_num_threads(sol), 0) << "the driver's own K0 factor";
         }
         if (mode == QpMode::kSsn) {
-            ASSERT_NE(driver.ssn_tier_threads(), -1)
+            ASSERT_NE(hven::detail::SqpSolverAccess::ssn_tier_threads(driver), -1)
                 << "PREMISE: the kSsn solve built the SSN tier";
-            EXPECT_EQ(driver.ssn_tier_threads(), 0) << "the driver's own SSN tier factor";
+            EXPECT_EQ(hven::detail::SqpSolverAccess::ssn_tier_threads(driver), 0)
+                << "the driver's own SSN tier factor";
         }
         if (mode == QpMode::kIpqp) {
-            ASSERT_NE(driver.ipqp_tier_threads(), -1)
+            ASSERT_NE(hven::detail::SqpSolverAccess::ipqp_tier_threads(driver), -1)
                 << "PREMISE: the kIpm solve built the IPQP tier";
-            EXPECT_EQ(driver.ipqp_tier_threads(), 0) << "the driver's own IPQP tier factor";
+            EXPECT_EQ(hven::detail::SqpSolverAccess::ipqp_tier_threads(driver), 0)
+                << "the driver's own IPQP tier factor";
         }
         EXPECT_EQ(max_threads_now(), before) << "nothing was left behind";
     }
@@ -776,13 +779,16 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
         SCOPED_TRACE(::testing::Message() << "lazy tier, qp_mode " << static_cast<int>(mode));
         hven::test_support::Hs76Model tier_model;
         SqpSolver tier_driver(base_options(mode, kAskedFor));
-        ASSERT_EQ(tier_driver.ssn_tier_threads(), -1) << "PREMISE: lazy, not yet built";
-        ASSERT_EQ(tier_driver.ipqp_tier_threads(), -1) << "PREMISE: lazy, not yet built";
+        ASSERT_EQ(hven::detail::SqpSolverAccess::ssn_tier_threads(tier_driver), -1)
+            << "PREMISE: lazy, not yet built";
+        ASSERT_EQ(hven::detail::SqpSolverAccess::ipqp_tier_threads(tier_driver), -1)
+            << "PREMISE: lazy, not yet built";
         const SqpResult tier_sol =
             tier_driver.solve(hven::detail::problem_ref(tier_model), (tier_model).start_point());
         ASSERT_EQ(tier_sol.status, SolveStatus::kOptimal);
         const int tier_threads =
-            mode == QpMode::kSsn ? tier_driver.ssn_tier_threads() : tier_driver.ipqp_tier_threads();
+            mode == QpMode::kSsn ? hven::detail::SqpSolverAccess::ssn_tier_threads(tier_driver)
+                                 : hven::detail::SqpSolverAccess::ipqp_tier_threads(tier_driver);
         ASSERT_NE(tier_threads, -1) << "PREMISE: this solve built the tier it names";
         EXPECT_EQ(tier_threads, kAskedFor)
             << "SqpOptions::common.threads reached the tier engine the DRIVER built";

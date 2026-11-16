@@ -9457,9 +9457,9 @@ TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime)
 
     // The `> 0` is a liveness pin: a solve that ran majors took measurable
     // time, so a zero here means the field was never written.
-    EXPECT_TRUE(std::isfinite(sol.engine_seconds));
-    EXPECT_GE(sol.engine_seconds, 0.0);
-    EXPECT_GT(sol.engine_seconds, 0.0) << "the field was not populated";
+    EXPECT_TRUE(std::isfinite(sol.timing.engine_seconds));
+    EXPECT_GE(sol.timing.engine_seconds, 0.0);
+    EXPECT_GT(sol.timing.engine_seconds, 0.0) << "the field was not populated";
 }
 
 // The non-finite-iterate exit: nothing was measured at the returned point, so
@@ -9487,8 +9487,8 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementIsNaNAtAnUnevaluablePoint) {
 
     // The wall time is still populated: the solve ran, it just could not
     // measure the model.
-    EXPECT_TRUE(std::isfinite(bad.engine_seconds));
-    EXPECT_GE(bad.engine_seconds, 0.0);
+    EXPECT_TRUE(std::isfinite(bad.timing.engine_seconds));
+    EXPECT_GE(bad.timing.engine_seconds, 0.0);
 }
 
 // The certified-infeasible exit: the four residuals measure the NLP's own KKT
@@ -9512,7 +9512,7 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasu
               std::max(sol.convergence.stationarity, sol.convergence.feasibility));
     EXPECT_TRUE(std::isfinite(sol.convergence.stationarity));
     EXPECT_TRUE(std::isfinite(sol.convergence.complementarity));
-    EXPECT_GE(sol.engine_seconds, 0.0);
+    EXPECT_GE(sol.timing.engine_seconds, 0.0);
 }
 
 // ===========================================================================

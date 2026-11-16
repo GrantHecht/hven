@@ -154,7 +154,7 @@ int main() {
     print_result("IpmSolver", ipm_result);
     // Engine-specific extras live on IpmResult.
     std::printf("kkt_inf         %.2e   (the interior-point engine's own measure)\n",
-                ipm_result.convergence.kkt);
+                ipm_result.convergence.stationarity);
     std::printf("callbacks seen  %d\n", ipm_callbacks);
 
     // ---- SQP engine: callback + trace + counters ----

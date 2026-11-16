@@ -2417,7 +2417,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBu
     // claims. It brackets everything this call takes on -- the seam lay, the
     // warm ingest, solve_impl, the ledger record and the export snapshot --
     // and is a DIFFERENT boundary from `t0` below, which is this engine's
-    // older measurement and survives as engine_seconds.
+    // older measurement and survives as timing.engine_seconds.
     //
     // OR THE OUTER ENTRY'S OWN STAMP (M6 W5 T8.6 fix1), when a model-taking
     // overload delegated here: that call's boundary opened before its bridge
@@ -2495,7 +2495,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0,
     // it runs from this public entry -- after the argument refusals -- to the
     // return, so the seam lay, the warm ingest, the ledger record and the
     // export snapshot are all inside it. The older measurement survives
-    // unchanged as SqpResult::engine_seconds.
+    // unchanged as SqpResult::timing.engine_seconds.
     done.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return done;
@@ -2578,7 +2578,7 @@ SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
     // through, and it is also the only frame that HOLDS the measurement --
     // the clock brackets solve_impl from outside, so no exit inside it can
     // see its own duration.
-    out.engine_seconds = wall_seconds;
+    out.timing.engine_seconds = wall_seconds;
     // THE SHARED ITERATION COUNT (M6 W5 T8.4): the TOP-LEVEL major count.
     // Nested restoration majors are NOT added -- they are in `counters`, and
     // this field answers "how many majors did the solve I asked for take".
@@ -3992,6 +3992,10 @@ struct SqpSolverImpl::SolveState {
     // ---- the iterate, its multipliers and their evaluation ----------------
     Vec x, lambda_e, lambda_i;
     NlpEval ev;
+    // `ev` is not `x`'s evaluation: the commit's derivative refresh is in flight,
+    // or a restoration exit reported `x_r` without one. Read only by
+    // record_interrupted_solve, which then leaves `z` unmeasured (E2).
+    bool ev_lags_x = false;
 
     // ---- evaluation failure and the stop reason (M8 B5) --------------------
     // True until the first commit (or a restoration return) moves the iterate:
@@ -4695,6 +4699,9 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
         resolved_level = opts_.common.start_level;
     }
     out.counters.start_level_used = resolved_level;
+    // IGNORED AND COUNTED, as the interior-point engine's kCold rung (R7).
+    out.counters.payload_ignored =
+        (warm.valid && opts_.common.start_level == StartLevel::kCold) ? 1 : 0;
     // THE TWO INGEST PREDICATES. `warm_ingest` means "the values were taken"
     // and is true from kSeeded up. `warm_state_ingest` carries what a seeded
     // object may not claim: the globalization/regularization state gated at
@@ -6451,7 +6458,14 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // converged terminal row -- leaves its verdict alone (converged beats stop):
     // on the exits below it is a no-op, and on a resume the latch ends the solve at
     // the restored point at the next boundary.
-    if (rs.status == SolveStatus::kInterrupted && !st.interrupted) {
+    //
+    // THE SUB-SOLVE'S OWN LABEL DECIDES (G7, the depth-0 rule): when the token
+    // ended it, an answer the callback gave on its token-stopped terminal row
+    // (which latched this driver through the forwarder) relabels nothing, so no
+    // best is returned either (the exits read `token_exit` first), exactly as
+    // the same answer on this driver's own token-stopped row is a no-op.
+    if (rs.status == SolveStatus::kInterrupted &&
+        (!st.interrupted || sub_reason == StopReason::kStopRequested)) {
         st.interrupted = true;
         st.token_interrupt = true;
     }
@@ -6461,6 +6475,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // Puts the entry point back and marks the exit; called at both exits below.
     const auto return_entry_point = [&] {
         st.x = entry_stash.x;
+        st.ev_lags_x = false;
         st.lambda_e = entry_stash.lambda_e;
         st.lambda_i = entry_stash.lambda_i;
         st.at_start = entry_stash.at_start;
@@ -6625,6 +6640,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
                                  rs.status, kkt_r.feasibility);
     st.x = x_r;
+    st.ev_lags_x = true;
     st.at_start = false;
     // The point being reported is now the RESTORED point, which
     // no in-loop QpSolution (qs/seed) was ever solved at -- see
@@ -9276,10 +9292,12 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 // fixture), because nlp_model.h deliberately adds no third
                 // "derivatives only, values already known" entry point.
                 st.x = mj.x_trial;
+                st.ev_lags_x = true;
                 st.derivative_failure.clear();
                 refresh_derivatives_at(seam, mj.ev_trial, mj.x_trial, st.derivative_failure);
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
+                st.ev_lags_x = false;
                 // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) KEEPS the multipliers:
                 // the failed solve's are not trusted, so there is no new price. The
                 // kept ones were priced at the OLD x, so they are no certificate at
@@ -10200,6 +10218,25 @@ void SqpSolverImpl::record_interrupted_solve(SolveState &st,
         rows.feasibility_e = nan;
         rows.feasibility_i = nan;
         out.z.resize(0);
+        // EXCEPT `z` (E2, as the interior-point engine hands its bound duals back):
+        // the bound part of grad L at the returned x and multipliers, read off the
+        // iterate's own evaluation when that evaluation is the iterate's, complete
+        // and finite. A model call is never made here.
+        const Index n = seam.n();
+        const NlpEval &ev = st.ev;
+        if (!st.ev_lags_x && out.x.size() == n && rows.lambda_e.size() == seam.me() &&
+            rows.lambda_i.size() == seam.mi() && ev.all_finite && ev.grad.size() == n &&
+            ev.Je.rows() == seam.me() && ev.Je.cols() == n && ev.Ji.rows() == seam.mi() &&
+            ev.Ji.cols() == n) {
+            try {
+                const SqpKkt k = measure_kkt(seam, ev, st.x, st.lambda_e, st.lambda_i);
+                if (k.finite) {
+                    out.z = k.z;
+                }
+            } catch (...) {
+                out.z.resize(0); // the partial result stands without it
+            }
+        }
         out.f = nan;
         out.stationarity = nan;
         out.feasibility = nan;
@@ -10215,8 +10252,14 @@ void SqpSolverImpl::record_interrupted_solve(SolveState &st,
                 rows.lambda_i = (rows.lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
             }
         }
+        if (sc.active && out.z.size() > 0) {
+            out.z /= sc.obj;
+        }
         if (column_units_ != nullptr && out.x.size() == column_units_->size()) {
             out.x.array() *= column_units_->array();
+            if (out.z.size() == column_units_->size()) {
+                out.z.array() /= column_units_->array();
+            }
         }
         interrupted_result_ = std::move(out);
         interrupted_ready_ = true;

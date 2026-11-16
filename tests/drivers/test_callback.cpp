@@ -2309,10 +2309,10 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         for (hven::IpmSolver *s : {&with, &without}) {
             hven::IpmOptions o = quiet_ipm(*s);
             o.termination.acceptable_iterations = 1;
-            o.termination.acceptable_kkt_tol = acc;
+            o.termination.acceptable_stationarity_tol = acc;
             o.termination.acceptable_equality_tol = acc;
             o.termination.acceptable_inequality_tol = acc;
-            o.termination.acceptable_barrier_tol = acc;
+            o.termination.acceptable_complementarity_tol = acc;
             s->set_options(std::move(o));
         }
         {
@@ -2416,7 +2416,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         // surface -- status, the point, the three price blocks, the objective,
         // the four shared diagnostics, the four work counters and the history
         // length. Timing is excluded, and only timing: `wall_seconds` and
-        // `engine_seconds` are informational (CLAUDE.md section 7).
+        // `timing.engine_seconds` are informational (CLAUDE.md section 7).
         driver.clear_iteration_callback();
         const SqpResult again =
             driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
@@ -2517,8 +2517,9 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         EXPECT_TRUE(same_scalar(hven::detail::engine_rows(again).feasibility_i,
                                 hven::detail::engine_rows(baseline).feasibility_i));
         EXPECT_TRUE(same_scalar(again.complementarity, baseline.complementarity));
-        EXPECT_TRUE(same_scalar(again.convergence.kkt, baseline.convergence.kkt));
-        EXPECT_TRUE(same_scalar(again.convergence.barrier, baseline.convergence.barrier));
+        EXPECT_TRUE(same_scalar(again.convergence.stationarity, baseline.convergence.stationarity));
+        EXPECT_TRUE(
+            same_scalar(again.convergence.complementarity, baseline.convergence.complementarity));
         EXPECT_TRUE(same_scalar(again.convergence.equality, baseline.convergence.equality));
         EXPECT_TRUE(same_scalar(again.convergence.inequality, baseline.convergence.inequality));
         EXPECT_EQ(again.counters.soc_steps, baseline.counters.soc_steps);
@@ -2724,7 +2725,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
 // THE EXCLUSIONS, EVERY ONE NAMED (M7 W0 T2 fix1 re-check: an earlier draft of
 // this comment said "only wall readings", which was false). (1) Wall readings,
 // informational and never asserted (CLAUDE.md section 7): SolveResult's
-// `wall_seconds`, SqpResult's `engine_seconds`, IpmResult's six `*_time`
+// `wall_seconds`, SqpResult's `timing.engine_seconds`, IpmResult's six `*_time`
 // fields and IpmPhaseReport's `phase_seconds`. (2) NOT compared and carrying
 // no sizeof pin here: eight non-wall `SqpIterate` columns beyond the
 // trajectory-relevant set the history comparator enumerates,
@@ -2834,7 +2835,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(dense_shifted_terminations)                                                                  \
     X(dense_solve_residual_refusals)                                                               \
     X(dense_factorizations)                                                                        \
-    X(optimal_row_gray_exits)
+    X(optimal_row_gray_exits)                                                                      \
+    X(payload_ignored)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
@@ -2938,8 +2940,8 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // 1200 -> 1208 at M8 DN-1d r2 (`dense_shifted_k0_fallbacks`); 1208 -> 1216 at M8 DN-1d r3
     // (`dense_shifted_terminations`); 1216 -> 1224 at M8 DN-3a (`dense_solve_residual_refusals`);
     // 1224 -> 1232 at M8 DN-3 (`dense_factorizations`); 1232 -> 1240 at M8 kopt-1x
-    // (`optimal_row_gray_exits`).
-    static_assert(sizeof(hven::SqpCounters) == 1240,
+    // (`optimal_row_gray_exits`); 1240 -> 1248 at M8 AP-5 G7 (`payload_ignored`).
+    static_assert(sizeof(hven::SqpCounters) == 1248,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");
@@ -3042,8 +3044,8 @@ void expect_same_ipm_solve(const hven::IpmResult &a, const hven::IpmResult &b) {
     EXPECT_TRUE(bit_equal(a.internal_fixed_ce, b.internal_fixed_ce)) << "internal_fixed_ce";
     EXPECT_TRUE(bit_equal(a.internal_fixed_lambda_e, b.internal_fixed_lambda_e))
         << "internal_fixed_lambda_e";
-    HVEN_T2_EXPECT_BITS(convergence.kkt);
-    HVEN_T2_EXPECT_BITS(convergence.barrier);
+    HVEN_T2_EXPECT_BITS(convergence.stationarity);
+    HVEN_T2_EXPECT_BITS(convergence.complementarity);
     HVEN_T2_EXPECT_BITS(convergence.equality);
     HVEN_T2_EXPECT_BITS(convergence.inequality);
     EXPECT_EQ(a.factor_memory, b.factor_memory);
@@ -4286,6 +4288,7 @@ struct IpmBlockMax {
     Index trials = 0;
     Index corrections = 0;
     double dual = 0.0;
+    Index counted = 0; // IpmCounters::inertia_corrections
 };
 
 IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const Vec &x0,
@@ -4325,7 +4328,15 @@ IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const
         max_trials = std::max<Index>(max_trials, info.line_search_trials);
         max_corrections = std::max<Index>(max_corrections, info.inertia_corrections);
     }
-    return {max_trials, max_corrections, max_dual};
+    // M8 AP-5 G7: the counter is the rows' ladder counts summed (no row here is a
+    // -1 sentinel, and no iteration is abandoned).
+    Index row_sum = 0;
+    for (const hven::IpmIterate &row : sink.rows) {
+        EXPECT_GE(row.h_facs, 0);
+        row_sum += std::max(row.h_facs, 0);
+    }
+    EXPECT_EQ(r.counters.inertia_corrections, row_sum);
+    return {max_trials, max_corrections, max_dual, r.counters.inertia_corrections};
 }
 
 } // namespace
@@ -4344,6 +4355,7 @@ TEST(CallbackPayload, IpmBlockCarriesBacktracksAndInertiaCorrections) {
     const auto duplicate =
         expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start);
     EXPECT_GT(duplicate.corrections, 0) << "non-vacuous: the inertia ladder ran";
+    EXPECT_GT(duplicate.counted, 0) << "IpmCounters::inertia_corrections counted the ladder";
     const auto proximal =
         expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start, true);
     EXPECT_GT(proximal.dual, 0.0) << "non-vacuous: the proximal mode shifted the constraint rows";

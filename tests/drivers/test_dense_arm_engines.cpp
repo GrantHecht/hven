@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -386,6 +387,24 @@ struct IllConditionedDiagonalProblem final : hven::Nlp {
 };
 
 } // namespace
+
+// M8 AP-5 G7: IpmCounters::inertia_corrections is the ladders' counts summed, the residual
+// guard's re-runs included (they land in the row's h_facs too).
+TEST(DenseArmEngines, InertiaCorrectionsCountTheResidualGuardsReRuns) {
+    Eigen::VectorXd x0(2);
+    x0 << 3.0, -1.0;
+    std::vector<hven::IpmIterate> rows;
+    const hven::IpmResult dense = solve_ipm_rows(
+        DensePolicy::kAlways, std::make_shared<NearDuplicateRowsProblem>(), x0, rows);
+    ASSERT_TRUE(success(dense.status));
+    ASSERT_GT(dense.counters.dense_solve_residual_refusals, 0) << "premise: the guard re-ran";
+    hven::Index row_sum = 0;
+    for (const hven::IpmIterate &row : rows) {
+        row_sum += std::max(row.h_facs, 0);
+    }
+    EXPECT_GT(row_sum, 0);
+    EXPECT_EQ(dense.counters.inertia_corrections, row_sum);
+}
 
 // M8 DN-3b: an exactly singular dense KKT is reported, not retaken on the platform session; the
 // ladder reads it singular, engages delta_c with its first delta_w rung, and refactors on the

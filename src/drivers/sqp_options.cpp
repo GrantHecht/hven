@@ -483,6 +483,12 @@ SqpOptions sqp_preset(std::string_view name) {
         fmt::format("Unrecognized SqpSolver preset '{}'. Valid options are: default", name));
 }
 
+SqpOptions worker_options(SqpOptions base) {
+    base.common.threads = 1;
+    base.common.verbosity = Verbosity::kSilent;
+    return base;
+}
+
 // =============================================================================
 // M7 W0 T5(b): the options dump.
 //

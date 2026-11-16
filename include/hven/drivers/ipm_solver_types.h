@@ -27,21 +27,25 @@ namespace hven {
 
 /// @brief The four scalars the interior-point convergence test gates on, with
 ///        IpmIterate's definitions, so each is directly comparable against its
-///        matching IpmOptions tolerance.
+///        matching IpmOptions tolerance, plus their feasibility summary.
 ///
-/// `kkt` and `barrier` carry IpmOptions::objective_scale; `equality` and
-/// `inequality` carry no scale, and nothing here is unscaled on the way out. On
-/// a restoration-active exit they describe the restoration subproblem, not the
-/// NLP. Last phase wins. NaN means UNMEASURED, never "zero residual".
+/// `stationarity` and `complementarity` carry IpmOptions::objective_scale;
+/// `equality`, `inequality` and `feasibility` carry no scale, and nothing here
+/// is unscaled on the way out. On a restoration-active exit they describe the
+/// restoration subproblem, not the NLP. Last phase wins. NaN means UNMEASURED,
+/// never "zero residual".
 struct IpmConvergence {
     /// inf-norm dual infeasibility (z-form) at the reported iterate.
-    double kkt = std::numeric_limits<double>::quiet_NaN();
+    double stationarity = std::numeric_limits<double>::quiet_NaN();
     /// Complementarity (barrier) error at the reported iterate.
-    double barrier = std::numeric_limits<double>::quiet_NaN();
+    double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// inf-norm equality-constraint residual; 0 when there are no equalities.
     double equality = std::numeric_limits<double>::quiet_NaN();
-    /// inf-norm inequality-constraint residual; 0 when there are no inequalities.
+    /// inf-norm slack-form inequality residual (rows and their slacks); 0 when none.
     double inequality = std::numeric_limits<double>::quiet_NaN();
+    /// max(equality, inequality), NaN if either is. Not SqpConvergence::feasibility's
+    /// norm (docs/migration-0.2.md, section G7).
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
 };
 
 /// @brief Where one interior-point call spent its wall-clock seconds.

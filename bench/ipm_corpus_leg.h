@@ -99,7 +99,7 @@ struct InteriorVariant {
     /// entry that replaced `stage_warm_start`. Both measured solves start from
     /// the SAME `x0` the base row uses, so `iter_num` is directly comparable
     /// against it, and that comparison is the leg's only observable for the
-    /// payload: this engine reports no `start_level_used`.
+    /// payload: the leg records no `start_level_used` column.
     ///
     ///   kPayload   the whole export -- point, multipliers, polish extension.
     ///   kSeed      the MULTIPLIERS-ONLY form: `primal_` and `bound_lmults_`

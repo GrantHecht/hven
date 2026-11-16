@@ -182,8 +182,9 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     {
         // cross-field: acceptable tol above its divergence tol
         IpmOptions o;
-        o.termination.divergence_kkt_tol = o.termination.acceptable_kkt_tol / 10.0;
-        expect_refused(o, "termination.acceptable_kkt_tol");
+        o.termination.divergence_stationarity_tol =
+            o.termination.acceptable_stationarity_tol / 10.0;
+        expect_refused(o, "termination.acceptable_stationarity_tol");
     }
     {
         // barrier ordering: min_mu above max_mu
@@ -258,6 +259,31 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
 
 // The defaults each engine's `common` carries. Silent on BOTH engines (owner
 // decision 4); the iteration cap and thread count are each engine's own.
+// M8 AP-5 G7 (E4): one worker preset name for both engines -- one backend thread and
+// silent output, every other field carried through.
+TEST(Options, WorkerOptionsPreparesEitherEngineTheSameWay) {
+    hven::IpmOptions ipm;
+    ipm.common.threads = 7;
+    ipm.common.verbosity = hven::Verbosity::kIterations;
+    ipm.common.max_iterations = 123;
+    const hven::IpmOptions iw = hven::worker_options(ipm);
+    EXPECT_EQ(iw.common.threads, 1);
+    EXPECT_EQ(iw.common.verbosity, hven::Verbosity::kSilent);
+    EXPECT_EQ(iw.common.max_iterations, 123);
+
+    hven::SqpOptions sqp;
+    sqp.common.threads = 7;
+    sqp.common.verbosity = hven::Verbosity::kIterations;
+    sqp.common.max_iterations = 123;
+    sqp.qp_mode = hven::QpMode::kSsn;
+    const hven::SqpOptions sw = hven::worker_options(sqp);
+    EXPECT_EQ(sw.common.threads, 1);
+    EXPECT_EQ(sw.common.verbosity, hven::Verbosity::kSilent);
+    EXPECT_EQ(sw.common.max_iterations, 123);
+    EXPECT_EQ(sw.qp_mode, hven::QpMode::kSsn);
+    EXPECT_NO_THROW(hven::validate(sw));
+}
+
 TEST(Options, CommonDefaultsAreEachEnginesOwn) {
     using hven::Verbosity;
     EXPECT_EQ(CommonOptions{}.threads, 0);

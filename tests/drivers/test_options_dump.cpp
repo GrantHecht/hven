@@ -254,6 +254,22 @@ TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
     EXPECT_EQ(text.substr(0, head.size()), head) << text;
 }
 
+// M8 AP-5 G7 (Q7): the four termination tolerances print under their renamed keys
+// (the field count, the layout and the line count above are unchanged by a rename).
+TEST(OptionsDump, TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames) {
+    const std::string text = dump_to_string(IpmOptions{});
+    for (const char *line : {"termination.acceptable_stationarity_tol = 0.01\n",
+                             "termination.acceptable_complementarity_tol = 0.001\n",
+                             "termination.divergence_stationarity_tol = 1000000000000000\n",
+                             "termination.divergence_complementarity_tol = 1000000000000000\n"}) {
+        EXPECT_NE(text.find(line), std::string::npos) << line << text;
+    }
+    for (const char *old : {"acceptable_kkt_tol", "acceptable_barrier_tol", "divergence_kkt_tol",
+                            "divergence_barrier_tol"}) {
+        EXPECT_EQ(text.find(old), std::string::npos) << old;
+    }
+}
+
 // The optional limits print their value once set.
 TEST(OptionsDump, EngagedLimitsPrintTheirValues) {
     SqpOptions o;

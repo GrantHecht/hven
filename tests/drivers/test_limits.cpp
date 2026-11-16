@@ -223,8 +223,8 @@ TEST(Limits, IpmValidateRefusesTheTerminationAndLinearValues) {
     }
     {
         IpmOptions o;
-        o.termination.complementarity_tol = 1e-1; // above acceptable_barrier_tol
-        expect_refused(o, "termination.acceptable_barrier_tol");
+        o.termination.complementarity_tol = 1e-1; // above acceptable_complementarity_tol
+        expect_refused(o, "termination.acceptable_complementarity_tol");
     }
     {
         IpmOptions o;

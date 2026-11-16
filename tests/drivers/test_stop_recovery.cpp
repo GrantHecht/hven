@@ -341,34 +341,54 @@ TEST(StopRecovery, T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint)
     }
 }
 
-// A CALLBACK stop on a `recovering` event returns the point that event showed:
-// the event must not be a lie.
-TEST(StopRecovery, T5BACallbackStopOnARecoveringEventReturnsTheShownPoint) {
+// A CALLBACK stop on a `recovering` event returns the restoration-entry point too
+// (M8 AP-5 G7: one rule for a stop in restoration, token or callback, as the SQP
+// engine already had), with or without a token installed: the callback alone arms
+// the entry stash.
+TEST(StopRecovery, T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint) {
     for (const RestoCase &m : kRestoCases) {
-        SCOPED_TRACE(m.label);
-        const Reference ref = run_reference(m, CallbackScope::kTopLevel);
-        ASSERT_TRUE(ref.any_recovering);
-        const Seen &shown = ref.seen[ref.first_recovering];
+        for (const bool with_token : {false, true}) {
+            SCOPED_TRACE(std::string(m.label) + (with_token ? " +token" : " callback only"));
+            const Reference ref = run_reference(m, CallbackScope::kTopLevel);
+            ASSERT_TRUE(ref.any_recovering);
+            const Seen &entry = ref.seen[ref.first_recovering - 1];
+            // The second recovering event (or the first if there is one): a point
+            // restoration moved to, not the entry iterate itself.
+            std::size_t stop_k = ref.first_recovering;
+            if (stop_k + 1 < ref.seen.size() && ref.seen[stop_k + 1].recovering) {
+                ++stop_k;
+            }
+            const Seen &shown = ref.seen[stop_k];
 
-        Problem problem(std::make_shared<InfeasibleDisc>(m.boxed));
-        IpmSolver solver(options(m.mode));
-        solver.set_iteration_callback(
-            [&](const IterationEvent &e) {
-                return e.recovering ? CallbackAction::kStop : CallbackAction::kContinue;
-            },
-            IterationPayload::kAll);
-        // A token is installed too, and never requested: the callback's stop wins
-        // the label and the shown point.
-        StopSource source;
-        SolveBudget budget;
-        budget.stop = source.token();
-        const IpmResult r = solver.solve(problem, start(), {}, budget);
+            Problem problem(std::make_shared<InfeasibleDisc>(m.boxed));
+            IpmSolver solver(options(m.mode));
+            std::size_t events = 0;
+            solver.set_iteration_callback(
+                [&](const IterationEvent &) {
+                    return events++ == stop_k ? CallbackAction::kStop : CallbackAction::kContinue;
+                },
+                IterationPayload::kAll);
+            StopSource source;
+            SolveBudget budget;
+            if (with_token) {
+                budget.stop = source.token(); // never requested: the callback's stop wins
+            }
+            const IpmResult r = solver.solve(problem, start(), {}, budget);
 
-        EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
-        EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
-        EXPECT_FALSE(r.returned_pre_restoration_point);
-        EXPECT_EQ(r.message.find("before feasibility restoration"), std::string::npos) << r.message;
-        EXPECT_TRUE(bit_equal(r.x, shown.x)) << "the point the callback was shown";
+            EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+            EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
+            EXPECT_EQ(events, stop_k + 1);
+            EXPECT_TRUE(r.returned_pre_restoration_point) << r.message;
+            EXPECT_NE(r.message.find("; returned the point before feasibility restoration"),
+                      std::string::npos)
+                << r.message;
+            EXPECT_TRUE(bit_equal(r.x, entry.x)) << "the entry point, not the shown one";
+            EXPECT_FALSE(bit_equal(r.x, shown.x) && bit_equal(r.lambda, shown.lambda));
+            EXPECT_TRUE(bit_equal(r.lambda, entry.lambda));
+            EXPECT_TRUE(bit_equal(r.z, entry.z));
+            EXPECT_TRUE(same_scalar(r.stationarity, entry.stationarity));
+            EXPECT_TRUE(same_scalar(r.feasibility, entry.feasibility));
+        }
     }
 }
 
@@ -452,7 +472,7 @@ TEST(StopRecovery, T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
         EXPECT_TRUE(same_scalar(armed.stationarity, plain.stationarity));
         EXPECT_TRUE(same_scalar(armed.feasibility, plain.feasibility));
         EXPECT_TRUE(same_scalar(armed.complementarity, plain.complementarity));
-        EXPECT_TRUE(same_scalar(armed.convergence.kkt, plain.convergence.kkt));
+        EXPECT_TRUE(same_scalar(armed.convergence.stationarity, plain.convergence.stationarity));
     }
 }
 

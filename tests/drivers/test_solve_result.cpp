@@ -609,7 +609,7 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     // THE TWO CLOCKS ARE DIFFERENT MEASUREMENTS, and both are present: the
     // base's runs from the public entry, the engine's around solve_impl alone,
     // so the first is never the smaller.
-    EXPECT_GE(r.wall_seconds, r.engine_seconds);
+    EXPECT_GE(r.wall_seconds, r.timing.engine_seconds);
     // The shared iteration count is the TOP-LEVEL major count.
     EXPECT_EQ(r.iterations, r.counters.major_iters);
 
@@ -1102,7 +1102,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     // The shared clock is present on the new overloads too, and is never the
     // smaller of the two measurements.
     EXPECT_GT(free_run.wall_seconds, 0.0);
-    EXPECT_GE(free_run.wall_seconds, free_run.engine_seconds);
+    EXPECT_GE(free_run.wall_seconds, free_run.timing.engine_seconds);
 }
 
 // ===========================================================================

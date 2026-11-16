@@ -100,20 +100,20 @@ struct IpmTerminationOptions {
     /// Consecutive iterates that must all sit inside the acceptable tolerances
     /// before a solve reports `kAcceptable`. Default 50. Must be >= 1.
     Index acceptable_iterations = 50;
-    /// Acceptable-level KKT tolerance. Default 1e-2.
-    double acceptable_kkt_tol = 1.0e-2;
+    /// Acceptable-level stationarity (dual infeasibility) tolerance. Default 1e-2.
+    double acceptable_stationarity_tol = 1.0e-2;
     /// Acceptable-level equality tolerance. Default 1e-3.
     double acceptable_equality_tol = 1.0e-3;
     /// Acceptable-level inequality tolerance. Default 1e-3.
     double acceptable_inequality_tol = 1.0e-3;
-    /// Acceptable-level barrier tolerance. Default 1e-3.
-    double acceptable_barrier_tol = 1.0e-3;
+    /// Acceptable-level complementarity tolerance. Default 1e-3.
+    double acceptable_complementarity_tol = 1.0e-3;
 
     /// Divergence thresholds, one per measure. Default 1e15 each.
-    double divergence_kkt_tol = 1.0e15;
+    double divergence_stationarity_tol = 1.0e15;
     double divergence_equality_tol = 1.0e15;
     double divergence_inequality_tol = 1.0e15;
-    double divergence_barrier_tol = 1.0e15;
+    double divergence_complementarity_tol = 1.0e15;
 };
 
 /// @brief The interior-point engine's research tier.
@@ -240,7 +240,7 @@ struct IpmOptions {
 
     /// Return the best-scoring iterate seen instead of the last, scored by
     /// `best_iterate_criterion`, except on an interrupted exit, which returns the point
-    /// the callback was shown (or, for `kStopReturnBest`, the best). Turning it on
+    /// the stop's rule names (or, for `kStopReturnBest`, the best). Turning it on
     /// arms SolveResult::best_iterate. Default false.
     bool return_best = false;
     /// Default `kEquality`.
@@ -302,6 +302,6 @@ void dump_options(const IpmOptions &o, std::ostream &os);
 
 /// @brief Returns @p base prepared for a worker context: one backend thread and
 ///        silent output. Every other field is carried through untouched.
-IpmOptions ipm_worker_options(IpmOptions base);
+IpmOptions worker_options(IpmOptions base);
 
 } // namespace hven

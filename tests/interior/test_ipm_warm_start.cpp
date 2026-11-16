@@ -2229,8 +2229,8 @@ WarmAnswer answer_of(const hven::IpmSolver &) {
     a.flag_ = r.status;
     a.iters_ = r.iterations;
     a.obj_ = r.f;
-    a.kkt_inf_ = r.convergence.kkt;
-    a.barr_inf_ = r.convergence.barrier;
+    a.kkt_inf_ = r.convergence.stationarity;
+    a.barr_inf_ = r.convergence.complementarity;
     a.econ_inf_ = r.convergence.equality;
     a.icon_inf_ = r.convergence.inequality;
     a.primals_ = r.x;

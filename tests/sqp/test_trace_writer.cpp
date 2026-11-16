@@ -2675,7 +2675,9 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 92 -> 93 at M8 DN-3, `dense_factorizations`, the same route, by one key.
     //
     // 93 -> 94 at M8 kopt-1x, `optimal_row_gray_exits`, the same route, by one key.
-    EXPECT_EQ(kSqpCountersFieldCount, 94u);
+    //
+    // 94 -> 95 at M8 AP-5 G7, `payload_ignored`, the same route, by one key.
+    EXPECT_EQ(kSqpCountersFieldCount, 95u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -3356,6 +3358,9 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // RE-DERIVED AT M8 kopt-1x, the same route: `optimal_row_gray_exits` after
     // `dense_factorizations`; the nested tables' distinct values shift up by one.
+    //
+    // RE-DERIVED AT M8 AP-5 G7, the same route: `payload_ignored` after
+    // `optimal_row_gray_exits`; the nested tables' distinct values shift up by one.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kWorkLimit, 42, c,
                                                 /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
                                                 /*columns_active=*/true, 2048.0});
@@ -3394,32 +3399,32 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "orizations\":87,\"dense_singular_refactors\":88,\"dense_shifted_solve_refusals"
               "\":89,\"dense_shifted_k0_fallbacks\":90,\"dense_shifted_terminations\":91,\"de"
               "nse_solve_residual_refusals\":92,\"dense_factorizations\":93,\"optimal_row_gra"
-              "y_exits\":94,\"ssn\":{\"ssn_iters\":95,\"ssn_bulk_flips\":96,\"ssn_backtracks"
-              "\":97,\"ssn_prox_updates\":98,\"ssn_escapes\":99,\"ssn_uncertain_peak\":100,\""
-              "ssn_refinements\":101,\"ssn_refine_refused\":102,\"ssn_refine_factorizations\""
-              ":103,\"ssn_refine_neg_duals\":104,\"ssn_sign_swept\":105,\"ssn_sign_sweep_max"
-              "\":106,\"ssn_escape_budget\":107,\"ssn_escape_singular\":108,\"ssn_escape_no_c"
-              "ontraction\":109,\"ssn_escape_infeasible_suspect\":110,\"ssn_escape_indefinite"
-              "\":111,\"ssn_escape_gate_refused\":112},\"ipqp\":{\"ipqp_iters\":113,\"ipqp_fa"
-              "ctorizations\":114,\"ipqp_symbolic_analyses\":115,\"ipqp_solves\":116,\"ipqp_p"
-              "attern_verifies\":117,\"ipqp_rho_demanded_max\":118,\"ipqp_rho_demanded_last\""
-              ":119,\"ipqp_inertia_retries\":120,\"ipqp_iters_at_elevated_rho\":121,\"ipqp_la"
-              "dder_reclimbs\":122,\"ipqp_pivot_reroute_primal\":123,\"ipqp_pivot_reroute_dua"
-              "l_fallback\":124,\"ipqp_iters_ladder_armed_no_advance\":125,\"ipqp_final_inert"
-              "ia_read\":126,\"ipqp_reg_decreases\":127,\"ipqp_reg_increases\":128,\"ipqp_pro"
-              "x_center_updates\":129,\"ipqp_restart_repairs\":130,\"ipqp_restart_shift_max\""
-              ":131,\"ipqp_mu_adopted\":132,\"ipqp_warm_restart_abandoned\":133,\"ipqp_declin"
-              "ed_pinned\":134,\"ipqp_tier_retired_after\":135,\"ipqp_face_uncertain\":136,\""
-              "ipqp_refine_accepted\":137,\"ipqp_refine_refused\":138,\"ipqp_to_refine\":139,"
-              "\"ipqp_to_ssn\":140,\"ipqp_to_walk\":141,\"ipqp_escapes\":142,\"ipqp_escape_bu"
-              "dget\":143,\"ipqp_escape_stall\":144,\"ipqp_escape_indefinite\":145,\"ipqp_esc"
-              "ape_numerical\":146,\"ipqp_escape_infeasible_suspect\":147,\"ipqp_alpha_p_min"
-              "\":148,\"ipqp_alpha_d_min\":149,\"ipqp_read_kept_tight_sides\":150,\"ipqp_read"
-              "_barrier_noise_sides\":151,\"ipqp_mu0_derived\":152,\"ipqp_mu0_fallbacks\":153"
-              ",\"ipqp_mu_floor_binds\":154,\"ipqp_ladder_zero_trial_skips\":155}},\"scaling_"
-              "active\":true,\"obj_scale\":0.25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"s"
-              "caled_kkt_residual\":7.4999999999999993e-09,\"columns_active\":true,\"col_spre"
-              "ad\":2048}\n");
+              "y_exits\":94,\"payload_ignored\":95,\"ssn\":{\"ssn_iters\":96,\"ssn_bulk_flips"
+              "\":97,\"ssn_backtracks\":98,\"ssn_prox_updates\":99,\"ssn_escapes\":100,\"ssn_"
+              "uncertain_peak\":101,\"ssn_refinements\":102,\"ssn_refine_refused\":103,\"ssn_"
+              "refine_factorizations\":104,\"ssn_refine_neg_duals\":105,\"ssn_sign_swept\":10"
+              "6,\"ssn_sign_sweep_max\":107,\"ssn_escape_budget\":108,\"ssn_escape_singular\""
+              ":109,\"ssn_escape_no_contraction\":110,\"ssn_escape_infeasible_suspect\":111,"
+              "\"ssn_escape_indefinite\":112,\"ssn_escape_gate_refused\":113},\"ipqp\":{\"ipq"
+              "p_iters\":114,\"ipqp_factorizations\":115,\"ipqp_symbolic_analyses\":116,\"ipq"
+              "p_solves\":117,\"ipqp_pattern_verifies\":118,\"ipqp_rho_demanded_max\":119,\"i"
+              "pqp_rho_demanded_last\":120,\"ipqp_inertia_retries\":121,\"ipqp_iters_at_eleva"
+              "ted_rho\":122,\"ipqp_ladder_reclimbs\":123,\"ipqp_pivot_reroute_primal\":124,"
+              "\"ipqp_pivot_reroute_dual_fallback\":125,\"ipqp_iters_ladder_armed_no_advance"
+              "\":126,\"ipqp_final_inertia_read\":127,\"ipqp_reg_decreases\":128,\"ipqp_reg_i"
+              "ncreases\":129,\"ipqp_prox_center_updates\":130,\"ipqp_restart_repairs\":131,"
+              "\"ipqp_restart_shift_max\":132,\"ipqp_mu_adopted\":133,\"ipqp_warm_restart_aba"
+              "ndoned\":134,\"ipqp_declined_pinned\":135,\"ipqp_tier_retired_after\":136,\"ip"
+              "qp_face_uncertain\":137,\"ipqp_refine_accepted\":138,\"ipqp_refine_refused\":1"
+              "39,\"ipqp_to_refine\":140,\"ipqp_to_ssn\":141,\"ipqp_to_walk\":142,\"ipqp_esca"
+              "pes\":143,\"ipqp_escape_budget\":144,\"ipqp_escape_stall\":145,\"ipqp_escape_i"
+              "ndefinite\":146,\"ipqp_escape_numerical\":147,\"ipqp_escape_infeasible_suspect"
+              "\":148,\"ipqp_alpha_p_min\":149,\"ipqp_alpha_d_min\":150,\"ipqp_read_kept_tigh"
+              "t_sides\":151,\"ipqp_read_barrier_noise_sides\":152,\"ipqp_mu0_derived\":153,"
+              "\"ipqp_mu0_fallbacks\":154,\"ipqp_mu_floor_binds\":155,\"ipqp_ladder_zero_tria"
+              "l_skips\":156}},\"scaling_active\":true,\"obj_scale\":0.25,\"row_scale_min\":0"
+              ".5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.4999999999999993e-09,\"column"
+              "s_active\":true,\"col_spread\":2048}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -3481,6 +3486,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // RE-DERIVED AT M8 DN-3a: `dense_solve_residual_refusals`, 0.
     // RE-DERIVED AT M8 DN-3: `dense_factorizations`, 0.
     // RE-DERIVED AT M8 kopt-1x: `optimal_row_gray_exits`, 0.
+    // RE-DERIVED AT M8 AP-5 G7: `payload_ignored`, 0.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical"
@@ -3516,30 +3522,30 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               "_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refus"
               "als\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"de"
               "nse_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_"
-              "exits\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,"
-              "\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refine"
-              "ments\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refin"
-              "e_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_bud"
-              "get\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape"
-              "_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused"
-              "\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_ana"
-              "lyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_ma"
-              "x\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_"
-              "elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\""
-              "ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,"
-              "\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":"
-              "0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shi"
-              "ft_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_decl"
-              "ined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"i"
-              "pqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_"
-              "to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ip"
-              "qp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,"
-              "\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_"
-              "min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":"
-              "0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\""
-              "ipqp_ladder_zero_trial_skips\":0}},\"scaling_active\":false,\"obj_scale\":1,\""
-              "row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_acti"
-              "ve\":false,\"col_spread\":1}\n");
+              "exits\":0,\"payload_ignored\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,"
+              "\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_"
+              "peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factoriza"
+              "tions\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max"
+              "\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contrac"
+              "tion\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn"
+              "_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0"
+              ",\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\""
+              "ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries"
+              "\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_"
+              "reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_"
+              "armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\""
+              "ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\""
+              ":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_aban"
+              "doned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_f"
+              "ace_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_"
+              "to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_e"
+              "scape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_e"
+              "scape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":"
+              "null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_ba"
+              "rrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_m"
+              "u_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"scaling_active\":fals"
+              "e,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residua"
+              "l\":0,\"columns_active\":false,\"col_spread\":1}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {

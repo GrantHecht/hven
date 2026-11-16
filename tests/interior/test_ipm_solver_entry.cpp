@@ -704,7 +704,7 @@ TEST(IpmSolverEntry, AStartPointOfTheWrongSizeIsRefused) {
 
 // THE WORKER PREPARATION, in place of the jet lifecycle (M6 W5 T8.9). The
 // retired jet_initialize() set exactly one backend thread and print level 10,
-// and forced a single partition; ipm_worker_options is the first two, and the
+// and forced a single partition; worker_options is the first two, and the
 // partition count is the PROGRAM's -- which is why the test reads it off the
 // program rather than off the preset.
 TEST(WorkerOptions, JetPreparationEquivalent) {
@@ -715,7 +715,7 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     base.common.verbosity = hven::Verbosity::kIterations;
     base.common.max_iterations = 123;
     base.objective_scale = 2.5;
-    const hven::IpmOptions worker = hven::ipm_worker_options(base);
+    const hven::IpmOptions worker = hven::worker_options(base);
     EXPECT_EQ(worker.common.threads, 1);
     EXPECT_EQ(worker.common.verbosity, hven::Verbosity::kSilent);
     EXPECT_EQ(worker.common.max_iterations, 123);
@@ -727,7 +727,7 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     //     it and the solver reports it.
     const auto program = hven::detail::make_nlp_program(std::make_shared<EqOnlyProblem>());
     hven::IpmSolver solver;
-    solver.set_options(hven::ipm_worker_options(solver.options()));
+    solver.set_options(hven::worker_options(solver.options()));
     EXPECT_EQ(solver.options().common.threads, 1);
     EXPECT_EQ(solver.options().common.verbosity, hven::Verbosity::kSilent);
 
@@ -830,7 +830,7 @@ TEST(IpmSolverEntry, PartitionCountAndQpThreadCountAreSetIndependently) {
         o.common.threads = 4;
         solver.set_options(std::move(o));
     }
-    solver.set_options(hven::ipm_worker_options(solver.options()));
+    solver.set_options(hven::worker_options(solver.options()));
     EXPECT_EQ(program->negotiate_partition_count(1), 1);
     EXPECT_EQ(solver.options().common.threads, 1);
     EXPECT_EQ(solver.options().common.verbosity, hven::Verbosity::kSilent);
@@ -1261,19 +1261,19 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
     const auto &settings = solver.options();
 
-    EXPECT_TRUE(std::isfinite(result.convergence.kkt));
-    EXPECT_TRUE(std::isfinite(result.convergence.barrier));
+    EXPECT_TRUE(std::isfinite(result.convergence.stationarity));
+    EXPECT_TRUE(std::isfinite(result.convergence.complementarity));
     EXPECT_TRUE(std::isfinite(result.convergence.equality));
     EXPECT_TRUE(std::isfinite(result.convergence.inequality));
 
-    EXPECT_LT(result.convergence.kkt, settings.common.optimality_tol);
-    EXPECT_LT(result.convergence.barrier, effective_complementarity_tol(settings));
+    EXPECT_LT(result.convergence.stationarity, settings.common.optimality_tol);
+    EXPECT_LT(result.convergence.complementarity, effective_complementarity_tol(settings));
     EXPECT_LT(result.convergence.equality, settings.common.feasibility_tol);
     EXPECT_LT(result.convergence.inequality, settings.common.feasibility_tol);
 
     // A residual is a norm: never negative, whatever the exit.
-    EXPECT_GE(result.convergence.kkt, 0.0);
-    EXPECT_GE(result.convergence.barrier, 0.0);
+    EXPECT_GE(result.convergence.stationarity, 0.0);
+    EXPECT_GE(result.convergence.complementarity, 0.0);
     EXPECT_GE(result.convergence.equality, 0.0);
     EXPECT_GE(result.convergence.inequality, 0.0);
 
@@ -1288,8 +1288,8 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     // gates.
     result = solver.solve(hven::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
-    EXPECT_LT(result.convergence.kkt, settings.common.optimality_tol);
-    EXPECT_LT(result.convergence.barrier, effective_complementarity_tol(settings));
+    EXPECT_LT(result.convergence.stationarity, settings.common.optimality_tol);
+    EXPECT_LT(result.convergence.complementarity, effective_complementarity_tol(settings));
     EXPECT_LT(result.convergence.equality, settings.common.feasibility_tol);
     EXPECT_LT(result.convergence.inequality, settings.common.feasibility_tol);
 }
@@ -1428,11 +1428,11 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
 
     // THE PIN: the four residuals are the LAST iterate's -- the one the result
     // describes on a converged exit -- and not the best-scoring one's.
-    EXPECT_EQ(result.convergence.kkt, rows[last].kkt_inf);
-    EXPECT_EQ(result.convergence.barrier, rows[last].barr_inf);
+    EXPECT_EQ(result.convergence.stationarity, rows[last].kkt_inf);
+    EXPECT_EQ(result.convergence.complementarity, rows[last].barr_inf);
     EXPECT_EQ(result.convergence.equality, rows[last].econ_inf);
     EXPECT_EQ(result.convergence.inequality, rows[last].icon_inf);
-    EXPECT_NE(result.convergence.kkt, rows[best].kkt_inf);
+    EXPECT_NE(result.convergence.stationarity, rows[best].kkt_inf);
 
     // AND THE OBJECTIVE AGREES WITH THEM: one point, one set of numbers. The
     // scale is 1 here, so obj_val_ is prim_obj_ unmodified.
@@ -1448,8 +1448,8 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
 // retired result() read from too, before its first solve.
 TEST(IpmSolverEntry, TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured) {
     const hven::IpmResult result;
-    EXPECT_TRUE(std::isnan(result.convergence.kkt));
-    EXPECT_TRUE(std::isnan(result.convergence.barrier));
+    EXPECT_TRUE(std::isnan(result.convergence.stationarity));
+    EXPECT_TRUE(std::isnan(result.convergence.complementarity));
     EXPECT_TRUE(std::isnan(result.convergence.equality));
     EXPECT_TRUE(std::isnan(result.convergence.inequality));
 }

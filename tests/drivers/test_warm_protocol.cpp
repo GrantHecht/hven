@@ -297,8 +297,9 @@ void expect_same_reported_numbers(const hven::IpmResult &a, const hven::IpmResul
     EXPECT_TRUE(bits_equal("feasibility", a.feasibility, b.feasibility));
     EXPECT_TRUE(bits_equal("complementarity", a.complementarity, b.complementarity));
     // The engine's own four.
-    EXPECT_TRUE(bits_equal("kkt_inf", a.convergence.kkt, b.convergence.kkt));
-    EXPECT_TRUE(bits_equal("barr_inf", a.convergence.barrier, b.convergence.barrier));
+    EXPECT_TRUE(bits_equal("kkt_inf", a.convergence.stationarity, b.convergence.stationarity));
+    EXPECT_TRUE(
+        bits_equal("barr_inf", a.convergence.complementarity, b.convergence.complementarity));
     EXPECT_TRUE(bits_equal("econ_inf", a.convergence.equality, b.convergence.equality));
     EXPECT_TRUE(bits_equal("icon_inf", a.convergence.inequality, b.convergence.inequality));
 
@@ -749,6 +750,9 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     // THE COUNT, which is the whole point of not ignoring it silently.
     EXPECT_EQ(ignored.counters.payload_ignored, 1);
     EXPECT_EQ(no_payload.counters.payload_ignored, 0);
+    // Nothing applied, so the level is kCold on both (M8 AP-5 G7).
+    EXPECT_EQ(ignored.counters.start_level_used, StartLevel::kCold);
+    EXPECT_EQ(no_payload.counters.start_level_used, StartLevel::kCold);
     // Not `polish_ignored`: nothing of the payload was READ at this rung, and
     // payload_ignored is this call's answer.
     EXPECT_EQ(ignored.counters.polish_ignored, 0);
@@ -771,6 +775,45 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     EXPECT_THROW((void)other.solve(hven::detail::problem_ref(*other_program), Vec::Zero(3),
                                    exported.payload),
                  std::invalid_argument);
+}
+
+// THE SQP ENGINE COUNTS AN IGNORED WARM START TOO (M8 AP-5 G7, R7): a non-empty
+// payload or native object under a kCold ceiling reads payload_ignored 1, and a
+// ceiling that admits it reads 0, as on the interior-point engine.
+TEST(WarmProtocol, SqpColdCeilingCountsTheIgnoredWarmStart) {
+    const Hs071Export exported;
+    const Vec x0 = hs071_start();
+    const auto solve_payload = [&](StartLevel ceiling, const WarmStart &warm) {
+        SqpView view(exported.problem);
+        SqpOptions o = quiet_sqp();
+        o.common.start_level = ceiling;
+        SqpSolver driver{o};
+        return driver.solve(hven::detail::problem_ref(*view.bridge), x0, warm);
+    };
+    const SqpResult ignored = solve_payload(StartLevel::kCold, exported.payload);
+    EXPECT_EQ(ignored.status, SolveStatus::kOptimal);
+    EXPECT_EQ(ignored.counters.payload_ignored, 1);
+    EXPECT_EQ(ignored.counters.start_level_used, StartLevel::kCold);
+    const SqpResult taken = solve_payload(StartLevel::kWarm, exported.payload);
+    EXPECT_EQ(taken.counters.payload_ignored, 0);
+    EXPECT_NE(taken.counters.start_level_used, StartLevel::kCold);
+    const SqpResult none = solve_payload(StartLevel::kCold, WarmStart{});
+    EXPECT_EQ(none.counters.payload_ignored, 0) << "an empty warm start is no payload";
+
+    // The native route, from a converged SQP solve's own export.
+    SqpView view(exported.problem);
+    SqpSolver producer{quiet_sqp()};
+    const SqpResult produced = producer.solve(hven::detail::problem_ref(*view.bridge), x0);
+    ASSERT_EQ(produced.status, SolveStatus::kOptimal);
+    for (const StartLevel ceiling : {StartLevel::kCold, StartLevel::kWarm}) {
+        SqpOptions o = quiet_sqp();
+        o.common.start_level = ceiling;
+        SqpSolver driver{o};
+        const SqpResult r =
+            driver.solve(hven::detail::problem_ref(*view.bridge), x0, produced.sqp_warm_start);
+        EXPECT_EQ(r.counters.payload_ignored, ceiling == StartLevel::kCold ? 1 : 0)
+            << "ceiling ordinal " << static_cast<int>(ceiling);
+    }
 }
 
 // THE STAMP CHECK AT A kCold CEILING, PINNED ON ITS OWN (M6 W5 T8.5 fix1).
@@ -855,16 +898,19 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
     EXPECT_EQ(seeded.counters.payload_ignored, 0);
     EXPECT_EQ(seeded.counters.polish_ignored, 1)
         << "at kSeeded the point and the polish are dropped";
+    EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded) << "the multipliers applied";
 
     const hven::IpmResult warm = solve_at(StartLevel::kWarm);
     EXPECT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.payload_ignored, 0);
     EXPECT_EQ(warm.counters.polish_ignored, 0) << "at kWarm the whole payload applies";
+    EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
 
     const hven::IpmResult hot = solve_at(StartLevel::kHot);
     EXPECT_EQ(hot.status, SolveStatus::kOptimal);
     EXPECT_EQ(hot.counters.payload_ignored, 0);
     EXPECT_EQ(hot.counters.polish_ignored, 0);
+    EXPECT_EQ(hot.counters.start_level_used, StartLevel::kWarm) << "no hot handle to adopt";
 
     // kHot IS kWarm on this engine, asserted rather than merely documented:
     // there is no hot handle to adopt, so the two rungs must agree in every

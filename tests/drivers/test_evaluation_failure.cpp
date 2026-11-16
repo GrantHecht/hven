@@ -41,6 +41,7 @@
 
 #include "drivers/support/hs071_problem.h"
 #include "hven/core/errors.h"
+#include "hven/core/stop.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
@@ -637,6 +638,53 @@ TEST(ForeignException, TheInteriorPointEngineNoLongerAbsorbsAStandardException) 
     IpmSolver solver(quiet_ipm());
     EXPECT_THROW(solver.solve(problem, hs071_start()), std::domain_error);
     EXPECT_EQ(solver.last_result().status, SolveStatus::kInterrupted);
+}
+
+// --- T11 (M8 AP-5 G7, E2): a throw after a stop request ------------------------
+//
+// The callback requests a stop through the token and then throws: the exception
+// contract wins (it propagates, last_result() is kInterrupted with kException), and
+// last_result() hands back the bound multipliers on BOTH engines. On the SQP they
+// are the ones the throwing event showed: the same point, the same evaluation.
+TEST(InterruptKinds, T11AThrowAfterAStopRequestKeepsTheExceptionContractAndHandsBackZ) {
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        SCOPED_TRACE(name(e));
+        hven::StopSource source;
+        hven::SolveBudget budget;
+        budget.stop = source.token();
+        Eigen::VectorXd shown_z;
+        const auto request_then_throw = [&](const IterationEvent &ev) {
+            if (ev.iteration >= 2) {
+                shown_z = ev.z;
+                source.request_stop();
+                throw Sentinel(kSentinelToken);
+            }
+            return CallbackAction::kContinue;
+        };
+        Problem problem(std::make_shared<Hs071Problem>());
+        const auto check = [&](auto &solver) {
+            solver.set_iteration_callback(request_then_throw, hven::IterationPayload::kVectors);
+            EXPECT_THROW((void)solver.solve(problem, hs071_start(), {}, budget), Sentinel);
+            const auto &partial = solver.last_result();
+            EXPECT_EQ(partial.status, SolveStatus::kInterrupted);
+            EXPECT_EQ(partial.stop_reason, StopReason::kException);
+            ASSERT_EQ(partial.z.size(), 4) << "the bound multipliers at the returned point";
+            EXPECT_TRUE(partial.z.allFinite());
+            ASSERT_EQ(shown_z.size(), 4);
+        };
+        if (e == Engine::kIpm) {
+            IpmSolver solver(quiet_ipm());
+            check(solver);
+        } else {
+            SqpSolver solver(quiet_sqp());
+            check(solver);
+            const SqpResult &partial = solver.last_result();
+            ASSERT_EQ(partial.x.size(), 4);
+            for (Eigen::Index j = 0; j < 4; ++j) {
+                EXPECT_EQ(partial.z[j], shown_z[j]) << "z[" << j << "]";
+            }
+        }
+    }
 }
 
 // --- a callback-requested stop and an escaped exception are told apart ----------
@@ -1363,8 +1411,8 @@ TEST(RiderReturnBest, ANonFiniteAbortWithABestIterateReturnsItInFull) {
     // ... and every residual column describes it: the equality row is
     // sum x^2 = 40 at the returned x.
     const double equality = std::abs(r.x.squaredNorm() - 40.0);
-    EXPECT_TRUE(std::isfinite(r.convergence.kkt));
-    EXPECT_TRUE(std::isfinite(r.convergence.barrier));
+    EXPECT_TRUE(std::isfinite(r.convergence.stationarity));
+    EXPECT_TRUE(std::isfinite(r.convergence.complementarity));
     EXPECT_TRUE(std::isfinite(r.convergence.inequality));
     EXPECT_NEAR(r.convergence.equality, equality, 1e-9 * std::max(1.0, equality))
         << "the equality column is the returned x's";

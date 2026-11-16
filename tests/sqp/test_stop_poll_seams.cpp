@@ -1185,8 +1185,9 @@ RestoAskRun run_resto_asking_best(const CircleLineStopOnJacobian &model, StopSou
 // The same inside the restoration sub-solve: a stop abandoning one of its subproblems,
 // with kStopReturnBest answered on the sub-solve's abandoned row (a depth-1 event), ends
 // the solve exactly as the stop seen at that sub-major's exit test does, with the same
-// callback. Both reach G3's depth-1 rule through the sub-solve's one stop exit: the
-// answer latches the parent, so the parent's exit is the callback's and returns its best.
+// callback. Both reach the sub-solve's one stop exit, and (M8 AP-5 G7) the sub-solve's own
+// label decides: the token ended it, so the answer is the no-op it is at depth 0 -- the
+// parent's exit is the token's and returns the restoration-entry point, not its best.
 TEST(StopPollSeam, T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop) {
     const SeamReset reset;
     CircleLineStopOnJacobian dry_model;
@@ -1247,11 +1248,11 @@ TEST(StopPollSeam, T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTest
     EXPECT_TRUE(bit_equal(r.lambda, t.lambda));
     EXPECT_TRUE(bit_equal(r.z, t.z));
     expect_same_best(r, t);
-    // G3's depth-1 rule: the latch the depth-1 answer raised labels the parent's exit the
-    // callback's, which returns the parent's best rather than the restoration-entry point.
-    EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
-    EXPECT_TRUE(r.returned_best_iterate) << r.message;
-    EXPECT_FALSE(r.returned_pre_restoration_point);
+    // G7: a token stop that already ended the sub-solve is not relabelled by the depth-1
+    // answer, at any depth: the token's label and the restoration-entry point.
+    EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
+    EXPECT_FALSE(r.returned_best_iterate) << r.message;
+    EXPECT_TRUE(r.returned_pre_restoration_point) << r.message;
 }
 
 // The second-order correction's re-solve is not a safe point: the walk is not armed for

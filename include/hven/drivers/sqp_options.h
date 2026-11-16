@@ -953,4 +953,9 @@ SqpOptions sqp_preset(std::string_view name);
 /// @param os The stream, borrowed: this call neither flushes nor closes it.
 void dump_options(const SqpOptions &o, std::ostream &os);
 
+/// @brief Returns @p base prepared for a worker context: one backend thread and
+///        silent output (`worker_options(IpmOptions)`'s counterpart). Every other
+///        field is carried through untouched.
+SqpOptions worker_options(SqpOptions base);
+
 } // namespace hven

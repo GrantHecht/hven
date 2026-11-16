@@ -404,3 +404,61 @@ declaration counted the corpus cells that are multi-phase and enter restoration 
 first leg.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g6/CATCH-UP.txt`.
+
+## G7 -- the remaining symmetry, and one stop rule in restoration
+
+Renames and moves, two new counters per engine-side gap, one throw-path field, and
+two stop-path behaviour changes. A solve nobody stops and nobody throws out of is
+bitwise unchanged.
+
+| before | after | rewrite |
+|---|---|---|
+| `IpmResult::convergence.kkt` | `convergence.stationarity` | rename (Q7): `SqpConvergence`'s word |
+| `IpmResult::convergence.barrier` | `convergence.complementarity` | rename (Q7) |
+| (none) | `IpmResult::convergence.feasibility` | new: `max(equality, inequality)`, NaN if either is |
+| `IpmOptions::termination.acceptable_kkt_tol` | `termination.acceptable_stationarity_tol` | rename (Q7); validation messages and `dump_options` lines follow |
+| `IpmOptions::termination.acceptable_barrier_tol` | `termination.acceptable_complementarity_tol` | rename (Q7) |
+| `IpmOptions::termination.divergence_kkt_tol` | `termination.divergence_stationarity_tol` | rename (Q7) |
+| `IpmOptions::termination.divergence_barrier_tol` | `termination.divergence_complementarity_tol` | rename (Q7) |
+| `SqpResult::engine_seconds` | `SqpResult::timing.engine_seconds` (`SqpTiming`) | prefix (R4); both results read `result.timing.*` |
+| `ipm_worker_options(o)` | `worker_options(o)` | rename (E4); a `worker_options(SqpOptions)` overload is new (threads 1, silent) |
+| `SqpSolver::ssn_tier_threads()`, `ipqp_tier_threads()` | `detail::SqpSolverAccess::ssn_tier_threads(solver)`, `ipqp_tier_threads(solver)` | moved off the public handle (E3); test introspection |
+| (none) | `SqpCounters::payload_ignored` | new (R7): 1 when a non-empty warm start (payload or native) was ignored because `common.start_level` is kCold; appended last, so `sqp.solve.end`'s counters object gains one trailing key |
+| (none) | `IpmCounters::start_level_used` | new (R7): the level the payload was applied at -- kWarm (its point), kSeeded (multipliers only, set when the phase they seed is reached), else kCold |
+| (none) | `IpmCounters::inertia_corrections` | new (design 2.1): inertia-correction factorizations the iteration ladders took, whole solve |
+| SQP `last_result().z` empty | the bound multipliers at the returned point | E2: read off the iterate's last evaluation (no model call); empty when the solve holds none for that point |
+
+Notes, so nobody looks for what is not there:
+
+- `IpmConvergence::feasibility` is NOT `SqpConvergence::feasibility`'s norm. The
+  interior-point `inequality` is the slack-form residual (each inequality row with
+  its slack), and the interior iterate never violates a variable bound; the SQP
+  measure is `max(|cE|, max(cI)+, bound violation)` in infinity norm. The two
+  definitions coincide only on a problem with equality rows and no bounds. For a
+  measure that is the same on both engines read the shared `SolveResult::feasibility`.
+- The trace keeps its column names (`kkt_inf`, `barr_inf`, `acc_kkt_tol`, ...);
+  renaming trace keys is the trace upgrade's.
+- `IpmCounters::start_level_used` never reads kHot (the engine has no hot handle).
+  It reads kCold on a seed whose phase never ran (a stop ended the sequence first,
+  or the sequence has no optimize phase).
+- `inertia_corrections` sums the ladder count each iteration's KKT factorization
+  returned (plus the dense guard's re-run), counted where it is returned, so an
+  iteration a restoration door then abandons still counts, and the `IpmIterate::h_facs`
+  sentinel -1 (non-finite direction) does not subtract. A ladder a stop token cut
+  short counts nothing (its factorizations are in `work.factorizations`).
+
+Behaviour changes (stop path only; a solve nobody stops is bitwise unchanged). One
+rule now holds on both engines and at every depth: **a stop that lands inside
+feasibility restoration returns the point restoration was entered from**, whether a
+token or a callback asked for it; and **a stop the token already decided is not
+relabelled by a callback's answer**.
+
+| before | after | rewrite |
+|---|---|---|
+| IPM: a callback `kStop` on a `recovering` event returned the restoration iterate it showed | returns the point restoration was entered from, as the token stop and the SQP already did: `returned_pre_restoration_point` true, the message suffix, the entry point's `warm_start` (no polish extension). `kStopReturnBest` with a recorded best still returns the best; with none, the entry point. The entry stash is now also taken when only a callback is installed | a consumer that wanted the restoration iterate takes `snapshot(event)` before returning `kStop` |
+| SQP: `kStop`/`kStopReturnBest` answered on a restoration sub-solve's terminal row that the token had already stopped labelled the parent's exit `kCallbackStop` and, under `kStopReturnBest`, returned the parent's best (G4's depth-1 rule) | the sub-solve's own label decides: `kStopRequested`, the restoration-entry point, `returned_best_iterate` false -- what the same answer does on the parent's own token-stopped row | none |
+
+G2's "open for the API revisit" line and G4's depth-1 `kStopReturnBest` sentence
+describe the behaviour before this group.
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g7/CATCH-UP.txt`.

@@ -248,8 +248,8 @@ void push_ipm_result_columns(const hven::detail::NonLinearProgram &program,
         {"watchdog_activations", static_cast<long long>(r.counters.watchdog_activations)});
     out.exact.push_back({"payload_ignored", static_cast<long long>(r.counters.payload_ignored)});
 
-    out.measures.push_back({"kkt_inf", r.convergence.kkt});
-    out.measures.push_back({"barr_inf", r.convergence.barrier});
+    out.measures.push_back({"kkt_inf", r.convergence.stationarity});
+    out.measures.push_back({"barr_inf", r.convergence.complementarity});
     out.measures.push_back({"econ_inf", r.convergence.equality});
     out.measures.push_back({"icon_inf", r.convergence.inequality});
 }

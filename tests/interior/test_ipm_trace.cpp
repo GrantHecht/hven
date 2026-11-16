@@ -1009,8 +1009,8 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const hven::IpmResult &b = bare_result;
     const int bare_iters = b.iterations;
     const double bare_obj = b.f;
-    const double bare_kkt = b.convergence.kkt;
-    const double bare_barr = b.convergence.barrier;
+    const double bare_kkt = b.convergence.stationarity;
+    const double bare_barr = b.convergence.complementarity;
     const double bare_econ = b.convergence.equality;
     const double bare_icon = b.convergence.inequality;
     const Eigen::VectorXd bare_x = bare_result.x;
@@ -1033,8 +1033,8 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     EXPECT_EQ(traced_flag, bare_flag);
     EXPECT_EQ(t.iterations, bare_iters);
     EXPECT_EQ(t.f, bare_obj);
-    EXPECT_EQ(t.convergence.kkt, bare_kkt);
-    EXPECT_EQ(t.convergence.barrier, bare_barr);
+    EXPECT_EQ(t.convergence.stationarity, bare_kkt);
+    EXPECT_EQ(t.convergence.complementarity, bare_barr);
     EXPECT_EQ(t.convergence.equality, bare_econ);
     EXPECT_EQ(t.convergence.inequality, bare_icon);
     EXPECT_EQ(traced_result.x, bare_x);
@@ -1996,8 +1996,8 @@ IpmAnswer answer_of(const IpmResult &r) {
     a.status = r.status;
     a.iterations = r.iterations;
     a.f = r.f;
-    a.kkt_inf = r.convergence.kkt;
-    a.barr_inf = r.convergence.barrier;
+    a.kkt_inf = r.convergence.stationarity;
+    a.barr_inf = r.convergence.complementarity;
     a.econ_inf = r.convergence.equality;
     a.icon_inf = r.convergence.inequality;
     a.x = r.x;

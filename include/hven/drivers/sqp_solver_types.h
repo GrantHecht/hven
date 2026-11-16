@@ -481,6 +481,17 @@ struct SqpEqualityBasisReport {
     double max_gap = 0.0;
 };
 
+/// @brief Where one SQP call spent its wall-clock seconds; `IpmTiming`'s counterpart.
+///
+/// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this project's
+/// currency of correctness. Measured on std::chrono::steady_clock.
+struct SqpTiming {
+    /// Seconds inside this solve's engine alone -- never model construction, the
+    /// bridge or seam lay, the staged-value ingest or the ledger bookkeeping. The
+    /// base's `wall_seconds` is the whole public call. 0 until a solve returns.
+    double engine_seconds = 0.0;
+};
+
 /// @brief The SQP engine's own terminal KKT measurement, taken at the RETURNED
 ///        (x, lambda_e, lambda_i) by the same evaluate_kkt call the convergence
 ///        test read.
@@ -533,17 +544,8 @@ struct SqpResult : SolveResult {
     /// @brief The engine's own terminal KKT measurement; see SqpConvergence.
     SqpConvergence convergence;
 
-    /// Wall-clock seconds spent inside this solve's engine ALONE --
-    /// never around model construction, the bridge or seam lay, the staged-value
-    /// ingest or the ledger bookkeeping.
-    ///
-    /// The base's `wall_seconds` is a different measurement: the whole public
-    /// call.
-    ///
-    /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this
-    /// project's currency of correctness. Nothing may gate on it. Defaults to
-    /// 0.0; every public solve() that returns writes a value >= 0.0.
-    double engine_seconds = 0.0;
+    /// @brief Where the solve spent its wall-clock seconds (informational).
+    SqpTiming timing;
 
     /// @brief What the problem-scaling layer did to this solve; the identity
     ///        when it was off, which is the shipped default.

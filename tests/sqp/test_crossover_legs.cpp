@@ -588,10 +588,11 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
                                            r1.iterations, r2.iterations, r1.f, r2.f));
     ASSERT_EQ(r1.status, hven::SolveStatus::kOptimal);
     ASSERT_EQ(r2.status, hven::SolveStatus::kOptimal);
-    EXPECT_LE(std::abs(r2.f - r1.f), 10.0 * std::max(r1.convergence.kkt, r2.convergence.kkt) *
-                                         std::max(1.0, std::max(std::abs(r1.f), std::abs(r2.f))))
-        << "f " << r1.f << " vs " << r2.f << ", kkt " << r1.convergence.kkt << " / "
-        << r2.convergence.kkt;
+    EXPECT_LE(std::abs(r2.f - r1.f),
+              10.0 * std::max(r1.convergence.stationarity, r2.convergence.stationarity) *
+                  std::max(1.0, std::max(std::abs(r1.f), std::abs(r2.f))))
+        << "f " << r1.f << " vs " << r2.f << ", kkt " << r1.convergence.stationarity << " / "
+        << r2.convergence.stationarity;
 #endif
 
     // BITWISE IDENTITY, REPORTED. The evaluation is serial at either count and
@@ -599,13 +600,15 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
     // a finding about the partitioned assembly's slot order (and therefore
     // about the order the backend is handed its input), not a reason to have
     // declined the comparison. The tolerance pin above still holds either way.
-    const bool bitwise = r2.f == r1.f && r2.convergence.kkt == r1.convergence.kkt &&
+    const bool bitwise = r2.f == r1.f &&
+                         r2.convergence.stationarity == r1.convergence.stationarity &&
                          r2.convergence.equality == r1.convergence.equality &&
                          r2.convergence.inequality == r1.convergence.inequality &&
-                         r2.convergence.barrier == r1.convergence.barrier;
+                         r2.convergence.complementarity == r1.convergence.complementarity;
     fmt::print(stderr, "T89-PARTS bitwise_identity={}\n", bitwise ? "YES" : "NO");
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_TRUE(bitwise) << "reported, not merely asserted: kkt " << r1.convergence.kkt << " vs "
-                         << r2.convergence.kkt << ", f " << r1.f << " vs " << r2.f;
+    EXPECT_TRUE(bitwise) << "reported, not merely asserted: kkt " << r1.convergence.stationarity
+                         << " vs " << r2.convergence.stationarity << ", f " << r1.f << " vs "
+                         << r2.f;
 #endif
 }

@@ -397,7 +397,7 @@ counters without also filtering on `entered_rung_a`.
 | `kkt_tol`, `econ_tol`, `icon_tol`, `bar_tol`, `init_mu`, `obj_scale` | double | settings captured for this call |
 | `inertia_mode` | string `classic\|proximal_regularization` | |
 | `restoration_mode` | string `off\|proximal_switch\|l1_nested` | |
-| `acc_kkt_tol`, `acc_econ_tol`, `acc_icon_tol`, `acc_bar_tol` | double | **M6 W5 T8.7.** the four ACCEPTABLE-level tolerances (`IpmOptions::acc_kkt_tol` and its three siblings), one per column of the convergence band above: the UPPER half of the row colouring's five-band scale, which reads a target and an acceptable level per column |
+| `acc_kkt_tol`, `acc_econ_tol`, `acc_icon_tol`, `acc_bar_tol` | double | **M6 W5 T8.7.** the four ACCEPTABLE-level tolerances (`IpmOptions::termination.acceptable_stationarity_tol` and its three siblings; the keys keep their names), one per column of the convergence band above: the UPPER half of the row colouring's five-band scale, which reads a target and an acceptable level per column |
 | `wide_console` | bool | **M6 W5 T8.7.** the LAYOUT WIDTH (`IpmOptions::wide_console`). It stays an interior-point OPTION — the solver hands it to its own console — and travels here so that a sink which is not the solver's own renders the same table |
 | `kkt_dim` | integer | **M6 W5 T8.7.** the assembled KKT system's dimension (`IpmSolver::kkt_dim_`). This is the PRINTED copy §4.17's join-key `kkt_dim` points at |
 | `kkt_nnz` | integer | **M6 W5 T8.7.** nonzeros in the assembled KKT matrix. **Mind the spelling**: `ipm.kkt_analysis`'s nonzero key is `nnz`, not `kkt_nnz` (§4.17) |
@@ -885,6 +885,7 @@ group; `SqpOptions::hessian_mode`).
 | `dense_solve_residual_refusals` | integer | `SqpCounters::dense_solve_residual_refusals` | step solves through UNSHIFTED dense numerics refused by the dense solve check (M8 DN-3a; name provisional): ρ = ‖K y − rhs‖∞/‖rhs‖∞ still above the consumer's threshold after refinement (refinement runs above 1e-8), or NaN. SSN Newton steps (threshold 1e-8; answered by the proximal ladder) and IPQP step solves on the factored, Ruiz-scaled system (threshold 1e-5; affine and corrector answered by the inertia ladder's perturbed-pivot remedy, the μ-estimate by its fallback). 0 under `DensePolicy::kNever`. Folded like `dense_shifted_solve_refusals` |
 | `dense_factorizations` | integer | `SqpCounters::dense_factorizations` | factorizations on the dense arm (M8 DN-3): `SymmetricFactor`'s `dense_factorize_count + dense_singular_count` deltas (taken, or reported exactly singular; shifted refactors included) over the walk's, the SSN's and the IPQP tiers' KKT factors and the rank repair's Gram factor. 0 under `DensePolicy::kNever`; under `kAuto`, 0 when every analyzed pattern was above the SQP's threshold (105). Folded like `dense_flagged_factorizations` |
 | `optimal_row_gray_exits` | integer | `SqpCounters::optimal_row_gray_exits` | walk subproblems that ended `kOptimal` with an equality or working-row residual still above 1x of its `row_tolerance` after the terminal polish (M8 kopt-1x). `kOptimal` promises every such row within 1x; 0 is the contract, a nonzero count is a gray-zone exit. Folded like the other walk counters. No sentinel. |
+| `payload_ignored` | integer | `SqpCounters::payload_ignored` | 1 when a non-empty warm start (payload or native) was handed in and ignored because `common.start_level` is kCold, as `IpmCounters::payload_ignored` (M8 AP-5 G7). 0 on a cold solve and at every ceiling above kCold. No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -955,6 +956,11 @@ re-derived ONCE with a "RE-DERIVED AT M8 DN-3" note.
 above), after `dense_factorizations`, the same route: one key before the `ssn` object, the
 nested tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE
 with a "RE-DERIVED AT M8 kopt-1x" note.
+
+**THE DIRECT COUNTER M8 AP-5 G7 APPENDED — ONE** (`payload_ignored`, the table row above),
+after `optimal_row_gray_exits`, the same route: one key before the `ssn` object, the nested
+tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE with a
+"RE-DERIVED AT M8 AP-5 G7" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

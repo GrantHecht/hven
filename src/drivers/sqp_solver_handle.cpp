@@ -57,11 +57,7 @@ const SqpOptions &SqpSolver::options() const { return impl().options(); }
 
 void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
 
-int SqpSolver::ssn_tier_threads() const { return impl().ssn_tier_num_threads(); }
-
 const SqpResult &SqpSolver::last_result() const { return impl().last_result(); }
-
-int SqpSolver::ipqp_tier_threads() const { return impl().ipqp_tier_num_threads(); }
 
 // The Problem is the solve's one argument: the SQP's form of it is refreshed
 // first (or the solve refused), the engine's internal entry runs on that form
