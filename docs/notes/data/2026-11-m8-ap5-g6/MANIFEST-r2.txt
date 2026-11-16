@@ -1,0 +1,15 @@
+# sha256  size  path (raw dumps under .scratch/, not committed)
+ac9d82f14dd64fe60ef988d813d034a2c46e743d87074a49de5fa867cd62000e  1288142  .scratch/g6r2-suites/ctest-dbg.log
+2b98f40cfd3c4430eb64e3b13673aa785159a8b7703d8d16ce9cdb5eccae0bfc  1287708  .scratch/g6r2-suites/ctest-rel.log
+e9aca3582788fd15d35800b9f6a2d5b421aacc5c59143a27168d8b1d374714d1  23438  .scratch/g6r2-mutation/build-c11.log
+1bb8128f1ae729242f78f17718acec81ae8354341ac33f547d8a3cf81decbaff  23438  .scratch/g6r2-mutation/build-c12.log
+fb88cfa9479443c2bf91d33667683b447a5c2f30528316bbe6a20bcb66898374  660  .scratch/g6r2-mutation/build-c3.log
+319f318d09b8111ac7ee42da02c397b2f377884596e66c0c7a79412ff0a678d2  23438  .scratch/g6r2-mutation/build-c4.log
+56bfeaf6cf7aac8667e28c6af25ed2d37245739ec8afe8adc5c666f18bd2a299  29672  .scratch/g6r2-mutation/build-control.log
+d9e0d6065e9e929a8d6b17866b293e44b9111f3ddd3f4314c2c11ceedbf1b7a5  23438  .scratch/g6r2-mutation/build-p1.log
+941ed0a4eeda9fc8b66c319e9867bd321a5d90f6dc637d7fc739d2c7ceade84d  7410  .scratch/g6r2-mutation/run-c11.log
+8cc3f12bfb8be0a251b772d4a2222c7de8ad4e15653ca17ef109bd1aa94df628  7599  .scratch/g6r2-mutation/run-c12.log
+854be5f8f8731e96f536fc022f2b467f1266d72872efe3ef7e2d9f92eab37c0f  19799  .scratch/g6r2-mutation/run-c3.log
+d3c0fdb4cc2efcb3089a8c6ebb1fc8e3578e9a2fca6d49259a3058cf90cc0840  19282  .scratch/g6r2-mutation/run-c4.log
+705e9457c1b57e8b21b667ab9645ded701561e167ace2c314a6650d5f1ae785c  6048  .scratch/g6r2-mutation/run-control.log
+df058a5abb19563400c7872664bbf585e40af9695302fbdc5d28f2221ee45ec1  35398  .scratch/g6r2-mutation/run-p1.log

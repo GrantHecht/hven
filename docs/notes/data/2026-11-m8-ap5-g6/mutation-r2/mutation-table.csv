@@ -1,0 +1,7 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+c3,soc_steps and watchdog_activations crossed at the recovery call,ok,IpmCounters.SecondOrderCorrectionsAreCountedAsSocStepsAndNotAsWatchdogArms drivers rc=1 
+c4,watchdog_activations dropped,ok,IpmCounters.TheWatchdogArmsAreCountedAsWatchdogActivationsAndNotAsSocSteps drivers rc=1 
+c11,restoration_entries sum dropped,ok,IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility interior rc=1 
+c12,restoration_iters sum dropped,ok,IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility interior rc=1 
+p1,phase funnel_width not written,ok,AcceptanceDiagnostics.FunnelReportsWidth IpmPhaseDiagnostics.TheFunnelReportsItsWidthAndNotTheFilter drivers rc=1 interior rc=1 
