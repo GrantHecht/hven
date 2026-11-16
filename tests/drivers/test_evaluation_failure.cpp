@@ -668,17 +668,24 @@ TEST(InterruptKinds, T11AThrowAfterAStopRequestKeepsTheExceptionContractAndHands
             const auto &partial = solver.last_result();
             EXPECT_EQ(partial.status, SolveStatus::kInterrupted);
             EXPECT_EQ(partial.stop_reason, StopReason::kException);
-            ASSERT_EQ(partial.z.size(), 4) << "the bound multipliers at the returned point";
-            EXPECT_TRUE(partial.z.allFinite());
-            ASSERT_EQ(shown_z.size(), 4);
+            // An ASSERT_* inside a lambda only leaves the lambda, so the sizes are reported
+            // through the return value and the caller stops before it indexes either vector.
+            EXPECT_EQ(partial.z.size(), 4) << "the bound multipliers at the returned point";
+            EXPECT_EQ(shown_z.size(), 4);
+            if (partial.z.size() == 4) {
+                EXPECT_TRUE(partial.z.allFinite());
+            }
+            return partial.z.size() == 4 && shown_z.size() == 4;
         };
         if (e == Engine::kIpm) {
             IpmSolver solver(quiet_ipm());
             check(solver);
         } else {
             SqpSolver solver(quiet_sqp());
-            check(solver);
+            const bool sizes_ok = check(solver);
             const SqpResult &partial = solver.last_result();
+            ASSERT_TRUE(sizes_ok)
+                << "z or the shown z is not 4 long; the elementwise check needs both";
             ASSERT_EQ(partial.x.size(), 4);
             for (Eigen::Index j = 0; j < 4; ++j) {
                 EXPECT_EQ(partial.z[j], shown_z[j]) << "z[" << j << "]";
