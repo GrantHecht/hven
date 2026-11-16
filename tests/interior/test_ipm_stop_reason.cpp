@@ -942,6 +942,12 @@ TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasib
     ASSERT_GT(last_ran_phase(prox_result)->restoration_entries, 0)
         << "restoration was never entered, so the proximal classification never ran";
     ASSERT_GE(last_ran_phase(prox_result)->restoration_iters, 1);
+    // One phase: the whole-solve counters are the phase's own values.
+    EXPECT_EQ(prox_result.counters.restoration_entries,
+              *last_ran_phase(prox_result)->restoration_entries);
+    EXPECT_EQ(prox_result.counters.restoration_iters,
+              *last_ran_phase(prox_result)->restoration_iters);
+    EXPECT_GT(prox_result.counters.restoration_iters, 0);
 
     // AND IT LEFT: the iterations spent in restoration are a small part of the
     // phase, so the classification took a leave door rather than staying in

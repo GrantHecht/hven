@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <limits>
 #include <memory>
 
 #include <hven/core/ledger.h>
@@ -15,6 +17,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
+#include <hven/model/nlp.h>
 
 #include "support/hs071_problem.h"
 
@@ -34,7 +37,83 @@ IpmResult ipm_counters_solve_hs071(hven::IpmOptions o, hven::Ledger *ledger = nu
     return solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
 }
 
+// The Maratos problem: min 2 (x0^2 + x1^2 - 1) - x0  s.t.  x0^2 + x1^2 = 1. A full step from a
+// feasible start is rejected, so the second-order correction and the watchdog have work.
+struct IpmCountersMaratos final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 1, 2, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << 0.0;
+        gu << 0.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return 2.0 * (x[0] * x[0] + x[1] * x[1] - 1.0) - x[0];
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 4.0 * x[0] - 1.0, 4.0 * x[1];
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] * x[0] + x[1] * x[1] - 1.0;
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        v << 2.0 * x[0], 2.0 * x[1];
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        v << 4.0 * obj_factor + 2.0 * lambda[0], 4.0 * obj_factor + 2.0 * lambda[0];
+    }
+    std::string name() const override { return "IpmCountersMaratos"; }
+};
+
+IpmResult ipm_counters_solve_maratos(hven::IpmOptions o, double radius, double angle) {
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+    const auto model = hven::detail::make_nlp_program(std::make_shared<IpmCountersMaratos>());
+    hven::Vec x0(2);
+    x0 << radius * std::cos(angle), radius * std::sin(angle);
+    return solver.solve(hven::detail::problem_ref(*model), x0);
+}
+
 } // namespace
+
+TEST(IpmCounters, SecondOrderCorrectionsAreCountedAsSocStepsAndNotAsWatchdogArms) {
+    hven::IpmOptions o;
+    o.advanced.max_second_order_corrections = 4;
+    const IpmResult on = ipm_counters_solve_maratos(o, 1.0, 0.5);
+    ASSERT_EQ(on.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(on.counters.soc_steps, 0) << "non-vacuous: the correction ran";
+    EXPECT_EQ(on.counters.watchdog_activations, 0);
+    // Every correction attempt is a rejection the chain resolved at depth [0] or went on past.
+    EXPECT_GE(on.counters.soc_steps, on.counters.recovery_depth_histogram[0]);
+    EXPECT_GT(on.counters.recovery_depth_histogram[0], 0);
+    o.advanced.max_second_order_corrections = 0;
+    const IpmResult off = ipm_counters_solve_maratos(o, 1.0, 0.5);
+    EXPECT_EQ(off.counters.soc_steps, 0);
+}
+
+TEST(IpmCounters, TheWatchdogArmsAreCountedAsWatchdogActivationsAndNotAsSocSteps) {
+    hven::IpmOptions o;
+    o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kFunnel;
+    o.advanced.max_second_order_corrections = 0;
+    o.advanced.watchdog = true;
+    const IpmResult r = ipm_counters_solve_maratos(o, 2.0, 1.6);
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(r.counters.watchdog_activations, 0) << "non-vacuous: the watchdog armed";
+    EXPECT_EQ(r.counters.soc_steps, 0);
+    o.advanced.watchdog = false;
+    const IpmResult off = ipm_counters_solve_maratos(o, 2.0, 1.6);
+    EXPECT_EQ(off.counters.watchdog_activations, 0);
+}
 
 TEST(IpmCounters, TheTableNamesEveryFieldOfTheGroup) {
     // A field added to or dropped from the struct without its X() entry moves
