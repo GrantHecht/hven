@@ -1,0 +1,162 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:02:13-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:02:14-05:00
+
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2515 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2516 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-17T04:03:28-05:00
+STEP ctest-rel rc=0 2026-11-17T04:03:28-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:03:28-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2515 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2516 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-17T04:10:50-05:00
+STEP ctest-dbg rc=0 2026-11-17T04:10:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:10:50-05:00
+33d68b317524bf69bd35f565fe016b29ddafc553b71104daa44a5064936b0db0  /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/armAbin/hven_sqp_corpus
+b198ea0cacf1b892d40a80e723483bae8325fcedc5a0c465d0c4d4a0d49087aa  /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-17T04:10:50-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-17T04:15:38-05:00
+run rc=0
+compare A vs B rc=0
+=== grb-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-17T04:20:25-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-17T04:20:46-05:00
+run rc=0
+compare A vs B rc=0
+=== grb-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-17T04:21:06-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-17T04:21:32-05:00
+run rc=0
+compare A vs B rc=0
+=== grb-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-17T04:21:58-05:00
+run rc=0
+compare armed rc=0
+=== grb-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-17T04:26:47-05:00
+run rc=0
+compare armed rc=0
+=== grb-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-17T04:27:08-05:00
+run rc=0
+compare armed rc=0
+=== grb-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-17T04:27:34-05:00
+STEP replay rc=0 2026-11-17T04:27:34-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:27:34-05:00
+33d68b317524bf69bd35f565fe016b29ddafc553b71104daa44a5064936b0db0  /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/armAbin/hven_sqp_corpus
+b198ea0cacf1b892d40a80e723483bae8325fcedc5a0c465d0c4d4a0d49087aa  /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/g-rb/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-17T04:28:19-05:00
+STEP interior rc=0 2026-11-17T04:28:19-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:28:19-05:00
+SMOKE_START default 2026-11-17T04:28:19-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-17T04:29:23-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g-rb/build-grb/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-17T04:30:05-05:00
+STEP install-smoke rc=0 2026-11-17T04:30:05-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T04:30:05-05:00
+control build rc=0
+CONTROL failures: []
+APPLIED s1 include/hven/detail/drivers/return_best.h
+MUT s1: ReturnBestForcedExits.ACertifiedInfeasibleExitNeverSubstitutes drivers rc=1 
+APPLIED s2 src/drivers/sqp_solver.cpp
+MUT s2: Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve drivers rc=1 
+APPLIED l1 include/hven/detail/drivers/return_best.h
+MUT l1: ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+APPLIED l2 src/drivers/sqp_solver.cpp
+MUT l2: ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+APPLIED o1 include/hven/detail/drivers/return_best.h
+MUT o1: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1 
+APPLIED o2 include/hven/detail/drivers/return_best.h
+MUT o2: ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1 
+APPLIED o3 include/hven/detail/drivers/return_best.h
+MUT o3: ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1 
+APPLIED n1 src/drivers/ipm_solver.cpp
+MUT n1: SURVIVES
+APPLIED n2 src/drivers/sqp_solver.cpp
+MUT n2: ReturnBestForcedExits.ANonFiniteAbortSubstitutesUnderOnAnyNonOptimalOnly drivers rc=1 
+APPLIED p1 src/drivers/sqp_solver.cpp
+MUT p1: ReturnBestForcedExits.TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode drivers rc=1 
+APPLIED t1 src/drivers/ipm_solver.cpp
+MUT t1: ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+APPLIED r1 src/drivers/ipm_solver.cpp
+MUT r1: SURVIVES
+FOREGROUND_END 2026-11-17T04:40:06-05:00
+STEP mutations rc=0 2026-11-17T04:40:06-05:00
+control: fails nothing
+s1   must-kill KILLED by ReturnBestForcedExits.ACertifiedInfeasibleExitNeverSubstitutes drivers rc=1
+s2   must-kill KILLED by Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve drivers rc=1
+l1   must-kill KILLED by ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1
+l2   must-kill KILLED by ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1
+o1   must-kill KILLED by BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1
+o2   must-kill KILLED by ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1
+o3   must-kill KILLED by ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1
+n1   must-kill SURVIVES
+n2   must-kill KILLED by ReturnBestForcedExits.ANonFiniteAbortSubstitutesUnderOnAnyNonOptimalOnly drivers rc=1
+p1   must-kill KILLED by ReturnBestForcedExits.TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode drivers rc=1
+t1   must-kill INSTRUMENT FAULT ( returns the last)
+r1   reported  SURVIVES
+MUTATION_VERDICT FAIL
+STEP mutation-verdict rc=1 2026-11-17T04:40:06-05:00
+CHAIN_STOPPED_AT mutation-verdict
+FOREGROUND_END 2026-11-17T04:40:06-05:00
+rc=1

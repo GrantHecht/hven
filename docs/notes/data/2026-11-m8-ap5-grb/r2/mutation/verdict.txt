@@ -1,0 +1,14 @@
+control: fails nothing
+s1   must-kill KILLED by ReturnBestForcedExits.ACertifiedInfeasibleExitNeverSubstitutes drivers rc=1
+s2   must-kill KILLED by Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve drivers rc=1
+l1   must-kill KILLED by ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1
+l2   must-kill KILLED by ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1
+o1   must-kill KILLED by BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1
+o2   must-kill KILLED by ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1
+o3   must-kill KILLED by ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1
+n1   must-kill SURVIVES
+n2   must-kill KILLED by ReturnBestForcedExits.ANonFiniteAbortSubstitutesUnderOnAnyNonOptimalOnly drivers rc=1
+p1   must-kill KILLED by ReturnBestForcedExits.TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode drivers rc=1
+t1   must-kill INSTRUMENT FAULT ( returns the last)
+r1   reported  SURVIVES
+MUTATION_VERDICT FAIL

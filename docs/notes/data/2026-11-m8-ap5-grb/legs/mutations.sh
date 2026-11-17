@@ -40,7 +40,7 @@ declare -A DESC=(
  [l1]="kOnLimit does not cover work/time limits (rule)" [l2]="SQP limit exit narrowed to the iteration cap"
  [o1]="order compares f before the violation" [o2]="non-strict improvement" [o3]="no tolerance band"
  [n1]="IPM non-finite abort substitutes under kOnLimit" [n2]="SQP non-limit exits never substitute"
- [p1]="SQP probe-budget stop not excluded" [t1]="IPM limit door claims the best, returns the last"
+ [p1]="SQP probe-budget stop not excluded" [t1]="IPM limit door claims the best and returns the last point"
  [r1]="IPM shared measure reads econ_inf only (REPORTED)")
 build control; echo "control build rc=$?"
 ctl=$(runall control | tr '\n' ' '); ctl="$ctl$(grep -E '^(seam|drivers|interior|sqp) rc=[1-9]' "$RAW/run-control.log" | tr '\n' ' ')"
