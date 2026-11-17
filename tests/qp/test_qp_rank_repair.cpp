@@ -248,21 +248,15 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
                           k.eq, c.ratio, static_cast<long>(c.row), c.resid, c.row_scale, c.lambda);
             hven::test_support::record_off_reference_route(
                 std::string(off_reference_key) + "_eq_contract", contract);
-            // Interim off-reference contract (settler ruling): the classifier contract is NO
-            // FALSE CERTIFICATE, ratio <= 10. The 1x promise of the kOptimal fix is NOT met on
-            // the Intel branch-14 route (YORKNET qp5 certifies at 6.88x); the 1x ratio is a
-            // route property recorded here, and a ratio past 1 must have been counted as a
-            // gray-zone exit (optimal_row_gray_exits >= 1).
+            // The kOptimal row contract: every equality row within 1x of its tolerance on
+            // whatever route reached the point (KOPT-1X R2 restores the 1x the interim ruling
+            // relaxed to 10x). The 1x ratio and the gray-exit counter stay recorded.
             hven::test_support::record_off_reference_route(
                 std::string(off_reference_key) + "_eq_ratio_1x",
                 "ratio=" + std::to_string(c.ratio) +
                     " optimal_row_gray_exits=" + std::to_string(s.counters.optimal_row_gray_exits));
-            EXPECT_LE(c.ratio, 10.0) << "row " << c.row << ": residual " << c.resid
-                                     << " at row scale " << c.row_scale << ", lambda " << c.lambda;
-            if (c.ratio > 1.0) {
-                EXPECT_GE(s.counters.optimal_row_gray_exits, 1)
-                    << "ratio " << c.ratio << " past 1x with no gray-zone exit counted";
-            }
+            EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid
+                                    << " at row scale " << c.row_scale << ", lambda " << c.lambda;
             EXPECT_LE(k.ineq, 1e-8);
             EXPECT_LE(k.box, 1e-9);
             EXPECT_LE(k.stationarity, stationarity_tol);
@@ -360,11 +354,12 @@ TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
     Obs::reset();
 }
 
-// KOPT-1X R2: THE POST-REPAIR GRAY ZONE (a regression pin, see the discriminator below). The repair seam moves the iterate
-// along equality row 246 to 6.88 floor units of that row, immediately before the successful
-// rank-repair `continue` and with the gray hold untouched; the walk's own certification contract
-// is then what is under test: kOptimal only with every equality row within 1x of its tolerance.
-// Intel branch 14 reached this state naturally (CI: row 246 at 6.88x, certified).
+// KOPT-1X R2: THE POST-REPAIR GRAY ZONE (a regression pin, see the discriminator below). The repair
+// seam moves the iterate along equality row 246 to 6.88 floor units of that row, immediately before
+// the successful rank-repair `continue` and with the gray hold untouched; the walk's own
+// certification contract is then what is under test: kOptimal only with every equality row within
+// 1x of its tolerance. Intel branch 14 reached this state naturally (CI: row 246 at 6.88x,
+// certified).
 namespace {
 void expect_yorknet_qp5_post_repair_gray(QpWorkingSetAlgebra alg) {
     using Seam = hven::detail::testing::QpRepairSeam;
@@ -433,7 +428,9 @@ void expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(QpWorkingSetA
                 static_cast<int>(s.status), c.ratio, static_cast<long>(c.row),
                 static_cast<long>(s.counters.optimal_row_gray_exits),
                 static_cast<long>(Cert::presentations), static_cast<long>(s.counters.minor_iters));
-    ASSERT_GE(Cert::presentations, 1);
+    // The certified gray point went back to the walk (and the returns are bounded).
+    EXPECT_GE(Cert::presentations, 2);
+    EXPECT_LE(Cert::presentations, 1 + hven::detail::kGrayReturnBudget);
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
     EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid << " at row scale "
                             << c.row_scale << ", lambda " << c.lambda;

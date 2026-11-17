@@ -91,7 +91,6 @@ inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
     ++S::presentations;
 }
 
-
 /// KOPT-1X R2: a REPAIR-PATH injector. Armed, it moves the iterate along one equality row's
 /// normal to `floor_units` floor units of that row's residual, immediately before the walk's
 /// successful rank-repair `continue` and with every walk flag (the gray hold included) left
@@ -135,7 +134,8 @@ inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions 
     }
     const Vec a = qp.Ae.row(S::row).transpose();
     const double b = qp.be(S::row);
-    const double scale = std::max({1.0, std::abs(b), a.cwiseAbs().sum() * x.lpNorm<Eigen::Infinity>()});
+    const double scale =
+        std::max({1.0, std::abs(b), a.cwiseAbs().sum() * x.lpNorm<Eigen::Infinity>()});
     const double floor = eff_opts.feasibility_tol * scale;
     S::ratio_before = std::abs(a.dot(x) - b) / floor;
     const double target = S::floor_units * floor;

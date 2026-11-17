@@ -653,7 +653,8 @@ TEST(QpCertificateSign, AnOptimalExitPastOneFloorUnitIsCountedAGrayExit) {
             const QpSolution s = engine.solve(qp);
             Cert::armed = false;
             SCOPED_TRACE("k=" + std::to_string(k));
-            ASSERT_EQ(Cert::presentations, 1);
+            // A gray point is presented again on each of the walk's bounded returns.
+            ASSERT_EQ(Cert::presentations, gray ? 1 + hven::detail::kGrayReturnBudget : 1);
             ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
             EXPECT_EQ(s.counters.optimal_row_gray_exits, gray);
         }

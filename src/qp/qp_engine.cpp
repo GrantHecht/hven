@@ -710,6 +710,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     bool stagnation_read = false;
     // The previous pass held a gray-zone terminal for the ordinary step (KOPT-1X).
     bool gray_hold_next = false;
+    // KOPT-1X R2: a return from the certifying site (kGrayReturnBudget) forces the next KKT point's
+    // hold, and the returns left.
+    bool gray_return_pending = false;
+    Index gray_returns_left = detail::kGrayReturnBudget;
     Index stagnation_drops_left = detail::kStagnationDropBudget;
     bool stagnation_resume_spent = false;
 
@@ -778,6 +782,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         stagnation_read = false;
         const bool gray_hold_prev = gray_hold_next;
         gray_hold_next = false;
+        // This pass issued the hold (set below); it is SPENT only by an ordinary step that runs.
+        bool gray_hold_issued = false;
 #ifdef HVEN_TESTING
         // One declaration covers every exit this loop body has: the record is
         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
@@ -1399,11 +1405,15 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // or working row is past 1x takes the pass's ordinary step instead of certifying; one
             // consecutive hold at most, so a step that cannot repair the row ends in the
             // certificate, where the terminal polish repairs it.
-            const bool gray_hold = !dropped_one && !stagnation_only && stationary_proper &&
-                                   !gray_hold_prev &&
-                                   worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
-                                                   lambda_e, eff_opts) > 1.0;
-            gray_hold_next = gray_hold;
+            const bool gray_hold =
+                !dropped_one && !stagnation_only && stationary_proper &&
+                (gray_return_pending ||
+                 (!gray_hold_prev && worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i,
+                                                     ae_row_norm1, lambda_e, eff_opts) > 1.0));
+            if (!dropped_one && !stagnation_only) {
+                gray_return_pending = false;
+            }
+            gray_hold_issued = gray_hold;
             if (!dropped_one && !stagnation_only && !gray_hold) {
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
@@ -1425,14 +1435,21 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
                 // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
                 // -- section 5, and the two refine_*_for_verdict declarations.
+                // KOPT-1X R2: the target is the classifier's 10x where a violation is structural
+                // (kInfeasible evidence), and kOptimal's own 1x where the row is only gray.
+                const bool gray_row =
+                    worst == 0.0 && !(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i,
+                                                      ae_row_norm1, lambda_e, eff_opts) <= 1.0);
+                const double refine_margin = worst > 0.0 ? detail::kInfeasibilityMarginFactor : 1.0;
                 const bool refined =
-                    worst > 0.0 && (eqp.refine_steps > 0
-                                        ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
-                                                                  lambda_i, ae_row_norm1, lambda_e,
-                                                                  *border_, counters, eff_opts)
-                                        : refine_eliminated_face_for_verdict(
-                                              qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                              lambda_e, kkt, face, counters, eff_opts));
+                    (worst > 0.0 || gray_row) &&
+                    (eqp.refine_steps > 0
+                         ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
+                                                   ae_row_norm1, lambda_e, *border_, counters,
+                                                   eff_opts, refine_margin)
+                         : refine_eliminated_face_for_verdict(
+                               qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, kkt,
+                               face, counters, eff_opts, refine_margin));
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
@@ -1831,11 +1848,23 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             ++counters.certificate_sign_refusals;
                             status = QpStatus::kNumericalError;
                         } else {
-                            status = QpStatus::kOptimal;
+                            // KOPT-1X R2: the row contract is read with the FINAL multipliers
+                            // (after polish adoption, refusal or revert). Past 1x, the walk goes
+                            // back for an ordinary step, a bounded number of times; the exit that
+                            // remains is counted.
                             if (!(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
                                                   lambda_e, eff_opts) <= 1.0)) {
+                                if (gray_returns_left > 0 && iter + 1 < eff_max_iter) {
+                                    --gray_returns_left;
+                                    gray_return_pending = true;
+                                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift,
+                                                   counters, seen, eff_opts);
+                                    pt_clear(seen);
+                                    continue;
+                                }
                                 ++counters.optimal_row_gray_exits;
                             }
+                            status = QpStatus::kOptimal;
                         }
                     }
                 }
@@ -2800,6 +2829,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         } else {
             x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
         }
+        // The ordinary step ran: a hold issued this pass is spent (a repair or retreat `continue`
+        // before here leaves it unspent, and the next pass may hold again).
+        gray_hold_next = gray_hold_issued;
         if (eff_opts.independent_working_set) {
             if (alpha * sdir.lpNorm<Eigen::Infinity>() > step_tol) {
                 pt_clear(seen); // the iterate moved
@@ -3425,15 +3457,19 @@ bool QpEngine::eqp_answer_drifts_off_met_rows(const QpProblem &qp, const Working
     return false;
 }
 
-double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts) const {
-    return std::max(detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts),
+double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts,
+                                 double margin) const {
+    if (margin <= 1.0) {
+        return row_tolerance(row_scale, lambda, opts);
+    }
+    return std::max(margin * row_tolerance(row_scale, lambda, opts),
                     detail::kVerdictRefineRelFloor * row_scale);
 }
 
 double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                       const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                       const Vec &ae_row_norm1, const Vec &lambda_e,
-                                      const QpOptions &opts) const {
+                                      const QpOptions &opts, double margin) const {
     const double xmag = x.lpNorm<Eigen::Infinity>();
     double worst = 0.0;
     if (qp.me() > 0) {
@@ -3441,13 +3477,14 @@ double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws,
         for (Index j = 0; j < qp.me(); ++j) {
             const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
             worst = detail::nan_sticky_max(
-                worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts));
+                worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts, margin));
         }
     }
     for (const Index j : ws.active_ineq()) {
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-        worst = detail::nan_sticky_max(worst, std::abs(Aix(j) - qp.bi(j)) /
-                                                  face_row_target(row_scale, lambda_i(j), opts));
+        worst = detail::nan_sticky_max(worst,
+                                       std::abs(Aix(j) - qp.bi(j)) /
+                                           face_row_target(row_scale, lambda_i(j), opts, margin));
     }
     return worst;
 }
@@ -3459,7 +3496,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
                                        const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                        const Vec &ae_row_norm1, const Vec &lambda_e,
                                        BorderState &border, QpCounters &counters,
-                                       const QpOptions &opts) const {
+                                       const QpOptions &opts, double margin) const {
     if (!border.schur.has_value() || border.schur->needs_refactorization()) {
         return false; // nothing trustworthy to re-form -- see the declaration
     }
@@ -3489,7 +3526,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     const auto measure_of = [&](const Vec &xc) {
         const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
         return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
-                                    lambda_e, opts);
+                                    lambda_e, opts, margin);
     };
 
     Vec best;
@@ -3547,8 +3584,8 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     if (!(best_measure <= 1.0)) {
         return false;
     }
-    const double before =
-        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                               lambda_e, opts, margin);
     if (!(best_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
@@ -3562,7 +3599,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
                                                   const Vec &lambda_i, const Vec &ae_row_norm1,
                                                   const Vec &lambda_e, const detail::KktFactor &kkt,
                                                   const EliminatedFace &face, QpCounters &counters,
-                                                  const QpOptions &opts) const {
+                                                  const QpOptions &opts, double margin) const {
     const Index n = qp.n();
     const Index me = qp.me();
     const std::vector<Index> &aw = ws.active_ineq();
@@ -3625,7 +3662,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     const auto measure_of = [&](const Vec &xc) {
         const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
         return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
-                                    lambda_e, opts);
+                                    lambda_e, opts, margin);
     };
 
     // THE REUSE GUARD: the key carries the working set AND the factor's own
@@ -3687,8 +3724,8 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     if (steps == 0 || !(best_measure <= 1.0)) {
         return false; // CLOSED, OR NOTHING -- the border twin's rule, verbatim
     }
-    const double before =
-        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                               lambda_e, opts, margin);
     if (!(best_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
@@ -4471,7 +4508,8 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
 bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws,
                                         const EqpResult &cand, const detail::TerminalKkt &before,
                                         const QpOptions &opts, bool row_triggered, Vec &x,
-                                        Vec &lambda_e, Vec &lambda_i, Vec &z) const {
+                                        Vec &lambda_e, Vec &lambda_i, Vec &z,
+                                        bool require_clean) const {
     if (cand.x.size() != qp.n() || !cand.x.allFinite() || !cand.lambda_e.allFinite() ||
         !cand.lambda_w.allFinite()) {
         return false;
@@ -4514,6 +4552,23 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     const double slack = detail::kTerminalPolishWorseFactor;
     const bool feasible = after.rows <= std::max(opts.feasibility_tol, before.rows);
     const bool kkt_point = after.stationarity <= opts.optimality_tol;
+    // THE ROW CONTRACT (KOPT-1X R2), each side read with its own multipliers: the polish
+    // acceptance above compares global residual summaries, which never see the dual_mu*|lambda|
+    // footprint a re-priced multiplier set moves.
+    Vec ai_norm1 = Vec::Zero(qp.mi());
+    Vec ae_norm1 = Vec::Zero(qp.me());
+    for (Index j = 0; j < qp.mi(); ++j) {
+        ai_norm1(j) = qp.Ai.row(j).cwiseAbs().sum();
+    }
+    for (Index j = 0; j < qp.me(); ++j) {
+        ae_norm1(j) = qp.Ae.row(j).cwiseAbs().sum();
+    }
+    const double inc_ratio =
+        worst_row_ratio(qp, ws, x, ai_norm1, lambda_i, ae_norm1, lambda_e, opts);
+    const double cand_ratio =
+        worst_row_ratio(qp, ws, cand.x, ai_norm1, cand_li, ae_norm1, cand_le, opts);
+    const bool row_contract =
+        cand_ratio <= std::max(1.0, inc_ratio) && (!require_clean || cand_ratio <= 1.0);
     // A row-triggered entry floors the incumbent's stationarity at the entry test's own
     // level: an incumbent at rounding must not veto the candidate that fixes its rows.
     const double stat_ref =
@@ -4525,7 +4580,8 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     const bool strictly_better = slack * after.stationarity < before.stationarity ||
                                  after.rows < before.rows ||
                                  slack * after.complementarity < before.complementarity;
-    if (!after.all_finite() || !feasible || !kkt_point || !no_worse || !strictly_better) {
+    if (!after.all_finite() || !feasible || !kkt_point || !no_worse || !strictly_better ||
+        !row_contract) {
         return false;
     }
     x = cand.x;
@@ -4583,11 +4639,17 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // and not in the loop because the acceptance test below reads every row and
     // every bound of the problem, which is what the ratio test the walk skips
     // would have protected, and because nothing happens afterwards.
+    // A row-triggered entry prefers a stage-1 candidate that closes every row (R2); one that
+    // does not is kept as the fallback if stage 2 adopts nothing.
     if (adopt_polished_candidate(qp, ws, pass_answer, before, opts, row_triggered, x, lambda_e,
-                                 lambda_i, z)) {
+                                 lambda_i, z, /*require_clean=*/row_triggered)) {
         ++counters.terminal_polish_adopted;
         return true;
     }
+    const auto stage1_fallback = [&]() {
+        return row_triggered && adopt_polished_candidate(qp, ws, pass_answer, before, opts,
+                                                         row_triggered, x, lambda_e, lambda_i, z);
+    };
 
     // STAGE 2, ONE FACTORIZATION: the face re-solved with the DUAL regularization
     // out of the SYSTEM rather than only out of the refinement target. What stage 1
@@ -4641,6 +4703,10 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.dense_factorizations += local_counters.dense_factorizations;
         counters.dense_singular_refactors += local_counters.dense_singular_refactors;
         counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
+        if (stage1_fallback()) {
+            ++counters.terminal_polish_adopted;
+            return true;
+        }
         ++counters.terminal_polish_rejected;
         return false; // no mu-free solve: the walk's own point stands
     }
@@ -4662,12 +4728,20 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // A shifted factor's refused answer is not adopted (M8 DN-1d).
     if (r.x.size() != qp.n() || !r.x.allFinite() || !r.lambda_e.allFinite() ||
         !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
+        if (stage1_fallback()) {
+            ++counters.terminal_polish_adopted;
+            return true;
+        }
         ++counters.terminal_polish_rejected;
         return false;
     }
 
     if (!adopt_polished_candidate(qp, ws, r, before, opts, row_triggered, x, lambda_e, lambda_i,
                                   z)) {
+        if (stage1_fallback()) {
+            ++counters.terminal_polish_adopted;
+            return true;
+        }
         ++counters.terminal_polish_rejected;
         return false;
     }
