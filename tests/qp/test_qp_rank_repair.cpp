@@ -360,7 +360,7 @@ TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
     Obs::reset();
 }
 
-// KOPT-1X R2: THE POST-REPAIR GRAY ZONE. The repair seam (qp_certificate_seam.h) moves the iterate
+// KOPT-1X R2: THE POST-REPAIR GRAY ZONE (a regression pin, see the discriminator below). The repair seam moves the iterate
 // along equality row 246 to 6.88 floor units of that row, immediately before the successful
 // rank-repair `continue` and with the gray hold untouched; the walk's own certification contract
 // is then what is under test: kOptimal only with every equality row within 1x of its tolerance.
@@ -376,8 +376,9 @@ void expect_yorknet_qp5_post_repair_gray(QpWorkingSetAlgebra alg) {
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
     Seam::armed = false;
     ASSERT_GE(Seam::fires, 1) << "the seam never fired: no successful rank repair";
-    std::printf("[ rdv ] seam row 246 %.3f -> %.3f floor units\n", Seam::ratio_before,
-                Seam::ratio_after);
+    std::printf("[ rdv ] seam row 246 %.3f -> %.3f floor units at minor %ld (hold flag %d)\n",
+                Seam::ratio_before, Seam::ratio_after, static_cast<long>(Seam::minor_at_fire),
+                static_cast<int>(Seam::hold_at_fire));
     const EqRowContract c = eq_row_contract(d, s);
     std::printf("[ rdv ] post-repair gray: status=%d ratio=%.3e row=%ld gray_exits=%ld "
                 "polish adopted=%ld rejected=%ld\n",
@@ -398,4 +399,52 @@ TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowBorder) {
 }
 TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowRefactorize) {
     expect_yorknet_qp5_post_repair_gray(kRefactorize);
+}
+
+// KOPT-1X R2: THE CERTIFIED GRAY ROW ON THE REAL FIXTURE. The repair seam above is absorbed by
+// the ordinary steps of the 373 passes that follow it (measured: the exit ratio is 7e-8 on the
+// base engine too), so it is a regression pin for the hold bookkeeping and not a discriminator.
+// The discriminator presents the walk's own certified point with row 246 moved to 6.88 floor
+// units through the certificate seam, on the first certificate read only: at the base engine
+// it was certified where it stood (ratio 6.88, one gray exit counted).
+namespace {
+void expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(QpWorkingSetAlgebra alg) {
+    using Cert = hven::detail::testing::QpCertificateSeam;
+    Cert::reset();
+    QpDump d0;
+    const QpSolution s0 = solve_fixture("RDV_YORKNET_qp5.txt", alg, d0);
+    ASSERT_EQ(static_cast<int>(s0.status), static_cast<int>(QpStatus::kOptimal));
+    const QpProblem &qp = d0.qp;
+    ASSERT_GT(qp.me(), 246);
+    const Vec a = qp.Ae.row(246).transpose();
+    const double xmag = s0.x.lpNorm<Eigen::Infinity>();
+    const double scale = std::max({1.0, std::abs(qp.be(246)), a.cwiseAbs().sum() * xmag});
+    const double target = 6.88 * d0.opts.feasibility_tol * scale;
+    Cert::x = s0.x + ((target - (a.dot(s0.x) - qp.be(246))) / a.squaredNorm()) * a;
+    Cert::z = s0.z;
+    Cert::first_only = true;
+    Cert::armed = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Cert::armed = false;
+    const EqRowContract c = eq_row_contract(d, s);
+    std::printf("[ rdv ] certified-gray: status=%d ratio=%.3e row=%ld gray_exits=%ld "
+                "presentations=%ld minors=%ld\n",
+                static_cast<int>(s.status), c.ratio, static_cast<long>(c.row),
+                static_cast<long>(s.counters.optimal_row_gray_exits),
+                static_cast<long>(Cert::presentations), static_cast<long>(s.counters.minor_iters));
+    ASSERT_GE(Cert::presentations, 1);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid << " at row scale "
+                            << c.row_scale << ", lambda " << c.lambda;
+    EXPECT_EQ(s.counters.optimal_row_gray_exits, 0);
+    Cert::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkBorder) {
+    expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkRefactorize) {
+    expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(kRefactorize);
 }

@@ -1840,8 +1840,10 @@ TEST(QpRowContractPolish, ARepricedCandidateIsNotAdoptedPastOneFloorUnit) {
     const Vec li = Vec::Zero(0);
     const Vec z = Vec::Zero(2);
     bool row_triggered = false;
-    ASSERT_FALSE(QpEngineTestAccess::polish_footprint_open(engine, qp, ws, x, le, li, z, opts,
-                                                           row_triggered));
+    // The entry opens on the incumbent's complementarity (25 * 3.4e-9), not on its row.
+    ASSERT_TRUE(QpEngineTestAccess::polish_footprint_open(engine, qp, ws, x, le, li, z, opts,
+                                                          row_triggered));
+    ASSERT_FALSE(row_triggered);
     EqpResult cand;
     cand.x = x;
     cand.lambda_e = Vec(2);

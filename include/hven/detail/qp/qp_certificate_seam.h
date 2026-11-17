@@ -107,6 +107,10 @@ struct QpRepairSeam {
     /// The row's residual in floor units before and after the last firing.
     static inline thread_local double ratio_before = 0.0;
     static inline thread_local double ratio_after = 0.0;
+    /// Also set the gray-hold flag at the firing (a pass that held, then repaired).
+    static inline thread_local bool force_hold = false;
+    static inline thread_local Index minor_at_fire = -1;
+    static inline thread_local bool hold_at_fire = false;
 
     static void reset() {
         armed = false;
@@ -116,11 +120,15 @@ struct QpRepairSeam {
         fires = 0;
         ratio_before = 0.0;
         ratio_after = 0.0;
+        force_hold = false;
+        minor_at_fire = -1;
+        hold_at_fire = false;
     }
 };
 
 /// The hook, called before the successful rank-repair `continue`. Unarmed it returns at once.
-inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions &eff_opts) {
+inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions &eff_opts,
+                                   Index minor, bool &gray_hold) {
     using S = QpRepairSeam;
     if (!S::armed || S::fires >= S::max_fires || S::row < 0 || S::row >= qp.me()) {
         return;
@@ -133,6 +141,11 @@ inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions 
     const double target = S::floor_units * floor;
     x += ((target - (a.dot(x) - b)) / a.squaredNorm()) * a;
     S::ratio_after = std::abs(a.dot(x) - b) / floor;
+    S::minor_at_fire = minor;
+    S::hold_at_fire = gray_hold;
+    if (S::force_hold) {
+        gray_hold = true;
+    }
     ++S::fires;
 }
 
