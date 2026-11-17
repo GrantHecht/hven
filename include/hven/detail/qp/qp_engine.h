@@ -1213,10 +1213,11 @@ constexpr Index kRankRepairBudget = 8;
 
 // KOPT-1X R2: the walk's returns to the loop from the certifying site. A certified point whose
 // worst row is still past 1x of row_tolerance after the polish (adopted, refused or reverted) goes
-// back for one ordinary step instead of certifying, at most this many times per solve; past the
-// budget it certifies and the exit is counted (optimal_row_gray_exits). MEASURED: a YORKNET qp5
-// certified point moved 6.88 floor units off one row is closed after 8 returns (each a degenerate
-// add the ordinary step takes); 2 left it certified gray.
+// back for one ordinary step instead of certifying, at most this many times per solve, and only
+// while the previous return's step added a working-set member (the first return is always taken);
+// past the budget it certifies and the exit is counted (optimal_row_gray_exits). MEASURED: a
+// YORKNET qp5 certified point moved 6.88 floor units off one row is closed after 8 returns (each a
+// degenerate add the ordinary step takes); 2 left it certified gray.
 constexpr Index kGrayReturnBudget = 16;
 
 // THE STAGNATION READING (section 4): the length of the idle full-step run that is read as a KKT

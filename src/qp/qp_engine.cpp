@@ -714,6 +714,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // hold, and the returns left.
     bool gray_return_pending = false;
     Index gray_returns_left = detail::kGrayReturnBudget;
+    // A return is taken only if the previous one's ordinary step made structural progress (it added
+    // a working-set member): a return whose step changes nothing cannot change the next read.
+    bool gray_return_progress = true;
     Index stagnation_drops_left = detail::kStagnationDropBudget;
     bool stagnation_resume_spent = false;
 
@@ -784,6 +787,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         gray_hold_next = false;
         // This pass issued the hold (set below); it is SPENT only by an ordinary step that runs.
         bool gray_hold_issued = false;
+        bool gray_hold_forced = false; // issued by a return from the certifying site
 #ifdef HVEN_TESTING
         detail::testing::qp_repair_seam_note_prev(gray_hold_prev);
 #endif
@@ -1413,6 +1417,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 (gray_return_pending ||
                  (!gray_hold_prev && worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i,
                                                      ae_row_norm1, lambda_e, eff_opts) > 1.0));
+            gray_hold_forced = gray_hold && gray_return_pending;
             if (!dropped_one && !stagnation_only) {
                 gray_return_pending = false;
             }
@@ -1857,9 +1862,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             // remains is counted.
                             if (!(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
                                                   lambda_e, eff_opts) <= 1.0)) {
-                                if (gray_returns_left > 0 && iter + 1 < eff_max_iter) {
+                                if (gray_returns_left > 0 && gray_return_progress &&
+                                    iter + 1 < eff_max_iter) {
                                     --gray_returns_left;
                                     gray_return_pending = true;
+                                    gray_return_progress = false;
                                     refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift,
                                                    counters, seen, eff_opts);
                                     pt_clear(seen);
@@ -2835,6 +2842,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // The ordinary step ran: a hold issued this pass is spent (a repair or retreat `continue`
         // before here leaves it unspent, and the next pass may hold again).
         gray_hold_next = gray_hold_issued;
+        if (gray_hold_forced) {
+            gray_return_progress = kind != BlockKind::kNone;
+        }
         if (eff_opts.independent_working_set) {
             if (alpha * sdir.lpNorm<Eigen::Infinity>() > step_tol) {
                 pt_clear(seen); // the iterate moved
