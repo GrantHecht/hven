@@ -1810,3 +1810,50 @@ TEST(QpRowContractPolish, ARowTriggeredEntryFloorsTheIncumbentsStationarity) {
     EXPECT_FALSE(
         QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, false));
 }
+
+// KOPT-1X R2: THE MULTIPLIER-REPRICING MASK. Two identical equality rows with cancelling
+// multipliers leave stationarity unchanged (A'lambda = 0 either way), so a candidate may
+// re-price them freely. The incumbent's large pair puts dual_mu*|lambda| above the row, so
+// its own read is inside 1x; the candidate's small pair shrinks that footprint and exposes the
+// same x at 6.88 floor units. Complementarity improves, so the pre-fix acceptance adopted it
+// and the kOptimal exit then stood on a row past 1x. The candidate must not be adopted
+// (its ratio past max(1, incumbent's)); one that closes the row still is.
+namespace {
+QpProblem twin_equality_qp() {
+    QpProblem qp = flat_normal_polish_qp();
+    Eigen::MatrixXd Aed(2, 2);
+    Aed << 1.0, 1.0, 1.0, 1.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Zero(2);
+    return qp;
+}
+} // namespace
+
+TEST(QpRowContractPolish, ARepricedCandidateIsNotAdoptedPastOneFloorUnit) {
+    const QpProblem qp = twin_equality_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kNever);
+    const WorkingSet ws(2, 0);
+    const Vec x = flat_normal_point(6.88, opts);
+    Vec le(2);
+    le << 25.0, -25.0;
+    const Vec li = Vec::Zero(0);
+    const Vec z = Vec::Zero(2);
+    bool row_triggered = false;
+    ASSERT_FALSE(QpEngineTestAccess::polish_footprint_open(engine, qp, ws, x, le, li, z, opts,
+                                                           row_triggered));
+    EqpResult cand;
+    cand.x = x;
+    cand.lambda_e = Vec(2);
+    cand.lambda_e << 0.198, -0.198;
+    cand.lambda_w = Vec(0);
+    EXPECT_FALSE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, false));
+    EXPECT_FALSE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, true));
+    EqpResult closed = cand;
+    closed.x = Vec(2);
+    closed.x << 1.0, -1.0;
+    EXPECT_TRUE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, closed, x, le, li, z, opts, false));
+}

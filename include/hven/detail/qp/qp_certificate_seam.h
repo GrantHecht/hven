@@ -29,6 +29,8 @@
 
 #ifdef HVEN_TESTING
 
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -87,6 +89,51 @@ inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
     S::eff_dual_mu = eff_opts.dual_regularization;
     S::eff_feas_tol = eff_opts.feasibility_tol;
     ++S::presentations;
+}
+
+
+/// KOPT-1X R2: a REPAIR-PATH injector. Armed, it moves the iterate along one equality row's
+/// normal to `floor_units` floor units of that row's residual, immediately before the walk's
+/// successful rank-repair `continue` and with every walk flag (the gray hold included) left
+/// as it stood. The pass after the repair then meets a gray-zone row on the production
+/// statements. One-shot per arming; counts its firings.
+struct QpRepairSeam {
+    static inline thread_local bool armed = false;
+    static inline thread_local Index row = 0;
+    static inline thread_local double floor_units = 0.0;
+    /// Fired at most this many times per arming.
+    static inline thread_local Index max_fires = 1;
+    static inline thread_local Index fires = 0;
+    /// The row's residual in floor units before and after the last firing.
+    static inline thread_local double ratio_before = 0.0;
+    static inline thread_local double ratio_after = 0.0;
+
+    static void reset() {
+        armed = false;
+        row = 0;
+        floor_units = 0.0;
+        max_fires = 1;
+        fires = 0;
+        ratio_before = 0.0;
+        ratio_after = 0.0;
+    }
+};
+
+/// The hook, called before the successful rank-repair `continue`. Unarmed it returns at once.
+inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions &eff_opts) {
+    using S = QpRepairSeam;
+    if (!S::armed || S::fires >= S::max_fires || S::row < 0 || S::row >= qp.me()) {
+        return;
+    }
+    const Vec a = qp.Ae.row(S::row).transpose();
+    const double b = qp.be(S::row);
+    const double scale = std::max({1.0, std::abs(b), a.cwiseAbs().sum() * x.lpNorm<Eigen::Infinity>()});
+    const double floor = eff_opts.feasibility_tol * scale;
+    S::ratio_before = std::abs(a.dot(x) - b) / floor;
+    const double target = S::floor_units * floor;
+    x += ((target - (a.dot(x) - b)) / a.squaredNorm()) * a;
+    S::ratio_after = std::abs(a.dot(x) - b) / floor;
+    ++S::fires;
 }
 
 } // namespace hven::detail::testing

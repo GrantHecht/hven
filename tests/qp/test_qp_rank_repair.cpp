@@ -359,3 +359,43 @@ TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
     EXPECT_EQ(shrunk, s.counters.rank_repair_releases);
     Obs::reset();
 }
+
+// KOPT-1X R2: THE POST-REPAIR GRAY ZONE. The repair seam (qp_certificate_seam.h) moves the iterate
+// along equality row 246 to 6.88 floor units of that row, immediately before the successful
+// rank-repair `continue` and with the gray hold untouched; the walk's own certification contract
+// is then what is under test: kOptimal only with every equality row within 1x of its tolerance.
+// Intel branch 14 reached this state naturally (CI: row 246 at 6.88x, certified).
+namespace {
+void expect_yorknet_qp5_post_repair_gray(QpWorkingSetAlgebra alg) {
+    using Seam = hven::detail::testing::QpRepairSeam;
+    Seam::reset();
+    Seam::armed = true;
+    Seam::row = 246;
+    Seam::floor_units = 6.88;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Seam::armed = false;
+    ASSERT_GE(Seam::fires, 1) << "the seam never fired: no successful rank repair";
+    std::printf("[ rdv ] seam row 246 %.3f -> %.3f floor units\n", Seam::ratio_before,
+                Seam::ratio_after);
+    const EqRowContract c = eq_row_contract(d, s);
+    std::printf("[ rdv ] post-repair gray: status=%d ratio=%.3e row=%ld gray_exits=%ld "
+                "polish adopted=%ld rejected=%ld\n",
+                static_cast<int>(s.status), c.ratio, static_cast<long>(c.row),
+                static_cast<long>(s.counters.optimal_row_gray_exits),
+                static_cast<long>(s.counters.terminal_polish_adopted),
+                static_cast<long>(s.counters.terminal_polish_rejected));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid << " at row scale "
+                            << c.row_scale << ", lambda " << c.lambda;
+    EXPECT_EQ(s.counters.optimal_row_gray_exits, 0);
+    Seam::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowBorder) {
+    expect_yorknet_qp5_post_repair_gray(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowRefactorize) {
+    expect_yorknet_qp5_post_repair_gray(kRefactorize);
+}

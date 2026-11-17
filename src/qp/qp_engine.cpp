@@ -2585,6 +2585,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     farkas = QpFarkasCertificate{};
 #ifdef HVEN_TESTING
                     walk_obs.record().action = detail::testing::QpWalkAction::kRankRepair;
+                    detail::testing::qp_post_repair_perturb(qp, x, eff_opts);
 #endif
                     continue;
                 }
