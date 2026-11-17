@@ -4,7 +4,9 @@ Ma no-row-contract:  the polish acceptance does not read the candidate's row rat
 Mb repair-spends:    a successful rank-repair `continue` spends the gray hold (the base's bookkeeping).
 Mc no-return:        the certifying site never returns to the loop (the gray exit is counted and certified).
 Md ten-x-target:     the gray-zone refinement targets the classifier's 10x even when asked for 1x.
-Me1 no-bound:        the return bound removed (returns until the minor cap).
+Me1 no-bound:        the return bound removed (the progress rule alone limits the returns).
+Me3 no-bound-no-progress: neither the bound nor the progress rule (returns until the minor cap).
+Mg no-progress:     returns are taken until the budget whether or not the previous step added a member.
 Me2 double-bound:    kGrayReturnBudget doubled (include/hven/detail/qp/qp_engine.h)."""
 import re
 import subprocess
@@ -33,11 +35,15 @@ elif arg == "Mb":
     sub1(E, "gray_hold_issued);\n#endif\n                    continue;",
          "gray_hold_issued);\n#endif\n                    gray_hold_next = gray_hold_issued;\n                    continue;")
 elif arg == "Mc":
-    sub1(E, "if (gray_returns_left > 0 && iter + 1 < eff_max_iter) {", "if (false) {")
+    sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&\n                                    iter + 1 < eff_max_iter) {", "if (false) {")
 elif arg == "Md":
     sub1(E, "    if (margin <= 1.0) {", "    if (false) {")
 elif arg == "Me1":
-    sub1(E, "if (gray_returns_left > 0 && iter + 1 < eff_max_iter) {", "if (iter + 1 < eff_max_iter) {")
+    sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&", "if (gray_return_progress &&")
+elif arg == "Me3":
+    sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&\n                                    iter + 1 < eff_max_iter) {", "if (iter + 1 < eff_max_iter) {")
+elif arg == "Mg":
+    sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&", "if (gray_returns_left > 0 &&")
 elif arg == "Me2":
     sub1(H, "constexpr Index kGrayReturnBudget = 16;", "constexpr Index kGrayReturnBudget = 32;")
 else:

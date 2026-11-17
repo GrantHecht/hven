@@ -29,9 +29,10 @@ run_one() { # id
 }
 verdict=MUTATIONS_AS_DECLARED
 run_one control || verdict=CONTROL_NOT_CLEAN
-for m in Ma Mb Mc Md Me1; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
-# Me2 (bound doubled) is a must-terminate check, not a must-kill: its outcome is recorded.
-run_one Me2 > "$OUT/Me2.verdict.txt" 2>&1; echo "Me2 (doubled bound) rc=$? terminated; killers: $(wc -l < "$OUT/Me2.killers.txt")"
+for m in Ma Mb Mc Md Mg; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
+# Me1 (bound removed), Me2 (bound doubled), Me3 (bound and progress rule removed) are must-TERMINATE checks, not must-kill: each
+# run is under `timeout`, and its outcome (killers, exit codes) is recorded.
+for m in Me1 Me2 Me3; do run_one $m > "$OUT/$m.verdict.txt" 2>&1; echo "$m rc=$? (terminated); killers: $(wc -l < "$OUT/$m.killers.txt")"; done
 timeout 1500 ninja -C "$B" -j16 hven_sqp_tests hven_qp_walk_seam_tests > "$OUT/final.build.log" 2>&1
 git -C "$WT" diff --quiet --ignore-submodules=all -- src include tests || { echo TREE_NOT_RESTORED; verdict=TREE_NOT_RESTORED; }
 echo "VERDICT $verdict"
