@@ -1491,6 +1491,14 @@ TEST(ColumnScalingDriver, ThePayloadRouteCrossesAColumnScaledSolve) {
 // (e) THE GUARD
 // ===========================================================================
 
+/// Counts the `message` records of one kind (TR-B).
+struct KindCountingSink final : hven::TraceSink {
+    hven::MessageKind kind;
+    int seen = 0;
+    explicit KindCountingSink(hven::MessageKind k) : kind(k) {}
+    void on_message(const hven::MessageTraceEvent &e) override { seen += e.kind == kind ? 1 : 0; }
+};
+
 TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) {
     // At feas_tol = 1e-3 the scaled test accepts |x^2 - 1| <= 6e-5 and the caller's
     // only |x^2 - 1| <= 1e-11. Newton squares the error, so the first iterate inside
@@ -1501,9 +1509,12 @@ TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) 
     opts.row_scaling = true;
     opts.common.feasibility_tol = 1e-3;
     SqpSolver driver{opts};
+    KindCountingSink refusals(hven::MessageKind::kScaledConvergenceRefused);
+    driver.attach_trace(&refusals);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
+    EXPECT_EQ(refusals.seen, sol.counters.scaled_convergence_refusals) << "TR-B: one line each";
     EXPECT_LT(sol.scaling.row_min, 1e-6) << "the row was shrunk";
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "a scaled-feasible, caller-infeasible iterate was met and refused";

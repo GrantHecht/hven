@@ -175,12 +175,23 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     EXPECT_LE((rehot.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
 
+/// Counts the `message` records of one kind (TR-B).
+struct KindCountingSink final : hven::TraceSink {
+    hven::MessageKind kind;
+    int seen = 0;
+    explicit KindCountingSink(hven::MessageKind k) : kind(k) {}
+    void on_message(const hven::MessageTraceEvent &e) override { seen += e.kind == kind ? 1 : 0; }
+};
+
 TEST_P(EqualityBasisModes, F2InconsistentRedundantRowIsCertifiedInfeasible) {
     const TwoNetworks net;
     const QpAsNlpModel model = net.model(1e-3);
     SqpSolver solver(opts_for(GetParam()));
+    KindCountingSink inconsistent(hven::MessageKind::kInconsistentEqualities);
+    solver.attach_trace(&inconsistent);
     const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kInfeasible);
+    EXPECT_EQ(inconsistent.seen, 1) << "TR-B: at most once, and here exactly once";
     // The equality-basis exit, named (M8 B5).
     EXPECT_EQ(res.stop_reason, StopReason::kInconsistentEqualities);
     EXPECT_EQ(res.message,

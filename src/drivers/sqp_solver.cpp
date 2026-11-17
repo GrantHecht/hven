@@ -2454,7 +2454,7 @@ void SqpSolverImpl::emit_trace_iter(const SqpIterate &row, Index major, QpTraceM
 
 namespace {
 
-MessageTraceEvent sqp_message(MessageKind kind, std::optional<Index> iter) {
+MessageTraceEvent make_sqp_message(MessageKind kind, std::optional<Index> iter) {
     MessageTraceEvent m;
     m.engine = TraceEngine::kSqp;
     m.kind = kind;
@@ -2471,6 +2471,10 @@ template <class Build> void SqpSolverImpl::emit_message(Build &&build) const {
     }
 }
 
+void SqpSolverImpl::emit_note(MessageKind kind, Index iter) const {
+    emit_message([&] { return make_sqp_message(kind, iter); });
+}
+
 void SqpSolverImpl::publish_stop_at(Index iter, StopReason reason, std::string detail) {
     publish_stop(reason, std::move(detail));
     if (is_restoration_sub_driver_ ||
@@ -2478,7 +2482,7 @@ void SqpSolverImpl::publish_stop_at(Index iter, StopReason reason, std::string d
         return;
     }
     emit_message([&] {
-        MessageTraceEvent m = sqp_message(MessageKind::kStopAtIteration, iter);
+        MessageTraceEvent m = make_sqp_message(MessageKind::kStopAtIteration, iter);
         m.s = reason == StopReason::kStopRequested ? "token" : "callback";
         return m;
     });
@@ -3564,7 +3568,7 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
     }
     if (start_point_clamps > 0 && !is_restoration_sub_driver_) {
         emit_message([&] {
-            MessageTraceEvent m = sqp_message(MessageKind::kStartPointClamped, std::nullopt);
+            MessageTraceEvent m = make_sqp_message(MessageKind::kStartPointClamped, std::nullopt);
             m.k = start_point_clamps;
             return m;
         });
@@ -5979,7 +5983,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         (st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume);
     if (!allow_restoration_ || !entry_admissible) {
         emit_message([&] {
-            MessageTraceEvent m = sqp_message(MessageKind::kRestorationRefused, iter);
+            MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);
             m.s = !allow_restoration_ ? "nested" : "entry_rule";
             return m;
         });
@@ -6004,7 +6008,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     }
     if (spent >= st.eff_max_iter) {
         emit_message([&] {
-            MessageTraceEvent m = sqp_message(MessageKind::kRestorationRefused, iter);
+            MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);
             m.s = "budget";
             return m;
         });
@@ -6022,13 +6026,13 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     st.resto.used = true;
     ++st.resto.entries;
     emit_message([&] {
-        MessageTraceEvent m = sqp_message(MessageKind::kRestorationEntered, iter);
+        MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationEntered, iter);
         m.a = constraint_violation_l1(st.ev);
         return m;
     });
     const auto note_exit = [&](const char *exit_s, std::optional<double> violation) {
         emit_message([&] {
-            MessageTraceEvent m = sqp_message(MessageKind::kRestorationExited, iter);
+            MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationExited, iter);
             m.s = exit_s;
             m.a = violation;
             m.b = opts_.common.feasibility_tol;
@@ -7978,7 +7982,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         !(mj.caller_row.feasibility <= opts_.common.feasibility_tol)) {
         mj.converged = false;
         ++st.out.counters.scaled_convergence_refusals;
-        emit_message([&] { return sqp_message(MessageKind::kScaledConvergenceRefused, iter); });
+        emit_note(MessageKind::kScaledConvergenceRefused, iter);
     }
     // THE CALLER-UNIT STATIONARITY CEILING (M7 W2 SCW), column-scaled solves only. A
     // column factor multiplies its stationarity component, so a factor read at a
@@ -7992,7 +7996,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                    *column_units_) <= kCallerStationarityCeiling)) {
         mj.converged = false;
         ++st.out.counters.scaled_convergence_refusals;
-        emit_message([&] { return sqp_message(MessageKind::kScaledConvergenceRefused, iter); });
+        emit_note(MessageKind::kScaledConvergenceRefused, iter);
     }
     // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
     // has the contract). Evaluated HERE, beside the max_iter test and
@@ -8206,7 +8210,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.derivative_failure.clear();
         ++st.out.counters.nonfinite_subproblems;
         emit_message([&] {
-            MessageTraceEvent m = sqp_message(MessageKind::kSubproblemFailure, iter);
+            MessageTraceEvent m = make_sqp_message(MessageKind::kSubproblemFailure, iter);
             m.s = "non_finite";
             m.k = st.qp_failures_in_a_row;
             m.severity = MessageSeverity::kWarning;
@@ -8655,7 +8659,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
 
         if (!ladder_usable) {
             emit_message([&] {
-                MessageTraceEvent m = sqp_message(MessageKind::kElasticExhausted, iter);
+                MessageTraceEvent m = make_sqp_message(MessageKind::kElasticExhausted, iter);
                 m.k = report.rungs_climbed;
                 return m;
             });
@@ -8787,7 +8791,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 return;
             }
             emit_message([&] {
-                MessageTraceEvent m = sqp_message(MessageKind::kSubproblemFailure, iter);
+                MessageTraceEvent m = make_sqp_message(MessageKind::kSubproblemFailure, iter);
                 m.s = failure_s;
                 m.k = st.qp_failures_in_a_row;
                 m.severity = ends_solve ? MessageSeverity::kWarning : MessageSeverity::kNotice;
@@ -9626,8 +9630,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         case MajorOutcome::kFinishInconsistentEqualities:
             publish_stop_at(iter, StopReason::kInconsistentEqualities, std::string());
             if (!is_restoration_sub_driver_) {
-                emit_message(
-                    [&] { return sqp_message(MessageKind::kInconsistentEqualities, iter); });
+                emit_note(MessageKind::kInconsistentEqualities, iter);
             }
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out), SolveStatus::kInfeasible, st.x, st.lambda_e,

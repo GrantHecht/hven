@@ -1992,6 +1992,8 @@ class SqpSolverImpl {
                          Index factorizations) const;
     /// Writes a `message` record; `build` returns the event and runs only when a sink is attached.
     template <class Build> void emit_message(Build &&build) const;
+    /// A message that carries only its kind and `iter`.
+    void emit_note(MessageKind kind, Index iter) const;
     /// `publish_stop`, plus the `stop_at_iteration` message for a callback or token stop (depth 0).
     void publish_stop_at(Index iter, StopReason reason, std::string detail);
     /// The census `solve.begin` carries: the problem's, or (a sub-solve) the parent's.

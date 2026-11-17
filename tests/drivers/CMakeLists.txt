@@ -35,6 +35,10 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_trace_off_path.cpp
     # M8 TR-B: the exit-door walk (count identity at every exit door of both engines; M7-19).
     test_exit_door_walk.cpp
+    # M8 TR-B: the message identities of spec 2.7 on live solves of both engines.
+    test_trace_messages.cpp
+    # M8 TR-B: the message emit sites held by a source scan, falsified by planted sites.
+    test_message_sites.cpp
     # M8 TR-A: the human trace rendered from real solves (goldens under golden/human_trace/).
     test_human_trace_goldens.cpp
     # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.

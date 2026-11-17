@@ -5400,11 +5400,16 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
         << "the restoration sub-driver wrote a header of its own";
     EXPECT_EQ(count_lines_starting(written, "legend "), 1);
     EXPECT_EQ(count_lines_starting(written, "exit "), 1);
-    // The column header precedes the first row and then every 20 printed rows (the
-    // SQP engine writes no message line on this solve): the restoration rows count
-    // among the rows, and a sub-driver's own table would add a header at its first.
+    // The column header precedes the first row, then every 20 printed rows and the first row
+    // after a message line (TR-B: the engine now writes the restoration entry and exit): the
+    // restoration rows count among the rows, and a sub-driver's own table would add a header at
+    // its first row beyond that bound.
     const Index rows = count_row_lines(written);
-    EXPECT_EQ(count_lines_starting(written, " iter t"), 1 + (rows - 1) / 20);
+    const Index messages = count_lines_starting(written, "      ! ") +
+                           count_lines_starting(written, "      - ");
+    EXPECT_GE(messages, 2) << "the entry and the exit of the restoration";
+    EXPECT_GE(count_lines_starting(written, " iter t"), 1 + (rows - 1) / 20);
+    EXPECT_LE(count_lines_starting(written, " iter t"), 1 + (rows - 1) / 20 + messages);
 }
 
 TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {
