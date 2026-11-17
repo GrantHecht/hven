@@ -6,8 +6,9 @@
 // hven-bench trace reader, schema/trace_v1.py) has golden lines to test against that this suite
 // holds byte-exact:
 //   ipm_complete.jsonl  solve.begin, two iter rows (one restoration), a message, solve.end
-//   sqp_complete.jsonl  solve.begin, two iter rows (depth 0 and a depth-1 row), solve.end
-//   ipm_aborted.jsonl   solve.begin and one iter row, no solve.end (an aborted solve, schema 2.1)
+//   sqp_complete.jsonl  a depth-0 solve with a nested depth-1 sub-solve (begin, row, end) between
+//   its rows ipm_aborted.jsonl   solve.begin and one iter row, no solve.end (an aborted solve,
+//   schema 2.1)
 // Every value is hand-filled and every double is exactly representable or a pinned literal, so no
 // solver, MKL kernel or platform reaches a byte.
 //
@@ -127,26 +128,34 @@ std::string write_ipm_complete() {
     return os.str();
 }
 
-std::string write_sqp_complete() {
-    std::ostringstream os;
-    JsonLinesTraceSink sink(os);
-    sink.on_solve_begin(begin(TraceEngine::kSqp));
-    const IterationRecord a = sqp_row(0, 0);
-    const IterationRecord b = sqp_row(1, 1);
-    const IterationRecord c = sqp_row(2, 0);
-    sink.on_iter(IterTraceEvent{a});
-    sink.on_iter(IterTraceEvent{b});
-    sink.on_iter(IterTraceEvent{c});
-    const SqpCounters counters{};
+SolveEndTraceEvent sqp_end(const SqpCounters &counters, double f) {
     SolveEndTraceEvent e;
     e.engine = TraceEngine::kSqp;
     e.status = SolveStatus::kOptimal;
     e.message = "converged to the requested tolerances";
     e.iterations = 2;
-    e.f = -2.5;
+    e.f = f;
     e.sqp.emplace();
     e.sqp->counters = &counters;
-    sink.on_solve_end(e);
+    return e;
+}
+
+// A depth-0 solve whose second row comes from a nested (depth-1) restoration sub-solve: the nested
+// begin/end carry the enclosing solve's `sid` and `depth` 1.
+std::string write_sqp_complete() {
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    const SqpCounters counters{};
+    sink.on_solve_begin(begin(TraceEngine::kSqp));
+    const IterationRecord a = sqp_row(0, 0);
+    const IterationRecord b = sqp_row(1, 1);
+    const IterationRecord c = sqp_row(2, 0);
+    sink.on_iter(IterTraceEvent{a});
+    sink.on_solve_begin(begin(TraceEngine::kSqp));
+    sink.on_iter(IterTraceEvent{b});
+    sink.on_solve_end(sqp_end(counters, -2.0));
+    sink.on_iter(IterTraceEvent{c});
+    sink.on_solve_end(sqp_end(counters, -2.5));
     return os.str();
 }
 
