@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# usage: train.sh <old|new>      Run as: flock /tmp/box-build.lock bash train.sh <arm>
+# usage: train.sh <old|mid|new>      Run as: flock /tmp/box-build.lock bash train.sh <arm>   (mid = arm A', r4)
 # The TRAIN leg for one arm, serial, one cell at a time, alone (CLAUDE.md section 7), TRAIN only (the runner refuses HOLDOUT).
 #   hs      : hs-27 TRAIN x hven-ipm, hven-sqp, default labels, budget_wall_s 600
 #   cutest  : cutest-nlp-35 TRAIN, five named problems x hven-ipm, hven-sqp, default labels, budget_wall_s 300
@@ -7,7 +7,7 @@
 # Raw outputs under .scratch/train/<arm>/ (ignored); summaries are copied into the evidence dir by train_compare.sh.
 set -o pipefail
 WT=/home/ghecht/Projects/hven/.claude/worktrees/tr-e
-ARM=${1:?old|new}
+ARM=${1:?old|mid|new}
 R=$WT/.scratch/bench-$ARM
 BIN=$R/build/lanes/hven/hven_bench_cell
 OUT=$WT/.scratch/train/$ARM

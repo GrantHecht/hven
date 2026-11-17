@@ -1,0 +1,32 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T03:20:52-05:00
+hven_sqp_corpus sha256 26b720dc37de64ef963f06a79a6e25eb5e7949752c11309470e7f26900d3974d
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG aa rc=0 2026-11-17T03:22:33-05:00
+ANALYSIS aa rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=2.484650e+05 B=2.484650e+05 B/A=1.000000
+  all samples                      A=2.484650e+05 B=2.484660e+05 B/A=1.000004
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938978e+10 B=9.938978e+10 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000012
+  round 2: B/A=0.999988
+  round 3: B/A=0.999996
+MODE interior FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG att rc=0 2026-11-17T03:24:14-05:00
+ANALYSIS att rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=2.484620e+05 B=2.485430e+05 B/A=1.000326
+  all samples                      A=2.484620e+05 B=2.485440e+05 B/A=1.000330
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938977e+10 B=9.941974e+10 B/A=1.000302
+per-round filtered B/A (informational):
+  round 1: B/A=1.000318
+  round 2: B/A=1.000326
+  round 3: B/A=1.000334
+MODE interior FILTERED B/A = 1.000326 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-17T03:24:14-05:00
+rc=0

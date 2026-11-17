@@ -1,0 +1,33 @@
+DIFF hs/hs003/hven-sqp/default harness_qpsum_dep_test_solves: old 19 new 16
+DIFF hs/hs005/hven-sqp/default border_refine_steps: old 10 new 9
+DIFF hs/hs005/hven-sqp/default eqp_refine_iters: old 2 new 0
+DIFF hs/hs005/hven-sqp/default eqp_polish_steps: old 6 new 5
+DIFF hs/hs006/hven-sqp/default eqp_polish_steps: old 36 new 33
+DIFF hs/hs007/hven-sqp/default border_refine_steps: old 32 new 31
+DIFF hs/hs007/hven-sqp/default harness_qpsum_dep_test_solves: old 55 new 56
+DIFF hs/hs007/hven-sqp/default eqp_polish_steps: old 40 new 37
+DIFF hs/hs010/hven-sqp/default eqp_refine_iters: old 14 new 10
+DIFF hs/hs010/hven-sqp/default terminal_polish_solves: old 1 new 0
+DIFF hs/hs010/hven-sqp/default terminal_polish_adopted: old 1 new 0
+DIFF hs/hs010/hven-sqp/default harness_factorizations_total: old 23 new 22
+DIFF hs/hs011/hven-sqp/default eqp_polish_steps: old 58 new 55
+DIFF hs/hs012/hven-sqp/default eqp_polish_steps: old 15 new 17
+DIFF hs/hs014/hven-sqp/default eqp_polish_steps: old 14 new 12
+DIFF hs/hs022/hven-sqp/default harness_eval_g: old 3 new 2
+DIFF hs/hs022/hven-sqp/default harness_eval_jac: old 4 new 3
+DIFF hs/hs022/hven-sqp/default eqp_polish_steps: old 3 new 4
+DIFF hs/hs026/hven-sqp/default border_refine_steps: old 41 new 38
+DIFF hs/hs026/hven-sqp/default harness_qpsum_dep_test_solves: old 72 new 71
+DIFF hs/hs026/hven-sqp/default eqp_polish_steps: old 46 new 40
+DIFF hs/hs027/hven-sqp/default eqp_polish_steps: old 31 new 33
+DIFF hs/hs030/hven-sqp/default border_refine_steps: old 36 new 34
+DIFF hs/hs030/hven-sqp/default eqp_polish_steps: old 27 new 30
+DIFF hs/hs033/hven-sqp/default eqp_polish_steps: old 31 new 27
+DIFF hs/hs043/hven-sqp/default eqp_polish_steps: old 27 new 26
+DIFF hs/hs045/hven-sqp/default eqp_polish_steps: old 26 new 24
+DIFF hs/hs079/hven-sqp/default eqp_polish_steps: old 11 new 10
+DIFF hs/hs071/hven-sqp/default eqp_polish_steps: old 23 new 26
+renamed 2 column(s): ssn_sign_sweep_max->ssn.ssn_sign_sweep_max, ssn_sign_swept->ssn.ssn_sign_swept
+added 102 new column(s) (not differences): soc_qp_infeasible, soc_rejected, elastic_escalations, elastic_from_ipqp_escape, ipqp_suspicion_disproved, ipqp_fallback_rung_b, elastic_rho0_ceiling_hits, elastic_floor_retries, start_level_used, probe_budget_stops, crash_seeded_rows, crash_seeded_bounds ...
+order: 3308 pair(s) of mapped columns changed relative order (information)
+154 old columns, 256 new columns, 22 cells old / 22 new, 3388 values compared, 29 differences
