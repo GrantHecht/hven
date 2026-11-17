@@ -1404,6 +1404,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
                         *rho_0_override));
     }
     ++out.elastic_activations;
+    Index rungs_climbed = 0;
 
     // BOTH HARD-WIRED SITES MOVE TOGETHER -- the construction's penalty and the ladder's own
     // `rho` -- or the ladder would start at one penalty and escalate from another.
@@ -1532,6 +1533,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         rho = std::min(rho * kElasticRhoFactor, kElasticRhoMax);
         set_elastic_penalty(elastic, rho);
         ++out.elastic_escalations;
+        ++rungs_climbed;
         qs_e_prev = qs_e;
         has_prev_rung = true;
         // CHAIN THE SEED. Only g changes between rungs, so
@@ -1623,6 +1625,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     report.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
     report.rho_0 = rho_0;
     report.rho0_ceiling_hit = rho0_ceiling_hit;
+    report.rungs_climbed = rungs_climbed;
     report.elastic = std::move(elastic);
     report.qs_e = std::move(qs_e);
     return report;
@@ -2447,6 +2450,38 @@ void SqpSolverImpl::emit_trace_iter(const SqpIterate &row, Index major, QpTraceM
             row, major, mode, is_restoration_sub_driver_ ? 1 : 0, factorizations);
         ipqp_trace_->on_iter(IterTraceEvent{record});
     }
+}
+
+namespace {
+
+MessageTraceEvent sqp_message(MessageKind kind, std::optional<Index> iter) {
+    MessageTraceEvent m;
+    m.engine = TraceEngine::kSqp;
+    m.kind = kind;
+    m.severity = default_message_severity(kind);
+    m.iter = iter;
+    return m;
+}
+
+} // namespace
+
+template <class Build> void SqpSolverImpl::emit_message(Build &&build) const {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_message(build());
+    }
+}
+
+void SqpSolverImpl::publish_stop_at(Index iter, StopReason reason, std::string detail) {
+    publish_stop(reason, std::move(detail));
+    if (is_restoration_sub_driver_ ||
+        (reason != StopReason::kCallbackStop && reason != StopReason::kStopRequested)) {
+        return;
+    }
+    emit_message([&] {
+        MessageTraceEvent m = sqp_message(MessageKind::kStopAtIteration, iter);
+        m.s = reason == StopReason::kStopRequested ? "token" : "callback";
+        return m;
+    });
 }
 
 void SqpSolverImpl::emit_solve_end(const SqpResult &result) {
@@ -3526,6 +3561,13 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
             trace_solve_open_ = true;
         }
         ipqp_trace_->on_solve_begin(make_solve_begin_event(opts_, seam, trace_statistics_));
+    }
+    if (start_point_clamps > 0 && !is_restoration_sub_driver_) {
+        emit_message([&] {
+            MessageTraceEvent m = sqp_message(MessageKind::kStartPointClamped, std::nullopt);
+            m.k = start_point_clamps;
+            return m;
+        });
     }
     finish_exported_feasibility_price_ = false;
     struct SubDriverAbortGuard {
@@ -5936,6 +5978,11 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.entries < opts_.advanced.max_restoration_entries &&
         (st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume);
     if (!allow_restoration_ || !entry_admissible) {
+        emit_message([&] {
+            MessageTraceEvent m = sqp_message(MessageKind::kRestorationRefused, iter);
+            m.s = !allow_restoration_ ? "nested" : "entry_rule";
+            return m;
+        });
         // The nested case (a restoration solve raising its own
         // request) and the entry cap take the SAME exit,
         // for the same reason: there is a restoration request and
@@ -5956,6 +6003,11 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         return RestorationOutcome::kRefused;
     }
     if (spent >= st.eff_max_iter) {
+        emit_message([&] {
+            MessageTraceEvent m = sqp_message(MessageKind::kRestorationRefused, iter);
+            m.s = "budget";
+            return m;
+        });
         // No budget left to restore with. This is a BUDGET
         // outcome, not an infeasibility one, and is reported as
         // such rather than borrowing the verdict the phase never
@@ -5969,6 +6021,22 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     }
     st.resto.used = true;
     ++st.resto.entries;
+    emit_message([&] {
+        MessageTraceEvent m = sqp_message(MessageKind::kRestorationEntered, iter);
+        m.a = constraint_violation_l1(st.ev);
+        return m;
+    });
+    const auto note_exit = [&](const char *exit_s, std::optional<double> violation) {
+        emit_message([&] {
+            MessageTraceEvent m = sqp_message(MessageKind::kRestorationExited, iter);
+            m.s = exit_s;
+            m.a = violation;
+            m.b = opts_.common.feasibility_tol;
+            m.severity = std::string_view(exit_s) == "resumed" ? MessageSeverity::kNotice
+                                                               : MessageSeverity::kWarning;
+            return m;
+        });
+    };
 
     // THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point restoration was entered
     // from -- x, the multipliers and `at_start` -- copied only when something can
@@ -6679,6 +6747,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // a declared stationarity read off it would be a residual at prices
         // this call does not return. See the flag's own note.
         st.resto.duals_cleared = true;
+        note_exit("non_finite", std::nullopt);
         if (stopped_in_recovery) {
             return_entry_point();
         } else if (latch_is_phase_terminal_stop) {
@@ -6724,6 +6793,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         if (reduction_resume) {
             ++st.out.counters.restoration_reduction_resumes;
         }
+        note_exit("resumed", h_r);
         // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
         // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `feas_out` is
         // inside `feas_tol` by the test above -- or the entry is counted in
@@ -6962,6 +7032,10 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.detail = describe_sub_solve_failure(sub_reason, sub_detail);
         break;
     }
+    note_exit(st.resto.status == SolveStatus::kInfeasible    ? "locally_infeasible"
+              : st.resto.status == SolveStatus::kInterrupted ? "interrupted"
+                                                             : "failed",
+              h_r);
     if (stopped_in_recovery) {
         return_entry_point();
     } else if (latch_is_phase_terminal_stop) {
@@ -7904,6 +7978,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         !(mj.caller_row.feasibility <= opts_.common.feasibility_tol)) {
         mj.converged = false;
         ++st.out.counters.scaled_convergence_refusals;
+        emit_message([&] { return sqp_message(MessageKind::kScaledConvergenceRefused, iter); });
     }
     // THE CALLER-UNIT STATIONARITY CEILING (M7 W2 SCW), column-scaled solves only. A
     // column factor multiplies its stationarity component, so a factor read at a
@@ -7917,6 +7992,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                    *column_units_) <= kCallerStationarityCeiling)) {
         mj.converged = false;
         ++st.out.counters.scaled_convergence_refusals;
+        emit_message([&] { return sqp_message(MessageKind::kScaledConvergenceRefused, iter); });
     }
     // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
     // has the contract). Evaluated HERE, beside the max_iter test and
@@ -8129,6 +8205,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.exit_detail = describe_nonfinite_point(st, iter);
         st.derivative_failure.clear();
         ++st.out.counters.nonfinite_subproblems;
+        emit_message([&] {
+            MessageTraceEvent m = sqp_message(MessageKind::kSubproblemFailure, iter);
+            m.s = "non_finite";
+            m.k = st.qp_failures_in_a_row;
+            m.severity = MessageSeverity::kWarning;
+            return m;
+        });
         // FRESH, not a copy of the seed: only its activity is carried (its counters
         // were folded when it was solved).
         QpSolution failed;
@@ -8571,6 +8654,11 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
 #endif
 
         if (!ladder_usable) {
+            emit_message([&] {
+                MessageTraceEvent m = sqp_message(MessageKind::kElasticExhausted, iter);
+                m.k = report.rungs_climbed;
+                return m;
+            });
             mj.row.qp_solved = true;
             mj.row.elastic_applied = true;
             mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
@@ -8691,12 +8779,29 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // reaches neither either: it ends the solve numerical_error before any
         // kernel runs, counted by `nonfinite_subproblems` -- the THIRD source
         // of that status (M7 W2 R2).
+        // One `subproblem_failure` per counted exit; `k` is the driver's run of failures after the
+        // exit was handled; a notice while the solve goes on, a warning when it ends the solve.
+        const char *failure_s = nullptr;
+        const auto note_failure = [&](bool ends_solve) {
+            if (failure_s == nullptr) {
+                return;
+            }
+            emit_message([&] {
+                MessageTraceEvent m = sqp_message(MessageKind::kSubproblemFailure, iter);
+                m.s = failure_s;
+                m.k = st.qp_failures_in_a_row;
+                m.severity = ends_solve ? MessageSeverity::kWarning : MessageSeverity::kNotice;
+                return m;
+            });
+        };
         switch (mj.qs.status) {
         case QpStatus::kIterationLimit:
             ++st.out.counters.qp_maxiter_exits;
+            failure_s = "iteration_limit";
             break;
         case QpStatus::kNumericalError:
             ++st.out.counters.qp_numerical_exits;
+            failure_s = "numerical_error";
             break;
         case QpStatus::kOptimal:
         case QpStatus::kInfeasible:
@@ -8710,6 +8815,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         if (stop_phase_on_qp_failure_ && mj.walk_owns_this_qp) {
             ++st.out.counters.restoration_curvature_switches;
             ++st.out.counters.rejected_steps;
+            note_failure(false);
             push_history(mj.row);
             return MajorOutcome::kFinishQpFailure;
         }
@@ -8770,6 +8876,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                     mj.row.verdict = verdict;
                     mj.failure_step = true;
                     st.qp_failures_in_a_row = 0;
+                    note_failure(false);
                     push_history(mj.row);
                     return MajorOutcome::kCommitAccepted;
                 }
@@ -8808,6 +8915,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             ++st.out.counters.qp_failures_routed;
             st.out.counters.qp_failures_in_a_row_peak =
                 std::max(st.out.counters.qp_failures_in_a_row_peak, st.qp_failures_in_a_row);
+            note_failure(false);
             ++st.rejections_at_iterate;
             ++st.out.counters.rejected_steps;
             // THE RADIUS FLOOR applies to a ROUTED failure
@@ -8860,6 +8968,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // BEFORE the outcome leaves: the caller only advances the loop.
             return MajorOutcome::kContinue;
         }
+        note_failure(true);
         push_history(mj.row);
         // No restoration was consulted on this path -- x is still
         // the pre-trial iterate `mj.qs` was solved at, so its own
@@ -9362,7 +9471,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 if (mj.soc_applied) {
                     --st.out.counters.soc_applied;
                 }
-                publish_stop(interrupt_reason(mj), std::string());
+                publish_stop_at(iter, interrupt_reason(mj), std::string());
                 if (st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid) {
                     return finish_best(SolveStatus::kInterrupted);
                 }
@@ -9478,7 +9587,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             continue;
         }
         case MajorOutcome::kFinishManual:
-            publish_stop(st.exit_reason, st.exit_detail);
+            publish_stop_at(iter, st.exit_reason, st.exit_detail);
             check_major_pushed_once(iter);
             attach_best_iterate(st, st.out.status, st.out);
             // `out` is a member of the solve state, not a local, so this is a
@@ -9492,9 +9601,10 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
             check_major_pushed_once(iter);
-            publish_stop(!mj.converged && mj.interrupted_exit ? interrupt_reason(mj)
-                                                              : StopReason::kNone,
-                         std::string());
+            publish_stop_at(iter,
+                            !mj.converged && mj.interrupted_exit ? interrupt_reason(mj)
+                                                                 : StopReason::kNone,
+                            std::string());
             if (!mj.converged && mj.interrupted_exit && stop_returns_best) {
                 return finish_best(SolveStatus::kInterrupted);
             }
@@ -9514,7 +9624,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                           stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
                                                      seam.upper()));
         case MajorOutcome::kFinishInconsistentEqualities:
-            publish_stop(StopReason::kInconsistentEqualities, std::string());
+            publish_stop_at(iter, StopReason::kInconsistentEqualities, std::string());
+            if (!is_restoration_sub_driver_) {
+                emit_message(
+                    [&] { return sqp_message(MessageKind::kInconsistentEqualities, iter); });
+            }
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out), SolveStatus::kInfeasible, st.x, st.lambda_e,
                           st.lambda_i, mj.kkt, mj.row.f,
@@ -9538,9 +9652,10 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the pre-trial iterate `mj.qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
-            publish_stop(st.exit_reason != StopReason::kNone ? st.exit_reason
-                                                             : StopReason::kSubproblemFailure,
-                         st.exit_detail);
+            publish_stop_at(iter,
+                            st.exit_reason != StopReason::kNone ? st.exit_reason
+                                                                : StopReason::kSubproblemFailure,
+                            st.exit_detail);
             check_major_pushed_once(iter);
             // THE NON-FINITE SUBPROBLEM EXIT CLEARS THE MULTIPLIERS (M8 B5 riders),
             // as the non-finite evaluation exit does and as the interior-point
@@ -9577,12 +9692,12 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // moved x away from what the seed describes; see
             // st.resto.moved_x's own note).
             if (mj.interrupted_exit && stop_returns_best) {
-                publish_stop(StopReason::kCallbackStop, std::string());
+                publish_stop_at(iter, StopReason::kCallbackStop, std::string());
                 check_major_pushed_once(iter);
                 return finish_best(SolveStatus::kInterrupted);
             }
-            publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
-                         mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
+            publish_stop_at(iter, mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
+                            mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(
                 seam, std::move(st.out),
@@ -9618,12 +9733,12 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the region around x unless restoration itself moved x; see
             // st.resto.moved_x's own note.
             if (mj.interrupted_exit && stop_returns_best) {
-                publish_stop(StopReason::kCallbackStop, std::string());
+                publish_stop_at(iter, StopReason::kCallbackStop, std::string());
                 check_major_pushed_once(iter);
                 return finish_best(SolveStatus::kInterrupted);
             }
-            publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
-                         mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
+            publish_stop_at(iter, mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
+                            mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out),
                           // The parent's latch outranks the phase's verdict; see the seed

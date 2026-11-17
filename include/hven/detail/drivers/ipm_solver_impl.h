@@ -2000,7 +2000,13 @@ class IpmSolverImpl {
     // any mu or governor work belonging to the phase must precede it; `measures`
     // must come from build_restoration_exit_measures(); and the recovery-chain
     // reset runs last and exactly once per transition.
-    void leave_restoration(const ProgressMeasures &measures, bool restore_stashed_mu, double &mu);
+    //
+    // `exit_s` is the `restoration_exited` message's `s` (a literal), or null when the site writes
+    // its own message (the locally-infeasible door, whose line follows its row).
+    void leave_restoration(const ProgressMeasures &measures, bool restore_stashed_mu, double &mu,
+                           const char *exit_s);
+    // The `s` of the `restoration_exited` line for an episode still open when the phase ends.
+    const char *teardown_exit_s() const noexcept;
 
     // The nested phase's multiplier re-entry sequence, shared by the kappa_resto
     // ratchet exit and the near-feasible stall exit, in strict order: (1) keep the

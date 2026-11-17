@@ -2000,12 +2000,9 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     }
 }
 
-// DISABLED, and the reason is a library gap found while migrating this file: spec
-// 2.7 gives `restoration_entered` a count identity (lines == counters.restoration_
-// entries), but the interior-point engine writes no such message at this commit --
-// only `restoration_exited` is emitted (ipm_solver.cpp's emit_message sites). The
-// assertion is kept so the day the emit lands, enabling the test is the whole job.
-TEST(IpmTrace, DISABLED_EveryRestorationEntryWritesARestorationEnteredMessage) {
+// Spec 2.7: `restoration_entered` lines == counters.restoration_entries, one `restoration_exited`
+// per entered.
+TEST(IpmTrace, EveryRestorationEntryWritesARestorationEnteredMessage) {
     const auto program = hven::detail::make_nlp_program(std::make_shared<InfeasibleProblem>());
     hven::IpmSolver solver;
     {

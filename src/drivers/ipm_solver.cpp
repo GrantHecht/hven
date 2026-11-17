@@ -1524,6 +1524,16 @@ void hven::detail::IpmSolverImpl::enter_feasibility_restoration(Eigen::VectorXd 
     entry.objective = prim_obj;
     entry.auxiliary = barr_obj;
 
+    this->emit_message([&] {
+        MessageTraceEvent msg;
+        msg.kind = MessageKind::kRestorationEntered;
+        msg.phase = this->trace_phase_;
+        msg.iter = this->trace_iter_;
+        msg.a = entry.infeasibility;
+        msg.severity = default_message_severity(msg.kind);
+        return msg;
+    });
+
     if (this->restoration_->is_nested()) {
         // Nested l1 restoration: full elastic initialization from the current
         // residual vectors (equality h(x); inequality g(x)+s), then the verified
@@ -1619,10 +1629,39 @@ void hven::detail::IpmSolverImpl::dispatch_restoration_entry(
     feas_stall.reset_window();
 }
 
+const char *hven::detail::IpmSolverImpl::teardown_exit_s() const noexcept {
+    switch (this->last_stop_reason_) {
+    case IpmPhaseStop::kCallbackStop:
+    case IpmPhaseStop::kStopRequested:
+        return "interrupted";
+    case IpmPhaseStop::kNonFiniteStart:
+    case IpmPhaseStop::kNonFiniteIterate:
+    case IpmPhaseStop::kEvaluationFailure:
+        return "non_finite";
+    default:
+        return "failed";
+    }
+}
+
 // Restoration-exit protocol. See the declaration in ipm_solver.h for why this order
 // is load-bearing.
 void hven::detail::IpmSolverImpl::leave_restoration(const ProgressMeasures &measures,
-                                                    bool restore_stashed_mu, double &mu) {
+                                                    bool restore_stashed_mu, double &mu,
+                                                    const char *exit_s) {
+    if (exit_s != nullptr) {
+        this->emit_message([&] {
+            MessageTraceEvent msg;
+            msg.kind = MessageKind::kRestorationExited;
+            msg.phase = this->trace_phase_;
+            msg.iter = this->trace_iter_;
+            msg.a = measures.infeasibility;
+            msg.b = kRestoFailureFeasibilityFactor * opts_.common.feasibility_tol;
+            msg.s = exit_s;
+            msg.severity = std::string_view(exit_s) == "resumed" ? MessageSeverity::kNotice
+                                                                 : MessageSeverity::kWarning;
+            return msg;
+        });
+    }
     if (restore_stashed_mu) {
         mu = this->stashed_mu_;
         this->governor_->reset();
@@ -1750,7 +1789,7 @@ void hven::detail::IpmSolverImpl::exit_feasibility_restoration_nested(Eigen::Vec
     // once is_active() flips false.
     this->leave_restoration(
         this->build_restoration_exit_measures(obj_scale, theta_orig, v_xsl.primals(), barr_obj),
-        true, mu);
+        true, mu, "resumed");
 }
 
 // Per-iteration κ_resto ratchet: the original-problem infeasibility must fall to
@@ -3253,6 +3292,21 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 this->last_stop_reason_ = this->solve_at_start_ ? IpmPhaseStop::kNonFiniteStart
                                                                 : IpmPhaseStop::kNonFiniteIterate;
             }
+            // M7-19: the record pushed above is counted in `iterations`, so it owns one trace line
+            // and one callback event like every other counted record. Below the return_best
+            // substitution, so the event describes the point the phase returns.
+            if (TraceSink *const sink = this->trace_; sink != nullptr) {
+                Printtimer.start();
+                this->emit_iter(*sink, iters.back());
+                Printtimer.stop();
+            }
+            if (this->iteration_callback_) {
+                CBtimer.start();
+                this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm,
+                                           best_substituted ? this->best_prim_obj_scratch_
+                                                            : iters.back().prim_obj);
+                CBtimer.stop();
+            }
             ExitCode = SolveStatus::kNumericalError;
             this->result_.status = ExitCode;
             break;
@@ -3550,7 +3604,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                         this->leave_restoration(
                             this->build_restoration_exit_measures(obj_scale, cur.infeasibility,
                                                                   v_xsl.primals(), barr_obj),
-                            false, mu);
+                            false, mu, "resumed");
                         // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
                         // path re-anchors multipliers into XSL and goes round
                         // the loop again, so the right-hand side just
@@ -3592,7 +3646,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                         this->leave_restoration(
                             this->build_restoration_exit_measures(obj_scale, cur.infeasibility,
                                                                   v_xsl.primals(), barr_obj),
-                            false, mu);
+                            false, mu, "resumed");
                         // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
                         // path re-anchors multipliers into XSL and goes round
                         // the loop again, so the right-hand side just
@@ -3636,7 +3690,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     // Count this exit iteration in the in-mode total (see the
                     // near-feasible exits above).
                     this->restoration_->note_iteration();
-                    this->leave_restoration(exit_measures, this->restoration_->is_nested(), mu);
+                    this->leave_restoration(exit_measures, this->restoration_->is_nested(), mu,
+                                            nullptr);
                 }
                 iters.back().mu = mu;
                 QPtimer.stop();
@@ -5167,7 +5222,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // counted by the in-loop stay-in-mode note_iteration() before the loop
         // broke (the decision-driven in-loop exits, which return before that
         // point, are the ones that count their exit iteration explicitly).
-        this->leave_restoration(measures, this->restoration_->is_nested(), mu);
+        this->leave_restoration(measures, this->restoration_->is_nested(), mu,
+                                this->teardown_exit_s());
     }
 
     if (algmode == AlgorithmMode::kOpt) {

@@ -520,6 +520,8 @@ struct ElasticLadderReport {
     ///        invertible from the report's `elastic` block once the ladder has
     ///        climbed, and the retry rule's own input.
     double rho_0 = 0.0;
+    /// Rungs climbed above the first (`elastic_escalations` for this ladder).
+    Index rungs_climbed = 0;
     /// @brief True iff this ladder's placement was clamped -- by headroom or by
     ///        dual_mu -- i.e. the evidence priced the violation above the rung the
     ///        placement bound allows. Aggregated over a solve by
@@ -1988,6 +1990,10 @@ class SqpSolverImpl {
     /// Emits the `iter` record for one history row (built only inside the sink guard).
     void emit_trace_iter(const SqpIterate &row, Index major, QpTraceMode mode,
                          Index factorizations) const;
+    /// Writes a `message` record; `build` returns the event and runs only when a sink is attached.
+    template <class Build> void emit_message(Build &&build) const;
+    /// `publish_stop`, plus the `stop_at_iteration` message for a callback or token stop (depth 0).
+    void publish_stop_at(Index iter, StopReason reason, std::string detail);
     /// The census `solve.begin` carries: the problem's, or (a sub-solve) the parent's.
     ProblemStatistics trace_statistics_;
     // The NEXT kIpqp subproblem's seed, and the tier's one staging slot. Two
