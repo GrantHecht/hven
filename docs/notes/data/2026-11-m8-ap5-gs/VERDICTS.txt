@@ -1,0 +1,22 @@
+M8 AP-5 G-S verdicts. hven code head under test = 9f333b756d99faa027dfe887347e45e2e4ad2a96 (on the g-rb branch after G-RB's commits; base for arm A = G-RB code head 8e6e07310). Evidence declared in
+DECLARATION.md (21695f718); no re-declaration was needed. Toolchain: clang 22.1.x, Fedora, AMD Ryzen 7 5800X3D (16 logical CPUs), 2026-11-17, Release SAFER_FAST and Debug. Windows/Accelerate
+UNOBSERVED. HOLDOUT was NOT run.
+Arm A sha256 460104d7461e480dc8f7e8a4f03ec2a9532c9f9bdf71931d5a9552c538c81b17; arm B sha256 2128e7bc32c2d9b6667d409b34a86ac2867c9edf5f69fcb25f0e0513eca99d27.
+
+AFFECTED CELLS (declared before the first leg; confirmed by the legs): interior leg 2 of 43 rows -- infeas2_spike/MakeParameter/stalled and infeas2_stationary/MakeParameter/resto_infeasible; replay 0 of
+27 cells x 3 modes. Status column re-derived: stalled -> infeasible on exactly those two rows, and the `stalled` token of their `phases` column; points unchanged.
+
+P1   ctest at the code head, every target: Release 100% passed (0 failed of 3862 run), Debug the same (suites/). PASS.
+P3   replay 27 cells x (walk, ssn, ipm), arm A vs arm B, EXACT: "differences: 0" x3 (75 columns); ARMED vs unarmed arm B: 0 x3 (replay/). The declared mover set in the replay corpus is empty. PASS.
+P4   interior (43 cells, 30 columns): legs/interior_movers.py over arm A's and arm B's CSVs: MOVERS_VERDICT PASS -- exactly the two declared cells differ, each in exactly `status` and `phases`, by the declared map
+     (interior/gs-interior-movers.txt; the informational EXACT comparison lists the same 4 (cell, column) pairs and nothing else: interior-unmoved comparison); promoted (the NEW baseline
+     bench/baselines/2026-11-m8-ap5-gs-ipm-leg/interior_baseline.csv vs arm B under the baseline's own invocation): 0 differences -- this is the declared status re-derivation, confirmed; armed 0. PASS.
+P5   install smoke, default and clang front ends, each followed by check_export_contract.sh: "export contract OK for platform=linux, align=32" x2. PASS.
+M    mutations: control fails nothing; must-kill g1 g2 g3 g4 g5 all KILLED (mutation/verdict.txt): g1 relabel missed (IpmTrace/IpmStopReason re-derived pins and the new never-substitutes test), g2 certificate claimed
+     (the new test's !infeasibility_certified), g3 relabel on the stage-stalled door (AStalledFeasibilityStageIsRecordedAsSuch and the resolution table), g4 generic message (the new test's message pin), g5 IPM
+     substitution on the raw verdict (the new test: the relabelled exit substitutes under kOnLimit). MUTATION_VERDICT PASS.
+Runtime gate: not required (one status-resolution arm per phase exit). TSan, goldens beyond the human-trace golden re-derived by the code commit: not run (declared).
+
+hven-bench (not changed, nothing created): lanes/hven/hven_bench_cell.cpp's normalise_outcome maps kInfeasible to `infeasible` and kStalled to `error`, so an IPM-lane cell on this exit changes its outcome
+column from `error` to `infeasible` -- a column-value change for the lane's own decision.
+OPEN ITEMS: none for G-S beyond the hven-bench note.

@@ -1,0 +1,7 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+g1,the relabel is missed (restoration door resolves kStalled),ok,IpmTrace.TheLocallyInfeasibleDoorWritesRestorationExitedWithSourceLocallyInfeasible ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1 interior rc=1 
+g2,the relabelled exit claims a certificate,ok,ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1 
+g3,the relabel is applied to the stage-stalled door,ok,IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason drivers rc=1 interior rc=1 
+g4,the message keeps the generic text,ok,ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1 
+g5,the IPM substitution reads the raw verdict (relabelled exit substitutes),ok,ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1 
