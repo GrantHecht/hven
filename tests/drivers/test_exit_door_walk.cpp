@@ -467,7 +467,6 @@ TEST(ReturnBestForcedExits, TheOptionIsOffByDefaultAndValidated) {
     IpmOptions o;
     o.common.return_best = static_cast<ReturnBest>(3);
     EXPECT_THROW(validate(o), std::invalid_argument);
-    EXPECT_EQ(IpmOptions{}.best_iterate_criterion, IpmBestIterateCriterion::kFeasibilityFirst);
 }
 
 } // namespace

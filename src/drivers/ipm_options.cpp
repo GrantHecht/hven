@@ -248,9 +248,6 @@ void hven::validate(const IpmOptions &o) {
         throw std::invalid_argument(fmt::format(
             "objective_scale must be finite and strictly positive, got {}", o.objective_scale));
 
-    enum_in_range(o.best_iterate_criterion, IpmBestIterateCriterion::kFeasibilityFirst,
-                  "best_iterate_criterion");
-
     // --- Linear ---
     enum_in_range(lin.ordering, IpmOrdering::kParallelNestedDissection, "linear.ordering");
     enum_in_range(lin.pivot_strategy, IpmPivotStrategy::kTwoByTwo, "linear.pivot_strategy");
@@ -606,22 +603,6 @@ const char *enum_name(hven::IpmSolveParallelism v) {
     }
     return "unknown";
 }
-const char *enum_name(hven::IpmBestIterateCriterion v) {
-    using hven::IpmBestIterateCriterion;
-    switch (v) {
-    case IpmBestIterateCriterion::kEquality:
-        return "kEquality";
-    case IpmBestIterateCriterion::kInequality:
-        return "kInequality";
-    case IpmBestIterateCriterion::kKkt:
-        return "kKkt";
-    case IpmBestIterateCriterion::kObjective:
-        return "kObjective";
-    case IpmBestIterateCriterion::kFeasibilityFirst:
-        return "kFeasibilityFirst";
-    }
-    return "unknown";
-}
 const char *enum_name(hven::ReturnBest v) {
     using hven::ReturnBest;
     switch (v) {
@@ -734,7 +715,6 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_str(os, "fixed_variable_treatment", enum_name(o.fixed_variable_treatment));
     kv_dbl(os, "bound_relax_factor", o.bound_relax_factor);
     kv_dbl(os, "objective_scale", o.objective_scale);
-    kv_str(os, "best_iterate_criterion", enum_name(o.best_iterate_criterion));
     const IpmLinearOptions &l = o.linear;
     kv_str(os, "linear.ordering", enum_name(l.ordering));
     kv_str(os, "linear.pivot_strategy", enum_name(l.pivot_strategy));

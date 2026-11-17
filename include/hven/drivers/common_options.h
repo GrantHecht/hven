@@ -42,7 +42,7 @@ enum class Verbosity {
 /// Substitution never happens on a kOptimal, kInterrupted or kInfeasible exit (a best point is
 /// not evidence about infeasibility, certified or not); an interrupt returns the point its stop
 /// rule names. Reading `SolveResult::returned_best_iterate` says whether it applied. "Best" is one
-/// ordering on both engines unless `IpmOptions::best_iterate_criterion` overrides it: smaller
+/// ordering on both engines: smaller
 /// feasibility measure first, with every point within `CommonOptions::feasibility_tol` tied, then
 /// the smaller objective; a later point replaces the best only if strictly better.
 enum class ReturnBest {

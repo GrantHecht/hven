@@ -454,15 +454,13 @@ TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
 // iterate's, x and f the last point's). Under `common.return_best` it now follows the shared
 // rule: kNever returns the iterate the solve stopped on; kOnLimit and kOnAnyNonOptimal return
 // the best iterate in full, and the claim holds (x and f are best_iterate's). Premise,
-// asserted: scored by objective, a cap exit and a work-limit exit each substitute at some
+// asserted: a cap exit and a work-limit exit each substitute at some
 // setting on this problem, so the comparison can tell.
 TEST(Limits, AWorkLimitExitFollowsTheSharedReturnBestRule) {
-    constexpr auto kCriterion = hven::IpmBestIterateCriterion::kObjective;
     bool substitution_seen = false;
     for (hven::Index cap = 1; cap <= 8; ++cap) {
         IpmOptions plain;
         plain.common.max_iterations = cap;
-        plain.best_iterate_criterion = kCriterion;
         IpmOptions best = plain;
         best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
         const IpmResult a = ipm_solve(plain);
@@ -478,7 +476,6 @@ TEST(Limits, AWorkLimitExitFollowsTheSharedReturnBestRule) {
     for (const hven::Index limit : {0, 1, 2, 3, 4, 5}) {
         IpmOptions plain;
         plain.common.max_factorizations = limit;
-        plain.best_iterate_criterion = kCriterion;
         const IpmResult a = ipm_solve(plain);
         if (a.status != SolveStatus::kWorkLimit) {
             continue; // converged before the ceiling

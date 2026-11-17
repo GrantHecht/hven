@@ -238,12 +238,6 @@ struct IpmOptions {
     /// and > 0.
     double objective_scale = 1.0;
 
-    /// Overrides how the best iterate is ordered (`common.return_best` and the tracker armed
-    /// by a callback or stop token use it). Default `kFeasibilityFirst`, the order both
-    /// engines share (see ReturnBest); the other values are single-measure
-    /// alternatives that keep `<=` ties.
-    IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kFeasibilityFirst;
-
     /// The KKT factorization.
     IpmLinearOptions linear;
 

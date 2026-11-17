@@ -1297,7 +1297,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under IpmBestIterateCriterion::kObjective the best-scoring iterate is an
+// f(x*) = 1.125, so under the shared ordering the best-scoring iterate is an
 // EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
 // last on a converged exit -- is what the pin below needs, and it is not
 // reachable with the default ECONS criterion.
@@ -1388,11 +1388,6 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     {
         auto o = solver.options();
         o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
-        solver.set_options(std::move(o));
-    }
-    {
-        auto o = solver.options();
-        o.best_iterate_criterion = hven::IpmBestIterateCriterion::kObjective;
         solver.set_options(std::move(o));
     }
 

@@ -604,7 +604,6 @@ TEST(BestIterate, AnAcceptableReturnBestSolvePublishesTheBestItSubstituted) {
 TEST(BestIterate, AnIterateScoringTheOldSentinelValueIsRecorded) {
     Problem problem(std::make_shared<ConstantObjective>());
     IpmOptions o = quiet_ipm();
-    o.best_iterate_criterion = hven::IpmBestIterateCriterion::kObjective;
     IpmSolver solver(o);
     solver.set_iteration_callback(
         [](const IterationEvent &) { return CallbackAction::kStopReturnBest; });

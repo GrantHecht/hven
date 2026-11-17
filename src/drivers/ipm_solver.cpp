@@ -2309,41 +2309,19 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
                                                      double mu, double step_norm,
                                                      double &BestCriteriaVal, int &BestIter,
                                                      bool &recorded) {
-    double critval;
-    const bool shared_order =
-        opts_.best_iterate_criterion == IpmBestIterateCriterion::kFeasibilityFirst;
-    switch (opts_.best_iterate_criterion) {
-    case IpmBestIterateCriterion::kFeasibilityFirst:
-        // The convergence feasibility (max of the two residuals; NaN if either is), the same
-        // quantity the result's `convergence.feasibility` reports.
-        critval = (std::isnan(iter.econ_inf) || std::isnan(iter.icon_inf))
-                      ? std::numeric_limits<double>::quiet_NaN()
-                      : std::max(iter.econ_inf, iter.icon_inf);
-        break;
-    case IpmBestIterateCriterion::kEquality:
-        critval = iter.econ_inf;
-        break;
-    case IpmBestIterateCriterion::kInequality:
-        critval = iter.icon_inf;
-        break;
-    case IpmBestIterateCriterion::kKkt:
-        critval = iter.kkt_inf;
-        break;
-    case IpmBestIterateCriterion::kObjective:
-        critval = iter.prim_obj;
-        break;
-    default:
-        throw std::invalid_argument("Unknown BestIterateCriterion");
-    }
+    // The convergence feasibility (max of the two residuals; NaN if either is), the same
+    // quantity the result's `convergence.feasibility` reports.
+    const double critval = (std::isnan(iter.econ_inf) || std::isnan(iter.icon_inf))
+                               ? std::numeric_limits<double>::quiet_NaN()
+                               : std::max(iter.econ_inf, iter.icon_inf);
     // A finite criterion competes with a finite incumbent; a phase's first iterate
     // is stored whatever it scores, and a non-finite incumbent (or none) yields to
     // the first finite one. `recorded` is true exactly when the stored iterate's
     // criterion is finite.
-    // The shared order (strict, banded, objective second) or a single measure with `<=` ties.
-    const bool beats = shared_order ? detail::best_improves(critval, iter.prim_obj, BestCriteriaVal,
-                                                            this->best_prim_obj_scratch_,
-                                                            opts_.common.feasibility_tol)
-                                    : critval <= BestCriteriaVal;
+    // The shared order: strict, banded at feasibility_tol, objective second.
+    const bool beats =
+        detail::best_improves(critval, iter.prim_obj, BestCriteriaVal, this->best_prim_obj_scratch_,
+                              opts_.common.feasibility_tol);
     if (i == 0 || (std::isfinite(critval) && (!recorded || beats))) {
         BestCriteriaVal = critval;
         recorded = std::isfinite(critval);

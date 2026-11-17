@@ -377,7 +377,6 @@ TEST(StopPollSeam, T3ALadderStopScoresItsPointIntoTheBestTracker) {
             opts.advanced.inertia_mode = mode;
             opts.common.return_best =
                 return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
-            opts.best_iterate_criterion = hven::IpmBestIterateCriterion::kEquality;
 
             Seam::reset();
             StopSource dry_source;

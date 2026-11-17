@@ -57,7 +57,7 @@ using hven::SqpOptions;
 // `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
 // counts are the same everywhere.
 constexpr std::size_t kIpmLinearOptionsFields = 12;
-constexpr std::size_t kIpmOptionsFields = 15;
+constexpr std::size_t kIpmOptionsFields = 14;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
 constexpr std::size_t kIpmAdvancedOptionsFields = 24;
 constexpr std::size_t kSqpOptionsFields = 16;
@@ -107,12 +107,12 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
 // LINUX x86-64, clang, the project's own flag regime. These numbers are layout,
 // not contract: a different ABI, alignment or standard library legitimately
 // produces others, which is why the asserts are gated. Apple and Windows values
-// are UNOBSERVED and deliberately not guessed. All values re-observed at M8 AP-2
-// B3, which re-laid every options struct (the history of earlier values is in
-// docs/notes and in git).
+// are UNOBSERVED and deliberately not guessed. IpmOptions re-observed at the M8 AP-5 G-RB rider
+// (472, one enum removed). All other values re-observed at M8 AP-2 B3, which re-laid every options
+// struct (the history of earlier values is in docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
-static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
+static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
@@ -140,7 +140,7 @@ static_assert(sizeof(CommonOptions) == 88, "CommonOptions' layout moved on Linux
 // SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
 // advanced.ipqp 25 = 86.
 // ---------------------------------------------------------------------------
-constexpr int kIpmDumpLines = 67;
+constexpr int kIpmDumpLines = 66;
 constexpr int kSqpDumpLines = 86;
 
 int count_lines(const std::string &text) {

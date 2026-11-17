@@ -128,10 +128,9 @@ new, so there is no rewrite.
   `kAcceptable` (or the best was substituted for the primary point, whatever the
   status); otherwise `nullopt`. **Armed** when a return-best option is on
   (`IpmOptions::return_best`, `SqpOptions::return_best_on_max_iterations`), an
-  iteration callback is installed, or `SolveBudget::stop` can fire. Best by each
-  engine's own ordering: interior-point, `IpmOptions::best_iterate_criterion` over the
-  last phase that ran, never a restoration iterate; SQP, feasibility first (`h`, then
-  `f`) over the caller's own solve, never a restoration sub-solve's row. Tracking
+  iteration callback is installed, or `SolveBudget::stop` can fire. Best by the
+  one shared ordering (see G-RB): interior-point over the last phase that ran, never a
+  restoration iterate; SQP over the caller's own solve, never a restoration sub-solve's row. Tracking
   copies and never steers: an armed solve is the unarmed solve, counter for counter.
   The cost is O(n+m) per improving iterate, none when unarmed.
 - `CallbackAction::kStopReturnBest`: stops as `kStop` does, and the returned primary
@@ -473,7 +472,7 @@ meaning. A solve with the option off (the default) is bitwise unchanged.
 | `IpmOptions::return_best = true` | `ipm.common.return_best = ReturnBest::kOnAnyNonOptimal` | break (Q5); `false` is `ReturnBest::kNever` |
 | `SqpOptions::return_best_on_max_iterations = true` | `sqp.common.return_best = ReturnBest::kOnLimit` | break (Q5); `false` is `ReturnBest::kNever` |
 | (none) | `hven::ReturnBest {kNever, kOnLimit, kOnAnyNonOptimal}`, `CommonOptions::return_best` | new; the dump prints `common.return_best` where `return_best` / `return_best_on_max_iterations` printed (line counts unchanged) |
-| `IpmBestIterateCriterion` default `kEquality` | default `kFeasibilityFirst` (new, appended last); `kEquality`, `kInequality`, `kKkt`, `kObjective` stay as overrides with their `<=` ties | set the old value to keep the old pick; only a solve that tracks a best (return-best, a callback or a token) is affected |
+| `IpmOptions::best_iterate_criterion` (`IpmBestIterateCriterion` `kEquality` default, `kInequality`, `kKkt`, `kObjective`) | **removed**, with the enum (owner ruling 2026-11-17); the shared ordering below is always used, on both engines | break; delete the assignment. There is no single-measure override: the old default's pick (equality residual alone, `<=` ties) is not reproducible. The dump loses the `best_iterate_criterion` line (IPM dump 67 -> 66 lines); only a solve that tracks a best (return-best, a callback or a token) is affected |
 
 What each value does, on both engines:
 
@@ -491,7 +490,7 @@ What each value does, on both engines:
   `returned_best_iterate` and read the best iterate's residual row while returning the last
   primal point. They now return the best point in full (fixed with the widening).
 
-"Best" is one ordering unless `IpmOptions::best_iterate_criterion` overrides it: smaller
+"Best" is one ordering on both engines, always (no override): smaller
 feasibility measure first (each engine's own convergence measure: the IPM's
 `max(equality, inequality)`, the SQP's `feasibility`), every point within `common.feasibility_tol`
 tied, then the smaller objective; a later point replaces the best only if strictly better. Before,

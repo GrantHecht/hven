@@ -262,10 +262,9 @@ struct SolveResult {
     ///
     /// Armed whenever a return-best option is on, an iteration callback is
     /// installed or SolveBudget::stop can fire. Never affects the trajectory.
-    /// Best by the shared ordering (see ReturnBest; the interior-point engine's
-    /// IpmOptions::best_iterate_criterion may override it, last phase that ran), over the caller's
-    /// own iterates, never a feasibility-restoration point. Every vector is filled; `iteration`,
-    /// `step_norm` and `ipm`/`sqp` are those of the iterate's own event.
+    /// Best by the shared ordering (see ReturnBest; interior-point: last phase that ran), over the
+    /// caller's own iterates, never a feasibility-restoration point. Every vector is filled;
+    /// `iteration`, `step_norm` and `ipm`/`sqp` are those of the iterate's own event.
     /// @ref returned_best_iterate says whether the primary point is this one.
     /// Invariant, both engines: returned_best_iterate implies best_iterate is set.
     /// It is set whenever the best was substituted for the primary point

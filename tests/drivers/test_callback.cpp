@@ -477,63 +477,6 @@ bool bit_equal(const Vec &a, const Vec &b) {
     return true;
 }
 
-// A PROBLEM WHOSE OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
-// sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under IpmBestIterateCriterion::kObjective the best-scoring iterate is an
-// EARLY one -- which is what a `return_best` substitution needs in order to
-// substitute anything at all.
-//
-// VERBATIM from tests/interior/test_ipm_solver_entry.cpp's
-// BestIterateRisingObjectiveProblem, copied for the reason the two SQP fixtures
-// above are: it is a local of a .cpp in another suite.
-struct RisingObjectiveProblem final : hven::Nlp {
-    hven::NlpDimensions dimensions() const override {
-        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
-    }
-
-    static constexpr int kN = 4;
-
-    int num_vars() const { return kN; }
-    int num_cons() const { return 1; }
-    int num_jac_nonzeros() const { return kN; }
-    int num_hess_nonzeros() const { return kN; }
-
-    void bounds(Eigen::Ref<Vec> xl, Eigen::Ref<Vec> xu, Eigen::Ref<Vec> gl,
-                Eigen::Ref<Vec> gu) const override {
-        xl.setConstant(-2.0);
-        xu.setConstant(2.0);
-        gl.setConstant(3.0);
-        gu.setConstant(3.0);
-    }
-    double eval_f(hven::ConstVecRef x) const override { return 0.5 * x.squaredNorm(); }
-    void eval_grad_f(hven::detail::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override {
-        g = x;
-    }
-    void eval_g(hven::detail::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override {
-        g[0] = x.sum();
-    }
-    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
-        for (int i = 0; i < kN; i++) {
-            r[i] = 0;
-            c[i] = i;
-        }
-    }
-    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
-        for (int i = 0; i < kN; i++) {
-            r[i] = i;
-            c[i] = i;
-        }
-    }
-    void eval_jacobian(hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override {
-        v.setConstant(1.0);
-    }
-    void eval_hessian(hven::detail::ConstEigenRef<Vec>, double obj_factor,
-                      hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override {
-        v.setConstant(obj_factor);
-    }
-    std::string name() const override { return "RisingObjectiveProblem"; }
-};
-
 // Bitwise equality that treats NaN as a VALUE: "unmeasured" is one of the
 // answers the four diagnostics give, and two unmeasured answers agree.
 bool same_scalar(double a, double b) {
@@ -2310,7 +2253,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
 
     // THE SEARCH. `acc_*` loosened (with `max_acc_iters` at 1) is what makes
     // converge_check answer kAcceptable at the TOP of an iteration, which is
-    // the convergence-check early exit; `IpmBestIterateCriterion::kObjective` on a fixture
+    // the convergence-check early exit; the shared ordering on a fixture
     // whose objective RISES is what makes the best iterate an early one, so the
     // substitution has something to substitute.
     bool ran = false;
@@ -2319,24 +2262,29 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
             break;
         }
         const auto with_program =
-            hven::detail::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
         hven::IpmSolver with;
         const auto without_program =
-            hven::detail::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
         hven::IpmSolver without;
         for (hven::IpmSolver *s : {&with, &without}) {
             hven::IpmOptions o = quiet_ipm(*s);
             o.termination.acceptable_iterations = 1;
             o.termination.acceptable_stationarity_tol = acc;
-            o.termination.acceptable_equality_tol = acc;
-            o.termination.acceptable_inequality_tol = acc;
+            // The shared best ordering is feasibility-first, so here the late, most-feasible
+            // iterates win. A feasibility_tol band wider than every iterate's violation (the
+            // validator wants it <= acceptable_equality_tol, so both are 30) ties them all and
+            // lets the objective decide: HS071's rises from 16 at the start to 17.01 at the
+            // solution, which puts the best at the start, not at the exit point.
+            o.common.feasibility_tol = 30.0;
+            o.termination.acceptable_equality_tol = 30.0;
+            o.termination.acceptable_inequality_tol = 30.0;
             o.termination.acceptable_complementarity_tol = acc;
             s->set_options(std::move(o));
         }
         {
             hven::IpmOptions o = with.options();
             o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
-            o.best_iterate_criterion = hven::IpmBestIterateCriterion::kObjective;
             with.set_options(std::move(o));
         }
 
@@ -2344,7 +2292,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         with.attach_trace(&sink);
         Recorder rec;
         with.set_iteration_callback(rec.hook());
-        const Vec x0 = Vec::Zero(RisingObjectiveProblem::kN);
+        const Vec x0 = hs071_start();
         const hven::IpmResult b = with.solve(hven::detail::problem_ref(*with_program), x0);
         Recorder plain;
         without.set_iteration_callback(plain.hook());
