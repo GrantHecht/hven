@@ -765,14 +765,14 @@ TEST(HsBattery, AdaptiveMuNeverSharesAMajorWithSocOrElastic) {
         }
         for (const IterationRecord &h : sol.history) {
             if (!h.sqp->qp_solved ||
-                h.sqp->dual_regularization.value_or(0.0) == opts.qp.dual_regularization) {
+                h.sqp->regularization_dual.value_or(0.0) == opts.qp.dual_regularization) {
                 continue;
             }
             ++rows_off_default;
             ::testing::Test::RecordProperty(
                 fmt::format("mu_hs{}_trial{}", e.number, h.iteration),
                 fmt::format("mu={:.3g} soc={} elastic={} last_solved={}",
-                            h.sqp->dual_regularization.value_or(0.0), h.soc ? 1 : 0,
+                            h.sqp->regularization_dual.value_or(0.0), h.soc ? 1 : 0,
                             h.sqp->elastic ? 1 : 0, last_solved));
             if (h.soc || h.sqp->elastic) {
                 ++overlapping_rows;

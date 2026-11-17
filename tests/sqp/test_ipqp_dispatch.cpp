@@ -823,8 +823,8 @@ TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
     ASSERT_FALSE(ipm.history.empty());
     ASSERT_EQ(ipm.history.size(), walk.history.size());
     for (std::size_t k = 0; k < ipm.history.size(); ++k) {
-        EXPECT_DOUBLE_EQ(ipm.history[k].sqp->dual_regularization.value_or(0.0),
-                         walk.history[k].sqp->dual_regularization.value_or(0.0))
+        EXPECT_DOUBLE_EQ(ipm.history[k].sqp->regularization_dual.value_or(0.0),
+                         walk.history[k].sqp->regularization_dual.value_or(0.0))
             << "row " << k
             << ": IterationRecord::mu reports what the kernel that solved the row used, "
                "and the kernel here is the walk in both modes";

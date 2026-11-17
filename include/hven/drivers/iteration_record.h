@@ -54,7 +54,7 @@ struct SqpIterationRow {
     std::optional<StepVerdict> verdict;
     double trust_radius = 0.0;
     double violation_l1 = 0.0;
-    std::optional<double> dual_regularization;
+    std::optional<double> regularization_dual;
     bool qp_solved = false;
     std::optional<QpStatus> qp_status;
     std::optional<Index> qp_minor_iterations;

@@ -812,7 +812,7 @@ void write_sqp_row(std::string &b, const SqpIterationRow &r) {
     }
     key_double(b, f, "trust_radius", r.trust_radius);
     key_double(b, f, "violation_l1", r.violation_l1);
-    key_opt_double(b, f, "dual_regularization", r.dual_regularization);
+    key_opt_double(b, f, "regularization_dual", r.regularization_dual);
     key_bool(b, f, "qp_solved", r.qp_solved);
     if (r.qp_status) {
         key_enum(b, f, "qp_status", to_json(*r.qp_status));

@@ -192,8 +192,8 @@ void expect_same_row(const hven::IterationRecord &a, const hven::IterationRecord
                             std::max(b.stationarity, b.feasibility)));
     EXPECT_TRUE(same_scalar(a.sqp->violation_l1, b.sqp->violation_l1));
     EXPECT_TRUE(same_scalar(a.sqp->trust_radius, b.sqp->trust_radius));
-    EXPECT_TRUE(same_scalar(a.sqp->dual_regularization.value_or(0.0),
-                            b.sqp->dual_regularization.value_or(0.0)));
+    EXPECT_TRUE(same_scalar(a.sqp->regularization_dual.value_or(0.0),
+                            b.sqp->regularization_dual.value_or(0.0)));
     EXPECT_TRUE(same_scalar(a.step_norm.value_or(0.0), b.step_norm.value_or(0.0)));
     EXPECT_EQ(a.sqp->qp_solved, b.sqp->qp_solved);
     EXPECT_EQ(a.sqp->qp_status.value_or(hven::QpStatus::kOptimal),

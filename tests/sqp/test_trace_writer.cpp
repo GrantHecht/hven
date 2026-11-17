@@ -2341,7 +2341,7 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->verdict = StepVerdict::kAcceptObjectiveStep;
         r.sqp->trust_radius = 2.0;
         r.sqp->violation_l1 = 1.5;
-        r.sqp->dual_regularization = 1e-8;
+        r.sqp->regularization_dual = 1e-8;
         r.sqp->qp_status = QpStatus::kIterationLimit;
         r.sqp->qp_minor_iterations = 9;
         r.sqp->qp_factorizations = 3;
@@ -2368,7 +2368,7 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->verdict = StepVerdict::kRestore;
         r.sqp->trust_radius = 1.7976931348623157e308;
         r.sqp->violation_l1 = 1e-300;
-        r.sqp->dual_regularization = 4.9406564584124654e-324;
+        r.sqp->regularization_dual = 4.9406564584124654e-324;
         r.sqp->qp_status = QpStatus::kInfeasible;
         r.sqp->qp_minor_iterations = 0;
         r.sqp->qp_factorizations = 0;
@@ -2394,7 +2394,7 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->verdict = StepVerdict::kAcceptFeasibilityStep;
         r.sqp->trust_radius = 0.03125;
         r.sqp->violation_l1 = 9.0;
-        r.sqp->dual_regularization = 1e-6;
+        r.sqp->regularization_dual = 1e-6;
         r.sqp->qp_status = QpStatus::kNumericalError;
         r.sqp->qp_minor_iterations = 21;
         r.sqp->qp_factorizations = 13;
@@ -2417,7 +2417,7 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->verdict = StepVerdict::kReject;
         r.sqp->trust_radius = 9.0;
         r.sqp->violation_l1 = 8.0;
-        r.sqp->dual_regularization = 10.0;
+        r.sqp->regularization_dual = 10.0;
         r.sqp->qp_status = QpStatus::kOptimal;
         r.sqp->qp_minor_iterations = 13;
         r.sqp->qp_factorizations = 14;
@@ -2450,7 +2450,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "9999999999999995e-08,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":0.75,"
         "\"accepted\":false,\"soc\":true,\"watchdog\":false,\"rolled_back\":true,"
         "\"factorizations\":31,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":\"accept_f\","
-        "\"trust_radius\":2,\"violation_l1\":1.5,\"dual_regularization\":1e-08,\"qp_solved\":false,"
+        "\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":1e-08,\"qp_solved\":false,"
         "\"qp_status\":\"max_iter\",\"qp_minor_iterations\":9,\"qp_factorizations\":3,\"tr_"
         "binding\":true,\"elastic\":false,\"elastic_clamped\":true,\"restoration_seed_used\":false,"
         "\"ipqp_least_infeasible_primal\":3.25,\"ipqp_farkas_corroborated\":true,\"active_set_"
@@ -2465,8 +2465,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTh
               "\"stationarity\":-0,\"feasibility\":\"nan\",\"complementarity\":\"inf\",\"step\":0,"
               "\"accepted\":true,\"soc\":true,\"watchdog\":false,\"rolled_back\":false,"
               "\"factorizations\":0,\"sqp\":{\"depth\":0,\"mode\":\"ssn\",\"verdict\":\"restore\","
-              "\"trust_radius\":1.7976931348623157e+308,\"violation_l1\":1e-300,\"dual_"
-              "regularization\":4.9406564584124654e-324,\"qp_solved\":true,\"qp_status\":"
+              "\"trust_radius\":1.7976931348623157e+308,\"violation_l1\":1e-300,\"regularization_"
+              "dual\":4.9406564584124654e-324,\"qp_solved\":true,\"qp_status\":"
               "\"infeasible\",\"qp_minor_iterations\":0,\"qp_factorizations\":0,\"tr_binding\":"
               "true,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":true,"
               "\"ipqp_least_infeasible_primal\":\"-inf\",\"ipqp_farkas_corroborated\":true,"
@@ -2481,7 +2481,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
               "\"stationarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7."
               "5,\"step\":12.5,\"accepted\":false,\"soc\":false,\"watchdog\":true,\"rolled_back\":"
               "true,\"factorizations\":7,\"sqp\":{\"depth\":0,\"mode\":\"ipqp\",\"verdict\":"
-              "\"accept_h\",\"trust_radius\":0.03125,\"violation_l1\":9,\"dual_regularization\":9."
+              "\"accept_h\",\"trust_radius\":0.03125,\"violation_l1\":9,\"regularization_dual\":9."
               "9999999999999995e-07,\"qp_solved\":true,\"qp_status\":\"numerical_error\",\"qp_"
               "minor_iterations\":21,\"qp_factorizations\":13,\"tr_binding\":true,\"elastic\":"
               "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
@@ -2497,7 +2497,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "\"stationarity\":4,\"feasibility\":5,\"complementarity\":6,\"step\":11,\"accepted\":"
               "false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":14,"
               "\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":\"reject\",\"trust_radius\":9,"
-              "\"violation_l1\":8,\"dual_regularization\":10,\"qp_solved\":false,\"qp_status\":"
+              "\"violation_l1\":8,\"regularization_dual\":10,\"qp_solved\":false,\"qp_status\":"
               "\"optimal\",\"qp_minor_iterations\":13,\"qp_factorizations\":14,\"tr_binding\":"
               "false,\"elastic\":true,\"elastic_clamped\":true,\"restoration_seed_used\":true,"
               "\"ipqp_least_infeasible_primal\":12,\"ipqp_farkas_corroborated\":true,\"active_set_"
@@ -2526,14 +2526,14 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
               "0.5,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":null,\"accepted\":null,"
               "\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"sqp\":"
               "{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":0.5,\"violation_"
-              "l1\":0.75,\"dual_regularization\":null,\"qp_solved\":false,\"qp_status\":null,\"qp_"
+              "l1\":0.75,\"regularization_dual\":null,\"qp_solved\":false,\"qp_status\":null,\"qp_"
               "minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":"
               "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
               "infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":1,"
               "\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_"
               "rows\":1,\"active_lower_sides\":0,\"active_upper_sides\":0}}\n");
     const std::string line = iter_line(r);
-    for (const char *k : {"step", "accepted", "verdict", "dual_regularization", "qp_status",
+    for (const char *k : {"step", "accepted", "verdict", "regularization_dual", "qp_status",
                           "qp_minor_iterations", "qp_factorizations"}) {
         EXPECT_EQ(raw_field(line, k), "null") << k;
     }
@@ -2554,7 +2554,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
     r.sqp->verdict = StepVerdict::kAcceptFeasibilityStep;
     r.sqp->trust_radius = 0.5;
     r.sqp->violation_l1 = 1.4;
-    r.sqp->dual_regularization = 1e-9;
+    r.sqp->regularization_dual = 1e-9;
     r.sqp->qp_solved = true;
     r.sqp->qp_status = QpStatus::kOptimal;
     r.sqp->qp_minor_iterations = 11;
@@ -2568,7 +2568,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
               "\"complementarity\":0.02,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":"
               "false,\"rolled_back\":false,\"factorizations\":11,\"sqp\":{\"depth\":0,\"mode\":"
               "\"walk\",\"verdict\":\"accept_h\",\"trust_radius\":0.5,\"violation_l1\":1."
-              "3999999999999999,\"dual_regularization\":1.0000000000000001e-09,\"qp_solved\":true,"
+              "3999999999999999,\"regularization_dual\":1.0000000000000001e-09,\"qp_solved\":true,"
               "\"qp_status\":\"optimal\",\"qp_minor_iterations\":11,\"qp_factorizations\":3,\"tr_"
               "binding\":false,\"elastic\":true,\"elastic_clamped\":true,\"restoration_seed_used\":"
               "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,"
@@ -2595,7 +2595,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
     r.sqp->verdict = StepVerdict::kAcceptObjectiveStep;
     r.sqp->trust_radius = 1.0;
     r.sqp->violation_l1 = 0.02;
-    r.sqp->dual_regularization = 0.0;
+    r.sqp->regularization_dual = 0.0;
     r.sqp->qp_solved = true;
     r.sqp->qp_status = QpStatus::kOptimal;
     r.sqp->qp_minor_iterations = 3;
@@ -2614,7 +2614,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
         "01,\"feasibility\":0.014999999999999999,\"complementarity\":0,\"step\":0."
         "040000000000000001,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":"
         "false,\"factorizations\":2,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":\"accept_"
-        "f\",\"trust_radius\":1,\"violation_l1\":0.02,\"dual_regularization\":0,\"qp_solved\":true,"
+        "f\",\"trust_radius\":1,\"violation_l1\":0.02,\"regularization_dual\":0,\"qp_solved\":true,"
         "\"qp_status\":\"optimal\",\"qp_minor_iterations\":3,\"qp_factorizations\":1,\"tr_"
         "binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":"
         "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_"
@@ -2680,7 +2680,7 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
     if (r.sqp->qp_solved) {
         EXPECT_EQ(raw_field(line, "verdict"),
                   spec_spelling(r.sqp->verdict.value_or(hven::StepVerdict::kReject)));
-        expect_double_field(line, "dual_regularization", r.sqp->dual_regularization.value_or(0.0));
+        expect_double_field(line, "regularization_dual", r.sqp->regularization_dual.value_or(0.0));
         EXPECT_EQ(raw_field(line, "qp_status"),
                   spec_spelling(r.sqp->qp_status.value_or(hven::QpStatus::kOptimal)));
         EXPECT_EQ(raw_field(line, "qp_minor_iterations"),
@@ -2688,7 +2688,7 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
         EXPECT_EQ(raw_field(line, "qp_factorizations"),
                   std::to_string(r.sqp->qp_factorizations.value_or(0)));
     } else {
-        for (const char *k : {"verdict", "dual_regularization", "qp_status", "qp_minor_iterations",
+        for (const char *k : {"verdict", "regularization_dual", "qp_status", "qp_minor_iterations",
                               "qp_factorizations"}) {
             EXPECT_EQ(raw_field(line, k), "null") << k << " in " << line;
         }

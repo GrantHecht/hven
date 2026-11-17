@@ -6566,7 +6566,7 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
         ASSERT_FALSE(sol.history.empty());
         for (const IterationRecord &h : sol.history) {
             if (h.sqp->qp_solved) {
-                EXPECT_DOUBLE_EQ(h.sqp->dual_regularization.value_or(0.0),
+                EXPECT_DOUBLE_EQ(h.sqp->regularization_dual.value_or(0.0),
                                  fixed_opts.qp.dual_regularization)
                     << "disabled: dual_mu never leaves the engine default -- trial " << h.iteration;
             }
@@ -6592,11 +6592,11 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
             if (!h.sqp->qp_solved) {
                 continue;
             }
-            EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
-                << "trial " << h.iteration << " mu = " << h.sqp->dual_regularization.value_or(0.0);
+            EXPECT_TRUE(is_exact_decade(h.sqp->regularization_dual.value_or(0.0)))
+                << "trial " << h.iteration << " mu = " << h.sqp->regularization_dual.value_or(0.0);
             if (std::find(distinct_mu.begin(), distinct_mu.end(),
-                          h.sqp->dual_regularization.value_or(0.0)) == distinct_mu.end()) {
-                distinct_mu.push_back(h.sqp->dual_regularization.value_or(0.0));
+                          h.sqp->regularization_dual.value_or(0.0)) == distinct_mu.end()) {
+                distinct_mu.push_back(h.sqp->regularization_dual.value_or(0.0));
             }
         }
         // RE-PREMISED with arm (1) above: the schedule has nothing to shrink mu FOR any
@@ -6664,14 +6664,14 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
             if (!h.sqp->qp_solved) {
                 continue;
             }
-            EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
-                << "trial " << h.iteration << " mu = " << h.sqp->dual_regularization.value_or(0.0);
+            EXPECT_TRUE(is_exact_decade(h.sqp->regularization_dual.value_or(0.0)))
+                << "trial " << h.iteration << " mu = " << h.sqp->regularization_dual.value_or(0.0);
             if (last_mu > 0.0) {
-                EXPECT_LE(h.sqp->dual_regularization.value_or(0.0), last_mu)
+                EXPECT_LE(h.sqp->regularization_dual.value_or(0.0), last_mu)
                     << "trial " << h.iteration;
-                changed = changed || h.sqp->dual_regularization.value_or(0.0) != last_mu;
+                changed = changed || h.sqp->regularization_dual.value_or(0.0) != last_mu;
             }
-            last_mu = h.sqp->dual_regularization.value_or(0.0);
+            last_mu = h.sqp->regularization_dual.value_or(0.0);
         }
         EXPECT_TRUE(changed) << "the schedule must have moved at least once on HS7's own "
                                 "quadratic tail (observed: 1e-8 -> 1e-10, see "
@@ -6718,7 +6718,7 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
         ASSERT_GE(sol.history.size(), 11u);
         for (const IterationRecord &h : sol.history) {
             if (h.sqp->qp_solved) {
-                EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
+                EXPECT_TRUE(is_exact_decade(h.sqp->regularization_dual.value_or(0.0)))
                     << "trial " << h.iteration;
             }
         }
@@ -6751,8 +6751,8 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
             const IterationRecord &prev = sol.history[t - 1];
             const IterationRecord &cur = sol.history[t];
             if (prev.sqp->qp_solved && cur.sqp->qp_solved &&
-                cur.sqp->dual_regularization.value_or(0.0) !=
-                    prev.sqp->dual_regularization.value_or(0.0)) {
+                cur.sqp->regularization_dual.value_or(0.0) !=
+                    prev.sqp->regularization_dual.value_or(0.0)) {
                 saw_decade_drop = true;
                 EXPECT_GE(cur.sqp->qp_factorizations.value_or(0), 1)
                     << "a genuine mu-decade change must force a refactorization, trial " << t;
@@ -6824,7 +6824,7 @@ TEST(SqpDriverAdaptiveMu, ScheduleIsIdleWhenDisabled) {
     for (const IterationRecord &h : sol.history) {
         if (h.sqp->qp_solved) {
             ++solved_rows;
-            EXPECT_EQ(h.sqp->dual_regularization.value_or(0.0), opts.qp.dual_regularization)
+            EXPECT_EQ(h.sqp->regularization_dual.value_or(0.0), opts.qp.dual_regularization)
                 << "trial " << h.iteration
                 << " -- disabled means dual_mu NEVER leaves the engine "
                    "default, byte for byte";
@@ -8133,7 +8133,7 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     bool walk_mu_ever_differs = false;
     for (const IterationRecord &row : walk.history) {
         if (row.sqp->qp_solved &&
-            row.sqp->dual_regularization.value_or(0.0) != opts.qp.dual_regularization) {
+            row.sqp->regularization_dual.value_or(0.0) != opts.qp.dual_regularization) {
             walk_mu_ever_differs = true;
         }
     }
@@ -8149,7 +8149,7 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     ASSERT_EQ(ssn.status, SolveStatus::kOptimal);
     for (const IterationRecord &row : ssn.history) {
         if (row.sqp->qp_solved) {
-            EXPECT_DOUBLE_EQ(row.sqp->dual_regularization.value_or(0.0),
+            EXPECT_DOUBLE_EQ(row.sqp->regularization_dual.value_or(0.0),
                              ssn_opts.qp.dual_regularization)
                 << "THE RULING, PINNED: under kSsn every trial is solved at the caller's own "
                    "dual_mu, walk fall-backs included, and IterationRecord::mu says so";

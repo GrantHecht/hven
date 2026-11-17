@@ -94,12 +94,12 @@ direction (`inertia_corrections`); the backend does not report it (`perturbed_pi
 **UNOBSERVED**); no rejection recorded (`first_rejected_trial`, `theta_first_rejected`).
 
 `sqp` block (`SqpIterationRow`): `depth`; `mode` (`ipqp`/`walk`/`ssn`); `verdict`; `trust_radius`;
-`violation_l1`; `dual_regularization`; `qp_solved`; `qp_status`; `qp_minor_iterations`;
+`violation_l1`; `regularization_dual`; `qp_solved`; `qp_status`; `qp_minor_iterations`;
 `qp_factorizations`; `tr_binding`; `elastic`; `elastic_clamped`; `restoration_seed_used`;
 `ipqp_least_infeasible_primal`; `ipqp_farkas_corroborated`; `active_set_size` (= `active_rows +
 active_lower_sides + active_upper_sides`); `active_set_delta`; `weak_active_rows`; `near_active_rows`;
 `active_rows`; `active_lower_sides`; `active_upper_sides`. `null` when `!qp_solved`: `verdict`,
-`dual_regularization`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. The two `ipqp_*` keys are
+`regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. The two `ipqp_*` keys are
 `null` unless the row is an IPQP escape row, which is observable as `ipqp_least_infeasible_primal != 0 ||
 ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 
@@ -208,13 +208,14 @@ meaning) is v2.
 |---|---|---|---|
 | v1 | M8 TR-A | all | initial freeze; `ipm.phase.exit` carries `stationarity`/`complementarity` (engine scale) in place of `kkt_inf`/`barr_inf` |
 | none | M8 TR-B | `message` | the SQP kinds and the IPM `restoration_entered` and the other `restoration_exited` values are emitted; every kind, key and enum value was already in the v1 freeze, so no schema change |
+| none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map
 
 | v0 | v1 |
 |---|---|
 | `sqp.solve.begin`, `ipm.solve.begin` | `solve.begin`; `vars_free`/`vars_lower_only`/`vars_upper_only`/`vars_ranged`/`vars_fixed` -> `free_variables`/`lower_bounded_variables`/`upper_bounded_variables`/`boxed_variables`/`fixed_variables`; `n` -> `variables`; `me`/`mi` into the engine block; `kkt_tol`/`econ_tol`/`icon_tol`/`bar_tol`/`max_iters` -> `optimality_tol`/`feasibility_tol`/`max_iterations`; `init_mu` -> `ipm.initial_mu`; `max_acc_iters` -> `ipm.max_acceptable_iterations`; `acc_kkt_tol`/`acc_bar_tol`/`acc_econ_tol`/`acc_icon_tol` -> `ipm.acceptable_stationarity_tol`/`_complementarity_tol`/`_equality_tol`/`_inequality_tol` (the G7 names; the spec's map predates G7 and is aligned here); `wide_console` dropped |
-| `sqp.major` | `iter` + `sqp`; `trial`, `kkt_residual` dropped; `mu` -> `sqp.dual_regularization`; `qp_minor_iters` -> `sqp.qp_minor_iterations`; `tr_radius` -> `sqp.trust_radius`; `soc_applied` -> `soc`; `watchdog_restored` -> `watchdog`; `elastic_applied` -> `sqp.elastic`; `elastic_rho0_ceiling_hit` -> `sqp.elastic_clamped`; `major` -> `iter`; `step_norm` -> `step` |
+| `sqp.major` | `iter` + `sqp`; `trial`, `kkt_residual` dropped; `mu` -> `sqp.regularization_dual`; `qp_minor_iters` -> `sqp.qp_minor_iterations`; `tr_radius` -> `sqp.trust_radius`; `soc_applied` -> `soc`; `watchdog_restored` -> `watchdog`; `elastic_applied` -> `sqp.elastic`; `elastic_rho0_ceiling_hit` -> `sqp.elastic_clamped`; `major` -> `iter`; `step_norm` -> `step` |
 | `ipm.iter` | `iter` + `ipm`; `prim_obj` -> `f`/`f_recovery`; `kkt_inf` -> `stationarity`; `barr_inf` -> `complementarity`; `econ_inf`/`icon_inf` -> `ipm.feasibility_eq`/`_ineq`; `ls_iters` -> `line_search_trials`; `alpha_p`/`alpha_d`/`alpha_t` -> `alpha_primal`/`alpha_dual`/`alpha_scale`; `h_pert` -> `regularization_primal`; `h_pert_cum` -> `regularization_primal_total`; `h_facs` -> `inertia_corrections`; `prox_reg_primal` -> `proximal_primal`; `prox_reg_dual` -> `regularization_dual`; `p_pivots` -> `perturbed_pivots`; `barr_obj` -> `barrier_objective`; `merit_val` -> `merit`; `pen_par1`/`pen_par2` -> `merit_penalty_1`/`_2`; `max_e_mult`/`max_i_mult` -> `max_multiplier_eq`/`_ineq`; `first_rejection_iter` -> `first_rejected_trial`; `theta_at_first_rejection` -> `theta_first_rejected` |
 | `ipm.restoration_exit_row` | removed; `message{kind: restoration_exited, s: locally_infeasible}` |
 | `ipm.message` | `message`; `restoration_locally_infeasible` folds into `restoration_exited`; `interrupt_at_iteration` and `stop_requested_at_iteration` become `stop_at_iteration{s: callback/token}`; `solver_initialized.a` is `null` |

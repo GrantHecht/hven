@@ -8,7 +8,7 @@ Rewrites (compile errors)
   h.f                                   -> h.f (std::optional<double>; h.f_recovery at depth 1)
   h.kkt_residual                        -> std::max(h.stationarity, h.feasibility)
   h.violation_l1 / h.tr_radius          -> h.sqp->violation_l1 / h.sqp->trust_radius
-  h.mu                                  -> h.sqp->dual_regularization (std::optional; nullopt iff !qp_solved)
+  h.mu                                  -> h.sqp->regularization_dual (std::optional; nullopt iff !qp_solved)
   h.step_norm                           -> h.step_norm (std::optional<double>; nullopt when no step leaves the row)
   h.qp_solved                           -> h.sqp->qp_solved
   h.qp_status / qp_minor_iters / qp_factorizations / verdict
@@ -30,3 +30,5 @@ Behaviour
   Identity: history.size() == depth-0 iter lines == callback events (docs/trace-schema-v1.md section 4, identity 1).
 
 hven-bench (private, local branch trd-catchup off main, not pushed): see the commit message; live lanes read no history.
+
+TR-D rider (naming): the SQP iter-row JSON key `sqp.dual_regularization` is spelled `sqp.regularization_dual` (the ipm block's key for the same quantity); the C++ field SqpIterationRow::dual_regularization is renamed identically. A reader of that key or field rewrites it; nothing else moves.

@@ -57,7 +57,7 @@ inline bool same_block(const SqpIterationRow &a, const SqpIterationRow &b) {
     return same_value(a.depth, b.depth) && a.mode == b.mode && a.verdict == b.verdict &&
            same_value(a.trust_radius, b.trust_radius) &&
            same_value(a.violation_l1, b.violation_l1) &&
-           same_value(a.dual_regularization, b.dual_regularization) && a.qp_solved == b.qp_solved &&
+           same_value(a.regularization_dual, b.regularization_dual) && a.qp_solved == b.qp_solved &&
            a.qp_status == b.qp_status && a.qp_minor_iterations == b.qp_minor_iterations &&
            a.qp_factorizations == b.qp_factorizations && a.tr_binding == b.tr_binding &&
            a.elastic == b.elastic && a.elastic_clamped == b.elastic_clamped &&

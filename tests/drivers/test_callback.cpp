@@ -589,7 +589,7 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
         // The SQP block is the row's own columns (G5).
         EXPECT_TRUE(same_bits(e.sqp->violation_l1, sol.history[k].sqp->violation_l1));
         EXPECT_TRUE(same_bits(e.sqp->regularization_dual,
-                              sol.history[k].sqp->dual_regularization.value_or(0.0)));
+                              sol.history[k].sqp->regularization_dual.value_or(0.0)));
         EXPECT_EQ(e.sqp->qp_solved, sol.history[k].sqp->qp_solved);
         EXPECT_EQ(e.sqp->qp_status,
                   sol.history[k].sqp->qp_status.value_or(hven::QpStatus::kOptimal));

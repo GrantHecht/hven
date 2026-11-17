@@ -509,7 +509,8 @@ keeps an internal working row; it is not in the public headers). The SQP row gai
 | `h.kkt_residual` | removed: `std::max(h.stationarity, h.feasibility)` |
 | `h.violation_l1` | `h.sqp->violation_l1` |
 | `h.tr_radius` | `h.sqp->trust_radius` |
-| `h.mu` | `h.sqp->dual_regularization` (`nullopt` when `!qp_solved`; `*` of it elsewhere) |
+| `h.mu` | `h.sqp->regularization_dual` (`nullopt` when `!qp_solved`; `*` of it elsewhere) |
+| (trace JSON, `sqp` block of `iter`) key `dual_regularization` | `regularization_dual`, the `ipm` block's key for the same quantity (a spelling inside the v1 freeze, not a v2) |
 | `h.step_norm` | `h.step_norm` (`std::optional<double>`; `nullopt` when no step leaves the row) |
 | `h.qp_solved` | `h.sqp->qp_solved` |
 | `h.qp_status`, `h.qp_minor_iters`, `h.qp_factorizations` | `h.sqp->qp_status`, `qp_minor_iterations`, `qp_factorizations` (`std::optional`, `nullopt` when `!qp_solved`) |

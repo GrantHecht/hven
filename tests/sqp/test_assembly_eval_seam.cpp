@@ -1147,8 +1147,8 @@ void expect_same_history(const std::vector<IterationRecord> &bridge,
                   std::bit_cast<std::uint64_t>(m.sqp->violation_l1));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->trust_radius),
                   std::bit_cast<std::uint64_t>(m.sqp->trust_radius));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->dual_regularization.value_or(0.0)),
-                  std::bit_cast<std::uint64_t>(m.sqp->dual_regularization.value_or(0.0)));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->regularization_dual.value_or(0.0)),
+                  std::bit_cast<std::uint64_t>(m.sqp->regularization_dual.value_or(0.0)));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(b.step_norm.value_or(0.0)),
                   std::bit_cast<std::uint64_t>(m.step_norm.value_or(0.0)));
         EXPECT_EQ(b.sqp->qp_solved, m.sqp->qp_solved);

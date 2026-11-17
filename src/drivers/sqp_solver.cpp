@@ -1851,7 +1851,7 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.qp_solved = r.qp_solved;
     if (r.qp_solved) {
         row.verdict = r.verdict;
-        row.dual_regularization = r.mu;
+        row.regularization_dual = r.mu;
         row.qp_status = r.qp_status;
         row.qp_minor_iterations = r.qp_minor_iters;
         row.qp_factorizations = r.qp_factorizations;
