@@ -483,3 +483,12 @@ the same four records.
 | `format_iteration_table` and its five pieces | removed; attach a `ConsoleTraceSink` (or set `verbosity`) for live rows |
 | `Verbosity` | gains `kDetail` |
 | trace key renames | `docs/trace-schema-v1.md` section 7 |
+
+### TR-B -- messages
+
+No API change. The SQP now writes `message` records (restoration entered/exited/refused, subproblem failure,
+elastic exhausted, inconsistent equalities, start point clamped, scaled convergence refused, stop at iteration),
+and the IPM writes `restoration_entered` and every `restoration_exited` value (`resumed`, `failed`, `non_finite`,
+`interrupted` as well as `locally_infeasible`). The IPM's non-finite evaluation abort now writes its `iter` row and
+fires its callback event (M7-19): a reader that counted one fewer row than `iterations` on that exit now sees them
+equal. Console output at `kWarnings` and above gains the warning lines; at `kIterations` the notices too.

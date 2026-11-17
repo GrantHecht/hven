@@ -158,9 +158,15 @@ Keys: `kind`, `severity` (`notice`/`warning`), `phase`, `iter`, `a`, `b`, `k`, `
 | `phase_diverged` | warning | `phase` |
 | `interrupt_skipping_phases` | notice | `phase` |
 | `stop_requested_skipping_phases` | notice | `phase` |
-| `restoration_exited` | warning unless `s == resumed` | `s`, `a` = violation at exit, `b` = threshold judged against; TR-A emits `s = locally_infeasible` on the IPM |
-| `stop_at_iteration` | notice | `s` = `callback`/`token`, `phase`, `iter` |
-| `restoration_entered`, `restoration_refused`, `subproblem_failure`, `elastic_exhausted`, `inconsistent_equalities`, `start_point_clamped`, `scaled_convergence_refused` | per spec 2.7 | enumerated and given console templates; **emitted from TR-B** |
+| `restoration_entered` | notice | both engines. `a` = violation at entry (IPM theta, SQP `h`), `iter` = the requesting row. Lines == `counters.restoration_entries` on the IPM; on the SQP the counter counts completed excursions, so lines == `restoration_entries` + the `restoration_exited{s: non_finite}` lines |
+| `restoration_exited` | warning unless `s == resumed` | both engines; one per entered. `s` = `resumed`/`locally_infeasible`/`failed`/`non_finite`/`interrupted`; `a` = violation at exit (absent for `non_finite` on the SQP), `b` = the threshold judged against (IPM: 10x `feasibility_tol`; SQP: `feasibility_tol`) |
+| `restoration_refused` | warning | SQP. `s` = `nested`/`entry_rule`/`budget`; written at both depths (a refusal inside a restoration sub-solve is `nested`) |
+| `subproblem_failure` | notice while the solve continues, warning when it ends it | SQP, both depths. `s` = `iteration_limit`/`numerical_error`/`non_finite`; `k` = the driver's run of consecutive failures once the exit was handled. Lines == `qp_maxiter_exits + qp_numerical_exits + nonfinite_subproblems` (the spec's `- nonfinite_box_projections` does not apply: the projection precedes the guard and is not in `nonfinite_subproblems`) |
+| `elastic_exhausted` | warning | SQP. `k` = rungs climbed above the first |
+| `inconsistent_equalities` | warning | SQP, depth 0, at most once |
+| `start_point_clamped` | notice | SQP, depth 0, once, first message; `k` = `start_point_clamps` |
+| `scaled_convergence_refused` | notice | SQP. `iter`; lines == `scaled_convergence_refusals` |
+| `stop_at_iteration` | notice | both engines, depth 0. `s` = `callback`/`token`, `iter` = the row the stop landed on; at most one, and one iff `stop_reason` is `callback_stop` or `stop_requested` |
 
 ### 3.5 Unchanged records
 
@@ -174,7 +180,7 @@ its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `station
 1. Every record counted in `iterations` has one `iter` line and one callback event. At depth 0, `iter`
    lines == `iterations` on the IPM; on the SQP, `iterations + 1`, because row 0 is the start point (no
    step has been taken to reach it). A count, not a range: the IPM `iter` index is not contiguous.
-   The non-finite evaluation abort is the known hole (M7-19, owned by its own commit).
+   The IPM non-finite evaluation abort used to be the one hole (M7-19, closed in TR-B): it now writes its row and fires its event. SQP: `iter` lines == `history.size()` (a stop or abort pushes the stopped-at row without a step).
 2. When `returned_best_iterate == false` and scaling is inactive, the final depth-0 `iter` core residuals
    equal `solve.end.convergence`'s.
 3. `factorizations` on the last row <= `solve.end.work.factorizations`.
@@ -198,6 +204,7 @@ meaning) is v2.
 | change | date | record | note |
 |---|---|---|---|
 | v1 | M8 TR-A | all | initial freeze; `ipm.phase.exit` carries `stationarity`/`complementarity` (engine scale) in place of `kkt_inf`/`barr_inf` |
+| none | M8 TR-B | `message` | the SQP kinds and the IPM `restoration_entered` and the other `restoration_exited` values are emitted; every kind, key and enum value was already in the v1 freeze, so no schema change |
 
 ## 7. v0 to v1 map
 
