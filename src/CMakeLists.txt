@@ -83,6 +83,7 @@ target_sources(hven PRIVATE
     drivers/solve_result.cpp
     drivers/result_message.cpp
     drivers/callback_rows.cpp
+    drivers/counters_dump.cpp
 )
 
 ################################################################################
@@ -600,7 +601,10 @@ endif()
 # 57 as of linear/dense_session.cpp (M8 DN-1): the dense arm behind SymmetricFactor. NOT a PCH
 # source, on the same unmeasured-default footing: it includes its own header, fmt, the LAPACKE
 # header (or the Accelerate shim) and the standard library.
-set(_hven_expected_source_count 57)
+# 58 as of drivers/counters_dump.cpp (M8 TR-E): dump_counters for both results, written from the
+# counters' X-macro tables. NOT a PCH source, on the same footing: it includes only the counter and
+# result headers, fmt and the standard library.
+set(_hven_expected_source_count 58)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

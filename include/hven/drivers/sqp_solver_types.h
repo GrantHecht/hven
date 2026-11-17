@@ -340,4 +340,14 @@ struct SqpResult : SolveResult {
     SqpWarmStart sqp_warm_start{SqpWarmStart::Cold{}};
 };
 
+/// @brief Writes every counter @p r holds to @p os, one `name = value` line each: the twin of
+///        `dump_options`, generated from the same X-macro tables as `solve.end.counters`.
+///
+/// Lines, in order: the direct `SqpCounters` fields in declaration order, then the `ssn` block's
+/// fields under `ssn.` and the `ipqp` block's under `ipqp.`. The text format is the one stated
+/// at `dump_counters(const IpmResult &, std::ostream &)` (drivers/ipm_solver_types.h).
+///
+/// Counters only: the per-QP sums a harness takes over a `Ledger` are not here.
+void dump_counters(const SqpResult &r, std::ostream &os);
+
 } // namespace hven

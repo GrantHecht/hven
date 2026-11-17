@@ -31,6 +31,10 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_console_sink.cpp
     # M8 TR-A: the trace-v1 contract (V1-V4, identities, observation changes nothing).
     test_trace_v1_contract.cpp
+    # M8 TR-E: dump_counters for both results, held against the trace's counters object.
+    test_counters_dump.cpp
+    # M8 TR-E: the v1 reader fixtures (golden/trace_v1/), held byte-exact for outside readers.
+    test_trace_v1_fixtures.cpp
     # M8 TR-A: the cost contract's structural proof (no event built, no emit called, with no sink).
     test_trace_off_path.cpp
     # M8 TR-B: the exit-door walk (count identity at every exit door of both engines; M7-19).
@@ -97,7 +101,8 @@ target_include_directories(hven_drivers_tests PRIVATE
 # Rooted at this directory, not CMAKE_SOURCE_DIR (see tests/CMakeLists.txt's HVEN_SRC_DIR note).
 target_compile_definitions(hven_drivers_tests PRIVATE
     HVEN_SRC_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../src"
-    HVEN_GOLDEN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/golden/human_trace")
+    HVEN_GOLDEN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/golden/human_trace"
+    HVEN_TRACE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/golden/trace_v1")
 target_link_libraries(hven_drivers_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_drivers_tests PRIVATE ${COMPILE_FLAGS})
 

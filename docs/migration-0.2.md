@@ -530,3 +530,24 @@ A field the row did not measure is `nullopt`, where 0.1 wrote a default (`mu`, `
 counters and `verdict` on a row with no solved subproblem).
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-tr-d/CATCH-UP.txt`.
+
+## TR-E -- `dump_counters` and the v1 reader fixtures
+
+Two additions, no break.
+
+`hven::dump_counters(const IpmResult &, std::ostream &)` and `dump_counters(const SqpResult &, std::ostream &)`
+(declared beside the results, `hven/drivers/ipm_solver_types.h`, `sqp_solver_types.h`) write every counter the
+result holds as `name = value` lines, the twin of `dump_options`. They are written from the X-macro tables
+`solve.end.counters` is written from, so a key the trace carries the dump carries, with the same value. IPM:
+the `IpmCounters` fields in declaration order, `kkt_analyses_total`, then the 13 fields of
+`kkt_factor_counters` under that prefix. SQP: the direct `SqpCounters` fields, then `ssn.` and `ipqp.` blocks.
+An integer prints as itself, a double at its shortest round-trip form, an enum by `to_string`, the IPM
+histogram as `[a, b, c, d, e]`, and a counter its table declares absent prints `null`. Counters only: a sum over
+a `Ledger` and the residuals are not here.
+
+The v1 reader fixtures are three byte-exact streams under `tests/drivers/golden/trace_v1/`
+(`ipm_complete.jsonl`, `sqp_complete.jsonl`, `ipm_aborted.jsonl`), written from hand-filled records and held by
+`TraceV1Fixtures.*`, for readers outside the tree. Regenerate: `HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests
+--gtest_filter='TraceV1Fixtures.*'` (a declared event for every reader).
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-tr-e/CATCH-UP.txt`.

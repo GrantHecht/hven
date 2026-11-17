@@ -8,6 +8,7 @@
 ///        drivers/ipm_options.h, which this header includes.
 
 #include <array>
+#include <iosfwd>
 #include <limits>
 #include <optional>
 #include <string>
@@ -153,6 +154,22 @@ struct IpmResult : SolveResult {
     ///        including the pattern-guard count.
     hven::linear::SymmetricFactor::Counters kkt_factor_counters;
 };
+
+/// @brief Writes every counter @p r holds to @p os, one `name = value` line each: the twin of
+///        `dump_options`, generated from the same X-macro table as `solve.end.counters`.
+///
+/// Lines, in order: the `IpmCounters` fields in declaration order (the same table the trace's
+/// `counters` object is written from), `kkt_analyses_total`, then every field of
+/// `kkt_factor_counters` under that prefix (`kkt_factor_counters.analyze_count`, ...).
+/// `name = value`, `\n`-terminated, no header or footer. An integer prints as such; a double
+/// at its shortest round-trip form; an enum by its `to_string` spelling;
+/// `recovery_depth_histogram` as `[a, b, c, d, e]`; a counter the table declares absent for its
+/// value (a "never measured" sentinel) prints `null`, the trace's spelling.
+///
+/// Counters only. A sum a consumer computes over a ledger, or a residual, is not here. The
+/// caller's stream state (flags, precision, width, locale) reaches no byte of the output and is
+/// not modified.
+void dump_counters(const IpmResult &r, std::ostream &os);
 
 /// @brief The last phase of `r.phases` that ran, or nullptr when none did.
 ///

@@ -1,0 +1,17 @@
+M8 TR-E -- consumer catch-up list (dump_counters and the v1 reader fixtures). Full text: docs/migration-0.2.md, section TR-E.
+Nothing a consumer built against origin/m8 at TR-D head compiles differently: both additions are new.
+
+Additions (no rewrite)
+  hven::dump_counters(const IpmResult &, std::ostream &)   name = value lines; IpmCounters table order, kkt_analyses_total, kkt_factor_counters.<13 fields>
+  hven::dump_counters(const SqpResult &, std::ostream &)   name = value lines; SqpCounters direct fields, ssn.<...>, ipqp.<...>
+  tests/drivers/golden/trace_v1/*.jsonl                    three byte-exact v1 streams for outside readers
+
+Old -> new names for a consumer that hand-enumerated the counters (the hven-bench side-file map):
+  IPM   kkt_analyze_count -> kkt_factor_counters.analyze_count ; kkt_factorize_count -> kkt_factor_counters.factorize_count ;
+        kkt_solve_count -> kkt_factor_counters.solve_count ; kkt_partial_solve_count -> kkt_factor_counters.partial_solve_count ;
+        kkt_pattern_verify_count -> kkt_factor_counters.pattern_verify_count ; kkt_analyses_total -> kkt_analyses_total (same) ;
+        kkt_analyses_this_call -> symbolic_analyses ; soc_steps_taken -> soc_steps ; watchdog_activations, payload_ignored,
+        polish_ignored -> same names
+  SQP   every direct SqpCounters column keeps its field name ; ssn_sign_swept, ssn_sign_sweep_max -> ssn.ssn_sign_swept, ssn.ssn_sign_sweep_max (the SsnCounters field names keep their ssn_ prefix under the ssn. block)
+Behaviour
+  A counter the table declares never-measured prints `null`, the trace's spelling.
