@@ -1,0 +1,27 @@
+M8 AP-5 G-RB verdicts. hven code head under test = 8e6e07310d51e5e22f7f3944f3ba4d900bcbc758 (branch g-rb off origin/m8 0cfcec52f; code commits 89614ba63 feat, 2d49ca3a9 test, 8e6e07310 test).
+Evidence declared in DECLARATION.md (7184ee8af), re-declared -r2 (3f1f9ecd0) and -r3 (this head's; each a fault of MY instrument or tests found by a leg, none moved a criterion): r1 stopped at ctest-rel on
+Limits.ALimitExitIgnoresReturnBest (a pin of the pre-G-RB IPM work-limit exit: re-derived, DECLARATION-r2); r2 ran every leg and the mutation verdict failed (n1 survived: no test ran the IPM evaluation-failure
+abort door under kOnLimit; t1's CSV description held a comma) -> a test added, description fixed, DECLARATION-r3. r1 and r2 evidence kept under r1/, r2/. r3 re-ran the whole chain.
+Toolchain: clang 22.1.x, Fedora, AMD Ryzen 7 5800X3D (16 logical CPUs), 2026-11-17, Release SAFER_FAST and Debug. Windows/Accelerate UNOBSERVED. HOLDOUT was NOT run.
+Arm A = origin/m8 0cfcec52f, sha256 33d68b317524bf69bd35f565fe016b29ddafc553b71104daa44a5064936b0db0. Arm B (r3) sha256 599b8c181816a86d56ac80bd2366ea359911dac2369da87c8808da5236c05c5d.
+
+P1   ctest at the code head, every target: Release 100% passed, 0 failed of 3861 run (3863 listed: 1 skipped by design, 2 Disabled); Debug the same (suites/ctest-*-summary.txt). 3850 at origin/m8 + 13 new
+     (ReturnBestForcedExits x7, EqualityBasisModes.F2InconsistentEqualitiesNeverSubstituteTheBestIterate x6 parameterised, RiderReturnBest.ANonFiniteAbortUnderOnLimit... x1 = 14; minus the one renamed in place
+     Limits test, which keeps its count; the listed total is the observed one). PASS.
+P3   replay 27 cells x (walk, ssn, ipm), arm A vs arm B, EXACT: "differences: 0" x3 (75 columns); ARMED (--callback count + unfired token) vs unarmed arm B: 0 x3 (replay/). PASS. Return-best is off in every cell.
+P4   interior (43 cells, 30 columns): unmoved A vs B 0; promoted (bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv) 0; armed 0 (interior/). PASS.
+P5   install smoke, default and clang front ends, each followed by check_export_contract.sh: "export contract OK for platform=linux, align=32" x2 (install-smoke/). PASS.
+M    mutations (mutation/mutation-table.csv, verdict.txt): control fails nothing; must-kill s1 s2 l1 l2 o1 o2 o3 n1 n2 p1 t1 all KILLED, each by the test named in verdict.txt; r1 (reported) SURVIVES -- the
+     IPM shared measure reading the equality residual only is invisible to every fixture (no fixture has an inequality violation that the order must rank). Open item. MUTATION_VERDICT PASS.
+     (n1 killed by RiderReturnBest.ANonFiniteAbortUnderOnLimitReturnsTheFailedPointAndNoClaim; t1 and l1 and l2 by the new limit-exit table; s2 by an armed-restoration test that already existed.)
+Runtime gate: not required (DECLARATION): the per-iteration tracker comparison runs only when the tracker is armed; unarmed solves execute arm A's per-iteration code.
+TSan, goldens: not run (declared).
+
+ORDERING CHOSEN (shared; DECLARATION C): key (max(violation, feasibility_tol), f), strictly smaller replaces; violation = each engine's own convergence feasibility (IPM max(equality, inequality); SQP kkt.feasibility
+inf-norm); IPM `best_iterate_criterion` stays an override, `kFeasibilityFirst` the new default. CONFLICT with design Q5 ("ordering stays per engine"): followed settler item C355 R1; reverts alone.
+OPEN ITEMS
+ - Design conflict above (settler to confirm).
+ - Behaviour changes declared beyond the table: IPM work/time-limit exits under return-best now return the best point in full (was a mixed result); IPM default best criterion changed (affects only tracked bests).
+ - SQP probe-budget stops stay ordinary under every mode (documented).
+ - r1 survives (above). The uncertified restoration-arm kInfeasible exit (certificate gate refused) has no small fixture; the uncertified inconsistent-equalities exit and the certified one are pinned.
+ - hven-bench: no change needed (options not set there). 
