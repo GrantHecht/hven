@@ -1443,10 +1443,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
                 // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
                 // -- section 5, and the two refine_*_for_verdict declarations.
-                // KOPT-1X R2: at a structural dead end the refinement first asks for kOptimal's own
-                // 1x and only then settles for the classifier's 10x (the kInfeasible evidence
-                // margin is unchanged). It is NOT also run at a gray row (worst == 0): measured,
-                // that changed whole SQP trajectories for no gain (ACOPP30: 615 -> 2494 minors).
+                // KOPT-1X R2: at a structural dead end the refinement asks for kOptimal's own 1x
+                // and is adopted at the classifier's 10x if it closes no tighter (the kInfeasible
+                // evidence margin is unchanged). It is NOT also run at a gray row (worst == 0):
+                // measured, that changed whole SQP trajectories for no gain (ACOPP30: 615 -> 2494
+                // minors).
                 const auto refine_to = [&](double margin) {
                     return eqp.refine_steps > 0
                                ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
@@ -1456,8 +1457,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                      qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                      kkt, face, counters, eff_opts, margin);
                 };
-                const bool refined = worst > 0.0 && (refine_to(1.0) ||
-                                                     refine_to(detail::kInfeasibilityMarginFactor));
+                const bool refined = worst > 0.0 && refine_to(1.0);
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
@@ -3601,12 +3601,22 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     // CLOSED, OR NOTHING: a refinement that ran out of budget with the face
     // still open has shown the face is not closable, which is evidence FOR the
     // classifier -- see refine_face_for_verdict's declaration for the cost.
-    if (!(best_measure <= 1.0)) {
+    // KOPT-1X R2: asked for tighter than the classifier's margin and closed only to the
+    // classifier's own, the point is adopted at that level (tighter is preferred, never required).
+    double adopt_margin = margin;
+    double adopt_measure = best_measure;
+    if (!(adopt_measure <= 1.0) && margin < detail::kInfeasibilityMarginFactor) {
+        adopt_margin = detail::kInfeasibilityMarginFactor;
+        const Vec Ai_best = qp.mi() > 0 ? Vec(qp.Ai * best_x) : Vec(Aix);
+        adopt_measure = working_face_measure(qp, ws, best_x, Ai_best, ai_row_norm1, lambda_i,
+                                             ae_row_norm1, lambda_e, opts, adopt_margin);
+    }
+    if (!(adopt_measure <= 1.0)) {
         return false;
     }
     const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                               lambda_e, opts, margin);
-    if (!(best_measure < before)) {
+                                               lambda_e, opts, adopt_margin);
+    if (!(adopt_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
     x = std::move(best_x);
@@ -3741,12 +3751,23 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         best_measure = candidate_measure;
         ++steps;
     }
-    if (steps == 0 || !(best_measure <= 1.0)) {
+    if (steps == 0) {
         return false; // CLOSED, OR NOTHING -- the border twin's rule, verbatim
     }
+    double adopt_margin = margin;
+    double adopt_measure = best_measure;
+    if (!(adopt_measure <= 1.0) && margin < detail::kInfeasibilityMarginFactor) {
+        adopt_margin = detail::kInfeasibilityMarginFactor; // the border twin's two tiers
+        const Vec Ai_best = qp.mi() > 0 ? Vec(qp.Ai * best_x) : Vec(Aix);
+        adopt_measure = working_face_measure(qp, ws, best_x, Ai_best, ai_row_norm1, lambda_i,
+                                             ae_row_norm1, lambda_e, opts, adopt_margin);
+    }
+    if (!(adopt_measure <= 1.0)) {
+        return false;
+    }
     const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                               lambda_e, opts, margin);
-    if (!(best_measure < before)) {
+                                               lambda_e, opts, adopt_margin);
+    if (!(adopt_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
     x = std::move(best_x);
