@@ -198,6 +198,10 @@ its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `station
 A reader rejects an unknown `v`; ignores unknown keys and unknown `ev`; does not rely on key order;
 tolerates one malformed line at a truncation point; keeps a default arm on any enum switch.
 
+Golden streams for a reader's self-test (byte-exact, held by `TraceV1Fixtures.*`):
+`tests/drivers/golden/trace_v1/{ipm_complete,sqp_complete,ipm_aborted}.jsonl`. `dump_counters` (the text twin of
+the `solve.end` `counters` object) is documented in `docs/migration-0.2.md`, section TR-E.
+
 ## 6. Freeze table
 
 Allowed within v1: a new record, a new trailing key in a record or block, a new enum value. Each is
