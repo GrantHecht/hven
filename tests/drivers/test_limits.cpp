@@ -449,11 +449,14 @@ TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
     EXPECT_TRUE(found) << "no ceiling below " << free_facts << " bound in the second phase";
 }
 
-// A limit exit returns the iterate the solve stopped on, never return_best's
-// substitute. Premise, asserted: scored by objective, a cap exit with return_best
-// does substitute at some iteration count on this problem, so the comparison below
-// can tell.
-TEST(Limits, ALimitExitIgnoresReturnBest) {
+// RE-DERIVED at M8 AP-5 G-RB (declared): a work-limit exit used to ignore return_best on the
+// primary point while claiming the best (returned_best_iterate true, the residual row the best
+// iterate's, x and f the last point's). Under `common.return_best` it now follows the shared
+// rule: kNever returns the iterate the solve stopped on; kOnLimit and kOnAnyNonOptimal return
+// the best iterate in full, and the claim holds (x and f are best_iterate's). Premise,
+// asserted: scored by objective, a cap exit and a work-limit exit each substitute at some
+// setting on this problem, so the comparison can tell.
+TEST(Limits, AWorkLimitExitFollowsTheSharedReturnBestRule) {
     constexpr auto kCriterion = hven::IpmBestIterateCriterion::kObjective;
     bool substitution_seen = false;
     for (hven::Index cap = 1; cap <= 8; ++cap) {
@@ -471,24 +474,35 @@ TEST(Limits, ALimitExitIgnoresReturnBest) {
     }
     EXPECT_TRUE(substitution_seen) << "return_best never moved a cap exit: the test is vacuous";
 
+    bool work_substitution_seen = false;
     for (const hven::Index limit : {0, 1, 2, 3, 4, 5}) {
         IpmOptions plain;
         plain.common.max_factorizations = limit;
         plain.best_iterate_criterion = kCriterion;
-        IpmOptions best = plain;
-        best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
         const IpmResult a = ipm_solve(plain);
-        const IpmResult b = ipm_solve(best);
         if (a.status != SolveStatus::kWorkLimit) {
             continue; // converged before the ceiling
         }
-        ASSERT_EQ(b.status, SolveStatus::kWorkLimit) << limit;
-        ASSERT_EQ(a.x.size(), b.x.size());
-        for (Eigen::Index i = 0; i < a.x.size(); ++i) {
-            EXPECT_EQ(a.x[i], b.x[i]) << "limit " << limit << " coordinate " << i;
+        EXPECT_FALSE(a.returned_best_iterate);
+        for (const hven::ReturnBest mode :
+             {hven::ReturnBest::kOnLimit, hven::ReturnBest::kOnAnyNonOptimal}) {
+            IpmOptions best = plain;
+            best.common.return_best = mode;
+            const IpmResult b = ipm_solve(best);
+            ASSERT_EQ(b.status, SolveStatus::kWorkLimit) << limit;
+            if (!b.returned_best_iterate) {
+                // Nothing was recorded yet (a limit at the first row): the last point.
+                EXPECT_TRUE(a.x == b.x) << limit;
+                continue;
+            }
+            ASSERT_TRUE(b.best_iterate.has_value()) << limit;
+            EXPECT_TRUE(b.x == b.best_iterate->x) << "limit " << limit;
+            EXPECT_EQ(b.f, b.best_iterate->f) << limit;
+            work_substitution_seen =
+                work_substitution_seen || (a.x - b.x).lpNorm<Eigen::Infinity>() > 0.0;
         }
-        EXPECT_EQ(a.f, b.f) << limit;
     }
+    EXPECT_TRUE(work_substitution_seen) << "return_best never moved a work-limit exit";
 }
 
 // set_options() between two solves re-arms a limit: each solve measures its own
