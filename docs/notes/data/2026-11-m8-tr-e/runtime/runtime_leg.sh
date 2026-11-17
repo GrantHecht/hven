@@ -40,11 +40,11 @@ att_env() { # arm: A = no callback, B = the counting callback at kScalars
 att_args() { return 0; }
 WT=/home/ghecht/Projects/hven/.claude/worktrees/tr-e
 cd "$WT" || exit 1
-BIN_A=$WT/build-tre/armbin/hven_sqp_corpus
-BIN_B=$WT/build-tre/armbin/hven_sqp_corpus
+BIN_A=$WT/.scratch/build-tre/armbin/hven_sqp_corpus
+BIN_B=$WT/.scratch/build-tre/armbin/hven_sqp_corpus
 CORE=2
 CELLS=$(sed -n 3p docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt)
-SCRATCH=$WT/build-tre/runtime-perf
+SCRATCH=$WT/.scratch/build-tre/runtime-perf
 mkdir -p "$OUT/syms" "$OUT/stat" "$OUT/raw" "$OUT/throttle" "$SCRATCH"
 note() { echo "$1 $(date -Is)"; }
 align() { # sub-second phase alignment: return once the nanosecond field is < 5e6
