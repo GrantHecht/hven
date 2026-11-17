@@ -1,0 +1,4 @@
+renamed 0 column(s): none
+added 0 new column(s) (not differences): 
+order: 0 pair(s) of mapped columns changed relative order (information)
+22 old columns, 22 new columns, 5 cells old / 5 new, 110 values compared, 0 differences

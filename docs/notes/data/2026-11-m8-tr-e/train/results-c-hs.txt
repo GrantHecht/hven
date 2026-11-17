@@ -1,0 +1,2 @@
+MOVED options_digest: 44 cells differ, declared
+44 baseline cells, 44 fresh cells, 0 mismatches
