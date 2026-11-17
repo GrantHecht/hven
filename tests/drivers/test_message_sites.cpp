@@ -164,6 +164,19 @@ TEST(TraceMessageSites, TheSqpSourceConstructsExactlyTheDeclaredSites) {
         << ::testing::PrintToString(mismatches(seen, sqp_expected()));
 }
 
+// The builder contract on both engines: `emit_message` calls its builder only after the sink test
+// (so a solve with no sink constructs no message). The IPM twin is in test_trace_off_path.cpp.
+TEST(TraceMessageSites, TheSqpMessageBuilderRunsOnlyAfterTheSinkTest) {
+    const std::string text = strip_comments(sqp_text());
+    const std::size_t def = text.find("SqpSolverImpl::emit_message(Build &&build)");
+    ASSERT_NE(def, std::string::npos);
+    const std::size_t guard = text.find("!= nullptr", def);
+    const std::size_t call = text.find("build()", def);
+    ASSERT_NE(guard, std::string::npos);
+    ASSERT_NE(call, std::string::npos);
+    EXPECT_LT(guard, call) << "the builder is invoked before the sink is tested";
+}
+
 TEST(TraceMessageSites, PlantedSitesAreCaught) {
     // An added site (a second start-point-clamp emit), a dropped site (the elastic ladder's
     // message rewritten to another kind), and a kind in the wrong engine (an SQP kind in the IPM).
