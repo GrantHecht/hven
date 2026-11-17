@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -179,7 +180,11 @@ void check(const char *file, const std::string &actual) {
     ASSERT_TRUE(in) << "missing fixture " << path << " (regenerate with HVEN_REGEN_GOLDENS=1)";
     std::ostringstream expected;
     expected << in.rdbuf();
-    EXPECT_EQ(actual, expected.str()) << file;
+    // The fixtures are LF files; a Windows checkout with autocrlf hands them back with CRLF
+    // line ends. Compare line-end-normalized so the byte contract is on the content.
+    std::string want = expected.str();
+    want.erase(std::remove(want.begin(), want.end(), '\r'), want.end());
+    EXPECT_EQ(actual, want) << file;
 }
 
 TEST(TraceV1Fixtures, IpmCompleteStream) { check("ipm_complete.jsonl", write_ipm_complete()); }

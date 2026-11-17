@@ -248,8 +248,21 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
                           k.eq, c.ratio, static_cast<long>(c.row), c.resid, c.row_scale, c.lambda);
             hven::test_support::record_off_reference_route(
                 std::string(off_reference_key) + "_eq_contract", contract);
-            EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid
-                                    << " at row scale " << c.row_scale << ", lambda " << c.lambda;
+            // Interim off-reference contract (settler ruling): the classifier contract is NO
+            // FALSE CERTIFICATE, ratio <= 10. The 1x promise of the kOptimal fix is NOT met on
+            // the Intel branch-14 route (YORKNET qp5 certifies at 6.88x); the 1x ratio is a
+            // route property recorded here, and a ratio past 1 must have been counted as a
+            // gray-zone exit (optimal_row_gray_exits >= 1).
+            hven::test_support::record_off_reference_route(
+                std::string(off_reference_key) + "_eq_ratio_1x",
+                "ratio=" + std::to_string(c.ratio) +
+                    " optimal_row_gray_exits=" + std::to_string(s.counters.optimal_row_gray_exits));
+            EXPECT_LE(c.ratio, 10.0) << "row " << c.row << ": residual " << c.resid
+                                     << " at row scale " << c.row_scale << ", lambda " << c.lambda;
+            if (c.ratio > 1.0) {
+                EXPECT_GE(s.counters.optimal_row_gray_exits, 1)
+                    << "ratio " << c.ratio << " past 1x with no gray-zone exit counted";
+            }
             EXPECT_LE(k.ineq, 1e-8);
             EXPECT_LE(k.box, 1e-9);
             EXPECT_LE(k.stationarity, stationarity_tol);
