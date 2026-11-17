@@ -5,7 +5,7 @@
 
 /// @file
 /// @brief The SQP globalization's verdict on one trial step, as a history row
-///        reports it (`SqpIterate::verdict`).
+///        reports it (`SqpIterationRow::verdict`).
 
 namespace hven {
 

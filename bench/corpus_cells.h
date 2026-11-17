@@ -249,8 +249,8 @@ struct CorpusCell {
 // SCHEMA note). `escapes` is the SSN engine's QP-level escape-to-walk count,
 // summed over the solve; identically 0 for `engine == "walk"` today, since
 // the walk engine has nothing to escape TO -- Task 3+ is what makes this
-// field move. `kkt_residual` is the last history row's SqpIterate::
-// kkt_residual (sqp_solver_types.h), or -1.0 (SqpWarmState's own "never populated"
+// field move. `kkt_residual` is the last history row's max(stationarity,
+// feasibility) (iteration_record.h), or -1.0 (SqpWarmState's own "never populated"
 // convention) on a solve whose history is empty (converged at x0 with no
 // subproblem built). `wall_s` is informational only, per this project's
 // standing timing-honesty rule (ledger.h's own note) -- never a regression
@@ -265,7 +265,7 @@ struct CorpusRow {
     double wall_s;
     // FIX ROUND 1 (C3). THE PER-QP READING THE GATES ACTUALLY NAME. One entry
     // per QP SUBPROBLEM the designated solve built, in history order, read
-    // straight off SqpIterate::qp_factorizations (sqp_solver_types.h) on every
+    // straight off SqpIterationRow::qp_factorizations (iteration_record.h) on every
     // history row with `qp_solved` -- the library already carried this
     // counter, so no include/ or src/ file changed to get it (the brief's own
     // "only if a tag needs a counter that does not exist -- expected: none").
@@ -1559,7 +1559,11 @@ inline F7CollocationChain make_model(const CorpusCell &cell) {
 // The last history row's kkt_residual, or -1.0 (SqpWarmState's own "never
 // populated" sentinel convention) on an empty history.
 inline double last_kkt_residual(const SqpResult &sol) {
-    return sol.history.empty() ? -1.0 : sol.history.back().kkt_residual;
+    if (sol.history.empty()) {
+        return -1.0;
+    }
+    const hven::IterationRecord &last = sol.history.back();
+    return std::max(last.stationarity, last.feasibility);
 }
 
 // TASK 6, instrument requirement 1 + the NF-1 telemetry. Recomputes the whole
@@ -1646,9 +1650,9 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
     // C3: the PER-QP reading the gates name. `qp_factorizations` is
     // documented "meaningful iff qp_solved" (sqp_solver_types.h), so a
     // stopped-AT-iterate row contributes nothing -- it built no subproblem.
-    for (const hven::SqpIterate &it : sol.history) {
-        if (it.qp_solved) {
-            row.qp_factorizations.push_back(static_cast<int>(it.qp_factorizations));
+    for (const hven::IterationRecord &it : sol.history) {
+        if (it.sqp->qp_solved) {
+            row.qp_factorizations.push_back(static_cast<int>(*it.sqp->qp_factorizations));
         }
     }
     return row;

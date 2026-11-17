@@ -388,7 +388,7 @@ static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldC
 // --- the `sqp.major` row -------------------------------------------------
 //
 // THE ROW'S OWN DECLARATION ORDER IS THE KEY ORDER, and this assertion is what
-// keeps the two in step: `SqpIterate` gaining a field stops the build here
+// keeps the two in step: `SqpMajorRow` gaining a field stops the build here
 // until the field gets a key below.
 //
 // 30 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
@@ -400,7 +400,7 @@ static_assert(::hven::detail::kAggregateArity<QpModeTraceEvent> == 5,
               "additive trailing key (this event is frozen by plan section 2 rule 6), and "
               "update this count.");
 
-constexpr std::size_t kIpmIterateFieldCount = 33;
+constexpr std::size_t kIpmIterateFieldCount = 35;
 static_assert(::hven::detail::kAggregateArity<IpmIterate> == kIpmIterateFieldCount,
               "IpmIterate's field count moved: `iter` rows are built from it by "
               "IpmSolverImpl::make_iteration_record and `ipm.phase.exit` reads it here; give the "

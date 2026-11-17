@@ -20,6 +20,7 @@
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_options.h"
 #include "hven/drivers/ipm_phase_report.h"
+#include "hven/drivers/iteration_record.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/linear/symmetric_factor.h"
 
@@ -116,6 +117,10 @@ struct IpmResult : SolveResult {
     Vec internal_fixed_ce;
     /// @brief Multipliers of those same rows, same order.
     Vec internal_fixed_lambda_e;
+
+    /// @brief One `IterationRecord` per counted iteration of every phase, in order (`ipm` block
+    ///        set): the depth-0 `iter` trace stream row for row. Always on, sink or not.
+    std::vector<IterationRecord> history;
 
     /// @brief The engine's own terminal measurements: what its convergence test
     ///        gated on, in its space. NOT the base's shared diagnostics.

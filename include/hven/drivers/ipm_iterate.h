@@ -122,6 +122,11 @@ struct IpmIterate {
     bool rolled_back = false;
     /// The call's running KKT factorization count at this row.
     Index factorizations = 0;
+    // Row provenance, stamped where the row is finalized (`stamp_row`), so `history` is built at
+    // exit and the trace renders the same row: restoration active at this point; the declared
+    // objective was measured at it.
+    bool recovering = false;
+    bool objective_bearing = false;
 };
 
 } // namespace hven

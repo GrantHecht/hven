@@ -2202,6 +2202,8 @@ class IpmSolverImpl {
 
     /// The trace-v1 row for `row` at this point of the solve (built only inside a sink guard).
     IterationRecord make_iteration_record(const IpmIterate &row) const;
+    /// Stamps the row's provenance from the current evaluation state (always, sink or not).
+    void stamp_row(IpmIterate &row) const;
 
     /// Emits `row` as an `iter` record to `sink`.
     void emit_iter(TraceSink &sink, const IpmIterate &row) const;

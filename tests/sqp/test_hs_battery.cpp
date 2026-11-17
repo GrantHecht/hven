@@ -317,18 +317,20 @@ void check_one(const Expect &e, QpWorkingSetAlgebra alg, const char *tag) {
     EXPECT_EQ(sol.counters.major_iters,
               sol.counters.steps_accepted + sol.counters.rejected_steps +
                   static_cast<Index>(std::count_if(sol.history.begin(), sol.history.end(),
-                                                   [](const SqpIterate &h) {
-                                                       return h.qp_solved &&
-                                                              h.verdict == StepVerdict::kRestore;
+                                                   [](const IterationRecord &h) {
+                                                       return h.sqp->qp_solved &&
+                                                              h.sqp->verdict.value_or(
+                                                                  hven::StepVerdict::kReject) ==
+                                                                  StepVerdict::kRestore;
                                                    })))
         << "SqpCounters' major_iters = accepted + rejected + kRestore rows identity";
-    for (const SqpIterate &h : sol.history) {
-        if (h.qp_solved && !h.elastic_applied) {
+    for (const IterationRecord &h : sol.history) {
+        if (h.sqp->qp_solved && !h.sqp->elastic) {
             // The trust region is a hard box on the step (the elastic tier
             // gets its radius as real bounds instead, so it is exempt -- see
-            // SqpIterate::elastic_applied).
-            EXPECT_LE(h.step_norm, h.tr_radius * (1.0 + 1e-9))
-                << "trial " << h.trial << " exceeded its radius";
+            // IterationRecord::elastic_applied).
+            EXPECT_LE(h.step_norm.value_or(0.0), h.sqp->trust_radius * (1.0 + 1e-9))
+                << "trial " << h.iteration << " exceeded its radius";
         }
     }
 }
@@ -634,7 +636,7 @@ TEST(HsBattery, SocIsRareAndUnprofitableAcrossTheBattery) {
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const Index applied = std::count_if(sol.history.begin(), sol.history.end(),
-                                            [](const SqpIterate &h) { return h.soc_applied; });
+                                            [](const IterationRecord &h) { return h.soc; });
         if (sol.counters.soc_steps > 0) {
             ++problems_attempting;
             ::testing::Test::RecordProperty(
@@ -756,24 +758,26 @@ TEST(HsBattery, AdaptiveMuNeverSharesAMajorWithSocOrElastic) {
         // iterate exit the final row has qp_solved == false (sqp_solver_types.h's
         // two history shapes), so this is not simply history.size() - 1.
         Index last_solved = -1;
-        for (const SqpIterate &h : sol.history) {
-            if (h.qp_solved) {
-                last_solved = h.trial;
+        for (const IterationRecord &h : sol.history) {
+            if (h.sqp->qp_solved) {
+                last_solved = h.iteration;
             }
         }
-        for (const SqpIterate &h : sol.history) {
-            if (!h.qp_solved || h.mu == opts.qp.dual_regularization) {
+        for (const IterationRecord &h : sol.history) {
+            if (!h.sqp->qp_solved ||
+                h.sqp->dual_regularization.value_or(0.0) == opts.qp.dual_regularization) {
                 continue;
             }
             ++rows_off_default;
             ::testing::Test::RecordProperty(
-                fmt::format("mu_hs{}_trial{}", e.number, h.trial),
-                fmt::format("mu={:.3g} soc={} elastic={} last_solved={}", h.mu,
-                            h.soc_applied ? 1 : 0, h.elastic_applied ? 1 : 0, last_solved));
-            if (h.soc_applied || h.elastic_applied) {
+                fmt::format("mu_hs{}_trial{}", e.number, h.iteration),
+                fmt::format("mu={:.3g} soc={} elastic={} last_solved={}",
+                            h.sqp->dual_regularization.value_or(0.0), h.soc ? 1 : 0,
+                            h.sqp->elastic ? 1 : 0, last_solved));
+            if (h.soc || h.sqp->elastic) {
                 ++overlapping_rows;
             }
-            if (h.trial != last_solved) {
+            if (h.iteration != last_solved) {
                 ++non_final_rows;
             }
         }
@@ -829,13 +833,13 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
         SqpSolver driver(options_for(e, QpWorkingSetAlgebra::kRefactorize));
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
-        if (sol.history.empty() || sol.history.front().violation_l1 > kExcursion) {
+        if (sol.history.empty() || sol.history.front().sqp->violation_l1 > kExcursion) {
             continue;
         }
         ++feasible_starts;
         double h_max = 0.0;
-        for (const SqpIterate &h : sol.history) {
-            h_max = std::max(h_max, h.violation_l1);
+        for (const IterationRecord &h : sol.history) {
+            h_max = std::max(h_max, h.sqp->violation_l1);
         }
         if (h_max > kExcursion) {
             ++with_excursions;
@@ -848,7 +852,8 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
             EXPECT_LE(sol.counters.major_iters, e.major_budget)
                 << "HS" << e.number << "'s funnel excursion now costs majors";
         }
-        EXPECT_LE(sol.history.back().violation_l1, sol.history.front().violation_l1 + 1e-6)
+        EXPECT_LE(sol.history.back().sqp->violation_l1,
+                  sol.history.front().sqp->violation_l1 + 1e-6)
             << "HS" << e.number << " started feasible and ended less so";
     }
     // ASSERTED AS THE OBSERVED VALUES: 15 feasible starts, 3 of them taking a

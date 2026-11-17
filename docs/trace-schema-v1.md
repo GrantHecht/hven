@@ -177,10 +177,13 @@ its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `station
 
 ## 4. Identities a v1 stream satisfies (asserted in tests)
 
-1. Every record counted in `iterations` has one `iter` line and one callback event. At depth 0, `iter`
-   lines == `iterations` on the IPM; on the SQP, `iterations + 1`, because row 0 is the start point (no
-   step has been taken to reach it). A count, not a range: the IPM `iter` index is not contiguous.
-   The IPM non-finite evaluation abort used to be the one hole (M7-19, closed in TR-B): it now writes its row and fires its event. SQP: `iter` lines == `history.size()` (a stop or abort pushes the stopped-at row without a step).
+1. At depth 0, `history.size()` == the number of `iter` lines == the number of callback events, on both
+   engines: `IpmResult::history` and `SqpResult::history` are those rows (`IterationRecord`), row for row,
+   always built, with or without a sink. IPM: every record counted in `iterations` has one line and one event,
+   so `history.size()` == `iterations`. SQP: row 0 is the start point (no step reached it), and a stop or abort
+   door pushes the stopped-at row without a step, so `history.size()` is read off `history`, never derived from
+   `iterations`. A count, not a range: the IPM `iter` index is not contiguous. The IPM non-finite evaluation
+   abort used to be the one hole (M7-19, closed in TR-B): it now writes its row and fires its event.
 2. When `returned_best_iterate == false` and scaling is inactive, the final depth-0 `iter` core residuals
    equal `solve.end.convergence`'s.
 3. `factorizations` on the last row <= `solve.end.work.factorizations`.

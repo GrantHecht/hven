@@ -498,7 +498,7 @@ TEST(SqpQnModes, AnElasticActivatingSolveConvergesWithoutAHessianCall) {
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_GE(sol.counters.elastic_activations, 1);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.front().elastic_applied);
+    EXPECT_TRUE(sol.history.front().sqp->elastic);
     EXPECT_NEAR(sol.f, -std::sqrt(2.0), 1e-6);
     EXPECT_EQ(sol.counters.eval_hess_calls, 0);
     EXPECT_EQ(sol.counters.qn_kwrong_seen, 0);

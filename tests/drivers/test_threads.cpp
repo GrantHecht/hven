@@ -111,6 +111,7 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
+#include "common_support/iteration_record_eq.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "sqp/support/hs_problems.h"
 
@@ -123,6 +124,7 @@ namespace {
 using hven::BoundState;
 using hven::Index;
 using hven::IpqpCounters;
+using hven::IterationRecord;
 using hven::QpMode;
 using hven::QpOptions;
 using hven::QpSolveOverrides;
@@ -130,7 +132,6 @@ using hven::QpStatus;
 using hven::SolveStatus;
 using hven::SpMatRM;
 using hven::SqpCounters;
-using hven::SqpIterate;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
@@ -315,7 +316,7 @@ int driver_k0_num_threads(const SqpResult &sol) {
 // lane's I3)
 // ---------------------------------------------------------------------------
 //
-// The first version of the 0-vs-1 pin compared 18 of `SqpIterate`'s 29 fields
+// The first version of the 0-vs-1 pin compared 18 of `IterationRecord`'s 29 fields
 // and 6 of `SqpCounters`' 40, with `EXPECT_EQ` on the doubles -- and `EXPECT_EQ`
 // on a double is VALUE equality, which accepts `-0.0 == 0.0`. The claim the pin
 // makes ("bit for bit") is now the claim it checks: EVERY field of both
@@ -346,42 +347,10 @@ void expect_vectors_identical(const Vec &a, const Vec &b, const char *name) {
     }
 }
 
-// EVERY field of one history row -- all 30.
-void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
-    static_assert(sizeof(SqpIterate) == 192,
-                  "SqpIterate changed size: add the new field to expect_rows_identical "
-                  "(this pin's claim is EVERY deterministic field) and update this assertion.");
-    SCOPED_TRACE(::testing::Message() << "history row " << i);
-    HVEN_EXPECT_SAME(a, b, trial);
-    HVEN_EXPECT_BITS(a, b, f);
-    HVEN_EXPECT_BITS(a, b, stationarity);
-    HVEN_EXPECT_BITS(a, b, feasibility);
-    HVEN_EXPECT_BITS(a, b, complementarity);
-    HVEN_EXPECT_BITS(a, b, kkt_residual);
-    HVEN_EXPECT_BITS(a, b, violation_l1);
-    HVEN_EXPECT_BITS(a, b, tr_radius);
-    HVEN_EXPECT_BITS(a, b, mu);
-    HVEN_EXPECT_BITS(a, b, step_norm);
-    HVEN_EXPECT_SAME(a, b, qp_solved);
-    HVEN_EXPECT_BITS(a, b, ipqp_least_infeasible_primal);
-    HVEN_EXPECT_SAME(a, b, ipqp_farkas_corroborated);
-    HVEN_EXPECT_SAME(a, b, qp_status);
-    HVEN_EXPECT_SAME(a, b, qp_minor_iters);
-    HVEN_EXPECT_SAME(a, b, qp_factorizations);
-    HVEN_EXPECT_SAME(a, b, tr_binding);
-    HVEN_EXPECT_SAME(a, b, verdict);
-    HVEN_EXPECT_SAME(a, b, soc_applied);
-    HVEN_EXPECT_SAME(a, b, elastic_applied);
-    HVEN_EXPECT_SAME(a, b, elastic_rho0_ceiling_hit);
-    HVEN_EXPECT_SAME(a, b, restoration_seed_used);
-    HVEN_EXPECT_SAME(a, b, watchdog_restored);
-    HVEN_EXPECT_SAME(a, b, rolled_back);
-    HVEN_EXPECT_SAME(a, b, active_set_delta);
-    HVEN_EXPECT_SAME(a, b, weak_active_rows);
-    HVEN_EXPECT_SAME(a, b, near_active_rows);
-    HVEN_EXPECT_SAME(a, b, active_rows);
-    HVEN_EXPECT_SAME(a, b, active_lower_sides);
-    HVEN_EXPECT_SAME(a, b, active_upper_sides);
+// EVERY member of one history record (bit-exact; `same_record` covers the core and the engine
+// block).
+void expect_rows_identical(const IterationRecord &a, const IterationRecord &b, int i) {
+    EXPECT_TRUE(hven::test::same_record(a, b)) << "history row " << i;
 }
 
 // EVERY field of the SSN tier's nested counters -- all 18.

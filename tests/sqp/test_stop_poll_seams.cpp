@@ -182,28 +182,33 @@ void expect_same_best(const hven::SolveResult &a, const hven::SolveResult &b) {
     EXPECT_TRUE(bit_equal(x.z_upper, y.z_upper));
 }
 
-void expect_same_row(const hven::SqpIterate &a, const hven::SqpIterate &b) {
-    EXPECT_EQ(a.trial, b.trial);
-    EXPECT_TRUE(same_scalar(a.f, b.f));
+void expect_same_row(const hven::IterationRecord &a, const hven::IterationRecord &b) {
+    EXPECT_EQ(a.iteration, b.iteration);
+    EXPECT_TRUE(same_scalar(a.f.value(), b.f.value()));
     EXPECT_TRUE(same_scalar(a.stationarity, b.stationarity));
     EXPECT_TRUE(same_scalar(a.feasibility, b.feasibility));
     EXPECT_TRUE(same_scalar(a.complementarity, b.complementarity));
-    EXPECT_TRUE(same_scalar(a.kkt_residual, b.kkt_residual));
-    EXPECT_TRUE(same_scalar(a.violation_l1, b.violation_l1));
-    EXPECT_TRUE(same_scalar(a.tr_radius, b.tr_radius));
-    EXPECT_TRUE(same_scalar(a.mu, b.mu));
-    EXPECT_TRUE(same_scalar(a.step_norm, b.step_norm));
-    EXPECT_EQ(a.qp_solved, b.qp_solved);
-    EXPECT_EQ(a.qp_status, b.qp_status);
-    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters);
-    EXPECT_EQ(a.qp_factorizations, b.qp_factorizations);
-    EXPECT_EQ(a.verdict, b.verdict);
-    EXPECT_EQ(a.elastic_applied, b.elastic_applied);
-    EXPECT_EQ(a.soc_applied, b.soc_applied);
-    EXPECT_EQ(a.active_rows, b.active_rows);
-    EXPECT_EQ(a.active_lower_sides, b.active_lower_sides);
-    EXPECT_EQ(a.active_upper_sides, b.active_upper_sides);
-    EXPECT_TRUE(same_scalar(a.ipqp_least_infeasible_primal, b.ipqp_least_infeasible_primal));
+    EXPECT_TRUE(same_scalar(std::max(a.stationarity, a.feasibility),
+                            std::max(b.stationarity, b.feasibility)));
+    EXPECT_TRUE(same_scalar(a.sqp->violation_l1, b.sqp->violation_l1));
+    EXPECT_TRUE(same_scalar(a.sqp->trust_radius, b.sqp->trust_radius));
+    EXPECT_TRUE(same_scalar(a.sqp->dual_regularization.value_or(0.0),
+                            b.sqp->dual_regularization.value_or(0.0)));
+    EXPECT_TRUE(same_scalar(a.step_norm.value_or(0.0), b.step_norm.value_or(0.0)));
+    EXPECT_EQ(a.sqp->qp_solved, b.sqp->qp_solved);
+    EXPECT_EQ(a.sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              b.sqp->qp_status.value_or(hven::QpStatus::kOptimal));
+    EXPECT_EQ(a.sqp->qp_minor_iterations.value_or(0), b.sqp->qp_minor_iterations.value_or(0));
+    EXPECT_EQ(a.sqp->qp_factorizations.value_or(0), b.sqp->qp_factorizations.value_or(0));
+    EXPECT_EQ(a.sqp->verdict.value_or(hven::StepVerdict::kReject),
+              b.sqp->verdict.value_or(hven::StepVerdict::kReject));
+    EXPECT_EQ(a.sqp->elastic, b.sqp->elastic);
+    EXPECT_EQ(a.soc, b.soc);
+    EXPECT_EQ(a.sqp->active_rows, b.sqp->active_rows);
+    EXPECT_EQ(a.sqp->active_lower_sides, b.sqp->active_lower_sides);
+    EXPECT_EQ(a.sqp->active_upper_sides, b.sqp->active_upper_sides);
+    EXPECT_TRUE(same_scalar(a.sqp->ipqp_least_infeasible_primal.value_or(0.0),
+                            b.sqp->ipqp_least_infeasible_primal.value_or(0.0)));
 }
 
 // A kernel that honours the stop polls no more, and none starts after it: every
@@ -562,7 +567,7 @@ void expect_stopped_at_major(const SqpResult &stopped, const SqpResult &capped) 
     EXPECT_TRUE(stopped.best_iterate.has_value()) << "an armed tracker publishes on a stop";
     expect_same_best(stopped, capped);
     ASSERT_FALSE(stopped.history.empty());
-    EXPECT_FALSE(stopped.history.back().qp_solved) << "the stopped-at row";
+    EXPECT_FALSE(stopped.history.back().sqp->qp_solved) << "the stopped-at row";
     EXPECT_EQ(static_cast<Index>(stopped.history.size()), stopped.counters.major_iters + 1);
     EXPECT_EQ(stopped.counters.major_iters, capped.counters.major_iters);
     ASSERT_EQ(stopped.history.size(), capped.history.size());
@@ -713,7 +718,7 @@ TEST(StopPollSeam, T4ATokenStopInMajorZeroReturnsTheStartPoint) {
         EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
         EXPECT_EQ(r.counters.major_iters, 0);
         ASSERT_EQ(r.history.size(), 1u);
-        EXPECT_FALSE(r.history[0].qp_solved);
+        EXPECT_FALSE(r.history[0].sqp->qp_solved);
         EXPECT_EQ(stopped.events, 1);
         EXPECT_TRUE(bit_equal(r.x, hs071_start()));
         EXPECT_TRUE(stopped.disarmed);
@@ -836,7 +841,7 @@ TEST(StopPollSeam, T4AnAbandonAnsweredWithKStopReturnBestIsTheExitTestTokenStop)
         EXPECT_FALSE(r.returned_best_iterate) << "the token labelled the exit";
         ASSERT_TRUE(r.best_iterate.has_value());
         ASSERT_FALSE(r.history.empty());
-        EXPECT_FALSE(r.history.back().qp_solved);
+        EXPECT_FALSE(r.history.back().sqp->qp_solved);
 
         // The exit-test twin: the token requested by major k-1's commit (its Jacobian
         // evaluation, after the post-push poll), seen at major k's exit test.
@@ -1055,7 +1060,7 @@ TEST(StopPollSeam, T4ATokenStopInsideAnElasticResolveReturnsXk) {
     ASSERT_EQ(parent_event.size(), dry.result.history.size());
     // The first parent major (depth 0, after major 0) whose subproblem the elastic tier answered.
     std::size_t k = 1;
-    while (k < dry.result.history.size() && !dry.result.history[k].elastic_applied) {
+    while (k < dry.result.history.size() && !dry.result.history[k].sqp->elastic) {
         ++k;
     }
     ASSERT_LT(k, dry.result.history.size())
@@ -1076,7 +1081,7 @@ TEST(StopPollSeam, T4ATokenStopInsideAnElasticResolveReturnsXk) {
     EXPECT_FALSE(r.returned_pre_restoration_point);
     EXPECT_EQ(r.history.size(), k + 1);
     EXPECT_GE(r.counters.elastic_activations, 1);
-    EXPECT_FALSE(r.history.back().elastic_applied);
+    EXPECT_FALSE(r.history.back().sqp->elastic);
 
     // The cap counts restoration's iterations too.
     Seam::reset();
@@ -1331,7 +1336,7 @@ TEST(StopPollSeam, TheWalkIsReArmedAfterTheSocResolve) {
     StopSource dry_source;
     const ModelRun dry = run_model(model, dry_source, std::nullopt);
     std::size_t m = 0;
-    while (m < dry.result.history.size() && !dry.result.history[m].soc_applied) {
+    while (m < dry.result.history.size() && !dry.result.history[m].soc) {
         ++m;
     }
     ASSERT_LT(m + 1, dry.result.history.size()) << "premise: a major follows the SOC's";
@@ -1381,7 +1386,7 @@ TEST(StopPollSeam, T4ATokenStopInsideAnIpqpTierElasticRungReturnsXk) {
     ASSERT_EQ(parent_event.size(), dry.result.history.size());
     std::size_t k = 0;
     for (std::size_t r = 1; r < dry.result.history.size() && k == 0; ++r) {
-        if (dry.result.history[r].elastic_applied) {
+        if (dry.result.history[r].sqp->elastic) {
             k = r;
         }
     }
@@ -1404,7 +1409,7 @@ TEST(StopPollSeam, T4ATokenStopInsideAnIpqpTierElasticRungReturnsXk) {
     const SqpResult &r = stopped.result;
     EXPECT_EQ(r.history.size(), k + 1);
     EXPECT_GE(r.counters.elastic_activations, 1);
-    EXPECT_FALSE(r.history.back().elastic_applied);
+    EXPECT_FALSE(r.history.back().sqp->elastic);
     EXPECT_TRUE(stopped.disarmed);
 
     // The cap counts restoration's iterations too.

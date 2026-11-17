@@ -120,9 +120,9 @@ using hven::detail::NlpModelAssembly;
 using hven::detail::QpProblem;
 using hven::detail::upgrade_to_full;
 // The driver-entry battery at the end of this file.
+using hven::IterationRecord;
 using hven::SolveStatus;
 using hven::SqpCounters;
-using hven::SqpIterate;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
@@ -1124,40 +1124,44 @@ void expect_same_warm_start(const hven::detail::SqpWarmState &bridge,
 /// length-only comparison would call those equal. The rows carry exactly the
 /// per-major record the diagnostics contract publishes, so comparing them is
 /// comparing the two paths and not just their endpoints.
-void expect_same_history(const std::vector<SqpIterate> &bridge,
-                         const std::vector<SqpIterate> &model, const std::string &tag) {
+void expect_same_history(const std::vector<IterationRecord> &bridge,
+                         const std::vector<IterationRecord> &model, const std::string &tag) {
     SCOPED_TRACE(tag);
     ASSERT_EQ(bridge.size(), model.size());
     for (std::size_t k = 0; k < model.size(); ++k) {
         SCOPED_TRACE("history row " + std::to_string(k));
-        const SqpIterate &b = bridge[k];
-        const SqpIterate &m = model[k];
-        EXPECT_EQ(b.trial, m.trial);
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.f), std::bit_cast<std::uint64_t>(m.f));
+        const IterationRecord &b = bridge[k];
+        const IterationRecord &m = model[k];
+        EXPECT_EQ(b.iteration, m.iteration);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.f.value()),
+                  std::bit_cast<std::uint64_t>(m.f.value()));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(b.stationarity),
                   std::bit_cast<std::uint64_t>(m.stationarity));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(b.feasibility),
                   std::bit_cast<std::uint64_t>(m.feasibility));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(b.complementarity),
                   std::bit_cast<std::uint64_t>(m.complementarity));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.kkt_residual),
-                  std::bit_cast<std::uint64_t>(m.kkt_residual));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.violation_l1),
-                  std::bit_cast<std::uint64_t>(m.violation_l1));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.tr_radius),
-                  std::bit_cast<std::uint64_t>(m.tr_radius));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.mu), std::bit_cast<std::uint64_t>(m.mu));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.step_norm),
-                  std::bit_cast<std::uint64_t>(m.step_norm));
-        EXPECT_EQ(b.qp_solved, m.qp_solved);
-        EXPECT_EQ(b.qp_status, m.qp_status);
-        EXPECT_EQ(b.qp_minor_iters, m.qp_minor_iters);
-        EXPECT_EQ(b.qp_factorizations, m.qp_factorizations);
-        EXPECT_EQ(b.tr_binding, m.tr_binding);
-        EXPECT_EQ(b.verdict, m.verdict);
-        EXPECT_EQ(b.soc_applied, m.soc_applied);
-        EXPECT_EQ(b.elastic_applied, m.elastic_applied);
-        EXPECT_EQ(b.watchdog_restored, m.watchdog_restored);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(std::max(b.stationarity, b.feasibility)),
+                  std::bit_cast<std::uint64_t>(std::max(m.stationarity, m.feasibility)));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->violation_l1),
+                  std::bit_cast<std::uint64_t>(m.sqp->violation_l1));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->trust_radius),
+                  std::bit_cast<std::uint64_t>(m.sqp->trust_radius));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.sqp->dual_regularization.value_or(0.0)),
+                  std::bit_cast<std::uint64_t>(m.sqp->dual_regularization.value_or(0.0)));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.step_norm.value_or(0.0)),
+                  std::bit_cast<std::uint64_t>(m.step_norm.value_or(0.0)));
+        EXPECT_EQ(b.sqp->qp_solved, m.sqp->qp_solved);
+        EXPECT_EQ(b.sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  m.sqp->qp_status.value_or(hven::QpStatus::kOptimal));
+        EXPECT_EQ(b.sqp->qp_minor_iterations.value_or(0), m.sqp->qp_minor_iterations.value_or(0));
+        EXPECT_EQ(b.sqp->qp_factorizations.value_or(0), m.sqp->qp_factorizations.value_or(0));
+        EXPECT_EQ(b.sqp->tr_binding, m.sqp->tr_binding);
+        EXPECT_EQ(b.sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  m.sqp->verdict.value_or(hven::StepVerdict::kReject));
+        EXPECT_EQ(b.soc, m.soc);
+        EXPECT_EQ(b.sqp->elastic, m.sqp->elastic);
+        EXPECT_EQ(b.watchdog, m.watchdog);
     }
 }
 

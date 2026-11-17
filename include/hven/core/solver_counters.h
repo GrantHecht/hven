@@ -1771,7 +1771,7 @@ struct SqpCounters {
     /// like that pair.
     Index ip_activity_inferred = 0;
 
-    /// Sum of `SqpIterate::active_set_delta` over this solve's REPORTING majors --
+    /// Sum of `SqpIterationRow::active_set_delta` over this solve's REPORTING majors --
     /// the total working-set churn the QP sequence went through, counting the first
     /// major's census against the empty set. Instrumentation only.
     ///
@@ -1780,15 +1780,15 @@ struct SqpCounters {
     /// about which constraints of THIS problem were in the working set, and the
     /// sub-solve's QP lives in the feasibility wrapper's own variables and rows.
     Index active_set_delta_total = 0;
-    /// The largest `SqpIterate::active_set_delta` any single major of this
+    /// The largest `SqpIterationRow::active_set_delta` any single major of this
     /// solve reported. A PEAK, folded with `max` like `ssn_uncertain_peak`, and
     /// not folded from the restoration sub-solve for the reason above.
     Index active_set_delta_peak = 0;
-    /// The largest `SqpIterate::weak_active_rows` any single major reported --
+    /// The largest `SqpIterationRow::weak_active_rows` any single major reported --
     /// how close to a degenerate (non-strictly-complementary) active set this
     /// solve's QP sequence ever got. A PEAK; see `kWeakActivityMargin`.
     Index weak_active_peak = 0;
-    /// The largest `SqpIterate::near_active_rows` any single major reported --
+    /// The largest `SqpIterationRow::near_active_rows` any single major reported --
     /// how many rows were sitting on the boundary WITHOUT being in the working
     /// set. A PEAK; see `kWeakActivityMargin`.
     Index near_active_peak = 0;
@@ -1902,7 +1902,7 @@ struct SqpCounters {
     /// `SolveStatus::kNumericalError` like every other subproblem failure, so
     /// THIS COUNTER IS THE ONLY PLACE THE DISTINCTION SURVIVES into
     /// `SqpResult::counters`; the per-major fact is on the row
-    /// (`SqpIterate::qp_status`).
+    /// (`SqpIterationRow::qp_status`).
     ///
     /// COUNTED WHERE THE DRIVER ACTS ON THE EXIT, which is the routing site --
     /// so an attempt that `SqpAdvancedOptions::qp_iteration_limit_retry` RESCUED is not counted
@@ -2044,7 +2044,7 @@ struct SqpCounters {
     /// event's, not this field's.
     ///
     /// NOT the point the phase STARTED from, which may be a seed candidate the
-    /// entry guard preferred (`SqpIterate::restoration_seed_used`). The
+    /// entry guard preferred (`SqpIterationRow::restoration_seed_used`). The
     /// excursion this record measures is the one the CALLER's iterate made, so
     /// both `in` fields are read at the requesting iterate whether or not a
     /// seed was taken.
@@ -2091,7 +2091,7 @@ struct SqpCounters {
     /// `f_out` of the record. With `restoration_f_in` it is the EXCURSION the
     /// currency cannot show: a restoration that buys feasibility at many orders
     /// of objective reports it here, on a phase that produces no history row by contract
-    /// (`SqpIterate`'s note).
+    /// (`SqpIterationRow`'s note).
     ///
     /// ON THE RESUME ARM this is the `f` the solve carries forward -- the
     /// restored point becomes the iterate -- so the next history row's `f` is

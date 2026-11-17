@@ -2245,7 +2245,7 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
         SqpOptions opts;
         opts.qp.trust_region_radius = e.engine_tr;
         QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
-        SqpIterate row;
+        SqpMajorRow row;
         std::optional<ElasticLadderReport> report;
         SqpFallbackVerdictTraceEvent verdict;
         certified_feasibility_fallback(engine, *e.qp, nlp_ev, nullptr, *e.evidence, overrides, opts,
@@ -2631,80 +2631,91 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
 /// @brief Every field of one SQP `iter` line against the row it claims to be.
 ///
 /// Hand-listed, and the `static_assert` beside it is what keeps the list
-/// complete: a field added to `SqpIterate` moves the arity and fails HERE as
+/// complete: a field added to `SqpIterationRow` moves the arity and fails HERE as
 /// well as at the writer, so the pin cannot silently stop covering the row.
-void expect_iter_line_is_row(const std::string &line, const SqpIterate &r, Index major,
+void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, Index major,
                              QpTraceMode mode, Index depth) {
-    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 30,
-                  "SqpIterate gained a field: compare it below, and in the writer's own key list.");
-    const bool stepped = r.qp_solved && r.qp_status == QpStatus::kOptimal;
+    static_assert(
+        ::hven::detail::kAggregateArity<SqpIterationRow> == 23,
+        "SqpIterationRow gained a field: compare it below, and in the writer's own key list.");
+    const bool stepped = r.sqp->qp_solved &&
+                         r.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kOptimal;
     EXPECT_EQ(raw_field(line, "iter"), std::to_string(major)) << line;
     EXPECT_EQ(raw_field(line, "recovering"), depth >= 1 ? "true" : "false");
     if (depth >= 1) {
         EXPECT_EQ(raw_field(line, "tier"), "\"rest\"");
         EXPECT_EQ(raw_field(line, "f"), "null");
-        expect_double_field(line, "f_recovery", r.f);
+        expect_double_field(line, "f_recovery", r.f_recovery.value());
     } else {
         EXPECT_EQ(raw_field(line, "f_recovery"), "null");
-        expect_double_field(line, "f", r.f);
+        expect_double_field(line, "f", r.f.value());
         // The tier of a dispatch arm spells the same word as `mode`.
         EXPECT_EQ(raw_field(line, "tier"),
-                  std::string(r.elastic_applied ? "\"elastic\"" : spec_spelling(mode)))
+                  std::string(r.sqp->elastic ? "\"elastic\"" : spec_spelling(mode)))
             << line;
     }
     expect_double_field(line, "stationarity", r.stationarity);
     expect_double_field(line, "feasibility", r.feasibility);
     expect_double_field(line, "complementarity", r.complementarity);
     if (stepped) {
-        expect_double_field(line, "step", r.step_norm);
-        const bool accepted = r.verdict == StepVerdict::kAcceptObjectiveStep ||
-                              r.verdict == StepVerdict::kAcceptFeasibilityStep;
+        expect_double_field(line, "step", r.step_norm.value_or(0.0));
+        const bool accepted = r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                  StepVerdict::kAcceptObjectiveStep ||
+                              r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                  StepVerdict::kAcceptFeasibilityStep;
         EXPECT_EQ(raw_field(line, "accepted"), accepted ? "true" : "false");
     } else {
         EXPECT_EQ(raw_field(line, "step"), "null") << line;
         EXPECT_EQ(raw_field(line, "accepted"), "null") << line;
     }
-    EXPECT_EQ(raw_field(line, "soc"), r.soc_applied ? "true" : "false");
-    EXPECT_EQ(raw_field(line, "watchdog"), r.watchdog_restored ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "soc"), r.soc ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "watchdog"), r.watchdog ? "true" : "false");
     EXPECT_EQ(raw_field(line, "rolled_back"), r.rolled_back ? "true" : "false");
 
     EXPECT_EQ(raw_field(line, "depth"), std::to_string(depth));
     EXPECT_EQ(raw_field(line, "mode"), spec_spelling(mode));
-    expect_double_field(line, "trust_radius", r.tr_radius);
-    expect_double_field(line, "violation_l1", r.violation_l1);
-    EXPECT_EQ(raw_field(line, "qp_solved"), r.qp_solved ? "true" : "false");
-    if (r.qp_solved) {
-        EXPECT_EQ(raw_field(line, "verdict"), spec_spelling(r.verdict));
-        expect_double_field(line, "dual_regularization", r.mu);
-        EXPECT_EQ(raw_field(line, "qp_status"), spec_spelling(r.qp_status));
-        EXPECT_EQ(raw_field(line, "qp_minor_iterations"), std::to_string(r.qp_minor_iters));
-        EXPECT_EQ(raw_field(line, "qp_factorizations"), std::to_string(r.qp_factorizations));
+    expect_double_field(line, "trust_radius", r.sqp->trust_radius);
+    expect_double_field(line, "violation_l1", r.sqp->violation_l1);
+    EXPECT_EQ(raw_field(line, "qp_solved"), r.sqp->qp_solved ? "true" : "false");
+    if (r.sqp->qp_solved) {
+        EXPECT_EQ(raw_field(line, "verdict"),
+                  spec_spelling(r.sqp->verdict.value_or(hven::StepVerdict::kReject)));
+        expect_double_field(line, "dual_regularization", r.sqp->dual_regularization.value_or(0.0));
+        EXPECT_EQ(raw_field(line, "qp_status"),
+                  spec_spelling(r.sqp->qp_status.value_or(hven::QpStatus::kOptimal)));
+        EXPECT_EQ(raw_field(line, "qp_minor_iterations"),
+                  std::to_string(r.sqp->qp_minor_iterations.value_or(0)));
+        EXPECT_EQ(raw_field(line, "qp_factorizations"),
+                  std::to_string(r.sqp->qp_factorizations.value_or(0)));
     } else {
         for (const char *k : {"verdict", "dual_regularization", "qp_status", "qp_minor_iterations",
                               "qp_factorizations"}) {
             EXPECT_EQ(raw_field(line, k), "null") << k << " in " << line;
         }
     }
-    EXPECT_EQ(raw_field(line, "tr_binding"), r.tr_binding ? "true" : "false");
-    EXPECT_EQ(raw_field(line, "elastic"), r.elastic_applied ? "true" : "false");
-    EXPECT_EQ(raw_field(line, "elastic_clamped"), r.elastic_rho0_ceiling_hit ? "true" : "false");
-    EXPECT_EQ(raw_field(line, "restoration_seed_used"), r.restoration_seed_used ? "true" : "false");
-    if (r.ipqp_least_infeasible_primal != 0.0 || r.ipqp_farkas_corroborated) {
-        expect_double_field(line, "ipqp_least_infeasible_primal", r.ipqp_least_infeasible_primal);
+    EXPECT_EQ(raw_field(line, "tr_binding"), r.sqp->tr_binding ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "elastic"), r.sqp->elastic ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "elastic_clamped"), r.sqp->elastic_clamped ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "restoration_seed_used"),
+              r.sqp->restoration_seed_used ? "true" : "false");
+    if (r.sqp->ipqp_least_infeasible_primal.has_value()) {
+        expect_double_field(line, "ipqp_least_infeasible_primal",
+                            *r.sqp->ipqp_least_infeasible_primal);
         EXPECT_EQ(raw_field(line, "ipqp_farkas_corroborated"),
-                  r.ipqp_farkas_corroborated ? "true" : "false");
+                  r.sqp->ipqp_farkas_corroborated.value_or(false) ? "true" : "false");
     } else {
         EXPECT_EQ(raw_field(line, "ipqp_least_infeasible_primal"), "null") << line;
         EXPECT_EQ(raw_field(line, "ipqp_farkas_corroborated"), "null") << line;
     }
-    EXPECT_EQ(raw_field(line, "active_set_size"),
-              std::to_string(r.active_rows + r.active_lower_sides + r.active_upper_sides));
-    EXPECT_EQ(raw_field(line, "active_set_delta"), std::to_string(r.active_set_delta));
-    EXPECT_EQ(raw_field(line, "weak_active_rows"), std::to_string(r.weak_active_rows));
-    EXPECT_EQ(raw_field(line, "near_active_rows"), std::to_string(r.near_active_rows));
-    EXPECT_EQ(raw_field(line, "active_rows"), std::to_string(r.active_rows));
-    EXPECT_EQ(raw_field(line, "active_lower_sides"), std::to_string(r.active_lower_sides));
-    EXPECT_EQ(raw_field(line, "active_upper_sides"), std::to_string(r.active_upper_sides));
+    EXPECT_EQ(
+        raw_field(line, "active_set_size"),
+        std::to_string(r.sqp->active_rows + r.sqp->active_lower_sides + r.sqp->active_upper_sides));
+    EXPECT_EQ(raw_field(line, "active_set_delta"), std::to_string(r.sqp->active_set_delta));
+    EXPECT_EQ(raw_field(line, "weak_active_rows"), std::to_string(r.sqp->weak_active_rows));
+    EXPECT_EQ(raw_field(line, "near_active_rows"), std::to_string(r.sqp->near_active_rows));
+    EXPECT_EQ(raw_field(line, "active_rows"), std::to_string(r.sqp->active_rows));
+    EXPECT_EQ(raw_field(line, "active_lower_sides"), std::to_string(r.sqp->active_lower_sides));
+    EXPECT_EQ(raw_field(line, "active_upper_sides"), std::to_string(r.sqp->active_upper_sides));
 }
 
 /// The depth-0 `iter` lines of a stream, in order.
@@ -2803,8 +2814,8 @@ std::map<std::string, Index> qp_mode_census(const std::string &stream) {
 
 Index rows_with_a_qp(const SqpResult &sol) {
     Index rows = 0;
-    for (const SqpIterate &r : sol.history) {
-        rows += r.qp_solved ? 1 : 0;
+    for (const IterationRecord &r : sol.history) {
+        rows += r.sqp->qp_solved ? 1 : 0;
     }
     return rows;
 }
@@ -3455,8 +3466,8 @@ TEST(JsonLinesTraceSink, TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals) {
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
     Index outer = 0;
-    for (const SqpIterate &r : sol.history) {
-        outer += r.active_set_delta;
+    for (const IterationRecord &r : sol.history) {
+        outer += r.sqp->active_set_delta;
     }
     EXPECT_EQ(sol.counters.active_set_delta_total, outer);
 
@@ -4156,8 +4167,8 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoratio
 
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
     Index seeded_rows = 0;
-    for (const SqpIterate &r : sol.history) {
-        seeded_rows += r.restoration_seed_used ? 1 : 0;
+    for (const IterationRecord &r : sol.history) {
+        seeded_rows += r.sqp->restoration_seed_used ? 1 : 0;
     }
     ASSERT_GT(seeded_rows, 0) << "non-vacuous: a row really takes a candidate seed";
 
@@ -5405,8 +5416,8 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     // restoration rows count among the rows, and a sub-driver's own table would add a header at
     // its first row beyond that bound.
     const Index rows = count_row_lines(written);
-    const Index messages = count_lines_starting(written, "      ! ") +
-                           count_lines_starting(written, "      - ");
+    const Index messages =
+        count_lines_starting(written, "      ! ") + count_lines_starting(written, "      - ");
     EXPECT_GE(messages, 2) << "the entry and the exit of the restoration";
     EXPECT_GE(count_lines_starting(written, " iter t"), 1 + (rows - 1) / 20);
     EXPECT_LE(count_lines_starting(written, " iter t"), 1 + (rows - 1) / 20 + messages);

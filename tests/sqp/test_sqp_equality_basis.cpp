@@ -237,8 +237,11 @@ void expect_bit_identical(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(a.counters.rejected_steps, b.counters.rejected_steps);
     ASSERT_EQ(a.history.size(), b.history.size());
     for (std::size_t k = 0; k < a.history.size(); ++k) {
-        EXPECT_EQ(std::memcmp(&a.history[k].f, &b.history[k].f, sizeof(double)), 0) << k;
-        EXPECT_EQ(std::memcmp(&a.history[k].step_norm, &b.history[k].step_norm, sizeof(double)), 0)
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a.history[k].f.value()),
+                  std::bit_cast<std::uint64_t>(b.history[k].f.value()))
+            << k;
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a.history[k].step_norm.value_or(0.0)),
+                  std::bit_cast<std::uint64_t>(b.history[k].step_norm.value_or(0.0)))
             << k;
     }
 }

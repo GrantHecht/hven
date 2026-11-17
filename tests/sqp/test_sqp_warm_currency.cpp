@@ -416,13 +416,13 @@ void expect_same_first_iterate(const SqpResult &a, const SqpResult &b) {
     ASSERT_FALSE(b.history.empty());
     const auto &ra = a.history.front();
     const auto &rb = b.history.front();
-    EXPECT_EQ(ra.f, rb.f);
+    EXPECT_EQ(ra.f.value(), rb.f.value());
     EXPECT_EQ(ra.stationarity, rb.stationarity);
     EXPECT_EQ(ra.feasibility, rb.feasibility);
     EXPECT_EQ(ra.complementarity, rb.complementarity);
-    EXPECT_EQ(ra.kkt_residual, rb.kkt_residual);
-    EXPECT_EQ(ra.violation_l1, rb.violation_l1);
-    EXPECT_EQ(ra.tr_radius, rb.tr_radius);
+    EXPECT_EQ(std::max(ra.stationarity, ra.feasibility), std::max(rb.stationarity, rb.feasibility));
+    EXPECT_EQ(ra.sqp->violation_l1, rb.sqp->violation_l1);
+    EXPECT_EQ(ra.sqp->trust_radius, rb.sqp->trust_radius);
 }
 
 // A converged solve of the fixture, from cold, on its own driver.
@@ -881,7 +881,7 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
     // already documents ("x0 is the cold fallback"): the first measured iterate
     // is the exported point, not the argument.
     ASSERT_FALSE(out.history.empty());
-    EXPECT_NEAR(out.history.front().f, sol.f, 1e-12);
+    EXPECT_NEAR(out.history.front().f.value(), sol.f, 1e-12);
     // Warm from a KKT point of the same problem: certified without spending a
     // major. A margin, not an exact count -- what is asserted is that the
     // ingest reached the convergence test, not a particular trajectory.
@@ -1157,19 +1157,26 @@ void expect_same_answer(const SqpResult &hot, const SqpResult &cold) {
         const auto &a = hot.history[k];
         const auto &b = cold.history[k];
         const std::string row = "row " + std::to_string(k) + " ";
-        expect_same_bits(a.f, b.f, row + "f");
+        expect_same_bits(a.f.value(), b.f.value(), row + "f");
         expect_same_bits(a.stationarity, b.stationarity, row + "stationarity");
         expect_same_bits(a.feasibility, b.feasibility, row + "feasibility");
         expect_same_bits(a.complementarity, b.complementarity, row + "complementarity");
-        expect_same_bits(a.kkt_residual, b.kkt_residual, row + "kkt_residual");
-        expect_same_bits(a.violation_l1, b.violation_l1, row + "violation_l1");
-        expect_same_bits(a.tr_radius, b.tr_radius, row + "tr_radius");
-        expect_same_bits(a.step_norm, b.step_norm, row + "step_norm");
-        EXPECT_EQ(a.verdict, b.verdict) << "row " << k;
-        EXPECT_EQ(a.qp_solved, b.qp_solved) << "row " << k;
-        EXPECT_EQ(a.qp_status, b.qp_status) << "row " << k;
-        EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << "row " << k;
-        EXPECT_EQ(a.qp_factorizations, b.qp_factorizations) << "row " << k;
+        expect_same_bits(std::max(a.stationarity, a.feasibility),
+                         std::max(b.stationarity, b.feasibility), row + "kkt_residual");
+        expect_same_bits(a.sqp->violation_l1, b.sqp->violation_l1, row + "violation_l1");
+        expect_same_bits(a.sqp->trust_radius, b.sqp->trust_radius, row + "tr_radius");
+        expect_same_bits(a.step_norm.value_or(0.0), b.step_norm.value_or(0.0), row + "step_norm");
+        EXPECT_EQ(a.sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  b.sqp->verdict.value_or(hven::StepVerdict::kReject))
+            << "row " << k;
+        EXPECT_EQ(a.sqp->qp_solved, b.sqp->qp_solved) << "row " << k;
+        EXPECT_EQ(a.sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  b.sqp->qp_status.value_or(hven::QpStatus::kOptimal))
+            << "row " << k;
+        EXPECT_EQ(a.sqp->qp_minor_iterations.value_or(0), b.sqp->qp_minor_iterations.value_or(0))
+            << "row " << k;
+        EXPECT_EQ(a.sqp->qp_factorizations.value_or(0), b.sqp->qp_factorizations.value_or(0))
+            << "row " << k;
     }
 }
 

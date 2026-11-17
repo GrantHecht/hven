@@ -25,6 +25,7 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_major_row.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
 #include <hven/detail/globalization/sqp/qn_models.h>
@@ -437,7 +438,7 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 /// @brief Writes the six mode-selection telemetry fields onto a history row,
 ///        from the QpSolution that is that major's answer.
 ///
-/// Every definition is `SqpIterate`'s; nothing is decided here that is not
+/// Every definition is `SqpMajorRow`'s; nothing is decided here that is not
 /// stated on those fields.
 ///
 /// @param qp The subproblem `qs` solves; read for `Ai`, `bi`, `n` and `mi`.
@@ -459,7 +460,7 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 void census_major_activity(const QpProblem &qp, const QpSolution &qs,
                            const std::vector<bool> &prev_ineq_active,
                            const std::vector<BoundState> &prev_bound_state, Vec &slack,
-                           SqpIterate &row);
+                           SqpMajorRow &row);
 
 /// @brief Folds one subproblem's SSN counters into a solve's running total.
 /// @param total The running total, updated in place.
@@ -625,13 +626,13 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 QpSolution certified_feasibility_fallback(
     QpEngine &engine, const QpProblem &qp, const NlpEval &ev, const QpSolution *seed,
     const IpqpInfeasibilityEvidence &evidence, const QpSolveOverrides &overrides,
-    const SqpOptions &opts, double window, SqpCounters &out, SqpIterate &row,
+    const SqpOptions &opts, double window, SqpCounters &out, SqpMajorRow &row,
     std::optional<ElasticLadderReport> &fallback_report, SqpFallbackVerdictTraceEvent &verdict,
     TraceSink *sink = nullptr, IpqpEngine *tier = nullptr, detail::QnLiftBridge *qn = nullptr);
 
 // --- Adaptive dual regularization -------------------------------------------
 //
-// Caller-visible surface: SqpOptions::adaptive_mu and SqpIterate::mu
+// Caller-visible surface: SqpOptions::adaptive_mu and SqpMajorRow::mu
 // (sqp_solver_types.h). The schedule is mu_k = clamp(kAdaptiveMuKappa *
 // ||KKT residual||^1.5, kAdaptiveMuMin, kAdaptiveMuMax), quantized to the
 // nearest decade and read at the PREVIOUS major's measurement; the first major
@@ -1600,7 +1601,7 @@ class SqpSolverImpl {
     /// @param st        The solve state; its latch and event count are written.
     /// @param exported  The row being pushed, already in caller units.
     /// @param mj        The major, for the snapshot taken at measure time.
-    void fire_iteration_event(SolveState &st, const SqpIterate &exported, const MajorState &mj);
+    void fire_iteration_event(SolveState &st, const SqpMajorRow &exported, const MajorState &mj);
 
     /// @brief Invokes the installed callback with the in-flight guard held.
     ///
@@ -1987,9 +1988,8 @@ class SqpSolverImpl {
     void emit_trace_route(const IpqpRouteTraceEvent &event) const;
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
-    /// Emits the `iter` record for one history row (built only inside the sink guard).
-    void emit_trace_iter(const SqpIterate &row, Index major, QpTraceMode mode,
-                         Index factorizations) const;
+    /// Emits the `iter` record of one history row (the record `history` keeps).
+    void emit_trace_iter(const IterationRecord &record) const;
     /// Writes a `message` record; `build` returns the event and runs only when a sink is attached.
     template <class Build> void emit_message(Build &&build) const;
     /// A message that carries only its kind and `iter`.

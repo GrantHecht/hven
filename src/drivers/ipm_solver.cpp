@@ -2836,6 +2836,12 @@ template <class Build> void hven::detail::IpmSolverImpl::emit_message(Build &&bu
     }
 }
 
+void hven::detail::IpmSolverImpl::stamp_row(IpmIterate &row) const {
+    row.recovering = this->cur_eval_prov_.restoration_active ||
+                     (this->restoration_ != nullptr && this->restoration_->is_active());
+    row.objective_bearing = this->cur_eval_prov_.objective_bearing;
+}
+
 void hven::detail::IpmSolverImpl::emit_iter(TraceSink &sink, const IpmIterate &row) const {
     const IterationRecord record = this->make_iteration_record(row);
     sink.on_iter(IterTraceEvent{record});
@@ -2844,9 +2850,7 @@ void hven::detail::IpmSolverImpl::emit_iter(TraceSink &sink, const IpmIterate &r
 hven::IterationRecord
 hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     const double scale = this->solve_obj_scale_;
-    const ExitEvalProvenance &prov = this->cur_eval_prov_;
-    const bool recovering = prov.restoration_active ||
-                            (this->restoration_ != nullptr && this->restoration_->is_active());
+    const bool recovering = r.recovering;
     const bool stepped = !std::isnan(r.step_norm);
     IterationRecord rec;
     rec.iteration = r.iter;
@@ -2854,7 +2858,7 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     rec.tier = recovering ? IterationTier::kRestoration : IterationTier::kBarrier;
     if (recovering) {
         rec.f_recovery = r.prim_obj;
-    } else if (prov.objective_bearing) {
+    } else if (r.objective_bearing) {
         rec.f = r.prim_obj / scale;
     }
     rec.stationarity = r.kkt_inf / scale;
@@ -3295,6 +3299,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // M7-19: the record pushed above is counted in `iterations`, so it owns one trace line
             // and one callback event like every other counted record. Below the return_best
             // substitution, so the event describes the point the phase returns.
+            this->stamp_row(iters.back());
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
                 this->emit_iter(*sink, iters.back());
@@ -3728,6 +3733,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // the marker and the row it belongs to always reach the same
                 // sink. The other three sites take the same form for one rule
                 // rather than two.
+                this->stamp_row(iters.back());
                 if (TraceSink *const sink = this->trace_; sink != nullptr) {
                     Printtimer.start();
                     this->emit_iter(*sink, iters.back());
@@ -3827,6 +3833,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // return_best substitution, for the reason stated there.
             // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
             // restoration door above for the `Printtimer` note.
+            this->stamp_row(iters.back());
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
                 this->emit_iter(*sink, iters.back());
@@ -4127,6 +4134,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // event on this path too.
             // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
             // restoration door above for the `Printtimer` note.
+            this->stamp_row(iters.back());
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
                 this->emit_iter(*sink, iters.back());
@@ -4162,6 +4170,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->last_stop_reason_ = limit;
             this->limit_stop_ = true;
             this->result_.status = ExitCode;
+            this->stamp_row(iters.back());
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
                 this->emit_iter(*sink, iters.back());
@@ -4951,6 +4960,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // `converge_check` -- and nothing between the two writes to the
         // console, so the transcript is unchanged. See the restoration door
         // above for the `Printtimer` note.
+        this->stamp_row(iters.back());
         if (TraceSink *const sink = this->trace_; sink != nullptr) {
             Printtimer.start();
             this->emit_iter(*sink, iters.back());
@@ -5329,6 +5339,11 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
 
     Runtimer.stop();
     this->result_.iterations += iters.size();
+    // `history` (always on): this phase's counted records, rendered once, at exit.
+    this->result_.history.reserve(this->result_.history.size() + iters.size());
+    for (const IpmIterate &row : iters) {
+        this->result_.history.push_back(this->make_iteration_record(row));
+    }
     double qptime = double(QPtimer.count<std::chrono::microseconds>()) / 1000000.0;
     double nlptime = double(Funtimer.count<std::chrono::microseconds>()) / 1000000.0;
     double tottime = double(Runtimer.count<std::chrono::microseconds>()) / 1000000.0;

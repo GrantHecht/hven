@@ -163,7 +163,7 @@ TEST(WarmStart, MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate) {
     // describes that exact point, so its recorded f must match the model's
     // f at warm_start.x bit-for-bit (both are the SAME ev.f, never
     // recomputed).
-    EXPECT_DOUBLE_EQ(p.model->eval_f(w.x), sol.history.back().f);
+    EXPECT_DOUBLE_EQ(p.model->eval_f(w.x), sol.history.back().f.value());
 
     // Sizes are still correct even though the solve never certified
     // anything.
@@ -674,8 +674,9 @@ TEST(WarmStart, HotReusesFactorization) {
                                          consumer.start_point(), sol1.sqp_warm_start);
 
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved) << "the bound change must force a real first subproblem";
-    EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved)
+        << "the bound change must force a real first subproblem";
+    EXPECT_EQ(sol2.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "the FIRST subproblem on a brand-new engine instance must reuse the producer's K0 "
            "outright via the hot handle -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
@@ -724,8 +725,8 @@ TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
                                          consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved);
-    EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved);
+    EXPECT_EQ(sol2.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "an identical-options rebuild must still adopt the producer's K0 -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(sol2.status, SolveStatus::kOptimal);
@@ -771,8 +772,8 @@ TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
                                          consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved);
-    EXPECT_GE(sol2.history[0].qp_factorizations, 1)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved);
+    EXPECT_GE(sol2.history[0].sqp->qp_factorizations.value_or(0), 1)
         << "a handle produced under different QP options must not be adopted -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(sol2.status, SolveStatus::kOptimal);
@@ -809,8 +810,8 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
                                          consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved);
-    EXPECT_GE(sol2.history[0].qp_factorizations, 1)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved);
+    EXPECT_GE(sol2.history[0].sqp->qp_factorizations.value_or(0), 1)
         << "a handle produced at a different thread count must not be adopted -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(sol2.status, SolveStatus::kOptimal);
@@ -851,8 +852,8 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
                                          consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved);
-    EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved);
+    EXPECT_EQ(sol2.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "the refused replacement must not have reached the engine -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(sol2.status, SolveStatus::kOptimal);
@@ -907,8 +908,8 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const SqpResult s2 =
         driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s1.sqp_warm_start);
     ASSERT_FALSE(s2.history.empty());
-    ASSERT_TRUE(s2.history[0].qp_solved);
-    EXPECT_EQ(s2.history[0].qp_factorizations, 0);
+    ASSERT_TRUE(s2.history[0].sqp->qp_solved);
+    EXPECT_EQ(s2.history[0].sqp->qp_factorizations.value_or(0), 0);
     EXPECT_EQ(s2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_NE(SqpWarmAccess::state(s2.sqp_warm_start).hot, nullptr);
@@ -921,8 +922,8 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const SqpResult s3 =
         driver.solve(hven::detail::problem_ref(m_hi), m_hi.start_point(), s2.sqp_warm_start);
     ASSERT_FALSE(s3.history.empty());
-    ASSERT_TRUE(s3.history[0].qp_solved);
-    EXPECT_EQ(s3.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(s3.history[0].sqp->qp_solved);
+    EXPECT_EQ(s3.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "the rebuilt engine must adopt the handle its predecessor committed -- THE PIN";
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -934,8 +935,8 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const SqpResult s4 =
         driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s3.sqp_warm_start);
     ASSERT_FALSE(s4.history.empty());
-    ASSERT_TRUE(s4.history[0].qp_solved);
-    EXPECT_EQ(s4.history[0].qp_factorizations, 0);
+    ASSERT_TRUE(s4.history[0].sqp->qp_solved);
+    EXPECT_EQ(s4.history[0].sqp->qp_factorizations.value_or(0), 0);
     EXPECT_EQ(s4.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s4.status, SolveStatus::kOptimal);
 }
@@ -991,8 +992,8 @@ TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     const SqpResult s3 = driver.solve(hven::detail::problem_ref(m_hi), m_hi.start_point(),
                                       SqpWarmAccess::wrap(warm));
     ASSERT_FALSE(s3.history.empty());
-    ASSERT_TRUE(s3.history[0].qp_solved);
-    EXPECT_EQ(s3.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(s3.history[0].sqp->qp_solved);
+    EXPECT_EQ(s3.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "only the surviving engine's OWN cache can produce this -- THE PIN";
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -1051,8 +1052,8 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     ASSERT_FALSE(hot.history.empty());
     ASSERT_FALSE(warm.history.empty());
-    ASSERT_EQ(hot.history[0].qp_factorizations, 0);
-    ASSERT_GE(warm.history[0].qp_factorizations, 1);
+    ASSERT_EQ(hot.history[0].sqp->qp_factorizations.value_or(0), 0);
+    ASSERT_GE(warm.history[0].sqp->qp_factorizations.value_or(0), 1);
 
     // The answer, read as BITS, not as `==`: EXPECT_EQ on two doubles calls
     // -0.0 and +0.0 equal though their bits differ, and would call NaN unequal
@@ -1087,20 +1088,26 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     // The path, not only the endpoint.
     ASSERT_EQ(hot.history.size(), warm.history.size());
     for (std::size_t k = 0; k < hot.history.size(); ++k) {
-        const SqpIterate &h = hot.history[k];
-        const SqpIterate &w = warm.history[k];
+        const IterationRecord &h = hot.history[k];
+        const IterationRecord &w = warm.history[k];
         const std::string row = "row " + std::to_string(k) + " ";
-        expect_same_bits(h.f, w.f, row + "f");
+        expect_same_bits(h.f.value(), w.f.value(), row + "f");
         expect_same_bits(h.stationarity, w.stationarity, row + "stationarity");
         expect_same_bits(h.feasibility, w.feasibility, row + "feasibility");
         expect_same_bits(h.complementarity, w.complementarity, row + "complementarity");
-        expect_same_bits(h.kkt_residual, w.kkt_residual, row + "kkt_residual");
-        expect_same_bits(h.violation_l1, w.violation_l1, row + "violation_l1");
-        expect_same_bits(h.tr_radius, w.tr_radius, row + "tr_radius");
-        expect_same_bits(h.step_norm, w.step_norm, row + "step_norm");
-        EXPECT_EQ(h.verdict, w.verdict) << "row " << k;
-        EXPECT_EQ(h.qp_status, w.qp_status) << "row " << k;
-        EXPECT_EQ(h.qp_minor_iters, w.qp_minor_iters) << "row " << k;
+        expect_same_bits(std::max(h.stationarity, h.feasibility),
+                         std::max(w.stationarity, w.feasibility), row + "kkt_residual");
+        expect_same_bits(h.sqp->violation_l1, w.sqp->violation_l1, row + "violation_l1");
+        expect_same_bits(h.sqp->trust_radius, w.sqp->trust_radius, row + "tr_radius");
+        expect_same_bits(h.step_norm.value_or(0.0), w.step_norm.value_or(0.0), row + "step_norm");
+        EXPECT_EQ(h.sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  w.sqp->verdict.value_or(hven::StepVerdict::kReject))
+            << "row " << k;
+        EXPECT_EQ(h.sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  w.sqp->qp_status.value_or(hven::QpStatus::kOptimal))
+            << "row " << k;
+        EXPECT_EQ(h.sqp->qp_minor_iterations.value_or(0), w.sqp->qp_minor_iterations.value_or(0))
+            << "row " << k;
     }
 
     // The work, with the saved factorization named exactly.
@@ -1146,8 +1153,8 @@ TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
                                          consumer.start_point(), sol1.sqp_warm_start);
 
     ASSERT_FALSE(sol2.history.empty());
-    ASSERT_TRUE(sol2.history[0].qp_solved);
-    EXPECT_GE(sol2.history[0].qp_factorizations, 1)
+    ASSERT_TRUE(sol2.history[0].sqp->qp_solved);
+    EXPECT_GE(sol2.history[0].sqp->qp_factorizations.value_or(0), 1)
         << "a values-hash mismatch (condition (c)) must force a genuine refactorization on the "
            "first subproblem -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kWarm)
@@ -1309,8 +1316,8 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
         hven::detail::problem_ref(model_b), model_b.start_point(), SqpWarmAccess::wrap(handle));
     ASSERT_EQ(control.status, SolveStatus::kOptimal);
     ASSERT_FALSE(control.history.empty());
-    ASSERT_TRUE(control.history[0].qp_solved);
-    EXPECT_EQ(control.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(control.history[0].sqp->qp_solved);
+    EXPECT_EQ(control.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "the clean hand-off must reuse outright -- this is the baseline POISONED is judged "
            "against";
     EXPECT_EQ(control.counters.start_level_used, StartLevel::kHot);
@@ -1337,8 +1344,8 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
         hven::detail::problem_ref(model_b), model_b.start_point(), SqpWarmAccess::wrap(handle));
 
     ASSERT_FALSE(poisoned.history.empty());
-    ASSERT_TRUE(poisoned.history[0].qp_solved);
-    EXPECT_GE(poisoned.history[0].qp_factorizations, 1)
+    ASSERT_TRUE(poisoned.history[0].sqp->qp_solved);
+    EXPECT_GE(poisoned.history[0].sqp->qp_factorizations.value_or(0), 1)
         << "a stale generation must force a genuine refactorization -- THE PIN";
     EXPECT_EQ(poisoned.counters.start_level_used, StartLevel::kWarm)
         << "degrades silently rather than certifying kHot against a handle whose factorization "
@@ -1402,8 +1409,8 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
 
     ASSERT_EQ(sol_again.status, SolveStatus::kOptimal);
     ASSERT_FALSE(sol_again.history.empty());
-    ASSERT_TRUE(sol_again.history[0].qp_solved);
-    EXPECT_EQ(sol_again.history[0].qp_factorizations, 0)
+    ASSERT_TRUE(sol_again.history[0].sqp->qp_solved);
+    EXPECT_EQ(sol_again.history[0].sqp->qp_factorizations.value_or(0), 0)
         << "driver_bad's refused adoption must not have touched driver1's OWN BorderState -- THE "
            "PIN";
 
@@ -1634,9 +1641,11 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
     // ended on) must describe the warm point, not the diverged iterate that
     // preceded it.
     ASSERT_GT(wd.history.size(), 4u);
-    EXPECT_LT(wd.history[4].kkt_residual, wd.history[3].kkt_residual)
+    EXPECT_LT(std::max(wd.history[4].stationarity, wd.history[4].feasibility),
+              std::max(wd.history[3].stationarity, wd.history[3].feasibility))
         << "the pass that ended the mode records the RESTORED iterate";
-    EXPECT_DOUBLE_EQ(wd.history[4].kkt_residual, wd.history[0].kkt_residual)
+    EXPECT_DOUBLE_EQ(std::max(wd.history[4].stationarity, wd.history[4].feasibility),
+                     std::max(wd.history[0].stationarity, wd.history[0].feasibility))
         << "and the best iterate here is the warm point the mode started from";
 
     // The safety invariant again, on the run that took the watchdog exit: a
@@ -1653,7 +1662,7 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
     // every other row, including the terminal stopped-AT-iterate one, must
     // read false.
     for (std::size_t i = 0; i < wd.history.size(); ++i) {
-        EXPECT_EQ(wd.history[i].watchdog_restored, i == 4)
+        EXPECT_EQ(wd.history[i].watchdog, i == 4)
             << "row " << i << " (expected watchdog_restored == " << (i == 4) << ")";
     }
 
@@ -1724,17 +1733,25 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
     // THE CYCLE ITSELF, pinned so the fixture cannot silently stop cycling and
     // leave this test asserting the watchdog on a run that never needed it.
     ASSERT_GT(sol.history.size(), 6u);
-    EXPECT_DOUBLE_EQ(sol.history[3].kkt_residual, sol.history[1].kkt_residual);
-    EXPECT_DOUBLE_EQ(sol.history[5].kkt_residual, sol.history[1].kkt_residual);
-    EXPECT_DOUBLE_EQ(sol.history[4].kkt_residual, sol.history[2].kkt_residual);
-    EXPECT_GT(sol.history[2].kkt_residual, sol.history[1].kkt_residual)
+    EXPECT_DOUBLE_EQ(std::max(sol.history[3].stationarity, sol.history[3].feasibility),
+                     std::max(sol.history[1].stationarity, sol.history[1].feasibility));
+    EXPECT_DOUBLE_EQ(std::max(sol.history[5].stationarity, sol.history[5].feasibility),
+                     std::max(sol.history[1].stationarity, sol.history[1].feasibility));
+    EXPECT_DOUBLE_EQ(std::max(sol.history[4].stationarity, sol.history[4].feasibility),
+                     std::max(sol.history[2].stationarity, sol.history[2].feasibility));
+    EXPECT_GT(std::max(sol.history[2].stationarity, sol.history[2].feasibility),
+              std::max(sol.history[1].stationarity, sol.history[1].feasibility))
         << "the cycle's other leg is WORSE, so this is a stall and not a plateau of equals";
 
     // ... and the growth signal never reaching 2 is what makes the window
     // load-bearing: no two CONSECUTIVE majors of the mode both grow.
     for (std::size_t k = 1; k + 1 < 6; ++k) {
-        const bool grew_here = sol.history[k].kkt_residual > sol.history[k - 1].kkt_residual;
-        const bool grew_next = sol.history[k + 1].kkt_residual > sol.history[k].kkt_residual;
+        const bool grew_here =
+            std::max(sol.history[k].stationarity, sol.history[k].feasibility) >
+            std::max(sol.history[k - 1].stationarity, sol.history[k - 1].feasibility);
+        const bool grew_next =
+            std::max(sol.history[k + 1].stationarity, sol.history[k + 1].feasibility) >
+            std::max(sol.history[k].stationarity, sol.history[k].feasibility);
         EXPECT_FALSE(grew_here && grew_next)
             << "two consecutive growths at k=" << k << " would have fired the DIVERGENCE exit "
             << "instead, and this fixture would stop testing the window";
@@ -1742,7 +1759,8 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
 
     // The restore landed on the best iterate the mode saw (trial 1's leg of the
     // cycle), not on the worse leg the mode was standing on.
-    EXPECT_DOUBLE_EQ(sol.history[6].kkt_residual, sol.history[1].kkt_residual);
+    EXPECT_DOUBLE_EQ(std::max(sol.history[6].stationarity, sol.history[6].feasibility),
+                     std::max(sol.history[1].stationarity, sol.history[1].feasibility));
 
     // And the solve is correct: HS5's own optimum, as the gated run finds it.
     SqpOptions gated_opts = opts;
@@ -1829,7 +1847,7 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
     // computes it: reset() by Eq. (9), then one Eq. (13) blend against the
     // remembered width floored at kappa_bar * h0.
     ASSERT_FALSE(sol.history.empty());
-    const double h0 = sol.history[0].violation_l1;
+    const double h0 = sol.history[0].sqp->violation_l1;
     const double tau_reset = std::max(kFunnelTauBar, kFunnelKappaBar * h0);
     const double tau_ingest =
         (1.0 - detail::kFunnelKappa) * std::max(w.funnel_width, kFunnelKappaBar * h0) +
@@ -1837,7 +1855,7 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
 
     // THE CLAMP BINDS ON THIS RUN: the restored point's own h is above the
     // width the mode froze, so an unclamped Eq. (13) would have widened.
-    const double h_restored = sol.history.back().violation_l1;
+    const double h_restored = sol.history.back().sqp->violation_l1;
     ASSERT_GT(h_restored, tau_ingest)
         << "this fixture only tests the clamp while the restore lands outside the funnel";
     EXPECT_GT((1.0 - detail::kFunnelKappa) * h_restored + detail::kFunnelKappa * tau_ingest,
@@ -1918,7 +1936,8 @@ TEST(WarmStart, FullStepModeInheritsElasticAndRestoration) {
     // exceed the index of the kRestore row.
     std::size_t restore_row = sol.history.size();
     for (std::size_t k = 0; k < sol.history.size(); ++k) {
-        if (sol.history[k].verdict == StepVerdict::kRestore) {
+        if (sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+            StepVerdict::kRestore) {
             restore_row = k;
             break;
         }
@@ -2043,15 +2062,16 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     // do, per the brief's "assert against history".
     std::size_t best = 0;
     for (std::size_t k = 1; k < sol.history.size(); ++k) {
-        const SqpIterate &a = sol.history[k];
-        const SqpIterate &b = sol.history[best];
-        if (a.violation_l1 < b.violation_l1 || (a.violation_l1 == b.violation_l1 && a.f < b.f)) {
+        const IterationRecord &a = sol.history[k];
+        const IterationRecord &b = sol.history[best];
+        if (a.sqp->violation_l1 < b.sqp->violation_l1 ||
+            (a.sqp->violation_l1 == b.sqp->violation_l1 && a.f < b.f)) {
             best = k;
         }
     }
     ASSERT_EQ(best, 1u) << "THE PIN: the best-by-(h, f) row is trial 1, neither the first nor the "
                            "last -- see this test's own fixture note";
-    EXPECT_LT(sol.history[best].violation_l1, sol.history.back().violation_l1)
+    EXPECT_LT(sol.history[best].sqp->violation_l1, sol.history.back().sqp->violation_l1)
         << "and it beats the last iterate's own h, which is what makes it worth reporting instead";
     EXPECT_NE(best, sol.history.size() - 1)
         << "the mutation this test exists to catch: reporting the LAST iterate instead of the "
@@ -2060,23 +2080,25 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     // sol.f is bit-identical to that row's own f (both are the SAME ev.f,
     // never recomputed -- the same invariant
     // MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate checks for kIterationLimit).
-    EXPECT_DOUBLE_EQ(sol.f, sol.history[best].f);
+    EXPECT_DOUBLE_EQ(sol.f, sol.history[best].f.value());
     EXPECT_NEAR(sol.f, 4.0625, 1e-6);
 
     // h and the KKT residual AT THE RETURNED x, independently re-derived from
     // the model rather than trusted from the driver's own bookkeeping, must
     // match that same row.
     const NlpEval ev_at_x = eval_nlp(*p.model, sol.x);
-    EXPECT_DOUBLE_EQ(constraint_violation_l1(ev_at_x), sol.history[best].violation_l1);
+    EXPECT_DOUBLE_EQ(constraint_violation_l1(ev_at_x), sol.history[best].sqp->violation_l1);
     const SqpKkt kkt_at_x =
         evaluate_kkt(*p.model, sol.x, hven::detail::engine_rows(sol).lambda_e,
                      hven::detail::engine_rows(sol).lambda_i, opts.common.feasibility_tol);
-    EXPECT_DOUBLE_EQ(kkt_at_x.residual(), sol.history[best].kkt_residual);
+    EXPECT_DOUBLE_EQ(kkt_at_x.residual(),
+                     std::max(sol.history[best].stationarity, sol.history[best].feasibility));
 
     // THE PIN this test would otherwise pass vacuously without: the returned
     // point is NOT the min-KKT one (trial 3's KKT = 0.0715955, strictly
     // smaller than trial 1's 4) -- the two orderings really do disagree here.
-    EXPECT_GT(sol.history[best].kkt_residual, sol.history.back().kkt_residual);
+    EXPECT_GT(std::max(sol.history[best].stationarity, sol.history[best].feasibility),
+              std::max(sol.history.back().stationarity, sol.history.back().feasibility));
 
     EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).valid);
     ASSERT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).x.size(), sol.x.size());
@@ -2179,7 +2201,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     ASSERT_EQ(sol.history.size(), 4u);
 
     // The LAST row (trial 3), not the min-h row (a)'s solve picks out.
-    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f.value());
 #ifdef USE_ACCELERATE_SPARSE
     // Origin divergence entry D15. The note that carried it
     // (docs/notes/2026-07-30-accelerate-at-head-results.md) did NOT migrate
@@ -2192,7 +2214,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // (rank-deficient at the solution) amplify last-digit linear-algebra
     // differences into ~8.69e-12 of f -- the 1e-9 x-pin and every structural
     // assertion in this test (kIterationLimit, 3 majors, history size 4, and the
-    // sol.f == sol.history.back().f claim above, the one the test exists for)
+    // sol.f == sol.history.back().f.value() claim above, the one the test exists for)
     // hold bitwise on both backends. Value is Accelerate-observed (macOS
     // 26.5.2 / AppleClang 21) and will be re-verified on the next Mac
     // session.
@@ -2202,7 +2224,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // 0.0024386526444118797 on MKL. HS26 is rank-deficient at its solution, and the
     // UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the primal delta
     // out of the truncated majors' answers; the structural assertions this test
-    // exists for -- kIterationLimit, 3 majors, history size 4, sol.f == history.back().f --
+    // exists for -- kIterationLimit, 3 majors, history size 4, sol.f == history.back().f.value() --
     // are unchanged, and the new MKL value agrees with the Accelerate one above to
     // 2.1e-12, which is CLOSER than the 8.69e-12 the comment records for the pair.
     EXPECT_NEAR(sol.f, 0.0024386526444118797, 1e-12);
@@ -2922,11 +2944,11 @@ TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     ASSERT_FALSE(warm_b.history.empty());
     ASSERT_FALSE(seeded.history.empty());
     ASSERT_FALSE(seeded_b.history.empty());
-    EXPECT_NE(warm.history.front().tr_radius, warm_b.history.front().tr_radius)
+    EXPECT_NE(warm.history.front().sqp->trust_radius, warm_b.history.front().sqp->trust_radius)
         << "the kWarm arm READS the carried radius, or the refusal below proves nothing";
-    EXPECT_DOUBLE_EQ(seeded.history.front().tr_radius, SqpOptions{}.trust_region_initial)
+    EXPECT_DOUBLE_EQ(seeded.history.front().sqp->trust_radius, SqpOptions{}.trust_region_initial)
         << "THE PIN: tr_radius is refused, so a seeded solve starts at opts.tr_init";
-    EXPECT_DOUBLE_EQ(seeded_b.history.front().tr_radius, SqpOptions{}.trust_region_initial);
+    EXPECT_DOUBLE_EQ(seeded_b.history.front().sqp->trust_radius, SqpOptions{}.trust_region_initial);
     EXPECT_EQ(seeded.counters.major_iters, seeded_b.counters.major_iters)
         << "THE PIN: the seeded arm is byte-identical across a poisoned funnel/TR state";
     EXPECT_EQ(seeded.x, seeded_b.x);

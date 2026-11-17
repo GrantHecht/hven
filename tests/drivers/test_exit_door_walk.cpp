@@ -3,8 +3,9 @@
 
 // test_exit_door_walk.cpp -- M8 TR-B (spec 5.3, M7-19): a walk over every exit door of both engines
 // asserting the count identity at each: every record counted in `iterations` has exactly one
-// depth-0 `iter` line and one callback event (SQP: iterations + 1 lines, row 0 is the start point,
-// and one event per line).
+// depth-0 `iter` line and one callback event (SQP: row 0 is the start point, and a stop or abort
+// door pushes a row without a step), and (TR-D/TR-D') `history` == the depth-0 `iter` stream, row
+// for row, on both engines.
 
 #include <gtest/gtest.h>
 
@@ -21,6 +22,7 @@
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 
+#include "common_support/iteration_record_eq.h"
 #include "support/hs071_problem.h"
 #include "support/trace_battery.h"
 
@@ -102,6 +104,8 @@ struct Walked {
     SolveStatus status = SolveStatus::kOptimal;
     StopReason stop_reason = StopReason::kNone;
     std::vector<MessageTraceEvent> messages;
+    std::vector<IterationRecord> history;
+    std::vector<IterationRecord> stream;
 };
 
 Walked walk(Engine e, const Door &d, int stop_event) {
@@ -142,6 +146,7 @@ Walked walk(Engine e, const Door &d, int stop_event) {
         solver.set_iteration_callback(cb);
         const IpmResult r = solver.solve(problem, d.start(), {}, budget);
         w.iterations = r.iterations;
+        w.history = r.history;
         w.status = r.status;
         w.stop_reason = r.stop_reason;
     } else {
@@ -155,10 +160,16 @@ Walked walk(Engine e, const Door &d, int stop_event) {
         solver.set_iteration_callback(cb);
         const SqpResult r = solver.solve(problem, d.start(), {}, budget);
         w.iterations = static_cast<Index>(r.history.size());
+        w.history = r.history;
         w.status = r.status;
         w.stop_reason = r.stop_reason;
     }
     w.rows = sink.depth0_rows();
+    for (const CapturedRow &row : sink.rows) {
+        if (row.depth == 0) {
+            w.stream.push_back(row.record);
+        }
+    }
     w.messages = sink.messages;
     return w;
 }
@@ -197,6 +208,13 @@ std::vector<Door> doors() {
 void expect_identity(Engine e, const Door &d, const Walked &w) {
     EXPECT_EQ(w.rows, w.iterations) << "one depth-0 iter line per counted record";
     EXPECT_EQ(w.events, w.rows) << "one callback event per depth-0 iter line";
+    ASSERT_EQ(w.history.size(), w.stream.size()) << "history == the depth-0 iter stream";
+    for (std::size_t k = 0; k < w.history.size(); ++k) {
+        EXPECT_TRUE(hven::test::same_record(w.history[k], w.stream[k])) << "history row " << k;
+    }
+    if (e == Engine::kIpm) {
+        EXPECT_EQ(static_cast<Index>(w.history.size()), w.iterations);
+    }
     if (e == Engine::kIpm && std::string_view(d.name) == "infeasible_restoration") {
         bool locally_infeasible = false;
         for (const MessageTraceEvent &m : w.messages) {

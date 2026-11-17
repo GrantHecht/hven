@@ -1455,7 +1455,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // ends kIterationLimit at the cap. That is the honest status for a solve that cannot
     // move; it is not a certificate.
     const bool restored = std::any_of(sol.history.begin(), sol.history.end(),
-                                      [](const SqpIterate &row) { return row.watchdog_restored; });
+                                      [](const IterationRecord &row) { return row.watchdog; });
     EXPECT_TRUE(restored) << "the watchdog must actually restore, or this pins nothing";
     EXPECT_NE(SolveStatus::kOptimal, sol.status)
         << "the triple the ingest gate refused must not be certified after the restore";

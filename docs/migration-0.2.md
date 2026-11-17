@@ -492,3 +492,40 @@ and the IPM writes `restoration_entered` and every `restoration_exited` value (`
 `interrupted` as well as `locally_infeasible`). The IPM's non-finite evaluation abort now writes its `iter` row and
 fires its callback event (M7-19): a reader that counted one fewer row than `iterations` on that exit now sees them
 equal. Console output at `kWarnings` and above gains the warning lines; at `kIterations` the notices too.
+
+## TR-D -- one iteration history for both engines
+
+`IpmResult::history` is new and `SqpResult::history` changes its element type: both are
+`std::vector<IterationRecord>` (`hven/drivers/iteration_record.h`), the rows the trace writes, always built (no
+sink needed; one copy per solve plus a handful of scalar stores per iteration). `SqpIterate` is retired (the driver
+keeps an internal working row; it is not in the public headers). The SQP row gains `factorizations`. Identity:
+`history.size()` == depth-0 `iter` lines == callback events (`docs/trace-schema-v1.md` section 4).
+
+| 0.1 (`SqpIterate h`) | 0.2 (`IterationRecord h`; engine block `h.sqp`, `std::optional`) |
+|---|---|
+| `h.trial` | `h.iteration` |
+| `h.f` | `h.f` (`std::optional<double>`: depth 0; `h.f_recovery` at depth 1) |
+| `h.stationarity`, `h.feasibility`, `h.complementarity` | same names, core members |
+| `h.kkt_residual` | removed: `std::max(h.stationarity, h.feasibility)` |
+| `h.violation_l1` | `h.sqp->violation_l1` |
+| `h.tr_radius` | `h.sqp->trust_radius` |
+| `h.mu` | `h.sqp->dual_regularization` (`nullopt` when `!qp_solved`; `*` of it elsewhere) |
+| `h.step_norm` | `h.step_norm` (`std::optional<double>`; `nullopt` when no step leaves the row) |
+| `h.qp_solved` | `h.sqp->qp_solved` |
+| `h.qp_status`, `h.qp_minor_iters`, `h.qp_factorizations` | `h.sqp->qp_status`, `qp_minor_iterations`, `qp_factorizations` (`std::optional`, `nullopt` when `!qp_solved`) |
+| `h.verdict` | `h.sqp->verdict` (`std::optional`, `nullopt` when `!qp_solved`) |
+| `h.tr_binding` | `h.sqp->tr_binding` |
+| `h.soc_applied` | `h.soc` |
+| `h.elastic_applied`, `h.elastic_rho0_ceiling_hit` | `h.sqp->elastic`, `h.sqp->elastic_clamped` |
+| `h.restoration_seed_used` | `h.sqp->restoration_seed_used` |
+| `h.watchdog_restored` | `h.watchdog` |
+| `h.rolled_back` | `h.rolled_back` |
+| `h.ipqp_least_infeasible_primal`, `h.ipqp_farkas_corroborated` | `h.sqp->ipqp_least_infeasible_primal`, `ipqp_farkas_corroborated` (`nullopt` on a row that is not an escape row) |
+| `h.active_set_delta`, `weak_active_rows`, `near_active_rows`, `active_rows`, `active_lower_sides`, `active_upper_sides` | the same names under `h.sqp->` |
+| (none) | `h.factorizations`: the (sub-)solve's running factorization count at the row; `h.sqp->mode`, `h.sqp->depth`, `h.tier`, `h.recovering`, `h.accepted` |
+| `IpmResult` had no history | `IpmResult::history`, `h.ipm->` block (`mu`, `alpha_primal`, ...; `docs/trace-schema-v1.md` section 3) |
+
+A field the row did not measure is `nullopt`, where 0.1 wrote a default (`mu`, `step_norm`, `qp_status`, the QP
+counters and `verdict` on a row with no solved subproblem).
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-tr-d/CATCH-UP.txt`.

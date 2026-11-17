@@ -440,7 +440,7 @@ constexpr const char *kUsage =
     "  ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,\n"
     "  ssn_refine_facts,ssn_refine_neg_duals\n"
     "`qp_fact_per_qp` is the SEMICOLON-separated per-QP-subproblem numeric\n"
-    "factorization count (SqpIterate::qp_factorizations), in history order --\n"
+    "factorization count (SqpIterationRow::qp_factorizations), in history order --\n"
     "the quantity G1/G2 are pre-registered on. A row with status=dnf_setup or\n"
     "dnf_budget hit its wall deadline; every counter column on that row is -1\n"
     "(absent by design, not zero -- see this file's own banner), and wall_s is\n"

@@ -1518,7 +1518,8 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         EXPECT_NEAR(sol.x(1), -2.49999975e-10, 1e-13);
         EXPECT_NEAR(sol.f, -2.5e-9, 1e-11);
         EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(0), 10.0, 1e-6);
-        EXPECT_LE(sol.history.back().kkt_residual, opts.common.optimality_tol);
+        EXPECT_LE(std::max(sol.history.back().stationarity, sol.history.back().feasibility),
+                  opts.common.optimality_tol);
 
         // THE STALL, and that it is the FUNNEL's signature that broke it: five
         // consecutive rejections at the start point (rejections 0..4, the
@@ -1527,15 +1528,19 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         ASSERT_GE(sol.history.size(), 6u);
         for (std::size_t k = 0; k < 5; ++k) {
             SCOPED_TRACE(fmt::format("trial {}", k));
-            EXPECT_DOUBLE_EQ(sol.history[k].f, sol.history[0].f) << "the iterate must not move";
-            EXPECT_DOUBLE_EQ(sol.history[k].tr_radius, 8.0 / std::pow(2.0, k));
+            EXPECT_DOUBLE_EQ(sol.history[k].f.value(), sol.history[0].f.value())
+                << "the iterate must not move";
+            EXPECT_DOUBLE_EQ(sol.history[k].sqp->trust_radius, 8.0 / std::pow(2.0, k));
         }
         for (std::size_t k = 0; k < 4; ++k) {
-            EXPECT_EQ(sol.history[k].verdict, StepVerdict::kReject) << "trial " << k;
+            EXPECT_EQ(sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                      StepVerdict::kReject)
+                << "trial " << k;
         }
-        EXPECT_EQ(sol.history[4].verdict, StepVerdict::kRestore)
+        EXPECT_EQ(sol.history[4].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kRestore)
             << "exactly kRestoreMinRejections rejections precede the request";
-        EXPECT_FALSE(sol.history[4].elastic_applied)
+        EXPECT_FALSE(sol.history[4].sqp->elastic)
             << "this is the funnel's own signature, not the elastic tier's exhaustion";
 
         // THE FUNNEL WAS RE-BASED, NOT RE-INITIALIZED. reset() ran once (at the
@@ -1554,11 +1559,11 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
 
         // THE RADIUS RESTARTED AT THE DOCUMENTED FRACTION of trust_region_initial, at the
         // first row after the request.
-        EXPECT_DOUBLE_EQ(sol.history[5].tr_radius,
+        EXPECT_DOUBLE_EQ(sol.history[5].sqp->trust_radius,
                          kRestoreRadiusFactor * opts.trust_region_initial);
         // And the restored iterate really is a different (feasible) point.
-        EXPECT_LE(sol.history[5].violation_l1, opts.common.feasibility_tol);
-        EXPECT_GT(sol.history[4].violation_l1, opts.common.feasibility_tol);
+        EXPECT_LE(sol.history[5].sqp->violation_l1, opts.common.feasibility_tol);
+        EXPECT_GT(sol.history[4].sqp->violation_l1, opts.common.feasibility_tol);
 
         ::testing::Test::RecordProperty(
             "recovery",
@@ -1610,10 +1615,12 @@ TEST(SqpDriverRestoration, RestorationIsIdleOnCleanProblems) {
         EXPECT_EQ(sol.counters.restoration_iters, 0);
         EXPECT_TRUE(log.resumes.empty()) << "the funnel must not be re-based on a clean solve";
         EXPECT_EQ(log.resets.size(), 1u);
-        EXPECT_EQ(
-            std::count_if(sol.history.begin(), sol.history.end(),
-                          [](const SqpIterate &h) { return h.verdict == StepVerdict::kRestore; }),
-            0);
+        EXPECT_EQ(std::count_if(sol.history.begin(), sol.history.end(),
+                                [](const IterationRecord &h) {
+                                    return h.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                           StepVerdict::kRestore;
+                                }),
+                  0);
     }
 }
 
@@ -1675,7 +1682,8 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
         << "the cap exit makes NO claim about the model -- and this fixture's NLP is in fact "
            "feasible, so a certificate here would be a wrong answer, not a conservative one";
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore);
+    EXPECT_EQ(sol.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kRestore);
     // The counters CANNOT tell this exit from the certified one -- both
     // report restoration_iters > 0. Nor is the last row's verdict a reliable
     // discriminator in general: it is kRestore here (this request came from
@@ -1726,8 +1734,9 @@ TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
     EXPECT_EQ(sol.counters.major_iters, 1) << "one subproblem to price the multipliers, no more";
     EXPECT_EQ(sol.counters.rejected_steps, 0);
     ASSERT_GE(sol.history.size(), 2u);
-    EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptObjectiveStep);
-    EXPECT_LT(sol.history[0].step_norm, 1e-12);
+    EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kAcceptObjectiveStep);
+    EXPECT_LT(sol.history[0].step_norm.value_or(0.0), 1e-12);
     EXPECT_EQ(log.judged, 0) << "the strategy is bypassed, per Algorithm 2's ordering";
     // The multipliers the accepted zero step delivered are what certify it:
     // stationarity in the slack sp forces lambda_e = -1 = sign(cE) at x0 = 1.
@@ -1752,9 +1761,10 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
     EXPECT_GE(sol.counters.elastic_activations, 1);
     EXPECT_GE(sol.counters.restoration_iters, 1);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.back().elastic_applied)
+    EXPECT_TRUE(sol.history.back().sqp->elastic)
         << "the trigger here is Algorithm 5's, not the funnel's signature";
-    EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore);
+    EXPECT_EQ(sol.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kRestore);
 
     // x0 = 5 is unreachable inside [0,1], and the closest the box allows is
     // x0 = 1 with h = 4. The certificate: grad cE = (1,0) and lambda_e = -1 =
@@ -1824,8 +1834,9 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_GE(sol.counters.restoration_iters, 1);
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_TRUE(sol.history.back().elastic_applied);
-        EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore);
+        EXPECT_TRUE(sol.history.back().sqp->elastic);
+        EXPECT_EQ(sol.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kRestore);
         EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
         const SubgradientCertificate c = check_certificate(model, sol, opts.common.feasibility_tol);
         EXPECT_NEAR(c.h, 4.0, 1e-9);
@@ -1908,7 +1919,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         run.majors = sol.counters.major_iters;
         ASSERT_FALSE(sol.history.empty());
-        run.last_radius = sol.history.back().tr_radius;
+        run.last_radius = sol.history.back().sqp->trust_radius;
 
         // (1) THE FUNNEL DID NOT ASK. Its signature never fired anywhere in
         // the solve, so every kRestore on this path came from the driver.
@@ -1937,8 +1948,8 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         // (2) THE FLOOR HELD, AND WAS REACHED. Every radius is >= trust_region_min, and
         // the last one is within one halving of it -- which is exactly the
         // condition the driver escalates on (the NEXT shrink would cross).
-        for (const SqpIterate &h : sol.history) {
-            EXPECT_GE(h.tr_radius, opts.trust_region_min) << "trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            EXPECT_GE(h.sqp->trust_radius, opts.trust_region_min) << "trial " << h.iteration;
         }
 #if HVEN_TEST_ROUTE_REFERENCE
         // RE-DERIVED, AND THE SENSE IS REVERSED: the request is raised WELL ABOVE the
@@ -2016,18 +2027,20 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
         EXPECT_EQ(sol.counters.rejected_steps > 0, c.rejects);
 
         const bool ever_finite =
-            std::any_of(sol.history.begin(), sol.history.end(),
-                        [](const SqpIterate &h) { return std::isfinite(h.tr_radius); });
+            std::any_of(sol.history.begin(), sol.history.end(), [](const IterationRecord &h) {
+                return std::isfinite(h.sqp->trust_radius);
+            });
         EXPECT_EQ(ever_finite, c.rejects)
             << "a solve that never rejects must never materialize a radius";
         if (c.rejects) {
             // The FIRST finite radius is trust_region_max itself, never trust_region_max/2 and
             // never some other large constant.
             const auto it =
-                std::find_if(sol.history.begin(), sol.history.end(),
-                             [](const SqpIterate &h) { return std::isfinite(h.tr_radius); });
+                std::find_if(sol.history.begin(), sol.history.end(), [](const IterationRecord &h) {
+                    return std::isfinite(h.sqp->trust_radius);
+                });
             ASSERT_NE(it, sol.history.end());
-            EXPECT_DOUBLE_EQ(it->tr_radius, opts.trust_region_max);
+            EXPECT_DOUBLE_EQ(it->sqp->trust_radius, opts.trust_region_max);
         }
     }
 }
@@ -2246,15 +2259,15 @@ class BoxWatchingSpreadModel final : public ScaledRowSpreadModel {
 
 Index seeded_rows(const SqpResult &sol) {
     Index k = 0;
-    for (const SqpIterate &row : sol.history) {
-        k += row.restoration_seed_used ? 1 : 0;
+    for (const IterationRecord &row : sol.history) {
+        k += row.sqp->restoration_seed_used ? 1 : 0;
     }
     return k;
 }
 
-const SqpIterate *seeded_row(const SqpResult &sol) {
-    for (const SqpIterate &row : sol.history) {
-        if (row.restoration_seed_used) {
+const IterationRecord *seeded_row(const SqpResult &sol) {
+    for (const IterationRecord &row : sol.history) {
+        if (row.sqp->restoration_seed_used) {
             return &row;
         }
     }
@@ -2540,8 +2553,9 @@ static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refu
         ASSERT_EQ(want_seeded, seeded_rows(sol));
         EXPECT_EQ(want_seeded == 0, seeded_row(sol) == nullptr);
         bool saw_restore = false;
-        for (const SqpIterate &r : sol.history) {
-            saw_restore = saw_restore || r.verdict == StepVerdict::kRestore;
+        for (const IterationRecord &r : sol.history) {
+            saw_restore = saw_restore || r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                             StepVerdict::kRestore;
         }
         // Dense arm: the seed is taken and no row carries kRestore (the site is not the
         // ladder's exhaustion).
@@ -2550,8 +2564,11 @@ static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refu
 #else
         {
             Index restore_rows = 0;
-            for (const SqpIterate &r : sol.history) {
-                restore_rows += r.verdict == StepVerdict::kRestore ? 1 : 0;
+            for (const IterationRecord &r : sol.history) {
+                restore_rows +=
+                    r.sqp->verdict.value_or(hven::StepVerdict::kReject) == StepVerdict::kRestore
+                        ? 1
+                        : 0;
             }
             hven::test_support::record_off_reference_route(
                 std::string("exhausted_ladder_") + seed_mode_name(mode),
@@ -2615,8 +2632,9 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
         fmt::format("seeded_rows={} history_rows={}", seeded_rows(sol), sol.history.size()));
 #endif
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.back().elastic_applied) << "and the site was REACHED with an offer";
-    EXPECT_EQ(StepVerdict::kRestore, sol.history.back().verdict);
+    EXPECT_TRUE(sol.history.back().sqp->elastic) << "and the site was REACHED with an offer";
+    EXPECT_EQ(StepVerdict::kRestore,
+              sol.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject));
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
@@ -2813,9 +2831,11 @@ static void run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refu
     // whole history is kAccept then kRestore, with tr_radius 1 on both rows.
     bool saw_restore_row = false;
     bool saw_reject_row = false;
-    for (const SqpIterate &r : sol.history) {
-        saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
-        saw_reject_row = saw_reject_row || r.verdict == StepVerdict::kReject;
+    for (const IterationRecord &r : sol.history) {
+        saw_restore_row = saw_restore_row || r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                                 StepVerdict::kRestore;
+        saw_reject_row = saw_reject_row || r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                                               StepVerdict::kReject;
     }
 #if HVEN_TEST_ROUTE_REFERENCE
     // Dense arm: the FLOOR'S OWN signature is back -- a kReject row, no kRestore row.
@@ -2898,8 +2918,10 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
             fmt::format("seeded_rows={}", seeded_rows(sol)));
 #endif
         bool saw_restore_row = false;
-        for (const SqpIterate &r : sol.history) {
-            saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;
+        for (const IterationRecord &r : sol.history) {
+            saw_restore_row =
+                saw_restore_row ||
+                r.sqp->verdict.value_or(hven::StepVerdict::kReject) == StepVerdict::kRestore;
         }
         EXPECT_TRUE(saw_restore_row);
         // AND THE TWO SCALES ORDER THE OFFER OPPOSITELY, which is what makes
@@ -3075,9 +3097,10 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     // and a record taken at the wrong point (the seed, or the restored point)
     // would break it.
     ASSERT_GE(sol.history.size(), 6u);
-    ASSERT_EQ(sol.history[4].verdict, StepVerdict::kRestore);
-    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history[4].violation_l1);
-    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history[4].f);
+    ASSERT_EQ(sol.history[4].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kRestore);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history[4].sqp->violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history[4].f.value());
     EXPECT_GT(sol.counters.restoration_h_in, opts.common.feasibility_tol)
         << "the phase was entered at an INFEASIBLE point -- that is what h_in is for";
 
@@ -3090,7 +3113,7 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
     // And `f_out` is the objective the solve CARRIES FORWARD: the restored
     // point becomes the iterate, so the first row after the resume reports it.
-    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f.value());
     // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). On THIS fixture the phase
     // both converged and returned a point inside `feas_tol`, so the record
     // names `kOptimal`. It is NOT the resume's cause: the parent takes that
@@ -3132,8 +3155,8 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     // The entry half is the requesting row's, which on a terminal exit is the
     // LAST row: the phase pushes none of its own.
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history.back().violation_l1);
-    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history.back().f);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history.back().sqp->violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history.back().f.value());
     // AND THE ARM IS NAMED, NOT INFERRED (M7 W2 M3a). A CERTIFIED terminal
     // exit is reachable from the sub-solve's own `kOptimal` and from nothing
     // else -- the gate that sets `infeasibility_certified` hangs off that
@@ -3394,14 +3417,16 @@ static void run_the_sub_status_discriminates_at_one_parent_status(hven::linear::
 #if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(never_ran.status, SolveStatus::kIterationLimit);
     ASSERT_FALSE(never_ran.history.empty());
-    ASSERT_EQ(never_ran.history.back().verdict, StepVerdict::kRestore)
+    ASSERT_EQ(never_ran.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kRestore)
         << "fixture premise: the request WAS raised on the last major -- the absence "
            "below is a refused phase, not an uneventful solve";
     ASSERT_EQ(never_ran.counters.restoration_entries, 0)
         << "fixture premise: the refusal ran no phase and measured nothing";
 #else
     if (never_ran.status != SolveStatus::kIterationLimit || never_ran.history.empty() ||
-        never_ran.history.back().verdict != StepVerdict::kRestore ||
+        never_ran.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject) !=
+            StepVerdict::kRestore ||
         never_ran.counters.restoration_entries != 0) {
         hven::test_support::record_off_reference_route(
             "discriminates_arm1",
@@ -4350,9 +4375,9 @@ TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNot
     ASSERT_EQ(1, seeded_rows(sol)) << "the fixture's premise: the guard took the offered trial";
     ASSERT_EQ(1, sol.counters.restoration_entries);
     ASSERT_GE(sol.counters.restoration_iters, 1);
-    const SqpIterate *row = seeded_row(sol);
+    const IterationRecord *row = seeded_row(sol);
     ASSERT_NE(nullptr, row);
-    EXPECT_EQ(StepVerdict::kReject, row->verdict)
+    EXPECT_EQ(StepVerdict::kReject, row->sqp->verdict.value_or(hven::StepVerdict::kReject))
         << "kReject on the REQUESTING row is the radius floor's own signature";
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     // AND THE CLAIM IS WITHHELD, which is this separation's own corollary and a
@@ -5145,7 +5170,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDense
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         run.majors = sol.counters.major_iters;
         ASSERT_FALSE(sol.history.empty());
-        run.last_radius = sol.history.back().tr_radius;
+        run.last_radius = sol.history.back().sqp->trust_radius;
         ASSERT_FALSE(log.verdict.empty());
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore), 0)
@@ -5168,8 +5193,8 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDense
                         static_cast<int>(log.verdict.back()), log.resumes.size(), run.last_radius,
                         run.majors));
 #endif
-        for (const SqpIterate &h : sol.history) {
-            EXPECT_GE(h.tr_radius, opts.trust_region_min) << "trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            EXPECT_GE(h.sqp->trust_radius, opts.trust_region_min) << "trial " << h.iteration;
         }
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);

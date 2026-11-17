@@ -885,14 +885,14 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     // THE FIRST ROW IS THE START POINT, where both columns are hand-computable
     // and the engine-scale answer is four orders away in each direction:
     // f(x0) = 5e5 (engine: 50) and h(x0) = |1e6 * -0.5| = 5e5 (engine: 50).
-    const SqpIterate &first = sol.history.front();
+    const IterationRecord &first = sol.history.front();
     const Vec x0 = model.start_point();
-    EXPECT_DOUBLE_EQ(model.eval_f(x0), first.f);
-    EXPECT_NEAR(5.0e5, first.violation_l1, 1.0e-6 * 5.0e5);
-    EXPECT_GT(first.violation_l1, 1.0e4)
+    EXPECT_DOUBLE_EQ(model.eval_f(x0), first.f.value());
+    EXPECT_NEAR(5.0e5, first.sqp->violation_l1, 1.0e-6 * 5.0e5);
+    EXPECT_GT(first.sqp->violation_l1, 1.0e4)
         << "the engine-scale value would be 50 -- four orders below this floor";
     // kkt_residual folds the mapped halves, so it carries the mapped violation.
-    EXPECT_GE(first.kkt_residual, 4.0e5);
+    EXPECT_GE(std::max(first.stationarity, first.feasibility), 4.0e5);
 
     // THE LAST ROW AND THE SOLUTION AGREE ON f, EXACTLY. Both are the same
     // engine-scale double divided by the same factor, so this is bit equality
@@ -900,8 +900,8 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     // the terminal ones are RE-MEASURED on the caller's own model at the export
     // boundary (an independent evaluation, deliberately -- see finish()), while
     // a history row is the mapped image of the measurement the iteration made.
-    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
-    EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.history.back().f);
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f.value());
+    EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.history.back().f.value());
 
     // (The console footer's `scaling on` word reads this same report; pinned in
     // tests/drivers/test_console_sink.cpp.)
@@ -920,8 +920,8 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_FALSE(sol.scaling.active);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.history.front().f);
-    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.history.front().f.value());
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f.value());
 }
 
 // ===========================================================================
@@ -950,7 +950,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     // a silent unit error rather than a NaN.
     EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.f);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f.value());
     // The residual columns stay NaN, which is what "nothing was measured" reads
     // as; the multipliers stay cleared, which the map leaves cleared.
     EXPECT_TRUE(std::isnan(sol.convergence.kkt_residual));

@@ -1634,7 +1634,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
 QpSolution detail::certified_feasibility_fallback(
     QpEngine &engine, const QpProblem &qp, const NlpEval &ev, const QpSolution *seed,
     const IpqpInfeasibilityEvidence &evidence, const QpSolveOverrides &overrides,
-    const SqpOptions &opts, double window, SqpCounters &out, SqpIterate &row,
+    const SqpOptions &opts, double window, SqpCounters &out, SqpMajorRow &row,
     std::optional<ElasticLadderReport> &fallback_report, SqpFallbackVerdictTraceEvent &verdict,
     TraceSink *sink, IpqpEngine *tier, detail::QnLiftBridge *qn) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
@@ -1810,7 +1810,7 @@ ProblemStatistics census_from_seam(const AssemblyEvalSeam &seam, Index absent_bo
     return st;
 }
 
-IterationRecord make_sqp_iteration_record(const SqpIterate &r, Index major, QpTraceMode mode,
+IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpTraceMode mode,
                                           Index depth, Index factorizations) {
     IterationRecord rec;
     rec.iteration = major;
@@ -2167,7 +2167,7 @@ bool outside_box_by_rounding(const Vec &x, const Vec &lo, const Vec &up) {
 void detail::census_major_activity(const QpProblem &qp, const QpSolution &qs,
                                    const std::vector<bool> &prev_ineq_active,
                                    const std::vector<BoundState> &prev_bound_state, Vec &slack,
-                                   SqpIterate &row) {
+                                   SqpMajorRow &row) {
     const Index n = qp.n();
     const Index mi = qp.mi();
     // TWO O(1) SIZE COMPARISONS, NOT qp.validate() -- kkt_assembly.h's rule and
@@ -2443,11 +2443,8 @@ void SqpSolverImpl::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEve
     }
 }
 
-void SqpSolverImpl::emit_trace_iter(const SqpIterate &row, Index major, QpTraceMode mode,
-                                    Index factorizations) const {
+void SqpSolverImpl::emit_trace_iter(const IterationRecord &record) const {
     if (ipqp_trace_ != nullptr) {
-        const IterationRecord record = make_sqp_iteration_record(
-            row, major, mode, is_restoration_sub_driver_ ? 1 : 0, factorizations);
         ipqp_trace_->on_iter(IterTraceEvent{record});
     }
 }
@@ -4365,7 +4362,7 @@ struct SqpSolverImpl::SolveState {
 
     // ---- the previous major's activity carry -------------------------------
     // THE PREVIOUS MAJOR'S QP ACTIVE SET (M6 W4 T3), and the slack scratch.
-    // EMPTY here, which IS the empty set `SqpIterate::active_set_delta` has the
+    // EMPTY here, which IS the empty set `SqpMajorRow::active_set_delta` has the
     // first reporting major count against; a non-reporting major leaves them.
     std::vector<bool> prev_ineq_active;
     std::vector<BoundState> prev_bound_state;
@@ -4479,7 +4476,7 @@ struct SqpSolverImpl::MajorState {
     // the elastic branch after the dispatch.
     std::optional<ElasticLadderReport> fallback_report;
     bool walk_owns_this_qp = true;
-    // WHICH KERNEL PRODUCED THIS ROW'S STEP, for `SqpIterate::mu` alone: true iff
+    // WHICH KERNEL PRODUCED THIS ROW'S STEP, for `SqpMajorRow::mu` alone: true iff
     // the IPQP tier's own answer, or the SSN warm grade's, is the step -- both
     // run at `opts_.qp.dual_regularization`. Every walk subproblem under kIpqp keeps
     // `row.mu`'s adaptive value.
@@ -4491,7 +4488,7 @@ struct SqpSolverImpl::MajorState {
     SqpKkt kkt;
     // THE ROW THIS MAJOR EMITS, measured in the space the solve runs in;
     // `push_history` maps a COPY of it into the caller's units.
-    SqpIterate row;
+    SqpMajorRow row;
     // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone -- the configured
     // mode until the dispatch corrects it.
     QpTraceMode row_qp_mode = QpTraceMode::kWalk;
@@ -7088,7 +7085,7 @@ std::string SqpSolverImpl::interrupt_detail(const SolveState &st) {
 namespace {
 
 // IterationEvent::sqp from one exported history row.
-SqpIterationInfo sqp_iteration_info(const SqpIterate &row, Index depth) {
+SqpIterationInfo sqp_iteration_info(const SqpMajorRow &row, Index depth) {
     SqpIterationInfo info;
     info.depth = depth;
     info.trust_radius = row.tr_radius;
@@ -7115,7 +7112,7 @@ SqpIterationInfo sqp_iteration_info(const SqpIterate &row, Index depth) {
 // cannot mix the row's measurement with a point `enter_restoration` moved the
 // driver to afterwards. See MajorState::event_x.
 // ---------------------------------------------------------------------------
-void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &exported,
+void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpMajorRow &exported,
                                          const MajorState &mj) {
     if (!iteration_callback_) {
         return;
@@ -7503,7 +7500,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // kkt_residual is re-folded from the mapped halves exactly as
     // SqpKkt::residual() folds the unmapped ones. A no-op when unscaled,
     // where it is a move onto the vector and nothing else.
-    auto push_history = [&](SqpIterate exported) {
+    auto push_history = [&](SqpMajorRow exported) {
         if (st.solve_scaling.active) {
             exported.f /= st.solve_scaling.obj;
             exported.stationarity /= st.solve_scaling.obj;
@@ -7515,9 +7512,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // THE STREAM EQUALS `history`, IN CALLER UNITS: emitted here, after
         // the map and before the push, so `major` is this row's index in
         // the vector and all six push sites are covered by one site.
+        // The record is built unconditionally: it IS `history`'s row (always on), and the
+        // trace emits the same object.
+        IterationRecord record = make_sqp_iteration_record(
+            exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode,
+            is_restoration_sub_driver_ ? 1 : 0, st.out.counters.factorizations);
         if (ipqp_trace_ != nullptr) {
-            emit_trace_iter(exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode,
-                            st.out.counters.factorizations);
+            emit_trace_iter(record);
         }
         // THE ITERATION EVENT, AT THE SAME SITE AND IN THE SAME UNITS (M6 W5
         // T8.6): after the trace emit and before the push, so the callback,
@@ -7533,7 +7534,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.mb.snap.step_norm = exported.step_norm;
             st.mb.snap.sqp = sqp_iteration_info(exported, 0);
         }
-        st.out.history.push_back(std::move(exported));
+        st.out.history.push_back(std::move(record));
         ++st.rows_pushed;
         // AND NOTHING ELSE MAY PUSH: the identity is what makes
         // `rows_pushed` a reading of `history` rather than of this lambda.
@@ -7881,7 +7882,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // Label THIS row -- the one `measure_iterate()` just
             // re-took above, so `row` already describes the restored
             // point -- as the one the watchdog rebased. See
-            // SqpIterate::watchdog_restored's own note for why the
+            // SqpMajorRow::watchdog_restored's own note for why the
             // history needs this at all.
             mj.row.watchdog_restored = true;
         }
@@ -8096,7 +8097,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // false, the configured mode's), its event fires, and the solve returns x_k. The
     // abandoned work stays in the aggregates; the major it did not complete is not counted
     // (`counted`: the fold below already counted it). Armed solves only.
-    std::optional<SqpIterate> row_at_xk;
+    std::optional<SqpMajorRow> row_at_xk;
     if (qp_stop_ != nullptr) [[unlikely]] {
         row_at_xk = mj.row;
     }
@@ -8343,7 +8344,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         route_through_ipqp_tier(st, mj, seam, iter, tr_shrink_retry, overrides);
         break;
     }
-    // `SqpIterate::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED. Under kIpqp the
+    // `SqpMajorRow::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED. Under kIpqp the
     // schedule stays on for the walk subproblems and off for the tier's own, so the value
     // is a per-row fact; corrected here because the dispatch is where it becomes known.
     if (mj.ipqp_chain_owns_the_step) {

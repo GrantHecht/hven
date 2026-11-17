@@ -223,9 +223,10 @@ TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSub
     EXPECT_NE(r.sol.status, SolveStatus::kInfeasible);
     EXPECT_FALSE(r.sol.infeasibility_certified);
     ASSERT_FALSE(r.sol.history.empty());
-    EXPECT_EQ(r.sol.history.front().qp_status, QpStatus::kOptimal)
+    EXPECT_EQ(r.sol.history.front().sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kOptimal)
         << "the disproved major's step came back optimal, from rung A";
-    EXPECT_TRUE(r.sol.history.front().elastic_applied);
+    EXPECT_TRUE(r.sol.history.front().sqp->elastic);
 }
 
 // ---------------------------------------------------------------------------

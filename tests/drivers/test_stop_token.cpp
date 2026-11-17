@@ -539,7 +539,7 @@ TEST(StopTokenSolve, T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep)
     // history ends on it, and the accepted step is not committed.
     EXPECT_EQ(static_cast<Index>(s.seen_x.size()), kSignalAt + 1);
     ASSERT_EQ(static_cast<Index>(r.history.size()), r.counters.major_iters);
-    EXPECT_TRUE(r.history.back().qp_solved);
+    EXPECT_TRUE(r.history.back().sqp->qp_solved);
     EXPECT_EQ(r.counters.steps_accepted, kSignalAt)
         << "rows 0..kSignalAt-1 committed; the stopped row's accepted step did not";
     EXPECT_LE(r.counters.soc_applied, r.counters.steps_accepted);

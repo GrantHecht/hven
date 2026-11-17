@@ -56,6 +56,9 @@ const std::vector<Allowed> &allowlist() {
          "a definition or declaration of an emit helper; its body is scanned"},
         {"make_iteration_record(const",
          "a definition of the row builder; called only under a guard"},
+        {"result_.history.push_back(",
+         "IpmResult::history is a result feature, always on (spec C5): "
+         "the counted rows rendered once at phase exit, not a sink emit"},
         {"struct ", "a type declaration"},
         {"emit_trace_fallback_verdict(", "the fallback verdict (spec section 4's one named "
                                          "allowlist entry); the helper tests the sink itself"},

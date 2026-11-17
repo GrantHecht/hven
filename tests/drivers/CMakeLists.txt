@@ -35,6 +35,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_trace_off_path.cpp
     # M8 TR-B: the exit-door walk (count identity at every exit door of both engines; M7-19).
     test_exit_door_walk.cpp
+    # M8 TR-D/TR-D': `history` on both engines == the depth-0 iter stream, always on.
+    test_iteration_history.cpp
     # M8 TR-B: the message identities of spec 2.7 on live solves of both engines.
     test_trace_messages.cpp
     # M8 TR-B: the message emit sites held by a source scan, falsified by planted sites.

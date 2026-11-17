@@ -139,7 +139,7 @@ Index uncapped_first_major_minors() {
     SqpSolver driver(base_options());
     const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
     EXPECT_FALSE(out.history.empty());
-    return out.history.empty() ? 0 : out.history.front().qp_minor_iters;
+    return out.history.empty() ? 0 : out.history.front().sqp->qp_minor_iterations.value_or(0);
 }
 
 } // namespace
@@ -200,10 +200,13 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
     // THE IDENTICAL MINOR COUNT, which is the fact that says a BUDGET and not
     // the arithmetic stopped these two majors.
     ASSERT_EQ(out.history.size(), 2u);
-    EXPECT_EQ(out.history[0].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(out.history[1].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(out.history[0].qp_minor_iters, out.history[1].qp_minor_iters);
-    EXPECT_EQ(out.history[0].qp_minor_iters, 1);
+    EXPECT_EQ(out.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(out.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(out.history[0].sqp->qp_minor_iterations.value_or(0),
+              out.history[1].sqp->qp_minor_iterations.value_or(0));
+    EXPECT_EQ(out.history[0].sqp->qp_minor_iterations.value_or(0), 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -325,8 +328,8 @@ TEST(QpCapRetry, ADoubledCapThatSufficesRecoversTheSolve) {
     // the rows' sum by at least them. It is the SOC convention INVERTED: SOC
     // keeps the primary solve on the row and folds its re-solve in.
     Index rows = 0;
-    for (const SqpIterate &row : out.history) {
-        rows += row.qp_minor_iters;
+    for (const IterationRecord &row : out.history) {
+        rows += row.sqp->qp_minor_iterations.value_or(0);
     }
     EXPECT_GT(out.counters.qp_minor_iters, rows);
     // Nothing was routed: the retry ran BEFORE the failure routing, so the
@@ -389,8 +392,9 @@ TEST(QpCapRetry, AStagnationStopIsNotRetried) {
 
     // THE PREMISE: the first subproblem ended kIterationLimit on the reading, not on its cap.
     ASSERT_FALSE(out.history.empty());
-    ASSERT_EQ(out.history.front().qp_status, QpStatus::kIterationLimit);
-    ASSERT_EQ(out.history.front().qp_minor_iters, 12);
+    ASSERT_EQ(out.history.front().sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    ASSERT_EQ(out.history.front().sqp->qp_minor_iterations.value_or(0), 12);
     // It reached the routing site as a capped exit, and was not retried.
     EXPECT_GE(out.counters.qp_maxiter_exits, 1);
     EXPECT_EQ(out.counters.qp_cap_retries, 0);

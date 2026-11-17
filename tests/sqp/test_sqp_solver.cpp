@@ -117,6 +117,7 @@
 #include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_major_row.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/qp_engine.h>
@@ -162,10 +163,11 @@ namespace {
 // rather than only the assertion that tripped.
 void record_history(const SqpResult &sol, const std::string &tag) {
     for (std::size_t k = 0; k < sol.history.size(); ++k) {
-        const SqpIterate &h = sol.history[k];
+        const IterationRecord &h = sol.history[k];
         const char *verdict = "-";
-        if (h.qp_solved && h.qp_status == QpStatus::kOptimal) {
-            switch (h.verdict) {
+        if (h.sqp->qp_solved &&
+            h.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kOptimal) {
+            switch (h.sqp->verdict.value_or(hven::StepVerdict::kReject)) {
             case StepVerdict::kAcceptObjectiveStep:
                 verdict = "acceptF";
                 break;
@@ -184,9 +186,11 @@ void record_history(const SqpResult &sol, const std::string &tag) {
             fmt::format("{}_it{}", tag, k),
             fmt::format("f={:.10g} stat={:.6g} feas={:.6g} kkt={:.6g} h={:.6g} step={:.6g} "
                         "delta={:.6g} minor={} fact={} tr={} verdict={}",
-                        h.f, h.stationarity, h.feasibility, h.kkt_residual, h.violation_l1,
-                        h.step_norm, h.tr_radius, h.qp_minor_iters, h.qp_factorizations,
-                        h.tr_binding ? 1 : 0, verdict));
+                        h.f.value(), h.stationarity, h.feasibility,
+                        std::max(h.stationarity, h.feasibility), h.sqp->violation_l1,
+                        h.step_norm.value_or(0.0), h.sqp->trust_radius,
+                        h.sqp->qp_minor_iterations.value_or(0),
+                        h.sqp->qp_factorizations.value_or(0), h.sqp->tr_binding ? 1 : 0, verdict));
     }
 }
 
@@ -194,7 +198,7 @@ void record_history(const SqpResult &sol, const std::string &tag) {
 // once on a fresh engine with no seed, once on a persistent engine warm-
 // seeded exactly as SqpSolver seeds it (active set only, x zeroed). Reports
 // the cold and warm minor-iteration counts per major, plus the displacement
-// the warm path actually applied (which is what SqpIterate::step_norm is
+// the warm path actually applied (which is what IterationRecord::step_norm is
 // checked against). The warm path is what drives the iterates forward, so
 // the replay follows the driver's own trajectory.
 //
@@ -210,8 +214,8 @@ struct ColdWarmMinors {
 
 std::vector<double> radii_of(const SqpResult &sol) {
     std::vector<double> radii;
-    for (const SqpIterate &h : sol.history) {
-        radii.push_back(h.tr_radius);
+    for (const IterationRecord &h : sol.history) {
+        radii.push_back(h.sqp->trust_radius);
     }
     return radii;
 }
@@ -620,7 +624,7 @@ TEST(SqpDriverContract, ConvergedStartSolvesNoSubproblems) {
     EXPECT_EQ(sol.counters.qp_minor_iters, 0);
     EXPECT_EQ(sol.counters.factorizations, 0);
     ASSERT_EQ(sol.history.size(), 1u);
-    EXPECT_FALSE(sol.history[0].qp_solved);
+    EXPECT_FALSE(sol.history[0].sqp->qp_solved);
     EXPECT_NEAR(sol.f, p.f_star, 1e-12);
 }
 
@@ -730,9 +734,10 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
     // No iterate the driver ever stood on was non-finite: every recorded row
     // carries a real objective and a real residual.
     ASSERT_FALSE(sol.history.empty());
-    for (const SqpIterate &h : sol.history) {
-        EXPECT_TRUE(std::isfinite(h.f)) << "trial " << h.trial;
-        EXPECT_TRUE(std::isfinite(h.kkt_residual)) << "trial " << h.trial;
+    for (const IterationRecord &h : sol.history) {
+        EXPECT_TRUE(std::isfinite(h.f.value())) << "trial " << h.iteration;
+        EXPECT_TRUE(std::isfinite(std::max(h.stationarity, h.feasibility)))
+            << "trial " << h.iteration;
     }
     EXPECT_LT(std::abs(sol.x(0)), NanPastRadiusModel::kFiniteRadius)
         << "the returned point is inside the model's domain";
@@ -748,9 +753,10 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
     EXPECT_EQ(bad.status, SolveStatus::kNumericalError);
     EXPECT_EQ(bad.counters.major_iters, 0);
     ASSERT_EQ(bad.history.size(), 1u);
-    EXPECT_FALSE(bad.history[0].qp_solved) << "the solve stopped AT the bad iterate";
-    EXPECT_TRUE(std::isnan(bad.history[0].kkt_residual))
-        << "kkt_residual read " << bad.history[0].kkt_residual << " on a NaN iterate";
+    EXPECT_FALSE(bad.history[0].sqp->qp_solved) << "the solve stopped AT the bad iterate";
+    EXPECT_TRUE(std::isnan(std::max(bad.history[0].stationarity, bad.history[0].feasibility)))
+        << "kkt_residual read " << std::max(bad.history[0].stationarity, bad.history[0].feasibility)
+        << " on a NaN iterate";
     // Multipliers are cleared: nothing priced at a NaN iterate is meaningful.
     EXPECT_LT(bad.z.lpNorm<Eigen::Infinity>(), 1e-300);
 
@@ -816,7 +822,8 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
     EXPECT_NE(retry.status, SolveStatus::kNumericalError)
         << "the retry ran at the caller's x0, where the model IS evaluable";
     ASSERT_FALSE(retry.history.empty());
-    EXPECT_TRUE(std::isfinite(retry.history.front().kkt_residual))
+    EXPECT_TRUE(std::isfinite(
+        std::max(retry.history.front().stationarity, retry.history.front().feasibility)))
         << "the FIRST iterate measured was the corrected one, not the discarded 50";
     EXPECT_LT(std::abs(retry.x(0)), NanPastRadiusModel::kFiniteRadius);
 
@@ -844,8 +851,9 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
     EXPECT_EQ(retry.counters.start_level_used, cold.counters.start_level_used);
     ASSERT_EQ(retry.history.size(), cold.history.size());
     for (std::size_t i = 0; i < retry.history.size(); ++i) {
-        EXPECT_EQ(retry.history[i].f, cold.history[i].f) << "history row " << i;
-        EXPECT_EQ(retry.history[i].tr_radius, cold.history[i].tr_radius) << "history row " << i;
+        EXPECT_EQ(retry.history[i].f.value(), cold.history[i].f.value()) << "history row " << i;
+        EXPECT_EQ(retry.history[i].sqp->trust_radius, cold.history[i].sqp->trust_radius)
+            << "history row " << i;
     }
 }
 
@@ -882,7 +890,7 @@ TEST(SqpDriverContract, NonFiniteStartPointIsRejected) {
 // later. Every step must respect the radius.
 //
 // TASK 6 UPDATE. The radius is no longer constant, so the bound is now the
-// PER-ROW radius (SqpIterate::tr_radius, the value actually handed to that
+// PER-ROW radius (IterationRecord::tr_radius, the value actually handed to that
 // subproblem) rather than trust_region_initial -- against trust_region_initial the test would now
 // fail for the right reason (the radius legitimately GREW) and would go on failing for the wrong
 // one. The centering claim itself is unchanged and is if anything better exercised: the REJECTION
@@ -920,12 +928,12 @@ TEST(SqpDriverContract, TrustRegionIsCenteredOnTheCurrentIterate) {
         record_history(sol, fmt::format("hs{}_tr{:g}", c.number, c.tr_init));
 
         ASSERT_FALSE(sol.history.empty());
-        for (const SqpIterate &h : sol.history) {
+        for (const IterationRecord &h : sol.history) {
             // The radius is an l-infinity box about p = 0; a step may reach
             // the radius but never exceed it (rounding aside).
-            EXPECT_LE(h.step_norm, h.tr_radius * (1.0 + 1e-9))
-                << "HS" << c.number << " @ " << c.tr_init << " major " << h.trial;
-            EXPECT_LE(h.tr_radius, opts.trust_region_max);
+            EXPECT_LE(h.step_norm.value_or(0.0), h.sqp->trust_radius * (1.0 + 1e-9))
+                << "HS" << c.number << " @ " << c.tr_init << " major " << h.iteration;
+            EXPECT_LE(h.sqp->trust_radius, opts.trust_region_max);
         }
         // A radius the steps do not respect is not merely untidy: it stalls
         // the solve, because shrinking it changes nothing. Every fixture here
@@ -953,11 +961,12 @@ TEST(SqpDriverContract, TrustRegionIsCenteredOnTheCurrentIterate) {
             SqpSolver driver(opts);
             const SqpResult sol =
                 driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
-            for (const SqpIterate &h : sol.history) {
-                if (h.step_norm > h.tr_radius * (1.0 + 1e-9)) {
+            for (const IterationRecord &h : sol.history) {
+                if (h.step_norm.value_or(0.0) > h.sqp->trust_radius * (1.0 + 1e-9)) {
                     ++violations;
-                    ADD_FAILURE() << "HS" << number << " @ tr_init " << tr << " trial " << h.trial
-                                  << ": step " << h.step_norm << " at radius " << h.tr_radius;
+                    ADD_FAILURE() << "HS" << number << " @ tr_init " << tr << " trial "
+                                  << h.iteration << ": step " << h.step_norm.value_or(0.0)
+                                  << " at radius " << h.sqp->trust_radius;
                     break;
                 }
             }
@@ -1514,7 +1523,7 @@ TEST(SqpDriverEquality, QuadraticConvergenceOnHs7) {
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(sol.counters.major_iters, 8); // observed: 7
     EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(sol.counters.major_iters) + 1u);
-    EXPECT_FALSE(sol.history.back().qp_solved);
+    EXPECT_FALSE(sol.history.back().sqp->qp_solved);
 
     // Landed on x* = (0, sqrt 3), f* = -sqrt 3.
     EXPECT_NEAR(sol.f, p.f_star, 1e-9);
@@ -1524,8 +1533,8 @@ TEST(SqpDriverEquality, QuadraticConvergenceOnHs7) {
     // FULL-STEP NEWTON, NOT A TRUST-REGION WALK: no major's step reached the
     // radius. Without this the contraction below could be an artifact of the
     // box rather than a property of the Newton iteration.
-    for (const SqpIterate &h : sol.history) {
-        EXPECT_FALSE(h.tr_binding) << "trial " << h.trial;
+    for (const IterationRecord &h : sol.history) {
+        EXPECT_FALSE(h.sqp->tr_binding) << "trial " << h.iteration;
     }
 
     // --- the contraction test, on the last three recorded residuals -------
@@ -1538,9 +1547,9 @@ TEST(SqpDriverEquality, QuadraticConvergenceOnHs7) {
     //   r_{k+1}/r_k^2  0.156,    0.0846      (bounded -> QUADRATIC)
     ASSERT_GE(sol.history.size(), 3u);
     const std::size_t m = sol.history.size();
-    const double r0 = sol.history[m - 3].kkt_residual;
-    const double r1 = sol.history[m - 2].kkt_residual;
-    const double r2 = sol.history[m - 1].kkt_residual;
+    const double r0 = std::max(sol.history[m - 3].stationarity, sol.history[m - 3].feasibility);
+    const double r1 = std::max(sol.history[m - 2].stationarity, sol.history[m - 2].feasibility);
+    const double r2 = std::max(sol.history[m - 1].stationarity, sol.history[m - 1].feasibility);
     ASSERT_GT(r0, 0.0);
     ASSERT_GT(r1, 0.0);
 
@@ -1666,9 +1675,9 @@ void expect_solves_to(int number, const Vec &x_star, double x_tol, double f_tol,
     // Counters are aggregates over the subproblems actually solved.
     EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(sol.counters.major_iters) + 1u);
     Index minor_sum = 0, fact_sum = 0;
-    for (const SqpIterate &h : sol.history) {
-        minor_sum += h.qp_minor_iters;
-        fact_sum += h.qp_factorizations;
+    for (const IterationRecord &h : sol.history) {
+        minor_sum += h.sqp->qp_minor_iterations.value_or(0);
+        fact_sum += h.sqp->qp_factorizations.value_or(0);
     }
     EXPECT_EQ(sol.counters.qp_minor_iters, minor_sum);
     EXPECT_EQ(sol.counters.factorizations, fact_sum);
@@ -1731,7 +1740,7 @@ TEST(SqpDriverBounds, Hs3ReachesItsBoundConstrainedSolution) {
     opts.common.max_iterations = 60;
     expect_solves_to(3, x_star, 1e-4, 1e-8, opts, /*major_budget=*/40, "hs3");
 
-    // SqpIterate::tr_binding must actually be OBSERVED TRUE somewhere in the
+    // IterationRecord::tr_binding must actually be OBSERVED TRUE somewhere in the
     // suite, or the field is untested and hard-coding it to false would pass
     // everything. HS3 is where it is unmissable: the Newton step wants
     // p1 ~ -10 against a radius of 1, so the radius binds on 9 of this
@@ -1743,7 +1752,7 @@ TEST(SqpDriverBounds, Hs3ReachesItsBoundConstrainedSolution) {
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const Index binding = std::count_if(sol.history.begin(), sol.history.end(),
-                                        [](const SqpIterate &h) { return h.tr_binding; });
+                                        [](const IterationRecord &h) { return h.sqp->tr_binding; });
     EXPECT_GT(binding, 0) << "tr_binding was never set on a fixture whose radius provably binds";
     EXPECT_LT(binding, static_cast<Index>(sol.history.size()))
         << "the radius must also RELEASE as the iterate converges";
@@ -1837,8 +1846,8 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
     ASSERT_GE(sol.counters.major_iters, 4) << "fixture must have 'late' majors to speak of";
 
     // Every major AFTER the first (i.e. every warm-seeded one) is cheap.
-    for (const SqpIterate &h : sol.history) {
-        if (!h.qp_solved || h.trial == 0) {
+    for (const IterationRecord &h : sol.history) {
+        if (!h.sqp->qp_solved || h.iteration == 0) {
             continue;
         }
         // M7 W2 E4 fix round 1 (declared mover): 2 -> 3. The TERMINAL POLISH
@@ -1847,7 +1856,7 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
         // pass reaching the better point. The claim -- that a warm-seeded major is
         // CHEAP, and cheaper than the same subproblem cold -- is the bound here and
         // the cold/warm comparison below, both of which hold at 3.
-        EXPECT_LE(h.qp_minor_iters, 3) << "trial " << h.trial;
+        EXPECT_LE(h.sqp->qp_minor_iterations.value_or(0), 3) << "trial " << h.iteration;
     }
 
     // ... and cheaper than the identical subproblem solved cold.
@@ -1858,9 +1867,9 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
     // The replay must reproduce the driver's own warm costs -- if it does
     // not, the driver is seeding differently from what this test claims.
     for (std::size_t k = 0; k < cw.warm.size(); ++k) {
-        EXPECT_EQ(cw.warm[k], sol.history[k].qp_minor_iters) << "major " << k;
+        EXPECT_EQ(cw.warm[k], sol.history[k].sqp->qp_minor_iterations.value_or(0)) << "major " << k;
     }
-    // SqpIterate::step_norm must be the displacement ACTUALLY APPLIED to the
+    // IterationRecord::step_norm must be the displacement ACTUALLY APPLIED to the
     // iterate, not merely some norm the driver happened to record: the replay
     // measures ||x_{k+1} - x_k||inf from its own iterates and they must agree
     // row for row. Task 5's acceptance test reads this field to decide
@@ -1868,7 +1877,7 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
     // "applied" would be silent and load-bearing.
     ASSERT_EQ(cw.warm_step_norm.size(), cw.warm.size());
     for (std::size_t k = 0; k < cw.warm_step_norm.size(); ++k) {
-        EXPECT_NEAR(sol.history[k].step_norm, cw.warm_step_norm[k],
+        EXPECT_NEAR(sol.history[k].step_norm.value_or(0.0), cw.warm_step_norm[k],
                     1e-12 * (1.0 + cw.warm_step_norm[k]))
             << "major " << k;
     }
@@ -1957,20 +1966,24 @@ TEST(SqpDriverGlobalization, FunnelIsMonotoneInFOnHs1) {
     Index h_type = 0;
     double worst_f_jump = 1.0;
     for (std::size_t k = 0; k < sol.history.size(); ++k) {
-        const SqpIterate &h = sol.history[k];
-        EXPECT_DOUBLE_EQ(h.violation_l1, 0.0) << "HS1 has no general constraints";
-        if (h.qp_solved && h.qp_status == QpStatus::kOptimal &&
-            h.verdict == StepVerdict::kAcceptFeasibilityStep) {
+        const IterationRecord &h = sol.history[k];
+        EXPECT_DOUBLE_EQ(h.sqp->violation_l1, 0.0) << "HS1 has no general constraints";
+        if (h.sqp->qp_solved &&
+            h.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kOptimal &&
+            h.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                StepVerdict::kAcceptFeasibilityStep) {
             ++h_type;
         }
         if (k == 0) {
             continue;
         }
-        if (sol.history[k].f > sol.history[k - 1].f) {
+        if (sol.history[k].f.value() > sol.history[k - 1].f.value()) {
             ++f_increases;
-            worst_f_jump = std::max(worst_f_jump, sol.history[k].f / sol.history[k - 1].f);
+            worst_f_jump =
+                std::max(worst_f_jump, sol.history[k].f.value() / sol.history[k - 1].f.value());
         }
-        if (sol.history[k].kkt_residual > sol.history[k - 1].kkt_residual) {
+        if (std::max(sol.history[k].stationarity, sol.history[k].feasibility) >
+            std::max(sol.history[k - 1].stationarity, sol.history[k - 1].feasibility)) {
             ++kkt_increases;
         }
     }
@@ -2010,22 +2023,27 @@ TEST(SqpDriverGlobalization, FunnelKeepsIteratesInsideItsWidth) {
         ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "HS" << number;
 
         ASSERT_FALSE(sol.history.empty());
-        const double tau0 = std::max(kFunnelTauBar, kFunnelKappaBar * sol.history[0].violation_l1);
+        const double tau0 =
+            std::max(kFunnelTauBar, kFunnelKappaBar * sol.history[0].sqp->violation_l1);
         Index f_type = 0, h_type = 0, f_rises_on_h_type = 0;
         for (std::size_t k = 0; k < sol.history.size(); ++k) {
-            const SqpIterate &h = sol.history[k];
-            EXPECT_LE(h.violation_l1, tau0) << "HS" << number << " trial " << h.trial;
-            if (!h.qp_solved || h.qp_status != QpStatus::kOptimal || k + 1 >= sol.history.size()) {
+            const IterationRecord &h = sol.history[k];
+            EXPECT_LE(h.sqp->violation_l1, tau0) << "HS" << number << " trial " << h.iteration;
+            if (!h.sqp->qp_solved ||
+                h.sqp->qp_status.value_or(hven::QpStatus::kOptimal) != QpStatus::kOptimal ||
+                k + 1 >= sol.history.size()) {
                 continue;
             }
-            const double f_next = sol.history[k + 1].f;
-            if (h.verdict == StepVerdict::kAcceptObjectiveStep) {
+            const double f_next = sol.history[k + 1].f.value();
+            if (h.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                StepVerdict::kAcceptObjectiveStep) {
                 ++f_type;
                 // KLV Eq. (11) with sigma > 0 and pred_df >= delta*h^2 >= 0.
-                EXPECT_LE(f_next, h.f + 1e-12 * (1.0 + std::abs(h.f)))
-                    << "HS" << number << " trial " << h.trial << ": an f-type step must not "
+                EXPECT_LE(f_next, h.f.value() + 1e-12 * (1.0 + std::abs(h.f.value())))
+                    << "HS" << number << " trial " << h.iteration << ": an f-type step must not "
                     << "increase the objective";
-            } else if (h.verdict == StepVerdict::kAcceptFeasibilityStep) {
+            } else if (h.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                       StepVerdict::kAcceptFeasibilityStep) {
                 ++h_type;
                 if (f_next > h.f) {
                     ++f_rises_on_h_type;
@@ -2055,7 +2073,7 @@ TEST(SqpDriverGlobalization, FunnelKeepsIteratesInsideItsWidth) {
 // exposes). Do not simply raise trust_region_initial to keep the cycle alive; the cycle
 // is not worth preserving once the mechanism that prevents it exists.
 // THE SUCCESSOR, executed exactly as instructed: the positive statement,
-// with the radius shrink asserted on SqpIterate::tr_radius (the field the
+// with the radius shrink asserted on IterationRecord::tr_radius (the field the
 // instruction anticipated). trust_region_initial is deliberately left at the cycling value
 // of 2.0 rather than raised.
 //
@@ -2086,8 +2104,8 @@ TEST(SqpDriverGlobalization, Hs5ConvergesFromATooLargeRadiusAfterShrinking) {
     // and the radius actually came down below where it started.
     EXPECT_GE(sol.counters.rejected_steps, 1);
     double min_radius = std::numeric_limits<double>::infinity();
-    for (const SqpIterate &h : sol.history) {
-        min_radius = std::min(min_radius, h.tr_radius);
+    for (const IterationRecord &h : sol.history) {
+        min_radius = std::min(min_radius, h.sqp->trust_radius);
     }
     EXPECT_LT(min_radius, opts.trust_region_initial)
         << "the radius never shrank, so this is not the fix";
@@ -2097,7 +2115,8 @@ TEST(SqpDriverGlobalization, Hs5ConvergesFromATooLargeRadiusAfterShrinking) {
     // The period-2 cycle is GONE: no two rows two apart repeat to the bit.
     Index repeats = 0;
     for (std::size_t k = 0; k + 2 < sol.history.size(); ++k) {
-        if (sol.history[k].kkt_residual == sol.history[k + 2].kkt_residual) {
+        if (std::max(sol.history[k].stationarity, sol.history[k].feasibility) ==
+            std::max(sol.history[k + 2].stationarity, sol.history[k + 2].feasibility)) {
             ++repeats;
         }
     }
@@ -2170,8 +2189,8 @@ TEST(SqpDriverGlobalization, Hs7AtTheDefaultRadiusNowConvergesByGrowingIt) {
     EXPECT_NEAR(sol.f, p.f_star, 1e-7);
 
     double max_radius = 0.0;
-    for (const SqpIterate &h : sol.history) {
-        max_radius = std::max(max_radius, h.tr_radius);
+    for (const IterationRecord &h : sol.history) {
+        max_radius = std::max(max_radius, h.sqp->trust_radius);
     }
     EXPECT_GT(max_radius, opts.trust_region_initial)
         << "the radius growth is the mechanism; without it this "
@@ -2270,13 +2289,14 @@ TEST(SqpDriverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasti
 
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_FALSE(sol.history.empty());
-    const SqpIterate &last = sol.history.back();
-    EXPECT_TRUE(last.qp_solved)
+    const IterationRecord &last = sol.history.back();
+    EXPECT_TRUE(last.sqp->qp_solved)
         << "the terminating row must record the subproblem the solve stopped on -- which is now "
            "the ELASTIC re-solve, not a failing one";
-    EXPECT_TRUE(last.elastic_applied) << "this is where the kInfeasible is recorded now";
-    EXPECT_EQ(last.qp_status, QpStatus::kOptimal) << "the FINAL ELASTIC solve's status";
-    EXPECT_EQ(last.verdict, StepVerdict::kRestore)
+    EXPECT_TRUE(last.sqp->elastic) << "this is where the kInfeasible is recorded now";
+    EXPECT_EQ(last.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
+        << "the FINAL ELASTIC solve's status";
+    EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore)
         << "the elastic tier was exhausted; that is the authoritative Algorithm-5 trigger and "
            "it exits through the same interim route as the funnel's own kRestore";
     EXPECT_GE(sol.counters.elastic_activations, 1);
@@ -2293,11 +2313,11 @@ TEST(SqpDriverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasti
     // (not major_iters + 1) and history[major_iters] is OUT OF BOUNDS.
     EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(sol.counters.major_iters));
     EXPECT_EQ(std::count_if(sol.history.begin(), sol.history.end(),
-                            [](const SqpIterate &h) { return !h.qp_solved; }),
+                            [](const IterationRecord &h) { return !h.sqp->qp_solved; }),
               0)
         << "a solve that stopped on a subproblem must have no stopped-at-iterate row";
-    for (const SqpIterate &h : sol.history) {
-        EXPECT_TRUE(h.qp_solved) << "trial " << h.trial;
+    for (const IterationRecord &h : sol.history) {
+        EXPECT_TRUE(h.sqp->qp_solved) << "trial " << h.iteration;
     }
 
     // The complementary shape, for contrast: a solve that stops AT an iterate
@@ -2309,9 +2329,9 @@ TEST(SqpDriverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasti
     ASSERT_EQ(ok.status, SolveStatus::kOptimal);
     EXPECT_EQ(ok.history.size(), static_cast<std::size_t>(ok.counters.major_iters) + 1u);
     EXPECT_EQ(std::count_if(ok.history.begin(), ok.history.end(),
-                            [](const SqpIterate &h) { return !h.qp_solved; }),
+                            [](const IterationRecord &h) { return !h.sqp->qp_solved; }),
               1);
-    EXPECT_FALSE(ok.history.back().qp_solved);
+    EXPECT_FALSE(ok.history.back().sqp->qp_solved);
 }
 
 // =========================================================================
@@ -2656,20 +2676,22 @@ TEST(SqpDriverTrustRegion, RejectionShrinksAndRetriesHotly) {
     // The radius history, recorded per trial: 2 -> 1 -> 0.5, then doubled on
     // the way out because the accepted step's radius was binding and its
     // ratio actual/pred = 0.7727 cleared kTrGrowThreshold.
-    EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 2.0);
-    EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 1.0);
-    EXPECT_DOUBLE_EQ(sol.history[2].tr_radius, 0.5);
-    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 1.0);
+    EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 2.0);
+    EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 1.0);
+    EXPECT_DOUBLE_EQ(sol.history[2].sqp->trust_radius, 0.5);
+    EXPECT_DOUBLE_EQ(sol.history[3].sqp->trust_radius, 1.0);
 
     // The rejected trials describe the SAME iterate: same f, same residual,
     // and no iterate row in between. This is what "re-solve the same iterate"
     // means, and it is also the TR-CENTERING discipline (the retry re-centers
     // nothing -- seed.x stays zero).
-    EXPECT_DOUBLE_EQ(sol.history[0].f, sol.history[1].f);
-    EXPECT_DOUBLE_EQ(sol.history[1].f, sol.history[2].f);
-    EXPECT_DOUBLE_EQ(sol.history[0].kkt_residual, sol.history[2].kkt_residual);
-    for (const SqpIterate &h : sol.history) {
-        EXPECT_LE(h.step_norm, h.tr_radius * (1.0 + 1e-9)) << "trial " << h.trial;
+    EXPECT_DOUBLE_EQ(sol.history[0].f.value(), sol.history[1].f.value());
+    EXPECT_DOUBLE_EQ(sol.history[1].f.value(), sol.history[2].f.value());
+    EXPECT_DOUBLE_EQ(std::max(sol.history[0].stationarity, sol.history[0].feasibility),
+                     std::max(sol.history[2].stationarity, sol.history[2].feasibility));
+    for (const IterationRecord &h : sol.history) {
+        EXPECT_LE(h.step_norm.value_or(0.0), h.sqp->trust_radius * (1.0 + 1e-9))
+            << "trial " << h.iteration;
     }
 
     // Landed on the exact minimizer.
@@ -2701,12 +2723,13 @@ TEST(SqpDriverTrustRegion, RejectionShrinksAndRetriesHotly) {
     // that pin and reuse-eligibility condition (b) fails by construction --
     // the same effect test_qp_engine_tr.cpp's ShrinkRadiusRetryReusesHotStart
     // documents at length.
-    EXPECT_EQ(sol.history[0].qp_factorizations, 1); // cold: K0 built once
-    EXPECT_EQ(sol.history[1].qp_factorizations, 0); // hot: K0 reused outright
+    EXPECT_EQ(sol.history[0].sqp->qp_factorizations.value_or(0), 1); // cold: K0 built once
+    EXPECT_EQ(sol.history[1].sqp->qp_factorizations.value_or(0), 0); // hot: K0 reused outright
     ::testing::Test::RecordProperty("quartic_factorizations",
-                                    fmt::format("{} {} {}", sol.history[0].qp_factorizations,
-                                                sol.history[1].qp_factorizations,
-                                                sol.history[2].qp_factorizations));
+                                    fmt::format("{} {} {}",
+                                                sol.history[0].sqp->qp_factorizations.value_or(0),
+                                                sol.history[1].sqp->qp_factorizations.value_or(0),
+                                                sol.history[2].sqp->qp_factorizations.value_or(0)));
 }
 
 // THE BRIEF'S TEST (b). Delta grows on an easy problem, and stops at trust_region_max.
@@ -2737,14 +2760,15 @@ TEST(SqpDriverTrustRegion, RadiusGrowsOnStrongSteps) {
             << "observed 4, against Task 4's 10 at a fixed radius";
 
         double max_radius = 0.0;
-        for (const SqpIterate &h : sol.history) {
-            max_radius = std::max(max_radius, h.tr_radius);
-            EXPECT_LE(h.step_norm, h.tr_radius * (1.0 + 1e-9)) << "trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            max_radius = std::max(max_radius, h.sqp->trust_radius);
+            EXPECT_LE(h.step_norm.value_or(0.0), h.sqp->trust_radius * (1.0 + 1e-9))
+                << "trial " << h.iteration;
         }
         EXPECT_GT(max_radius, opts.trust_region_initial) << "the radius never grew";
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 1.0);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 2.0);
-        EXPECT_DOUBLE_EQ(sol.history[2].tr_radius, 4.0);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 1.0);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 2.0);
+        EXPECT_DOUBLE_EQ(sol.history[2].sqp->trust_radius, 4.0);
         ::testing::Test::RecordProperty("hs3_max_radius", fmt::format("{:g}", max_radius));
     }
     { // trust_region_max is a CEILING, not a suggestion.
@@ -2756,8 +2780,8 @@ TEST(SqpDriverTrustRegion, RadiusGrowsOnStrongSteps) {
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-        for (const SqpIterate &h : sol.history) {
-            EXPECT_LE(h.tr_radius, opts.trust_region_max) << "trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            EXPECT_LE(h.sqp->trust_radius, opts.trust_region_max) << "trial " << h.iteration;
         }
         EXPECT_GT(sol.counters.major_iters, 4) << "a tighter ceiling must cost majors";
     }
@@ -2829,10 +2853,10 @@ TEST(SqpDriverTrustRegion, RejectionCountReachesTheRestorationGate) {
     // and its second, capped request are tested in test_sqp_restoration.cpp;
     // what is pinned here is only that the gate handed the request over).
     ASSERT_GE(sol.history.size(), static_cast<std::size_t>(kRestoreMinRejections) + 1u);
-    const SqpIterate &gate_row = sol.history[static_cast<std::size_t>(kRestoreMinRejections)];
-    EXPECT_EQ(gate_row.verdict, StepVerdict::kRestore);
-    EXPECT_TRUE(gate_row.qp_solved);
-    EXPECT_EQ(gate_row.qp_status, QpStatus::kOptimal)
+    const IterationRecord &gate_row = sol.history[static_cast<std::size_t>(kRestoreMinRejections)];
+    EXPECT_EQ(gate_row.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore);
+    EXPECT_TRUE(gate_row.sqp->qp_solved);
+    EXPECT_EQ(gate_row.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
         << "the SUBPROBLEM was fine; it is the NLP step that had nowhere to go";
     EXPECT_GE(sol.counters.restoration_iters, 1) << "the phase must have run";
 }
@@ -2900,8 +2924,8 @@ TEST(SqpDriverTrustRegion, StrategyIsPluggable) {
         << "Task 4's cycle, reproduced by an accept-all "
            "strategy";
     EXPECT_EQ(sol.counters.rejected_steps, 0);
-    for (const SqpIterate &h : sol.history) {
-        EXPECT_DOUBLE_EQ(h.tr_radius, opts.trust_region_initial)
+    for (const IterationRecord &h : sol.history) {
+        EXPECT_DOUBLE_EQ(h.sqp->trust_radius, opts.trust_region_initial)
             << "nothing is ever rejected, so nothing shrinks";
     }
 
@@ -3007,8 +3031,8 @@ TEST(SqpDriverTrustRegion, RadiusHoldsWhenEitherGrowthConjunctFails) {
         EXPECT_GE(rho, kTrGrowThreshold);
 
         ASSERT_EQ(sol.history.size(), 2u);
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 2.0);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 2.0)
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 2.0);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 2.0)
             << "the radius grew on a step that never reached it";
     }
     { // (b) THE STEP WAS WEAK. FlatQuarticModel at trust_region_initial = 0.75, hand-derived:
@@ -3042,8 +3066,8 @@ TEST(SqpDriverTrustRegion, RadiusHoldsWhenEitherGrowthConjunctFails) {
         EXPECT_LT(rho, kTrGrowThreshold);
 
         ASSERT_GE(sol.history.size(), 2u);
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 0.75);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.75)
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 0.75);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 0.75)
             << "a weak step must not earn a larger radius even with the radius binding";
     }
 }
@@ -3096,9 +3120,12 @@ TEST(SqpDriverTrustRegion, RejectedMultipliersAreDiscarded) {
     // did the multipliers it is measured against.
     for (std::size_t k = 1; k < sol.history.size(); ++k) {
         EXPECT_DOUBLE_EQ(sol.history[k].stationarity, sol.history[0].stationarity) << "row " << k;
-        EXPECT_DOUBLE_EQ(sol.history[k].kkt_residual, sol.history[0].kkt_residual) << "row " << k;
-        EXPECT_DOUBLE_EQ(sol.history[k].f, sol.history[0].f) << "row " << k;
-        EXPECT_DOUBLE_EQ(sol.history[k].violation_l1, sol.history[0].violation_l1) << "row " << k;
+        EXPECT_DOUBLE_EQ(std::max(sol.history[k].stationarity, sol.history[k].feasibility),
+                         std::max(sol.history[0].stationarity, sol.history[0].feasibility))
+            << "row " << k;
+        EXPECT_DOUBLE_EQ(sol.history[k].f.value(), sol.history[0].f.value()) << "row " << k;
+        EXPECT_DOUBLE_EQ(sol.history[k].sqp->violation_l1, sol.history[0].sqp->violation_l1)
+            << "row " << k;
     }
     // The measurement is only load-bearing if the discarded multipliers would
     // have CHANGED it: |grad f| at the start point is ~10 and the QP's own
@@ -3434,18 +3461,23 @@ TEST(SqpDriverQpFailure, QpNumericalErrorShrinksInsteadOfAborting) {
         // THE ROUTE, pinned so a solve that reached the answer some other way
         // would not pass silently.
         ASSERT_EQ(sol.history.size(), 4u);
-        EXPECT_TRUE(sol.history[0].qp_solved);
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kReject)
+        EXPECT_TRUE(sol.history[0].sqp->qp_solved);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kReject)
             << "a routed QP failure is recorded as the rejection it is";
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 3.0);
-        EXPECT_NEAR(sol.history[0].step_norm, 2.0, 1e-9); // the twin saddle
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 3.0);
+        // TR-D': a routed QP-failure row has no step leaving it (spec 2.4), so the record's step is
+        // absent; the failed attempt's |p|inf (2.0, the twin saddle) is no longer on the row.
+        EXPECT_FALSE(sol.history[0].step_norm.has_value());
 
         // The radius halved and the iterate did NOT move: rows 0 and 1
         // measure the same point, bit for bit.
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 1.5);
-        EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
-        EXPECT_DOUBLE_EQ(sol.history[1].f, sol.history[0].f);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 1.5);
+        EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kOptimal);
+        EXPECT_DOUBLE_EQ(sol.history[1].f.value(), sol.history[0].f.value());
         EXPECT_DOUBLE_EQ(sol.history[1].stationarity, sol.history[0].stationarity);
 
         EXPECT_EQ(sol.counters.major_iters, 3);
@@ -3482,7 +3514,8 @@ TEST(SqpDriverQpFailure, TheSaddleExitLeavesTheTwinSaddleWithoutAFailure) {
             EXPECT_NEAR(sol.f, model.f_star(), 1e-9);
             EXPECT_LT((sol.x - model.minimizer()).lpNorm<Eigen::Infinity>(), 1e-8);
             ASSERT_FALSE(sol.history.empty());
-            EXPECT_EQ(sol.history[0].qp_status, QpStatus::kOptimal);
+            EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                      QpStatus::kOptimal);
             EXPECT_EQ(sol.counters.qp_numerical_exits, 0);
             EXPECT_EQ(sol.counters.rejected_steps, 0);
         }
@@ -3526,7 +3559,8 @@ TEST(SqpDriverQpFailure, SuspectEscalationsAggregateToTheDriver) {
         // The engine refused the first subproblem, and it refused it through
         // the gate rather than through some other exit.
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
 
         // THE ASSERTION THIS TEST EXISTS FOR: the rung is visible at driver
         // level. Without the aggregation this reads 0 while the QP-level
@@ -3603,10 +3637,12 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         EXPECT_EQ(sol.message,
                   "numerical error: the QP subproblem failed and its retry budget was spent");
         ASSERT_EQ(sol.history.size(), 2u);
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
-        EXPECT_EQ(sol.history[1].qp_status, QpStatus::kNumericalError);
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 4.0);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 2.0);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 4.0);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 2.0);
         EXPECT_EQ(sol.counters.major_iters, 2);
         EXPECT_EQ(sol.counters.rejected_steps, 1);
         EXPECT_EQ(sol.counters.steps_accepted, 0);
@@ -3616,7 +3652,7 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         // This is the qp_solved == true kNumericalError shape (see
         // sqp_solver.h's SUBPROBLEM FAILURE ROUTING): the SUBPROBLEM failed, not the
         // iterate.
-        EXPECT_TRUE(sol.history.back().qp_solved);
+        EXPECT_TRUE(sol.history.back().sqp->qp_solved);
     }
 }
 
@@ -3701,14 +3737,17 @@ TEST(SqpDriverQpFailure, QpMaxIterTakesTheSameShrinkRetryPath) {
         // Exactly one subproblem hit the cap, and it was ROUTED, not fatal.
         int capped_rows = 0;
         for (std::size_t k = 0; k < sol.history.size(); ++k) {
-            if (!sol.history[k].qp_solved ||
-                sol.history[k].qp_status != QpStatus::kIterationLimit) {
+            if (!sol.history[k].sqp->qp_solved ||
+                sol.history[k].sqp->qp_status.value_or(hven::QpStatus::kOptimal) !=
+                    QpStatus::kIterationLimit) {
                 continue;
             }
             ++capped_rows;
             ASSERT_LT(k + 1, sol.history.size()) << "a capped row must not be the last one";
-            EXPECT_DOUBLE_EQ(sol.history[k + 1].tr_radius, 0.5 * sol.history[k].tr_radius);
-            EXPECT_DOUBLE_EQ(sol.history[k + 1].f, sol.history[k].f) << "the iterate must not move";
+            EXPECT_DOUBLE_EQ(sol.history[k + 1].sqp->trust_radius,
+                             0.5 * sol.history[k].sqp->trust_radius);
+            EXPECT_DOUBLE_EQ(sol.history[k + 1].f.value(), sol.history[k].f.value())
+                << "the iterate must not move";
         }
         EXPECT_EQ(capped_rows, 1);
         EXPECT_EQ(sol.counters.rejected_steps, 1);
@@ -3758,16 +3797,20 @@ TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultiplier
 
         int taken = 0;
         for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
-            const SqpIterate &row = sol.history[k];
-            if (row.qp_status != QpStatus::kIterationLimit ||
-                (row.verdict != StepVerdict::kAcceptObjectiveStep &&
-                 row.verdict != StepVerdict::kAcceptFeasibilityStep)) {
+            const IterationRecord &row = sol.history[k];
+            if (row.sqp->qp_status.value_or(hven::QpStatus::kOptimal) !=
+                    QpStatus::kIterationLimit ||
+                (row.sqp->verdict.value_or(hven::StepVerdict::kReject) !=
+                     StepVerdict::kAcceptObjectiveStep &&
+                 row.sqp->verdict.value_or(hven::StepVerdict::kReject) !=
+                     StepVerdict::kAcceptFeasibilityStep)) {
                 continue;
             }
             ++taken;
             SCOPED_TRACE("taken row " + std::to_string(k));
-            EXPECT_DOUBLE_EQ(sol.history[k + 1].tr_radius, row.tr_radius) << "no growth";
-            EXPECT_NE(sol.history[k + 1].f, row.f) << "the iterate moved";
+            EXPECT_DOUBLE_EQ(sol.history[k + 1].sqp->trust_radius, row.sqp->trust_radius)
+                << "no growth";
+            EXPECT_NE(sol.history[k + 1].f.value(), row.f) << "the iterate moved";
             // THE MULTIPLIERS ARE KEPT: a nonzero price carried across, not zeroed.
             EXPECT_GT(lambda_e_at[k].lpNorm<Eigen::Infinity>(), 0.0);
             EXPECT_EQ(lambda_e_at[k + 1], lambda_e_at[k]) << "kept, not re-priced";
@@ -3798,13 +3841,16 @@ TEST(SqpDriverQpFailure, TheFailedSaddleStepIsTakenAsAnHStep) {
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, model.f_star(), 1e-9);
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptFeasibilityStep);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptFeasibilityStep);
         EXPECT_EQ(sol.counters.qp_failure_steps_judged, 1);
         EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
         EXPECT_EQ(sol.counters.qp_failures_routed, 0);
         ASSERT_GE(sol.history.size(), 2u);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, sol.history[0].tr_radius) << "no growth";
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, sol.history[0].sqp->trust_radius)
+            << "no growth";
     }
 }
 
@@ -3863,7 +3909,7 @@ TEST(SqpDriverQpFailure, ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall) {
     EXPECT_EQ(sol.counters.qp_minor_iters, 0);
     EXPECT_EQ(sol.counters.factorizations, 0);
     ASSERT_EQ(sol.history.size(), 1u);
-    EXPECT_FALSE(sol.history[0].qp_solved);
+    EXPECT_FALSE(sol.history[0].sqp->qp_solved);
     EXPECT_EQ(sol.x.lpNorm<Eigen::Infinity>(), 0.0) << "the point it reached: the start";
     // x0 = 0 is INSIDE [-10, 10]: an interior |t|^p point, not a box rounding (M7 W2 W1).
     EXPECT_EQ(sol.counters.nonfinite_box_projections, 0);
@@ -4049,13 +4095,15 @@ TEST(SqpDriverNonfiniteRollback, AnAcceptedStepOntoAnInfiniteHessianIsRolledBack
     // major 1 stands on x0 = 0, solves nothing and is rolled back; major 2 is x0 = 9 again,
     // at half the radius.
     ASSERT_GE(sol.history.size(), 3u);
-    EXPECT_TRUE(sol.history[0].qp_solved);
-    EXPECT_TRUE(sol.history[0].verdict == StepVerdict::kAcceptObjectiveStep ||
-                sol.history[0].verdict == StepVerdict::kAcceptFeasibilityStep);
-    EXPECT_FALSE(sol.history[1].qp_solved);
-    EXPECT_EQ(sol.history[1].f, 0.0) << "the abandoned point x0 = 0";
-    EXPECT_EQ(sol.history[2].f, sol.history[0].f) << "the restored iterate";
-    EXPECT_EQ(sol.history[2].tr_radius, 0.5 * sol.history[0].tr_radius);
+    EXPECT_TRUE(sol.history[0].sqp->qp_solved);
+    EXPECT_TRUE(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                    StepVerdict::kAcceptObjectiveStep ||
+                sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject) ==
+                    StepVerdict::kAcceptFeasibilityStep);
+    EXPECT_FALSE(sol.history[1].sqp->qp_solved);
+    EXPECT_EQ(sol.history[1].f.value(), 0.0) << "the abandoned point x0 = 0";
+    EXPECT_EQ(sol.history[2].f.value(), sol.history[0].f.value()) << "the restored iterate";
+    EXPECT_EQ(sol.history[2].sqp->trust_radius, 0.5 * sol.history[0].sqp->trust_radius);
     // NO ROW AFTER THE LAST ROLLBACK STANDS ON A NON-FINITE POINT: every later row is
     // measured, and the returned point is interior.
     EXPECT_GT(sol.x(0), 0.0);
@@ -4076,7 +4124,7 @@ TEST(SqpDriverNonfiniteRollback, AnAcceptedStepOntoAnInfiniteGradientIsRolledBac
     EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
     EXPECT_EQ(sol.counters.nonfinite_subproblems, 0);
     ASSERT_GE(sol.history.size(), 2u);
-    EXPECT_FALSE(sol.history[1].qp_solved);
+    EXPECT_FALSE(sol.history[1].sqp->qp_solved);
     EXPECT_TRUE(std::isnan(sol.history[1].stationarity)) << "the abandoned point's gradient";
 }
 
@@ -4114,11 +4162,12 @@ TEST(SqpDriverNonfiniteRollback, TheFunnelWidthIsPutBackAfterAnHTypeRollback) {
     ASSERT_NO_THROW(sol = driver.solve(hven::detail::problem_ref(model), (model).start_point()));
     ASSERT_GE(sol.counters.nonfinite_step_rollbacks, 1);
     ASSERT_GE(sol.history.size(), 3u);
-    EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptFeasibilityStep)
+    EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kAcceptFeasibilityStep)
         << "the premise: an h-type step";
     EXPECT_TRUE(sol.history[1].rolled_back);
     EXPECT_EQ(sol.status, SolveStatus::kIterationLimit);
-    EXPECT_EQ(sol.f, sol.history[0].f) << "the solve stopped at the restored iterate";
+    EXPECT_EQ(sol.f, sol.history[0].f.value()) << "the solve stopped at the restored iterate";
     EXPECT_DOUBLE_EQ(SqpWarmAccess::state(sol.sqp_warm_start).funnel_width, 125.0)
         << "the pre-commit width: max(100, 1.25 * 100); the tightened one was 62.5";
     // And the whole solve still reaches the minimizer from there.
@@ -4137,10 +4186,10 @@ TEST(SqpDriverNonfiniteRollback, RollbackRowsCarryTheFlagAndNoOtherRowDoes) {
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     Index flagged = 0;
-    for (const SqpIterate &row : sol.history) {
+    for (const IterationRecord &row : sol.history) {
         if (row.rolled_back) {
             ++flagged;
-            EXPECT_FALSE(row.qp_solved);
+            EXPECT_FALSE(row.sqp->qp_solved);
         }
     }
     EXPECT_EQ(flagged, sol.counters.nonfinite_step_rollbacks);
@@ -4296,12 +4345,15 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
 #ifdef USE_ACCELERATE_SPARSE
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     ASSERT_EQ(sol.history.size(), 4u);
-    EXPECT_EQ(sol.history[0].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
-    EXPECT_EQ(sol.history[2].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[3].qp_status, QpStatus::kIterationLimit);
-    EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.5 * sol.history[0].tr_radius);
-    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
+    EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal);
+    EXPECT_EQ(sol.history[2].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[3].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 0.5 * sol.history[0].sqp->trust_radius);
+    EXPECT_DOUBLE_EQ(sol.history[3].sqp->trust_radius, 0.5 * sol.history[2].sqp->trust_radius);
     EXPECT_EQ(sol.counters.rejected_steps, 2);
 #elif defined(NDEBUG)
     // U0 (unified flags, 2026-08-16, declared): under -ffast-math
@@ -4318,12 +4370,15 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     // #else arm). Two fresh reproductions agreed.
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     ASSERT_EQ(sol.history.size(), 4u);
-    EXPECT_EQ(sol.history[0].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
-    EXPECT_EQ(sol.history[2].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[3].qp_status, QpStatus::kIterationLimit);
-    EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.5 * sol.history[0].tr_radius);
-    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
+    EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal);
+    EXPECT_EQ(sol.history[2].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[3].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 0.5 * sol.history[0].sqp->trust_radius);
+    EXPECT_DOUBLE_EQ(sol.history[3].sqp->trust_radius, 0.5 * sol.history[2].sqp->trust_radius);
     EXPECT_EQ(sol.counters.rejected_steps, 2);
 #else
     // M7 W2 E4 FIX ROUND 2 (declared): Debug now walks the SAME four-row chain Release
@@ -4335,12 +4390,15 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     // above and a future divergence needs somewhere to land.
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     ASSERT_EQ(sol.history.size(), 4u);
-    EXPECT_EQ(sol.history[0].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
-    EXPECT_EQ(sol.history[2].qp_status, QpStatus::kIterationLimit);
-    EXPECT_EQ(sol.history[3].qp_status, QpStatus::kIterationLimit);
-    EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.5 * sol.history[0].tr_radius);
-    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
+    EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal);
+    EXPECT_EQ(sol.history[2].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_EQ(sol.history[3].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kIterationLimit);
+    EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 0.5 * sol.history[0].sqp->trust_radius);
+    EXPECT_DOUBLE_EQ(sol.history[3].sqp->trust_radius, 0.5 * sol.history[2].sqp->trust_radius);
     EXPECT_EQ(sol.counters.rejected_steps, 2);
 #endif
 }
@@ -4432,24 +4490,31 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
 
         ASSERT_EQ(sol.history.size(), 5u);
         // Trial 0 moved the iterate, so the rejection count restarts from it.
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kOptimal);
-        EXPECT_NE(sol.history[0].verdict, StepVerdict::kReject);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kOptimal);
+        EXPECT_NE(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kReject);
 
         // Trials 1..3 are the three that fill the gate, all at ONE iterate
         // (same f, bit for bit) with the radius halving on every one.
         for (std::size_t k = 1; k <= 3; ++k) {
             SCOPED_TRACE("trial " + std::to_string(k));
-            EXPECT_TRUE(sol.history[k].qp_solved);
-            EXPECT_DOUBLE_EQ(sol.history[k].f, sol.history[1].f) << "the iterate must not move";
-            EXPECT_EQ(sol.history[k].verdict, StepVerdict::kReject);
-            EXPECT_DOUBLE_EQ(sol.history[k].tr_radius, 12.0 / std::pow(2.0, k - 1));
+            EXPECT_TRUE(sol.history[k].sqp->qp_solved);
+            EXPECT_DOUBLE_EQ(sol.history[k].f.value(), sol.history[1].f.value())
+                << "the iterate must not move";
+            EXPECT_EQ(sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                      StepVerdict::kReject);
+            EXPECT_DOUBLE_EQ(sol.history[k].sqp->trust_radius, 12.0 / std::pow(2.0, k - 1));
         }
         // TWO OF THE THREE ARE ROUTED FAILURES, and the middle one is a genuine
         // judged rejection -- which is exactly what resets the failure chain
         // and lets the third routed failure happen at all.
-        EXPECT_EQ(sol.history[1].qp_status, QpStatus::kIterationLimit);
-        EXPECT_EQ(sol.history[2].qp_status, QpStatus::kOptimal);
-        EXPECT_EQ(sol.history[3].qp_status, QpStatus::kIterationLimit);
+        EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kIterationLimit);
+        EXPECT_EQ(sol.history[2].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kOptimal);
+        EXPECT_EQ(sol.history[3].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kIterationLimit);
 
         // rejections_at_iterate is driver-internal, but at this iterate it is
         // exactly the rejections counted since trial 0's acceptance, i.e. the
@@ -4466,8 +4531,10 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         // which is adjacent to its predecessor by definition and is what ENDS
         // the solve rather than adding to the count.)
         for (std::size_t k = 1; k + 2 < sol.history.size(); ++k) {
-            const bool routed_here = sol.history[k].qp_status != QpStatus::kOptimal;
-            const bool routed_next = sol.history[k + 1].qp_status != QpStatus::kOptimal;
+            const bool routed_here = sol.history[k].sqp->qp_status.value_or(
+                                         hven::QpStatus::kOptimal) != QpStatus::kOptimal;
+            const bool routed_next = sol.history[k + 1].sqp->qp_status.value_or(
+                                         hven::QpStatus::kOptimal) != QpStatus::kOptimal;
             EXPECT_FALSE(routed_here && routed_next)
                 << "rows " << k << "," << k + 1 << " are adjacent routed failures, which the "
                 << "one-shot chain must make impossible except on the terminating pair";
@@ -4475,7 +4542,8 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
 
         // Trial 4 is the SECOND consecutive failure of one chain, so it
         // propagates rather than shrinking a fourth time.
-        EXPECT_EQ(sol.history[4].qp_status, QpStatus::kIterationLimit);
+        EXPECT_EQ(sol.history[4].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kIterationLimit);
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
 
         // AND THE ELASTIC TIER NEVER ACTIVATED (fix round 1): every failure
@@ -4814,8 +4882,8 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
     // why those can now differ), and it is asserted as the OBSERVED value
     // (0), not merely claimed in a comment.
     Index row_factorizations = 0;
-    for (const SqpIterate &h : sol_soc.history) {
-        row_factorizations += h.qp_factorizations;
+    for (const IterationRecord &h : sol_soc.history) {
+        row_factorizations += h.sqp->qp_factorizations.value_or(0);
     }
     const Index soc_own_factorizations = sol_soc.counters.factorizations - row_factorizations;
     EXPECT_EQ(soc_own_factorizations, 0)
@@ -4824,16 +4892,17 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
 
     // "UNIT STEPS ACCEPTED": the radius never had to move -- neither shrunk
     // (no un-rescued reject) nor grown (no step ever bound the radius).
-    for (const SqpIterate &h : sol_soc.history) {
-        EXPECT_DOUBLE_EQ(h.tr_radius, opts_soc.trust_region_initial) << "trial " << h.trial;
+    for (const IterationRecord &h : sol_soc.history) {
+        EXPECT_DOUBLE_EQ(h.sqp->trust_radius, opts_soc.trust_region_initial)
+            << "trial " << h.iteration;
     }
 
     // The accepted row that recorded the correction.
     bool soc_row_found = false;
-    for (const SqpIterate &h : sol_soc.history) {
-        if (h.soc_applied) {
+    for (const IterationRecord &h : sol_soc.history) {
+        if (h.soc) {
             soc_row_found = true;
-            EXPECT_NE(h.verdict, StepVerdict::kReject);
+            EXPECT_NE(h.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kReject);
         }
     }
     EXPECT_TRUE(soc_row_found);
@@ -5006,9 +5075,11 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol.history.size(), 4u);
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kNumericalError);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kReject);
-        EXPECT_FALSE(sol.history[0].soc_applied);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kNumericalError);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kReject);
+        EXPECT_FALSE(sol.history[0].soc);
         EXPECT_EQ(sol.counters.rejected_steps, 1);
         EXPECT_EQ(sol.counters.soc_steps, 0)
             << "a routed kNumericalError row never reaches judge(), so SOC's "
@@ -5028,11 +5099,13 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         int capped_rows = 0;
-        for (const SqpIterate &h : sol.history) {
-            if (h.qp_solved && h.qp_status == QpStatus::kIterationLimit) {
+        for (const IterationRecord &h : sol.history) {
+            if (h.sqp->qp_solved &&
+                h.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kIterationLimit) {
                 ++capped_rows;
-                EXPECT_EQ(h.verdict, StepVerdict::kReject);
-                EXPECT_FALSE(h.soc_applied);
+                EXPECT_EQ(h.sqp->verdict.value_or(hven::StepVerdict::kReject),
+                          StepVerdict::kReject);
+                EXPECT_FALSE(h.soc);
             }
         }
         EXPECT_EQ(capped_rows, 1);
@@ -5218,8 +5291,8 @@ TEST(SqpDriverSoc, SocAcceptedMultipliersComeFromTheReSolve) {
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.major_iters, 2);
     ASSERT_EQ(sol.history.size(), 3u);
-    EXPECT_TRUE(sol.history[1].soc_applied);
-    EXPECT_FALSE(sol.history[2].qp_solved) << "the terminal row builds no subproblem";
+    EXPECT_TRUE(sol.history[1].soc);
+    EXPECT_FALSE(sol.history[2].sqp->qp_solved) << "the terminal row builds no subproblem";
 
     ASSERT_EQ(hven::detail::engine_rows(sol).lambda_e.size(), 1);
     EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(0), -1.4999961431933102, 1e-9);
@@ -5879,14 +5952,16 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
         EXPECT_EQ(sol.counters.rejected_steps, 0);
 
         ASSERT_EQ(sol.history.size(), 3u);
-        EXPECT_TRUE(sol.history[0].elastic_applied);
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kOptimal)
+        EXPECT_TRUE(sol.history[0].sqp->elastic);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kOptimal)
             << "the row's qp_status is the FINAL ELASTIC solve's, not the "
                "kInfeasible that triggered the tier";
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptObjectiveStep);
-        EXPECT_DOUBLE_EQ(sol.history[0].step_norm, 1.0)
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptObjectiveStep);
+        EXPECT_DOUBLE_EQ(sol.history[0].step_norm.value_or(0.0), 1.0)
             << "|(1, -0.5)|inf, the original block only";
-        EXPECT_DOUBLE_EQ(sol.history[0].violation_l1, 1.0);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->violation_l1, 1.0);
 
         // THE RADIUS BIT IS RE-DERIVED, not lost. The elastic solve gets the
         // window as REAL bounds, so the engine reports tr_active all-false and
@@ -5896,9 +5971,9 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
         // also strong (actual/pred = 3.25/3.25 = 1 >= 0.75), the growth rule
         // fires and the next trial is solved at 2. Both halves would silently
         // disappear if tr_active came back all-false.
-        EXPECT_TRUE(sol.history[0].tr_binding);
-        EXPECT_DOUBLE_EQ(sol.history[0].tr_radius, 1.0);
-        EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 2.0);
+        EXPECT_TRUE(sol.history[0].sqp->tr_binding);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 1.0);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 2.0);
 
         // COST ACCOUNTING, the SOC convention ported: the ROW carries the
         // FINAL elastic solve's counts, while the AGGREGATE carries every
@@ -5906,10 +5981,10 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
         // rungs of the ladder. Observed: 3 minor iterations on row 0 against
         // 29 for the whole solve.
         Index row_minors = 0;
-        for (const SqpIterate &h : sol.history) {
-            row_minors += h.qp_minor_iters;
+        for (const IterationRecord &h : sol.history) {
+            row_minors += h.sqp->qp_minor_iterations.value_or(0);
         }
-        EXPECT_EQ(sol.history[0].qp_minor_iters, 2);
+        EXPECT_EQ(sol.history[0].sqp->qp_minor_iterations.value_or(0), 2);
         EXPECT_GT(sol.counters.qp_minor_iters, row_minors)
             << "the escalation re-solves' cost is folded into the aggregate only";
 
@@ -5937,15 +6012,15 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
             fmt::format("{}:{}",
                         algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize",
                         sol.counters.factorizations));
-        EXPECT_FALSE(sol.history[1].elastic_applied);
+        EXPECT_FALSE(sol.history[1].sqp->elastic);
         // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared ROUNDING mover): the border
         // arm lands at 2.2204460492503131e-16 -- one ulp of 1 -- instead of exactly
         // 0. The claim is that the elastic step lands ON the feasible set, and at one
         // ulp it does; an exact-zero pin on a computed l1 violation is a pin on the
         // order the sum happens to be accumulated in.
-        EXPECT_LE(sol.history[1].violation_l1, 4.0 * std::numeric_limits<double>::epsilon())
+        EXPECT_LE(sol.history[1].sqp->violation_l1, 4.0 * std::numeric_limits<double>::epsilon())
             << "the elastic step landed on the feasible set";
-        EXPECT_FALSE(sol.history[2].qp_solved);
+        EXPECT_FALSE(sol.history[2].sqp->qp_solved);
 
         // The returned quadruple is a genuine KKT certificate of the NLP.
         const NlpKktResidual r = self_check_kkt(model, sol, opts.common.feasibility_tol);
@@ -6033,8 +6108,9 @@ TEST(SqpDriverElastic, ElasticSurvivesALargeConstraintScale) {
         EXPECT_NEAR(sol.x(1), 0.0, 1e-7);
         EXPECT_GE(sol.counters.elastic_activations, 1);
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_TRUE(sol.history[0].elastic_applied);
-        EXPECT_EQ(sol.history[0].qp_status, QpStatus::kOptimal)
+        EXPECT_TRUE(sol.history[0].sqp->elastic);
+        EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+                  QpStatus::kOptimal)
             << "before the finite slack bound this read kNumericalError";
         // The ladder was actually walked, which is what says the elastic solve
         // produced a usable answer at every rung rather than dying on rung 1.
@@ -6082,7 +6158,7 @@ TEST(SqpDriverElastic, ElasticIsIdleOnCleanProblems) {
         EXPECT_EQ(sol.counters.elastic_activations, 0);
         EXPECT_EQ(sol.counters.elastic_escalations, 0);
         EXPECT_EQ(std::count_if(sol.history.begin(), sol.history.end(),
-                                [](const SqpIterate &h) { return h.elastic_applied; }),
+                                [](const IterationRecord &h) { return h.sqp->elastic; }),
                   0);
     }
 }
@@ -6128,18 +6204,19 @@ TEST(SqpDriverElastic, RhoEscalationIsBoundedAndSignals) {
         EXPECT_EQ(sol.counters.steps_accepted, 1);
 
         ASSERT_EQ(sol.history.size(), 2u);
-        EXPECT_TRUE(sol.history[0].elastic_applied);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptFeasibilityStep);
-        EXPECT_DOUBLE_EQ(sol.history[0].violation_l1, 4.5);
-        EXPECT_DOUBLE_EQ(sol.history[1].violation_l1, 4.0) << "the elastic step reduced h";
+        EXPECT_TRUE(sol.history[0].sqp->elastic);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptFeasibilityStep);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->violation_l1, 4.5);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->violation_l1, 4.0) << "the elastic step reduced h";
 
         // The terminating row: the elastic tier's own exhaustion signal,
         // routed through the SAME interim path Task 6 established for the
         // funnel's kRestore. Task 9 consumes exactly this.
-        const SqpIterate &last = sol.history.back();
-        EXPECT_TRUE(last.qp_solved);
-        EXPECT_TRUE(last.elastic_applied);
-        EXPECT_EQ(last.verdict, StepVerdict::kRestore);
+        const IterationRecord &last = sol.history.back();
+        EXPECT_TRUE(last.sqp->qp_solved);
+        EXPECT_TRUE(last.sqp->elastic);
+        EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore);
         // TASK 9: the signal is now SERVICED rather than exited on. The tier's
         // own behaviour above is unchanged (same activations, same escalations,
         // same two rows); what follows the signal is the restoration phase,
@@ -6208,7 +6285,8 @@ TEST(SqpDriverElastic, EarlyExitCutsTheLadderOnABoundPinnedFixture) {
         EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
         EXPECT_NEAR(sol.f, 0.0, 1e-12);
         ASSERT_EQ(sol.history.size(), 3u);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptObjectiveStep);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptObjectiveStep);
         // THE ONE THING THAT DOES MOVE (see sqp_solver_types.h's own note): an
         // informational violation_l1 reading, by ~1e-13 -- MEASURED
         // 4.0012437807490642e-13 (border) / 2.0006218903745321e-13
@@ -6218,7 +6296,7 @@ TEST(SqpDriverElastic, EarlyExitCutsTheLadderOnABoundPinnedFixture) {
         // land a few ULPs nearer the exact corner than rho = 1e3's does.
         // Four to five orders below feas_tol/kkt_tol's default 1e-6 --
         // "the elastic step landed on the feasible set" either way.
-        EXPECT_NEAR(sol.history[1].violation_l1, 0.0, 1e-9);
+        EXPECT_NEAR(sol.history[1].sqp->violation_l1, 0.0, 1e-9);
 
         const NlpKktResidual r = self_check_kkt(model, sol, opts.common.feasibility_tol);
         EXPECT_LT(r.stationarity, 1e-8);
@@ -6248,10 +6326,12 @@ TEST(SqpDriverElastic, EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture) 
             << "1 per activation (the off-lever reading is 12, 6 per activation)";
         EXPECT_EQ(sol.counters.major_iters, 2);
         ASSERT_EQ(sol.history.size(), 2u);
-        EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptFeasibilityStep);
-        EXPECT_DOUBLE_EQ(sol.history[0].violation_l1, 4.5);
-        EXPECT_DOUBLE_EQ(sol.history[1].violation_l1, 4.0);
-        EXPECT_EQ(sol.history.back().verdict, StepVerdict::kRestore);
+        EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptFeasibilityStep);
+        EXPECT_DOUBLE_EQ(sol.history[0].sqp->violation_l1, 4.5);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->violation_l1, 4.0);
+        EXPECT_EQ(sol.history.back().sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kRestore);
         EXPECT_GE(sol.counters.restoration_iters, 1);
     }
 }
@@ -6484,10 +6564,11 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
         EXPECT_LE(err, 1e-9) << "the fixed-mu arm now meets the adaptive arm's own bar";
 
         ASSERT_FALSE(sol.history.empty());
-        for (const SqpIterate &h : sol.history) {
-            if (h.qp_solved) {
-                EXPECT_DOUBLE_EQ(h.mu, fixed_opts.qp.dual_regularization)
-                    << "disabled: dual_mu never leaves the engine default -- trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            if (h.sqp->qp_solved) {
+                EXPECT_DOUBLE_EQ(h.sqp->dual_regularization.value_or(0.0),
+                                 fixed_opts.qp.dual_regularization)
+                    << "disabled: dual_mu never leaves the engine default -- trial " << h.iteration;
             }
         }
     }
@@ -6507,13 +6588,15 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
         // genuinely moved (more than one distinct value) -- neither stuck at
         // mu_max nor drifting off the decade grid.
         std::vector<double> distinct_mu;
-        for (const SqpIterate &h : sol.history) {
-            if (!h.qp_solved) {
+        for (const IterationRecord &h : sol.history) {
+            if (!h.sqp->qp_solved) {
                 continue;
             }
-            EXPECT_TRUE(is_exact_decade(h.mu)) << "trial " << h.trial << " mu = " << h.mu;
-            if (std::find(distinct_mu.begin(), distinct_mu.end(), h.mu) == distinct_mu.end()) {
-                distinct_mu.push_back(h.mu);
+            EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
+                << "trial " << h.iteration << " mu = " << h.sqp->dual_regularization.value_or(0.0);
+            if (std::find(distinct_mu.begin(), distinct_mu.end(),
+                          h.sqp->dual_regularization.value_or(0.0)) == distinct_mu.end()) {
+                distinct_mu.push_back(h.sqp->dual_regularization.value_or(0.0));
             }
         }
         // RE-PREMISED with arm (1) above: the schedule has nothing to shrink mu FOR any
@@ -6577,16 +6660,18 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
         // sequence), mu must never grow back.
         double last_mu = -1.0;
         bool changed = false;
-        for (const SqpIterate &h : sol.history) {
-            if (!h.qp_solved) {
+        for (const IterationRecord &h : sol.history) {
+            if (!h.sqp->qp_solved) {
                 continue;
             }
-            EXPECT_TRUE(is_exact_decade(h.mu)) << "trial " << h.trial << " mu = " << h.mu;
+            EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
+                << "trial " << h.iteration << " mu = " << h.sqp->dual_regularization.value_or(0.0);
             if (last_mu > 0.0) {
-                EXPECT_LE(h.mu, last_mu) << "trial " << h.trial;
-                changed = changed || h.mu != last_mu;
+                EXPECT_LE(h.sqp->dual_regularization.value_or(0.0), last_mu)
+                    << "trial " << h.iteration;
+                changed = changed || h.sqp->dual_regularization.value_or(0.0) != last_mu;
             }
-            last_mu = h.mu;
+            last_mu = h.sqp->dual_regularization.value_or(0.0);
         }
         EXPECT_TRUE(changed) << "the schedule must have moved at least once on HS7's own "
                                 "quadratic tail (observed: 1e-8 -> 1e-10, see "
@@ -6631,9 +6716,10 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
         }
 #endif
         ASSERT_GE(sol.history.size(), 11u);
-        for (const SqpIterate &h : sol.history) {
-            if (h.qp_solved) {
-                EXPECT_TRUE(is_exact_decade(h.mu)) << "trial " << h.trial;
+        for (const IterationRecord &h : sol.history) {
+            if (h.sqp->qp_solved) {
+                EXPECT_TRUE(is_exact_decade(h.sqp->dual_regularization.value_or(0.0)))
+                    << "trial " << h.iteration;
             }
         }
 
@@ -6651,7 +6737,8 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
         // later). All three hold on trials 1-7, so K0 built at trial 0 is
         // reused outright.
         for (Index t = 1; t <= 7; ++t) {
-            EXPECT_EQ(sol.history[static_cast<std::size_t>(t)].qp_factorizations, 0)
+            EXPECT_EQ(sol.history[static_cast<std::size_t>(t)].sqp->qp_factorizations.value_or(0),
+                      0)
                 << "trial " << t << " -- see the three-condition comment above";
         }
 
@@ -6661,11 +6748,13 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
         // not a regression of the reuse this test just measured.
         bool saw_decade_drop = false;
         for (std::size_t t = 1; t < sol.history.size(); ++t) {
-            const SqpIterate &prev = sol.history[t - 1];
-            const SqpIterate &cur = sol.history[t];
-            if (prev.qp_solved && cur.qp_solved && cur.mu != prev.mu) {
+            const IterationRecord &prev = sol.history[t - 1];
+            const IterationRecord &cur = sol.history[t];
+            if (prev.sqp->qp_solved && cur.sqp->qp_solved &&
+                cur.sqp->dual_regularization.value_or(0.0) !=
+                    prev.sqp->dual_regularization.value_or(0.0)) {
                 saw_decade_drop = true;
-                EXPECT_GE(cur.qp_factorizations, 1)
+                EXPECT_GE(cur.sqp->qp_factorizations.value_or(0), 1)
                     << "a genuine mu-decade change must force a refactorization, trial " << t;
             }
         }
@@ -6732,11 +6821,11 @@ TEST(SqpDriverAdaptiveMu, ScheduleIsIdleWhenDisabled) {
 
     ASSERT_FALSE(sol.history.empty());
     std::size_t solved_rows = 0;
-    for (const SqpIterate &h : sol.history) {
-        if (h.qp_solved) {
+    for (const IterationRecord &h : sol.history) {
+        if (h.sqp->qp_solved) {
             ++solved_rows;
-            EXPECT_EQ(h.mu, opts.qp.dual_regularization)
-                << "trial " << h.trial
+            EXPECT_EQ(h.sqp->dual_regularization.value_or(0.0), opts.qp.dual_regularization)
+                << "trial " << h.iteration
                 << " -- disabled means dual_mu NEVER leaves the engine "
                    "default, byte for byte";
         }
@@ -6781,23 +6870,23 @@ TEST(SqpDriverDiagnostics, HistoryRecordsTheFormalizedPerMajorContract) {
     // and the last row's qp_solved is false.
     EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(sol.counters.major_iters) + 1u);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_FALSE(sol.history.back().qp_solved);
+    EXPECT_FALSE(sol.history.back().sqp->qp_solved);
 
     // Every field the brief names -- KKT residual, h (violation_l1), f, Delta
     // (tr_radius), verdict, QP counters -- is populated with a sane value on
     // every row, and every row but the last has a solved subproblem behind it.
     for (std::size_t i = 0; i < sol.history.size(); ++i) {
-        const SqpIterate &row = sol.history[i];
-        EXPECT_TRUE(std::isfinite(row.f)) << "row " << i;
-        EXPECT_TRUE(std::isfinite(row.kkt_residual)) << "row " << i;
-        EXPECT_GE(row.kkt_residual, 0.0) << "row " << i;
-        EXPECT_TRUE(std::isfinite(row.violation_l1)) << "row " << i;
-        EXPECT_GE(row.violation_l1, 0.0) << "row " << i;
-        EXPECT_GT(row.tr_radius, 0.0) << "row " << i;
+        const IterationRecord &row = sol.history[i];
+        EXPECT_TRUE(std::isfinite(row.f.value())) << "row " << i;
+        EXPECT_TRUE(std::isfinite(std::max(row.stationarity, row.feasibility))) << "row " << i;
+        EXPECT_GE(std::max(row.stationarity, row.feasibility), 0.0) << "row " << i;
+        EXPECT_TRUE(std::isfinite(row.sqp->violation_l1)) << "row " << i;
+        EXPECT_GE(row.sqp->violation_l1, 0.0) << "row " << i;
+        EXPECT_GT(row.sqp->trust_radius, 0.0) << "row " << i;
         if (i + 1 < sol.history.size()) {
-            EXPECT_TRUE(row.qp_solved) << "row " << i;
-            EXPECT_GE(row.qp_minor_iters, 0) << "row " << i;
-            EXPECT_GE(row.qp_factorizations, 0) << "row " << i;
+            EXPECT_TRUE(row.sqp->qp_solved) << "row " << i;
+            EXPECT_GE(row.sqp->qp_minor_iterations.value_or(0), 0) << "row " << i;
+            EXPECT_GE(row.sqp->qp_factorizations.value_or(0), 0) << "row " << i;
         }
     }
 }
@@ -6819,7 +6908,8 @@ TEST(SqpDriverDiagnostics, ConsoleContainsPerIterationRowsAndFinalStatus) {
     std::size_t data_rows = 0;
     std::istringstream lines(table);
     for (std::string line; std::getline(lines, line);) {
-        if (line.size() > 7 && line[5] == ' ' && std::isdigit(static_cast<unsigned char>(line[4])) &&
+        if (line.size() > 7 && line[5] == ' ' &&
+            std::isdigit(static_cast<unsigned char>(line[4])) &&
             std::string("IBSWER").find(line[6]) != std::string::npos) {
             ++data_rows;
         }
@@ -7109,14 +7199,14 @@ TEST(SqpDriverProbeBudget, ExhaustedBudgetStopsAtAnIterateAndSaysSo) {
     // otherwise be entitled to expect <= 1.
     EXPECT_GE(cut.counters.qp_minor_iters, 1);
     // The upper half, read off the history rather than pinned as an observed
-    // number: SqpIterate::qp_minor_iters (sqp_solver_types.h) is the PER-MAJOR cost,
+    // number: IterationRecord::qp_minor_iters (sqp_solver_types.h) is the PER-MAJOR cost,
     // so the crossing major is the last row that solved a subproblem, and
     // every major before it summed to strictly less than the budget (that is
     // what "the budget had not yet been crossed" means).
     Index crossing_major_minors = 0;
-    for (const SqpIterate &row : cut.history) {
-        if (row.qp_solved) {
-            crossing_major_minors = row.qp_minor_iters;
+    for (const IterationRecord &row : cut.history) {
+        if (row.sqp->qp_solved) {
+            crossing_major_minors = row.sqp->qp_minor_iterations.value_or(0);
         }
     }
     ASSERT_GT(crossing_major_minors, 0) << "premise: some major did solve a subproblem";
@@ -8018,7 +8108,7 @@ TEST(SqpDriverSsnMode, TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk) {
 // THE ADAPTIVE-mu SCHEDULE IS OFF UNDER kSsn, and ON under kWalk.
 //
 // Both halves are asserted on the SAME model with the SAME options object, so
-// the only difference between the two rows is the mode. `SqpIterate::mu` is
+// the only difference between the two rows is the mode. `IterationRecord::mu` is
 // the schedule's own diagnostic (sqp_solver_types.h) and reports the EFFECTIVE
 // dual_mu each trial was solved at, which is exactly the quantity the ruling
 // is about. See sqp_solver.h's WHY THE ADAPTIVE-mu SCHEDULE IS OFF UNDER kSsn.
@@ -8027,7 +8117,7 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     using hven::test_support::make_hs;
 
     // HS26 IS THE FIXTURE BECAUSE THE SCHEDULE ACTUALLY MOVES ON IT. Measured
-    // over the whole corpus with the lever on, `SqpIterate::mu` leaves its
+    // over the whole corpus with the lever on, `IterationRecord::mu` leaves its
     // 1e-8 default on exactly three problems -- HS26, HS30 and HS77 -- because
     // kAdaptiveMuMax IS QpOptions::dual_regularization's own default, so the schedule is
     // only VISIBLE once a major's residual is small enough to quantize below
@@ -8041,8 +8131,9 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
                                              (*walk_problem.model).start_point());
     ASSERT_GT(walk.history.size(), 1u);
     bool walk_mu_ever_differs = false;
-    for (const SqpIterate &row : walk.history) {
-        if (row.qp_solved && row.mu != opts.qp.dual_regularization) {
+    for (const IterationRecord &row : walk.history) {
+        if (row.sqp->qp_solved &&
+            row.sqp->dual_regularization.value_or(0.0) != opts.qp.dual_regularization) {
             walk_mu_ever_differs = true;
         }
     }
@@ -8056,11 +8147,12 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     const SqpResult ssn = ssn_driver.solve(hven::detail::problem_ref(*ssn_problem.model),
                                            (*ssn_problem.model).start_point());
     ASSERT_EQ(ssn.status, SolveStatus::kOptimal);
-    for (const SqpIterate &row : ssn.history) {
-        if (row.qp_solved) {
-            EXPECT_DOUBLE_EQ(row.mu, ssn_opts.qp.dual_regularization)
+    for (const IterationRecord &row : ssn.history) {
+        if (row.sqp->qp_solved) {
+            EXPECT_DOUBLE_EQ(row.sqp->dual_regularization.value_or(0.0),
+                             ssn_opts.qp.dual_regularization)
                 << "THE RULING, PINNED: under kSsn every trial is solved at the caller's own "
-                   "dual_mu, walk fall-backs included, and SqpIterate::mu says so";
+                   "dual_mu, walk fall-backs included, and IterationRecord::mu says so";
         }
     }
 }
@@ -8444,10 +8536,11 @@ TEST(SqpDriverSsnMode, SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency) {
            "quoted in";
     EXPECT_GT(sol.counters.factorizations, 0)
         << "a factorization IS the same physical quantity in both kernels and does carry across";
-    for (const SqpIterate &row : sol.history) {
-        if (row.qp_solved) {
-            EXPECT_EQ(row.qp_minor_iters, 0);
-            EXPECT_GT(row.qp_factorizations, 0) << "the per-major row carries the real cost too";
+    for (const IterationRecord &row : sol.history) {
+        if (row.sqp->qp_solved) {
+            EXPECT_EQ(row.sqp->qp_minor_iterations.value_or(0), 0);
+            EXPECT_GT(row.sqp->qp_factorizations.value_or(0), 0)
+                << "the per-major row carries the real cost too";
         }
     }
 }
@@ -9436,11 +9529,11 @@ TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime)
     // readings agree bit for bit. Not a general rule -- see SqpResult's field
     // note in sqp_solver_types.h.
     ASSERT_FALSE(sol.history.empty());
-    const SqpIterate &last = sol.history.back();
+    const IterationRecord &last = sol.history.back();
     EXPECT_EQ(sol.convergence.stationarity, last.stationarity);
     EXPECT_EQ(sol.convergence.feasibility, last.feasibility);
     EXPECT_EQ(sol.convergence.complementarity, last.complementarity);
-    EXPECT_EQ(sol.convergence.kkt_residual, last.kkt_residual);
+    EXPECT_EQ(sol.convergence.kkt_residual, std::max(last.stationarity, last.feasibility));
 
     // The `> 0` is a liveness pin: a solve that ran majors took measurable
     // time, so a zero here means the field was never written.
@@ -9991,7 +10084,7 @@ struct W2FallbackRun {
     QpSolution qs;
     std::optional<ElasticLadderReport> report;
     SqpCounters counters;
-    SqpIterate row;
+    SqpMajorRow row;
     SqpFallbackVerdictTraceEvent verdict;
 };
 
@@ -10001,7 +10094,7 @@ struct W2FallbackRun {
 W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEvidence &evidence,
                               double window = std::numeric_limits<double>::infinity(),
                               double engine_tr = std::numeric_limits<double>::infinity(),
-                              const SqpIterate &row_in = SqpIterate{}, bool prime = false,
+                              const SqpMajorRow &row_in = SqpMajorRow{}, bool prime = false,
                               double dual_mu = SqpOptions{}.qp.dual_regularization) {
     SqpOptions opts;
     opts.qp.trust_region_radius = engine_tr;
@@ -10049,9 +10142,9 @@ IpqpInfeasibilityEvidence w2_hand_built_evidence() {
     return ev;
 }
 
-/// THE ROW'S IDENTITY SET (T3-B): every SqpIterate field EXCEPT the two telemetry scalars the
+/// THE ROW'S IDENTITY SET (T3-B): every SqpMajorRow field EXCEPT the two telemetry scalars the
 /// fallback copies from the evidence, which are asserted separately as pass-throughs.
-auto w2_row_identity(const SqpIterate &r) {
+auto w2_row_identity(const SqpMajorRow &r) {
     return std::tie(r.trial, r.f, r.stationarity, r.feasibility, r.complementarity, r.kkt_residual,
                     r.violation_l1, r.tr_radius, r.mu, r.step_norm, r.qp_solved, r.qp_status,
                     r.qp_minor_iters, r.qp_factorizations, r.tr_binding, r.verdict, r.soc_applied,
@@ -10420,7 +10513,7 @@ TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineIsGONEUnderThePlacementBoun
     // cap places it there, so rung A succeeds at a rho that declined at the shipped dual_mu.
     const W2FallbackRun small_mu =
         w2_run_fallback(qp, at_ceiling, std::numeric_limits<double>::infinity(),
-                        std::numeric_limits<double>::infinity(), SqpIterate{}, false, 1.0e-12);
+                        std::numeric_limits<double>::infinity(), SqpMajorRow{}, false, 1.0e-12);
     ASSERT_TRUE(small_mu.report.has_value());
     EXPECT_DOUBLE_EQ(small_mu.report->rho_0, kElasticRhoMax / kElasticRhoFactor);
     EXPECT_TRUE(small_mu.report->closed);
@@ -10488,7 +10581,7 @@ TEST(SqpDriverCertifiedFallback, P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
     const IpqpResult ires = w2_escaped(qp);
     const W2FallbackRun run =
         w2_run_fallback(qp, ires.infeasibility_evidence, std::numeric_limits<double>::infinity(),
-                        engine_tr, SqpIterate{}, /*prime=*/true);
+                        engine_tr, SqpMajorRow{}, /*prime=*/true);
     const QpSolution walk = w2_cold_walk(qp, engine_tr, /*prime=*/true);
 
     ASSERT_FALSE(run.report.has_value());
@@ -10625,7 +10718,7 @@ TEST(SqpDriverCertifiedFallback, P7TheVerdictReadsNothingFromTheEvidenceBeyondIt
     for (const Fixture &f : fixtures) {
         const IpqpInfeasibilityEvidence base_block = w2_escaped(f.qp).infeasibility_evidence;
         ASSERT_TRUE(base_block.fired) << f.name;
-        SqpIterate row_in;
+        SqpMajorRow row_in;
         row_in.trial = 3;
         row_in.f = -1.5;
         row_in.verdict = StepVerdict::kAcceptObjectiveStep;
@@ -10742,7 +10835,7 @@ TEST(SqpDriverCertifiedFallback, ThePartitionOverFallbackEntriesIsCOMPLETEAndSum
         SqpOptions opts;
         opts.qp.trust_region_radius = e.engine_tr;
         QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
-        SqpIterate row;
+        SqpMajorRow row;
         std::optional<ElasticLadderReport> report;
         SqpFallbackVerdictTraceEvent verdict;
         const QpSolution qs =
@@ -10873,18 +10966,19 @@ TEST(SqpDriverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHi
     EXPECT_EQ(sol.counters.elastic_activations, 2) << "one ladder per escape";
     Index elastic_rows = 0;
     Index clamped_rows = 0;
-    for (const SqpIterate &h : sol.history) {
-        if (!h.elastic_applied) {
-            EXPECT_FALSE(h.elastic_rho0_ceiling_hit) << "trial " << h.trial;
+    for (const IterationRecord &h : sol.history) {
+        if (!h.sqp->elastic) {
+            EXPECT_FALSE(h.sqp->elastic_clamped) << "trial " << h.iteration;
             continue;
         }
         ++elastic_rows;
-        clamped_rows += h.elastic_rho0_ceiling_hit ? 1 : 0;
-        EXPECT_EQ(h.qp_status, QpStatus::kOptimal) << "trial " << h.trial;
+        clamped_rows += h.sqp->elastic_clamped ? 1 : 0;
+        EXPECT_EQ(h.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
+            << "trial " << h.iteration;
         // THE LADDER'S OWN COUNTS: the fallback clears the returned solution's counters to keep
         // the totals exact, so a row fed from them would read 0 on exactly these majors.
-        EXPECT_EQ(h.qp_minor_iters, 2) << "trial " << h.trial;
-        EXPECT_FALSE(h.soc_applied) << "trial " << h.trial << ": SOC is gated on !elastic_applied";
+        EXPECT_EQ(h.sqp->qp_minor_iterations.value_or(0), 2) << "trial " << h.iteration;
+        EXPECT_FALSE(h.soc) << "trial " << h.iteration << ": SOC is gated on !elastic_applied";
     }
     EXPECT_EQ(elastic_rows, 2) << "both rung-A-owned majors are marked as elastic rows";
     // W2 T5 DECLARED BREAK, MEASURED AT THE DRIVER: this fixture's two escapes price 1.784e7 and
@@ -11740,10 +11834,11 @@ TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     // AND WHAT THE CONSUMED REPORT DROVE: the exhaustion row is an elastic row carrying the
     // ladder's own kOptimal, and it routes through the funnel's kRestore exit into restoration.
     ASSERT_FALSE(sol.history.empty());
-    const SqpIterate &last = sol.history.back();
-    EXPECT_TRUE(last.elastic_applied);
-    EXPECT_EQ(last.qp_status, QpStatus::kOptimal) << "exhausted, not declined";
-    EXPECT_EQ(last.verdict, StepVerdict::kRestore);
+    const IterationRecord &last = sol.history.back();
+    EXPECT_TRUE(last.sqp->elastic);
+    EXPECT_EQ(last.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
+        << "exhausted, not declined";
+    EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore);
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);
     EXPECT_EQ(sol.counters.restoration_iters, 1);
@@ -11831,16 +11926,16 @@ TEST(SqpDriverCertifiedFallback, T7TheCeilingFlagsTRUEArmOnADriverRowIsThePriced
     Index elastic_rows = 0;
     Index clamped_rows = 0;
     bool first_elastic_clamped = false;
-    for (const SqpIterate &h : sol.history) {
-        if (!h.elastic_applied) {
-            EXPECT_FALSE(h.elastic_rho0_ceiling_hit) << "trial " << h.trial;
+    for (const IterationRecord &h : sol.history) {
+        if (!h.sqp->elastic) {
+            EXPECT_FALSE(h.sqp->elastic_clamped) << "trial " << h.iteration;
             continue;
         }
         if (elastic_rows == 0) {
-            first_elastic_clamped = h.elastic_rho0_ceiling_hit;
+            first_elastic_clamped = h.sqp->elastic_clamped;
         }
         ++elastic_rows;
-        clamped_rows += h.elastic_rho0_ceiling_hit ? 1 : 0;
+        clamped_rows += h.sqp->elastic_clamped ? 1 : 0;
     }
     EXPECT_EQ(elastic_rows, 2);
     EXPECT_EQ(clamped_rows, 1);
@@ -11904,7 +11999,7 @@ TEST(SqpDriverCertifiedFallback, T7TheDisprovedSuspicionCalibrationOverTheHsCorp
 
 TEST(SqpDriverCertifiedFallback, T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor) {
     // T3 REGISTERED, MEASURED AT THE DRIVER: an elastic major leaves the AUGMENTED pattern
-    // installed, so the next original-pattern solve pays one analysis. SqpIterate has no such
+    // installed, so the next original-pattern solve pays one analysis. IterationRecord has no such
     // field, so the per-major reading is PREFIX TRUNCATION -- T7 report section 2, item 5.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpqp;
@@ -12455,11 +12550,13 @@ TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneE
         << "the two rung As plus the SECOND ladder the empty optional forced";
 
     ASSERT_EQ(sol.history.size(), 2u);
-    EXPECT_TRUE(sol.history[0].elastic_applied) << "the second ladder's own relaxed step";
-    EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptFeasibilityStep);
-    EXPECT_TRUE(sol.history[1].elastic_applied);
-    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kRestore);
-    EXPECT_GT(sol.history[0].violation_l1, sol.history[1].violation_l1)
+    EXPECT_TRUE(sol.history[0].sqp->elastic) << "the second ladder's own relaxed step";
+    EXPECT_EQ(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kAcceptFeasibilityStep);
+    EXPECT_TRUE(sol.history[1].sqp->elastic);
+    EXPECT_EQ(sol.history[1].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kRestore);
+    EXPECT_GT(sol.history[0].sqp->violation_l1, sol.history[1].sqp->violation_l1)
         << "the step the remedy would have skipped";
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);
@@ -12490,8 +12587,9 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_FALSE(sol.history.empty());
-    const SqpIterate &requesting = sol.history.back();
-    ASSERT_EQ(requesting.verdict, StepVerdict::kRestore) << "the exhausted row raised the request";
+    const IterationRecord &requesting = sol.history.back();
+    ASSERT_EQ(requesting.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore)
+        << "the exhausted row raised the request";
     // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover). The claim is that the
     // exhausted rung's offer is A ROUNDING, not a margin -- a step whose norm is at
     // rounding against a violation of 4e8, which is why no take of it is stable. E4's
@@ -12500,8 +12598,8 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     // requesting iterate itself. The upper bound is unchanged and the lower one is
     // re-derived to `>= 0`, so a step that becomes a real MARGIN -- which is the
     // reading this test is guarding against -- still fails the 1e-12 bound below.
-    EXPECT_GE(requesting.step_norm, 0.0);
-    EXPECT_LT(requesting.step_norm, 1.0e-12)
+    EXPECT_GE(requesting.step_norm.value_or(0.0), 0.0);
+    EXPECT_LT(requesting.step_norm.value_or(0.0), 1.0e-12)
         << "and it is at rounding against a violation of 4e8, which is why no take is stable";
     EXPECT_EQ(sol.counters.restoration_iters, 1) << "the phase runs from one start or the other";
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);

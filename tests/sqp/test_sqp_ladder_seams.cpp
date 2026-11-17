@@ -199,7 +199,7 @@ TEST(SqpLadderSeam, L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier) {
     EXPECT_GE(sol.counters.elastic_activations, 1);
     EXPECT_EQ(sol.counters.qp_failures_routed, 0);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.front().elastic_applied);
+    EXPECT_TRUE(sol.history.front().sqp->elastic);
     expect_line_optimum(sol);
 }
 
@@ -217,7 +217,7 @@ TEST(SqpLadderSeam, L3APlainNumericalErrorKeepsTheShrinkLadder) {
 
     EXPECT_EQ(Seam::forced, 1);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_FALSE(sol.history.front().elastic_applied);
+    EXPECT_FALSE(sol.history.front().sqp->elastic);
     EXPECT_EQ(sol.counters.elastic_activations, 0);
     EXPECT_EQ(sol.counters.qp_failures_routed, 1);
     expect_line_optimum(sol);
@@ -277,7 +277,7 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH) {
         EXPECT_GE(sol.counters.elastic_activations, 1);
         EXPECT_EQ(sol.counters.qp_failures_routed, 0);
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_TRUE(sol.history.front().elastic_applied);
+        EXPECT_TRUE(sol.history.front().sqp->elastic);
         expect_line_optimum(sol);
     }
 }
@@ -315,7 +315,7 @@ TEST(SqpLadderSeam, Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElast
     EXPECT_GE(sol.counters.elastic_activations, 1);
     EXPECT_EQ(sol.counters.qp_failures_routed, 0);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.front().elastic_applied);
+    EXPECT_TRUE(sol.history.front().sqp->elastic);
     expect_line_optimum(sol);
 }
 
@@ -335,7 +335,7 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier) {
     EXPECT_GE(sol.counters.elastic_activations, 1);
     EXPECT_EQ(sol.counters.qp_failures_routed, 0);
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_TRUE(sol.history.front().elastic_applied);
+    EXPECT_TRUE(sol.history.front().sqp->elastic);
     expect_line_optimum(sol);
 }
 
@@ -501,11 +501,13 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
     // The premise: one forced failure, at major 1, whose own step was judged and taken.
     ASSERT_EQ(Seam::forced, 1);
     ASSERT_GE(sol.history.size(), 3u);
-    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kNumericalError);
-    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              QpStatus::kNumericalError);
+    EXPECT_EQ(sol.history[1].sqp->verdict.value_or(hven::StepVerdict::kReject),
+              StepVerdict::kAcceptObjectiveStep);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
-    EXPECT_DOUBLE_EQ(sol.history[2].f, 0.3) << "the failed walk's point was taken";
+    EXPECT_DOUBLE_EQ(sol.history[2].f.value(), 0.3) << "the failed walk's point was taken";
     // The carried price is not a certificate: major 2 is not the last.
     EXPECT_GT(sol.history.size(), 3u) << "converged at (0.3, 0) on a carried multiplier";
 
@@ -651,7 +653,7 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // after the depth-1 run is the requester's, and a second one exists only if the parent
     // resumed. The resumed rows stand on the restored point (every later QP fails).
     ASSERT_FALSE(sol.history.empty());
-    EXPECT_GT(sol.history.front().violation_l1, 1.0) << "the requesting phase at x0 = (1, 1)";
+    EXPECT_GT(sol.history.front().sqp->violation_l1, 1.0) << "the requesting phase at x0 = (1, 1)";
     const auto first_nested = std::find(depths.begin(), depths.end(), Index{1});
     ASSERT_NE(first_nested, depths.end()) << "the sub-solve emitted no row";
     const auto requester = std::find(first_nested, depths.end(), Index{0});
@@ -661,8 +663,8 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     const auto rows_after = std::count(requester, depths.end(), Index{0});
     ASSERT_GE(rows_after, 2) << "the entry did not resume";
     ASSERT_EQ(static_cast<long>(sol.history.size()), rows_before + rows_after);
-    const SqpIterate &resumed = sol.history[static_cast<std::size_t>(rows_before + 1)];
-    EXPECT_DOUBLE_EQ(resumed.violation_l1, sol.counters.restoration_h_out);
+    const IterationRecord &resumed = sol.history[static_cast<std::size_t>(rows_before + 1)];
+    EXPECT_DOUBLE_EQ(resumed.sqp->violation_l1, sol.counters.restoration_h_out);
 
     // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
     // solve's own convergence test calls feasible.
@@ -1154,9 +1156,9 @@ void expect_first_major_restores(const SqpResult &sol, const SqpResult &control,
     EXPECT_GE(sol.counters.restoration_entries, 1);
     // The solve's first elastic row (QP 0's, with the equality basis off).
     const auto row = std::find_if(sol.history.begin(), sol.history.end(),
-                                  [](const SqpIterate &r) { return r.elastic_applied; });
+                                  [](const IterationRecord &r) { return r.sqp->elastic; });
     ASSERT_NE(row, sol.history.end());
-    EXPECT_EQ(row->verdict, StepVerdict::kRestore);
+    EXPECT_EQ(row->sqp->verdict, StepVerdict::kRestore);
     EXPECT_NE(sol.status, SolveStatus::kIterationLimit);
     EXPECT_LT(sol.counters.major_iters, o.common.max_iterations);
     EXPECT_EQ(sol.status, control.status);
@@ -1230,8 +1232,9 @@ TEST(SqpLadderSeam, WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion) {
         const SqpResult control =
             SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_FALSE(control.history.empty());
-        ASSERT_TRUE(control.history.front().elastic_applied);
-        ASSERT_EQ(control.history.front().verdict, StepVerdict::kRestore)
+        ASSERT_TRUE(control.history.front().sqp->elastic);
+        ASSERT_EQ(control.history.front().sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kRestore)
             << "fixture premise: the genuine ladder is exhausted at major 0";
         const SeamReset guard;
         Seam::off_rows_rungs = 1000;

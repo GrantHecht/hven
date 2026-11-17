@@ -474,14 +474,16 @@ TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
         const SqpResult cold = cold_driver.solve(hven::detail::problem_ref(*cold_view.bridge), x0);
         ASSERT_FALSE(out.history.empty());
         ASSERT_FALSE(cold.history.empty());
-        EXPECT_TRUE(bits_equal("history[0].f", out.history.front().f, cold.history.front().f));
+        EXPECT_TRUE(bits_equal("history[0].f.value()", out.history.front().f.value(),
+                               cold.history.front().f.value()));
         EXPECT_TRUE(bits_equal("history[0].feasibility", out.history.front().feasibility,
                                cold.history.front().feasibility));
-        EXPECT_TRUE(bits_equal("history[0].violation_l1", out.history.front().violation_l1,
-                               cold.history.front().violation_l1));
+        EXPECT_TRUE(bits_equal("history[0].sqp->violation_l1",
+                               out.history.front().sqp->violation_l1,
+                               cold.history.front().sqp->violation_l1));
         // And that objective really is f(x0), stated independently of the cold
         // solve so the three comparisons above cannot agree on a wrong point.
-        EXPECT_DOUBLE_EQ(out.history.front().f, view.model->eval_f(x0))
+        EXPECT_DOUBLE_EQ(out.history.front().f.value(), view.model->eval_f(x0))
             << "the seed form starts at x0, not at the exporter's point";
         // The cold solve is a real contrast, not a copy: it saw no seed.
         EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);

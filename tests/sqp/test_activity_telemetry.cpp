@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_activity_telemetry.cpp -- M6 W4 task 3: the mode-selection telemetry.
-// `SqpIterate`'s six activity fields and the four `SqpCounters` folds, in two
+// `IterationRecord`'s six activity fields and the four `SqpCounters` folds, in two
 // families.
 //
 //   (i)  ARITHMETIC, on `census_major_activity` directly, from hand-built
@@ -28,6 +28,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_major_row.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
@@ -69,10 +70,10 @@ QpProblem row_box_qp(Index n, const Vec &bi) {
     return qp;
 }
 
-SqpIterate census(const QpProblem &qp, const QpSolution &qs,
-                  const std::vector<bool> &prev_rows = {},
-                  const std::vector<BoundState> &prev_bounds = {}) {
-    SqpIterate row;
+SqpMajorRow census(const QpProblem &qp, const QpSolution &qs,
+                   const std::vector<bool> &prev_rows = {},
+                   const std::vector<BoundState> &prev_bounds = {}) {
+    SqpMajorRow row;
     Vec slack;
     census_major_activity(qp, qs, prev_rows, prev_bounds, slack, row);
     return row;
@@ -88,7 +89,7 @@ TEST(ActivityTelemetry, TheFirstMajorCountsAgainstTheEmptySet) {
     qs.ineq_active = {true, false, true};
     qs.bound_state = {BoundState::kAtLower, BoundState::kFree, BoundState::kAtUpper};
 
-    const SqpIterate row = census(qp, qs);
+    const SqpMajorRow row = census(qp, qs);
     EXPECT_EQ(row.active_set_delta, 4);
     EXPECT_EQ(row.active_rows, 2);
     EXPECT_EQ(row.active_lower_sides, 1);
@@ -108,7 +109,7 @@ TEST(ActivityTelemetry, OneRowEntersAndOneBoundSideLeavesReadsTwo) {
     const std::vector<bool> prev_rows = {true, false};
     const std::vector<BoundState> prev_bounds = {BoundState::kAtLower, BoundState::kFree};
 
-    const SqpIterate row = census(qp, qs, prev_rows, prev_bounds);
+    const SqpMajorRow row = census(qp, qs, prev_rows, prev_bounds);
     EXPECT_EQ(row.active_set_delta, 2);
     // The halves, so a failure says which one moved.
     EXPECT_EQ(row.active_rows, 2);
@@ -138,7 +139,7 @@ TEST(ActivityTelemetry, AFixedVariableIsBothSidesAndItsArrivalCountsOnce) {
     qs.ineq_active = {};
     qs.bound_state = {BoundState::kFixed};
 
-    const SqpIterate row = census(qp, qs, {}, {BoundState::kAtLower});
+    const SqpMajorRow row = census(qp, qs, {}, {BoundState::kAtLower});
     EXPECT_EQ(row.active_lower_sides, 1);
     EXPECT_EQ(row.active_upper_sides, 1);
     EXPECT_EQ(row.active_set_delta, 1);
@@ -229,7 +230,7 @@ TEST(ActivityTelemetry, AMismatchedExportContributesZeroToItsOwnHalfOnly) {
     qs.ineq_active = {true}; // size 1 against mi == 2
     qs.bound_state = {BoundState::kAtUpper, BoundState::kAtUpper};
 
-    const SqpIterate row = census(qp, qs);
+    const SqpMajorRow row = census(qp, qs);
     EXPECT_EQ(row.active_rows, 0);
     EXPECT_EQ(row.near_active_rows, 0);
     EXPECT_EQ(row.weak_active_rows, 0);
@@ -241,10 +242,10 @@ TEST(ActivityTelemetry, AMismatchedExportContributesZeroToItsOwnHalfOnly) {
 
 /// The rows a solve REPORTS on -- every row but the ones whose QpSolution never
 /// became a major's answer.
-std::vector<SqpIterate> reporting_rows(const SqpResult &sol) {
-    std::vector<SqpIterate> out;
-    for (const SqpIterate &r : sol.history) {
-        if (r.qp_solved) {
+std::vector<IterationRecord> reporting_rows(const SqpResult &sol) {
+    std::vector<IterationRecord> out;
+    for (const IterationRecord &r : sol.history) {
+        if (r.sqp->qp_solved) {
             out.push_back(r);
         }
     }
@@ -287,10 +288,10 @@ TEST(ActivityTelemetry, NearActiveRowsIsNonVacuousOnAControlledSlack) {
         SqpSolver driver(telemetry_opts());
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-        const std::vector<SqpIterate> rows = reporting_rows(sol);
+        const std::vector<IterationRecord> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
-        EXPECT_EQ(rows.front().near_active_rows, cell.second) << "slack " << cell.first;
-        EXPECT_EQ(rows.front().active_rows, 0) << "slack " << cell.first;
+        EXPECT_EQ(rows.front().sqp->near_active_rows, cell.second) << "slack " << cell.first;
+        EXPECT_EQ(rows.front().sqp->active_rows, 0) << "slack " << cell.first;
         EXPECT_EQ(sol.counters.near_active_peak, cell.second) << "slack " << cell.first;
     }
 }
@@ -305,10 +306,10 @@ TEST(ActivityTelemetry, WeakActiveRowsIsNonVacuousOnAControlledPrice) {
         SqpSolver driver(telemetry_opts());
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-        const std::vector<SqpIterate> rows = reporting_rows(sol);
+        const std::vector<IterationRecord> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
-        EXPECT_EQ(rows.front().active_rows, 1) << "price " << cell.first;
-        EXPECT_EQ(rows.front().weak_active_rows, cell.second) << "price " << cell.first;
+        EXPECT_EQ(rows.front().sqp->active_rows, 1) << "price " << cell.first;
+        EXPECT_EQ(rows.front().sqp->weak_active_rows, cell.second) << "price " << cell.first;
         EXPECT_EQ(sol.counters.weak_active_peak, cell.second) << "price " << cell.first;
     }
 }
@@ -333,13 +334,13 @@ TEST(ActivityTelemetry, EveryFieldIsZeroOnABoundOnlyQpNlpWithNoActiveBound) {
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_FALSE(reporting_rows(sol).empty());
-    for (const SqpIterate &r : sol.history) {
-        EXPECT_EQ(r.active_set_delta, 0);
-        EXPECT_EQ(r.weak_active_rows, 0);
-        EXPECT_EQ(r.near_active_rows, 0);
-        EXPECT_EQ(r.active_rows, 0);
-        EXPECT_EQ(r.active_lower_sides, 0);
-        EXPECT_EQ(r.active_upper_sides, 0);
+    for (const IterationRecord &r : sol.history) {
+        EXPECT_EQ(r.sqp->active_set_delta, 0);
+        EXPECT_EQ(r.sqp->weak_active_rows, 0);
+        EXPECT_EQ(r.sqp->near_active_rows, 0);
+        EXPECT_EQ(r.sqp->active_rows, 0);
+        EXPECT_EQ(r.sqp->active_lower_sides, 0);
+        EXPECT_EQ(r.sqp->active_upper_sides, 0);
     }
     EXPECT_EQ(sol.counters.active_set_delta_total, 0);
     EXPECT_EQ(sol.counters.active_set_delta_peak, 0);
@@ -356,17 +357,17 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs35sActiveRow) {
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const std::vector<SqpIterate> rows = reporting_rows(sol);
+    const std::vector<IterationRecord> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
-    const SqpIterate &last = rows.back();
-    EXPECT_EQ(last.active_rows, 1);
-    EXPECT_EQ(last.active_lower_sides, 0);
-    EXPECT_EQ(last.active_upper_sides, 0);
+    const IterationRecord &last = rows.back();
+    EXPECT_EQ(last.sqp->active_rows, 1);
+    EXPECT_EQ(last.sqp->active_lower_sides, 0);
+    EXPECT_EQ(last.sqp->active_upper_sides, 0);
     // THE FIRST-MAJOR IDENTITY, on a fixture with no `kFixed` variable: the
     // count against the empty set is exactly the census.
-    EXPECT_EQ(rows.front().active_set_delta, rows.front().active_rows +
-                                                 rows.front().active_lower_sides +
-                                                 rows.front().active_upper_sides);
+    EXPECT_EQ(rows.front().sqp->active_set_delta, rows.front().sqp->active_rows +
+                                                      rows.front().sqp->active_lower_sides +
+                                                      rows.front().sqp->active_upper_sides);
 }
 
 TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs45sVertex) {
@@ -380,12 +381,12 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs45sVertex) {
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const std::vector<SqpIterate> rows = reporting_rows(sol);
+    const std::vector<IterationRecord> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
-    const SqpIterate &last = rows.back();
-    EXPECT_EQ(last.active_rows, 0);
-    EXPECT_EQ(last.active_lower_sides, 0);
-    EXPECT_EQ(last.active_upper_sides, 5);
+    const IterationRecord &last = rows.back();
+    EXPECT_EQ(last.sqp->active_rows, 0);
+    EXPECT_EQ(last.sqp->active_lower_sides, 0);
+    EXPECT_EQ(last.sqp->active_upper_sides, 5);
 }
 
 TEST(ActivityTelemetry, ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForward) {
@@ -397,14 +398,14 @@ TEST(ActivityTelemetry, ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForwa
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_FALSE(sol.history.empty());
-    const SqpIterate &stopped = sol.history.back();
-    ASSERT_FALSE(stopped.qp_solved);
-    EXPECT_EQ(stopped.active_set_delta, 0);
-    EXPECT_EQ(stopped.weak_active_rows, 0);
-    EXPECT_EQ(stopped.near_active_rows, 0);
-    EXPECT_EQ(stopped.active_rows, 0);
-    EXPECT_EQ(stopped.active_lower_sides, 0);
-    EXPECT_EQ(stopped.active_upper_sides, 0);
+    const IterationRecord &stopped = sol.history.back();
+    ASSERT_FALSE(stopped.sqp->qp_solved);
+    EXPECT_EQ(stopped.sqp->active_set_delta, 0);
+    EXPECT_EQ(stopped.sqp->weak_active_rows, 0);
+    EXPECT_EQ(stopped.sqp->near_active_rows, 0);
+    EXPECT_EQ(stopped.sqp->active_rows, 0);
+    EXPECT_EQ(stopped.sqp->active_lower_sides, 0);
+    EXPECT_EQ(stopped.sqp->active_upper_sides, 0);
 }
 
 TEST(ActivityTelemetry, TheFourFoldsAreTheRowsOwnSumAndPeaks) {
@@ -421,11 +422,11 @@ TEST(ActivityTelemetry, TheFourFoldsAreTheRowsOwnSumAndPeaks) {
         Index delta_peak = 0;
         Index weak_peak = 0;
         Index near_peak = 0;
-        for (const SqpIterate &r : sol.history) {
-            total += r.active_set_delta;
-            delta_peak = std::max(delta_peak, r.active_set_delta);
-            weak_peak = std::max(weak_peak, r.weak_active_rows);
-            near_peak = std::max(near_peak, r.near_active_rows);
+        for (const IterationRecord &r : sol.history) {
+            total += r.sqp->active_set_delta;
+            delta_peak = std::max(delta_peak, r.sqp->active_set_delta);
+            weak_peak = std::max(weak_peak, r.sqp->weak_active_rows);
+            near_peak = std::max(near_peak, r.sqp->near_active_rows);
         }
         EXPECT_EQ(sol.counters.active_set_delta_total, total) << "HS" << number;
         EXPECT_EQ(sol.counters.active_set_delta_peak, delta_peak) << "HS" << number;
@@ -465,12 +466,12 @@ TEST(ActivityTelemetry, TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons)
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const std::vector<SqpIterate> rows = reporting_rows(sol);
+    const std::vector<IterationRecord> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
 
     Index flagged = 0;
-    for (const SqpIterate &r : rows) {
-        flagged = std::max(flagged, r.weak_active_rows + r.near_active_rows);
+    for (const IterationRecord &r : rows) {
+        flagged = std::max(flagged, r.sqp->weak_active_rows + r.sqp->near_active_rows);
     }
     EXPECT_GE(flagged, 1) << "the magnitude margin saw no tie";
     EXPECT_GE(sol.counters.ssn.ssn_uncertain_peak, 1) << "the kink band saw no tie";

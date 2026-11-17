@@ -506,7 +506,7 @@ TEST(CorpusCellsRunner, WalkEngineNeverReportsAnEscape) {
 TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // FIX ROUND 1 (C3). G1/G2 are pre-registered PER QP, and this vector is
     // where that quantity comes from: one entry per history row with
-    // `qp_solved`, carrying that row's own SqpIterate::qp_factorizations.
+    // `qp_solved`, carrying that row's own IterationRecord::qp_factorizations.
     // Checked against a solve run directly here, so a mutation that (say)
     // pushed the whole-solve sum, or included stopped-AT-iterate rows, is
     // caught.
@@ -517,8 +517,8 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
 
     std::vector<int> expected;
     for (const auto &it : sol.history) {
-        if (it.qp_solved) {
-            expected.push_back(static_cast<int>(it.qp_factorizations));
+        if (it.sqp->qp_solved) {
+            expected.push_back(static_cast<int>(*it.sqp->qp_factorizations));
         }
     }
     ASSERT_FALSE(expected.empty()) << "this fixture must build at least one subproblem";

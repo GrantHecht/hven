@@ -167,7 +167,7 @@ struct SqpIterationInfo {
     double trust_radius = std::numeric_limits<double>::quiet_NaN();
     /// h(x), the funnel's l1 constraint violation at the point.
     double violation_l1 = std::numeric_limits<double>::quiet_NaN();
-    /// The subproblem's dual regularization (SqpIterate::mu).
+    /// The subproblem's dual regularization (SqpIterationRow::dual_regularization).
     double regularization_dual = 0.0;
     /// False on a row whose subproblem was not solved; the four fields below
     /// are then not meaningful.
@@ -177,7 +177,7 @@ struct SqpIterationInfo {
     /// Active rows plus active lower and upper bound sides.
     Index active_set_size = 0;
     StepVerdict verdict = StepVerdict::kReject;
-    /// An elastic solve supplied this major (SqpIterate::elastic_applied).
+    /// An elastic solve supplied this major (SqpIterationRow::elastic).
     bool elastic = false;
 };
 
@@ -536,7 +536,7 @@ struct IterationEvent {
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief Inf-norm of a primal step. INTERIOR-POINT: the step that REACHED
     ///        this point (0 at a phase's first iterate). SQP: the step taken FROM
-    ///        it (SqpIterate::step_norm), so the event, the history row and the
+    ///        it (IterationRecord::step_norm), so the event, the history row and the
     ///        trace stay one row. Each engine's `ipm`/`sqp` block has the same
     ///        timing.
     double step_norm = std::numeric_limits<double>::quiet_NaN();

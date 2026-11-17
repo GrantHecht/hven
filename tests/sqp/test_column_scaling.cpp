@@ -769,7 +769,7 @@ TEST(ColumnScalingDriver, ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve) {
     const SqpResult c = control.solve(hven::detail::problem_ref(model), model.start_point(),
                                       SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_FALSE(c.history.empty());
-    ASSERT_DOUBLE_EQ(0.125, c.history.front().tr_radius) << "the premise: kWarm carries it";
+    ASSERT_DOUBLE_EQ(0.125, c.history.front().sqp->trust_radius) << "the premise: kWarm carries it";
     SqpOptions opts = off_warm;
     opts.column_scaling =
         SqpColumnScaling::kAlways; // the row layer off: its own ingest refusal would hide this one
@@ -778,7 +778,7 @@ TEST(ColumnScalingDriver, ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve) {
                                      SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_TRUE(s.scaling.columns_active);
     ASSERT_FALSE(s.history.empty());
-    EXPECT_DOUBLE_EQ(opts.trust_region_initial, s.history.front().tr_radius);
+    EXPECT_DOUBLE_EQ(opts.trust_region_initial, s.history.front().sqp->trust_radius);
     EXPECT_EQ(SolveStatus::kOptimal, s.status);
 }
 

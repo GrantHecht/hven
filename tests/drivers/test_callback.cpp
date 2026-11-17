@@ -35,6 +35,7 @@
 //   reusable.
 
 #include "../common_support/ipm_row_view.h"
+#include "../common_support/iteration_record_eq.h"
 #include <gtest/gtest.h>
 
 #include <bit>
@@ -580,22 +581,24 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
         // The row's own caller-unit columns, bit for bit: the event is built
         // from the SAME `exported` row the push and the trace line carry.
         EXPECT_EQ(std::bit_cast<std::uint64_t>(e.f),
-                  std::bit_cast<std::uint64_t>(sol.history[k].f));
+                  std::bit_cast<std::uint64_t>(sol.history[k].f.value()));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(e.step_norm),
-                  std::bit_cast<std::uint64_t>(sol.history[k].step_norm));
+                  std::bit_cast<std::uint64_t>(sol.history[k].step_norm.value_or(0.0)));
         EXPECT_EQ(std::bit_cast<std::uint64_t>(e.sqp->trust_radius),
-                  std::bit_cast<std::uint64_t>(sol.history[k].tr_radius));
+                  std::bit_cast<std::uint64_t>(sol.history[k].sqp->trust_radius));
         // The SQP block is the row's own columns (G5).
-        EXPECT_TRUE(same_bits(e.sqp->violation_l1, sol.history[k].violation_l1));
-        EXPECT_TRUE(same_bits(e.sqp->regularization_dual, sol.history[k].mu));
-        EXPECT_EQ(e.sqp->qp_solved, sol.history[k].qp_solved);
-        EXPECT_EQ(e.sqp->qp_status, sol.history[k].qp_status);
-        EXPECT_EQ(e.sqp->qp_minor_iterations, sol.history[k].qp_minor_iters);
-        EXPECT_EQ(e.sqp->active_set_size, sol.history[k].active_rows +
-                                              sol.history[k].active_lower_sides +
-                                              sol.history[k].active_upper_sides);
-        EXPECT_EQ(e.sqp->verdict, sol.history[k].verdict);
-        EXPECT_EQ(e.sqp->elastic, sol.history[k].elastic_applied);
+        EXPECT_TRUE(same_bits(e.sqp->violation_l1, sol.history[k].sqp->violation_l1));
+        EXPECT_TRUE(same_bits(e.sqp->regularization_dual,
+                              sol.history[k].sqp->dual_regularization.value_or(0.0)));
+        EXPECT_EQ(e.sqp->qp_solved, sol.history[k].sqp->qp_solved);
+        EXPECT_EQ(e.sqp->qp_status,
+                  sol.history[k].sqp->qp_status.value_or(hven::QpStatus::kOptimal));
+        EXPECT_EQ(e.sqp->qp_minor_iterations, sol.history[k].sqp->qp_minor_iterations.value_or(0));
+        EXPECT_EQ(e.sqp->active_set_size, sol.history[k].sqp->active_rows +
+                                              sol.history[k].sqp->active_lower_sides +
+                                              sol.history[k].sqp->active_upper_sides);
+        EXPECT_EQ(e.sqp->verdict, sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject));
+        EXPECT_EQ(e.sqp->elastic, sol.history[k].sqp->elastic);
         EXPECT_FALSE(e.ipm.has_value()) << "ipm is the interior-point engine's block";
         EXPECT_EQ(e.x.size(), sol.x.size());
         // EVERY EVENT'S PRICES, ITS BOUND BLOCK AND ITS FOUR DIAGNOSTICS, not
@@ -726,7 +729,7 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
         EXPECT_EQ(sol.counters.major_iters, kStopAtRow + 1);
         EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
         ASSERT_FALSE(sol.history.empty());
-        EXPECT_TRUE(sol.history.back().qp_solved);
+        EXPECT_TRUE(sol.history.back().sqp->qp_solved);
         EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
         // THE STEP WAS NOT TAKEN: no accepted step was committed after the stop.
         EXPECT_EQ(sol.counters.steps_accepted, kStopAtRow);
@@ -927,7 +930,8 @@ TEST(Callback, SqpStopReturnBestOnARowThatIsNotAnAcceptedStepReturnsTheBest) {
     const SqpResult full = reference.solve(hven::detail::problem_ref(model), (model).start_point());
     std::optional<Index> row;
     for (std::size_t k = 0; k + 1 < full.history.size() && !row; ++k) {
-        const hven::StepVerdict v = full.history[k].verdict;
+        const hven::StepVerdict v =
+            full.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject);
         if (v != hven::StepVerdict::kAcceptObjectiveStep &&
             v != hven::StepVerdict::kAcceptFeasibilityStep) {
             row = static_cast<Index>(k);
@@ -1679,7 +1683,7 @@ TEST(Callback, ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied) {
     ASSERT_EQ(reference.status, SolveStatus::kOptimal);
     ASSERT_EQ(reference.counters.soc_applied, 1) << "fixture premise: the rescue is promoted";
     ASSERT_GE(reference.history.size(), 2u);
-    ASSERT_TRUE(reference.history[1].soc_applied);
+    ASSERT_TRUE(reference.history[1].soc);
 
     hven::StopSource source;
     hven::SolveBudget budget;
@@ -1698,7 +1702,7 @@ TEST(Callback, ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied) {
     ASSERT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
     EXPECT_EQ(sol.stop_reason, hven::StopReason::kStopRequested);
     ASSERT_EQ(sol.history.size(), 2u) << "the history ends on the stopped row";
-    EXPECT_TRUE(sol.history[1].soc_applied) << "the row records that its step was a SOC step";
+    EXPECT_TRUE(sol.history[1].soc) << "the row records that its step was a SOC step";
     EXPECT_EQ(sol.counters.soc_steps, 1);
     EXPECT_EQ(sol.counters.soc_applied, 0) << "the untaken step's promotion is undone";
     EXPECT_EQ(sol.counters.steps_accepted, 1) << "only the first step was committed";
@@ -2740,7 +2744,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
 // informational and never asserted (CLAUDE.md section 7): SolveResult's
 // `wall_seconds`, SqpResult's `timing.engine_seconds`, IpmResult's six `*_time`
 // fields and IpmPhaseReport's `phase_seconds`. (2) NOT compared and carrying
-// no sizeof pin here: eight non-wall `SqpIterate` columns beyond the
+// no sizeof pin here: eight non-wall `IterationRecord` columns beyond the
 // trajectory-relevant set the history comparator enumerates,
 // `IpmResult::eval_error_log`, `SqpResult::scaling`, `SqpResult::warm_start`
 // and `SolveResult::export_snapshot_` -- structured payloads whose
@@ -3007,42 +3011,16 @@ void expect_same_sqp_solve(const SqpResult &a, const SqpResult &b) {
     HVEN_T2_EXPECT_BITS(convergence.kkt_residual);
     EXPECT_EQ(a.infeasibility_certified, b.infeasibility_certified);
     // THE WHOLE TRAJECTORY, ROW BY ROW -- not only its length. Every column of
-    // SqpIterate that a mask could conceivably reach is a scalar this engine
+    // IterationRecord that a mask could conceivably reach is a scalar this engine
     // measured at the row, and `measure_iterate` is exactly where the mask
     // acts, so the history is the strongest statement available that it acts
     // on the snapshot and on nothing else.
     ASSERT_EQ(a.history.size(), b.history.size()) << "history length";
     for (std::size_t k = 0; k < a.history.size(); ++k) {
         SCOPED_TRACE("history row " + std::to_string(k));
-        const hven::SqpIterate &ra = a.history[k];
-        const hven::SqpIterate &rb = b.history[k];
-        EXPECT_EQ(ra.trial, rb.trial);
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.f), std::bit_cast<std::uint64_t>(rb.f));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.stationarity),
-                  std::bit_cast<std::uint64_t>(rb.stationarity));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.feasibility),
-                  std::bit_cast<std::uint64_t>(rb.feasibility));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.complementarity),
-                  std::bit_cast<std::uint64_t>(rb.complementarity));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.kkt_residual),
-                  std::bit_cast<std::uint64_t>(rb.kkt_residual));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.violation_l1),
-                  std::bit_cast<std::uint64_t>(rb.violation_l1));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.tr_radius),
-                  std::bit_cast<std::uint64_t>(rb.tr_radius));
-        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.step_norm),
-                  std::bit_cast<std::uint64_t>(rb.step_norm));
-        EXPECT_EQ(ra.qp_solved, rb.qp_solved);
-        EXPECT_EQ(ra.qp_status, rb.qp_status);
-        EXPECT_EQ(ra.qp_minor_iters, rb.qp_minor_iters);
-        EXPECT_EQ(ra.qp_factorizations, rb.qp_factorizations);
-        EXPECT_EQ(ra.tr_binding, rb.tr_binding);
-        EXPECT_EQ(ra.verdict, rb.verdict);
-        EXPECT_EQ(ra.soc_applied, rb.soc_applied);
-        EXPECT_EQ(ra.elastic_applied, rb.elastic_applied);
-        EXPECT_EQ(ra.watchdog_restored, rb.watchdog_restored);
-        EXPECT_EQ(ra.active_set_delta, rb.active_set_delta);
-        EXPECT_EQ(ra.active_rows, rb.active_rows);
+        const hven::IterationRecord &ra = a.history[k];
+        const hven::IterationRecord &rb = b.history[k];
+        EXPECT_TRUE(hven::test::same_record(ra, rb));
     }
 }
 

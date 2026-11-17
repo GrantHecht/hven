@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_major_row.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 
@@ -323,10 +324,11 @@ TEST(IpqpDispatch, AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook) {
         << "the fixture must produce a section 6.3 escape, or nothing is tested";
 
     Index rows_with_evidence = 0;
-    for (const SqpIterate &row : s.history) {
-        if (row.ipqp_least_infeasible_primal > 0.0 || row.ipqp_farkas_corroborated) {
+    for (const IterationRecord &row : s.history) {
+        if (row.sqp->ipqp_least_infeasible_primal.value_or(0.0) > 0.0 ||
+            row.sqp->ipqp_farkas_corroborated.value_or(false)) {
             ++rows_with_evidence;
-            EXPECT_GT(row.ipqp_least_infeasible_primal, 0.0)
+            EXPECT_GT(row.sqp->ipqp_least_infeasible_primal.value_or(0.0), 0.0)
                 << "the least-infeasible point's own primal residual is positive on a solve that "
                    "suspected infeasibility -- a zero here would be the default block";
         }
@@ -821,9 +823,10 @@ TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
     ASSERT_FALSE(ipm.history.empty());
     ASSERT_EQ(ipm.history.size(), walk.history.size());
     for (std::size_t k = 0; k < ipm.history.size(); ++k) {
-        EXPECT_DOUBLE_EQ(ipm.history[k].mu, walk.history[k].mu)
+        EXPECT_DOUBLE_EQ(ipm.history[k].sqp->dual_regularization.value_or(0.0),
+                         walk.history[k].sqp->dual_regularization.value_or(0.0))
             << "row " << k
-            << ": SqpIterate::mu reports what the kernel that solved the row used, "
+            << ": IterationRecord::mu reports what the kernel that solved the row used, "
                "and the kernel here is the walk in both modes";
     }
 }
@@ -915,7 +918,7 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     evidence.farkas_corroborated = true;
 
     NlpEval ev;
-    SqpIterate row;
+    SqpMajorRow row;
     const SqpOptions opts;
     SqpCounters counters;
     std::optional<ElasticLadderReport> report;
@@ -938,7 +941,7 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     QpSolution seed;
     seed.x = (Vec(1) << -9.0).finished();
     seed.bound_state.assign(1, BoundState::kFree);
-    SqpIterate seeded_row;
+    SqpMajorRow seeded_row;
     SqpCounters seeded_counters;
     std::optional<ElasticLadderReport> seeded_report;
     SqpFallbackVerdictTraceEvent seeded_verdict;
@@ -955,7 +958,7 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
 
     // THE MUTATION PARTNER, spelled out: a DEFAULT block records zero/false, and being
     // UNFIRED it never enters rung A at all -- the cold walk, and no report.
-    SqpIterate default_row;
+    SqpMajorRow default_row;
     SqpCounters default_counters;
     std::optional<ElasticLadderReport> default_report;
     SqpFallbackVerdictTraceEvent default_verdict;
