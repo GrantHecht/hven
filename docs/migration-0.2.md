@@ -266,6 +266,21 @@ What changed (`src/qp/qp_engine.cpp`):
   kOptimal exits whose worst row is still past 1x. 0 is the contract; a later census decides whether a nonzero count
   becomes a hard `kNumericalError` refusal.
 
+Round 2 (M8 kopt-1x r2; `docs/notes/data/2026-11-m8-kopt-1x-r2/`). On an Intel AVX-512 runner YORKNET qp5 still certified
+row 246 at 6.88x, so the repair paths changed (no hard `kNumericalError` gate; that waits for a census that finds the
+gray zone empty):
+
+- The polish's acceptance also reads each side's `worst_row_ratio` with its OWN multipliers and requires the
+  candidate's to be within `max(1, incumbent's)`; a row-triggered entry prefers a stage-1 candidate within 1x and
+  falls back to stage 1 as it was if stage 2 adopts nothing. (A re-priced multiplier set shrinks the `dual_mu*|lambda|`
+  footprint and used to expose a row the incumbent's covered.)
+- The gray hold is spent only by an ordinary step that runs; a rank-repair or border-retreat `continue` leaves it.
+- After polish adoption, refusal or revert, the 1x ratio is re-read with the final multipliers; past 1x the walk
+  goes back for one ordinary step (the next KKT point holds), at most `kGrayReturnBudget` (16) times per solve, then
+  certifies and counts `optimal_row_gray_exits`.
+- The verdict-site face refinement also runs at a gray row (nothing structural) with a 1x target (no relative floor);
+  the 10x classifier semantics for a structural violation are unchanged.
+
 Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by
 name); a walk subproblem's route can differ by a step where a row sat between 1x and 10x.
 

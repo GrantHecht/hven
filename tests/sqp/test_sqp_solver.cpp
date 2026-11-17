@@ -12421,11 +12421,12 @@ static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
     opts.common.max_iterations = 60;
     Index worst = 0;
 #ifdef NDEBUG
-    const bool dense_release = policy == hven::linear::DensePolicy::kAuto;
+    const Index box_blocked_steps =
+        policy == hven::linear::DensePolicy::kAuto ? Index{3} : Index{2};
 #else
-    const bool dense_release = false;
+    const Index box_blocked_steps =
+        policy == hven::linear::DensePolicy::kAuto ? Index{2} : Index{4};
 #endif
-    (void)dense_release; // read on the reference build only
     // The verdict-refine step count is a route counter: 0 on the reference build, and 1 on an
     // AVX-512 MKL runner (WX B7) -- whether the classifier's refinement loop is entered at all
     // follows the factorization's rounding. Reference: pinned to 0 per fixture. Off it:
@@ -12434,10 +12435,10 @@ static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
 #if HVEN_TEST_ROUTE_REFERENCE
         // Dense arm, Release: the box-blocked fixture's bordered dead end pays ONE refinement
         // step in every mode (every other fixture 0, and Debug reads 0 throughout).
-        // M8 kopt-1x r2 (declared mover): the gray-zone verdict refinement (1x target) pays two
-        // steps on this fixture (sparse) and three (dense, Release): 0 -> 2 and 1 -> 3.
-        const Index want =
-            what.rfind("boxblocked_", 0) == 0 ? (dense_release ? Index{3} : Index{2}) : Index{0};
+        // M8 kopt-1x r2 (declared mover): the gray-zone verdict refinement (1x target) pays steps
+        // on this fixture, in every mode: sparse arm Release 2, Debug 4; dense arm Release 3, Debug
+        // 2 (was 0, 0 / 1, 0).
+        const Index want = what.rfind("boxblocked_", 0) == 0 ? box_blocked_steps : Index{0};
         EXPECT_EQ(sol.counters.verdict_refine_steps, want) << msg;
 #else
         (void)msg;
@@ -12499,7 +12500,7 @@ static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
         }
     }
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_EQ(worst, dense_release ? Index{3} : Index{2}) << "the ceiling on the fixture set";
+    EXPECT_EQ(worst, box_blocked_steps) << "the ceiling on the fixture set";
 #else
     EXPECT_LE(worst, 15) << "the ceiling on the fixture set";
 #endif

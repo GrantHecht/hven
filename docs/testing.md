@@ -1123,6 +1123,21 @@ Debug only `qp_engine.cpp.o`'s debug sections move (its own `.cpp` lines below
 the hook shifted); `nm -C libhven.a` finds no seam symbol. No `notices/` entry:
 no session file is touched.
 
+### The repair-path injector (M8 kopt-1x r2)
+
+`qp_certificate_seam.h` also holds `QpRepairSeam`, on the same terms (`HVEN_TESTING` only, per-thread, read
+only by `hven_qp_walk_seam_tests`, no deviation, no `notices/` entry). Two hooks in `src/qp/qp_engine.cpp`:
+`qp_post_repair_perturb`, immediately before the successful rank-repair `continue`, moves the iterate along one
+equality row's normal to a chosen number of floor units of that row and can mark the pass as having issued the
+gray hold; `qp_repair_seam_note_prev`, at the top of every pass, records the hold the pass after the firing
+inherited. Unarmed both return at once. What it pins: a repair `continue` must not spend a gray hold
+(`QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHold*`: the pass after the repair inherits none). What it does
+NOT pin, by measurement: on RDV_YORKNET_qp5 the 373 passes after the repair absorb a 6.88x perturbation, so
+`YorknetQp5PostRepairGrayRow*` is green on the base engine too (a regression pin); the discriminator for
+"a certified gray row is returned to the walk" is the existing certificate seam presenting row 246 at 6.88 floor
+units on the first read (`YorknetQp5CertifiedGrayRowIsReturnedToTheWalk*`), red on the base engine (ratio 6.88,
+one gray exit counted, the Intel numbers: residual 2.082e-7, row scale 30.26, lambda 0.198474).
+
 ## A fifth seam, in the SQP driver: the equality basis (M7 W2 E1b)
 
 `hven/detail/drivers/equality_basis_testing.h` declares
