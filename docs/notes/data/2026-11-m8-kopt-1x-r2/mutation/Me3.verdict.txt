@@ -1,0 +1,5 @@
+APPLIED Me3
+RESTORED
+MUT Me3 sqp_rc=0 seam_rc=1 killers=2
+   QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+   QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (13 ms)

@@ -1,0 +1,87 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x-r2/build-k/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRowContractPolish.*:QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit:QpRdvRankRepair.Yorknet*
+[==========] Running 15 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from QpRdvRankRepair
+[ RUN      ] QpRdvRankRepair.YorknetQp1Border
+[ rdv ] C11_YORKNET_qp1.txt border status=0 minors=614 facts=603 f=1696529.72937 rank_repairs=1 releases=4 misses=0 blkterm=0 certrej=0
+[       OK ] QpRdvRankRepair.YorknetQp1Border (967 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp1Refactorize
+[ rdv ] C11_YORKNET_qp1.txt refactorize status=0 minors=614 facts=646 f=1696529.72937 rank_repairs=1 releases=4 misses=0 blkterm=0 certrej=0
+[       OK ] QpRdvRankRepair.YorknetQp1Refactorize (749 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5Border
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=914 facts=963 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] YORKNET qp5 status=0 minors=914 stagnation_drops=0 stagnation_stops=0 f=-1078.49295775 stationarity=4.618e-11 eq=9.506e-15
+[ rdv ] YORKNET qp5 eq row contract: worst ratio=6.385e-08 row=225 resid=2.243e-16 row_scale=3.513 lambda=0.319242
+[       OK ] QpRdvRankRepair.YorknetQp5Border (1497 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5Refactorize
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=914 facts=959 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] YORKNET qp5 status=0 minors=914 stagnation_drops=0 stagnation_stops=0 f=-1078.49295775 stationarity=4.618e-11 eq=9.506e-15
+[ rdv ] YORKNET qp5 eq row contract: worst ratio=6.385e-08 row=225 resid=2.243e-16 row_scale=3.513 lambda=0.319242
+[       OK ] QpRdvRankRepair.YorknetQp5Refactorize (1026 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5PostRepairGrayRowBorder
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=919 facts=968 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] seam row 246 0.000 -> 6.880 floor units at minor 546 (hold flag 0)
+[ rdv ] post-repair gray: status=0 ratio=7.401e-08 row=81 gray_exits=0 polish adopted=0 rejected=1
+[       OK ] QpRdvRankRepair.YorknetQp5PostRepairGrayRowBorder (1500 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5PostRepairGrayRowRefactorize
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=919 facts=964 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] seam row 246 0.000 -> 6.880 floor units at minor 546 (hold flag 0)
+[ rdv ] post-repair gray: status=0 ratio=7.401e-08 row=81 gray_exits=0 polish adopted=0 rejected=1
+[       OK ] QpRdvRankRepair.YorknetQp5PostRepairGrayRowRefactorize (1032 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5CertifiedGrayRowIsReturnedToTheWalkBorder
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=914 facts=963 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=930 facts=1107 f=-1078.49295777 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] certified-gray: status=0 ratio=6.661e-08 row=60 gray_exits=0 presentations=9 minors=930
+[       OK ] QpRdvRankRepair.YorknetQp5CertifiedGrayRowIsReturnedToTheWalkBorder (3105 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5CertifiedGrayRowIsReturnedToTheWalkRefactorize
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=914 facts=959 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=930 facts=1103 f=-1078.49295777 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] certified-gray: status=0 ratio=6.661e-08 row=60 gray_exits=0 presentations=9 minors=930
+[       OK ] QpRdvRankRepair.YorknetQp5CertifiedGrayRowIsReturnedToTheWalkRefactorize (2172 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldBorder
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=919 facts=968 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x-r2/tests/qp/test_qp_rank_repair.cpp:465: Failure
+Expected equality of these values:
+  Seam::prev_after_fire
+    Which is: 1
+  0
+the repair consumed the hold
+
+[  FAILED  ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldBorder (1498 ms)
+[ RUN      ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldRefactorize
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=919 facts=964 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x-r2/tests/qp/test_qp_rank_repair.cpp:465: Failure
+Expected equality of these values:
+  Seam::prev_after_fire
+    Which is: 1
+  0
+the repair consumed the hold
+
+[  FAILED  ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldRefactorize (1032 ms)
+[----------] 10 tests from QpRdvRankRepair (14584 ms total)
+
+[----------] 1 test from QpCertificateSign
+[ RUN      ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[       OK ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (1 ms)
+[----------] 1 test from QpCertificateSign (1 ms total)
+
+[----------] 4 tests from QpRowContractPolish
+[ RUN      ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen
+[       OK ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen (0 ms)
+[ RUN      ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve
+[       OK ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve (0 ms)
+[ RUN      ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity
+[       OK ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity (0 ms)
+[ RUN      ] QpRowContractPolish.ARepricedCandidateIsNotAdoptedPastOneFloorUnit
+[       OK ] QpRowContractPolish.ARepricedCandidateIsNotAdoptedPastOneFloorUnit (0 ms)
+[----------] 4 tests from QpRowContractPolish (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 3 test suites ran. (14585 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldBorder
+[  FAILED  ] QpRdvRankRepair.YorknetQp5RepairDoesNotSpendTheHoldRefactorize
+
+ 2 FAILED TESTS
