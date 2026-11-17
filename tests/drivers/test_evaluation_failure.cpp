@@ -1430,6 +1430,25 @@ TEST(RiderReturnBest, ANonFiniteAbortWithABestIterateReturnsItInFull) {
         << "the equality column is the returned x's";
 }
 
+// M8 AP-5 G-RB: kOnLimit does not cover a non-finite abort. The same fixture, the best iterate
+// recorded, and the failed point stands with its multipliers cleared and no best-iterate claim
+// (the abort is kNumericalError, a kOnAnyNonOptimal exit only).
+TEST(RiderReturnBest, ANonFiniteAbortUnderOnLimitReturnsTheFailedPointAndNoClaim) {
+    auto nlp = floor_fixture();
+    Problem problem(nlp);
+    IpmOptions o = quiet_ipm();
+    o.common.return_best = hven::ReturnBest::kOnLimit;
+    IpmSolver solver(o);
+    IpmResult r;
+    ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
+    ASSERT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
+    EXPECT_FALSE(r.returned_best_iterate);
+    EXPECT_EQ(r.message.find("returned the best iterate"), std::string::npos) << r.message;
+    EXPECT_TRUE(r.best_iterate.has_value()) << "armed by the option, recorded before the fault";
+    EXPECT_FALSE(nlp->was_seen_public(r.x)) << "the failed point, not a best iterate";
+}
+
 // Nothing recorded -- the fault is at the start point -- the failed point
 // stands, its multipliers cleared, and no best-iterate claim is made.
 TEST(RiderReturnBest, ANonFiniteStartWithNoBestIterateReturnsTheStartPointAndNoClaim) {
