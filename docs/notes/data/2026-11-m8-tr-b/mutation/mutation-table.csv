@@ -1,0 +1,15 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+i1,IPM drops restoration_exited on the resumed path,ok,TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired drivers rc=1 
+i2,IPM never writes restoration_entered,ok,IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit drivers rc=1 interior rc=1 
+i3,IPM stop_at_iteration names the wrong s,ok,IpmTrace.ACallbackStopWritesOneStopAtIterationMessageWithSourceCallback TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit drivers rc=1 interior rc=1 
+i4,IPM message builder runs before the sink test,ok,TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+s1,SQP drops subproblem_failure,ok,TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters drivers rc=1 
+s2,SQP never writes restoration_entered,ok,TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem TraceMessagesSqpResume.AResumedRestorationIsANoticeAndEveryEntryHasAnExit drivers rc=1 sqp rc=1 
+s3,SQP stop_at_iteration names the wrong s,ok,TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo drivers rc=1 
+s4,SQP message builder runs before the sink test,ok,TraceMessageSites.TheSqpMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+s5,SQP drops restoration_exited on the resumed path,ok,TraceMessagesSqpResume.AResumedRestorationIsANoticeAndEveryEntryHasAnExit sqp rc=1 
+s6,SQP drops scaled_convergence_refused,ok,ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs TraceMessageSites.TheSqpSourceConstructsExactlyTheDeclaredSites drivers rc=1 sqp rc=1 
+a1,M7-19 abort door emits its event but no iter row,ok,ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1 
+a2,M7-19 abort door emits its row but no callback event,ok,ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1 
+g1,SQP message event constructed outside any sink guard,ok,TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1 

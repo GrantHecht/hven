@@ -7,7 +7,7 @@ import os
 import sys
 
 wt = sys.argv[1]
-roots = ['trb-runtime', 'trb-suites', 'trb-replay', 'trb-interior', 'trb-install-smoke', 'trb-mutation']
+roots = ['trb-runtime', 'trb-runtime-aa', 'trb-suites', 'trb-replay', 'trb-interior', 'trb-install-smoke', 'trb-mutation']
 print('# sha256  size  path (raw dumps under .scratch/, not committed)')
 for r in roots:
     base = os.path.join(wt, '.scratch', r)

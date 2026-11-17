@@ -1,0 +1,14 @@
+M8 TR-B verdicts. Arm A = origin/m8 e43d9f8b5 (corpus sha256 6d323ea60f7f9fb87edcdafdc83cfa663a610ee11e75cb200c3fe291fb7c7be1). Declarations: DECLARATION.md f82d981d9, DECLARATION-r2.md (both committed before their legs).
+RUN HISTORY
+ r1 (code head cd92e65c3, arm B corpus sha256 071822cdb75a262e55c4208e6b98eacc244ac362b256fbdd5a074717b4a825c1): A/A, runtime, ctest rel+dbg, replay, interior, install smoke all PASS; mutation leg: 12/13 killed, s5 SURVIVED -> chain stopped (r1/).
+ r2 (code head a31b441fe; src/include/bench identical to cd92e65c3, tests/sqp gains the resumed-restoration test): ctest rel+dbg 100%; mutation leg 13/13 killed, control fails nothing, MUTATION_VERDICT PASS (mutation/). Standing r1 legs not re-run (inputs unmoved; rebuilt corpus differs in bytes only by the head stamp).
+RED/GREEN (M7-19) walk-red/red-prefix.txt: ExitDoorWalk on the pre-fix tree (8c2b2fa14, = arm A sources) FAILS only at "ipm nonfinite_abort" and "ipm nonfinite_abort_no_best" (iter lines 2 vs iterations 3); every other door passes. walk-green/green-fixed.txt: PASSED after 33ece8996.
+P1  ctest Release 3839 tests, Debug 3839 tests: 100% passed at a31b441fe (suites/).
+P2  section 2.7 identities (TraceMessages*, TraceMessagesSqpResume, IpmTrace restoration pin now enabled): inside P1, pass.
+P3  TraceMessageSites.* (declared-sites scan, both engines, planted added/dropped/misplaced site caught) and TraceOffPath.* (structural scan, planted unguarded construction and call caught): inside P1, pass.
+P4  A/A calibration (arm A as both arms, solo, serial): interior 1.000000, ipm 1.000000, ssn 1.000000, walk 0.999997 -> band [0.995, 1.005] CONFIRMED (runtime/aa/). Runtime B/A filtered: interior 0.999996, ipm 1.000000, ssn 1.000000, walk 0.999996, all within the band, counter identity holds, 0 throttled (runtime/<mode>/analysis.txt).
+P5  replay 27 cells x walk/ssn/ipm A vs B: differences 0 x3 (75 columns); armed (callback count + unfired token) 0 x3. Interior unmoved / promoted / armed: 43 cells x 30 columns, 0 x3 (replay/, interior/).
+P6  install smoke default and clang pass; export contract OK x2 (install-smoke/).
+P7  goldens re-derived (declared movers): ipm_restoration_iterations.txt (+ restoration entered line), sqp_restoration_iterations.txt and sqp_elastic_detail.txt (+ elastic exhausted, restoration entered/exited). No other golden moved.
+M   mutation table: mutation/mutation-table.csv, verdict.txt (r1: r1/mutation/).
+Caveat: wall-clock is informational; Windows/Accelerate UNOBSERVED; hven-bench not edited.
