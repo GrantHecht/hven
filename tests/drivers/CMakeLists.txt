@@ -33,6 +33,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_trace_v1_contract.cpp
     # M8 TR-A: the cost contract's structural proof (no event built, no emit called, with no sink).
     test_trace_off_path.cpp
+    # M8 TR-B: the exit-door walk (count identity at every exit door of both engines; M7-19).
+    test_exit_door_walk.cpp
     # M8 TR-A: the human trace rendered from real solves (goldens under golden/human_trace/).
     test_human_trace_goldens.cpp
     # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.
