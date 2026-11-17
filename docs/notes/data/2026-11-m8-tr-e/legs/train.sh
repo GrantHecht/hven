@@ -18,20 +18,20 @@ export MKL_NUM_THREADS=1 TMPDIR=$WT/.scratch/tmp GIT_CEILING_DIRECTORIES=$WT/.sc
 mkdir -p "$TMPDIR" "$OUT"
 cd "$R" || exit 1
 git rev-parse HEAD; sha256sum "$BIN"
-rc=0
-python3 runners/run_serial.py --out "$OUT/hs" --problem-set hs --split TRAIN --lanes hven-ipm,hven-sqp \
-  --budget-wall-s 600 --binary "$BIN" > "$OUT/hs.log" 2>&1 || rc=$?
-echo "hs rc=$rc $(date -Is)"; tail -2 "$OUT/hs.log"
-[ $rc -eq 0 ] || exit $rc
-python3 runners/run_serial.py --out "$OUT/cutest" --set-version 'cutest-nlp-35 v1' --split TRAIN \
-  --problems ACOPP57,SMBANK,READING6,ZAMB2-8,DALLASM --lanes hven-ipm,hven-sqp \
-  --budget-wall-s 300 --binary "$BIN" > "$OUT/cutest.log" 2>&1 || rc=$?
-echo "cutest rc=$rc $(date -Is)"; tail -2 "$OUT/cutest.log"
-[ $rc -eq 0 ] || exit $rc
+# run_serial.py exits 1 when ANY cell trips its reference check (hs033/hven-sqp does, at both pins); the results are written
+# regardless. A row-writing exit (rc 0 or 1) continues the leg; anything else, or no results.csv, aborts it. (r2: r1 aborted here.)
+runs() { # <dir> <args...>
+  local d=$1; shift
+  python3 runners/run_serial.py --out "$d" "$@" > "$d.log" 2>&1
+  local r=$?
+  echo "$(basename $d) rc=$r $(date -Is)"; tail -2 "$d.log"
+  { [ $r -eq 0 ] || [ $r -eq 1 ]; } && [ -f "$d/results.csv" ] || { echo "RUN_ABORT $d rc=$r"; exit 9; }
+}
+runs "$OUT/hs" --problem-set hs --split TRAIN --lanes hven-ipm,hven-sqp --budget-wall-s 600 --binary "$BIN"
+runs "$OUT/cutest" --set-version 'cutest-nlp-35 v1' --split TRAIN --problems ACOPP57,SMBANK,READING6,ZAMB2-8,DALLASM \
+  --lanes hven-ipm,hven-sqp --budget-wall-s 300 --binary "$BIN"
 if [ "$ARM" = new ]; then
-  python3 runners/run_serial.py --out "$OUT/hs-traced" --problem-set hs --split TRAIN --lanes hven-ipm,hven-sqp \
-    --budget-wall-s 600 --binary "$BIN" --trace > "$OUT/hs-traced.log" 2>&1 || rc=$?
-  echo "hs-traced rc=$rc $(date -Is)"; tail -2 "$OUT/hs-traced.log"
+  runs "$OUT/hs-traced" --problem-set hs --split TRAIN --lanes hven-ipm,hven-sqp --budget-wall-s 600 --binary "$BIN" --trace
 fi
 echo "FOREGROUND_END $(date -Is)"
-exit $rc
+exit 0

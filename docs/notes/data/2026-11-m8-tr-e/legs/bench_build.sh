@@ -16,7 +16,7 @@ cd "$R" || exit 1
 git rev-parse HEAD; grep '^set(HVEN_PIN_SHA' cmake/hven_pin.cmake
 setsid -w bash scripts/build_hven_pin.sh || { echo "PIN_BUILD_FAIL"; exit 1; }
 GIT_DIR=$R/.git GIT_WORK_TREE=$R setsid -w bash ./configure.sh -DHVEN_BENCH_CUTEST_ROOT=/home/ghecht/Software/cutest \
-  > "$R/.configure.log" 2>&1 || { echo CONFIGURE_FAIL; tail -30 "$R/.configure.log"; exit 1; }
+  > "$WT/.scratch/legs/configure-$ARM.log" 2>&1 || { echo CONFIGURE_FAIL; tail -30 "$WT/.scratch/legs/configure-$ARM.log"; exit 1; }
 setsid -w ninja -C "$R/build" -j16 hven_bench_cell
 rc=$?
 echo "rc=$rc"
