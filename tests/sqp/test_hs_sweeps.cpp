@@ -1310,11 +1310,10 @@ void check_soc_costs_what_it_costs() {
     // reads 0 (HS15's warm route differs there). A route census, pinned on the reference build
     // only.
 #if HVEN_TEST_ROUTE_REFERENCE
-#ifdef NDEBUG
-    EXPECT_EQ(4, gray_exits) << corpus_table();
-#else
+    // M8 kopt-1x r2 (declared mover): the four Release exits are gone (0 in both configs): the
+    // certifying site's bounded return and the 1x gray refinement repair what the first fix only
+    // counted. The census stays pinned at 0.
     EXPECT_EQ(0, gray_exits) << corpus_table();
-#endif
 #else
     hven::test_support::record_off_reference_route("HsSweepCorpus.gray_exits",
                                                    fmt::format("gray_exits={}", gray_exits));
@@ -1424,8 +1423,10 @@ void check_soc_costs_what_it_costs() {
     // Debug 3346 -> 3355. kOptimal now promises every equality and working row within 1x of its
     // tolerance: a KKT point with a row between 1x and 10x takes the ordinary step before it
     // certifies. Every status in the table is unchanged.
+    // M8 kopt-1x r2 (declared mover): Release 3359 -> 3357 (HS15's warm arm, one fewer minor in
+    // each of two lever cells; every status unchanged). Debug: see the assertion below.
 #ifdef NDEBUG
-    EXPECT_EQ(3359, total_minors) << corpus_table();
+    EXPECT_EQ(3357, total_minors) << corpus_table();
 #else
     EXPECT_EQ(3355, total_minors) << corpus_table();
 #endif
@@ -1627,17 +1628,12 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
 #if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
-#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(on.majors, 34);
-    EXPECT_EQ(on.minors, 99);
-    EXPECT_EQ(on.factorizations, 39);
-    EXPECT_EQ(on.rejected, 7);
-#else
+    // M8 kopt-1x r2 (declared): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, the
+    // Debug column again (the row repair no longer leaves HS15's warm arm on a gray exit).
     EXPECT_EQ(on.majors, 33);
     EXPECT_EQ(on.minors, 95);
     EXPECT_EQ(on.factorizations, 38);
     EXPECT_EQ(on.rejected, 6);
-#endif
 #endif
     EXPECT_EQ(on.status_failures, off.status_failures);
     EXPECT_EQ(on.fvals.size(), off.fvals.size());

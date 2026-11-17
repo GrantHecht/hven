@@ -445,3 +445,34 @@ TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkBorder) {
 TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkRefactorize) {
     expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(kRefactorize);
 }
+
+// KOPT-1X R2 (b): A RANK-REPAIR `continue` DOES NOT SPEND THE GRAY HOLD. The repair seam marks the
+// pass as having issued the hold (force_hold) and moves the iterate to 6.88 floor units on row
+// 246; the pass after the repair must inherit no spent hold (a hold is spent by an ordinary step
+// only), and the solve must still certify within 1x.
+namespace {
+void expect_yorknet_qp5_repair_does_not_spend_the_hold(QpWorkingSetAlgebra alg) {
+    using Seam = hven::detail::testing::QpRepairSeam;
+    Seam::reset();
+    Seam::armed = true;
+    Seam::row = 246;
+    Seam::floor_units = 6.88;
+    Seam::force_hold = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Seam::armed = false;
+    ASSERT_GE(Seam::fires, 1);
+    EXPECT_EQ(Seam::prev_after_fire, 0) << "the repair consumed the hold";
+    const EqRowContract c = eq_row_contract(d, s);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0);
+    Seam::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5RepairDoesNotSpendTheHoldBorder) {
+    expect_yorknet_qp5_repair_does_not_spend_the_hold(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5RepairDoesNotSpendTheHoldRefactorize) {
+    expect_yorknet_qp5_repair_does_not_spend_the_hold(kRefactorize);
+}

@@ -103,22 +103,24 @@ struct QpEngineTestAccess {
     }
     static bool eliminated_verdict_refine(const QpEngine &eng, const QpProblem &qp,
                                           const WorkingSet &ws, Vec &x, QpCounters &counters,
-                                          const QpOptions &opts) {
+                                          const QpOptions &opts,
+                                          double margin = kInfeasibilityMarginFactor) {
         const VerdictInputs in(qp, x);
         const KktFactor kkt(0, eng.dense_policy());
         EliminatedFace face; // armed but not holding `ws`: the twin factorizes its own
         face.factorized = true;
         return eng.refine_eliminated_face_for_verdict(qp, ws, x, in.aix, in.ai_norm, in.lambda_i,
                                                       in.ae_norm, in.lambda_e, kkt, face, counters,
-                                                      opts);
+                                                      opts, margin);
     }
 
     // The verdict refinements' acceptance measure, at zero multipliers.
     static double face_measure(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
-                               const Vec &x, const QpOptions &opts) {
+                               const Vec &x, const QpOptions &opts,
+                               double margin = kInfeasibilityMarginFactor) {
         const VerdictInputs in(qp, x);
         return eng.working_face_measure(qp, ws, x, in.aix, in.ai_norm, in.lambda_i, in.ae_norm,
-                                        in.lambda_e, opts);
+                                        in.lambda_e, opts, margin);
     }
 
   private:
@@ -1858,4 +1860,18 @@ TEST(QpRowContractPolish, ARepricedCandidateIsNotAdoptedPastOneFloorUnit) {
     closed.x << 1.0, -1.0;
     EXPECT_TRUE(
         QpEngineTestAccess::polish_would_adopt(engine, qp, ws, closed, x, le, li, z, opts, false));
+}
+
+// KOPT-1X R2 (d): THE VERDICT-SITE REFINEMENT'S TARGET. A row 6.88 floor units off is inside the
+// classifier's 10x target (measure 0.688) and outside kOptimal's 1x (measure 6.88); the gray-zone
+// refinement asks for the latter (end to end: the T7 verdict-refine pins on the box-blocked
+// fixture, which now pay the gray refinement's steps).
+TEST(QpRowContractPolish, TheVerdictRefinementTargetIsOneFloorUnitWhenAskedTo) {
+    const QpProblem qp = flat_normal_polish_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kNever);
+    const WorkingSet ws(2, 0);
+    const Vec x = flat_normal_point(6.88, opts);
+    EXPECT_NEAR(QpEngineTestAccess::face_measure(engine, qp, ws, x, opts), 0.688, 1e-6);
+    EXPECT_NEAR(QpEngineTestAccess::face_measure(engine, qp, ws, x, opts, 1.0), 6.88, 1e-6);
 }

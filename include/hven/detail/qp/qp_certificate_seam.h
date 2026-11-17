@@ -110,6 +110,9 @@ struct QpRepairSeam {
     static inline thread_local bool force_hold = false;
     static inline thread_local Index minor_at_fire = -1;
     static inline thread_local bool hold_at_fire = false;
+    /// `gray_hold_prev` at the first pass after the firing (-1 before it): the hold a repair
+    /// `continue` must not have spent.
+    static inline thread_local int prev_after_fire = -1;
 
     static void reset() {
         armed = false;
@@ -122,8 +125,17 @@ struct QpRepairSeam {
         force_hold = false;
         minor_at_fire = -1;
         hold_at_fire = false;
+        prev_after_fire = -1;
     }
 };
+
+/// Called at the top of every pass: records what the pass after the firing inherited.
+inline void qp_repair_seam_note_prev(bool gray_hold_prev) {
+    using S = QpRepairSeam;
+    if (S::armed && S::fires > 0 && S::prev_after_fire < 0) {
+        S::prev_after_fire = gray_hold_prev ? 1 : 0;
+    }
+}
 
 /// The hook, called before the successful rank-repair `continue`. Unarmed it returns at once.
 inline void qp_post_repair_perturb(const QpProblem &qp, Vec &x, const QpOptions &eff_opts,

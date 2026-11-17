@@ -785,6 +785,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // This pass issued the hold (set below); it is SPENT only by an ordinary step that runs.
         bool gray_hold_issued = false;
 #ifdef HVEN_TESTING
+        detail::testing::qp_repair_seam_note_prev(gray_hold_prev);
+#endif
+#ifdef HVEN_TESTING
         // One declaration covers every exit this loop body has: the record is
         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
         // the fall-through all record, and a path added later cannot silently
@@ -2615,7 +2618,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #ifdef HVEN_TESTING
                     walk_obs.record().action = detail::testing::QpWalkAction::kRankRepair;
                     detail::testing::qp_post_repair_perturb(qp, x, eff_opts, counters.minor_iters,
-                                                            gray_hold_next);
+                                                            gray_hold_issued);
 #endif
                     continue;
                 }

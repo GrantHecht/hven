@@ -12434,8 +12434,10 @@ static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
 #if HVEN_TEST_ROUTE_REFERENCE
         // Dense arm, Release: the box-blocked fixture's bordered dead end pays ONE refinement
         // step in every mode (every other fixture 0, and Debug reads 0 throughout).
+        // M8 kopt-1x r2 (declared mover): the gray-zone verdict refinement (1x target) pays two
+        // steps on this fixture (sparse) and three (dense, Release): 0 -> 2 and 1 -> 3.
         const Index want =
-            (dense_release && what.rfind("boxblocked_", 0) == 0) ? Index{1} : Index{0};
+            what.rfind("boxblocked_", 0) == 0 ? (dense_release ? Index{3} : Index{2}) : Index{0};
         EXPECT_EQ(sol.counters.verdict_refine_steps, want) << msg;
 #else
         (void)msg;
@@ -12497,7 +12499,7 @@ static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
         }
     }
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_EQ(worst, dense_release ? Index{1} : Index{0}) << "the ceiling on the fixture set";
+    EXPECT_EQ(worst, dense_release ? Index{3} : Index{2}) << "the ceiling on the fixture set";
 #else
     EXPECT_LE(worst, 15) << "the ceiling on the fixture set";
 #endif
