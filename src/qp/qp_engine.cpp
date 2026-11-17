@@ -1443,21 +1443,21 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
                 // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
                 // -- section 5, and the two refine_*_for_verdict declarations.
-                // KOPT-1X R2: the target is the classifier's 10x where a violation is structural
-                // (kInfeasible evidence), and kOptimal's own 1x where the row is only gray.
-                const bool gray_row =
-                    worst == 0.0 && !(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i,
-                                                      ae_row_norm1, lambda_e, eff_opts) <= 1.0);
-                const double refine_margin = worst > 0.0 ? detail::kInfeasibilityMarginFactor : 1.0;
-                const bool refined =
-                    (worst > 0.0 || gray_row) &&
-                    (eqp.refine_steps > 0
-                         ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
-                                                   ae_row_norm1, lambda_e, *border_, counters,
-                                                   eff_opts, refine_margin)
-                         : refine_eliminated_face_for_verdict(
-                               qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, kkt,
-                               face, counters, eff_opts, refine_margin));
+                // KOPT-1X R2: at a structural dead end the refinement first asks for kOptimal's own
+                // 1x and only then settles for the classifier's 10x (the kInfeasible evidence
+                // margin is unchanged). It is NOT also run at a gray row (worst == 0): measured,
+                // that changed whole SQP trajectories for no gain (ACOPP30: 615 -> 2494 minors).
+                const auto refine_to = [&](double margin) {
+                    return eqp.refine_steps > 0
+                               ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
+                                                         ae_row_norm1, lambda_e, *border_, counters,
+                                                         eff_opts, margin)
+                               : refine_eliminated_face_for_verdict(
+                                     qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                                     kkt, face, counters, eff_opts, margin);
+                };
+                const bool refined = worst > 0.0 && (refine_to(1.0) ||
+                                                     refine_to(detail::kInfeasibilityMarginFactor));
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
