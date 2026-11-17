@@ -1,0 +1,6 @@
+name="yorknet_qp5_border_eq_contract_route" value="UNOBSERVED-ROUTE off the reference build: eq=9.506e-15 worst_ratio=7.401e-08 row=81 resid=1.110e-16 row_scale=1.5 lambda=0.0786505"
+name="yorknet_qp5_border_eq_ratio_1x_route" value="UNOBSERVED-ROUTE off the reference build: ratio=0.000000 optimal_row_gray_exits=0"
+name="yorknet_qp5_border_route" value="UNOBSERVED-ROUTE off the reference build: status=0 minors=1189 rank_repairs=2 dep_blocker_terminations=0 dep_certificate_rejections=0 stagnation_drops=0 stagnation_stops=0"
+name="yorknet_qp5_refactorize_eq_contract_route" value="UNOBSERVED-ROUTE off the reference build: eq=9.506e-15 worst_ratio=7.401e-08 row=81 resid=1.110e-16 row_scale=1.5 lambda=0.0786505"
+name="yorknet_qp5_refactorize_eq_ratio_1x_route" value="UNOBSERVED-ROUTE off the reference build: ratio=0.000000 optimal_row_gray_exits=0"
+name="yorknet_qp5_refactorize_route" value="UNOBSERVED-ROUTE off the reference build: status=0 minors=1189 rank_repairs=2 dep_blocker_terminations=0 dep_certificate_rejections=0 stagnation_drops=0 stagnation_stops=0"
