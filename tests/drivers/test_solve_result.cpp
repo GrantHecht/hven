@@ -895,8 +895,9 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
-    ASSERT_EQ(r.status, hven::SolveStatus::kStalled);
+    ASSERT_EQ(r.status, hven::SolveStatus::kInfeasible);
     ASSERT_EQ(r.phases.back().stop_reason, hven::StopReason::kRestorationLocallyInfeasible);
+    EXPECT_FALSE(r.infeasibility_certified);
 
     EXPECT_TRUE(std::isnan(r.stationarity));
     EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_e));

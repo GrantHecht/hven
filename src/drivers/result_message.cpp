@@ -96,11 +96,12 @@ std::string ipm_status_message(const SolveResult &result, StopReason reason,
     case SolveStatus::kIterationLimit:
         return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
+        if (reason == StopReason::kRestorationLocallyInfeasible) {
+            return "locally infeasible (uncertified: restoration reached a locally infeasible "
+                   "point)";
+        }
         return "locally infeasible";
     case SolveStatus::kStalled:
-        if (reason == StopReason::kRestorationLocallyInfeasible) {
-            return "stalled: restoration reached a locally infeasible point";
-        }
         return "stalled: the iteration stopped making progress";
     case SolveStatus::kDiverging:
         return "diverging: the iterates grew without bound";

@@ -2707,8 +2707,10 @@ const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
         // that is what the bench artifact is a census of; the stage-stalled
         // door keeps its own coverage in the unit suite, which pins the
         // pre-event pair for exactly that reason.
-        {"infeas2_spike/MakeParameter/stalled", "stalled", "restoration_locally_infeasible"},
-        {"infeas2_stationary/MakeParameter/resto_infeasible", "stalled",
+        // RE-DERIVED at M8 AP-5 G-S (2026-11-17): the status was `stalled` and is `infeasible`
+        // (uncertified) -- the declared status event; the stop reason is unchanged.
+        {"infeas2_spike/MakeParameter/stalled", "infeasible", "restoration_locally_infeasible"},
+        {"infeas2_stationary/MakeParameter/resto_infeasible", "infeasible",
          "restoration_locally_infeasible"},
         {"f7_n1000_bound_neutral/MakeParameter/solve_optimize", "optimal", "none"},
         {"hs071_x1_fixed/MakeParameter/solve_optimize", "optimal", "none"},

@@ -500,6 +500,29 @@ picked the latest iterate) and the SQP compared (l1 violation, f) with no band.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-grb/CATCH-UP.txt`.
 
+## G-S -- the interior-point restoration-locally-infeasible exit is `kInfeasible`
+
+A declared status event, one situation, one label across the engines. The SQP engine already
+labelled "restoration ends at a point that is still infeasible" `kInfeasible`; the interior-point
+engine reported it as `kStalled`.
+
+| before | after | rewrite |
+|---|---|---|
+| IPM `status == kStalled`, `stop_reason == kRestorationLocallyInfeasible`, message `stalled: restoration reached a locally infeasible point` | `status == kInfeasible`, the same `stop_reason`, `infeasibility_certified == false`, message `locally infeasible (uncertified: restoration reached a locally infeasible point)` | a consumer that read kStalled here as "no progress" now reads kInfeasible: switch on `stop_reason` (and `infeasibility_certified`) to tell this exit from the SQP's certified one |
+| the same exit's phase status (`phases[].status`, the `ipm.phase.exit` event's `status`, the console `exit` line) `stalled` | `infeasible` | text consumers: the status word of those three |
+
+- `kStageStalled` (the stage stopped making progress) is still `kStalled`.
+- Uncertified: the engine claims nothing about the model, only that restoration stopped at a point that
+  is still infeasible. Like every kInfeasible exit it never substitutes the best iterate under
+  `common.return_best` (the exit used to substitute under the old bool; G-RB's rule says no).
+- The reporting order is unchanged (`kStalled` < `kInfeasible` < `kDiverging`): a phase sequence continues
+  past this exit exactly as it did past the stall.
+- Points are unchanged: every corpus column except `status` (and the status word inside `phases`) is
+  bit-identical; two interior-corpus rows move, and the interior baseline is re-derived as
+  `bench/baselines/2026-11-m8-ap5-gs-ipm-leg/interior_baseline.csv` (the G1 one stays frozen).
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-gs/CATCH-UP.txt`.
+
 ## TR-A -- trace v1 and the human trace
 
 The machine trace is schema v1 (`docs/trace-schema-v1.md`) and the console is re-cut. Both engines write

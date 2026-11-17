@@ -50,9 +50,9 @@ enum class IpmPhaseStop {
 ///   * A verdict the convergence check ALREADY HOLDS wins over the stop
 ///     -- a stall at an acceptable iterate reports kAcceptable.
 ///   * Otherwise either stop (callback or token) reports kInterrupted,
-///     kStageStalled and kRestorationLocallyInfeasible both report kStalled,
-///     kWorkLimit and kTimeLimit report the status of the same name, and the
-///     cap (or an unlabelled exit) reports kIterationLimit.
+///     kStageStalled reports kStalled, kRestorationLocallyInfeasible reports
+///     kInfeasible (uncertified), kWorkLimit and kTimeLimit report the status of the same name, and
+///     the cap (or an unlabelled exit) reports kIterationLimit.
 ///
 /// A simultaneous stall and cap therefore reports kStalled: the engine records
 /// the stall first and both cap doors defer to a stop already in place.

@@ -59,9 +59,10 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
               SolveStatus::kIterationLimit);
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kStageStalled),
               SolveStatus::kStalled);
+    // RE-DERIVED at M8 AP-5 G-S (declared status event): kStalled before.
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit,
                                        IpmPhaseStop::kRestorationLocallyInfeasible),
-              SolveStatus::kStalled);
+              SolveStatus::kInfeasible);
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kNone),
               SolveStatus::kIterationLimit);
     // The stronger verdict survives the stall: the mapping reads the flag first.
@@ -75,7 +76,8 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
               SolveStatus::kNumericalError);
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kDiverging, IpmPhaseStop::kNone),
               SolveStatus::kDiverging);
-    // Reachability, stated: the interior-point engine reports neither of these.
+    // Reachability, stated: the interior-point engine reports kInterrupted only from a stop and
+    // kInfeasible only from the restoration door, from the cap verdict alone (G-S).
     for (const SolveStatus f :
          {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kIterationLimit,
           SolveStatus::kDiverging, SolveStatus::kNumericalError}) {
@@ -83,7 +85,12 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
              {IpmPhaseStop::kNone, IpmPhaseStop::kIterationLimit,
               IpmPhaseStop::kRestorationLocallyInfeasible, IpmPhaseStop::kStageStalled}) {
             const SolveStatus s = resolve_ipm_phase_status(f, r);
-            EXPECT_NE(s, SolveStatus::kInfeasible);
+            if (f == SolveStatus::kIterationLimit &&
+                r == IpmPhaseStop::kRestorationLocallyInfeasible) {
+                EXPECT_EQ(s, SolveStatus::kInfeasible);
+            } else {
+                EXPECT_NE(s, SolveStatus::kInfeasible);
+            }
             EXPECT_NE(s, SolveStatus::kInterrupted);
         }
     }

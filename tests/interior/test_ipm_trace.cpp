@@ -1274,7 +1274,7 @@ TEST(IpmTrace, TheLocallyInfeasibleDoorWritesRestorationExitedWithSourceLocallyI
     Eigen::VectorXd x0(2);
     x0 << 1.0, 1.0;
     const hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, SolveStatus::kStalled) << "the locally-infeasible exit";
+    ASSERT_EQ(result.status, SolveStatus::kInfeasible) << "the locally-infeasible exit";
 
     // ONE `message` replaces v0's exit-row marker AND its message kind: the door's
     // exit, as a warning, carrying the violation and the threshold it was judged

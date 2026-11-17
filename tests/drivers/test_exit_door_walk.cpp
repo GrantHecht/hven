@@ -386,6 +386,27 @@ TEST(ReturnBestForcedExits, ACertifiedInfeasibleExitNeverSubstitutes) {
     }
 }
 
+// M8 AP-5 G-S: the interior-point engine's restoration-locally-infeasible exit reports kInfeasible,
+// uncertified, and -- as every kInfeasible exit -- never substitutes the best iterate, whatever
+// `return_best` says. The best IS recorded before restoration (published), so the absence of a
+// substitution is not vacuous.
+TEST(ReturnBestForcedExits, TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes) {
+    const auto infeasible = [] { return std::shared_ptr<Nlp>(std::make_shared<Infeasible>()); };
+    for (ReturnBest mode : kModes) {
+        SCOPED_TRACE("mode " + std::to_string(static_cast<int>(mode)));
+        const Forced f = forced(Engine::kIpm, infeasible(), infeasible_start(), mode, 0,
+                                std::nullopt, std::nullopt, true);
+        ASSERT_EQ(f.status, SolveStatus::kInfeasible) << f.message;
+        EXPECT_FALSE(f.certified) << "uncertified: no claim is made about the model";
+        EXPECT_FALSE(f.substituted);
+        EXPECT_EQ(f.message,
+                  "locally infeasible (uncertified: restoration reached a locally infeasible "
+                  "point)");
+        EXPECT_EQ(f.best_published, mode != ReturnBest::kNever)
+            << "armed by the option; a best was recorded before restoration";
+    }
+}
+
 TEST(ReturnBestForcedExits, TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode) {
     const auto hs071 = [] { return std::shared_ptr<Nlp>(std::make_shared<Hs071Problem>()); };
     for (ReturnBest mode : kModes) {

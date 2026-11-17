@@ -34,8 +34,11 @@ SolveStatus detail::resolve_ipm_phase_status(SolveStatus raw_verdict, IpmPhaseSt
         // renames a NOTCONVERGED exit and it overrides nothing.
         return SolveStatus::kInterrupted;
     case IpmPhaseStop::kStageStalled:
-    case IpmPhaseStop::kRestorationLocallyInfeasible:
         return SolveStatus::kStalled;
+    case IpmPhaseStop::kRestorationLocallyInfeasible:
+        // The situation the SQP engine labels kInfeasible (M8 AP-5 G-S); uncertified:
+        // `infeasibility_certified` stays false.
+        return SolveStatus::kInfeasible;
     case IpmPhaseStop::kWorkLimit:
         return SolveStatus::kWorkLimit;
     case IpmPhaseStop::kTimeLimit:

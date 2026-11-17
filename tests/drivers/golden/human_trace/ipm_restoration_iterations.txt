@@ -32,7 +32,7 @@ legend  t: B barrier, R restoration (obj = restoration objective) | stat feas co
    19 R  1.0010693e+03 2.19e-03 1.58e-01 0.00e+00 1.11e-06   0.0 1.00e+00 1.00e+00  0      -
    20 R  1.0010702e+03 4.35e-07 1.73e-07 0.00e+00        -  -3.0        -        -  -      -
       ! restoration exited at iter 20: locally_infeasible, theta 1.0e+00, threshold 1.0e-04
-exit        Stalled (restoration_locally_infeasible) -- stalled: restoration reached a locally infeasible point
+exit        Infeasible (restoration_locally_infeasible) -- locally infeasible (uncertified: restoration reached a locally infeasible point)
 iterations  21 · restoration entries 1 · factorizations 26
 objective   -1.55325840e-04
 diagnostics stationarity nan · feasibility nan · complementarity nan   (declared)

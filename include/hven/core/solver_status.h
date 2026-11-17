@@ -28,9 +28,10 @@ enum class QpStatus {
 
 /// @brief The verdict on a whole solve, reported by both engines.
 ///
-/// Reachability differs per engine: the interior-point engine never reports
-/// kInfeasible, and the SQP engine reports none of kAcceptable, kStalled and
-/// kDiverging. Both report kInterrupted -- what a per-iteration callback
+/// Reachability differs per engine: the interior-point engine reports kInfeasible only,
+/// uncertified, when feasibility restoration ends at a locally infeasible point
+/// (StopReason::kRestorationLocallyInfeasible), and the SQP engine reports none of
+/// kAcceptable, kStalled and kDiverging. Both report kInterrupted -- what a per-iteration callback
 /// returning CallbackAction::kStop gets, at the point the engine was standing on
 /// -- and both report kWorkLimit and kTimeLimit.
 ///
@@ -165,7 +166,7 @@ enum class StopReason {
     /// kStalled. Interior-point.
     kStageStalled = 7,
     /// Feasibility restoration converged to a point that is still infeasible.
-    /// Verdict kStalled. Interior-point.
+    /// Verdict kInfeasible, uncertified (`infeasibility_certified` false). Interior-point.
     kRestorationLocallyInfeasible = 8,
     /// The QP subproblem failed and its retry budget was spent. Verdict
     /// kNumericalError, or kInfeasible (uncertified) for an infeasible

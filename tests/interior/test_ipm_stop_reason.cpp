@@ -531,7 +531,7 @@ TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     // Resolved by the engine at the phase's exit (M6 W5 T8.4), like the stall
     // above: the locally-infeasible restoration return is the OTHER exit the
     // old vocabulary could not tell from the cap.
-    EXPECT_EQ(flag, hven::SolveStatus::kStalled);
+    EXPECT_EQ(flag, hven::SolveStatus::kInfeasible);
     EXPECT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
               hven::detail::IpmPhaseStop::kRestorationLocallyInfeasible);
     EXPECT_LT(result.iterations, 200);
@@ -539,7 +539,7 @@ TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     // status returns it unchanged.
     EXPECT_EQ(hven::detail::resolve_ipm_phase_status(
                   flag, hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason()),
-              hven::SolveStatus::kStalled);
+              hven::SolveStatus::kInfeasible);
 }
 
 // THE LOCALLY-INFEASIBLE DOOR IS ON BOTH STREAMS (M6 W5 T8.6 fix1, the SQP
@@ -570,7 +570,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorFiresItsRowOnBothStreams) {
     const hven::IpmResult result = solver.engine->solve(hven::detail::problem_ref(*solver.program),
                                                         stop_reason_test::two_var_start(1.0, 1.0));
     const hven::SolveStatus flag = result.status;
-    ASSERT_EQ(flag, hven::SolveStatus::kStalled);
+    ASSERT_EQ(flag, hven::SolveStatus::kInfeasible);
     ASSERT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
               hven::detail::IpmPhaseStop::kRestorationLocallyInfeasible)
         << "fixture premise: the solve must leave through the locally-infeasible door";
@@ -610,7 +610,7 @@ TEST(IpmStopReason, TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve) {
     const hven::IpmResult result = solver.engine->solve(hven::detail::problem_ref(*solver.program),
                                                         stop_reason_test::two_var_start(1.0, 1.0));
     const hven::SolveStatus flag = result.status;
-    ASSERT_EQ(flag, hven::SolveStatus::kStalled);
+    ASSERT_EQ(flag, hven::SolveStatus::kInfeasible);
     ASSERT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
               hven::detail::IpmPhaseStop::kRestorationLocallyInfeasible)
         << "fixture premise: the solve must leave through the locally-infeasible door";
@@ -797,7 +797,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
         const hven::IpmResult result = solver.engine->solve(
             hven::detail::problem_ref(*solver.program), stop_reason_test::two_var_start(1.0, 1.0));
         const hven::SolveStatus flag = result.status;
-        ASSERT_EQ(flag, hven::SolveStatus::kStalled);
+        ASSERT_EQ(flag, hven::SolveStatus::kInfeasible);
         printed = capture.text();
     }
     ASSERT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
@@ -807,7 +807,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
     const std::vector<std::string> exits =
         stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
     ASSERT_FALSE(exits.empty());
-    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "status"), "\"stalled\"");
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "status"), "\"infeasible\"");
     EXPECT_EQ(stop_reason_test::key_value(exits.back(), "stop_reason"),
               "\"restoration_locally_infeasible\"");
 
@@ -961,7 +961,7 @@ TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasib
     auto nested = stop_reason_test::make_locally_infeasible_solver(40);
     const hven::IpmResult l1_result = nested.engine->solve(
         hven::detail::problem_ref(*nested.program), stop_reason_test::two_var_start(1.0, 1.0));
-    EXPECT_EQ(l1_result.status, hven::SolveStatus::kStalled);
+    EXPECT_EQ(l1_result.status, hven::SolveStatus::kInfeasible);
     EXPECT_EQ(hven::detail::IpmSolverAccess::impl(*nested.engine).last_stop_reason(),
               hven::detail::IpmPhaseStop::kRestorationLocallyInfeasible);
     EXPECT_NE(hven::detail::IpmSolverAccess::impl(*proximal.engine).last_stop_reason(),
