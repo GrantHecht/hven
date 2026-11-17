@@ -1,0 +1,6 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+o1,the order compares f before the violation,ok,BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1 
+o2,non-strict improvement,ok,ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1 
+o3,no tolerance band,ok,Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest drivers rc=1 
+x1,the IPM tracker reinstates the removed criterion path (equality residual alone, <= ties),ok,Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest drivers rc=1 

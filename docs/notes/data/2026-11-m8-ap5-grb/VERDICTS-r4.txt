@@ -1,0 +1,27 @@
+M8 AP-5 G-RB rider r4 verdicts (proof addendum after the rebase and the criterion removal). hven code head under test = 683897c48e28250a1ecee7a89dd2c662a243b7be (`feat(m8-ap5-grb-r4)`), on branch g-rb
+rebased onto origin/m8 d7be9a4e3747ce58e99abceb23908fcebc005582 (rebase clean, no conflicts). Declared in DECLARATION-r4.md (5886aa44e), mutation leg re-run under DECLARATION-r5.md (instrument fault only, below).
+Toolchain: clang 22.1.x, Fedora, AMD Ryzen 7 5800X3D (16 logical CPUs), 2026-11-17, Release SAFER_FAST and Debug. Windows/Accelerate UNOBSERVED. HOLDOUT was NOT run.
+Arm A = origin/m8 d7be9a4e3, sha256 33d68b317524bf69bd35f565fe016b29ddafc553b71104daa44a5064936b0db0 (byte-identical binary to G-RB's arm A from 0cfcec52f). Arm B sha256 a3343c1112d0b9741e87dc34134a04d3b355c6c5ea66e437794c698aa08c1a18.
+
+Rider: `IpmOptions::best_iterate_criterion` and `IpmBestIterateCriterion` removed (owner ruling 2026-11-17); the shared ordering is the only one. IPM dump 67 -> 66 lines; pins re-derived: kIpmOptionsFields 15 -> 14,
+kIpmDumpLines 67 -> 66, sizeof(IpmOptions) 480 -> 472.
+
+P1   ctest at the code head, every target: Release 100% passed, 0 failed of 3862 run; Debug the same (r4/suites/ctest-*-summary.txt). PASS.
+P3   replay 27 cells x (walk, ssn, ipm), arm A vs arm B, EXACT: "differences: 0" x3 (75 columns); ARMED (--callback count + unfired token) vs unarmed arm B: 0 x3 (r4/replay/). PASS.
+P4   interior (43 cells, 30 columns): arm A vs arm B differ in exactly G-S's 2 declared cells (infeas2_spike/MakeParameter/stalled, infeas2_stationary/MakeParameter/resto_infeasible), each only in `status`
+     and `phases` (MOVERS_VERDICT PASS, r4/interior/r4-interior-movers.txt); against the G-S baseline bench/baselines/2026-11-m8-ap5-gs-ipm-leg/interior_baseline.csv: 0 differences; armed: 0. PASS.
+P5   install smoke, default and clang front ends, each followed by check_export_contract.sh: "export contract OK for platform=linux, align=32" x2 (r4/install-smoke/). PASS.
+M    mutations (verdict in r4/mutation-r5/): control fails nothing; must-kill o1 (killed by BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot, WarmStart.BudgetReturnsUsableIterate),
+     o2 (ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond), o3 (Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest), x1 (same callback test; a one-off dev dry-run
+     was also killed by Limits.AWorkLimitExitFollowsTheSharedReturnBestRule) -- all KILLED. MUTATION_VERDICT PASS.
+     x1 = the removed criterion path REINSTATED in the IPM tracker (equality residual alone, `<=` ties). "A tracker that honours a removed option" has no other representation: the option no longer exists to
+     be read. The first mutation run (r4/mutation/) printed FAIL for an instrument fault: x1's description held a comma that split its CSV row; its raw row shows x1 killed. Fixed, DECLARATION-r5, re-run: PASS.
+Runtime gate: not required (DECLARATION-r4): the unarmed path executes arm A's per-iteration code; the removed switch sat inside the armed-only tracker.
+TSan, goldens: not run (declared).
+
+OPEN ITEMS
+ - The Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest fixture was re-derived (HS071, feasibility band 30) because the shared ordering is feasibility-first and an early best no longer arises
+   on a monotonically converging problem without a band; disclosed in DECLARATION-r4. The o3 and x1 kills rest on that test and on the limit-exit table.
+ - G-RB's r1-style survivor (a shared measure reading the equality residual alone) now falls to x1 through the callback/limits tests (x1 also changes the comparison); a measure-only mutation was not re-run here.
+ - Design conflict recorded in G-RB's VERDICTS (ordering per engine in design Q5) is resolved by the owner's ratification of the shared ordering (2026-11-17).
+ - hven-bench: `best_iterate_criterion` is not used in its sources (only historical recorded dumps under runs/); no catch-up branch needed.
