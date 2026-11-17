@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# M8 TR-A (../DECLARATION.md): the non-timing legs in order, STOPPING at the first failed leg (evidence written so far stays).
+# M8 TR-B (../DECLARATION.md): the non-timing legs in order, STOPPING at the first failed leg (evidence written so far stays).
 # Run AFTER ../runtime/run_all.sh (solo, serial).
 # usage: chain.sh <code-head sha> <expected arm B sha256> <expected arm A sha256>      Run as: flock /tmp/box-build.lock bash chain.sh ...
 set -o pipefail
@@ -7,7 +7,7 @@ WT=/home/ghecht/Projects/hven/.claude/worktrees/tr-b
 D=$WT/docs/notes/data/2026-11-m8-tr-b
 L=$D/legs
 HEAD_SHA=${1:?code head sha}
-BASE_SHA=fa97d6bf0
+BASE_SHA=e43d9f8b5
 ARMB=${2:?arm B sha256}
 ARMA=${3:?arm A sha256}
 if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo "PGREP_BUSY"; pgrep -a hven_bench_cell; exit 3; fi
