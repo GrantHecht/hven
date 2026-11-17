@@ -204,6 +204,24 @@ TEST_P(EqualityBasisModes, F2InconsistentRedundantRowIsCertifiedInfeasible) {
     EXPECT_GT(rep.evidence_major_second, rep.evidence_major_first);
 }
 
+// M8 AP-5 G-RB: the uncertified kInfeasible exit never substitutes the best iterate, under
+// every return-best value.
+TEST_P(EqualityBasisModes, F2InconsistentEqualitiesNeverSubstituteTheBestIterate) {
+    const TwoNetworks net;
+    const QpAsNlpModel model = net.model(1e-3);
+    for (const hven::ReturnBest mode : {hven::ReturnBest::kNever, hven::ReturnBest::kOnLimit,
+                                        hven::ReturnBest::kOnAnyNonOptimal}) {
+        SqpOptions o = opts_for(GetParam());
+        o.common.return_best = mode;
+        SqpSolver solver(o);
+        const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
+        ASSERT_EQ(res.status, SolveStatus::kInfeasible);
+        ASSERT_EQ(res.stop_reason, StopReason::kInconsistentEqualities);
+        EXPECT_FALSE(res.infeasibility_certified);
+        EXPECT_FALSE(res.returned_best_iterate);
+    }
+}
+
 TEST_P(EqualityBasisModes, F2SubToleranceInconsistencyIsSpreadAndConverges) {
     const TwoNetworks net;
     const QpAsNlpModel model = net.model(5e-9);

@@ -116,7 +116,8 @@ SolveResult solve(Engine e, Index cap, bool return_best,
     Problem problem(std::make_shared<Hs071Problem>());
     if (e == Engine::kIpm) {
         IpmOptions o = quiet_ipm();
-        o.return_best = return_best;
+        o.common.return_best =
+            return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
         if (cap > 0) {
             o.common.max_iterations = cap;
         }
@@ -129,7 +130,7 @@ SolveResult solve(Engine e, Index cap, bool return_best,
         return r;
     }
     SqpOptions o = quiet_sqp();
-    o.return_best_on_max_iterations = return_best;
+    o.common.return_best = return_best ? hven::ReturnBest::kOnLimit : hven::ReturnBest::kNever;
     if (cap > 0) {
         o.common.max_iterations = cap;
     }
@@ -586,7 +587,7 @@ const IterationSnapshot *event_at(const std::vector<IterationSnapshot> &seen, In
 TEST(BestIterate, AnAcceptableReturnBestSolvePublishesTheBestItSubstituted) {
     Problem problem(std::make_shared<Hs071Problem>());
     IpmOptions o = quiet_ipm();
-    o.return_best = true;
+    o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
     o.common.optimality_tol = 1.0e-16;
     o.common.feasibility_tol = 1.0e-16;
     o.termination.complementarity_tol = 1.0e-16;

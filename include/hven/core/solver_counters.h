@@ -1705,7 +1705,7 @@ struct SqpCounters {
     ///
     /// What it does NOT count: an ordinary max_iterations exhaustion (kIterationLimit, this field
     /// 0); a CommonOptions::max_factorizations stop (also kWorkLimit, this field 0); a
-    /// best-iterate max-iter exit under SqpOptions::return_best_on_max_iterations, a different
+    /// best-iterate max-iter exit under CommonOptions::return_best, a different
     /// budget with a different contract; and a solve that spent more than the budget and CONVERGED
     /// anyway, which is reported kOptimal with this field 0. A solve given no budget leaves this
     /// identically 0.
@@ -2132,7 +2132,7 @@ struct SqpCounters {
     /// carries SolveStatus's remaining three (`kAcceptable`, `kStalled`,
     /// `kDiverging`) so that the map into it is TOTAL and
     /// needs no default arm; the SQP engine reports the first three on no exit
-    /// at all, and the sub-solve runs with `return_best_on_max_iterations` forced false.
+    /// at all, and the sub-solve runs with `common.return_best` forced to kNever.
     ///
     /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED.
     /// The resume decision is `restoration_feas_out <= CommonOptions::feasibility_tol`

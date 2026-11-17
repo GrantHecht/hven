@@ -49,6 +49,7 @@
 #include <hven/detail/drivers/equality_basis.h>
 #include <hven/detail/drivers/equality_basis_testing.h>
 #include <hven/detail/drivers/ladder_testing.h>
+#include <hven/detail/drivers/return_best.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/sqp_warm_state.h>
 #include <hven/detail/warmstart/warm_start.h>
@@ -4122,12 +4123,12 @@ struct SqpSolverImpl::SolveState {
     // THE BUDGETED-MODE BEST-ITERATE SNAPSHOT (ownership doc section 2.2 N).
     struct BudgetBest {
         // BUDGETED MODE's own best-iterate tracking -- see sqp_solver_types.h's
-        // SqpOptions::return_best_on_max_iterations note for the ordering (feasibility-first:
+        // CommonOptions::return_best note for the ordering (feasibility-first:
         // min h, tie-break min f) and why it is a DIFFERENT ranking from
         // the watchdog snapshot just above (that one answers "closest to a KKT point";
         // this one answers "best to hand a continuation driver"). Only
-        // maintained when opts_.return_best_on_max_iterations is set -- a
-        // return_best_on_max_iterations=false solve touches none of this. `kkt` is a COPY of the
+        // maintained when opts_.common.return_best is set -- a
+        // common.return_best == kNever solve touches none of this. `kkt` is a COPY of the
         // `kkt` already computed this pass, so tracking costs no extra model or KKT evaluation.
         Vec x, lambda_e, lambda_i;
         SqpKkt kkt;
@@ -6202,7 +6203,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // solve, whose model is already read -- so the sub-solve's bridge reads it the
     // same way.
     ropts.common.infinite_bound = bridge.infinite_bound();
-    // AND THE SUB-SOLVE RUNS UNSCALED, alongside the return_best_on_max_iterations and
+    // AND THE SUB-SOLVE RUNS UNSCALED, alongside the return_best and
     // qp_mode forcings just below and for the same kind of reason: the
     // restoration problem is a DIFFERENT problem (a feasibility one, in
     // augmented variables), the factors computed for this solve do not
@@ -6216,16 +6217,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // The caller's strategy factory is NOT carried; the radius is.
     // See the header note's WHAT IS CARRIED IN.
     ropts.advanced.make_strategy = {};
-    // BUDGETED MODE NEVER PROPAGATES TO THE RESTORATION
-    // SUB-SOLVE, even when the caller's own solve has it on:
-    // sqp_solver_types.h's SqpOptions::return_best_on_max_iterations SCOPE note says the
-    // lever governs only the MAIN loop's own max_iter exhaustion,
-    // and the sub-solve exhausting its OWN slice of the shared
-    // budget is deliberately still reported as kIterationLimit just
-    // below (the "no budget left to restore with" exit, when
-    // spent >= opts_.max_iter, is the same answer). Forcing this
-    // off keeps the sub-solve from returning its best iterate.
-    ropts.return_best_on_max_iterations = false;
+    // RETURN-BEST NEVER PROPAGATES TO THE RESTORATION SUB-SOLVE, even when the caller's own
+    // solve has it on: the best point is the parent's, and the sub-solve exhausting its OWN
+    // slice of the shared budget is deliberately still reported as kIterationLimit just below
+    // (the "no budget left to restore with" exit, when spent >= opts_.max_iter, is the same
+    // answer). Forcing this off keeps the sub-solve from returning its best iterate.
+    ropts.common.return_best = ReturnBest::kNever;
     ropts.advanced.equality_basis = false;
     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
     // MODE IS. Without this line the copy above would carry `qp_mode`
@@ -7890,7 +7887,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
 
     // BUDGETED MODE's best-iterate tracking (see the declaration note
     // above for the ordering and sqp_solver_types.h's
-    // SqpOptions::return_best_on_max_iterations for the full contract). Runs on EVERY
+    // CommonOptions::return_best for the full contract). Runs on EVERY
     // measured pass, AFTER the full-step watchdog above -- so if this
     // pass just restored an earlier point, the candidate considered
     // here is that restored point, exactly the one `row` now
@@ -7902,13 +7899,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // restoration sub-solve never tracks, so the best is always a caller-space
     // iterate of the parent. Tracking copies; it never steers.
     if (st.best_armed) {
-        const bool better =
-            mj.row.violation_l1 < st.mb.h || (mj.row.violation_l1 == st.mb.h && mj.row.f < st.mb.f);
+        const bool better = detail::best_improves(mj.kkt.feasibility, mj.row.f, st.mb.h, st.mb.f,
+                                                  opts_.common.feasibility_tol);
         if (better) {
             // The pre-update best is kept (swap), every field of `mb` is rewritten below.
             std::swap(st.mb, st.mb_before);
             mj.mb_improved = true;
-            st.mb.h = mj.row.violation_l1;
+            st.mb.h = mj.kkt.feasibility;
             st.mb.f = mj.row.f;
             st.mb.x = st.x;
             st.mb.lambda_e = st.lambda_e;
@@ -8074,12 +8071,17 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // solve()'s note, part 4.
         // `!mj.interrupted_exit` joins the guard for the reason the probe
         // budget's `!probe_exhausted` is there: an interrupt is a stop at the
-        // CURRENT point, and return_best_on_max_iterations's best-by-(h, f) substitution would
+        // CURRENT point, and common.return_best's best-by-(h, f) substitution would
         // hand back a different iterate than the one the caller stopped on.
         // Design section 2.5's precedence, in one expression:
         // converged > interrupted > probe-exhausted > cap.
-        if (!mj.converged && st.limit_exit == SolveStatus::kOptimal &&
-            opts_.return_best_on_max_iterations) {
+        // WIDENED (M8 AP-5 G-RB) from the iteration cap to the work and time limits: the limit
+        // status decides, by the shared rule. A probe-budget stop is not one (above).
+        if (!mj.converged && !probe_exhausted &&
+            detail::return_best_applies(opts_.common.return_best,
+                                        st.limit_exit != SolveStatus::kOptimal
+                                            ? st.limit_exit
+                                            : SolveStatus::kIterationLimit)) {
             // BUDGETED MODE: the caller reports the best-by-(h, f) iterate
             // rather than the last one, and computes `best_is_current` from
             // `mj.row` and `st.mb` -- both of which this major has finished
@@ -9328,7 +9330,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
     // deliberately not.
     SolveState st(opts_.advanced.ipqp);
     st.best_armed =
-        opts_.return_best_on_max_iterations ||
+        opts_.common.return_best != ReturnBest::kNever ||
         (!is_restoration_sub_driver_ && (iteration_callback_ || budget.stop.stop_possible()));
 
     // THE SOLVE AN EXCEPTION INTERRUPTS (M8 B5). An exception that escapes this
@@ -9427,8 +9429,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         // never takes it.
         const bool stop_returns_best =
             st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid;
-        const auto finish_best = [&](SolveStatus status) {
-            const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
+        const auto finish_best = [&](SolveStatus status, bool may_seed = true) {
+            const bool best_is_current =
+                may_seed && mj.kkt.feasibility == st.mb.h && mj.row.f == st.mb.f;
             st.out.returned_best_iterate = true;
             st.out.returned_pre_restoration_point = false;
             return finish(seam, std::move(st.out), status, st.mb.x, st.mb.lambda_e, st.mb.lambda_i,
@@ -9440,6 +9443,13 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                                           st.strategy.get(), engine_->hot_state()),
                           // THE BEST POINT'S OWN STASH, taken when it was captured.
                           st.mb.diag);
+        };
+        // THE NON-LIMIT NON-OPTIMAL EXITS (M8 AP-5 G-RB, kOnAnyNonOptimal): the shared rule
+        // decides, by the status the exit would report. kInfeasible and kInterrupted never
+        // substitute; no recorded best falls back to the ordinary exit.
+        const auto best_applies = [&](SolveStatus status) {
+            return st.mb.snap_valid &&
+                   detail::return_best_applies(opts_.common.return_best, status);
         };
         // NO `default:` LABEL, so `-Wswitch` sees a tag added without an arm;
         // every arm either continues the loop or returns the solution.
@@ -9594,6 +9604,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         case MajorOutcome::kFinishManual:
             publish_stop_at(iter, st.exit_reason, st.exit_detail);
             check_major_pushed_once(iter);
+            if (best_applies(st.out.status)) {
+                return finish_best(st.out.status, false);
+            }
             attach_best_iterate(st, st.out.status, st.out);
             // `out` is a member of the solve state, not a local, so this is a
             // MOVE and not the copy the alias would otherwise make. Every other
@@ -9649,7 +9662,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // returned x has moved away from, exactly the st.resto.moved_x
             // reasoning elsewhere in this loop.
             check_major_pushed_once(iter);
-            return finish_best(SolveStatus::kIterationLimit);
+            return finish_best(st.limit_exit != SolveStatus::kOptimal
+                                   ? st.limit_exit
+                                   : SolveStatus::kIterationLimit);
         }
         case MajorOutcome::kFinishQpFailure: {
             // No restoration was consulted on this path -- x is still
@@ -9666,6 +9681,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // engine's non-finite exits do: the point's derivatives are not
             // finite, so no price at it is evidence. The residuals stay what was
             // measured at the point.
+            if (best_applies(map_status(mj.qs.status))) {
+                return finish_best(map_status(mj.qs.status), false);
+            }
             const bool nonfinite_exit = st.exit_reason == StopReason::kNonFiniteStart ||
                                         st.exit_reason == StopReason::kNonFiniteIterate;
             if (nonfinite_exit) {
@@ -9703,6 +9721,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             publish_stop_at(iter, mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                             mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
+            if (!mj.interrupted_exit && best_applies(st.resto.status)) {
+                return finish_best(st.resto.status, false);
+            }
             return finish(
                 seam, std::move(st.out),
                 // THE PARENT'S LATCH OUTRANKS THE PHASE'S VERDICT (M6 W5 T8.6
@@ -9744,6 +9765,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             publish_stop_at(iter, mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                             mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
+            if (!mj.interrupted_exit && best_applies(st.resto.status)) {
+                return finish_best(st.resto.status, false);
+            }
             return finish(seam, std::move(st.out),
                           // The parent's latch outranks the phase's verdict; see the seed
                           // arm above (ruling R4).

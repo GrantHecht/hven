@@ -753,32 +753,6 @@ struct SqpOptions {
     /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpqp's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
 
-    /// BUDGETED MODE: when true, a solve that exhausts common.max_iterations in the MAIN
-    /// optimality loop reports SolveStatus::kIterationLimit with returned_best_iterate set,
-    /// and x/lambda_e/lambda_i/z/f are the Best iterate this solve visited by the
-    /// funnel's own ordering -- feasibility first: min h(x), tie-break min f --
-    /// rather than the last iterate reached. warm_start is populated from that
-    /// same best iterate for x/lambda_e/lambda_i/z and the ACTIVITY VECTORS only;
-    /// its own globalization and regularization fields describe the LAST pass the
-    /// solve measured.
-    ///
-    /// The ordering is not min-||KKT||inf -- the full-step watchdog's ordering --
-    /// because the two answer different questions: the watchdog asks which iterate
-    /// is closest to a KKT point, while budgeted mode asks what point a
-    /// continuation driver should pick up from, where a small stationarity
-    /// residual at a large violation is a worse hand-off than a feasible point
-    /// with a mediocre objective.
-    ///
-    /// Turning it on arms SolveResult::best_iterate.
-    ///
-    /// Default false: a solve that exhausts the cap reports kIterationLimit at the last
-    /// iterate.
-    ///
-    /// SCOPE: this lever governs ONLY the main loop's own common.max_iterations exhaustion. It
-    /// does not change what happens when the restoration phase runs out of the
-    /// shared budget mid-restoration, which stays kIterationLimit.
-    bool return_best_on_max_iterations = false;
-
     // --- Problem scaling ---
 
     /// The problem-scaling layer, OPT-IN. When on, the engine solves a diagonally

@@ -360,8 +360,8 @@ TEST(StopPollSeam, T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoi
 // T3 with the best tracker (M8 AP-5 G3): a ladder stop scores the iteration's point into
 // the tracker inside the shared stop exit, once, as the iteration-top stop does -- the
 // published best_iterate is the top-of-iteration twin's, field for field. On this
-// fixture the start point already satisfies the linear equality, so under the default
-// criterion (kEquality, ties to the later iterate) the stopped-at point is the best: a
+// fixture the start point already satisfies the linear equality, so under criterion
+// kEquality (set here; ties go to the later iterate) the stopped-at point is the best: a
 // ladder exit that skipped the scoring would publish the previous iterate (or none at
 // iteration 0). Under return_best too, which never substitutes on a stop.
 TEST(StopPollSeam, T3ALadderStopScoresItsPointIntoTheBestTracker) {
@@ -375,8 +375,9 @@ TEST(StopPollSeam, T3ALadderStopScoresItsPointIntoTheBestTracker) {
             SCOPED_TRACE(mode == hven::IpmInertiaMode::kClassic ? "classic" : "proximal");
             IpmOptions opts = quiet_ipm();
             opts.advanced.inertia_mode = mode;
-            opts.return_best = return_best;
-            ASSERT_EQ(opts.best_iterate_criterion, hven::IpmBestIterateCriterion::kEquality);
+            opts.common.return_best =
+                return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
+            opts.best_iterate_criterion = hven::IpmBestIterateCriterion::kEquality;
 
             Seam::reset();
             StopSource dry_source;

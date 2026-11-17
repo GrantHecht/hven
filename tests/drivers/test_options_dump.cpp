@@ -57,15 +57,15 @@ using hven::SqpOptions;
 // `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
 // counts are the same everywhere.
 constexpr std::size_t kIpmLinearOptionsFields = 12;
-constexpr std::size_t kIpmOptionsFields = 16;
+constexpr std::size_t kIpmOptionsFields = 15;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
 constexpr std::size_t kIpmAdvancedOptionsFields = 24;
-constexpr std::size_t kSqpOptionsFields = 17;
+constexpr std::size_t kSqpOptionsFields = 16;
 constexpr std::size_t kSqpLinearOptionsFields = 2;
 constexpr std::size_t kSqpAdvancedOptionsFields = 27;
 constexpr std::size_t kIpqpOptionsFields = 25;
 constexpr std::size_t kQpOptionsFields = 11;
-constexpr std::size_t kCommonOptionsFields = 9;
+constexpr std::size_t kCommonOptionsFields = 10;
 
 static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
               "IpmOptions gained or lost a field. Give it a line in "
@@ -112,7 +112,7 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
 // docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
-static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
+static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
@@ -122,14 +122,14 @@ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 600, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 608, "SqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpAdvancedOptions) == 328,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(CommonOptions) == 80, "CommonOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(CommonOptions) == 88, "CommonOptions' layout moved on Linux x86-64.");
 #endif
 
 // ---------------------------------------------------------------------------
@@ -247,6 +247,7 @@ TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
                              "\n"
                              "common.start_level = kWarm\n"
                              "common.infinite_bound = 1e+20\n"
+                             "common.return_best = kNever\n"
                              "phases = [kOptimize]\n"
                              "termination.complementarity_tol = unset\n"
                              "termination.acceptable_iterations = 50\n";

@@ -9,14 +9,18 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include <hven/core/stop.h>
+#include <hven/detail/drivers/return_best.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/model/nlp.h>
@@ -133,7 +137,8 @@ Walked walk(Engine e, const Door &d, int stop_event) {
     if (e == Engine::kIpm) {
         IpmOptions o;
         o.common.verbosity = Verbosity::kSilent;
-        o.return_best = d.return_best;
+        o.common.return_best =
+            d.return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
         if (d.max_iterations > 0) {
             o.common.max_iterations = d.max_iterations;
         }
@@ -244,6 +249,204 @@ TEST(ExitDoorWalk, EveryExitDoorOfBothEnginesKeepsTheCountIdentity) {
             expect_identity(e, d, walk(e, d, stop_event));
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// M8 AP-5 G-RB: `common.return_best`, per value, on the forced exits of both engines.
+// ---------------------------------------------------------------------------
+
+struct Forced {
+    SolveStatus status = SolveStatus::kOptimal;
+    bool substituted = false;
+    bool certified = false;
+    bool best_published = false;
+    std::string message;
+};
+
+/// A time-limit solve's callback: every event after the first outlasts the limit, so the limit is
+/// read at the next iteration boundary, after the first iterate is tracked. (It arms the tracker
+/// too.)
+const IterationCallback slow_event = [](const IterationEvent &e) {
+    if (e.iteration >= 1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return CallbackAction::kContinue;
+};
+
+/// One solve of `model` on the named engine under `mode`, with an optional work limit, time limit
+/// and iteration cap.
+Forced forced(Engine e, std::shared_ptr<Nlp> model, const Vec &x0, ReturnBest mode, Index cap = 0,
+              std::optional<Index> work = std::nullopt,
+              std::optional<double> seconds = std::nullopt, bool nested_restoration = false,
+              SolveBudget budget = {}) {
+    Problem problem(std::move(model));
+    SolveResult r;
+    if (e == Engine::kIpm) {
+        IpmOptions o;
+        o.common.verbosity = Verbosity::kSilent;
+        o.common.return_best = mode;
+        if (cap > 0) {
+            o.common.max_iterations = cap;
+        }
+        o.common.max_factorizations = work;
+        o.common.time_limit_seconds = seconds;
+        if (nested_restoration) {
+            o.advanced.restoration_mode = IpmRestorationMode::kL1Nested;
+            o.advanced.max_restoration_entries = 1;
+        }
+        IpmSolver solver(o);
+        if (seconds) {
+            solver.set_iteration_callback(slow_event);
+        }
+        r = solver.solve(problem, x0, {}, budget);
+    } else {
+        SqpOptions o;
+        o.common.verbosity = Verbosity::kSilent;
+        o.common.return_best = mode;
+        if (cap > 0) {
+            o.common.max_iterations = cap;
+        }
+        o.common.max_factorizations = work;
+        o.common.time_limit_seconds = seconds;
+        SqpSolver solver(o);
+        if (seconds) {
+            solver.set_iteration_callback(slow_event);
+        }
+        r = solver.solve(problem, x0, {}, budget);
+    }
+    if (r.returned_best_iterate) {
+        EXPECT_TRUE(r.best_iterate.has_value()) << "a returned best implies a published one";
+        if (r.best_iterate) {
+            EXPECT_TRUE(r.x == r.best_iterate->x) << "the primary point IS the best iterate";
+            EXPECT_EQ(r.f, r.best_iterate->f);
+        }
+    }
+    return {r.status, r.returned_best_iterate, r.infeasibility_certified,
+            r.best_iterate.has_value(), r.message};
+}
+
+constexpr ReturnBest kModes[] = {ReturnBest::kNever, ReturnBest::kOnLimit,
+                                 ReturnBest::kOnAnyNonOptimal};
+
+TEST(ReturnBestForcedExits, TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly) {
+    const auto hs071 = [] { return std::shared_ptr<Nlp>(std::make_shared<Hs071Problem>()); };
+    const Vec x0 = hs071_start();
+    struct Exit {
+        const char *name;
+        SolveStatus status;
+        Index cap;
+        std::optional<Index> work;
+        std::optional<double> seconds;
+    };
+    const Exit exits[] = {
+        {"iteration_limit", SolveStatus::kIterationLimit, 3, std::nullopt, std::nullopt},
+        {"work_limit", SolveStatus::kWorkLimit, 0, Index{2}, std::nullopt},
+        {"time_limit", SolveStatus::kTimeLimit, 0, std::nullopt, 0.05},
+    };
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        // Warm the backend, so the time limit is not spent in a first-call setup.
+        (void)forced(e, hs071(), x0, ReturnBest::kNever);
+        for (const Exit &x : exits) {
+            for (ReturnBest mode : kModes) {
+                SCOPED_TRACE(std::string(name(e)) + " " + x.name + " mode " +
+                             std::to_string(static_cast<int>(mode)));
+                const Forced f = forced(e, hs071(), x0, mode, x.cap, x.work, x.seconds);
+                ASSERT_EQ(f.status, x.status) << "premise: the exit was reached";
+                EXPECT_EQ(f.substituted, mode != ReturnBest::kNever)
+                    << "published " << f.best_published << ": " << f.message;
+                if (!x.seconds) {
+                    EXPECT_EQ(f.best_published, mode != ReturnBest::kNever)
+                        << "the option arms the tracker; nothing else does here";
+                }
+            }
+        }
+    }
+}
+
+TEST(ReturnBestForcedExits, ANonFiniteAbortSubstitutesUnderOnAnyNonOptimalOnly) {
+    const auto poisoned = [] { return std::shared_ptr<Nlp>(std::make_shared<PoisonedHs071>()); };
+    const Vec x0 = hs071_start();
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        for (ReturnBest mode : kModes) {
+            SCOPED_TRACE(std::string(name(e)) + " mode " + std::to_string(static_cast<int>(mode)));
+            const Forced f = forced(e, poisoned(), x0, mode);
+            ASSERT_EQ(f.status, SolveStatus::kNumericalError) << "premise: the abort door";
+            EXPECT_EQ(f.substituted, mode == ReturnBest::kOnAnyNonOptimal);
+        }
+    }
+}
+
+TEST(ReturnBestForcedExits, ACertifiedInfeasibleExitNeverSubstitutes) {
+    const auto infeasible = [] { return std::shared_ptr<Nlp>(std::make_shared<Infeasible>()); };
+    for (ReturnBest mode : kModes) {
+        SCOPED_TRACE("mode " + std::to_string(static_cast<int>(mode)));
+        const Forced f = forced(Engine::kSqp, infeasible(), infeasible_start(), mode);
+        ASSERT_EQ(f.status, SolveStatus::kInfeasible) << "premise: the infeasible exit";
+        EXPECT_FALSE(f.substituted);
+    }
+}
+
+TEST(ReturnBestForcedExits, TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode) {
+    const auto hs071 = [] { return std::shared_ptr<Nlp>(std::make_shared<Hs071Problem>()); };
+    for (ReturnBest mode : kModes) {
+        SolveBudget budget;
+        budget.max_minor_iterations = 1;
+        const Forced f = forced(Engine::kSqp, hs071(), hs071_start(), mode, 0, std::nullopt,
+                                std::nullopt, false, budget);
+        ASSERT_NE(f.status, SolveStatus::kOptimal) << "premise: the budget ran out";
+        EXPECT_FALSE(f.substituted) << "the probe budget is a per-call contract, not a limit";
+    }
+}
+
+TEST(ReturnBestForcedExits, TheSharedRuleNamesEveryStatus) {
+    using detail::return_best_applies;
+    for (SolveStatus s :
+         {SolveStatus::kOptimal, SolveStatus::kInfeasible, SolveStatus::kInterrupted}) {
+        for (ReturnBest mode : kModes) {
+            EXPECT_FALSE(return_best_applies(mode, s));
+        }
+    }
+    for (SolveStatus s :
+         {SolveStatus::kIterationLimit, SolveStatus::kWorkLimit, SolveStatus::kTimeLimit}) {
+        EXPECT_FALSE(return_best_applies(ReturnBest::kNever, s));
+        EXPECT_TRUE(return_best_applies(ReturnBest::kOnLimit, s));
+        EXPECT_TRUE(return_best_applies(ReturnBest::kOnAnyNonOptimal, s));
+    }
+    for (SolveStatus s : {SolveStatus::kAcceptable, SolveStatus::kStalled, SolveStatus::kDiverging,
+                          SolveStatus::kNumericalError}) {
+        EXPECT_FALSE(return_best_applies(ReturnBest::kNever, s));
+        EXPECT_FALSE(return_best_applies(ReturnBest::kOnLimit, s));
+        EXPECT_TRUE(return_best_applies(ReturnBest::kOnAnyNonOptimal, s));
+    }
+}
+
+TEST(ReturnBestForcedExits, TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond) {
+    using detail::best_improves;
+    const double tol = 1e-6;
+    // Outside the band, the smaller violation wins whatever the objective.
+    EXPECT_TRUE(best_improves(1e-3, 100.0, 1e-2, -100.0, tol));
+    EXPECT_FALSE(best_improves(1e-2, -100.0, 1e-3, 100.0, tol));
+    // Inside the band the violations tie and the objective decides, both ways.
+    EXPECT_TRUE(best_improves(5e-7, 1.0, 1e-9, 2.0, tol));
+    EXPECT_FALSE(best_improves(1e-9, 2.0, 5e-7, 1.0, tol));
+    // Strict: an equal key does not replace the incumbent, inside or outside the band.
+    EXPECT_FALSE(best_improves(0.0, 1.0, 0.0, 1.0, tol));
+    EXPECT_FALSE(best_improves(1e-3, 1.0, 1e-3, 1.0, tol));
+    // A band point beats any point outside it, however good that point's objective.
+    EXPECT_TRUE(best_improves(0.0, 1e9, 2e-6, -1e9, tol));
+    // NaN never wins a violation comparison; a NaN objective loses a band tie.
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(best_improves(nan, 0.0, 1.0, 0.0, tol));
+    EXPECT_TRUE(best_improves(0.0, 5.0, 0.0, nan, tol));
+    EXPECT_FALSE(best_improves(0.0, nan, 0.0, 5.0, tol));
+}
+
+TEST(ReturnBestForcedExits, TheOptionIsOffByDefaultAndValidated) {
+    EXPECT_EQ(CommonOptions{}.return_best, ReturnBest::kNever);
+    IpmOptions o;
+    o.common.return_best = static_cast<ReturnBest>(3);
+    EXPECT_THROW(validate(o), std::invalid_argument);
+    EXPECT_EQ(IpmOptions{}.best_iterate_criterion, IpmBestIterateCriterion::kFeasibilityFirst);
 }
 
 } // namespace

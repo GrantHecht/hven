@@ -860,7 +860,7 @@ class SqpSolverImpl {
     /// token (SolveBudget::stop) is polled at the same two points. Precedence at that exit is
     /// converged > interrupted > probe-exhausted > cap: a stop on a CONVERGED
     /// row reports kOptimal (converged beats stop), and under
-    /// SqpOptions::return_best_on_max_iterations an interrupt takes the ordinary exit rather than
+    /// CommonOptions::return_best an interrupt takes the ordinary exit rather than
     /// the budget-best one, exactly as a probe-budget stop does. A stop
     /// returned INSIDE a restoration sub-solve latches on this driver too, so
     /// no further top-level major runs whichever way that phase returns.

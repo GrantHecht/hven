@@ -705,7 +705,8 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
         SCOPED_TRACE(budget_mode ? "budget_mode" : "ordinary");
         Hs071View view;
         SqpOptions opts = quiet_sqp();
-        opts.return_best_on_max_iterations = budget_mode;
+        opts.common.return_best =
+            budget_mode ? hven::ReturnBest::kOnLimit : hven::ReturnBest::kNever;
 
         SqpSolver driver(opts);
         std::vector<Seen> seen;
@@ -2334,7 +2335,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         }
         {
             hven::IpmOptions o = with.options();
-            o.return_best = true;
+            o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
             o.best_iterate_criterion = hven::IpmBestIterateCriterion::kObjective;
             with.set_options(std::move(o));
         }

@@ -236,18 +236,14 @@ struct SolveResult {
     /// @brief True when the returned point is the best iterate the solve
     ///        visited rather than the last one it reached.
     ///
-    /// The rule per engine. Interior-point: set when IpmOptions::return_best is
-    /// on and the solve ended in any non-optimal status except an interrupt
-    /// (the substitution applies to the last phase that ran), so it can ride
-    /// with kIterationLimit, kStalled, kWorkLimit and the other non-optimal exits.
-    /// A non-finite abort (kNumericalError, kNonFiniteIterate) returns the best
-    /// iterate in full -- x, multipliers and every residual column -- with this
-    /// set, when one was recorded; when none was (a non-finite start, a phase's
-    /// first iterate, a failed initial factorization) it returns the failed
-    /// point with its multipliers cleared and this false.
-    /// SQP: set only when SqpOptions::return_best_on_max_iterations ran out of iterations
-    /// (SolveStatus::kIterationLimit); its non-finite exits never substitute and leave
-    /// it false. The message gains "; returned the best iterate"
+    /// Set when `common.return_best` applied to the exit (see ReturnBest for which statuses),
+    /// on both engines: kOnLimit on kIterationLimit, kWorkLimit and kTimeLimit,
+    /// kOnAnyNonOptimal on every other non-optimal status except kInfeasible (certified or not)
+    /// and kInterrupted. A non-finite abort returns the best iterate in full -- x, multipliers
+    /// and every residual column -- with this set, when one was recorded; when none was (a
+    /// non-finite start, a phase's first iterate, a failed initial factorization) it returns
+    /// the failed point with its multipliers cleared and this false. The interior-point engine
+    /// substitutes in the last phase that ran. The message gains "; returned the best iterate"
     /// whenever it is set. Also set, on both engines, by a callback's
     /// CallbackAction::kStopReturnBest that found a recorded best iterate (with
     /// kInterrupted).
@@ -266,10 +262,9 @@ struct SolveResult {
     ///
     /// Armed whenever a return-best option is on, an iteration callback is
     /// installed or SolveBudget::stop can fire. Never affects the trajectory.
-    /// Best by each engine's own ordering (the interior-point
-    /// IpmOptions::best_iterate_criterion, last phase that ran; the SQP's
-    /// feasibility-first (h, f)), over the caller's own iterates, never a
-    /// feasibility-restoration point. Every vector is filled; `iteration`,
+    /// Best by the shared ordering (see ReturnBest; the interior-point engine's
+    /// IpmOptions::best_iterate_criterion may override it, last phase that ran), over the caller's
+    /// own iterates, never a feasibility-restoration point. Every vector is filled; `iteration`,
     /// `step_norm` and `ipm`/`sqp` are those of the iterate's own event.
     /// @ref returned_best_iterate says whether the primary point is this one.
     /// Invariant, both engines: returned_best_iterate implies best_iterate is set.

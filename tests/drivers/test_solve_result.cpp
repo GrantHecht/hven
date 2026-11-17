@@ -937,7 +937,7 @@ TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
         probe.common.threads = 1;
         probe.common.max_iterations = cap;
         hven::IpmOptions with_best = probe;
-        with_best.return_best = true;
+        with_best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
 
         hven::IpmSolver best_solver(with_best);
         hven::IpmSolver last_solver(probe);
@@ -1557,7 +1557,8 @@ TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
         o.common.verbosity = hven::Verbosity::kSilent;
         o.common.threads = 1;
         o.common.max_iterations = cap;
-        o.return_best = return_best;
+        o.common.return_best =
+            return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
         hven::IpmSolver solver{o};
         return solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
     };
@@ -1583,7 +1584,8 @@ TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
         o.common.threads = 1;
         o.common.optimality_tol = 1e-12;
         o.common.feasibility_tol = 1e-12;
-        o.return_best = return_best;
+        o.common.return_best =
+            return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
         hven::Problem p(std::make_shared<hven_drivers_tests::Hs071Problem>());
         hven::IpmSolver solver{o};
         return solver.solve(p, hven_drivers_tests::hs071_start());

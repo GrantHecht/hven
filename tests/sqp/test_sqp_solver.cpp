@@ -4204,7 +4204,7 @@ TEST(SqpDriverNonfiniteRollback, RollbackRowsCarryTheFlagAndNoOtherRowDoes) {
 TEST(SqpDriverNonfiniteRollback, TheBudgetBestIsNotARolledBackPoint) {
     NonfiniteAtTheBoundModel model(0.0);
     SqpOptions opts = nonfinite_rollback_options();
-    opts.return_best_on_max_iterations = true;
+    opts.common.return_best = hven::ReturnBest::kOnLimit;
     opts.common.max_iterations = 2;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());

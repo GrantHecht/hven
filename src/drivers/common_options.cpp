@@ -59,6 +59,7 @@ void validate_common_options(const CommonOptions &c, CommonOptionsFloors floors)
         throw std::invalid_argument(
             fmt::format("common.threads must be >= {}, got {}", floors.threads, c.threads));
     enum_in_range(c.start_level, StartLevel::kHot, "common.start_level");
+    enum_in_range(c.return_best, ReturnBest::kOnAnyNonOptimal, "common.return_best");
     if (!(c.infinite_bound > 0.0))
         throw std::invalid_argument(fmt::format(
             "common.infinite_bound must be > 0 (kInfinity is legal), got {}", c.infinite_bound));

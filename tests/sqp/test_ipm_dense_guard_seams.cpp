@@ -539,7 +539,7 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredi
 // point.
 TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest) {
     hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
-    o.return_best = true;
+    o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
     RecordedSolve run;
     {
         const Armed armed(1);

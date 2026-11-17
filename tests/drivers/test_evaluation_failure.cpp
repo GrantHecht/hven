@@ -1382,7 +1382,8 @@ TEST(RiderRestorationStop, ARestorationEndingWhereTheModelIsNotFiniteIsReportedA
 
 IpmOptions best_ipm(bool return_best) {
     IpmOptions o = quiet_ipm();
-    o.return_best = return_best;
+    o.common.return_best =
+        return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
     return o;
 }
 
@@ -1618,7 +1619,7 @@ TEST(RiderNonFiniteAbort, ExitDiagnosticsAreTheFailedPointsOwnWithNoSinkAttached
     nlp->sticky = true;
     Problem problem(nlp);
     IpmOptions o = quiet_ipm();
-    o.return_best = false;
+    o.common.return_best = hven::ReturnBest::kNever;
     IpmSolver solver(o);
     const IpmResult r = solver.solve(problem, hs071_start());
     ASSERT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);

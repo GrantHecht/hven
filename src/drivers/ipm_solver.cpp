@@ -59,6 +59,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
+#include "hven/detail/drivers/return_best.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/barrier_governor.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
@@ -2309,7 +2310,16 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
                                                      double &BestCriteriaVal, int &BestIter,
                                                      bool &recorded) {
     double critval;
+    const bool shared_order =
+        opts_.best_iterate_criterion == IpmBestIterateCriterion::kFeasibilityFirst;
     switch (opts_.best_iterate_criterion) {
+    case IpmBestIterateCriterion::kFeasibilityFirst:
+        // The convergence feasibility (max of the two residuals; NaN if either is), the same
+        // quantity the result's `convergence.feasibility` reports.
+        critval = (std::isnan(iter.econ_inf) || std::isnan(iter.icon_inf))
+                      ? std::numeric_limits<double>::quiet_NaN()
+                      : std::max(iter.econ_inf, iter.icon_inf);
+        break;
     case IpmBestIterateCriterion::kEquality:
         critval = iter.econ_inf;
         break;
@@ -2329,7 +2339,12 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
     // is stored whatever it scores, and a non-finite incumbent (or none) yields to
     // the first finite one. `recorded` is true exactly when the stored iterate's
     // criterion is finite.
-    if (i == 0 || (std::isfinite(critval) && (!recorded || critval <= BestCriteriaVal))) {
+    // The shared order (strict, banded, objective second) or a single measure with `<=` ties.
+    const bool beats = shared_order ? detail::best_improves(critval, iter.prim_obj, BestCriteriaVal,
+                                                            this->best_prim_obj_scratch_,
+                                                            opts_.common.feasibility_tol)
+                                    : critval <= BestCriteriaVal;
+    if (i == 0 || (std::isfinite(critval) && (!recorded || beats))) {
         BestCriteriaVal = critval;
         recorded = std::isfinite(critval);
         this->best_xsl_scratch_ = XSL;
@@ -2979,6 +2994,14 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     Eigen::VectorXd &BestRHS = this->best_rhs_scratch_;
     double BestCriteriaVal = 1.0e10;
     int BestIter = 0;
+    // Whether common.return_best substitutes the best iterate for an exit whose raw verdict
+    // is @p raw (M8 AP-5 G-RB): the shared rule over the RESOLVED status, so an exit that
+    // reports kInfeasible, kInterrupted or a status outside the mode never does.
+    const auto rb_applies = [this](SolveStatus raw) {
+        return detail::return_best_applies(
+            opts_.common.return_best,
+            detail::resolve_ipm_phase_status(raw, this->last_stop_reason_));
+    };
     // Whether one of the three return_best_ sites below actually substituted
     // the best pair for the last one (M6 W5 T8.4 fix1). Read by the objective
     // assembly at this function's tail, which must report the BEST iterate's
@@ -3260,7 +3283,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             Citer.factorizations =
                 this->lifetime_factorize_count() - this->factorizations_at_entry_;
             iters.push_back(Citer);
-            if (opts_.return_best && best_recorded) {
+            if (rb_applies(SolveStatus::kNumericalError) && best_recorded) {
                 // RETURN_BEST ON AND A FINITE BEST ITERATE RECORDED: it is
                 // returned in full, as on every other non-optimal exit -- the
                 // point, its multipliers and every residual column are the
@@ -3276,7 +3299,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // Nothing to return but the failed point (the start, or a
                 // phase's first iterate, or return_best off): the point with
                 // its multipliers cleared, and no best-iterate claim.
-                abort_without_best = opts_.return_best;
+                abort_without_best = rb_applies(SolveStatus::kNumericalError);
                 if (this->equal_cons_ > 0)
                     v_xsl.eq_lmults().setZero();
                 if (this->inequal_cons_ > 0)
@@ -3739,7 +3762,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     this->emit_iter(*sink, iters.back());
                     Printtimer.stop();
                 }
-                if (opts_.return_best) {
+                if (rb_applies(ExitCode)) {
                     XSL = BestXSL;
                     RHS = BestRHS;
                     this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -3840,7 +3863,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 Printtimer.stop();
             }
 
-            if (ExitCode != SolveStatus::kOptimal && opts_.return_best) {
+            if (rb_applies(ExitCode)) {
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -4175,6 +4198,17 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 Printtimer.start();
                 this->emit_iter(*sink, iters.back());
                 Printtimer.stop();
+            }
+            // THE BEST ITERATE FOR THIS DOOR (M8 AP-5 G-RB): the result already reads the best
+            // row when the mode applies (`return_best_applied` below), so the pair must be it
+            // too. Before G-RB this door claimed the best but returned the last point.
+            if (rb_applies(ExitCode) && best_recorded) {
+                XSL = BestXSL;
+                RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
+                this->cur_eval_prov_ = this->best_eval_prov_;
+                this->cur_eval_prov_.substituted = true;
+                best_substituted = true;
             }
             break;
         }
@@ -5064,7 +5098,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 this->last_stop_reason_ = this->cap_or_limit_reason();
             }
 
-            if (ExitCode != SolveStatus::kOptimal && opts_.return_best) {
+            if (rb_applies(ExitCode)) {
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -5355,7 +5389,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
 
     // Print exit statistics
     assert(!iters.empty());
-    assert(!opts_.return_best || BestIter < static_cast<int>(iters.size()));
+    assert(opts_.common.return_best == ReturnBest::kNever ||
+           BestIter < static_cast<int>(iters.size()));
     // The reported iterate, and not simply the return_best_ pick: the
     // substitution that makes primals_/obj_val_/the multiplier blocks describe
     // BestIter is itself guarded on the exit not being converged (both break
@@ -5383,8 +5418,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // when one was recorded (best_substituted, set at the abort); with none
     // (abort_without_best) it returns the failed point and claims nothing.
     const bool return_best_applied =
-        (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
-         this->last_stop_reason_ != IpmPhaseStop::kCallbackStop &&
+        (rb_applies(ExitCode) && this->last_stop_reason_ != IpmPhaseStop::kCallbackStop &&
          this->last_stop_reason_ != IpmPhaseStop::kStopRequested && !abort_without_best) ||
         stop_best_applied;
     const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
@@ -6497,7 +6531,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // callback's stop. Replaced at every entry, so no earlier call's token is
     // ever read.
     this->stop_token_ = budget.stop;
-    this->best_tracking_armed_ = opts_.return_best ||
+    this->best_tracking_armed_ = opts_.common.return_best != ReturnBest::kNever ||
                                  static_cast<bool>(this->iteration_callback_) ||
                                  this->stop_token_.stop_possible();
     this->limit_factorize_base_ = this->lifetime_factorize_count();

@@ -248,7 +248,7 @@ void hven::validate(const IpmOptions &o) {
         throw std::invalid_argument(fmt::format(
             "objective_scale must be finite and strictly positive, got {}", o.objective_scale));
 
-    enum_in_range(o.best_iterate_criterion, IpmBestIterateCriterion::kObjective,
+    enum_in_range(o.best_iterate_criterion, IpmBestIterateCriterion::kFeasibilityFirst,
                   "best_iterate_criterion");
 
     // --- Linear ---
@@ -617,6 +617,20 @@ const char *enum_name(hven::IpmBestIterateCriterion v) {
         return "kKkt";
     case IpmBestIterateCriterion::kObjective:
         return "kObjective";
+    case IpmBestIterateCriterion::kFeasibilityFirst:
+        return "kFeasibilityFirst";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::ReturnBest v) {
+    using hven::ReturnBest;
+    switch (v) {
+    case ReturnBest::kNever:
+        return "kNever";
+    case ReturnBest::kOnLimit:
+        return "kOnLimit";
+    case ReturnBest::kOnAnyNonOptimal:
+        return "kOnAnyNonOptimal";
     }
     return "unknown";
 }
@@ -686,6 +700,7 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_int(os, "common.threads", c.threads);
     kv_str(os, "common.start_level", enum_name(c.start_level));
     kv_dbl(os, "common.infinite_bound", c.infinite_bound);
+    kv_str(os, "common.return_best", enum_name(c.return_best));
     // The one sequence-valued field: bracketed, comma-separated, one line. An
     // EMPTY sequence -- which validate() refuses -- still dumps, as `[]`: a dump
     // is a faithful record of the value it was handed, not a second validator.
@@ -719,7 +734,6 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_str(os, "fixed_variable_treatment", enum_name(o.fixed_variable_treatment));
     kv_dbl(os, "bound_relax_factor", o.bound_relax_factor);
     kv_dbl(os, "objective_scale", o.objective_scale);
-    kv_bool(os, "return_best", o.return_best);
     kv_str(os, "best_iterate_criterion", enum_name(o.best_iterate_criterion));
     const IpmLinearOptions &l = o.linear;
     kv_str(os, "linear.ordering", enum_name(l.ordering));

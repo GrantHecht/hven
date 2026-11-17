@@ -463,6 +463,43 @@ describe the behaviour before this group.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g7/CATCH-UP.txt`.
 
+## G-RB -- one `return_best`, one "best", both engines
+
+The two engines' return-best options become one `CommonOptions::return_best`, and "best" gets one
+meaning. A solve with the option off (the default) is bitwise unchanged.
+
+| before | after | rewrite |
+|---|---|---|
+| `IpmOptions::return_best = true` | `ipm.common.return_best = ReturnBest::kOnAnyNonOptimal` | break (Q5); `false` is `ReturnBest::kNever` |
+| `SqpOptions::return_best_on_max_iterations = true` | `sqp.common.return_best = ReturnBest::kOnLimit` | break (Q5); `false` is `ReturnBest::kNever` |
+| (none) | `hven::ReturnBest {kNever, kOnLimit, kOnAnyNonOptimal}`, `CommonOptions::return_best` | new; the dump prints `common.return_best` where `return_best` / `return_best_on_max_iterations` printed (line counts unchanged) |
+| `IpmBestIterateCriterion` default `kEquality` | default `kFeasibilityFirst` (new, appended last); `kEquality`, `kInequality`, `kKkt`, `kObjective` stay as overrides with their `<=` ties | set the old value to keep the old pick; only a solve that tracks a best (return-best, a callback or a token) is affected |
+
+What each value does, on both engines:
+
+- `kOnLimit` substitutes the best iterate on kIterationLimit, kWorkLimit and kTimeLimit exits. The
+  SQP's old option read only the iteration cap; it now reads the work and time limits too. A
+  `SolveBudget::max_minor_iterations` probe-budget stop is not one of them and keeps its ordinary
+  exit.
+- `kOnAnyNonOptimal` adds every other non-optimal exit (kStalled, kDiverging, kNumericalError,
+  kAcceptable). The SQP gains it here: its non-finite iterate and subproblem-failure exits and its
+  restoration exits now return the best iterate in full when one was recorded, as the interior-point
+  engine does. The IPM gains `kOnLimit` (it had only the all-or-nothing bool).
+- **A kInfeasible exit never substitutes**, certified or not, and neither does kInterrupted or
+  kOptimal. A best point is not evidence about infeasibility.
+- The interior-point engine's work and time limit exits under return-best used to claim
+  `returned_best_iterate` and read the best iterate's residual row while returning the last
+  primal point. They now return the best point in full (fixed with the widening).
+
+"Best" is one ordering unless `IpmOptions::best_iterate_criterion` overrides it: smaller
+feasibility measure first (each engine's own convergence measure: the IPM's
+`max(equality, inequality)`, the SQP's `feasibility`), every point within `common.feasibility_tol`
+tied, then the smaller objective; a later point replaces the best only if strictly better. Before,
+the IPM default compared the equality residual alone with `<=` (on a problem with no equalities it
+picked the latest iterate) and the SQP compared (l1 violation, f) with no band.
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-grb/CATCH-UP.txt`.
+
 ## TR-A -- trace v1 and the human trace
 
 The machine trace is schema v1 (`docs/trace-schema-v1.md`) and the console is re-cut. Both engines write

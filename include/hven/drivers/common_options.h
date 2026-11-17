@@ -37,6 +37,26 @@ enum class Verbosity {
     kDetail,
 };
 
+/// @brief Which non-optimal exits hand back the best iterate instead of the last one.
+///
+/// Substitution never happens on a kOptimal, kInterrupted or kInfeasible exit (a best point is
+/// not evidence about infeasibility, certified or not); an interrupt returns the point its stop
+/// rule names. Reading `SolveResult::returned_best_iterate` says whether it applied. "Best" is one
+/// ordering on both engines unless `IpmOptions::best_iterate_criterion` overrides it: smaller
+/// feasibility measure first, with every point within `CommonOptions::feasibility_tol` tied, then
+/// the smaller objective; a later point replaces the best only if strictly better.
+enum class ReturnBest {
+    /// Return the last iterate. The default.
+    kNever,
+    /// Substitute on kIterationLimit, kWorkLimit and kTimeLimit exits only. (A SQP
+    /// `SolveBudget::max_minor_iterations` probe-budget stop is not one: it keeps its ordinary
+    /// exit.)
+    kOnLimit,
+    /// Substitute on every other non-optimal exit too (kStalled, kDiverging, kNumericalError,
+    /// kAcceptable), except as above.
+    kOnAnyNonOptimal,
+};
+
 /// @brief The options both engines share, embedded once in each engine's own
 ///        options struct as `common`.
 ///
@@ -155,6 +175,10 @@ struct CommonOptions {
     /// `absent_bounds` key of the `sqp.solve.begin` and `ipm.solve.begin` trace
     /// lines, count the finite values the threshold made absent.
     double infinite_bound = 1e20;
+
+    /// Best-iterate substitution; see ReturnBest. Anything but kNever arms
+    /// `SolveResult::best_iterate`. Default kNever.
+    ReturnBest return_best = ReturnBest::kNever;
 };
 
 } // namespace hven

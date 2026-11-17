@@ -671,6 +671,17 @@ const char *enum_name(hven::linear::DensePolicy v) {
     }
     return "unknown";
 }
+const char *enum_name(ReturnBest v) {
+    switch (v) {
+    case ReturnBest::kNever:
+        return "kNever";
+    case ReturnBest::kOnLimit:
+        return "kOnLimit";
+    case ReturnBest::kOnAnyNonOptimal:
+        return "kOnAnyNonOptimal";
+    }
+    return "unknown";
+}
 const char *enum_name(StartLevel v) {
     switch (v) {
     case StartLevel::kCold:
@@ -698,6 +709,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_int(os, "common.threads", c.threads);
     kv_str(os, "common.start_level", enum_name(c.start_level));
     kv_dbl(os, "common.infinite_bound", c.infinite_bound);
+    kv_str(os, "common.return_best", enum_name(c.return_best));
     kv_dbl(os, "trust_region_initial", o.trust_region_initial);
     kv_dbl(os, "trust_region_max", o.trust_region_max);
     kv_dbl(os, "trust_region_min", o.trust_region_min);
@@ -714,7 +726,6 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "qp.independent_working_set", o.qp.independent_working_set);
     kv_bool(os, "qp.hessian_known_convex", o.qp.hessian_known_convex);
     kv_str(os, "qp_mode", enum_name(o.qp_mode));
-    kv_bool(os, "return_best_on_max_iterations", o.return_best_on_max_iterations);
     kv_bool(os, "row_scaling", o.row_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
     kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);

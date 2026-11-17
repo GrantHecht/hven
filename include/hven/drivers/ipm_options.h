@@ -238,13 +238,11 @@ struct IpmOptions {
     /// and > 0.
     double objective_scale = 1.0;
 
-    /// Return the best-scoring iterate seen instead of the last, scored by
-    /// `best_iterate_criterion`, except on an interrupted exit, which returns the point
-    /// the stop's rule names (or, for `kStopReturnBest`, the best). Turning it on
-    /// arms SolveResult::best_iterate. Default false.
-    bool return_best = false;
-    /// Default `kEquality`.
-    IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kEquality;
+    /// Overrides how the best iterate is ordered (`common.return_best` and the tracker armed
+    /// by a callback or stop token use it). Default `kFeasibilityFirst`, the order both
+    /// engines share (see ReturnBest); the other values are single-measure
+    /// alternatives that keep `<=` ties.
+    IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kFeasibilityFirst;
 
     /// The KKT factorization.
     IpmLinearOptions linear;

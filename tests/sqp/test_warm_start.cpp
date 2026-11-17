@@ -2045,7 +2045,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
 
     SqpOptions opts;
     opts.common.max_iterations = 3;
-    opts.return_best_on_max_iterations = true;
+    opts.common.return_best = hven::ReturnBest::kOnLimit;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(*p.model), x0);
 
@@ -2125,7 +2125,7 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
     x0 << -2.0, 2.0, 2.0;
 
     SqpOptions opts;
-    opts.return_best_on_max_iterations = true;
+    opts.common.return_best = hven::ReturnBest::kOnLimit;
     opts.common.max_iterations = 6;
 
     SqpSolver d1(opts);
@@ -2191,7 +2191,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 
     SqpOptions opts;
     opts.common.max_iterations = 3;
-    ASSERT_FALSE(opts.return_best_on_max_iterations) << "default is off";
+    ASSERT_EQ(opts.common.return_best, hven::ReturnBest::kNever) << "default is off";
 
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(*p.model), x0);

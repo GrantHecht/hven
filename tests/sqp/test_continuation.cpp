@@ -685,7 +685,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
 TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions budgeted = sweep_options();
     budgeted.common.max_iterations = 2;
-    budgeted.return_best_on_max_iterations = true;
+    budgeted.common.return_best = hven::ReturnBest::kOnLimit;
 
     F2CircleNlp model(0.0);
     SqpSolver driver(budgeted);
@@ -737,7 +737,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     // ordinary failure, and the retry moves the proposal BACK -- so the two
     // arms take measurably different routes to p1.
     SqpOptions plain = budgeted;
-    plain.return_best_on_max_iterations = false;
+    plain.common.return_best = hven::ReturnBest::kNever;
     F2CircleNlp model_plain(0.0);
     SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
@@ -852,7 +852,7 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
 TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     SqpOptions starved = sweep_options();
     starved.common.max_iterations = 0;
-    starved.return_best_on_max_iterations = true;
+    starved.common.return_best = hven::ReturnBest::kOnLimit;
 
     SolvedStartF2 model(0.0);
     SqpSolver driver(starved);
@@ -1017,7 +1017,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     {
         SqpOptions starved = sweep_options();
         starved.common.max_iterations = 0;
-        starved.return_best_on_max_iterations = true;
+        starved.common.return_best = hven::ReturnBest::kOnLimit;
         F2CircleNlp model(0.6);
         SqpSolver driver(starved);
 
@@ -1048,7 +1048,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
 TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     SqpOptions starved = sweep_options();
     starved.common.max_iterations = 0;
-    starved.return_best_on_max_iterations = true;
+    starved.common.return_best = hven::ReturnBest::kOnLimit;
 
     // start_point() is NOT the solution here (F2's own (0.5, 0.5) at p = 0.6),
     // so the cold solve at p0 cannot converge within a zero budget and exhausts
@@ -1081,7 +1081,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     // step -- so the four-step trajectory above is the budget rule and not
     // merely "a failing cold solve retries".
     SqpOptions plain = starved;
-    plain.return_best_on_max_iterations = false;
+    plain.common.return_best = hven::ReturnBest::kNever;
     F2CircleNlp model_plain(0.6);
     SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
@@ -1285,7 +1285,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // asserted here because the branch is otherwise unreachable in a suite
     // whose every other continuation fixture runs with return_best_on_max_iterations off.
     SqpOptions budgeted = make_options();
-    budgeted.return_best_on_max_iterations = true;
+    budgeted.common.return_best = hven::ReturnBest::kOnLimit;
     F7CollocationChain model_bm(100, 3, 2, 0.3, 1.0);
     SqpSolver driver_bm(budgeted);
     const ContinuationResult bm =

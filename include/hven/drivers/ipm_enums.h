@@ -142,9 +142,10 @@ enum class IpmInertiaMode {
     kProximalRegularization,
 };
 
-/// @brief How `IpmOptions::return_best` scores iterates.
+/// @brief How `IpmOptions::best_iterate_criterion` orders iterates for the best-so-far
+///        tracker.
 enum class IpmBestIterateCriterion {
-    /// Smallest equality residual. The default.
+    /// Smallest equality residual.
     kEquality,
     /// Smallest inequality residual.
     kInequality,
@@ -152,6 +153,10 @@ enum class IpmBestIterateCriterion {
     kKkt,
     /// Smallest objective.
     kObjective,
+    /// The order both engines share (see ReturnBest): smaller max(equality, inequality)
+    /// residual first, residuals within `common.feasibility_tol` tied, then the smaller
+    /// objective; strictly better only. The default.
+    kFeasibilityFirst,
 };
 
 } // namespace hven

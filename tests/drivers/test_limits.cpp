@@ -461,7 +461,7 @@ TEST(Limits, ALimitExitIgnoresReturnBest) {
         plain.common.max_iterations = cap;
         plain.best_iterate_criterion = kCriterion;
         IpmOptions best = plain;
-        best.return_best = true;
+        best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
         const IpmResult a = ipm_solve(plain);
         const IpmResult b = ipm_solve(best);
         if (a.status == SolveStatus::kIterationLimit &&
@@ -476,7 +476,7 @@ TEST(Limits, ALimitExitIgnoresReturnBest) {
         plain.common.max_factorizations = limit;
         plain.best_iterate_criterion = kCriterion;
         IpmOptions best = plain;
-        best.return_best = true;
+        best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
         const IpmResult a = ipm_solve(plain);
         const IpmResult b = ipm_solve(best);
         if (a.status != SolveStatus::kWorkLimit) {

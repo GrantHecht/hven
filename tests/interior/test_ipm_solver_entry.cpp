@@ -1387,7 +1387,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     }
     {
         auto o = solver.options();
-        o.return_best = true;
+        o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
         solver.set_options(std::move(o));
     }
     {
