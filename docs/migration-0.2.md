@@ -278,9 +278,10 @@ gray zone empty):
 - After polish adoption, refusal or revert, the 1x ratio is re-read with the final multipliers; past 1x the walk
   goes back for one ordinary step (the next KKT point holds), at most `kGrayReturnBudget` (16) times per solve, then
   certifies and counts `optimal_row_gray_exits`.
-- The verdict-site face refinement, which runs only at a structural dead end, asks for kOptimal's 1x (no
-  relative floor) and is adopted at the classifier's 10x if it closes no tighter (one pass, one factorization); the kInfeasible evidence margin is unchanged. (Running it
-  at a gray row too was measured and rejected: ACOPP30 615 -> 2494 minors on a changed trajectory.)
+- The verdict-site face refinement keeps the classifier's 10x target and trigger. A 1x target was built and measured
+  and not enabled: run at a gray row it changed whole SQP trajectories (ACOPP30 615 -> 2494 minors), and asked for at a
+  structural dead end it moved the classifier's refined point (a T7 pin: 9 -> 10 steps, residual 2.943e-4 -> 2.981e-4).
+  A refined point that certifies past 1x is covered by the return above.
 - The row contract reads a working INEQUALITY row one-sided (violation only): the first fix's read counted the slack of
   a zero-multiplier working row as a violation (ratio 1e8 on CRESC4 at a point 415 inside its row), so its hold and its
   gray-exit counter fired on points that were primal feasible.

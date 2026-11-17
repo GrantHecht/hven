@@ -29,7 +29,7 @@ run_one() { # id
 }
 verdict=MUTATIONS_AS_DECLARED
 run_one control || verdict=CONTROL_NOT_CLEAN
-for m in Ma Mb Mc Md Mg; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
+for m in Ma Mb Mc Mg; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
 # Me1 (bound removed), Me2 (bound doubled), Me3 (bound and progress rule removed) are must-TERMINATE checks, not must-kill: each
 # run is under `timeout`, and its outcome (killers, exit codes) is recorded.
 for m in Me1 Me2 Me3; do run_one $m > "$OUT/$m.verdict.txt" 2>&1; echo "$m rc=$? (terminated); killers: $(wc -l < "$OUT/$m.killers.txt")"; done

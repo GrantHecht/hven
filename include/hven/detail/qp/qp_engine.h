@@ -2205,10 +2205,7 @@ class QpEngine {
     // kVerdictRefineRelFloor * row_scale. Reaching it is exactly what makes
     // the margin test stop calling the row's residual evidence, so the loop asks
     // for the least accuracy that settles the verdict and no more.
-    // `margin` is the factor on row_tolerance; at 1 the target is row_tolerance itself, with
-    // no relative floor (KOPT-1X R2: the gray-zone refinement closes a row to kOptimal's 1x).
-    double face_row_target(double row_scale, double lambda, const QpOptions &opts,
-                           double margin = detail::kInfeasibilityMarginFactor) const;
+    double face_row_target(double row_scale, double lambda, const QpOptions &opts) const;
 
     // How far outside its target the worst row of the CLOSED WORKING FACE sits
     // -- max |residual| / face_row_target over every equality row and every
@@ -2221,8 +2218,8 @@ class QpEngine {
     // the classifier untouched.
     double working_face_measure(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                 const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
-                                const Vec &ae_row_norm1, const Vec &lambda_e, const QpOptions &opts,
-                                double margin = detail::kInfeasibilityMarginFactor) const;
+                                const Vec &ae_row_norm1, const Vec &lambda_e,
+                                const QpOptions &opts) const;
 
     // THE STEP'S ROW-DRIFT CHECK (E4 fix round 2): does the EQP answer leave a
     // working row the INCOMING iterate was already on?
@@ -2290,8 +2287,7 @@ class QpEngine {
     bool refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x, const Vec &Aix,
                                  const Vec &ai_row_norm1, const Vec &lambda_i,
                                  const Vec &ae_row_norm1, const Vec &lambda_e, BorderState &border,
-                                 QpCounters &counters, const QpOptions &opts,
-                                 double margin = detail::kInfeasibilityMarginFactor) const;
+                                 QpCounters &counters, const QpOptions &opts) const;
 
     /// @brief `refine_face_for_verdict`'s eliminated twin: same entry
     ///        condition, same target, same closed-or-nothing adoption rule, same
@@ -2348,11 +2344,12 @@ class QpEngine {
     /// @throws hven::BackendError propagated from `factorize_checked` on a miss,
     ///         and from the hit branch's `solve_vec`; the attempted
     ///         factorization stays charged.
-    bool refine_eliminated_face_for_verdict(
-        const QpProblem &qp, const WorkingSet &ws, Vec &x, const Vec &Aix, const Vec &ai_row_norm1,
-        const Vec &lambda_i, const Vec &ae_row_norm1, const Vec &lambda_e,
-        const detail::KktFactor &kkt, const EliminatedFace &face, QpCounters &counters,
-        const QpOptions &opts, double margin = detail::kInfeasibilityMarginFactor) const;
+    bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
+                                            const Vec &Aix, const Vec &ai_row_norm1,
+                                            const Vec &lambda_i, const Vec &ae_row_norm1,
+                                            const Vec &lambda_e, const detail::KktFactor &kkt,
+                                            const EliminatedFace &face, QpCounters &counters,
+                                            const QpOptions &opts) const;
 
     // THE TERMINAL MU-FREE REFINEMENT (E2 fix4). At a terminal KKT point whose
     // structural classification would read kInfeasible, the point is the

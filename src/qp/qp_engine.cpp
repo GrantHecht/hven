@@ -1443,21 +1443,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
                 // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
                 // -- section 5, and the two refine_*_for_verdict declarations.
-                // KOPT-1X R2: at a structural dead end the refinement asks for kOptimal's own 1x
-                // and is adopted at the classifier's 10x if it closes no tighter (the kInfeasible
-                // evidence margin is unchanged). It is NOT also run at a gray row (worst == 0):
-                // measured, that changed whole SQP trajectories for no gain (ACOPP30: 615 -> 2494
-                // minors).
-                const auto refine_to = [&](double margin) {
-                    return eqp.refine_steps > 0
-                               ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
-                                                         ae_row_norm1, lambda_e, *border_, counters,
-                                                         eff_opts, margin)
-                               : refine_eliminated_face_for_verdict(
-                                     qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
-                                     kkt, face, counters, eff_opts, margin);
-                };
-                const bool refined = worst > 0.0 && refine_to(1.0);
+                const bool refined =
+                    worst > 0.0 && (eqp.refine_steps > 0
+                                        ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
+                                                                  lambda_i, ae_row_norm1, lambda_e,
+                                                                  *border_, counters, eff_opts)
+                                        : refine_eliminated_face_for_verdict(
+                                              qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                              lambda_e, kkt, face, counters, eff_opts));
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
@@ -3474,19 +3467,15 @@ bool QpEngine::eqp_answer_drifts_off_met_rows(const QpProblem &qp, const Working
     return false;
 }
 
-double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts,
-                                 double margin) const {
-    if (margin <= 1.0) {
-        return row_tolerance(row_scale, lambda, opts);
-    }
-    return std::max(margin * row_tolerance(row_scale, lambda, opts),
+double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts) const {
+    return std::max(detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts),
                     detail::kVerdictRefineRelFloor * row_scale);
 }
 
 double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                       const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                       const Vec &ae_row_norm1, const Vec &lambda_e,
-                                      const QpOptions &opts, double margin) const {
+                                      const QpOptions &opts) const {
     const double xmag = x.lpNorm<Eigen::Infinity>();
     double worst = 0.0;
     if (qp.me() > 0) {
@@ -3494,17 +3483,13 @@ double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws,
         for (Index j = 0; j < qp.me(); ++j) {
             const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
             worst = detail::nan_sticky_max(
-                worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts, margin));
+                worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts));
         }
     }
     for (const Index j : ws.active_ineq()) {
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-        // At margin 1 (the kOptimal row contract) an inequality row is read one-sided, as
-        // worst_row_ratio reads it; the classifier's 10x face keeps the two-sided read.
-        const double r = Aix(j) - qp.bi(j);
-        const double v = margin <= 1.0 ? (std::isnan(r) ? r : std::max(0.0, r)) : std::abs(r);
-        worst = detail::nan_sticky_max(worst,
-                                       v / face_row_target(row_scale, lambda_i(j), opts, margin));
+        worst = detail::nan_sticky_max(worst, std::abs(Aix(j) - qp.bi(j)) /
+                                                  face_row_target(row_scale, lambda_i(j), opts));
     }
     return worst;
 }
@@ -3516,7 +3501,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
                                        const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                        const Vec &ae_row_norm1, const Vec &lambda_e,
                                        BorderState &border, QpCounters &counters,
-                                       const QpOptions &opts, double margin) const {
+                                       const QpOptions &opts) const {
     if (!border.schur.has_value() || border.schur->needs_refactorization()) {
         return false; // nothing trustworthy to re-form -- see the declaration
     }
@@ -3546,7 +3531,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     const auto measure_of = [&](const Vec &xc) {
         const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
         return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
-                                    lambda_e, opts, margin);
+                                    lambda_e, opts);
     };
 
     Vec best;
@@ -3601,22 +3586,12 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     // CLOSED, OR NOTHING: a refinement that ran out of budget with the face
     // still open has shown the face is not closable, which is evidence FOR the
     // classifier -- see refine_face_for_verdict's declaration for the cost.
-    // KOPT-1X R2: asked for tighter than the classifier's margin and closed only to the
-    // classifier's own, the point is adopted at that level (tighter is preferred, never required).
-    double adopt_margin = margin;
-    double adopt_measure = best_measure;
-    if (!(adopt_measure <= 1.0) && margin < detail::kInfeasibilityMarginFactor) {
-        adopt_margin = detail::kInfeasibilityMarginFactor;
-        const Vec Ai_best = qp.mi() > 0 ? Vec(qp.Ai * best_x) : Vec(Aix);
-        adopt_measure = working_face_measure(qp, ws, best_x, Ai_best, ai_row_norm1, lambda_i,
-                                             ae_row_norm1, lambda_e, opts, adopt_margin);
-    }
-    if (!(adopt_measure <= 1.0)) {
+    if (!(best_measure <= 1.0)) {
         return false;
     }
-    const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                               lambda_e, opts, adopt_margin);
-    if (!(adopt_measure < before)) {
+    const double before =
+        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    if (!(best_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
     x = std::move(best_x);
@@ -3629,7 +3604,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
                                                   const Vec &lambda_i, const Vec &ae_row_norm1,
                                                   const Vec &lambda_e, const detail::KktFactor &kkt,
                                                   const EliminatedFace &face, QpCounters &counters,
-                                                  const QpOptions &opts, double margin) const {
+                                                  const QpOptions &opts) const {
     const Index n = qp.n();
     const Index me = qp.me();
     const std::vector<Index> &aw = ws.active_ineq();
@@ -3692,7 +3667,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     const auto measure_of = [&](const Vec &xc) {
         const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
         return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
-                                    lambda_e, opts, margin);
+                                    lambda_e, opts);
     };
 
     // THE REUSE GUARD: the key carries the working set AND the factor's own
@@ -3751,23 +3726,12 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         best_measure = candidate_measure;
         ++steps;
     }
-    if (steps == 0) {
+    if (steps == 0 || !(best_measure <= 1.0)) {
         return false; // CLOSED, OR NOTHING -- the border twin's rule, verbatim
     }
-    double adopt_margin = margin;
-    double adopt_measure = best_measure;
-    if (!(adopt_measure <= 1.0) && margin < detail::kInfeasibilityMarginFactor) {
-        adopt_margin = detail::kInfeasibilityMarginFactor; // the border twin's two tiers
-        const Vec Ai_best = qp.mi() > 0 ? Vec(qp.Ai * best_x) : Vec(Aix);
-        adopt_measure = working_face_measure(qp, ws, best_x, Ai_best, ai_row_norm1, lambda_i,
-                                             ae_row_norm1, lambda_e, opts, adopt_margin);
-    }
-    if (!(adopt_measure <= 1.0)) {
-        return false;
-    }
-    const double before = working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                               lambda_e, opts, adopt_margin);
-    if (!(adopt_measure < before)) {
+    const double before =
+        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    if (!(best_measure < before)) {
         return false; // strict decrease against the WALK's own point, or nothing
     }
     x = std::move(best_x);

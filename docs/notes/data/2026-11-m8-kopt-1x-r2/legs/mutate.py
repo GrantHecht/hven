@@ -3,7 +3,6 @@
 Ma no-row-contract:  the polish acceptance does not read the candidate's row ratio (src/qp/qp_engine.cpp).
 Mb repair-spends:    a successful rank-repair `continue` spends the gray hold (the base's bookkeeping).
 Mc no-return:        the certifying site never returns to the loop (the gray exit is counted and certified).
-Md ten-x-target:     the gray-zone refinement targets the classifier's 10x even when asked for 1x.
 Me1 no-bound:        the return bound removed (the progress rule alone limits the returns).
 Me3 no-bound-no-progress: neither the bound nor the progress rule (returns until the minor cap).
 Mg no-progress:     returns are taken until the budget whether or not the previous step added a member.
@@ -36,8 +35,6 @@ elif arg == "Mb":
          "gray_hold_issued);\n#endif\n                    gray_hold_next = gray_hold_issued;\n                    continue;")
 elif arg == "Mc":
     sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&\n                                    iter + 1 < eff_max_iter) {", "if (false) {")
-elif arg == "Md":
-    sub1(E, "    if (margin <= 1.0) {", "    if (false) {")
 elif arg == "Me1":
     sub1(E, "if (gray_returns_left > 0 && gray_return_progress &&", "if (gray_return_progress &&")
 elif arg == "Me3":
