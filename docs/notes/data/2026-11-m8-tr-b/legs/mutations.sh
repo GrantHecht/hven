@@ -28,7 +28,7 @@ runall() {
   {     timeout 900 "$B/drivers/hven_drivers_tests" --gtest_brief=1 --gtest_fail_fast 2>&1; echo "drivers rc=$?";
     timeout 900 "$B/interior/hven_interior_tests" --gtest_brief=1 --gtest_fail_fast 2>&1; echo "interior rc=$?";
     timeout 900 "$B/sqp/hven_sqp_tests" --gtest_brief=1 --gtest_fail_fast \
-      --gtest_filter='JsonLinesTraceSink.*:SqpConsole.*:ScaledConvergenceGuard.*:*F2InconsistentRedundantRow*' 2>&1; echo "sqp rc=$?";
+      --gtest_filter='JsonLinesTraceSink.*:SqpConsole.*:ScaledConvergenceGuard.*:*F2InconsistentRedundantRow*:TraceMessagesSqpResume.*' 2>&1; echo "sqp rc=$?";
     true; } > "$RAW/run-$1.log"
   sed -nE 's/^\[  FAILED  \] ([A-Za-z0-9_]+\.[A-Za-z0-9_\/]+)( .*)?$/\1/p' "$RAW/run-$1.log" | sort -u
 }
