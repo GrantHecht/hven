@@ -20,9 +20,8 @@ TR   ONE TRAIN leg, serial, solo, TRAIN only. Arms (train/binaries.txt): A = ben
          cutest/ZAMB2-8/hven-sqp/default factorizations 144 -> 147 (iterations 8, status optimal, objective within the gate). Side: ipm 0 differences (hs and cutest); sqp hs 29 and cutest 19
          INTERNAL-counter values moved (eqp_polish_steps x17, harness_qpsum_dep_test_solves x5, border_refine_steps x4, terminal_polish_* x6, qp_minor_iters x1, ...) -- ATTRIBUTED TO HVEN, not TR-E:
      (c) A vs A' (old lane code at the two pins): the same ZAMB2-8 mismatch and exactly the same 29 + 19 side differences, line for line (diff of the DIFF lines: identical), so they come from
-         the hven commits between bdd797e3 and 24b2a7e4 (267 commits: AP-5 G1-G7, DN-3 dense auto, the zero-step short-circuit, ...), not from the consumer. They are the pin event's content and
-         are reported here, not hidden: the spec's "0 counter diffs old pin vs new pin" does NOT hold for internal SQP counters, and holds for every asserted row column on hs and for 49 of 50
-         cutest-and-hs... (see counts above: 1 of 10 cutest cells moved one column). The comparison that TR-E owns, (b), is 0.
+         the hven commits between bdd797e3 and 24b2a7e4 (267 commits on the m8 line), not from the consumer. They are the pin event's content and are reported here, not hidden. The cause inside those commits was NOT bisected (TR-E does not own it). So the spec's "0 counter diffs, old pin vs
+         new pin" does NOT hold for internal SQP counters; it holds for every asserted results column on all 44 hs cells and on 9 of 10 cutest cells. The comparison TR-E owns, (b), is 0.
      (d) B vs B traced (hs, 44 cells): results 0 mismatches (`traced` declared moved), side 0 differences (484/3388 -> 858/5632 values), and all 44 written streams pass schema/trace_v1.py with
          0 errors and 0 aborted solves (train/streams.txt). Tracing moves no counter.
      A cell that differs is re-run ALONE before it is called one (CLAUDE.md section 7): the runs are serial and deterministic and the same ZAMB2-8 difference appears in A vs A' (two lane
