@@ -3371,7 +3371,11 @@ double QpEngine::worst_row_ratio(const QpProblem &qp, const WorkingSet &ws, cons
         read(qp.Ae.row(j).dot(x) - qp.be(j), qp.be(j), ae_row_norm1(j), lambda_e(j));
     }
     for (const Index j : ws.active_ineq()) {
-        read(qp.Ai.row(j).dot(x) - qp.bi(j), qp.bi(j), ai_row_norm1(j), lambda_i(j));
+        // An inequality row is read one-sided, as worst_structural_violation and terminal_kkt read
+        // it: slack is primal feasible (a zero-multiplier working member sitting well inside its
+        // row is no gray-zone row). A NaN stays the worst row.
+        const double r = qp.Ai.row(j).dot(x) - qp.bi(j);
+        read(std::isnan(r) ? r : std::max(0.0, r), qp.bi(j), ai_row_norm1(j), lambda_i(j));
     }
     return worst;
 }
@@ -3495,9 +3499,12 @@ double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws,
     }
     for (const Index j : ws.active_ineq()) {
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        // At margin 1 (the kOptimal row contract) an inequality row is read one-sided, as
+        // worst_row_ratio reads it; the classifier's 10x face keeps the two-sided read.
+        const double r = Aix(j) - qp.bi(j);
+        const double v = margin <= 1.0 ? (std::isnan(r) ? r : std::max(0.0, r)) : std::abs(r);
         worst = detail::nan_sticky_max(worst,
-                                       std::abs(Aix(j) - qp.bi(j)) /
-                                           face_row_target(row_scale, lambda_i(j), opts, margin));
+                                       v / face_row_target(row_scale, lambda_i(j), opts, margin));
     }
     return worst;
 }

@@ -1136,11 +1136,16 @@ void check_full_step_lever_on_the_sound_warm_arms() {
                     problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors,
                     problem("HS10").cell[kArmWarm][kOn][kOn].majors));
 #else
-    // M8 kopt-1x (declared mover, docs/notes/data/2026-11-m8-kopt-1x/): Release now reads 26 / 40
-    // as Debug does (a gray-zone terminal point takes the ordinary step before it certifies), so
-    // the two builds agree here.
+    // M8 kopt-1x r2: the first kopt-1x fix moved Release to 26 / 40 because its row measure read a
+    // working inequality row two-sided (slack counted as a violation); the one-sided read restores
+    // the earlier config split.
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#endif
 #endif
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
     // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
@@ -1310,9 +1315,9 @@ void check_soc_costs_what_it_costs() {
     // reads 0 (HS15's warm route differs there). A route census, pinned on the reference build
     // only.
 #if HVEN_TEST_ROUTE_REFERENCE
-    // M8 kopt-1x r2 (declared mover): the four Release exits are gone (0 in both configs): the
-    // certifying site's bounded return and the 1x gray refinement repair what the first fix only
-    // counted. The census stays pinned at 0.
+    // M8 kopt-1x r2 (declared mover): 4 -> 0 in Release. The four exits were an artifact of the
+    // first fix's row measure, which read a working inequality row two-sided (HS15's warm arm holds
+    // a zero-multiplier working row with slack); read one-sided, the corpus has no gray exit.
     EXPECT_EQ(0, gray_exits) << corpus_table();
 #else
     hven::test_support::record_off_reference_route("HsSweepCorpus.gray_exits",
@@ -1419,16 +1424,13 @@ void check_soc_costs_what_it_costs() {
     // factorizations 184, acc/rej 70/16, elastic 48/288 and every status unchanged). An elastic
     // rung whose row residual the uncapped footprint once excused is now refined before its
     // verdict: more QP work on the same answers.
-    // M8 kopt-1x (declared mover, docs/notes/data/2026-11-m8-kopt-1x/): Release 3355 -> 3359,
-    // Debug 3346 -> 3355. kOptimal now promises every equality and working row within 1x of its
-    // tolerance: a KKT point with a row between 1x and 10x takes the ordinary step before it
-    // certifies. Every status in the table is unchanged.
-    // M8 kopt-1x r2 (declared mover): Release 3359 -> 3357 (HS15's warm arm, one fewer minor in
-    // each of two lever cells; every status unchanged). Debug: see the assertion below.
+    // M8 kopt-1x r2: the first kopt-1x fix's re-pin (Release 3355 -> 3359, Debug 3346 -> 3355) is
+    // withdrawn: it came from the two-sided read of a working inequality row; read one-sided the
+    // corpus total is bit-identical to the base before kopt-1x.
 #ifdef NDEBUG
-    EXPECT_EQ(3357, total_minors) << corpus_table();
-#else
     EXPECT_EQ(3355, total_minors) << corpus_table();
+#else
+    EXPECT_EQ(3346, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1628,12 +1630,19 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
 #if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
-    // M8 kopt-1x r2 (declared): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, the
-    // Debug column again (the row repair no longer leaves HS15's warm arm on a gray exit).
+    // M8 kopt-1x r2: Release's step arm is back at 34 / 99 / 39 / 7 (the first kopt-1x fix's
+    // 33 / 95 / 38 / 6 came from the two-sided working-row read).
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(on.majors, 34);
+    EXPECT_EQ(on.minors, 99);
+    EXPECT_EQ(on.factorizations, 39);
+    EXPECT_EQ(on.rejected, 7);
+#else
     EXPECT_EQ(on.majors, 33);
     EXPECT_EQ(on.minors, 95);
     EXPECT_EQ(on.factorizations, 38);
     EXPECT_EQ(on.rejected, 6);
+#endif
 #endif
     EXPECT_EQ(on.status_failures, off.status_failures);
     EXPECT_EQ(on.fvals.size(), off.fvals.size());
