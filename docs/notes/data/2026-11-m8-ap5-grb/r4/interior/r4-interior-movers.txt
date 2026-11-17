@@ -1,0 +1,4 @@
+infeas2_spike/MakeParameter/stalled: differs in ['status', 'phases']: as declared
+infeas2_stationary/MakeParameter/resto_infeasible: differs in ['status', 'phases']: as declared
+cells 43; movers 2; declared 2
+MOVERS_VERDICT PASS

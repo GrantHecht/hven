@@ -37,7 +37,7 @@ runall() {
 echo "id,mutation,build,killed_by" > "$OUT/mutation-table.csv"
 declare -A DESC=(
  [o1]="the order compares f before the violation" [o2]="non-strict improvement"
- [o3]="no tolerance band" [x1]="the IPM tracker reinstates the removed criterion path (equality residual alone, <= ties)")
+ [o3]="no tolerance band" [x1]="the IPM tracker reinstates the removed criterion path (equality residual alone with less-or-equal ties)")
 build control; echo "control build rc=$?"
 ctl=$(runall control | tr '\n' ' '); ctl="$ctl$(grep -E '^(seam|drivers|interior|sqp) rc=[1-9]' "$RAW/run-control.log" | tr '\n' ' ')"
 echo "CONTROL failures: [${ctl}]"
