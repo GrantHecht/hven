@@ -27,8 +27,8 @@
 #include <stdexcept>
 #include <string>
 
-#include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/warmstart/predictor.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/sqp/predictor.h>
 #include <hven/drivers/trace.h>
 
 using hven::census_variable_bounds;

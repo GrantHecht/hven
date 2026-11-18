@@ -16,9 +16,9 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/globalization/sqp/lbfgs_damped.h>
-#include <hven/detail/globalization/sqp/mixed_lift.h>
-#include <hven/detail/globalization/sqp/qn_models.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/mixed_lift.h>
+#include <hven/detail/sqp/quasi_newton/qn_models.h>
 
 using namespace hven::detail;
 

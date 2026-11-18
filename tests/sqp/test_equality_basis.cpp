@@ -24,7 +24,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/equality_basis.h>
+#include <hven/detail/sqp/equality_basis.h>
 
 namespace hven::detail {
 namespace {

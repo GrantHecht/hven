@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "hven/ipm/ipm_solver.h"
-#include "hven/drivers/sqp_solver.h"
+#include "hven/sqp/sqp_solver.h"
 #include "hven/model/problem.h"
 #include "support/hs071_problem.h"
 

@@ -27,11 +27,11 @@
 
 #include <hven/detail/core/aggregate_arity.h>
 #include <hven/core/version.h>
-#include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 
 #include "trace_names.h"
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 namespace hven {
 namespace {

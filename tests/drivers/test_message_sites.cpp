@@ -136,9 +136,7 @@ std::vector<std::string> mismatches(const Counts &seen, const Counts &want) {
 }
 
 std::string ipm_text() { return read(std::filesystem::path(HVEN_SRC_ROOT) / "ipm/ipm_solver.cpp"); }
-std::string sqp_text() {
-    return read(std::filesystem::path(HVEN_SRC_ROOT) / "drivers/sqp_solver.cpp");
-}
+std::string sqp_text() { return read(std::filesystem::path(HVEN_SRC_ROOT) / "sqp/sqp_solver.cpp"); }
 
 TEST(TraceMessageSites, EveryEnumeratorIsAccountedForByAnEngineOrDeclaredUnemitted) {
     const std::vector<std::string> kinds = enumerators();

@@ -59,7 +59,7 @@
 #include <hven/core/ledger.h>
 #include <hven/core/start_level.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/nlp_problem_model.h>
@@ -68,7 +68,7 @@
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/json_lines_trace_sink.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>

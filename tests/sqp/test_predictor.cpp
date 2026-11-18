@@ -96,12 +96,12 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/predictor.h>
+#include <hven/detail/sqp/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "support/derivative_check.h"
 #include "support/parametric_families.h"

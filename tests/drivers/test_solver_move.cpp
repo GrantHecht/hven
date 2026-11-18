@@ -32,8 +32,8 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"

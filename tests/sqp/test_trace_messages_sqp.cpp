@@ -9,7 +9,7 @@
 #include <string_view>
 
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/sqp/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"

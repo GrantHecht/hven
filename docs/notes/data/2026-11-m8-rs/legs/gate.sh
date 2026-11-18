@@ -39,6 +39,8 @@ if has psym; then
   # the exceptions are the union of every group's file up to this one.
   : > "$SC/exceptions-merged.txt"
   for g in a b c d e; do [ -f "$E/gates/RS-1$g/exceptions.txt" ] && cat "$E/gates/RS-1$g/exceptions.txt" >> "$SC/exceptions-merged.txt"; [ "$g" = "$G" ] && break; done
+  # a key may appear only once: keep the first
+  awk -F ' ## ' '/^#/ {print; next} !seen[$1]++ {print}' "$SC/exceptions-merged.txt" > "$SC/exceptions-merged.dedup" && mv "$SC/exceptions-merged.dedup" "$SC/exceptions-merged.txt"
   EXC=""; [ -s "$SC/exceptions-merged.txt" ] && EXC="--exceptions $SC/exceptions-merged.txt"
   scripts/psym_compare.sh compare --object-map "$GD/object-map.txt" $EXC "$SC/psym-before" "$SC/psym" > "$GD/psym.txt" 2>&1
   rec psym-compare $?; tail -4 "$GD/psym.txt"
@@ -50,8 +52,8 @@ if has flags; then
 fi
 if has lists; then
   rm -rf "$SC/lists"; bash $L/lists.sh build "$SC/lists" > "$GD/lists-run.txt" 2>&1
-  diff -r "$SC/lists/gtest" "$WT/.scratch/base/lists/gtest" > "$GD/lists-diff.txt" 2>&1; r1=$?
-  diff "$SC/lists/ctest-N.txt" "$WT/.scratch/base/lists/ctest-N.txt" >> "$GD/lists-diff.txt" 2>&1; r2=$?
+  python3 $E/tools/lists_compare.py "$WT/.scratch/base/lists" "$SC/lists" > "$GD/lists-diff.txt" 2>&1; r1=$?
+  r2=0
   rec lists-identical $((r1|r2)); wc -l "$GD/lists-diff.txt"
 fi
 if has ctest; then bash $L/ctest.sh build "$GD/ctest-release.log" > "$GD/ctest-release-run.txt" 2>&1; rec ctest-release $?; grep -E 'tests passed|tests failed' "$GD/ctest-release.log" | tee -a "$V"; fi

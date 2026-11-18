@@ -69,8 +69,8 @@
 #include <hven/drivers/iteration_record.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/sqp_options.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_options.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/drivers/step_verdict.h>
 #include <hven/drivers/trace.h>

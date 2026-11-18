@@ -10,8 +10,8 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 namespace hven {
 namespace {

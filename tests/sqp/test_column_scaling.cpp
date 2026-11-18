@@ -34,11 +34,11 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/drivers/column_scaling.h>
+#include <hven/detail/sqp/column_scaling.h>
 #include <hven/detail/drivers/declared_diagnostics.h>
-#include <hven/detail/drivers/problem_scaling.h>
+#include <hven/detail/sqp/problem_scaling.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/drivers/trace.h>
 

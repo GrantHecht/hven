@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 

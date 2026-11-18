@@ -19,7 +19,7 @@
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/ipm/ipm_solver.h"
-#include "hven/drivers/sqp_solver.h"
+#include "hven/sqp/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/constraint_function.h"
 #include "hven/model/objective_function.h"

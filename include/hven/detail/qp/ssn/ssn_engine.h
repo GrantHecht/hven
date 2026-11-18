@@ -39,7 +39,7 @@
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 

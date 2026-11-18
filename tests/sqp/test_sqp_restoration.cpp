@@ -61,9 +61,9 @@
 
 #include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
 #include "support/derivative_check.h"

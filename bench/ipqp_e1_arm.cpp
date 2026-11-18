@@ -16,7 +16,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 
 #include "bench_cli.h"

@@ -40,7 +40,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/model/nlp_model.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "support/nlp_kkt_check.h"
 

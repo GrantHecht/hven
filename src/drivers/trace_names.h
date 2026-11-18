@@ -8,7 +8,7 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/ipm/ipm_options.h>
-#include <hven/drivers/sqp_options.h>
+#include <hven/sqp/sqp_options.h>
 #include <hven/drivers/trace.h>
 
 namespace hven::detail {

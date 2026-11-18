@@ -30,12 +30,12 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/equality_basis.h>
+#include <hven/detail/sqp/equality_basis.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
 #include "hven/detail/warmstart/warm_start_access.h"

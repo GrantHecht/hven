@@ -23,10 +23,10 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/equality_basis_testing.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/equality_basis_testing.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

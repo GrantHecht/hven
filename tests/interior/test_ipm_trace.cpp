@@ -49,7 +49,7 @@
 #include "../common_support/ipm_row_view.h"
 #include "hven/core/ledger.h"
 #include "hven/detail/drivers/result_access.h"
-#include "hven/detail/drivers/sqp_solver_impl.h"
+#include "hven/detail/sqp/sqp_solver_impl.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"

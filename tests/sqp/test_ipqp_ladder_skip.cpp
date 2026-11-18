@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "support/indefinite_fixtures.h"
 

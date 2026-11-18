@@ -17,7 +17,7 @@
 
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 
 #include "support/indefinite_fixtures.h"

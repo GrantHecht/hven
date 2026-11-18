@@ -35,7 +35,7 @@
 #include "hven/ipm/ipm_solver.h"
 #include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/drivers/sqp_solver.h"
+#include "hven/sqp/sqp_solver.h"
 #include "hven/hven.h"
 #include "hven/model/nlp.h"
 #include "hven/model/problem.h"

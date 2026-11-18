@@ -11,7 +11,7 @@ Provenance stamps (-DHVEN_*_GIT_DESCRIBE=..., -DHVEN_RIG_COMMIT=...: the build t
 '<git-stamp>': they move on every commit by construction (and the object bytes they reach are .rodata strings).
 --expect-removed: a literal token (after '@' rewriting) allowed to be present only in BEFORE, e.g. -I@/src/interior/utils.
 Exit 0 iff the TU sets match (modulo deletions) and every flag list is equal modulo the expected removals."""
-import json, shlex, sys, re, argparse
+import json, shlex, sys, re, argparse, posixpath
 
 ap = argparse.ArgumentParser()
 ap.add_argument('before'); ap.add_argument('after')
@@ -52,6 +52,8 @@ def load(p, is_before):
             t = t.replace(root, '@')
             # provenance stamps: the git revision of the tree being built is a per-commit value by construction
             t = re.sub(r'^(-DHVEN_[A-Z0-9_]*(?:GIT_DESCRIBE|RIG_COMMIT)=).*$', r'\1<git-stamp>', t)
+            # a path spelled with '..' (tests/sqp/../../src/x.cpp) is compared in its normal form
+            t = re.sub(r'@/([\w./+-]+)', lambda m: '@/' + posixpath.normpath(m.group(1)), t)
             if is_before:
                 for m in re.finditer(r'@/([\w./+-]+)', t):
                     p0 = m.group(1)

@@ -132,7 +132,7 @@ target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_QP_E2D4_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/../qp/fixtures/e2-d4")
 
 target_compile_definitions(hven_sqp_tests
-    PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_solver.cpp")
+    PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/sqp/sqp_solver.cpp")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.

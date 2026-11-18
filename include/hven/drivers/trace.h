@@ -27,8 +27,8 @@
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/iteration_record.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/sqp_options.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_options.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/problem.h>
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>

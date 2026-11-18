@@ -113,12 +113,12 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/continuation.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 #include "../common_support/route_reference.h"

@@ -74,10 +74,10 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/walk/walk_engine.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "support/hs_problems.h"
 #include "support/nlp_kkt_check.h"

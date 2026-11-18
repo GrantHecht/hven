@@ -108,7 +108,7 @@
 #include <Eigen/Core>
 
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/util/thread_pool.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_model.h>
@@ -116,7 +116,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>
 
 #include "sqp/support/hs_problems.h"

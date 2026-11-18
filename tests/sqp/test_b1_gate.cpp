@@ -119,13 +119,13 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/continuation.h>
+#include <hven/detail/sqp/continuation.h>
 #include <hven/detail/warmstart/mesh_transfer.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 #include "support/hs_problems.h"

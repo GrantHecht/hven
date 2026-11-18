@@ -33,7 +33,7 @@
 #include <hven/detail/kkt/kkt_factorization.h>
 #include <hven/detail/qp/ipqp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 

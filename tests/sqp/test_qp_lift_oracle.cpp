@@ -40,9 +40,9 @@
 #include <gtest/gtest.h>
 
 #include "../common_support/route_reference.h"
-#include <hven/detail/globalization/sqp/elastic.h>
-#include <hven/detail/globalization/sqp/lbfgs_damped.h>
-#include <hven/detail/globalization/sqp/mixed_lift.h>
+#include <hven/detail/sqp/globalization/elastic.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/mixed_lift.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>

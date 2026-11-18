@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/globalization/sqp/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 
 namespace {
 

@@ -203,28 +203,28 @@ target_sources(hven PRIVATE
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/assembly_eval_seam.cpp
+    sqp/assembly_eval_seam.cpp
     drivers/console_trace_sink.cpp
-    drivers/equality_basis.cpp
-    drivers/problem_scaling.cpp
-    drivers/sqp_solver.cpp
-    drivers/sqp_solver_handle.cpp
-    drivers/sqp_options.cpp
-    drivers/sqp_print.cpp
+    sqp/equality_basis.cpp
+    sqp/problem_scaling.cpp
+    sqp/sqp_solver.cpp
+    sqp/sqp_solver_handle.cpp
+    sqp/sqp_options.cpp
+    sqp/sqp_print.cpp
     drivers/trace.cpp
     drivers/trace_writer.cpp
-    globalization/sqp/funnel.cpp
-    globalization/sqp/lbfgs_damped.cpp
-    globalization/sqp/mixed_lift.cpp
-    globalization/sqp/qn_lift_bridge.cpp
-    globalization/sqp/qn_models.cpp
-    globalization/sqp/soc_elastic_restoration.cpp
+    sqp/globalization/funnel.cpp
+    sqp/quasi_newton/lbfgs_damped.cpp
+    sqp/quasi_newton/mixed_lift.cpp
+    sqp/quasi_newton/qn_lift_bridge.cpp
+    sqp/quasi_newton/qn_models.cpp
+    sqp/globalization/soc_elastic_restoration.cpp
     qp/ipqp/ipqp_engine.cpp
     qp/ipqp/ipqp_kkt_layout.cpp
     qp/walk/walk_engine.cpp
     qp/ssn/ssn_engine.cpp
     qp/walk/ws_independence.cpp
-    warmstart/continuation.cpp
+    sqp/continuation.cpp
     warmstart/warm_start.cpp
 )
 

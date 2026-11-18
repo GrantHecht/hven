@@ -56,7 +56,7 @@
 #include <hven/core/stop.h>
 #include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
@@ -66,7 +66,7 @@
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 

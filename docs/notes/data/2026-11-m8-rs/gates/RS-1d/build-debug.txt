@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T22:14:56-05:00
+[374/376] Linking CXX executable examples/hven_example_08_results_trace_options
+[375/376] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[376/376] Linking CXX executable tests/sqp/hven_sqp_tests
+build rc=0
+FOREGROUND_END 2026-11-17T22:17:28-05:00

@@ -28,7 +28,7 @@
 // fingerprint lives in tests/sqp/test_warm_start.cpp beside the kHot chain it
 // belongs to.
 
-#include "hven/detail/globalization/sqp/globalization.h"
+#include "hven/detail/sqp/globalization/funnel.h"
 #include "hven/detail/model/fixed_variable_treatment.h"
 #include <algorithm>
 #include <cstddef>
@@ -49,8 +49,8 @@
 #include "hven/drivers/common_options.h"
 #include "hven/ipm/ipm_solver.h"
 #include "hven/ipm/ipm_solver_types.h"
-#include "hven/drivers/sqp_solver.h"
-#include "hven/drivers/sqp_solver_types.h"
+#include "hven/sqp/sqp_solver.h"
+#include "hven/sqp/sqp_solver_types.h"
 #include "hven/qp/qp_types.h"
 
 #include "sqp/support/hs_problems.h"

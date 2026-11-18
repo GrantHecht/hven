@@ -1,0 +1,15 @@
+hven-bench (sibling repo, NOT edited; checked at its HEAD 6d1a8a0, read-only grep) -- what the RS public-path changes break.
+LIVE CODE (breaks a build against the RS head):
+  lanes/external/declared_point.h:87   #include <hven/detail/drivers/declared_diagnostics.h>   -> <hven/detail/solver/declared_diagnostics.h>   (RS-1e)
+ARCHIVED PROBE (breaks only if rebuilt):
+  runs/2026-09-m7-w2-c1-sqp-cost-census/probe/c1_probe.cpp:114-116
+      <hven/drivers/solve_result.h> -> <hven/solver/solve_result.h> ; <hven/drivers/sqp_solver.h> -> <hven/sqp/sqp_solver.h> ;
+      <hven/drivers/sqp_solver_types.h> -> <hven/sqp/sqp_solver_types.h>
+HISTORICAL RETAKE CHAINS (break only if re-run against a new hven head; they diff-name hven paths):
+  scripts/w2_retake9_prechain.sh:219,253 ; scripts/w2_retake12_prechain.sh:217 ; scripts/w2_retake13_prechain.sh:222 ;
+  scripts/w2_retake9_compare.py:122   (include/hven/drivers/sqp_solver_types.h, src/drivers/sqp_solver.cpp)
+PROSE / PROVENANCE STRINGS (stale paths, no behaviour): schema/v1.md (include/hven/drivers/solve_result.h), schema/fixtures/trace_v1/PROVENANCE.txt
+  (tests/drivers/golden/trace_v1/ moves to tests/trace/golden/ in RS-2; bytes unchanged so the sha256 copies still match), sets/*.json + sets/hs/*.cpp
+  (tests/sqp/support/hs_problems.h moves to tests/model/support/ in RS-2), cmake/hven_pin.cmake comments.
+Everything else includes <hven/hven.h> only (lanes/hven/*, lanes/chain/hven_bench_chain.cpp, tests/dual_sign_check.cpp): unaffected.
+The consumer sed in design section 4 fixes the public-path rows; the detail row (declared_diagnostics) is the one extra edit. A hven pin bump is needed to consume the RS head.

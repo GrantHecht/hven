@@ -23,13 +23,13 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>

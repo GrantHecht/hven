@@ -24,7 +24,7 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
-#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
