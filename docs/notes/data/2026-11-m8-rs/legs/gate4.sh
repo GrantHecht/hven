@@ -16,10 +16,10 @@ V=$GD/VERDICTS.txt
 cd "$WT" || exit 1
 rec() { echo "$1 rc=$2 $(date -Is)" | tee -a "$V"; }
 has() { case " $STEPS " in *" $1 "*) return 0;; esac; return 1; }
-echo "== gate RS-4 head $(git rev-parse --short HEAD) base ${PSYM_BASE:-4064ff97a} steps: $STEPS $(date -Is)" | tee -a "$V"
+echo "== gate RS-4 head $(git rev-parse --short HEAD) base ${PSYM_BASE:-ca3588735} steps: $STEPS $(date -Is)" | tee -a "$V"
 if has build; then bash $L/build.sh Release build clean > "$GD/build-release.txt" 2>&1; rec build-release $?; tail -2 "$GD/build-release.txt"; fi
 if has psym; then
-  export PSYM_BASE=${PSYM_BASE:-4064ff97a58bbe84d57f15b8b2b38a311665fe0d}
+  export PSYM_BASE=${PSYM_BASE:-ca358873524a1ef5c8d750c29266b26989919736}
   rm -rf "$SC/arms"; WT=$WT bash $L/psym_arms.sh "$SC/arms" > "$GD/psym-arms-run.txt" 2>&1
   rec psym-arms $?; tail -3 "$GD/psym-arms-run.txt"
   cp "$SC/arms/base-build.log" "$SC/arms/after-build.log" "$SC/arms.flags.txt" "$GD/" 2>/dev/null
