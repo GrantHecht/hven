@@ -1,0 +1,36 @@
+YORKNET restoration qp26 under the matched trigger: the mechanism (round v3, 2026-11-18; dev runs, not a leg)
+Build: seq2 Release seam binary (hven_qp_walk_seam_tests), WIP a5798ad32 + uncommitted DEVDBG (HVEN_SEQ_OFF: check logged, never
+fires on the eliminated path; HVEN_SEQ_NOSTICKY: matched retake for the failing factorization only; SEQDBG lines tagged with
+the walk minor). Per-minor records from the walk seam's QpWalkObserver. MKL_NUM_THREADS=1, serial under the box lock.
+Raw dumps: .scratch/seq3/ (untracked; MANIFEST-seq3.txt lists them with sha256).
+
+Runs: base = HVEN_SEQ_OFF (status 0, 27 minors, f=0.133368173127); arm M sticky trigger (status 1 kIterationLimit, 7680 minors,
+f=-1456.8144549). Border and Refactorize routes are identical in both runs (the eliminated path throughout).
+
+1. Minors 0-14 identical (every platform factorization perturbed 1 pivot, refined eta <= 7e-9, verdict kSuspect).
+2. Minor 15 = the switch. base: the platform factor fails (refined eta 2.51e-1, residual ratio 1.7e21, perturbed inertia 277/257
+   read as kSuspect) -> two kSuspectEscalation minors (15, 16). arm M: matched retake, inertia 278/256 (expected) kOk, eta 6e-17,
+   adds bound 129 directly.
+3. Both runs then take the SAME adds (129, 789, 291, 305) and the same move (alpha 1, |p| 2.9178) to the SAME working set and
+   iterate (signature a219ad20c3187448, f = 0.1333681731268): arm M at minor 20, base at minor 22. The switch itself does not change
+   the route; it saves two minors.
+4. First real divergence (base minor 22 / arm M minor 20): at that degenerate KKT point the zero-multiplier probe picks a
+   different bound -- base: bound 34 (decision multiplier 0.0); arm M: bound 248 (decision multiplier 5.3e-19). A round-off tie
+   between two factorizations of the same K. base: probe 34 -> post-drop inertia kWrong -> restart -> kTerminal, kOptimal.
+   arm M: probe 248 -> rides -> later probes 34 from a different set and takes the saddle-exit ride (alpha 7) to f = -1443.2.
+5. The cycle (arm M minors 44..7679, period 5; signatures 1ec823fa -> b05a3457 -> 54cd5e43 -> c33b4de6 -> 1ec823fa):
+     44 kAdd bound 10, alpha 0.428, face inertia 271/257 vs expected 272/256 = TRUSTED kWrong (0 perturbed pivots), curvature gate
+        silent: f -1456.814 -> -1443.195 (ASCENT +13.6)
+     45 Dantzig drop 503 (multiplier 3.85e4)
+     46 move-only alpha 1 after a nullspace-vetoed ride: f -1443.195443 -> -1443.195248 (ASCENT +2.0e-4)
+     47 Dantzig drop 10
+     48 negative-curvature ride (p'Hp -2.05) adding 503: f -> -1456.814 (descent)
+   Raw and matched inertia AGREE throughout the cycle region (n = 526..528); every solve is accurate (matched eta <= 1e-10).
+   The descent invariant is broken by ordinary steps on trusted-kWrong faces: a walk defect the section 4c ascent guard does not
+   cover as recorded (it requires verified negative curvature along p; the step's slope and p'Hp were not dumped in this run --
+   the record shows the curvature gate silent), reached here through a round-off tie at a degenerate point.
+
+Verdict on the four questions: not the switch (identical set/iterate reached); not a matched-inertia difference (agreement in
+the cycle region); degeneracy, yes -- a round-off tie in the zero-multiplier probe picks the branch; the cycle itself is a walk
+defect (ascent on kWrong faces). Stickiness is the amplifier: with a per-factorization response (HVEN_SEQ_NOSTICKY) qp26 keeps
+kOptimal, f = 0.133368173127, 23 minors, one matched retake, under both M and MS (arms-v3-matrix.txt).

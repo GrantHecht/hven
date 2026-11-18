@@ -1,0 +1,32 @@
+Round v3 arm matrix (2026-11-18; dev runs, not a leg; serial under the box lock, MKL_NUM_THREADS=1, cells THREADS=1 on core 2)
+Code: WIP a5798ad32 + DEVDBG .scratch/seq3/devdbg-v3.patch (HVEN_SEQ_NOSTICKY: the matched/P retake answers ONLY the factorization
+whose refined answer failed, the next factorization is the platform's again; HVEN_SEQ_ARM=PM: tier P, then M when the check
+fails on P's numerics; HVEN_SEQ_OFF: check logged, never fires on the eliminated path). P = own maximum-product-matching
+symmetric D K D (dense Hungarian stand-in, diagnostic only); M = Pardiso iparm[12]=1; MS = iparm[12]=1 + iparm[10]=1.
+Seam suite = hven_qp_walk_seam_tests minus the dev trace test (276 tests). Cells via the private hven-bench clone (.scratch/hb).
+
+arm (sticky?)   | qp26 Refactorize+Border        | STEENBRB qp3 (certs/rereads/facts) | BRITGAS qp4 certs/rereads | F3 exact | CRESC100.never | ALLINITC.never
+OFF (baseline)  | kOptimal 27 minors f=0.1334    | 1 / 1 / 166                        | 0 / 1 (pin)               | no (>=1e8)| infeasible     | numerical_error
+M  sticky (v2)  | kIterationLimit 7680           | minors 32 = base (counts not read) | 1 / 3                     | yes      | (not run)      | (not run)
+MS sticky (v2)  | kIterationLimit 7680           | 0 / 26 / 1873                      | 1 / 3                     | yes      | optimal        | optimal
+M  non-sticky   | kOptimal 23 minors f=0.1334    | 1 / 1 / 166                        | 1 / 3                     | yes      | optimal        | numerical_error
+MS non-sticky   | kOptimal 23 minors f=0.1334    | 0 / 26 / 1873                      | 1 / 3                     | yes      | optimal        | optimal
+P  non-sticky   | kOptimal 27 minors f=0.1334    | 1 / 1 / 166                        | 1 / 3                     | yes      | infeasible     | optimal
+PM non-sticky   | kOptimal 27 minors f=0.1334    | 1 / 1 / 166                        | 1 / 3                     | yes      | infeasible     | optimal
+("F3 exact": the coupled fixture's accuracy assertions; the only F3 failure in non-sticky arms is line 112, which asserts stickiness.)
+Seam-suite failures beyond the F3 stickiness line: nsM, nsP, nsPM -> BRITGAS qp4 only (nsPM also TheCheckAppliesOnly..., which
+asserts the pre-PM gate); nsMS -> BRITGAS qp4 + STEENBRB qp3 (two tests) + QpNc3 zero-curvature dead end (certificate >= 1).
+Other cells (non-sticky M / MS / P / PM): CRESC100.default, CRESC4.{default,never} optimal unchanged; CRESC50.{default,never}
+max_iter / numerical_error unchanged; STEENBRB.default optimal (83 / 83 / - / 67 iterations; base 136, sticky MS 68);
+BRITGAS.default optimal 62 everywhere; YORKNET.default numerical_error everywhere (base 34, sticky MS 22, nsM 26, nsMS 8, nsPM 29)
+(base cell binary built at the earlier 3edf5ede4 pin).
+
+Reading:
+- CRESC100.never is the PAIRING class (only arms with weighted matching win it); ALLINITC.never is the SCALE class (P or MS win
+  it, M alone does not). STEENBRB qp3's certificate/factorization cost regression is caused by iparm[10] scaling (MS), not by
+  stickiness. qp26's cycle is reached only under sticky matching.
+- PM as implemented does NOT escalate where it must: on qp26 minor 15 and on CRESC100 the P retake still perturbs pivots
+  (qp26: 5 perturbed, inertia 274/260, random-rhs probe eta 0.25) yet its refined answer to the EQP's actual rhs passes the
+  equilibrated check (eta 1.07e-7) while the engine's own residual check REFUSES it (ratio 3.7e7). The walk then takes its
+  ordinary refusal retreat, so PM degenerates to P. The escalation criterion must count an engine refusal (and/or perturbed
+  pivots surviving the P retake) as a P failure.
