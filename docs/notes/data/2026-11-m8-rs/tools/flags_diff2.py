@@ -13,6 +13,8 @@ Provenance stamps (-DHVEN_*_GIT_DESCRIBE=..., -DHVEN_RIG_COMMIT=...: the build t
 --expect-removed: a literal token (after '@' rewriting) allowed to be present only in BEFORE, e.g. -I@/src/interior/utils.
 RS-2 additions (declared in DECLARATION-RS2.md):
 --dir-move OLD=NEW        a DIRECTORY move: a path token under @/OLD is compared as @/NEW in the BEFORE arm (golden/fixture dir defines).
+--key-dir-move OLD=NEW   a directory move applied to the SOURCE KEY of a BEFORE-arm TU (unity files live under the build tree of the moved CMake directory,
+                          e.g. build/tests/interior=build/tests/ipm); only the key, never a flag token.
 --allow-removed REGEX     a token (after '@' rewriting) allowed to be present only in BEFORE when it fully matches REGEX (the old per-directory test include roots).
 --allow-added TOKEN       a literal token allowed to be present only in AFTER (the tests include root).
 Every applied removal/addition is tallied per CMake target and printed, so the per-target delta table is part of the output.
@@ -25,6 +27,7 @@ ap.add_argument('--root', required=True)
 ap.add_argument('--map', action='append', default=[])
 ap.add_argument('--expect-removed', action='append', default=[])
 ap.add_argument('--dir-move', action='append', default=[])
+ap.add_argument('--key-dir-move', action='append', default=[])
 ap.add_argument('--allow-removed', action='append', default=[])
 ap.add_argument('--allow-added', action='append', default=[])
 a = ap.parse_args()
@@ -33,6 +36,7 @@ dirmoves = []
 for d in a.dir_move:
     o_, _, n_ = d.partition('=')
     dirmoves.append((o_.rstrip('/'), n_.rstrip('/')))
+keymoves = [tuple(x.rstrip('/') for x in d.split('=', 1)) for d in a.key_dir_move]
 allow_removed = [re.compile(r) for r in a.allow_removed]
 allow_added = set(a.allow_added)
 from collections import Counter
@@ -84,6 +88,9 @@ def load(p, is_before):
         tdir = re.search(r'CMakeFiles/([^/]+)\.dir', obj)
         tgt = tdir.group(1) if tdir else obj
         src = mapped(rel) if is_before else rel
+        if is_before:
+            for od, nd in keymoves:
+                if src.startswith(od + '/'): src = nd + src[len(od):]
         key = (src, tgt)
         out[key] = (rel, sorted(norm))
     return out

@@ -37,7 +37,7 @@ if has psym; then
 fi
 if has flags; then
   python3 $E/tools/flags_diff2.py "$WT/.scratch/cc-base.json" build/compile_commands.json --root "$WT" --map "$MAP" \
-    --dir-move tests/drivers/golden=tests/trace/golden \
+    --dir-move tests/drivers/golden=tests/trace/golden --key-dir-move build/tests/interior=build/tests/ipm \
     --allow-removed='-I@/tests/(drivers|interior|model|sqp)' --allow-added=-I@/tests > "$GD/flags.txt" 2>&1
   rec flags-diff $?; tail -30 "$GD/flags.txt"
 fi
