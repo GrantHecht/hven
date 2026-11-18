@@ -1,0 +1,11 @@
+S7 duplicate-basename check proof (2026-11-18, worktree rs2 @ 43f5573f9)
+planted: empty tests/qp/support/hs_problems.h (same basename as tests/model/support/hs_problems.h)
+--- configure output (excerpt) ---
+CMake Error at tests/CMakeLists.txt:181 (message):
+  tests: the fixture basename 'hs_problems.h' appears in more than one
+  support/ directory (second one:
+  /home/ghecht/Projects/hven/.claude/worktrees/rs2/tests/qp/support/hs_problems.h);
+  fixtures are included from the tests root, so each basename must be unique
+  across all support/ directories.
+configure rc with planted duplicate: nonzero (see above: CMake Error ... Configuring incomplete)
+planted file removed; clean tree configure rc=0

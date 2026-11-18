@@ -8,7 +8,8 @@ hand for ~350 files is how an instrument drifts, so this script derives it.
 
 usage:
   rs_object_map.py --move-map MAP --before MANIFEST --after MANIFEST
-                   [--target-map OLD=NEW ...] [--phase PREFIX ...] [-o OUT]
+                   [--target-map OLD=NEW ...] [--phase PREFIX ...]
+                   [--unity-dir-move OLD=NEW ...] [-o OUT]
 
   MAP        one `old -> new` per line (`old -> DELETE ...` for a deletion);
              paths are repo-relative source paths.  Blank lines and `#` lines
@@ -34,7 +35,13 @@ Everything must be accounted for, and any gap is an ERROR (exit 1):
   * an after object that no before object maps to (a NEW object);
   * two before objects that map to one after object;
   * a unity-build object (`Unity/...`), which carries no source path, whose
-    path is not identical in both manifests.
+    path is not identical in both manifests -- unless the difference is exactly
+    a directory move declared with --unity-dir-move OLD=NEW (the CMake directory
+    of the unity target moved, e.g. tests/interior -> tests/ipm); such an object
+    is paired by (target, unity name) and written to the map.  Its contents are
+    then compared per symbol by P-SYM like any other object; that the batches
+    hold the same sources is not asserted here (the per-symbol comparison is
+    the evidence).
 Deleted sources are listed on stderr, never silently dropped.
 """
 import argparse
@@ -104,16 +111,21 @@ def load_manifest(path, target_map):
     return out
 
 
-def generate(moves, deletes, before, after):
+def generate(moves, deletes, before, after, unity_dirmoves=()):
     errors, lines, deleted = [], [], []
     claimed = {}
     for (tgt, src), brel in sorted(before.items()):
         if src.startswith("unity:"):
             arel = after.get((tgt, src))
-            if arel != brel:
-                errors.append("UNITY-UNMAPPED %s (no identical path in the after manifest)" % brel)
-            else:
+            declared = any(arel is not None and brel.startswith(o + "/") and arel == n + brel[len(o):]
+                           for o, n in unity_dirmoves)
+            if arel == brel:
                 claimed[(tgt, src)] = brel
+            elif declared:
+                claimed[(tgt, src)] = brel
+                lines.append("%s => %s" % (brel, arel))
+            else:
+                errors.append("UNITY-UNMAPPED %s (no identical path in the after manifest)" % brel)
             continue
         if src in deletes:
             deleted.append(brel)
@@ -143,6 +155,8 @@ def main(argv=None):
     ap.add_argument("--after", required=True)
     ap.add_argument("--target-map", action="append", default=[])
     ap.add_argument("--phase", action="append", default=[])
+    ap.add_argument("--unity-dir-move", action="append", default=[],
+                    help="OLD=NEW: a unity object may differ between the manifests by exactly this build-relative directory prefix")
     ap.add_argument("-o", "--out")
     a = ap.parse_args(argv)
     tmap = {}
@@ -156,7 +170,13 @@ def main(argv=None):
     after = load_manifest(a.after, {})
     # a renamed target is renamed on the BEFORE side, so keys line up
     before = {(tmap.get(t, t), s): r for (t, s), r in before.items()}
-    lines, deleted, errors = generate(moves, deletes, before, after)
+    udm = []
+    for t in a.unity_dir_move:
+        o, _, n = t.partition("=")
+        if not n:
+            sys.exit("--unity-dir-move wants OLD=NEW, got %r" % t)
+        udm.append((o.rstrip("/"), n.rstrip("/")))
+    lines, deleted, errors = generate(moves, deletes, before, after, udm)
     text = "".join(l + "\n" for l in lines)
     if a.out:
         open(a.out, "w", encoding="utf-8").write(text)

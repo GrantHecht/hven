@@ -52,6 +52,24 @@ rc=$?
 [ "${rc}" -eq 1 ] && grep -q '^ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o' "${T}/err1.txt"
 check "a unity object whose path changed is refused" $?
 
+
+# --unity-dir-move (RS-2): a unity object may differ by exactly a declared directory prefix; nothing looser.
+printf 'tests/interior/CMakeFiles/t.dir/Unity/unity_0_cxx.cxx.o\ntests/interior/CMakeFiles/t.dir/a.cpp.o\n' > "${T}/ub.txt"
+printf 'tests/ipm/CMakeFiles/t.dir/Unity/unity_0_cxx.cxx.o\ntests/ipm/CMakeFiles/t.dir/a.cpp.o\n' > "${T}/ua.txt"
+printf 'tests/interior/a.cpp -> tests/ipm/a.cpp\n' > "${T}/um.txt"
+python3 "${GEN}" --move-map "${T}/um.txt" --before "${T}/ub.txt" --after "${T}/ua.txt" -o /dev/null 2> "${T}/erru1.txt"
+rc=$?
+[ "${rc}" -eq 1 ] && grep -q '^ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/t.dir/Unity/unity_0_cxx.cxx.o' "${T}/erru1.txt"
+check "a unity object that moved directory is refused without the declaration" $?
+python3 "${GEN}" --move-map "${T}/um.txt" --before "${T}/ub.txt" --after "${T}/ua.txt" --unity-dir-move tests/interior=tests/ipm -o "${T}/outu.txt" 2> "${T}/erru2.txt"
+rc=$?
+[ "${rc}" -eq 0 ] && grep -qxF 'tests/interior/CMakeFiles/t.dir/Unity/unity_0_cxx.cxx.o => tests/ipm/CMakeFiles/t.dir/Unity/unity_0_cxx.cxx.o' "${T}/outu.txt"
+check "the declared unity directory move resolves and is written to the map" $?
+python3 "${GEN}" --move-map "${T}/um.txt" --before "${T}/ub.txt" --after "${T}/ua.txt" --unity-dir-move tests/other=tests/ipm -o /dev/null 2> "${T}/erru3.txt"
+rc=$?
+[ "${rc}" -eq 1 ] && grep -q '^ERROR UNITY-UNMAPPED' "${T}/erru3.txt"
+check "a different declared directory move does not license it" $?
+
 # Same run with the unity object path unchanged in both manifests.
 sed -i 's#tests/interior/CMakeFiles/hven_interior_tests.dir/Unity#tests/ipm/CMakeFiles/hven_ipm_tests.dir/Unity#' "${T}/before.txt"
 python3 "${GEN}" --move-map "${T}/map.txt" --before "${T}/before.txt" --after "${T}/after.txt" \

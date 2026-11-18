@@ -1,0 +1,9 @@
+rs_object_map: 197 before objects, 197 after objects, 75 map lines, 0 deleted, 8 errors
+ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o (no identical path in the after manifest)
+ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o (no identical path in the after manifest)
+ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o (no identical path in the after manifest)
+ERROR UNITY-UNMAPPED tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o (no identical path in the after manifest)
+ERROR NEW tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o (no before object maps to it)
+ERROR NEW tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o (no before object maps to it)
+ERROR NEW tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o (no before object maps to it)
+ERROR NEW tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o (no before object maps to it)

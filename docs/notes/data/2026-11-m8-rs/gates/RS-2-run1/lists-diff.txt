@@ -1,0 +1,2 @@
+executables 20; gtest names with a raw byte dump: 0; gtest lists raw-identical: True; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_IDENTICAL
