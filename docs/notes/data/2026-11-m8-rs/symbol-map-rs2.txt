@@ -1,0 +1,5 @@
+# RS-0 prepared, applies from RS-2 (the test TUs are renamed there): the gtest registration initialiser carries the file stem.
+# Library TUs renamed in RS-1 (solve_status, warm_start, qp_engine, kkt_calls) carry NO static initialiser (nm, RS-0): no entry needed.
+_GLOBAL__sub_I_test_solve_status.cpp => _GLOBAL__sub_I_test_ipm_phase_status.cpp
+_GLOBAL__sub_I_test_scaffold.cpp => _GLOBAL__sub_I_test_backend_scaffold.cpp
+_GLOBAL__sub_I_test_types.cpp => _GLOBAL__sub_I_test_qp_types.cpp
