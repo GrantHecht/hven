@@ -20,6 +20,6 @@ G7   check_install_smoke default + clang++ PASS, check_export_contract OK both a
      include/hven/drivers absent; hvenConfig sentinel resolves.
 G8   golden rig native arm: all Rig/Golden ctest entries Passed (in the 3869). Three-seam arms not re-attempted (pre-existing non-compilation of the old-seam adapters, reported at RS-1).
 G9   27-cell replay x walk/ssn/ipm: 0 differences x3 (75 columns each) against the RS-1e-head run; serial, solo, under the box lock.
-G10  CI: see CI.txt.
+G10  CI: run 44336809684 on origin rs-2, all four lanes green (CI.txt).
 Judgement calls: DECLARATION-RS2.md D1-D4 (bare same-directory sibling includes stay bare; include root per target; cross-directory members spelled ../<dir>/file.cpp until RS-6a; golden_rig and
 install_smoke untouched).
