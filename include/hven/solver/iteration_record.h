@@ -73,7 +73,8 @@ struct SqpIterationRow {
     Index active_lower_sides = 0;
     Index active_upper_sides = 0;
     /// GL-0: pred_df / (delta * h^2) at the iterate, KLV Eq. (10); >= 1 selects an f-type trial.
-    /// nullopt when no solved subproblem was shown to the strategy.
+    /// Present only when the row's QP status is kOptimal (the point the strategy was shown);
+    /// nullopt otherwise, so a judged qp_failure_step row is null.
     std::optional<double> switching_ratio;
 };
 

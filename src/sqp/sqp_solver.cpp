@@ -4336,6 +4336,11 @@ struct SqpSolverImpl::SolveState {
     // expression at the shipped default.
     Index ipqp_budget_charge = 0;
     Index rejections_at_iterate = 0;
+    // GL-0: the run position the rejection histogram reads -- consecutive rejections at the
+    // iterate that COUNT toward rejected_steps. rejections_at_iterate also advances on a
+    // non-finite rollback (which is not a counted rejection) and feeds the strategy, so it
+    // cannot serve the histogram.
+    Index counted_run_at_iterate = 0;
     // CONSECUTIVE failed subproblems, reset by any solve that reaches
     // kOptimal. Caps the shrink-retry of SUBPROBLEM FAILURE ROUTING at one
     // attempt per failure, so a subproblem that fails the same way at the
@@ -4373,6 +4378,7 @@ struct SqpSolverImpl::SolveState {
         // The radius the committed step was taken under, BEFORE any growth.
         double delta = 0.0;
         Index rejections_at_iterate = 0;
+        Index counted_run_at_iterate = 0;
     };
     NonfiniteRollback rollback;
 
@@ -6850,6 +6856,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.full_step_funnel = nullptr;
         st.delta = restoration_restart_radius();
         st.rejections_at_iterate = 0;
+        st.counted_run_at_iterate = 0;
         st.qp_failures_in_a_row = 0;
         st.subproblem_is_stale = true;
         // The outer engine's seed describes an active set at the
@@ -7618,6 +7625,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.lambda_i = st.rollback.lambda_i;
         st.delta = shrunk_radius(st.rollback.delta);
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
+        st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;
         st.subproblem_is_stale = true;
         st.rollback.valid = false;
         // THE BUDGET-BEST THIS PASS RECORDED IS THE ABANDONED POINT (the budget block runs
@@ -7873,6 +7881,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 std::min(mj.row.violation_l1, st.full_step_funnel->width()));
             st.full_step_funnel = nullptr;
             st.rejections_at_iterate = 0;
+            st.counted_run_at_iterate = 0;
             // The iterate moved (or, on the stall exit, may not have
             // -- either way the subproblem in hand was built at some
             // other point or at some other multipliers, so it is
@@ -8851,7 +8860,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             ++st.out.counters.restoration_curvature_switches;
             ++st.out.counters.rejected_steps;
             count_rejection(st.out.counters, detail::RejectCause::kNone,
-                            st.rejections_at_iterate + 1);
+                            st.counted_run_at_iterate + 1);
             note_failure(false);
             push_history(mj.row);
             return MajorOutcome::kFinishQpFailure;
@@ -8954,8 +8963,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 std::max(st.out.counters.qp_failures_in_a_row_peak, st.qp_failures_in_a_row);
             note_failure(false);
             ++st.rejections_at_iterate;
+            ++st.counted_run_at_iterate;
             ++st.out.counters.rejected_steps;
-            count_rejection(st.out.counters, detail::RejectCause::kNone, st.rejections_at_iterate);
+            count_rejection(st.out.counters, detail::RejectCause::kNone, st.counted_run_at_iterate);
             // THE RADIUS FLOOR applies to a ROUTED failure
             // exactly as to a judged rejection: both are "the radius
             // was shrunk here and the iterate did not move", and the
@@ -9051,7 +9061,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                   : predicted_decrease(st.qp, mj.qs.x);
     mj.ctx.tr_active = mj.row.tr_binding;
     mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
-    mj.row.switching_ratio = mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);
+    mj.row.switching_ratio = detail::switching_ratio_value(
+        mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);
 
     // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (docs/migration-0.2.md, "Zero-step
     // short-circuit", for why it is here and not left to the convergence test at the top
@@ -9260,12 +9271,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // rejection is charged for the pair even when SOC was
         // attempted above -- see the note.
         ++st.rejections_at_iterate;
+        ++st.counted_run_at_iterate;
         ++st.out.counters.rejected_steps;
         count_rejection(st.out.counters,
                         reject_cause == detail::RejectCause::kNone
                             ? detail::RejectCause::kUnclassified
                             : reject_cause,
-                        st.rejections_at_iterate);
+                        st.counted_run_at_iterate);
         // THE UPDATE-ON-REJECT ABLATION (SqpOptions::lbfgs_update_on_reject, off by default): the
         // rejected trial's pair, priced at this QP's own multipliers, for one derivative query.
         // The trial is not the iterate, so a derivative failure there is not the
@@ -9547,6 +9559,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // snapshot further below rather than copied (the commit overwrites both).
             st.rollback.delta = st.delta;
             st.rollback.rejections_at_iterate = st.rejections_at_iterate;
+            st.rollback.counted_run_at_iterate = st.counted_run_at_iterate;
             st.rollback.lambda_e = st.lambda_e;
             st.rollback.lambda_i = st.lambda_i;
 
@@ -9639,6 +9652,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 qn_offer_committed_pair(st, qn_x_old, qn_ev_old);
             }
             st.rejections_at_iterate = 0;
+            st.counted_run_at_iterate = 0;
             st.subproblem_is_stale = true;
             // Active set only -- never the previous step. See this header's
             // WARM SEEDING note: seed.x is the engine's trust-region CENTER,

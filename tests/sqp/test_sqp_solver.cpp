@@ -101,6 +101,7 @@
 
 #include "support/console_capture.h"
 #include <algorithm>
+#include <cfenv>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -12960,6 +12961,12 @@ void expect_gl0_identities(const SqpCounters &c) {
         run_sum += b;
     }
     EXPECT_EQ(run_sum, c.rejected_steps);
+    // bucket k-1 is the k-th consecutive counted rejection, so a run reaching position k also
+    // passed position k-1: the histogram never rises. The last bucket is the saturating "5 or
+    // more" one (a run of six puts two rejections in it), so the check stops before it.
+    for (std::size_t k = 1; k + 1 < c.rejection_run_histogram.size(); ++k) {
+        EXPECT_LE(c.rejection_run_histogram[k], c.rejection_run_histogram[k - 1]) << k;
+    }
 }
 
 } // namespace
@@ -13153,6 +13160,84 @@ TEST(SqpGl0, TheSwitchingRatioIsInfiniteAtZeroViolationAndAbsentWithoutAStep) {
         }
     }
     EXPECT_FALSE(sol.history.back().sqp->qp_solved) << "the converged row builds no subproblem";
+}
+
+// The ratio is built without a division at a zero denominator: no FE_DIVBYZERO / FE_INVALID,
+// so a measure-only quantity neither dirties the FP flags nor trips an FP trap.
+TEST(SqpGl0, TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation) {
+    volatile double pos = 3.5;
+    volatile double neg = -3.5;
+    volatile double zero = 0.0;
+    volatile double h = 0.0;
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const double a = hven::detail::switching_ratio_value(pos, kFunnelDelta * h * h);
+    const double b = hven::detail::switching_ratio_value(neg, kFunnelDelta * h * h);
+    const double c = hven::detail::switching_ratio_value(zero, kFunnelDelta * h * h);
+    const double d = hven::detail::switching_ratio_value(zero, 0.0);
+    EXPECT_EQ(std::fetestexcept(FE_DIVBYZERO | FE_INVALID), 0);
+    EXPECT_EQ(a, std::numeric_limits<double>::infinity());
+    EXPECT_EQ(b, -std::numeric_limits<double>::infinity());
+    EXPECT_TRUE(std::isnan(c));
+    EXPECT_TRUE(std::isnan(d));
+    // A nonzero denominator divides exactly as written.
+    volatile double h1 = 0.5;
+    EXPECT_EQ(hven::detail::switching_ratio_value(pos, kFunnelDelta * h1 * h1),
+              pos / (kFunnelDelta * h1 * h1));
+    std::feclearexcept(FE_ALL_EXCEPT);
+}
+
+// And end to end: FlatQuarticModel has h == 0 on every solved row (the ratio is +inf there), so a
+// solve over it reaches the zero-denominator branch; the ratio's site must leave the division flags
+// clear. Cleared right before the solve; the solve is otherwise ordinary.
+TEST(SqpGl0, ASolveThroughZeroViolationRowsRaisesNoDivisionFlag) {
+    FlatQuarticModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 2.0;
+    opts.common.max_iterations = 20;
+    SqpSolver driver(opts);
+    const Vec x0 = model.start_point();
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), x0);
+    const int raised = std::fetestexcept(FE_DIVBYZERO | FE_INVALID);
+    std::feclearexcept(FE_ALL_EXCEPT);
+    bool reached_zero_h_row = false;
+    for (const IterationRecord &r : sol.history) {
+        reached_zero_h_row = reached_zero_h_row ||
+                             (r.sqp->switching_ratio.has_value() && r.sqp->violation_l1 == 0.0);
+    }
+    ASSERT_TRUE(reached_zero_h_row) << "premise: an h == 0 row with a ratio";
+    EXPECT_EQ(raised, 0);
+}
+
+// A non-finite rollback is not a counted rejection, so it must not advance the histogram's run: a
+// rejection after it is the FIRST of its run (bucket 0), never a bucket-1 entry with bucket 0
+// empty. The strategy accepts the first trial (onto the non-finite point, rolled back), refuses
+// the next one, then defers to the funnel.
+TEST(SqpGl0, ARejectionAfterANonFiniteRollbackIsTheFirstOfItsRun) {
+    struct RejectSecond final : GlobalizationStrategy {
+        FunnelStrategy inner;
+        Index calls = 0;
+        StepVerdict judge(const StepContext &c) override {
+            const StepVerdict v = inner.judge(c);
+            return calls++ == 1 ? StepVerdict::kReject : v;
+        }
+        void reset(double h0) override { inner.reset(h0); }
+        void resume_from_restoration(double h) override { inner.resume_from_restoration(h); }
+    };
+    ASSERT_EQ(9.0 + (0.0 - 9.0), 0.0);
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.advanced.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
+        return std::make_unique<RejectSecond>();
+    };
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpCounters &c = sol.counters;
+    ASSERT_GE(c.nonfinite_step_rollbacks, 1) << "premise: a rollback happened";
+    ASSERT_EQ(c.rejected_steps, 1) << "premise: exactly the one refusal after it";
+    expect_gl0_identities(c);
+    EXPECT_EQ(c.reject_other, 1);
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 0, 0, 0, 0}));
 }
 
 // The identities over the HS battery's models at the default options: they hold on every solve,

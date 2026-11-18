@@ -831,4 +831,8 @@ per-solve summary.
 Custom strategies: `detail::GlobalizationStrategy::last_reject_cause()` is a new virtual with a default (`kUnclassified`);
 a decorator around `FunnelStrategy` should forward it, or its rejections count as `reject_other`.
 
+Rebuild: the new virtual (appended last in `GlobalizationStrategy`'s vtable) and the enlarged `SqpCounters` and result
+aggregates change object layouts. Custom globalization strategies and any code that includes these headers require a full
+rebuild against this version; mixed objects built against the old and new headers are not supported.
+
 Consumer catch-up: `docs/notes/data/2026-11-m8-gl0/CATCH-UP.txt`.

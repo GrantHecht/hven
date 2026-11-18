@@ -101,7 +101,7 @@ active_lower_sides + active_upper_sides`); `active_set_delta`; `weak_active_rows
 `active_rows`; `active_lower_sides`; `active_upper_sides`; `switching_ratio` (GL-0; the last key). `null` when `!qp_solved`: `verdict`,
 `regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. `switching_ratio` is
 `pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10): `>= 1` selects an f-type trial), `null` on a row whose
-subproblem did not solve to `kOptimal`, and `"inf"`/`"-inf"`/`"nan"` at `h == 0`. The two `ipqp_*` keys are
+subproblem did not solve to `kOptimal` (so a judged `qp_failure_step` row is `null`), and `"inf"`/`"-inf"`/`"nan"` at `h == 0`. The two `ipqp_*` keys are
 `null` unless the row is an IPQP escape row, which is observable as `ipqp_least_infeasible_primal != 0 ||
 ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 

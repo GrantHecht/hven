@@ -7,6 +7,8 @@
 // result: `SqpResult::history` carries `IterationRecord` (solver/iteration_record.h), built
 // from this row when it is pushed.
 
+#include <cmath>
+#include <limits>
 #include <optional>
 
 #include <hven/core/types.h>
@@ -14,6 +16,25 @@
 #include <hven/qp/qp_types.h>
 
 namespace hven {
+
+namespace detail {
+
+/// GL-0: the switching ratio pred_df / denominator, where denominator = kFunnelDelta * h^2.
+/// Built without a division when the denominator is zero, so it never raises FE_DIVBYZERO or
+/// FE_INVALID (a measure-only quantity must not dirty the FP state or trip an FP trap):
+/// +/-inf when pred_df != 0, quiet NaN when pred_df == 0 (or either operand is NaN). A nonzero
+/// denominator divides exactly as written.
+inline double switching_ratio_value(double pred_df, double denominator) {
+    if (denominator == 0.0) {
+        if (pred_df == 0.0 || std::isnan(pred_df)) {
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+        return std::copysign(std::numeric_limits<double>::infinity(), pred_df);
+    }
+    return pred_df / denominator;
+}
+
+} // namespace detail
 
 /// @brief One row of the per-major history -- the record of ONE ITERATE and of
 ///        the subproblem solved from it, if any.

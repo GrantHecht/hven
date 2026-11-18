@@ -234,10 +234,6 @@ class GlobalizationStrategy {
     /// state on ANY verdict must account for this explicitly.
     virtual StepVerdict judge(const StepContext &ctx) = 0;
 
-    /// The cause of the most recent judge() call's kReject; kNone after any other verdict. A
-    /// strategy that does not override this reports kUnclassified for every call.
-    virtual RejectCause last_reject_cause() const { return RejectCause::kUnclassified; }
-
     /// Begins a new solve from an iterate whose infeasibility is h0. Must be
     /// called before the first judge(). h0 must be finite and >= 0.
     virtual void reset(double h0) = 0;
@@ -265,6 +261,11 @@ class GlobalizationStrategy {
     /// exactly the Eq. (9) re-widening this hook exists to avoid (the shipped
     /// tests fell into this trap).
     virtual void resume_from_restoration(double h_restored) { reset(h_restored); }
+
+    /// The cause of the most recent judge() call's kReject; kNone after any other verdict. A
+    /// strategy that does not override this reports kUnclassified for every call.
+    /// Declared LAST so that it appends to the vtable rather than shifting the older slots.
+    virtual RejectCause last_reject_cause() const { return RejectCause::kUnclassified; }
 };
 
 /// @brief KLV Algorithm 2 (optimality phase), transcribed.
