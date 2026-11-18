@@ -35,8 +35,8 @@
 
 #include "hven/core/stop.h"
 #include "hven/detail/warmstart/warm_start_access.h"
-#include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/ipm_solver_types.h"
+#include "hven/ipm/ipm_solver.h"
+#include "hven/ipm/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/model/nlp.h"
 #include "hven/model/problem.h"

@@ -60,12 +60,12 @@
 // the engines, their options, results and traces
 #include <hven/drivers/common_options.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/ipm_enums.h>
-#include <hven/drivers/ipm_iterate.h>
-#include <hven/drivers/ipm_options.h>
-#include <hven/drivers/ipm_phase_report.h>
-#include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_enums.h>
+#include <hven/ipm/ipm_iterate.h>
+#include <hven/ipm/ipm_options.h>
+#include <hven/ipm/ipm_phase_report.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/iteration_record.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>

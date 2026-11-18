@@ -9,7 +9,7 @@
 // the eight mode enums that used to be nested inside the solver class, and must
 // stand alone for a consumer that names an option without including the engine.
 
-#include "hven/drivers/ipm_solver_types.h"
+#include "hven/ipm/ipm_solver_types.h"
 
 namespace hven_install_smoke {
 int standalone_include_ipm_solver_types() { return 1; }

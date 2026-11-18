@@ -34,7 +34,7 @@
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/detail/warmstart/warm_start_access.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/model/nlp.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/warm_start.h"

@@ -13,7 +13,7 @@
 #include <vector>
 
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/ipm_solver.h>
+#include <hven/ipm/ipm_solver.h>
 #include <hven/drivers/sqp_solver.h>
 
 #include "common_support/iteration_record_eq.h"

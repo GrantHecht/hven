@@ -39,7 +39,7 @@
 #include "hven/detail/model/problem_access.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "hven/detail/warmstart/warm_start_access.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/nlp.h"

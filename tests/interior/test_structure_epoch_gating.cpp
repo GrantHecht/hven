@@ -33,10 +33,10 @@
 #include <Eigen/SparseCore>
 
 #include "hven/detail/drivers/result_access.h"
-#include "hven/detail/interior/kkt_vector.h"
+#include "hven/detail/ipm/kkt_vector.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/problem_access.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/model/nlp.h"
 
 using hven::Nlp;

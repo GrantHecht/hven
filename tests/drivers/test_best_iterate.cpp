@@ -32,8 +32,8 @@
 #include <Eigen/Core>
 
 #include "hven/core/stop.h"
-#include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/ipm_solver_types.h"
+#include "hven/ipm/ipm_solver.h"
+#include "hven/ipm/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/sqp_solver_types.h"

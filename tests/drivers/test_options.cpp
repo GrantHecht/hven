@@ -43,12 +43,12 @@
 #include <gtest/gtest.h>
 
 #include "hven/core/ledger.h"
-#include "hven/detail/drivers/ipm_solver_presets.h"
+#include "hven/detail/ipm/ipm_solver_presets.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/common_options.h"
-#include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/ipm_solver_types.h"
+#include "hven/ipm/ipm_solver.h"
+#include "hven/ipm/ipm_solver_types.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/sqp_solver_types.h"
 #include "hven/qp/qp_types.h"

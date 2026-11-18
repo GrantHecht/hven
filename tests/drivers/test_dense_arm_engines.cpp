@@ -25,9 +25,9 @@
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
-#include <hven/drivers/ipm_iterate.h>
-#include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_iterate.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>

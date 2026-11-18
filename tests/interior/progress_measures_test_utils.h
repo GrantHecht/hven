@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "hven/detail/globalization/progress_measures.h"
+#include "hven/detail/ipm/globalization/progress_measures.h"
 
 namespace TychoTest {
 

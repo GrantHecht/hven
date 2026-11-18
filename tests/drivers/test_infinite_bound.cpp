@@ -45,7 +45,7 @@
 #include "hven/detail/qp/qp_problem.h"
 #include "hven/detail/warmstart/predictor.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/hven.h"

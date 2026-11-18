@@ -32,7 +32,7 @@
 
 #include "hven/core/ledger.h"
 #include "hven/core/solver_status.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/sqp_solver.h"

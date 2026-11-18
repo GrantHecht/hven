@@ -29,7 +29,7 @@
 
 #include "solver_test_utils.h"
 
-#include "hven/detail/globalization/proximal_restoration.h"
+#include "hven/detail/ipm/globalization/proximal_restoration.h"
 
 #include <gtest/gtest.h>
 

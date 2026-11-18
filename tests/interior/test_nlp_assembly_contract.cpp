@@ -32,7 +32,7 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/aggregate_views.h"
+#include "hven/detail/ipm/aggregate_views.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/nlp_problem_model.h"
 #include "hven/detail/model/non_linear_program.h"

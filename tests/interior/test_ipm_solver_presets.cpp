@@ -50,8 +50,8 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/detail/drivers/ipm_solver_presets.h"
-#include "hven/drivers/ipm_solver_types.h"
+#include "hven/detail/ipm/ipm_solver_presets.h"
+#include "hven/ipm/ipm_solver_types.h"
 
 using hven::IpmAcceptanceMode;
 using hven::IpmBarrierGovernorMode;

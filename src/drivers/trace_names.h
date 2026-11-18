@@ -7,7 +7,7 @@
 // JSON writer and the console sink so a spelling has one definition.
 
 #include <hven/core/solver_status.h>
-#include <hven/drivers/ipm_options.h>
+#include <hven/ipm/ipm_options.h>
 #include <hven/drivers/sqp_options.h>
 #include <hven/drivers/trace.h>
 

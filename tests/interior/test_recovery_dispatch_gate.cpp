@@ -21,17 +21,17 @@
 
 #include "solver_test_utils.h"
 
-#include "hven/detail/drivers/ipm_solver_impl.h"
-#include "hven/detail/globalization/acceptance_mode.h"
-#include "hven/detail/globalization/classic_adaptive_governor.h"
-#include "hven/detail/globalization/filter_acceptance.h"
-#include "hven/detail/globalization/funnel_acceptance.h"
-#include "hven/detail/globalization/globalization_mechanism.h"
-#include "hven/detail/globalization/modern_merit.h"
-#include "hven/detail/globalization/monitored_governor.h"
-#include "hven/detail/globalization/recovery_chain.h"
-#include "hven/drivers/ipm_iterate.h"
-#include "hven/drivers/ipm_options.h"
+#include "hven/detail/ipm/ipm_solver_impl.h"
+#include "hven/detail/ipm/globalization/acceptance_mode.h"
+#include "hven/detail/ipm/classic_adaptive_governor.h"
+#include "hven/detail/ipm/globalization/filter_acceptance.h"
+#include "hven/detail/ipm/globalization/funnel_acceptance.h"
+#include "hven/detail/ipm/globalization/globalization_mechanism.h"
+#include "hven/detail/ipm/globalization/modern_merit.h"
+#include "hven/detail/ipm/monitored_governor.h"
+#include "hven/detail/ipm/globalization/recovery_chain.h"
+#include "hven/ipm/ipm_iterate.h"
+#include "hven/ipm/ipm_options.h"
 
 #include <gtest/gtest.h>
 

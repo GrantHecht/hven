@@ -21,10 +21,10 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/stop.h>
 #include <hven/core/types.h>
-#include <hven/drivers/ipm_iterate.h>
-#include <hven/drivers/ipm_options.h>
-#include <hven/drivers/ipm_phase_report.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_iterate.h>
+#include <hven/ipm/ipm_options.h>
+#include <hven/ipm/ipm_phase_report.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/iteration_record.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_options.h>

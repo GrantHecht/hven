@@ -8,7 +8,7 @@
 
 #include <fmt/format.h>
 
-#include "hven/drivers/ipm_options.h"
+#include "hven/ipm/ipm_options.h"
 #include "hven/drivers/sqp_options.h"
 #include "hven/drivers/sqp_solver_types.h"
 

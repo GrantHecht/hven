@@ -29,7 +29,7 @@
 
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/model/problem_access.h"
-#include "hven/drivers/ipm_solver.h"
+#include "hven/ipm/ipm_solver.h"
 #include "hven/warmstart/warm_start.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)

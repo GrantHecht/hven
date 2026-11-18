@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why: this directory's
 // CMakeLists.txt. Added at M8 AP-2 B3 (the options headers).
 
-#include "hven/drivers/ipm_enums.h"
+#include "hven/ipm/ipm_enums.h"
 
 namespace hven_install_smoke {
 int standalone_include_ipm_enums() { return 1; }

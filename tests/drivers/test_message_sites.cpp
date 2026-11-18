@@ -135,9 +135,7 @@ std::vector<std::string> mismatches(const Counts &seen, const Counts &want) {
     return out;
 }
 
-std::string ipm_text() {
-    return read(std::filesystem::path(HVEN_SRC_ROOT) / "drivers/ipm_solver.cpp");
-}
+std::string ipm_text() { return read(std::filesystem::path(HVEN_SRC_ROOT) / "ipm/ipm_solver.cpp"); }
 std::string sqp_text() {
     return read(std::filesystem::path(HVEN_SRC_ROOT) / "drivers/sqp_solver.cpp");
 }

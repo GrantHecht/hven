@@ -67,13 +67,13 @@
 
 #include "../drivers/support/hs071_problem.h"
 #include <hven/core/errors.h>
-#include <hven/detail/drivers/ipm_dense_testing.h>
-#include <hven/detail/globalization/recovery_chain.h>
+#include <hven/detail/ipm/ipm_dense_testing.h>
+#include <hven/detail/ipm/globalization/recovery_chain.h>
 #include <hven/detail/linear/fault_injection.h>
-#include <hven/drivers/ipm_enums.h>
-#include <hven/drivers/ipm_iterate.h>
-#include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_enums.h>
+#include <hven/ipm/ipm_iterate.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/trace.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>

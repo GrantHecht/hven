@@ -1,0 +1,12 @@
+RS-1c gate result (cumulative against the RS-0 baseline; final run of each step; the first psym line in VERDICTS.txt is the run before the exceptions file for the two re-pointed tests existed)
+G1 clean configure CCACHE_DISABLE=1 + Release build: rc 0
+G2' P-SYM, generated object map (16 library objects renamed/moved so far; 1 deleted): 198 objects, 188 byte-identical, 3 noise-class, 0 unclassified, 0 missing.
+    Exceptions = the design-mandated test edits only: test_core_layering (1a), test_message_sites and test_trace_off_path (1c, design 5.2 item 6).
+    solve_status -> ipm_phase_status passes per symbol, identical.
+G3' flags diff 363 TUs: IDENTICAL
+G4  check_pch_neutrality.sh: PASS (PCH engaged on 4 TUs, 58 objects byte-identical)
+G5  ctest Release 3869/3869; Debug 3869/3869; gtest lists + ctest -N IDENTICAL to RS-0
+G6  test_trace_off_path now scans {drivers, ipm, qp} and asserts the site count EXACTLY == 130 (RS-0 count, independent std::regex tool run); it passes. test_message_sites reads src/ipm/ipm_solver.cpp.
+G7  install smoke default + clang PASS, export contract OK; hvenConfig sentinel hven/hven.h resolves (find_package in the smoke); listing == baseline-with-map
+G8  golden rig native arm in ctest: pass
+G9  27-cell replay x walk/ssn/ipm: 0 differences x3

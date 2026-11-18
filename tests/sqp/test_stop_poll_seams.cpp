@@ -51,8 +51,8 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/warm_start_access.h>
-#include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_solver.h>

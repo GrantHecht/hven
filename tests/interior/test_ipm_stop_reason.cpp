@@ -19,12 +19,12 @@
 #include <Eigen/Core>
 
 #include <hven/core/stop.h>
-#include <hven/detail/drivers/ipm_phase_status.h>
-#include <hven/detail/drivers/ipm_solver_impl.h>
-#include <hven/detail/globalization/recovery_chain.h>
+#include <hven/detail/ipm/ipm_phase_status.h>
+#include <hven/detail/ipm/ipm_solver_impl.h>
+#include <hven/detail/ipm/globalization/recovery_chain.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/ipm_solver.h>
+#include <hven/ipm/ipm_solver.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/trace.h>

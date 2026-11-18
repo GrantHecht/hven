@@ -40,15 +40,15 @@
 #include "hven/core/errors.h"
 #include "solver_test_utils.h"
 
-#include "hven/detail/globalization/acceptance_mode.h"
-#include "hven/detail/globalization/globalization_mechanism.h"
-#include "hven/detail/globalization/recovery_chain.h"
-#include "hven/detail/globalization/soc.h"
+#include "hven/detail/ipm/globalization/acceptance_mode.h"
+#include "hven/detail/ipm/globalization/globalization_mechanism.h"
+#include "hven/detail/ipm/globalization/recovery_chain.h"
+#include "hven/detail/ipm/globalization/soc.h"
 #include "hven/detail/barrier/barrier_math.h"
-#include "hven/detail/interior/eval_error_log.h"
+#include "hven/detail/ipm/eval_error_log.h"
 #include "hven/detail/kkt/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/ipm_iterate.h"
+#include "hven/ipm/ipm_iterate.h"
 #include "hven/model/nlp.h"
 
 #include <gtest/gtest.h>

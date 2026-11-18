@@ -79,7 +79,7 @@ target_sources(hven PRIVATE
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/solve_status.cpp
+    ipm/ipm_phase_status.cpp
     drivers/solve_result.cpp
     drivers/result_message.cpp
     drivers/callback_rows.cpp
@@ -95,12 +95,12 @@ target_sources(hven PRIVATE
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/ipm_solver.cpp
-    drivers/ipm_solver_handle.cpp
-    drivers/ipm_solver_globalization.cpp
+    ipm/ipm_solver.cpp
+    ipm/ipm_solver_handle.cpp
+    ipm/ipm_solver_globalization.cpp
     drivers/common_options.cpp
-    drivers/ipm_options.cpp
-    drivers/solver_init.cpp
+    ipm/ipm_options.cpp
+    ipm/solver_init.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/problem.cpp
@@ -331,8 +331,8 @@ target_sources(hven PRIVATE
 # That file also carries the 2026-08-25 re-prove of bar 2 under the Release
 # flag set that added -falign-loops=32, which recompiles every object here.
 set(_hven_pch_sources
-    drivers/ipm_solver.cpp
-    drivers/ipm_options.cpp
+    ipm/ipm_solver.cpp
+    ipm/ipm_options.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
 )

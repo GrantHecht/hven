@@ -46,7 +46,7 @@
 // so if it is ever reformatted, this list has to be brought back into step
 // with it and the byte-identity check re-run.
 
-#include "hven/detail/drivers/ipm_solver_impl.h"
+#include "hven/detail/ipm/ipm_solver_impl.h"
 
 #include <algorithm>
 #include <cassert>
@@ -55,7 +55,7 @@
 #include <stdexcept>
 
 #include "hven/detail/barrier/barrier_math.h"
-#include "hven/detail/drivers/solver_init.h"
+#include "hven/detail/ipm/solver_init.h"
 #include "hven/detail/util/get_core_count.h"
 #include "hven/detail/util/timer.h"
 
@@ -72,27 +72,27 @@
 // themselves need the complete IpmSolver class (a circular-include
 // arrangement that is fragile for the "middle" headers below -- see the
 // include-discipline note in solver_context.h).
-#include "hven/detail/globalization/progress_measures.h"
-#include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/globalization/acceptance_mode.h"
-#include "hven/detail/globalization/globalization_mechanism.h"
-#include "hven/detail/globalization/backtracking_line_search.h"
-#include "hven/detail/globalization/barrier_governor.h"
-#include "hven/detail/globalization/classic_adaptive_governor.h"
-#include "hven/detail/globalization/monitored_governor.h"
-#include "hven/detail/globalization/merit_acceptance.h"
-#include "hven/detail/globalization/modern_merit.h"
-#include "hven/detail/globalization/funnel_acceptance.h"
-#include "hven/detail/globalization/filter_acceptance.h"
+#include "hven/detail/ipm/globalization/progress_measures.h"
+#include "hven/detail/ipm/solver_context.h"
+#include "hven/detail/ipm/globalization/acceptance_mode.h"
+#include "hven/detail/ipm/globalization/globalization_mechanism.h"
+#include "hven/detail/ipm/globalization/backtracking_line_search.h"
+#include "hven/detail/ipm/barrier_governor.h"
+#include "hven/detail/ipm/classic_adaptive_governor.h"
+#include "hven/detail/ipm/monitored_governor.h"
+#include "hven/detail/ipm/globalization/merit_acceptance.h"
+#include "hven/detail/ipm/globalization/modern_merit.h"
+#include "hven/detail/ipm/globalization/funnel_acceptance.h"
+#include "hven/detail/ipm/globalization/filter_acceptance.h"
 #include "hven/detail/kkt/inertia_regularization.h"
-#include "hven/detail/globalization/recovery_chain.h"
-#include "hven/detail/globalization/noop_recovery.h"
-#include "hven/detail/globalization/soc.h"
-#include "hven/detail/globalization/watchdog.h"
-#include "hven/detail/globalization/restoration.h"
-#include "hven/detail/globalization/proximal_restoration.h"
-#include "hven/detail/globalization/l1_restoration.h"
-#include "hven/detail/globalization/feasibility_stall.h"
-#include "hven/detail/globalization/feasibility_switch_recovery.h"
+#include "hven/detail/ipm/globalization/recovery_chain.h"
+#include "hven/detail/ipm/globalization/noop_recovery.h"
+#include "hven/detail/ipm/globalization/soc.h"
+#include "hven/detail/ipm/globalization/watchdog.h"
+#include "hven/detail/ipm/globalization/restoration.h"
+#include "hven/detail/ipm/globalization/proximal_restoration.h"
+#include "hven/detail/ipm/globalization/l1_restoration.h"
+#include "hven/detail/ipm/globalization/feasibility_stall.h"
+#include "hven/detail/ipm/globalization/feasibility_switch_recovery.h"
 
 // clang-format on

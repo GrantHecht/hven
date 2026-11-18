@@ -22,14 +22,13 @@ for l in txt:
         k, name = m.groups()
         if k == 'LOCAL-FAMILY': name = name.split(':')[0]
         if cur in objs:
-            if (k, name) not in entries: entries.append((k, name))
+            if (cur, k, name) not in entries: entries.append((cur, k, name))
         else:
             bad.append('%s in %s: %s' % (k, cur, name))
 if bad:
     print('FINDINGS OUTSIDE THE NAMED OBJECTS:'); [print(' ', b) for b in bad]; sys.exit(1)
 with open(out, 'w') as f:
     f.write('# P-SYM exceptions: the findings of the deliberately edited test object(s) only (see DECLARATION-r2.md G2\')\n')
-    for o in objs:
-        for k, name in entries:
-            f.write('%s::%s [%s] ## %s\n' % (o, name, k, reason))
+    for o, k, name in entries:
+        f.write('%s::%s [%s] ## %s\n' % (o, name, k, reason))
 print('%d entries for %s' % (len(entries), objs))

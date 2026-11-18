@@ -17,7 +17,7 @@
 #include <string>
 
 #include <hven/core/solver_counters.h>
-#include <hven/detail/drivers/ipm_phase_status.h>
+#include <hven/detail/ipm/ipm_phase_status.h>
 
 using hven::severity;
 using hven::SolveStatus;

@@ -21,7 +21,7 @@
 #include "progress_measures_test_utils.h"
 #include "solver_test_utils.h"
 
-#include "hven/detail/globalization/merit_acceptance.h"
+#include "hven/detail/ipm/globalization/merit_acceptance.h"
 
 #include <gtest/gtest.h>
 

@@ -195,7 +195,7 @@ std::string read(const std::filesystem::path &p) {
 TEST(TraceOffPath, EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder) {
     const std::filesystem::path root(HVEN_SRC_ROOT);
     std::vector<std::filesystem::path> files;
-    for (const char *dir : {"drivers", "qp"}) {
+    for (const char *dir : {"drivers", "ipm", "qp"}) {
         for (const auto &e : std::filesystem::recursive_directory_iterator(root / dir)) {
             if (e.is_regular_file() && e.path().extension() == ".cpp") {
                 files.push_back(e.path());
@@ -219,7 +219,12 @@ TEST(TraceOffPath, EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder
             all.push_back(v);
         }
     }
-    EXPECT_GT(sites, 20U) << "non-vacuous: the scan found the engines' emit sites";
+    // Non-vacuous AND exact: the scan found precisely the emit sites the pre-restructure scan found
+    // (130 over 23 files, measured at RS-0 by an independent run of this same regex). The
+    // restructure moves files between the scanned directories; it must neither lose a file from the
+    // scan nor gain one. A new emit site is acknowledged by changing this number in the same
+    // commit.
+    EXPECT_EQ(sites, 130U) << "the scan found the engines' emit sites";
     for (const std::string &v : all) {
         ADD_FAILURE() << "unguarded trace site: " << v;
     }
@@ -253,7 +258,7 @@ TEST(TraceOffPath, TheGuardedFormsPass) {
 // The builder contract itself: `emit_message` must call its builder only after the sink test.
 TEST(TraceOffPath, TheMessageBuilderRunsOnlyAfterTheSinkTest) {
     const std::filesystem::path root(HVEN_SRC_ROOT);
-    const std::string text = strip(read(root / "drivers" / "ipm_solver.cpp"));
+    const std::string text = strip(read(root / "ipm" / "ipm_solver.cpp"));
     const std::size_t def = text.find("IpmSolverImpl::emit_message(Build &&build)");
     ASSERT_NE(def, std::string::npos);
     const std::size_t guard = text.find("!= nullptr", def);
@@ -267,7 +272,7 @@ TEST(TraceOffPath, TheMessageBuilderRunsOnlyAfterTheSinkTest) {
 // once (a second accumulation corrupted the retained exit gradient with no sink attached).
 TEST(TraceOffPath, TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce) {
     const std::filesystem::path root(HVEN_SRC_ROOT);
-    const std::string text = strip(read(root / "drivers" / "ipm_solver.cpp"));
+    const std::string text = strip(read(root / "ipm" / "ipm_solver.cpp"));
     const std::size_t open = text.find("if (nonfinite_abort) [[unlikely]] {");
     ASSERT_NE(open, std::string::npos);
     const std::size_t close = text.find("ExitCode = SolveStatus::kNumericalError;", open);

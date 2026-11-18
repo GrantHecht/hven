@@ -114,8 +114,8 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/ipm_solver_types.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp.h>
 
