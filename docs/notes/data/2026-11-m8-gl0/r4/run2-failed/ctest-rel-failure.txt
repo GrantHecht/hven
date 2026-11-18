@@ -1,0 +1,12 @@
+The following tests FAILED:
+	3469 - SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation (Failed)
+Errors while running CTest
+[ RUN      ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+/home/ghecht/Projects/hven/.claude/worktrees/gl0/tests/sqp/test_sqp_solver.cpp:13177: Failure
+Expected equality of these values:
+  std::fetestexcept(0x04 | 0x01)
+    Which is: 1
+  0
+
+[  FAILED  ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation (0 ms)
+[----------] 1 test from SqpGl0 (0 ms total)
