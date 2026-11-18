@@ -7,7 +7,7 @@ import sys
 
 MUST = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'f1', 'r1', 'r2', 'r3', 'r4', 'r5', 'h1', 'h2', 'h3']
 MUST += os.environ.get('MUST_EXTRA', '').split()  # r4: n1 n1b n2
-REPORTED = ['x1']
+REPORTED = ['x1'] + os.environ.get('REPORTED_EXTRA', '').split()
 BUILD_KILL = set()
 rows = {r['id']: r for r in csv.DictReader(open(sys.argv[1]))}
 out, ok = [], True

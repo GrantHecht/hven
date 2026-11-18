@@ -41,12 +41,12 @@ declare -A DESC=(
  [r4]="trace writer drops the switching_ratio key" [r5]="record builder drops the ratio"
  [h1]="histogram off by one" [h2]="histogram last bucket saturates one early"
  [h3]="routed-failure site never advances the run"
- [n1]="ratio call site restored to the plain division" [n1b]="helper zero-denominator branch removed" [n2]="rollback advances the histogram run" [x1]="cause read after the SOC judgement (reported)")
+ [n1]="ratio call site restored to the plain division" [n1b]="helper divisor guard removed (reported: the optimizer sinks the division into its one use, an equivalent mutant)" [n1c]="helper reduced to the plain division" [n2]="rollback advances the histogram run" [x1]="cause read after the SOC judgement (reported)")
 build control; echo "control build rc=$?"
 ctl=$(runall control | tr '\n' ' '); ctl="$ctl$(grep -E '^(seam|drivers|interior|sqp) rc=[1-9]' "$RAW/run-control.log" | tr '\n' ' ')"
 echo "CONTROL failures: [${ctl}]"
 echo "control,none,ok,${ctl:-NONE}" >> "$OUT/mutation-table.csv"
-for id in ${MUT_IDS:-c1 c2 c3 c4 c5 c6 f1 r1 r2 r3 r4 r5 h1 h2 h3 n1 n1b n2 x1}; do
+for id in ${MUT_IDS:-c1 c2 c3 c4 c5 c6 f1 r1 r2 r3 r4 r5 h1 h2 h3 n1 n1b n1c n2 x1}; do
   python3 "$D/legs/mutate.py" "$SRC" "$id" || { echo "MUTATE_FAIL $id"; echo "$id,${DESC[$id]},APPLY_FAIL," >> "$OUT/mutation-table.csv"; continue; }
   if build "$id"; then
     killed=$(runall "$id" | tr '\n' ' ')

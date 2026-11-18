@@ -1,0 +1,170 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T16:31:32-05:00
+rc=0
+FOREGROUND_END 2026-11-18T16:35:01-05:00
+STEP build-rel rc=0 2026-11-18T16:35:01-05:00
+rc=0
+FOREGROUND_END 2026-11-18T16:37:24-05:00
+STEP build-dbg rc=0 2026-11-18T16:37:24-05:00
+ARMA=d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809 ARMB=cf0b109c977000fd20bcb104e4e607904c3cce2e9b74c4d7a305a66d6e69f5cc
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T16:37:25-05:00
+
+The following tests did not run:
+	839 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2524 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2525 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T16:38:42-05:00
+STEP ctest-rel rc=0 2026-11-18T16:38:42-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T16:38:42-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	839 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2524 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2525 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T16:46:29-05:00
+STEP ctest-dbg rc=0 2026-11-18T16:46:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T16:46:29-05:00
+d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armAbin/hven_sqp_corpus
+cf0b109c977000fd20bcb104e4e607904c3cce2e9b74c4d7a305a66d6e69f5cc  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-18T16:46:29-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-18T16:51:17-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-18T16:56:06-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-18T16:56:27-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-18T16:56:47-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-18T16:57:13-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-18T16:57:39-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-18T17:02:29-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-18T17:02:49-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-18T17:03:15-05:00
+STEP replay rc=0 2026-11-18T17:03:15-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T17:03:15-05:00
+SMOKE_START default 2026-11-18T17:03:15-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-18T17:03:49-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-18T17:04:14-05:00
+STEP install-smoke rc=0 2026-11-18T17:04:14-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T17:04:14-05:00
+control build rc=0
+CONTROL failures: []
+APPLIED c1 src/sqp/sqp_solver.cpp
+MUT c1: SqpGl0.FunnelCeilingRejectionsFormOneRunOfThree sqp rc=1 
+APPLIED c2 src/sqp/sqp_solver.cpp
+MUT c2: SqpGl0.AnArmijoFailureIsCountedAsOne sqp rc=1 
+APPLIED c3 src/sqp/sqp_solver.cpp
+MUT c3: SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne sqp rc=1 
+APPLIED c4 src/sqp/sqp_solver.cpp
+MUT c4: QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1 
+APPLIED c5 src/sqp/globalization/funnel.cpp
+MUT c5: FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1 
+APPLIED c6 src/sqp/globalization/funnel.cpp
+MUT c6: FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1 
+APPLIED f1 src/sqp/sqp_solver.cpp
+MUT f1: SqpGl0.AnHTypeAcceptanceIsCountedAsHType sqp rc=1 
+APPLIED r1 src/sqp/sqp_solver.cpp
+MUT r1: SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+APPLIED r2 src/sqp/sqp_solver.cpp
+MUT r2: SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+APPLIED r3 src/sqp/sqp_solver.cpp
+MUT r3: SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+APPLIED r4 src/trace/trace_writer.cpp
+MUT r4: JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier TraceV1Fixtures.SqpCompleteStream drivers rc=1 sqp rc=1 
+APPLIED r5 src/sqp/sqp_solver.cpp
+MUT r5: SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+APPLIED h1 src/sqp/sqp_solver.cpp
+MUT h1: QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1 
+APPLIED h2 src/sqp/sqp_solver.cpp
+MUT h2: SqpGl0.ACallersStrategyWithoutACauseCountsAsOther sqp rc=1 
+MATCH_COUNT h3 0
+MUTATE_FAIL h3
+APPLIED n1 src/sqp/sqp_solver.cpp
+MUT n1: SqpGl0.ASolveThroughZeroViolationRowsRaisesNoDivisionFlag sqp rc=1 
+APPLIED n1b include/hven/detail/sqp/sqp_major_row.h
+MUT n1b: SURVIVES
+APPLIED n2 src/sqp/sqp_solver.cpp
+MUT n2: SqpGl0.ARejectionAfterANonFiniteRollbackIsTheFirstOfItsRun sqp rc=1 
+MATCH_COUNT x1b 0
+MUTATE_FAIL x1
+FOREGROUND_END 2026-11-18T17:27:50-05:00
+STEP mutations rc=0 2026-11-18T17:27:50-05:00
+control: fails nothing
+c1   must-kill KILLED by SqpGl0.FunnelCeilingRejectionsFormOneRunOfThree sqp rc=1
+c2   must-kill KILLED by SqpGl0.AnArmijoFailureIsCountedAsOne sqp rc=1
+c3   must-kill KILLED by SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne sqp rc=1
+c4   must-kill KILLED by QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1
+c5   must-kill KILLED by FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1
+c6   must-kill KILLED by FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1
+f1   must-kill KILLED by SqpGl0.AnHTypeAcceptanceIsCountedAsHType sqp rc=1
+r1   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r2   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r3   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r4   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier TraceV1Fixtures.SqpCompleteStream drivers rc=1 sqp rc=1
+r5   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+h1   must-kill KILLED by QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1
+h2   must-kill KILLED by SqpGl0.ACallersStrategyWithoutACauseCountsAsOther sqp rc=1
+h3   must-kill INSTRUMENT FAULT (APPLY_FAIL)
+n1   must-kill KILLED by SqpGl0.ASolveThroughZeroViolationRowsRaisesNoDivisionFlag sqp rc=1
+n1b  must-kill SURVIVES
+n2   must-kill KILLED by SqpGl0.ARejectionAfterANonFiniteRollbackIsTheFirstOfItsRun sqp rc=1
+x1   reported  INSTRUMENT FAULT (APPLY_FAIL)
+MUTATION_VERDICT FAIL
+STEP mutation-verdict rc=1 2026-11-18T17:27:50-05:00
+CHAIN_STOPPED_AT mutation-verdict
+FOREGROUND_END 2026-11-18T17:27:50-05:00
