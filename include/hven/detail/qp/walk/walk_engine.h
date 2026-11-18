@@ -786,13 +786,17 @@
 // bring the rows to their floor within the minors left (the cap's status either way); a run that
 // can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
 // the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
-// THE RELEASE RE-ADMISSION (independent_working_set; dual_regularization_decreases). When the
-// shift refresh re-admits the row the previous pass's drop released, dual_mu is multiplied by
-// kDualRegDecreaseFactor (1e-2) and the factor state is discarded so the next pass factorizes with
-// it; at most kMaxDualRegDecreases times per solve. The release was on a residual dual_mu's
-// footprint excused; a face whose smallest singular value is below what dual_mu resolves then
-// cycles release -> re-admission until the minor cap. Nothing is certified; a walk that never
-// re-admits a released row is untouched.
+// THE RELEASE RE-ADMISSION (independent_working_set; dual_centre_arms,
+// dual_regularization_decreases). The release was on a residual dual_mu's footprint excused; a
+// face whose smallest singular value is below what dual_mu resolves then cycles release ->
+// re-admission until the minor cap, the multipliers held at a false fixed point by a dual
+// regularization centred at 0. When the shift refresh re-admits the row the previous pass's drop
+// released, the walk ARMS THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1): every later EQP is
+// centred at the walk's multiplier estimate, so dual_mu stays where it was and the regularized
+// and exact answers coincide at a fixed point. A re-admission with the centre already armed
+// multiplies dual_mu by kDualRegDecreaseFactor (1e-2) and discards the factor state so the next
+// pass factorizes with it; at most kMaxDualRegDecreases times per solve. Nothing is certified; a
+// walk that never re-admits a released row is untouched.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -2481,8 +2485,9 @@ class QpEngine {
     // FACTORIZATION's inertia is read there and the rhs cannot reach it.
     //
     // `dual_k` is THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1), threaded the
-    // same way: the walk's own multiplier estimate on its passes, 0 at a mu-free
-    // solve (no term to centre) and at a site that reads only the factor.
+    // same way: the walk's own multiplier estimate on its passes once the release
+    // re-admission has armed it, else 0; 0 at a mu-free solve (no term to centre)
+    // and at a site that reads only the factor.
     EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                             const EqpDualCentre &dual_k,
                             detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,

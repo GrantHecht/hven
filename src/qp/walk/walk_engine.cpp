@@ -31,6 +31,7 @@
 // a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
 // re-derivation.
 
+#include <cstdlib> // P1SCRATCH
 #include <bit>
 #include <exception>
 
@@ -219,16 +220,11 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // function needs nothing of its own for it. `out.counters.eqp_polish_steps`
     // reports how many steps that took -- 0 on a flat face, where the proximal
     // answer is the only answer there is.
-    // THE DUAL PROXIMAL CENTRE is the caller's own multipliers at that point
-    // (M8 P-1), where they are the QP's size; else 0.
-    const EqpDualCentre face_dual{face.lambda_e.size() == me ? &face.lambda_e : nullptr,
-                                  face.lambda_i.size() == qp.mi() ? &face.lambda_i : nullptr,
-                                  nullptr};
     const EqpResult eqp = [&] {
         const detail::DenseTallyScope tally(
             kkt, out.counters.dense_factorizations, out.counters.dense_flagged_factorizations,
             out.counters.dense_singular_refactors, out.counters.dense_platform_retakes);
-        return solve_eqp(qp, ws, face.x, face_dual, kkt, eff_opts);
+        return solve_eqp(qp, ws, face.x, EqpDualCentre{}, kkt, eff_opts);
     }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
@@ -546,10 +542,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     Vec lambda_e = Vec::Zero(me);
     Vec lambda_i = Vec::Zero(mi);
     Vec z = Vec::Zero(n);
-    // THE DUAL PROXIMAL CENTRE of every pass's EQP (eqp_solve.h, M8 P-1): the
-    // walk's current multiplier estimate, i.e. the last pass's priced answer; a
-    // row or pin new to the working set is centred at 0. Re-armed at each price()
-    // under the safeguard (eqp_answer_meets_working_rows); 0 until then.
+    // THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1): once armed by the release
+    // re-admission below, every pass's EQP is centred at the walk's current
+    // multiplier estimate (the last priced pass; a row or pin new to the working
+    // set at 0), re-read at each price() under the safeguard
+    // (eqp_answer_meets_working_rows). Unarmed, the centre is 0.
+    bool dual_centring = std::getenv("HVEN_P1_GLOBAL") != nullptr; // P1SCRATCH
     EqpDualCentre dual_k{};
 
     Vec shift = Vec::Zero(mi);
@@ -1137,7 +1135,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 
         price(qp, ws, eqp, lambda_e, lambda_i, z);
-        dual_k = eqp_answer_meets_working_rows(qp, ws, eqp, ai_row_norm1, ae_row_norm1, eff_opts)
+        dual_k = dual_centring && eqp_answer_meets_working_rows(qp, ws, eqp, ai_row_norm1,
+                                                                ae_row_norm1, eff_opts)
                      ? EqpDualCentre{&lambda_e, &lambda_i, &z}
                      : EqpDualCentre{};
 
@@ -2990,11 +2989,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
         // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
         // the previous pass released, so the residual the row was released with was dual_mu's
-        // footprint. One rung down, and the factor state discarded so the next pass factorizes with
-        // it.
-        if (released_row_out && in_working(ws, dropped.idx) &&
-            counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
-            eff_opts.dual_regularization > 0.0) {
+        // footprint. The first answer is THE DUAL PROXIMAL CENTRE (M8 P-1): the rhs moves, the
+        // factor does not. A re-admission with the centre already armed takes one rung down, and
+        // the factor state is discarded so the next pass factorizes with it.
+        const bool readmitted = released_row_out && in_working(ws, dropped.idx);
+        if (readmitted && !dual_centring) {
+            dual_centring = true;
+            ++counters.dual_centre_arms;
+        } else if (readmitted && std::getenv("HVEN_P1_NORUNG") == nullptr && // P1SCRATCH
+                   counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
+                   eff_opts.dual_regularization > 0.0) {
             ++counters.dual_regularization_decreases;
             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
             if (border_.use_count() > 1) {

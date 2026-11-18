@@ -143,10 +143,18 @@ struct QpCounters {
     /// Rungs of the release re-admission rule this solve spent (qp_engine.h,
     /// THE RELEASE RE-ADMISSION): each multiplies the effective
     /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
-    /// refresh re-admitted the row the previous pass released, at most
+    /// refresh re-admitted the row the previous pass released with the dual
+    /// centre already armed (dual_centre_arms), at most
     /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
     /// released row; independent_working_set walks only.
     Index dual_regularization_decreases = 0;
+
+    /// 1 iff the release re-admission armed THE DUAL PROXIMAL CENTRE this solve
+    /// (eqp_solve.h, M8 P-1): the first re-admission centres every later EQP's
+    /// dual regularization at the walk's multiplier estimate, and only a further
+    /// re-admission spends a dual_regularization_decreases rung. 0 on every solve
+    /// that never re-admits a released row; independent_working_set walks only.
+    Index dual_centre_arms = 0;
 
     /// True iff qp_engine.h's border-mode reuse gate (`reuse_eligible` in
     /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border cache

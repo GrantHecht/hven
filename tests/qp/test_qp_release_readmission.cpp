@@ -198,8 +198,9 @@ TEST(P1Probe, RunDump) {
     }
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     const double fv = hven::test_support::qp_dump_objective(d, s.x);
-    std::printf("[ p1 ] %s status=%d minors=%ld facts=%ld rungs=%ld f=%.16g in-cell: %s\n", f,
+    std::printf("[ p1 ] %s status=%d minors=%ld facts=%ld arms=%ld rungs=%ld f=%.16g in-cell: %s\n", f,
                 static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
                 static_cast<long>(s.counters.factorizations),
+                static_cast<long>(s.counters.dual_centre_arms),
                 static_cast<long>(s.counters.dual_regularization_decreases), fv, d.result.c_str());
 }
