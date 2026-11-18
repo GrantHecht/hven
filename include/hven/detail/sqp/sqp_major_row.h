@@ -20,18 +20,22 @@ namespace hven {
 namespace detail {
 
 /// GL-0: the switching ratio pred_df / denominator, where denominator = kFunnelDelta * h^2.
-/// Built without a division when the denominator is zero, so it never raises FE_DIVBYZERO or
-/// FE_INVALID (a measure-only quantity must not dirty the FP state or trip an FP trap):
-/// +/-inf when pred_df != 0, quiet NaN when pred_df == 0 (or either operand is NaN). A nonzero
-/// denominator divides exactly as written.
+/// A zero denominator never reaches a division, so FE_DIVBYZERO and FE_INVALID stay clear (a
+/// measure-only quantity must not dirty the FP state or trip an FP trap): the result is +/-inf by
+/// the sign of pred_df when it is nonzero, and quiet NaN when pred_df is zero (or NaN). The
+/// division itself always runs on a nonzero divisor (1.0 stands in for a zero denominator), so an
+/// optimizer that speculates it into a select cannot raise a flag either. A nonzero denominator
+/// divides exactly as written.
 inline double switching_ratio_value(double pred_df, double denominator) {
-    if (denominator == 0.0) {
-        if (pred_df == 0.0 || std::isnan(pred_df)) {
-            return std::numeric_limits<double>::quiet_NaN();
-        }
-        return std::copysign(std::numeric_limits<double>::infinity(), pred_df);
+    const bool zero_denominator = denominator == 0.0;
+    const double quotient = pred_df / (zero_denominator ? 1.0 : denominator);
+    if (!zero_denominator) {
+        return quotient;
     }
-    return pred_df / denominator;
+    if (pred_df == 0.0 || std::isnan(pred_df)) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return std::copysign(std::numeric_limits<double>::infinity(), pred_df);
 }
 
 } // namespace detail
