@@ -515,6 +515,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_stagnation_stop.cpp
     qp/test_qp_latch_reason.cpp
     qp/test_qp_release_readmission.cpp
+    qp/test_qp_dual_centre.cpp
     qp/test_route_reference.cpp
     # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
     # E2-D4 dump fixtures).

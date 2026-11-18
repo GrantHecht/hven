@@ -109,6 +109,25 @@
 // is one step of iterative refinement, bringing accuracy from ~1e-8 to
 // ~1e-10..1e-12 — load-bearing for later tolerances.
 //
+// --- THE DUAL PROXIMAL CENTRE (M8 P-1) ---
+//
+// The dual regularization is centred at the caller's multiplier estimate
+// lambda_k (EqpDualCentre), not at 0: the constraint rows solved are
+//     Ae_F x_F - mu*(lambda_e - lambda_e,k) = be - eq_shift   (and the working rows alike),
+// i.e. the regularized rhs carries -mu*lambda_k on those rows. That is the
+// proximal method of multipliers' subproblem (Rockafellar 1976; Friedlander &
+// Orban 2012; Pougkakiotis & Gondzio 2021; stabilized SQP's -mu(y - y_E):
+// Wright 1998, Gill & Robinson 2013). It equals starting the refinement below at
+// y0 = [0; lambda_k] instead of 0, so the target system (K0, rhs) is unchanged
+// and only the start moves: after s steps the error along a row direction of
+// singular value sigma is (mu/(mu + sigma^2))^(s+1) * (lambda* - lambda_k).
+// Centred at 0 that error is a fraction of lambda* itself, which on a face with
+// sigma^2 << mu leaves the multipliers at a FALSE FIXED POINT the drop rule
+// cycles on (M8 PF-1/PF-1b: f7_n1000_path_corrupted QP1, sigma_min^2 6.5e-12);
+// centred at lambda_k the regularized and exact answers coincide at any fixed
+// point, at a mu that stays bounded away from 0. A zero centre is the pre-P-1
+// system. Only the rhs moves: K, its factorization and its inertia do not.
+//
 // THE PRIMAL `delta` IS NOT BACKED OUT, and that is the other half of the
 // proximal pair (M7 W2 E4, ruling E4-1). Once the regularization is centred at
 // x_k it is a TERM OF THE MODEL -- the proximal penalty -- and not an error:
@@ -144,7 +163,7 @@
 //
 // ORDER IS LOAD-BEARING: the accuracy loop runs BEFORE the mu-free model step,
 // because after that step y no longer solves K y = rhs -- it solves the proximal
-// system, whose regularized residual is mu*lambda by construction -- so a check
+// system, whose regularized residual is mu*(lambda - lambda_k) by construction -- so a check
 // placed after it would read the model's own footprint as a defect.
 //
 // ONE step is all this path takes, and the reason is structural: the shared
@@ -286,6 +305,30 @@ constexpr double kEqpPolishStepCap = 1e-6;
 // end, so every step it takes is one the verdict asked for.
 constexpr Index kMaxVerdictRefineSteps = 10;
 
+// THE DUAL PROXIMAL CENTRE (header section above): the multiplier estimate the
+// dual regularization is centred at, in the QP's own indexing. A null block is
+// centred at 0. `lambda_i` is read on working rows only and `z` on pinned
+// variables only (the bordered path's pin borders; the eliminated path has no
+// pin rows). A centre is part of the system solved, so every caller names one.
+struct EqpDualCentre {
+    const Vec *lambda_e = nullptr; // me
+    const Vec *lambda_i = nullptr; // mi
+    const Vec *z = nullptr;        // n
+};
+
+inline void validate_dual_centre(const QpProblem &qp, const EqpDualCentre &c, const char *who) {
+    const auto check = [&](const Vec *v, Index want, const char *name) {
+        if (v != nullptr && v->size() != want) {
+            throw std::invalid_argument(fmt::format("{}: dual centre {} has size {}, expected {}", who,
+                                                    name, static_cast<long long>(v->size()),
+                                                    static_cast<long long>(want)));
+        }
+    };
+    check(c.lambda_e, qp.me(), "lambda_e");
+    check(c.lambda_i, qp.mi(), "lambda_i");
+    check(c.z, qp.n(), "z");
+}
+
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
 
@@ -392,15 +435,19 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
 // `x_k` is the PROXIMAL CENTRE: the iterate this EQP is being solved from, of
 // size qp.n(). See the header's PROXIMAL CENTRE section -- it is required, and
 // passing a zero vector is the pre-E4 ABSOLUTE centring, a different system.
+//
+// `dual_k` is the DUAL PROXIMAL CENTRE (EqpDualCentre); `EqpDualCentre{}` is the
+// centre at 0.
 inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
-                           detail::KktFactor &kkt, const QpOptions &opts,
-                           EqpResult *unrefined_out = nullptr) {
+                           const EqpDualCentre &dual_k, detail::KktFactor &kkt,
+                           const QpOptions &opts, EqpResult *unrefined_out = nullptr) {
     qp.validate();
     if (x_k.size() != qp.n()) {
         throw std::invalid_argument(
             fmt::format("solve_eqp: proximal centre has size {}, expected n = {}",
                         static_cast<long long>(x_k.size()), static_cast<long long>(qp.n())));
     }
+    validate_dual_centre(qp, dual_k, "solve_eqp");
 
     const Index n = qp.n();
     const Index me = qp.me();
@@ -448,11 +495,25 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
 
     // A dense factorization the detector flags is refactored shifted;
     // kkt.dense_shifted then gates the one unconditional step below.
+    // THE DUAL PROXIMAL CENTRE: the regularized system's rhs is `rhs` plus
+    // -mu*lambda_k on the constraint rows. `rhs` stays the target of the model's
+    // refinement step below; `rhs_reg` is what the factor is asked to solve.
+    Vec rhs_reg = rhs;
+    const double mu = opts.dual_regularization;
+    if (dual_k.lambda_e != nullptr) {
+        rhs_reg.segment(n_free, me) -= mu * *dual_k.lambda_e;
+    }
+    if (dual_k.lambda_i != nullptr) {
+        for (Index k = 0; k < n_working; ++k) {
+            rhs_reg(n_free + me + k) -= mu * (*dual_k.lambda_i)(aw[static_cast<std::size_t>(k)]);
+        }
+    }
+
     detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
-    Vec y = detail::solve_vec(kkt, rhs);
-    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
+    Vec y = detail::solve_vec(kkt, rhs_reg);
+    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs_reg, kkt, y);
     // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
-    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
+    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs_reg, kkt, y);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -472,9 +533,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     const Index nc = me + n_working;
     const auto regularized_residual = [&](const Vec &yy) {
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
-        return Vec(rhs - Kyy);
+        return Vec(rhs_reg - Kyy);
     };
-    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs.segment(n_free, nc)) : 0.0;
+    const double rhs_rows_inf =
+        nc > 0 ? detail::nan_sticky_inf_norm(rhs_reg.segment(n_free, nc)) : 0.0;
     // THE SCALES CARRY THE REGULARIZATION'S OWN FOOTPRINT ON THIS ANSWER --
     // delta*||x_F|| on the free block, mu*||lambda|| on the rows. Those are the
     // sizes of terms that are IN the regularized equations, so a residual at or

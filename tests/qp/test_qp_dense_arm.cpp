@@ -438,7 +438,7 @@ EqpRun eqp_on(DensePolicy policy, const QpProblem &qp, const QpOptions &opts) {
     EqpRun r;
     {
         const DenseTallyScope tally(k, r.dense, r.flagged, r.refactors, r.retakes);
-        r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
+        r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), EqpDualCentre{}, k, opts);
     }
     r.verdict = inertia_verdict(k.factor.inertia(), 3, qp.me());
     return r;
@@ -699,7 +699,7 @@ TEST(QpDenseArm, TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm) {
     EqpResult r;
     {
         const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
-        r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), k, opts);
+        r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), EqpDualCentre{}, k, opts);
     }
     EXPECT_EQ(flagged, 0);
     EXPECT_EQ(refactors, 0);
@@ -1061,7 +1061,7 @@ BorderRun border_with_live_borders(const QpProblem &qp) {
     r.ledger = static_cast<Index>(border.ledger.size());
     r.shifted = border.kkt.dense_shifted;
     r.res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws,
-                               Vec::Zero(3), o, &border.kkt.dense_scale);
+                               Vec::Zero(3), EqpDualCentre{}, o, &border.kkt.dense_scale);
     const Vec x0 = Vec::Zero(3);
     const BorderedSystem sys =
         build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, x0, o);
@@ -1688,7 +1688,7 @@ TEST(QpDenseArm, TheRawFactorsOfAScaleClearedKktAreAccurateInEveryBlock) {
             EXPECT_FALSE(k.dense_shifted);
             EXPECT_LE(worst_relerr(solve_vec(k, rhs)), 1e-14);
             KktFactor kd(0, DensePolicy::kAlways);
-            const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), kd, o);
+            const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), EqpDualCentre{}, kd, o);
             Vec ye(5);
             ye << e.x, e.lambda_e;
             EXPECT_FALSE(e.residual_refused);

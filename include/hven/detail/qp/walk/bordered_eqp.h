@@ -654,10 +654,17 @@ inline double bordered_shifted_backward_error(const SpMatRM &K0, const std::vect
 // step and its iterated steps, the polish) is kept only while the residual it
 // targets strictly falls, and the returned answer is the gated one plus those
 // kept steps.
+//
+// `dual_k` is the DUAL PROXIMAL CENTRE (eqp_solve.h): -reg*lambda_k joins the rhs
+// on every regularized constraint row -- K0's equality and live working rows, a
+// kIneqRow border at lambda_i(row), and a kVarPin border at -z(i) (that border's
+// dual IS -z, the stationarity row reading Hx + g + A'lambda + y_pin = 0). A
+// kRowDelete border carries d = 0 and no term.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,
-                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts,
+                                    const WorkingSet &ws, const Vec &x_k,
+                                    const EqpDualCentre &dual_k, const QpOptions &opts,
                                     const Vec *k0_shift_scale) {
     const Index n = qp.n();
     const Index me = qp.me();
@@ -669,12 +676,37 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
             fmt::format("solve_bordered_eqp: proximal centre has size {}, expected n = {}",
                         static_cast<long long>(x_k.size()), static_cast<long long>(n)));
     }
+    validate_dual_centre(qp, dual_k, "solve_bordered_eqp");
     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
 
-    Vec sol = schur.solve(sys.rhs);
+    // THE DUAL PROXIMAL CENTRE: `rhs_reg` is what the factor solves; `sys.rhs` stays
+    // the refinement's and the polish's target.
+    Vec centre = Vec::Zero(n0 + m);
+    if (dual_k.lambda_e != nullptr) {
+        centre.segment(n, me) = *dual_k.lambda_e;
+    }
+    if (dual_k.lambda_i != nullptr) {
+        for (std::size_t k = 0; k < k0_rows.size(); ++k) {
+            if (!sys.k0_row_deleted[k]) {
+                centre(n + me + static_cast<Index>(k)) = (*dual_k.lambda_i)(k0_rows[k]);
+            }
+        }
+    }
+    for (Index b = 0; b < m; ++b) {
+        const BorderLedgerEntry &e = ledger[static_cast<std::size_t>(b)];
+        if (e.kind == BorderLedgerEntry::Kind::kVarPin && dual_k.z != nullptr) {
+            centre(n0 + b) = -(*dual_k.z)(e.target);
+        } else if (e.kind == BorderLedgerEntry::Kind::kIneqRow && dual_k.lambda_i != nullptr) {
+            centre(n0 + b) = (*dual_k.lambda_i)(e.target);
+        }
+    }
+    const Vec rhs_reg =
+        sys.rhs + bordered_regularization(n0, n, sys.border_d, opts).cwiseProduct(centre);
+
+    Vec sol = schur.solve(rhs_reg);
     const bool shifted_refused = k0_shift_scale != nullptr &&
                                  !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d,
-                                                                   sys.rhs, sol, *k0_shift_scale) <=
+                                                                   rhs_reg, sol, *k0_shift_scale) <=
                                    detail::kDenseShiftedBackwardErrorTol);
 
     // ---- THE EQP-SITE RESIDUAL CHECK (E4-4), the border twin. Same object, same
@@ -684,7 +716,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     // IS a constraint row). Runs BEFORE the model's refinement, for the reason
     // stated there: afterwards the row residual is the model's own mu*lambda.
     const Index nc = n0 + m - n;
-    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(sys.rhs.segment(n, nc)) : 0.0;
+    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs_reg.segment(n, nc)) : 0.0;
     // The constraint rows only, for the reason (and with the measurement)
     // eqp_solve.h states at its own copy of this rule.
     const auto ratio_of = [&](const Vec &ss, const Vec &r) {
@@ -696,14 +728,14 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                      opts.dual_regularization * detail::nan_sticky_inf_norm(ss.segment(n, nc)));
         return detail::nan_sticky_inf_norm(r.segment(n, nc)) / scale;
     };
-    Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, sol);
+    Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, rhs_reg, sol);
     double ratio = ratio_of(sol, r_reg);
     Index res_iters = 0;
     while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
         ++res_iters; // spent, kept or not -- solver_counters.h's eqp_refine_iters
         const Vec candidate = sol + schur.solve(r_reg);
         Vec candidate_r =
-            bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, candidate);
+            bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, rhs_reg, candidate);
         const double candidate_ratio = ratio_of(candidate, candidate_r);
         if (!(candidate_ratio < ratio)) {
             break; // stagnated, diverging, or NaN -- keep the better answer

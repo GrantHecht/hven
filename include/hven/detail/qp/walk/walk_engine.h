@@ -2266,6 +2266,17 @@ class QpEngine {
     // stationarity 1.24); advisory keeps it, still converges
     // `indefinite_equality_qp`, and converts `A0_YORKNET`/qp1 (num/329 ->
     // opt/717, a conversion fix round 1's polish step cap had given up).
+    // THE DUAL CENTRE's SAFEGUARD (M8 P-1; eqp_solve.h): the pass's multipliers
+    // become the next pass's dual centre only if its EQP answer meets every equality
+    // and working inequality row within row_tolerance (its own multipliers pricing the
+    // footprint). On an inconsistent row set the multipliers are 1/dual_mu-sized
+    // regularization artifacts, and centring on them would grow them by r/mu per
+    // pass (the proximal method of multipliers on an infeasible system); such a pass
+    // centres the next one at 0, the pre-P-1 system.
+    bool eqp_answer_meets_working_rows(const QpProblem &qp, const WorkingSet &ws,
+                                       const EqpResult &eqp, const Vec &ai_row_norm1,
+                                       const Vec &ae_row_norm1, const QpOptions &opts) const;
+
     bool eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                         const EqpResult &eqp, const Vec &Aix,
                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
@@ -2468,7 +2479,12 @@ class QpEngine {
     // signatures can see which point the answer is a step from. The probe and
     // inertia-read call sites pass the same iterate even though only the
     // FACTORIZATION's inertia is read there and the rhs cannot reach it.
+    //
+    // `dual_k` is THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1), threaded the
+    // same way: the walk's own multiplier estimate on its passes, 0 at a mu-free
+    // solve (no term to centre) and at a site that reads only the factor.
     EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                            const EqpDualCentre &dual_k,
                             detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
                             QpCounters &counters, detail::InertiaVerdict &verdict,
                             const QpOptions &opts) const;
@@ -2479,6 +2495,7 @@ class QpEngine {
     // also why a border-mode fallback on an all-variables-pinned working set
     // costs no factorization at all.
     EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                                   const EqpDualCentre &dual_k,
                                    detail::KktFactor &kkt, EliminatedFace &face,
                                    QpCounters &counters, detail::InertiaVerdict &verdict,
                                    const QpOptions &opts) const;
@@ -2527,6 +2544,7 @@ class QpEngine {
     // short-circuit above has no counterpart here and needs none -- K0 spans
     // all n variables whatever the working set does.
     EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                               const EqpDualCentre &dual_k,
                                detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
                                QpCounters &counters, detail::InertiaVerdict &verdict,
                                const QpOptions &opts) const;
@@ -2537,6 +2555,7 @@ class QpEngine {
     // when it is not. `opts` is the effective options this solve resolved
     // (see run()'s `eff_opts`).
     EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+                                        const EqpDualCentre &dual_k,
                                         detail::KktFactor &kkt, EliminatedFace &face,
                                         BorderState &border, QpCounters &counters,
                                         detail::InertiaVerdict &verdict, bool rebuilt,
