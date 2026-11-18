@@ -1,0 +1,24 @@
+include/hven/core/detail/aggregate_arity.h -> include/hven/detail/core/aggregate_arity.h
+include/hven/core/detail/inf_norm.h -> include/hven/detail/core/inf_norm.h
+include/hven/core/detail/stop_poll.h -> include/hven/detail/core/stop_poll.h
+include/hven/detail/drivers/finite_screen.h -> include/hven/detail/core/finite_screen.h
+include/hven/detail/interior/typedefs/eigen_types.h -> include/hven/detail/core/eigen_types.h
+include/hven/detail/interior/typedefs/super_scalar_traits.h -> include/hven/detail/core/super_scalar_traits.h
+include/hven/detail/interior/utils/accelerate_threads.h -> include/hven/detail/ipm/accelerate_threads.h
+include/hven/detail/interior/utils/flat_map.h -> DELETE (owner-confirmed 2026-11-17, S5)
+include/hven/detail/interior/utils/function_return_type.h -> DELETE (owner-confirmed 2026-11-17, S5)
+include/hven/detail/interior/utils/get_core_count.h -> include/hven/detail/util/get_core_count.h
+include/hven/detail/interior/utils/math_functions.h -> DELETE (owner-confirmed 2026-11-17, S5)
+include/hven/detail/interior/utils/memory_management.h -> include/hven/detail/util/memory_management.h
+include/hven/detail/interior/utils/sizing_helpers.h -> DELETE (owner-confirmed 2026-11-17, S5)
+include/hven/detail/interior/utils/std_extensions.h -> DELETE (owner-confirmed 2026-11-17, S5)
+include/hven/detail/interior/utils/thread_pool.h -> include/hven/detail/util/thread_pool.h
+include/hven/detail/interior/utils/timer.h -> include/hven/detail/util/timer.h
+include/hven/detail/interior/utils/tuple_iterator.h -> include/hven/detail/util/tuple_iterator.h
+src/interior/utils/color_text.cpp -> DELETE (owner-confirmed 2026-11-17, color_text)
+src/interior/utils/color_text.h -> DELETE (owner-confirmed 2026-11-17, color_text)
+src/interior/utils/fmtlib.cpp -> DELETE (owner-confirmed 2026-11-17, S5)
+src/interior/utils/fmtlib.h -> DELETE (owner-confirmed 2026-11-17, S5)
+src/interior/utils/get_core_count.cpp -> src/util/get_core_count.cpp
+src/interior/utils/memory_management.cpp -> src/util/memory_management.cpp
+src/interior/utils/thread_pool.cpp -> src/util/thread_pool.cpp

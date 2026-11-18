@@ -1137,32 +1137,66 @@ tool_sha() {
     sha256sum "${PSYM_SELF}" | cut -d' ' -f1
 }
 
-# The P-SYM object set, as GROUPS: one entry per CMake target, "<group name>:
-# <object directory relative to the build dir>". Kept in one place so
-# `psym_objects` and `do_capture`'s non-empty assertion cannot disagree about
-# what P-SYM covers, and so a group that yields nothing is named in the error.
+# The P-SYM object set, as GROUPS: one entry per CMake TARGET NAME. The object
+# directory of a target is DERIVED from the build tree (RS-0, 2026-11-17): it is
+# the one `<anything>/CMakeFiles/<target>.dir` directory that build holds. It
+# used to be written here as a fixed relative path (`tests/interior/CMakeFiles/
+# ...`), which meant that any commit that moved a target's CMakeLists to another
+# directory -- the tests/ re-layout and the per-component test executables of
+# the code-organisation restructure -- would have emptied that group, or, worse,
+# had to edit this instrument inside the change it measures. A target name is
+# stable across a directory move; the derivation finds the target wherever the
+# build put it, and `capture` still fails naming the group if a group yields no
+# objects (derived zero or ambiguous directories are both a hard error, never a
+# silent narrowing). The set of TARGETS is unchanged from the previous version
+# of this file: the library, six test targets and the bench binaries named in
+# the header above. Snapshot paths are the build-relative object paths as
+# before, so an object that moved with its target appears under a new relpath
+# and is paired by `--object-map` (scripts/rs_object_map.py generates one).
+# Kept in one place so `psym_objects` and `do_capture`'s non-empty assertion
+# cannot disagree about what P-SYM covers.
 PSYM_GROUPS=(
-    "hven:CMakeFiles/hven.dir"
-    "hven_sqp_tests:tests/sqp/CMakeFiles/hven_sqp_tests.dir"
-    "hven_interior_tests:tests/interior/CMakeFiles/hven_interior_tests.dir"
-    "hven_model_tests:tests/model/CMakeFiles/hven_model_tests.dir"
-    "hven_tests:tests/CMakeFiles/hven_tests.dir"
-    "hven_drivers_tests:tests/drivers/CMakeFiles/hven_drivers_tests.dir"
-    "hven_sqp_corpus:bench/CMakeFiles/hven_sqp_corpus.dir"
-    "hven_sqp_bench:bench/CMakeFiles/hven_sqp_bench.dir"
-    "hven_sqp_ssn_safeguard_probe:bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir"
-    "hven_sqp_f7_cold:bench/CMakeFiles/hven_sqp_f7_cold.dir"
-    "hven_sqp_tau_bar_sweep_probe:bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir"
-    "hven_sqp_crossover:bench/CMakeFiles/hven_sqp_crossover.dir"
-    "hven_sqp_ipqp_e1_arm:bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir"
+    "hven"
+    "hven_sqp_tests"
+    "hven_interior_tests"
+    "hven_model_tests"
+    "hven_tests"
+    "hven_drivers_tests"
+    "hven_sqp_corpus"
+    "hven_sqp_bench"
+    "hven_sqp_ssn_safeguard_probe"
+    "hven_sqp_f7_cold"
+    "hven_sqp_tau_bar_sweep_probe"
+    "hven_sqp_crossover"
+    "hven_sqp_ipqp_e1_arm"
 )
+
+# Prints the build-relative object directory of target "$2" in build "$1", or
+# nothing when the build holds none. More than one is a hard error (exit 2): a
+# target name that appears under two directories would make the derivation
+# guess, and a guess is how an instrument narrows silently.
+psym_target_dir() {
+    local build="$1" name="$2" found n
+    found="$(find "${build}" -maxdepth 5 -type d -name "${name}.dir" \
+                  -path '*/CMakeFiles/*' -not -path '*/_deps/*' 2>/dev/null \
+             | LC_ALL=C sort)"
+    [ -n "${found}" ] || return 0
+    n="$(printf '%s\n' "${found}" | grep -c .)"
+    if [ "${n}" -ne 1 ]; then
+        echo "psym_compare: target '${name}' has ${n} object directories in ${build}:" >&2
+        printf '  %s\n' ${found} >&2
+        exit 2
+    fi
+    printf '%s\n' "${found#"${build}"/}"
+}
 
 # Emits "<group><TAB><object path>" for every object in the set.
 psym_objects() {
     local build="$1" entry name dir
     for entry in "${PSYM_GROUPS[@]}"; do
         name="${entry%%:*}"
-        dir="${entry#*:}"
+        dir="$(psym_target_dir "${build}" "${name}")"
+        [ -n "${dir}" ] || continue
         find "${build}/${dir}" -name '*.o' 2>/dev/null | LC_ALL=C sort \
             | sed "s|^|${name}\t|"
     done
