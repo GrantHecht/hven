@@ -15,12 +15,16 @@ AFTER=$(git rev-parse HEAD)
 FLAGS=$(python3 "$(dirname "$0")/neutral_flags.py" "$WT" "$BASE" "$AFTER") || exit 2
 echo "$FLAGS" > "$OUT.flags.txt" 2>/dev/null || { mkdir -p "$(dirname "$OUT")"; echo "$FLAGS" > "$OUT.flags.txt"; }
 mkdir -p "$OUT"
-restore() { git -C "$WT" checkout -q "$BR"; }
+restore() { git -C "$WT" checkout -q -- scripts/psym_compare.sh; git -C "$WT" checkout -q "$BR"; }
 trap restore EXIT
 worst=0
 for ARM in base after; do
   if [ $ARM = base ]; then REV=$BASE; else REV=$AFTER; fi
+  git checkout -q -- scripts/psym_compare.sh
   git checkout -q --detach "$REV" || exit 2
+  # RS-3 (DECLARATION-RS3-r2.md): the capture tool is stamped by its own sha, and RS-3 edits one comment line of it; the BEFORE arm is captured with the AFTER-version script (overlay,
+  # removed again before the next checkout) so both arms carry one stamp. The logic of the two versions is identical (one comment line differs).
+  if [ $ARM = base ]; then git show "$AFTER:scripts/psym_compare.sh" > scripts/psym_compare.sh || exit 2; fi
   echo "== arm $ARM @ $(git rev-parse --short HEAD) $(date -Is)"
   D=$WT/build-n
   rm -rf "$D"
