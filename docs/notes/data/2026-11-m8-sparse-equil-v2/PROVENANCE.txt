@@ -1,0 +1,12 @@
+M8 sparse-equil-v2 -- DIAGNOSIS DATA ONLY (no DECLARATION, no leg ran; nothing here is a proof leg)
+date 2026-11-18; Linux x86-64, AMD Ryzen 7 5800X3D (reference dispatch), clang 22.1.8, MKL 2026.2, MKL_NUM_THREADS=1, Release,
+-DHVEN_FP_MODE=SAFER_FAST; serial, under flock /tmp/box-build.lock. Apple/Accelerate and Windows: UNOBSERVED.
+Base: origin/m8 3edf5ede4 for diag/ instrument-r0 runs (f3-*, yorknet-*, post-refinement-histogram, focus-cells base arm);
+origin/m8 aa1330cad (RS-2) for diag/arms-summary.txt (the WIP code of the branch head with HVEN_SEQ_ARM / HVEN_SEQ_FORCE).
+diag/instrument-r0.patch: the env-gated instrument (HVEN_SEQ_DIAG, HVEN_SEQ_DKD modes 0-5), applied to 3edf5ede4, never committed as code.
+Arms (arms-summary.txt; "trigger" = switch on the post-refinement check, "force" = switch at the first perturbed factorization):
+  MS = Pardiso weighted matching + scaling (iparm[12]=1, iparm[10]=1) on a second session;  M = matching only (iparm[12]=1);
+  P  = own maximum-product-matching symmetric scaling D K D (Duff-Koster 2001 / Duff-Pralet 2005, dense Hungarian, from the papers),
+       plain Pardiso;  R = Ruiz D K D (the parked design's scaling).  S (iparm[10] scaling without matching) is NOT RUN:
+       SymmetricFactor refuses matrix_scaling without weighted_matching (Intel documents the scaling for mtype -2 only under matching).
+  Per retake: raw_eta / arm_eta = equilibrated normwise backward error of one solve of a consistent probe rhs (no refinement).

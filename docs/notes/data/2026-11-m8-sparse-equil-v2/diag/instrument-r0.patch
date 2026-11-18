@@ -1,0 +1,396 @@
+diff --git a/include/hven/detail/kkt/kkt_factor.h b/include/hven/detail/kkt/kkt_factor.h
+index 316e91710..9aa6ec4bd 100644
+--- a/include/hven/detail/kkt/kkt_factor.h
++++ b/include/hven/detail/kkt/kkt_factor.h
+@@ -6,6 +6,7 @@
+ #include <cmath>
+ #include <cstdint>
+ #include <optional>
++#include <memory>
+ #include <utility>
+ 
+ #include <Eigen/SparseCore>
+@@ -110,6 +111,11 @@ struct KktFactor {
+     /// them in dense_singular_count); dense_response_tally() takes them back
+     /// out, so its `flagged` counts unshifted factorizations only.
+     Index shifted_exact_singular = 0;
++    // DEV DIAG (sparse-equil-v2; never committed)
++    Vec seq_scale;
++    Index seq_raw_pert = 0;
++    std::shared_ptr<hven::linear::SymmetricFactor> seq_matched;
++    bool seq_use_matched = false;
+ };
+ 
+ // The analyze-or-not decision for K, carrying the pattern hash it was taken
+@@ -234,6 +240,7 @@ class DenseTallyScope {
+     DenseResponseTally before_;
+ };
+ 
++int seq_env(const char *name); // DEV DIAG
+ /// @brief Allocate and solve, returning the solution by value.
+ Vec solve_vec(const KktFactor &k, const Vec &rhs);
+ 
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index 10df3f86b..6ef74fff9 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -118,6 +118,7 @@ class SchurComplement {
+     ///                 carries no thread field. 0, the default and what every
+     ///                 pre-T8.8 construction site passed, leaves the backend's
+     ///                 own default alone.
++    const detail::KktFactor &k0_factor_diag() const { return kkt_; } // DEV DIAG
+     SchurComplement(detail::KktFactor &kkt, const QpOptions &opts, int threads = 0)
+         : kkt_(kkt), opts_(opts) {
+         factor_.set_threads(threads);
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index 094d7d3d9..a21f48c22 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -2,6 +2,7 @@
+ // (see LICENSE).
+ 
+ #pragma once
++#include <cstdio>
+ 
+ // bordered_eqp.h — the equality-QP solve over a working set represented as a
+ // FIXED, factored K0 (kkt_assembly.h's assemble_kkt_full) plus a stack of
+@@ -672,6 +673,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
+ 
+     Vec sol = schur.solve(sys.rhs);
++    const Vec seq_first = sol; // DEV DIAG
+     const bool shifted_refused = k0_shift_scale != nullptr &&
+                                  !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d,
+                                                                    sys.rhs, sol, *k0_shift_scale) <=
+@@ -713,6 +715,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+         ratio = candidate_ratio;
+     }
+     const double row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n, nc)) : 0.0;
++    const Vec seq_loop = sol; // DEV DIAG
+ 
+     Index refine_steps = 0;
+     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
+@@ -727,12 +730,35 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
+                                          opts, &refine_steps, certify ? &resolution : nullptr,
+                                          certify ? &outcome : nullptr, k0_shift_scale != nullptr);
++    const Vec seq_ref = sol; // DEV DIAG
+     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
+     // at the same point in its own solve: see polish_bordered_unregularized.
+     const Index polish_kept =
+         polish_bordered_unregularized(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, x_k,
+                                       opts, detail::kEqpPolishSteps, sol);
+ 
++    if (schur.k0_factor_diag().seq_raw_pert > 0 && detail::seq_env("HVEN_SEQ_DIAG")) { // DEV DIAG
++        const Vec ones = Vec::Ones(n0);
++        const Vec dd = detail::equilibration_scale(k0.K);
++        std::fprintf(stderr,
++                     "SEQ_BEQP n0=%ld m=%ld pert=%ld dkd=%d mu=%.1e | etaK first=%.2e final=%.2e | "
++                     "etaD first=%.2e final=%.2e | ratio=%.2e refine=%ld polish=%ld | POST etaD loop=%.2e ref=%.2e\n",
++                     (long)n0, (long)m, (long)schur.k0_factor_diag().seq_raw_pert,
++                     (int)(schur.k0_factor_diag().seq_scale.size() > 0), opts.dual_regularization,
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
++                                                     seq_first, ones),
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs, sol,
++                                                     ones),
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
++                                                     seq_first, dd),
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs, sol,
++                                                     dd),
++                     ratio, (long)refine_steps, (long)polish_kept,
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
++                                                     seq_loop, dd),
++                     bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
++                                                     seq_ref, dd));
++    }
+     EqpResult res;
+     res.polish_steps = polish_kept;
+     res.refine_steps = refine_steps;
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index d3233342c..fb21df393 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -2,6 +2,8 @@
+ // (see LICENSE).
+ 
+ #pragma once
++#include <cstdio>
++#include <Eigen/Dense>
+ 
+ // eqp_solve.h — the equality-constrained QP solve over a fixed working set:
+ // minimizes the QP objective subject to the working inequalities held at
+@@ -450,6 +452,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+     // kkt.dense_shifted then gates the one unconditional step below.
+     detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
+     Vec y = detail::solve_vec(kkt, rhs);
++    const Vec seq_y_first = y; // DEV DIAG
+     const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
+     // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+     const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
+@@ -524,6 +527,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+         ratio = candidate_ratio;
+     }
+     const bool refused = !(ratio <= 1.0) || shifted_refused;
++    const Vec seq_y_loop = y; // DEV DIAG
+     const double row_residual =
+         nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
+ 
+@@ -556,6 +560,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+         }
+     }
+ 
++    const Vec seq_y_prox = y; // DEV DIAG
+     // ---- THE UNREGULARIZED POLISH (E4-11; polish_eqp_core, and the header's own
+     // section) ----
+     // The step above targets the PROXIMAL system, whose answer is the face's exact
+@@ -574,6 +579,34 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+     const Index polish_kept =
+         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
+ 
++    if (kkt.seq_raw_pert > 0 && detail::seq_env("HVEN_SEQ_DIAG")) { // DEV DIAG
++        const Vec dd = detail::equilibration_scale(asm_.K);
++        Vec acc, rr;
++        const double knK = detail::symmetric_inf_norm(asm_.K, nullptr, acc);
++        const double knD = detail::symmetric_inf_norm(asm_.K, &dd, acc);
++        const double e0K = detail::dense_backward_error(asm_.K, knK, rhs, seq_y_first, rr);
++        const double e0D = detail::dense_backward_error(asm_.K, knD, rhs, seq_y_first, rr, &dd);
++        const double e1K = detail::dense_backward_error(asm_.K, knK, rhs, y, rr);
++        const double e1D = detail::dense_backward_error(asm_.K, knD, rhs, y, rr, &dd);
++        const double eLD = detail::dense_backward_error(asm_.K, knD, rhs, seq_y_loop, rr, &dd);
++        const double ePD = detail::dense_backward_error(asm_.K, knD, rhs, seq_y_prox, rr, &dd);
++        const double postD = opts.dual_regularization == 0.0 ? ePD : eLD;
++        double lsD = -1;
++        if (dim <= 400 && !detail::seq_env("HVEN_SEQ_NOSPEC")) {
++            Eigen::MatrixXd A = Eigen::MatrixXd(SpMatRM(asm_.K.template selfadjointView<Eigen::Upper>()));
++            A = dd.asDiagonal() * A * dd.asDiagonal();
++            Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(A);
++            cod.setThreshold(1e-12);
++            const Vec w = cod.solve(rhs.cwiseProduct(dd));
++            lsD = detail::dense_backward_error(asm_.K, knD, rhs, Vec(w.cwiseProduct(dd)), rr, &dd);
++        }
++        std::fprintf(stderr,
++                     "SEQ_EQP n=%ld pert=%ld dkd=%d mu=%.1e delta=%.1e | etaK first=%.2e final=%.2e "
++                     "| etaD first=%.2e final=%.2e | lsD=%.2e | ratio=%.2e refused=%d polish=%ld | POST etaD loop=%.2e prox=%.2e post=%.2e\n",
++                     (long)dim, (long)kkt.seq_raw_pert, (int)(kkt.seq_scale.size() > 0),
++                     opts.dual_regularization, opts.primal_regularization, e0K, e1K, e0D, e1D, lsD,
++                     ratio, (int)refused, (long)polish_kept, eLD, ePD, postD);
++    }
+     EqpResult out = scatter(y);
+     out.polish_steps = polish_kept;
+     out.refine_steps = 0; // no iterated loop on this path -- see the header note
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 1182f9377..e36f972f6 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -9,6 +9,10 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <stdexcept>
++#include <cstdio>
++#include <cstdlib>
++#include <cstdint>
++#include <Eigen/Dense>
+ 
+ #include <fmt/format.h>
+ 
+@@ -50,6 +54,8 @@ void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &d
+ void clear_shift_marker(KktFactor &k) {
+     k.dense_shifted = false;
+     k.dense_scale.resize(0);
++    k.seq_scale.resize(0);
++    k.seq_use_matched = false;
+ }
+ 
+ bool flagged(const hven::linear::FactorizeOutcome &o) {
+@@ -58,6 +64,145 @@ bool flagged(const hven::linear::FactorizeOutcome &o) {
+                : o.backend_code == hven::linear::kDenseSingular;
+ }
+ 
++
++} // namespace
++int seq_env(const char *name) {
++    const char *v = std::getenv(name);
++    return v ? std::atoi(v) : 0;
++}
++namespace {
++SpMatRM seq_congruent(const SpMatRM &K, const Vec &d) {
++    SpMatRM KD = K;
++    for (Index i = 0; i < static_cast<Index>(K.rows()); ++i) {
++        for (SpMatRM::InnerIterator e(KD, i); e; ++e) {
++            e.valueRef() *= d(i) * d(static_cast<Index>(e.col()));
++        }
++    }
++    return KD;
++}
++Vec seq_probe_rhs(const SpMatRM &K, const Vec &d) {
++    const auto n = static_cast<Index>(d.size());
++    Vec u(n);
++    std::uint32_t state = 0x9E3779B9u;
++    for (Index i = 0; i < n; ++i) {
++        state = state * 1664525u + 1013904223u;
++        u(i) = (2.0 * (static_cast<double>(state >> 8) / 16777216.0) - 1.0) * d(i);
++    }
++    return K.template selfadjointView<Eigen::Upper>() * u;
++}
++template <typename S>
++double seq_eta_refined(const SpMatRM &K, const Vec &b, const Vec *d, S &&solve, int steps,
++                       double *eta0) {
++    Vec y = solve(b), r, acc;
++    const double kn = symmetric_inf_norm(K, d, acc);
++    double eta = dense_backward_error(K, kn, b, y, r, d);
++    if (eta0) *eta0 = eta;
++    for (int s = 0; s < steps; ++s) {
++        Vec c = y - solve(r);
++        Vec rc;
++        const double ce = dense_backward_error(K, kn, b, c, rc, d);
++        if (!(ce < eta)) break;
++        y = c; r = rc; eta = ce;
++    }
++    return eta;
++}
++void seq_spectrum(const SpMatRM &K, const Vec *d, int &pos, int &neg, int &zer, double &minabs,
++                  double &maxabs) {
++    Eigen::MatrixXd A = Eigen::MatrixXd(SpMatRM(K.template selfadjointView<Eigen::Upper>()));
++    if (d) A = d->asDiagonal() * A * d->asDiagonal();
++    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(A, Eigen::EigenvaluesOnly);
++    const Vec ev = es.eigenvalues();
++    maxabs = ev.cwiseAbs().maxCoeff();
++    minabs = ev.cwiseAbs().minCoeff();
++    const double tol = 1e-10 * maxabs;
++    pos = neg = zer = 0;
++    for (Index i = 0; i < ev.size(); ++i) {
++        if (std::abs(ev(i)) <= tol) ++zer; else if (ev(i) > 0) ++pos; else ++neg;
++    }
++}
++void seq_after_factorize(KktFactor &k, const SpMatRM &K, hven::linear::FactorizeOutcome &outcome) {
++    k.seq_raw_pert = 0;
++    if (!(outcome.status == hven::linear::FactorizeOutcome::Status::kOk &&
++          outcome.arm == hven::linear::FactorArm::kSparse &&
++          outcome.inertia.perturbed_pivots.has_value() && *outcome.inertia.perturbed_pivots > 0)) {
++        return;
++    }
++    k.seq_raw_pert = *outcome.inertia.perturbed_pivots;
++    const int diag = seq_env("HVEN_SEQ_DIAG");
++    const int mode = seq_env("HVEN_SEQ_DKD");
++    if (!diag && !mode) return;
++    const Vec d = equilibration_scale(K);
++    const Vec b = seq_probe_rhs(K, d);
++    const auto raw_solve = [&](const Vec &in) { Vec x(in.size()); k.factor.solve(in, x); return x; };
++    double raw0 = 0, raw0K = 0;
++    const double raw2 = seq_eta_refined(K, b, &d, raw_solve, 2, &raw0);
++    const double raw2K = seq_eta_refined(K, b, nullptr, raw_solve, 2, &raw0K);
++    const SpMatRM KD = seq_congruent(K, d);
++    if (diag) {
++        hven::linear::SymmetricFactor sh(sqp_kkt_options(0, hven::linear::DensePolicy::kNever));
++        sh.analyze(KD);
++        const auto so = sh.factorize(KD);
++        const auto dkd_solve = [&](const Vec &in) {
++            Vec x(in.size());
++            sh.solve(in.cwiseProduct(d), x);
++            return Vec(x.cwiseProduct(d));
++        };
++        double dkd0 = 0, dkd0K = 0;
++        const double dkd1 = seq_eta_refined(K, b, &d, dkd_solve, 1, &dkd0);
++        const double dkd1K = seq_eta_refined(K, b, nullptr, dkd_solve, 1, &dkd0K);
++        auto mo = sqp_kkt_options(0, hven::linear::DensePolicy::kNever);
++        mo.weighted_matching = true;
++        mo.matrix_scaling = true;
++        hven::linear::SymmetricFactor sm(mo);
++        sm.analyze(K);
++        const auto smo = sm.factorize(K);
++        const auto m_solve = [&](const Vec &in) { Vec x(in.size()); sm.solve(in, x); return x; };
++        double m0 = 0, m0K = 0;
++        const double m2 = seq_eta_refined(K, b, &d, m_solve, 2, &m0);
++        const double m2K = seq_eta_refined(K, b, nullptr, m_solve, 2, &m0K);
++        std::fprintf(stderr, "SEQ_MATCH n=%ld pert=%ld m_pert=%ld m_in=%ld/%ld | etaD m0=%.2e m2=%.2e | etaK m0=%.2e m2=%.2e\n",
++                     (long)K.rows(), (long)k.seq_raw_pert, (long)smo.inertia.perturbed_pivots.value_or(-1),
++                     (long)smo.inertia.positive, (long)smo.inertia.negative, m0, m2, m0K, m2K);
++        int p = -1, ng = -1, z = -1, pD = -1, nD = -1, zD = -1;
++        double mn = 0, mx = 0, mnD = 0, mxD = 0;
++        if (K.rows() <= 600 && !seq_env("HVEN_SEQ_NOSPEC")) {
++            seq_spectrum(K, nullptr, p, ng, z, mn, mx);
++            seq_spectrum(K, &d, pD, nD, zD, mnD, mxD);
++        }
++        std::fprintf(stderr,
++                     "SEQ_FACT n=%ld pert=%ld in=%ld/%ld | dkd_pert=%ld dkd_in=%ld/%ld | "
++                     "etaD raw0=%.2e raw2=%.2e dkd0=%.2e dkd1=%.2e | etaK raw0=%.2e raw2=%.2e "
++                     "dkd0=%.2e dkd1=%.2e | eigK %d/%d/%d min=%.2e max=%.2e | eigDKD %d/%d/%d "
++                     "min=%.2e max=%.2e | dmin=%.2e dmax=%.2e\n",
++                     (long)K.rows(), (long)k.seq_raw_pert, (long)outcome.inertia.positive,
++                     (long)outcome.inertia.negative,
++                     (long)so.inertia.perturbed_pivots.value_or(-1), (long)so.inertia.positive,
++                     (long)so.inertia.negative, raw0, raw2, dkd0, dkd1, raw0K, raw2K, dkd0K, dkd1K,
++                     p, ng, z, mn, mx, pD, nD, zD, mnD, mxD, d.minCoeff(), d.maxCoeff());
++    }
++    if (mode == 5 || (mode == 4 && !(raw2 <= 1e-8))) {
++        if (!k.seq_matched) {
++            auto mo = sqp_kkt_options(0, hven::linear::DensePolicy::kNever);
++            mo.weighted_matching = true;
++            mo.matrix_scaling = true;
++            k.seq_matched = std::make_shared<hven::linear::SymmetricFactor>(mo);
++        }
++        k.seq_matched->analyze(K);
++        const auto mo2 = k.seq_matched->factorize(K);
++        if (mo2.status == hven::linear::FactorizeOutcome::Status::kOk) {
++            k.seq_use_matched = true;
++            outcome = mo2;
++        }
++        if (diag) std::fprintf(stderr, "SEQ_MATCHED_USE n=%ld\n", (long)K.rows());
++    }
++    if (mode == 1 || (mode == 2 && !(raw0 <= 1e-8)) || (mode == 3 && !(raw2 <= 1e-8))) {
++        outcome = k.factor.factorize(KD, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
++        if (outcome.status == hven::linear::FactorizeOutcome::Status::kOk) {
++            k.seq_scale = d;
++        }
++        if (diag) std::fprintf(stderr, "SEQ_REFACTOR n=%ld\n", (long)K.rows());
++    }
++}
+ } // namespace
+ 
+ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+@@ -73,6 +218,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+         // No site to shift on: the platform session retakes K.
+         outcome = k.factor.retake_on_platform(
+             K, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
++    } else {
++        seq_after_factorize(k, K, outcome);
+     }
+     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
+         throw_failed(outcome);
+@@ -132,6 +279,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+             outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
+             clear_shift_marker(k);
+         }
++    } else {
++        seq_after_factorize(k, K, outcome);
+     }
+     if (outcome.status == Status::kBackendError) {
+         throw_failed(outcome);
+@@ -150,6 +299,15 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
+ 
+ Vec solve_vec(const KktFactor &k, const Vec &rhs) {
+     Vec x(rhs.size());
++    if (k.seq_use_matched) {
++        k.seq_matched->solve(rhs, x);
++        return x;
++    }
++    if (k.seq_scale.size() > 0) {
++        k.factor.solve(rhs.cwiseProduct(k.seq_scale), x);
++        x.array() *= k.seq_scale.array();
++        return x;
++    }
+     k.factor.solve(rhs, x);
+     return x;
+ }
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 3abe38e67..91cf4fb66 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -495,6 +495,7 @@ add_executable(hven_qp_walk_seam_tests
+     # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
+     # E2-D4 dump fixtures).
+     qp/test_qp_dense_arm.cpp
++    qp/test_seq_diag.cpp
+ )
+ 
+ # The dense arm's session TU, which the adapter below dispatches to.

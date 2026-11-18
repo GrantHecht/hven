@@ -1,0 +1,28 @@
+SEQ_F3 coupled=0 s=1e+00 pert=0 raw_relerr=2.01e-16 eqp_relerr=2.01e-16 refused=0 walk_status=0 walk_relerr=2.01e-16
+SEQ_F3 coupled=0 s=1e+04 pert=0 raw_relerr=2.01e-16 eqp_relerr=1.95e-16 refused=0 walk_status=0 walk_relerr=1.95e-16
+SEQ_F3 coupled=0 s=1e+06 pert=0 raw_relerr=2.01e-16 eqp_relerr=1.52e-16 refused=0 walk_status=0 walk_relerr=1.52e-16
+SEQ_F3 coupled=0 s=1e+08 pert=0 raw_relerr=2.38e-16 eqp_relerr=2.01e-16 refused=0 walk_status=0 walk_relerr=2.01e-16
+SEQ_F3 coupled=0 s=1e+10 pert=0 raw_relerr=2.01e-16 eqp_relerr=2.01e-16 refused=0 walk_status=0 walk_relerr=2.01e-16
+SEQ_F3 coupled=0 s=1e+12 pert=0 raw_relerr=2.06e-16 eqp_relerr=2.06e-16 refused=0 walk_status=0 walk_relerr=2.06e-16
+SEQ_EQP n=5 pert=1 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=0 polish=1 | POST etaD loop=4.02e-17 prox=2.68e-17 post=2.68e-17
+SEQ_F3 coupled=1 s=1e+00 pert=1 raw_relerr=2.02e-16 eqp_relerr=1.62e-16 refused=0 walk_status=0 walk_relerr=1.62e-16
+SEQ_EQP n=5 pert=1 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=0 polish=0 | POST etaD loop=5.32e-10 prox=3.20e-17 post=3.20e-17
+SEQ_F3 coupled=1 s=1e+04 pert=1 raw_relerr=7.84e-09 eqp_relerr=2.53e-16 refused=0 walk_status=0 walk_relerr=2.53e-16
+SEQ_EQP n=5 pert=1 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=0 polish=2 | POST etaD loop=2.00e-06 prox=5.92e-13 post=5.92e-13
+SEQ_F3 coupled=1 s=1e+06 pert=1 raw_relerr=4.89e-05 eqp_relerr=1.62e-16 refused=0 walk_status=0 walk_relerr=1.62e-16
+SEQ_EQP n=5 pert=1 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=0 polish=0 | POST etaD loop=8.39e-03 prox=2.32e-04 post=2.32e-04
+SEQ_F3 coupled=1 s=1e+08 pert=1 raw_relerr=1.06e-01 eqp_relerr=4.35e-03 refused=0 walk_status=3 walk_relerr=1.00e+00
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=2.79e-01 prox=2.79e-01 post=2.79e-01
+SEQ_F3 coupled=1 s=1e+10 pert=2 raw_relerr=5.78e+18 eqp_relerr=6.08e+55 refused=1 walk_status=3 walk_relerr=6.08e+55
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_EQP n=5 pert=2 dkd=0 mu=0.0e+00 delta=0.0e+00 | refused=1 polish=0 | POST etaD loop=3.16e-01 prox=3.16e-01 post=3.16e-01
+SEQ_F3 coupled=1 s=1e+12 pert=2 raw_relerr=2.20e+25 eqp_relerr=9.60e+65 refused=1 walk_status=3 walk_relerr=6.08e+61

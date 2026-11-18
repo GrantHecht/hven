@@ -1,0 +1,14 @@
+post-refinement eta_D histogram (decade: count), the six restoration dumps + F3, baseline m8 3edf5ede4
+1e-17 2
+1e-16 2
+1e-15 4
+1e-13 5
+1e-11 3
+1e-10 34
+1e-9 310
+1e-8 37
+1e-7 4
+1e-6 6
+1e-4 1
+1e-2 4
+1e-1 28

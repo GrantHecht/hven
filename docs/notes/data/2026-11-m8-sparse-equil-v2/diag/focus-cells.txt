@@ -1,0 +1,8 @@
+focus cells, base = m8 3edf5ede4 lane, v2a = matched-session (MS) trigger design; hven-bench main + hb_patch_v2.py, THREADS=1 core 2, serial, dev runs (not a leg)
+CRESC100.default | base status=optimal iterations=40 factorizations=26023 | v2a status=optimal iterations=40 factorizations=26022 side.sparse_matched_refactors=1
+CRESC100.never-default | base status=infeasible iterations=25 factorizations=19813 | v2a status=optimal iterations=40 factorizations=12125 side.sparse_matched_refactors=3
+CRESC4.default | base status=optimal iterations=65 factorizations=570 | v2a status=optimal iterations=65 factorizations=570 side.sparse_matched_refactors=0
+CRESC4.never-default | base status=optimal iterations=48 factorizations=501 | v2a status=optimal iterations=48 factorizations=498 side.sparse_matched_refactors=3
+ALLINITC.never-default | base status=numerical_error iterations=78 factorizations=126 | v2a status=optimal iterations=28 factorizations=28 side.sparse_matched_refactors=20
+CRESC50.default | base status=max_iter iterations=240 factorizations=14180 | v2a status=max_iter iterations=232 factorizations=17954 side.sparse_matched_refactors=1
+CRESC50.never-default | base status=numerical_error iterations=138 factorizations=6117 | v2a status=numerical_error iterations=71 factorizations=5631 side.sparse_matched_refactors=31

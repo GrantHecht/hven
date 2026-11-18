@@ -1,0 +1,45 @@
+SEQ_MATCH n=546 pert=2 m_pert=0 m_in=288/258 | etaD m0=6.59e-17 m2=6.59e-17 | etaK m0=2.91e-20 m2=2.91e-20
+SEQ_FACT n=546 pert=2 in=288/258 | dkd_pert=2 dkd_in=288/258 | etaD raw0=3.47e-09 raw2=3.47e-09 dkd0=8.11e-09 dkd1=6.03e-09 | etaK raw0=3.59e-12 raw2=3.59e-12 dkd0=2.30e-12 dkd1=2.30e-12 | eigK 260/258/28 min=9.97e-09 max=4.08e+02 | eigDKD 288/258/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=546 pert=2 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=5.56e-12 final=6.06e-11 | etaD first=5.61e-10 final=6.59e-09 | lsD=-1.00e+00 | ratio=2.58e-14 refused=0 polish=0
+SEQ_MATCH n=546 pert=2 m_pert=0 m_in=288/258 | etaD m0=6.70e-17 m2=6.70e-17 | etaK m0=5.83e-20 m2=5.83e-20
+SEQ_FACT n=546 pert=2 in=288/258 | dkd_pert=2 dkd_in=288/258 | etaD raw0=7.19e-09 raw2=7.19e-09 dkd0=1.53e-08 dkd1=1.10e-08 | etaK raw0=6.57e-12 raw2=6.57e-12 dkd0=5.02e-12 dkd1=5.02e-12 | eigK 259/258/29 min=9.97e-09 max=4.08e+02 | eigDKD 288/258/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=546 pert=2 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.22e-11 final=5.10e-11 | etaD first=3.23e-09 final=5.55e-09 | lsD=-1.00e+00 | ratio=3.24e-10 refused=0 polish=0
+SEQ_MATCH n=545 pert=156 m_pert=3 m_in=287/258 | etaD m0=6.26e-12 m2=6.06e-17 | etaK m0=5.18e-16 m2=2.33e-20
+SEQ_FACT n=545 pert=156 in=281/264 | dkd_pert=142 dkd_in=283/262 | etaD raw0=8.03e-07 raw2=8.03e-07 dkd0=5.32e-09 dkd1=5.32e-09 | etaK raw0=7.42e-09 raw2=7.42e-09 dkd0=1.37e-12 dkd1=1.37e-12 | eigK 259/258/28 min=9.97e-09 max=4.08e+02 | eigDKD 287/258/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=545 pert=156 dkd=0 mu=0.0e+00 delta=1.0e-08 | etaK first=1.84e-08 final=3.52e-08 | etaD first=1.99e-06 final=3.82e-06 | lsD=-1.00e+00 | ratio=6.15e+02 refused=1 polish=0
+SEQ_MATCH n=545 pert=156 m_pert=3 m_in=287/258 | etaD m0=6.26e-12 m2=6.06e-17 | etaK m0=5.18e-16 m2=2.33e-20
+SEQ_FACT n=545 pert=156 in=281/264 | dkd_pert=142 dkd_in=283/262 | etaD raw0=8.03e-07 raw2=8.03e-07 dkd0=5.32e-09 dkd1=5.32e-09 | etaK raw0=7.42e-09 raw2=7.42e-09 dkd0=1.37e-12 dkd1=1.37e-12 | eigK 259/258/28 min=9.97e-09 max=4.08e+02 | eigDKD 287/258/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=545 pert=156 dkd=0 mu=0.0e+00 delta=1.0e-08 | etaK first=1.84e-08 final=3.52e-08 | etaD first=1.99e-06 final=3.82e-06 | lsD=-1.00e+00 | ratio=6.15e+02 refused=1 polish=0
+SEQ_MATCH n=545 pert=136 m_pert=2 m_in=288/257 | etaD m0=3.72e-02 m2=5.33e-11 | etaK m0=1.15e-06 m2=2.92e-15
+SEQ_FACT n=545 pert=136 in=288/257 | dkd_pert=136 dkd_in=288/257 | etaD raw0=4.33e-08 raw2=1.29e-14 dkd0=7.83e-11 dkd1=2.10e-16 | etaK raw0=1.61e-12 raw2=3.30e-19 dkd0=1.99e-15 dkd1=7.15e-21 | eigK 288/257/0 min=2.34e-06 max=4.08e+02 | eigDKD 288/257/0 min=2.28e-04 max=2.41e+00 | dmin=4.96e-02 dmax=6.45e+02
+SEQ_EQP n=545 pert=136 dkd=0 mu=0.0e+00 delta=2.8e-04 | etaK first=2.31e-12 final=4.71e-17 | etaD first=1.36e-10 final=4.75e-15 | lsD=-1.00e+00 | ratio=8.80e-15 refused=0 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.74e-17 m2=6.74e-17 | etaK m0=4.78e-20 m2=2.39e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=291/256 | etaD raw0=2.74e-05 raw2=3.41e-07 dkd0=6.06e-06 dkd1=6.06e-06 | etaK raw0=7.67e-08 raw2=6.50e-11 dkd0=1.48e-08 dkd1=4.89e-09 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=1.56e-09 final=1.24e-11 | etaD first=6.33e-08 final=2.42e-09 | lsD=-1.00e+00 | ratio=5.45e-06 refused=0 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.65e-17 m2=6.58e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=292/255 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=1.18e+21 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=5.88e-17 m2=5.88e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=292/255 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=1.18e+21 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.74e-17 m2=6.74e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=293/254 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=4.63e+16 refused=1 polish=0
+SEQ_MATCH n=547 pert=162 m_pert=1 m_in=290/257 | etaD m0=5.70e-12 m2=3.37e-17 | etaK m0=5.06e-16 m2=2.39e-20
+SEQ_FACT n=547 pert=162 in=282/265 | dkd_pert=151 dkd_in=287/260 | etaD raw0=4.13e-09 raw2=4.13e-09 dkd0=7.49e-09 dkd1=7.49e-09 | etaK raw0=3.82e-11 raw2=3.82e-11 dkd0=3.13e-12 dkd1=3.13e-12 | eigK 260/257/30 min=9.97e-09 max=4.08e+02 | eigDKD 290/257/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=162 dkd=0 mu=0.0e+00 delta=1.0e-08 | etaK first=3.82e-11 final=3.82e-11 | etaD first=4.13e-09 final=4.13e-09 | lsD=-1.00e+00 | ratio=1.64e+04 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.74e-17 m2=6.74e-17 | etaK m0=4.78e-20 m2=2.39e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=291/256 | etaD raw0=2.74e-05 raw2=3.41e-07 dkd0=6.06e-06 dkd1=6.06e-06 | etaK raw0=7.67e-08 raw2=6.50e-11 dkd0=1.48e-08 dkd1=4.89e-09 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=1.56e-09 final=1.24e-11 | etaD first=6.33e-08 final=2.42e-09 | lsD=-1.00e+00 | ratio=5.45e-06 refused=0 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.65e-17 m2=6.58e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=292/255 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=1.18e+21 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=5.88e-17 m2=5.88e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=292/255 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=1.18e+21 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.74e-17 m2=6.74e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=291/256 | dkd_pert=1 dkd_in=293/254 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 260/256/31 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=4.63e+16 refused=1 polish=0
+SEQ_MATCH n=547 pert=1 m_pert=0 m_in=291/256 | etaD m0=6.74e-17 m2=6.74e-17 | etaK m0=4.78e-20 m2=4.78e-20
+SEQ_FACT n=547 pert=1 in=292/255 | dkd_pert=1 dkd_in=293/254 | etaD raw0=2.50e-01 raw2=2.50e-01 dkd0=2.50e-01 dkd1=2.50e-01 | etaK raw0=3.67e-03 raw2=3.67e-03 dkd0=3.67e-03 dkd1=3.67e-03 | eigK 261/256/30 min=9.97e-09 max=4.08e+02 | eigDKD 291/256/0 min=8.27e-09 max=2.41e+00 | dmin=4.96e-02 dmax=1.98e+02
+SEQ_EQP n=547 pert=1 dkd=0 mu=1.0e-08 delta=1.0e-08 | etaK first=3.67e-03 final=3.67e-03 | etaD first=2.50e-01 final=2.50e-01 | lsD=-1.00e+00 | ratio=1.18e+21 refused=1 polish=0
