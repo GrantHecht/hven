@@ -1,0 +1,1437 @@
+MOVER NEUTRAL  hs-hven-sqp-hs003.D
+    base: status=optimal iterations=4 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=4 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.border_refine_steps: 11 -> 10; side.eqp_polish_steps: 5 -> 6
+MOVER NEUTRAL  hs-hven-sqp-hs005.K
+    base: status=optimal iterations=4 objective=-1.9132229549810362 reference_abs_err=2.2204460492503131e-16 elastic_activations=0 restoration_iters=0 qp_minor_iters=9
+    new:  status=optimal iterations=4 objective=-1.9132229549810362 reference_abs_err=2.2204460492503131e-16 elastic_activations=0 restoration_iters=0 qp_minor_iters=9
+    diff: side.border_refine_steps: 10 -> 9; side.eqp_polish_steps: 6 -> 7
+MOVER NEUTRAL  hs-hven-sqp-hs006.D
+    base: status=optimal iterations=8 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    new:  status=optimal iterations=8 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    diff: side.border_refine_steps: 26 -> 25; side.eqp_polish_steps: 33 -> 32
+MOVER NEUTRAL  hs-hven-sqp-hs006.K
+    base: status=optimal iterations=8 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    new:  status=optimal iterations=8 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    diff: side.border_refine_steps: 26 -> 25
+MOVER NEUTRAL  hs-hven-sqp-hs007.D
+    base: status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=1.0733642863414161e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=1.0733642863414161e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.eqp_polish_steps: 37 -> 36
+MOVER NEUTRAL  hs-hven-sqp-hs007.K
+    base: status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=1.0733642863414161e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=1.0733642863414161e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.border_refine_steps: 32 -> 31; side.eqp_polish_steps: 40 -> 36
+MOVER NEUTRAL  hs-hven-sqp-hs010.D
+    base: status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    new:  status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    diff: side.border_refine_steps: 195 -> 193; side.eqp_polish_steps: 167 -> 163; side.eqp_refine_iters: 10 -> 7
+MOVER NEUTRAL  hs-hven-sqp-hs010.K
+    base: status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    new:  status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    diff: side.border_refine_steps: 195 -> 192; side.eqp_polish_steps: 167 -> 164; side.eqp_refine_iters: 14 -> 11
+MOVER NEUTRAL  hs-hven-sqp-hs011.D
+    base: status=optimal iterations=7 objective=-8.4984642243504283 reference_abs_err=1.1957510537285998e-09 elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    new:  status=optimal iterations=7 objective=-8.4984642243504283 reference_abs_err=1.1957510537285998e-09 elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    diff: side.border_refine_steps: 66 -> 53; side.eqp_polish_steps: 55 -> 49
+MOVER NEUTRAL  hs-hven-sqp-hs011.K
+    base: status=optimal iterations=7 objective=-8.4984642243504283 reference_abs_err=1.1957510537285998e-09 elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    new:  status=optimal iterations=7 objective=-8.4984642243504283 reference_abs_err=1.1957510537285998e-09 elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    diff: side.border_refine_steps: 66 -> 53; side.eqp_polish_steps: 58 -> 59
+MOVER NEUTRAL  hs-hven-sqp-hs012.D
+    base: status=optimal iterations=6 objective=-30.000000000910362 reference_abs_err=9.1036156391055556e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=6 objective=-30.000000000910362 reference_abs_err=9.1036156391055556e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 17 -> 19
+MOVER NEUTRAL  hs-hven-sqp-hs012.K
+    base: status=optimal iterations=6 objective=-30.000000000910362 reference_abs_err=9.1036156391055556e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=6 objective=-30.000000000910362 reference_abs_err=9.1036156391055556e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 15 -> 16
+MOVER NEUTRAL  hs-hven-sqp-hs014.D
+    base: status=optimal iterations=5 objective=1.3934649806878856 reference_abs_err=1.4159784456069247e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=5 objective=1.3934649806878856 reference_abs_err=1.4159784456069247e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.eqp_polish_steps: 12 -> 10
+MOVER NEUTRAL  hs-hven-sqp-hs014.K
+    base: status=optimal iterations=5 objective=1.3934649806878856 reference_abs_err=1.4159784456069247e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=5 objective=1.3934649806878863 reference_abs_err=1.4153123117921496e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: kkt_primal_eq: 0 -> 1.1102230246251565e-16; side.eqp_polish_steps: 14 -> 7
+MOVER NEUTRAL  hs-hven-sqp-hs022.D
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: side.border_refine_steps: 7 -> 6; side.eqp_polish_steps: 4 -> 6
+MOVER NEUTRAL  hs-hven-sqp-hs022.K
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: side.border_refine_steps: 7 -> 6
+MOVER NEUTRAL  hs-hven-sqp-hs026.D
+    base: status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.border_refine_steps: 38 -> 37; side.eqp_polish_steps: 40 -> 39
+MOVER NEUTRAL  hs-hven-sqp-hs026.K
+    base: status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.eqp_polish_steps: 46 -> 47
+MOVER NEUTRAL  hs-hven-sqp-hs027.D
+    base: status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=0 elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    new:  status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=0 elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 33 -> 35
+MOVER NEUTRAL  hs-hven-sqp-hs027.K
+    base: status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=0 elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    new:  status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=0 elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 31 -> 29
+MOVER NEUTRAL  hs-hven-sqp-hs028.D
+    base: status=optimal iterations=3 objective=4.9303806576313238e-32 reference_abs_err=4.9303806576313238e-32 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=3 objective=1.1093356479670479e-31 reference_abs_err=1.1093356479670479e-31 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: kkt_primal_eq: 2.2204460492503131e-16 -> 0; side.sqp_feasibility: 2.2204460492503131e-16 -> 0
+MOVER NEUTRAL  hs-hven-sqp-hs028.K
+    base: status=optimal iterations=3 objective=1.1093356479670479e-31 reference_abs_err=1.1093356479670479e-31 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=3 objective=4.9303806576313238e-32 reference_abs_err=4.9303806576313238e-32 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: kkt_primal_eq: 0 -> 2.2204460492503131e-16; side.eqp_polish_steps: 9 -> 8; side.sqp_feasibility: 0 -> 2.2204460492503131e-16
+MOVER NEUTRAL  hs-hven-sqp-hs030.D
+    base: status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=2.384185791015625e-07 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=2.384185791015625e-07 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 34 -> 25; side.eqp_polish_steps: 30 -> 28
+MOVER NEUTRAL  hs-hven-sqp-hs030.K
+    base: status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=2.384185791015625e-07 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=2.384185791015625e-07 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 36 -> 26; side.eqp_polish_steps: 27 -> 20
+MOVER NEUTRAL  hs-hven-sqp-hs033.D
+    base: status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=0.58578643765311922 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=0.58578643765311922 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 27 -> 17
+MOVER NEUTRAL  hs-hven-sqp-hs033.K
+    base: status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=0.58578643765311922 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=0.58578643765311922 elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 31 -> 21
+MOVER NEUTRAL  hs-hven-sqp-hs035.D
+    base: status=optimal iterations=1 objective=0.11111111111111183 reference_abs_err=7.2164496600635175e-16 elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    new:  status=optimal iterations=1 objective=0.11111111111111027 reference_abs_err=8.3266726846886741e-16 elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    diff: kkt_complementarity: 0 -> 9.8686491077791699e-17; side.sqp_complementarity: 0 -> 9.8686491077791699e-17
+MOVER NEUTRAL  hs-hven-sqp-hs039.D
+    base: status=optimal iterations=9 objective=-1.0000000251936918 reference_abs_err=2.5193691799429985e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=9 objective=-1.0000000251936918 reference_abs_err=2.5193691799429985e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.eqp_polish_steps: 31 -> 25
+MOVER NEUTRAL  hs-hven-sqp-hs039.K
+    base: status=optimal iterations=9 objective=-1.0000000251936918 reference_abs_err=2.5193691799429985e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=9 objective=-1.0000000251936918 reference_abs_err=2.5193691799429985e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.eqp_polish_steps: 31 -> 26
+MOVER NEUTRAL  hs-hven-sqp-hs043.D
+    base: status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=1.9345449686625216e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=7 objective=-44.000000001934538 reference_abs_err=1.934537863235164e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    diff: side.border_refine_steps: 24 -> 23; side.eqp_polish_steps: 26 -> 23
+MOVER NEUTRAL  hs-hven-sqp-hs043.K
+    base: status=optimal iterations=7 objective=-44.000000001934552 reference_abs_err=1.9345520740898792e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=1.9345449686625216e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    diff: side.border_refine_steps: 24 -> 23; side.eqp_polish_steps: 27 -> 25
+MOVER NEUTRAL  hs-hven-sqp-hs045.D
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    diff: side.eqp_polish_steps: 24 -> 28
+MOVER NEUTRAL  hs-hven-sqp-hs045.K
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    diff: side.eqp_polish_steps: 26 -> 27
+MOVER NEUTRAL  hs-hven-sqp-hs077.D
+    base: status=optimal iterations=12 objective=0.24150512879002811 reference_abs_err=1.2099719004510234e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=29
+    new:  status=optimal iterations=12 objective=0.24150512879002822 reference_abs_err=1.209971789428721e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=29
+    diff: side.eqp_polish_steps: 35 -> 38
+MOVER NEUTRAL  hs-hven-sqp-hs077.K
+    base: status=optimal iterations=12 objective=0.24150512879002811 reference_abs_err=1.2099719004510234e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=29
+    new:  status=optimal iterations=12 objective=0.24150512879002811 reference_abs_err=1.2099719004510234e-09 elastic_activations=0 restoration_iters=0 qp_minor_iters=29
+    diff: side.eqp_polish_steps: 35 -> 36
+MOVER NEUTRAL  hs-hven-sqp-hs079.K
+    base: status=optimal iterations=4 objective=0.078776821223127486 reference_abs_err=3.2312748310392436e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=4 objective=0.078776821223127486 reference_abs_err=3.2312748310392436e-10 elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: side.eqp_polish_steps: 11 -> 9
+MOVER NEUTRAL  hs-hven-sqp-hs071.D
+    base: status=optimal iterations=5 objective=17.014017287124126 reference_abs_err=1.2875872812401212e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=17
+    new:  status=optimal iterations=5 objective=17.014017287124123 reference_abs_err=1.2875876365114891e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=17
+    diff: side.border_refine_steps: 19 -> 16
+MOVER NEUTRAL  hs-hven-sqp-hs071.K
+    base: status=optimal iterations=5 objective=17.014017287124126 reference_abs_err=1.2875872812401212e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=17
+    new:  status=optimal iterations=5 objective=17.014017287124123 reference_abs_err=1.2875876365114891e-08 elastic_activations=0 restoration_iters=0 qp_minor_iters=17
+    diff: side.border_refine_steps: 19 -> 16; side.eqp_polish_steps: 23 -> 25
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.D
+    base: status=optimal iterations=11 objective=576.89242601367209 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=615
+    new:  status=optimal iterations=6 objective=576.89242601380317 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=339
+    diff: eval_f: 12 -> 7; eval_g: 12 -> 7; eval_hess: 12 -> 7; eval_jac: 13 -> 8; factorizations: 488 -> 305; iterations: 11 -> 6; side.active_set_delta_peak: 11 -> 8; side.active_set_delta_total: 35 -> 15; side.border_refine_steps: 512 -> 255; side.eqp_polish_steps: 261 -> 204; side.eqp_refine_iters: 10 -> 0; side.eqp_row_drift_refusals: 0 -> 3
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.K
+    base: status=optimal iterations=11 objective=576.89242601367209 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=615
+    new:  status=optimal iterations=6 objective=576.89242601380317 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=339
+    diff: eval_f: 12 -> 7; eval_g: 12 -> 7; eval_hess: 12 -> 7; eval_jac: 13 -> 8; factorizations: 488 -> 305; iterations: 11 -> 6; side.active_set_delta_peak: 11 -> 8; side.active_set_delta_total: 35 -> 15; side.border_refine_steps: 512 -> 255; side.eqp_polish_steps: 261 -> 204; side.eqp_refine_iters: 10 -> 0; side.eqp_row_drift_refusals: 0 -> 3
+MOVER WORSE    sd-hven-sqp-ALLINITC.D
+    base: status=optimal iterations=28 objective=30.496551463753864 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=57
+    new:  status=max_iter iterations=300 objective=30.495264636307319 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=2135
+    diff: eval_f: 29 -> 437; eval_g: 29 -> 335; eval_hess: 29 -> 171; eval_jac: 29 -> 170; factorizations: 28 -> 842; iterations: 28 -> 300; kkt_primal_eq: 0 -> 2.2204460492503131e-16; kkt_primal_ineq: 0 -> 1.0635596847663464e-09; outcome: optimal -> dnf_budget; side.active_set_delta_total: 2 -> 206; side.border_refine_steps: 74 -> 1699; side.dense_factorizations: 52 -> 1105
+MOVER NEUTRAL  sd-hven-sqp-ALLINITC.K
+    base: status=numerical_error iterations=78 objective=30.482611087125367 reference_abs_err=null elastic_activations=7 restoration_iters=5 qp_minor_iters=377
+    new:  status=numerical_error iterations=133 objective=30.494141732781838 reference_abs_err=null elastic_activations=10 restoration_iters=6 qp_minor_iters=11907
+    diff: eval_f: 92 -> 161; eval_g: 88 -> 155; eval_hess: 60 -> 83; eval_jac: 47 -> 59; factorizations: 126 -> 9984; iterations: 78 -> 133; side.border_refine_steps: 353 -> 2076; side.elastic_activations: 7 -> 10; side.eqb_gram_factorizations: 3 -> 11; side.eqb_recomputes: 2 -> 10; side.eqp_polish_steps: 114 -> 5296; side.eqp_refine_iters: 0 -> 2
+MOVER NEUTRAL  sd-hven-sqp-ALSOTAME.D
+    base: status=optimal iterations=4 objective=0.082084998623922781 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    new:  status=optimal iterations=4 objective=0.082084998623922781 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    diff: side.border_refine_steps: 12 -> 11; side.eqp_polish_steps: 19 -> 14
+MOVER NEUTRAL  sd-hven-sqp-ALSOTAME.K
+    base: status=optimal iterations=4 objective=0.082084998623922781 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    new:  status=optimal iterations=4 objective=0.082084998623922781 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    diff: side.border_refine_steps: 12 -> 11
+MOVER NEUTRAL  sd-hven-sqp-BT11.D
+    base: status=optimal iterations=9 objective=0.82489177828992077 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=43
+    new:  status=optimal iterations=9 objective=0.82489177828992077 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=43
+    diff: side.border_refine_steps: 30 -> 27; side.dense_factorizations: 28 -> 27; side.eqp_polish_steps: 53 -> 46; side.harness_factorizations_total: 28 -> 27; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-BT11.K
+    base: status=optimal iterations=9 objective=0.82489177828992077 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=43
+    new:  status=optimal iterations=9 objective=0.824891778289921 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=43
+    diff: side.border_refine_steps: 30 -> 27; side.eqp_polish_steps: 49 -> 42; side.harness_factorizations_total: 28 -> 27; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-BT12.D
+    base: status=optimal iterations=9 objective=6.1881188118811883 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=104
+    new:  status=optimal iterations=9 objective=6.1881188118811883 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=104
+    diff: side.border_refine_steps: 122 -> 108; side.eqp_polish_steps: 107 -> 114; side.eqp_refine_iters: 2 -> 5
+MOVER NEUTRAL  sd-hven-sqp-BT12.K
+    base: status=optimal iterations=9 objective=6.1881188118811883 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=104
+    new:  status=optimal iterations=9 objective=6.1881188118811883 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=104
+    diff: side.border_refine_steps: 124 -> 110; side.eqp_polish_steps: 105 -> 103; side.harness_factorizations_total: 21 -> 23; side.terminal_polish_adopted: 0 -> 2; side.terminal_polish_solves: 0 -> 2
+MOVER NEUTRAL  sd-hven-sqp-BT2.D
+    base: status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    diff: side.border_refine_steps: 66 -> 61
+MOVER NEUTRAL  sd-hven-sqp-BT2.K
+    base: status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    diff: side.border_refine_steps: 65 -> 62; side.eqp_polish_steps: 68 -> 67; side.eqp_refine_iters: 4 -> 2
+MOVER NEUTRAL  sd-hven-sqp-BT6.D
+    base: status=optimal iterations=11 objective=0.27704478628230267 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=11 objective=0.27704478628230267 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.eqp_polish_steps: 25 -> 28
+MOVER NEUTRAL  sd-hven-sqp-BT6.K
+    base: status=optimal iterations=11 objective=0.27704478628230267 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=11 objective=0.27704478628230267 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.eqp_polish_steps: 28 -> 30
+MOVER NEUTRAL  sd-hven-sqp-BT7.D
+    base: status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1905
+    new:  status=optimal iterations=97 objective=360.37976717786489 reference_abs_err=null elastic_activations=89 restoration_iters=20 qp_minor_iters=1924
+    diff: eval_g: 117 -> 121; eval_hess: 69 -> 73; eval_jac: 69 -> 73; factorizations: 1428 -> 1466; side.border_refine_steps: 1359 -> 1171; side.dense_factorizations: 1487 -> 1468; side.eqp_polish_steps: 2339 -> 1935; side.eqp_refine_iters: 5 -> 3; side.eval_hess_calls: 67 -> 71; side.evals_full: 69 -> 73; side.factorizations: 1428 -> 1466; side.harness_eval_g: 117 -> 121
+MOVER NEUTRAL  sd-hven-sqp-BT7.K
+    base: status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1903
+    new:  status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1903
+    diff: factorizations: 1455 -> 1456; side.border_refine_steps: 1353 -> 1150; side.eqp_polish_steps: 2356 -> 1828; side.factorizations: 1455 -> 1456; side.harness_factorizations_total: 1515 -> 1456; side.harness_qpsum_dep_implied_passovers: 106 -> 105; side.harness_qpsum_dep_structural_first: 155 -> 154; side.harness_qpsum_ws_exchanges: 123 -> 124; side.harness_qpsum_ws_exchanges_bound: 123 -> 124; side.terminal_polish_adopted: 44 -> 1; side.terminal_polish_rejected: 17 -> 0; side.terminal_polish_solves: 60 -> 0
+MOVER NEUTRAL  sd-hven-sqp-BT8.D
+    base: status=optimal iterations=13 objective=1.0000000149011612 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=27
+    new:  status=optimal iterations=13 objective=1.0000000149011612 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=27
+    diff: side.border_refine_steps: 32 -> 30; side.eqp_polish_steps: 51 -> 29
+MOVER NEUTRAL  sd-hven-sqp-BT8.K
+    base: status=optimal iterations=13 objective=1.0000000149011612 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=27
+    new:  status=optimal iterations=13 objective=1.0000000149011612 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=27
+    diff: side.border_refine_steps: 32 -> 30; side.eqp_polish_steps: 48 -> 38
+MOVER NEUTRAL  sd-hven-sqp-BURKEHAN.D
+    base: status=infeasible iterations=57 objective=0 reference_abs_err=null elastic_activations=52 restoration_iters=1 qp_minor_iters=908
+    new:  status=infeasible iterations=57 objective=0 reference_abs_err=null elastic_activations=52 restoration_iters=1 qp_minor_iters=908
+    diff: side.border_refine_steps: 1019 -> 883; side.eqp_polish_steps: 534 -> 560; side.eqp_refine_iters: 13 -> 12
+MOVER NEUTRAL  sd-hven-sqp-BURKEHAN.K
+    base: status=infeasible iterations=57 objective=0 reference_abs_err=null elastic_activations=52 restoration_iters=1 qp_minor_iters=908
+    new:  status=infeasible iterations=57 objective=0 reference_abs_err=null elastic_activations=52 restoration_iters=1 qp_minor_iters=908
+    diff: side.border_refine_steps: 1066 -> 881; side.eqp_polish_steps: 545 -> 521; side.eqp_refine_iters: 6 -> 7
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.D
+    base: status=optimal iterations=40 objective=0.56760270787356015 reference_abs_err=null elastic_activations=9 restoration_iters=45 qp_minor_iters=23791
+    new:  status=optimal iterations=25 objective=0.56760271264829232 reference_abs_err=null elastic_activations=8 restoration_iters=42 qp_minor_iters=24284
+    diff: eval_f: 45 -> 28; eval_g: 101 -> 83; eval_hess: 51 -> 30; eval_jac: 64 -> 46; factorizations: 26023 -> 27468; iterations: 40 -> 25; side.active_set_delta_total: 63 -> 47; side.border_refine_steps: 19096 -> 21396; side.dense_factorizations: 6600 -> 6502; side.elastic_activations: 9 -> 8; side.eqp_polish_steps: 19469 -> 21044; side.eqp_refine_iters: 2465 -> 2383
+MOVER BETTER   sd-hven-sqp-CRESC100.K
+    base: status=infeasible iterations=25 objective=4.618293723662861e-09 reference_abs_err=null elastic_activations=10 restoration_iters=32 qp_minor_iters=18339
+    new:  status=optimal iterations=156 objective=0.56760271057083123 reference_abs_err=null elastic_activations=17 restoration_iters=56 qp_minor_iters=22399
+    diff: eval_f: 28 -> 248; eval_g: 65 -> 312; eval_hess: 32 -> 116; eval_jac: 43 -> 124; factorizations: 19813 -> 17325; iterations: 25 -> 156; outcome: infeasible -> optimal; side.active_set_delta_total: 40 -> 99; side.border_refine_steps: 15446 -> 22601; side.elastic_activations: 10 -> 17; side.eqp_polish_steps: 13319 -> 14597; side.eqp_refine_iters: 231 -> 173
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.D
+    base: status=optimal iterations=65 objective=0.8718975485408631 reference_abs_err=null elastic_activations=3 restoration_iters=4 qp_minor_iters=1240
+    new:  status=optimal iterations=83 objective=0.87189754866931002 reference_abs_err=null elastic_activations=5 restoration_iters=4 qp_minor_iters=1785
+    diff: eval_f: 91 -> 122; eval_g: 95 -> 126; eval_hess: 49 -> 59; eval_jac: 48 -> 58; factorizations: 570 -> 889; iterations: 65 -> 83; side.active_set_delta_peak: 4 -> 5; side.active_set_delta_total: 36 -> 32; side.border_refine_steps: 1477 -> 2062; side.dense_factorizations: 572 -> 891; side.elastic_activations: 3 -> 5; side.elastic_escalations: 12 -> 24
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.K
+    base: status=optimal iterations=48 objective=0.87189754866739555 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=843
+    new:  status=optimal iterations=119 objective=0.87189754867537317 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=2378
+    diff: eval_f: 56 -> 172; eval_g: 74 -> 193; eval_hess: 52 -> 87; eval_jac: 50 -> 85; factorizations: 501 -> 1256; iterations: 48 -> 119; side.active_set_delta_total: 28 -> 70; side.border_refine_steps: 1268 -> 3608; side.eqp_polish_steps: 949 -> 2878; side.eqp_refine_iters: 0 -> 24; side.eval_hess_calls: 49 -> 84; side.evals_full: 52 -> 87
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.D
+    base: status=max_iter iterations=240 objective=0.59346805137766978 reference_abs_err=null elastic_activations=8 restoration_iters=60 qp_minor_iters=13673
+    new:  status=max_iter iterations=248 objective=0.59344246940131029 reference_abs_err=null elastic_activations=11 restoration_iters=52 qp_minor_iters=13895
+    diff: eval_f: 423 -> 439; eval_g: 494 -> 503; eval_hess: 179 -> 173; eval_jac: 182 -> 178; factorizations: 14180 -> 14355; iterations: 240 -> 248; side.active_set_delta_total: 59 -> 63; side.border_refine_steps: 12523 -> 11519; side.dense_factorizations: 7968 -> 8333; side.elastic_activations: 8 -> 11; side.elastic_escalations: 0 -> 6; side.eqp_polish_steps: 10826 -> 11284
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.K
+    base: status=numerical_error iterations=138 objective=0.59596698581944807 reference_abs_err=null elastic_activations=4 restoration_iters=19 qp_minor_iters=11206
+    new:  status=numerical_error iterations=155 objective=0.59565386343690818 reference_abs_err=null elastic_activations=3 restoration_iters=20 qp_minor_iters=11072
+    diff: eval_f: 166 -> 185; eval_g: 193 -> 211; eval_hess: 86 -> 94; eval_jac: 93 -> 102; factorizations: 6117 -> 5956; iterations: 138 -> 155; side.active_set_delta_total: 93 -> 95; side.border_refine_steps: 15658 -> 14503; side.elastic_activations: 4 -> 3; side.eqp_polish_steps: 6848 -> 6565; side.eqp_refine_iters: 137 -> 91; side.eqp_residual_refusals: 14 -> 13
+MOVER NEUTRAL  sd-hven-sqp-DECONVC.D
+    base: status=optimal iterations=126 objective=2.0788530385055048e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3218
+    new:  status=optimal iterations=126 objective=2.0798302766721459e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3267
+    diff: factorizations: 1932 -> 1950; side.active_set_delta_total: 390 -> 392; side.border_refine_steps: 4217 -> 4255; side.dense_factorizations: 1939 -> 1960; side.eqp_polish_steps: 4005 -> 3925; side.factorizations: 1932 -> 1950; side.harness_factorizations_total: 1939 -> 1960; side.harness_qpsum_dep_dependent: 51 -> 52; side.harness_qpsum_dep_stall_admits: 27 -> 30; side.harness_qpsum_dep_structural_first: 11 -> 12; side.harness_qpsum_dep_test_solves: 4015 -> 4050; side.harness_qpsum_dep_tests: 2000 -> 2010
+MOVER NEUTRAL  sd-hven-sqp-DECONVC.K
+    base: status=optimal iterations=126 objective=2.0788223401773871e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3265
+    new:  status=optimal iterations=126 objective=2.0779203651027587e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3264
+    diff: factorizations: 2102 -> 2115; side.border_refine_steps: 5370 -> 5308; side.eqp_polish_steps: 4132 -> 4073; side.eqp_refine_iters: 1 -> 2; side.factorizations: 2102 -> 2115; side.harness_factorizations_total: 2110 -> 2121; side.harness_qpsum_border_uncertified_fallbacks: 16 -> 10; side.harness_qpsum_dep_stall_admits: 68 -> 65; side.harness_qpsum_dep_test_solves: 5508 -> 5523; side.harness_qpsum_dep_tests: 2010 -> 2013; side.harness_qpsum_reentry_exemptions: 19 -> 17; side.harness_qpsum_ride_declines_fallthrough_blocked: 18 -> 16
+MOVER WORSE    sd-hven-sqp-DEMBO7.D
+    base: status=optimal iterations=15 objective=174.78699436456208 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1348
+    new:  status=numerical_error iterations=35 objective=180.85021553618003 reference_abs_err=null elastic_activations=6 restoration_iters=19 qp_minor_iters=3860
+    diff: eval_f: 17 -> 37; eval_g: 55 -> 60; eval_hess: 28 -> 39; eval_jac: 27 -> 37; factorizations: 894 -> 1905; iterations: 15 -> 35; outcome: optimal -> error; side.active_set_delta_peak: 11 -> 12; side.active_set_delta_total: 39 -> 90; side.border_refine_steps: 1747 -> 4366; side.dense_factorizations: 894 -> 1913; side.dense_flagged_factorizations: 0 -> 3
+MOVER NEUTRAL  sd-hven-sqp-DEMBO7.K
+    base: status=optimal iterations=15 objective=174.78699436474761 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1340
+    new:  status=optimal iterations=22 objective=174.78699438146663 reference_abs_err=null elastic_activations=5 restoration_iters=12 qp_minor_iters=1221
+    diff: eval_f: 17 -> 24; eval_g: 55 -> 37; eval_hess: 28 -> 30; eval_jac: 27 -> 31; factorizations: 945 -> 1329; iterations: 15 -> 22; side.active_set_delta_peak: 11 -> 12; side.active_set_delta_total: 43 -> 61; side.border_refine_steps: 1741 -> 913; side.elastic_activations: 1 -> 5; side.elastic_escalations: 0 -> 24; side.eqp_polish_steps: 1033 -> 802
+MOVER NEUTRAL  sd-hven-sqp-DIXCHLNG.D
+    base: status=optimal iterations=10 objective=2471.897810938734 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=10 objective=2471.8978109388108 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.dense_factorizations: 11 -> 10; side.eqp_polish_steps: 37 -> 26; side.harness_factorizations_total: 11 -> 10; side.qp_minor_iters: 23 -> 24; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0; kkt_stationarity: 1.1118356724182377e-07 -> 1.1118407883259351e-07; side.sqp_kkt_residual: 1.1118356724182377e-07 -> 1.1118407883259351e-07; side.sqp_stationarity: 1.1118356724182377e-07 -> 1.1118407883259351e-07
+MOVER NEUTRAL  sd-hven-sqp-DIXCHLNG.K
+    base: status=optimal iterations=10 objective=2471.897810938734 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=10 objective=2471.8978109388108 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.eqp_polish_steps: 37 -> 28; side.harness_factorizations_total: 11 -> 10; side.qp_minor_iters: 23 -> 24; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0; kkt_stationarity: 1.1118413567601237e-07 -> 1.1118376619378978e-07; side.sqp_kkt_residual: 1.1118413567601237e-07 -> 1.1118376619378978e-07; side.sqp_stationarity: 1.1118413567601237e-07 -> 1.1118376619378978e-07
+MOVER NEUTRAL  sd-hven-sqp-DNIEPER.D
+    base: status=optimal iterations=5 objective=18744.014418731251 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=333
+    new:  status=optimal iterations=5 objective=18744.014418731284 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=333
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 311 -> 308; side.harness_qpsum_dep_test_solves: 461 -> 462; kkt_stationarity: 1.0214527890184399e-08 -> 1.0213898393729437e-08; side.sqp_kkt_residual: 1.0214527890184399e-08 -> 1.0213898393729437e-08; side.sqp_stationarity: 1.0214527890184399e-08 -> 1.0213898393729437e-08
+MOVER NEUTRAL  sd-hven-sqp-DNIEPER.K
+    base: status=optimal iterations=5 objective=18744.014418731262 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=334
+    new:  status=optimal iterations=5 objective=18744.01441873128 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=334
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 316 -> 305; side.harness_factorizations_total: 586 -> 585; side.harness_qpsum_dep_test_solves: 547 -> 549; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0; kkt_stationarity: 1.0214527890184399e-08 -> 1.0213912993162211e-08; side.sqp_kkt_residual: 1.0214527890184399e-08 -> 1.0213912993162211e-08; side.sqp_stationarity: 1.0214527890184399e-08 -> 1.0213912993162211e-08
+MOVER NEUTRAL  sd-hven-sqp-FLETCHER.D
+    base: status=infeasible iterations=1 objective=4 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=infeasible iterations=1 objective=4 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: kkt_stationarity: 2.2204460492503131e-16 -> 0; side.border_refine_steps: 10 -> 9; side.sqp_stationarity: 2.2204460492503131e-16 -> 0
+MOVER NEUTRAL  sd-hven-sqp-FLETCHER.K
+    base: status=infeasible iterations=1 objective=4 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=infeasible iterations=1 objective=4 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: side.border_refine_steps: 8 -> 7; side.eqp_polish_steps: 21 -> 20
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP2.D
+    base: status=optimal iterations=11 objective=-62.053935062796199 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=28
+    new:  status=optimal iterations=11 objective=-62.053935062796199 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=28
+    diff: side.border_refine_steps: 49 -> 48; side.eqp_polish_steps: 79 -> 78
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP2.K
+    base: status=optimal iterations=11 objective=-62.053935062796199 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=28
+    new:  status=optimal iterations=11 objective=-62.053935062796199 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=28
+    diff: side.border_refine_steps: 49 -> 48; side.eqp_polish_steps: 76 -> 75
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP3.D
+    base: status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    new:  status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    diff: side.eqp_polish_steps: 54 -> 53
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP3.K
+    base: status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    new:  status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    diff: side.eqp_polish_steps: 54 -> 53
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP4.D
+    base: status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    new:  status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    diff: side.eqp_polish_steps: 54 -> 53
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP4.K
+    base: status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    new:  status=optimal iterations=6 objective=-59.013177330121607 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=18
+    diff: side.eqp_polish_steps: 54 -> 53
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP6.D
+    base: status=optimal iterations=9 objective=-59.013177330121607 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=63
+    new:  status=optimal iterations=9 objective=-59.013177330121607 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=63
+    diff: side.border_refine_steps: 84 -> 81; side.dense_factorizations: 23 -> 20; side.eqp_polish_steps: 125 -> 124; side.harness_factorizations_total: 23 -> 20; side.terminal_polish_adopted: 3 -> 0; side.terminal_polish_solves: 3 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HIMMELP6.K
+    base: status=optimal iterations=9 objective=-59.013177330121607 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=63
+    new:  status=optimal iterations=9 objective=-59.013177330121607 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=63
+    diff: side.border_refine_steps: 86 -> 83; side.eqp_polish_steps: 121 -> 118; side.harness_factorizations_total: 22 -> 20; side.terminal_polish_adopted: 2 -> 0; side.terminal_polish_solves: 2 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS100.D
+    base: status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: side.eqp_polish_steps: 18 -> 22
+MOVER NEUTRAL  sd-hven-sqp-HS100.K
+    base: status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: side.eqp_polish_steps: 24 -> 23
+MOVER NEUTRAL  sd-hven-sqp-HS100LNP.K
+    base: status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    new:  status=optimal iterations=7 objective=680.63005738760614 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    diff: side.eqp_polish_steps: 19 -> 18
+MOVER NEUTRAL  sd-hven-sqp-HS100MOD.D
+    base: status=optimal iterations=7 objective=678.67963790270528 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=678.67963790270528 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: kkt_primal_ineq: 1.4210854715202004e-14 -> 0; side.eqp_polish_steps: 21 -> 22; side.sqp_feasibility: 1.4210854715202004e-14 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS100MOD.K
+    base: status=optimal iterations=7 objective=678.67963790270528 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=678.67963790270528 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: side.eqp_polish_steps: 21 -> 19
+MOVER NEUTRAL  sd-hven-sqp-HS101.D
+    base: status=optimal iterations=27 objective=1809.7647657918353 reference_abs_err=null elastic_activations=4 restoration_iters=19 qp_minor_iters=698
+    new:  status=optimal iterations=25 objective=1809.7647657929008 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=1306
+    diff: eval_f: 28 -> 27; eval_g: 57 -> 26; eval_hess: 36 -> 22; eval_jac: 36 -> 23; factorizations: 401 -> 56; iterations: 27 -> 25; side.active_set_delta_peak: 5 -> 4; side.active_set_delta_total: 44 -> 34; side.border_refine_steps: 1360 -> 3897; side.dense_factorizations: 413 -> 57; side.elastic_activations: 4 -> 3; side.elastic_escalations: 21 -> 18
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+    base: status=optimal iterations=28 objective=1809.7647657901796 reference_abs_err=null elastic_activations=4 restoration_iters=21 qp_minor_iters=806
+    new:  status=optimal iterations=25 objective=1809.7647657929001 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=1306
+    diff: eval_f: 30 -> 27; eval_g: 62 -> 27; eval_hess: 33 -> 22; eval_jac: 33 -> 23; factorizations: 542 -> 73; iterations: 28 -> 25; side.active_set_delta_peak: 5 -> 4; side.active_set_delta_total: 44 -> 34; side.border_refine_steps: 1479 -> 3897; side.elastic_activations: 4 -> 3; side.elastic_escalations: 21 -> 18; side.eqp_polish_steps: 1090 -> 1053
+MOVER NEUTRAL  sd-hven-sqp-HS102.D
+    base: status=optimal iterations=23 objective=911.88057153778061 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    new:  status=optimal iterations=23 objective=911.88057153778004 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=277
+    diff: side.border_refine_steps: 471 -> 394; side.dense_factorizations: 55 -> 52; side.eqp_polish_steps: 433 -> 461; side.harness_factorizations_total: 55 -> 52; side.qp_minor_iters: 275 -> 277; side.terminal_polish_adopted: 5 -> 2; side.terminal_polish_solves: 4 -> 1; kkt_stationarity: 4.5474735088646412e-12 -> 6.3664629124104977e-12; side.sqp_kkt_residual: 4.5474735088646412e-12 -> 6.3664629124104977e-12; side.sqp_stationarity: 4.5474735088646412e-12 -> 6.3664629124104977e-12
+MOVER NEUTRAL  sd-hven-sqp-HS102.K
+    base: status=optimal iterations=23 objective=911.88057153777993 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    new:  status=optimal iterations=23 objective=911.88057153778038 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=277
+    diff: side.border_refine_steps: 471 -> 397; side.eqp_polish_steps: 493 -> 455; side.harness_factorizations_total: 69 -> 67; side.harness_qpsum_dep_stall_admits: 2 -> 1; side.harness_qpsum_dep_test_solves: 460 -> 458; side.qp_minor_iters: 275 -> 277; side.terminal_polish_adopted: 4 -> 2; side.terminal_polish_solves: 3 -> 1; kkt_complementarity: 1.0002847815290351e-12 -> 4.8253962402183193e-13; kkt_stationarity: 3.637978807091713e-12 -> 9.0949470177292824e-12; side.sqp_complementarity: 1.0002847815290351e-12 -> 4.8253962402183193e-13; side.sqp_kkt_residual: 3.637978807091713e-12 -> 9.0949470177292824e-12
+MOVER NEUTRAL  sd-hven-sqp-HS103.D
+    base: status=optimal iterations=21 objective=543.66795850363519 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=21 objective=543.66795850371864 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=198
+    diff: side.border_refine_steps: 369 -> 281; side.dense_factorizations: 42 -> 40; side.eqp_polish_steps: 213 -> 218; side.harness_factorizations_total: 42 -> 40; side.qp_minor_iters: 201 -> 198; side.terminal_polish_adopted: 3 -> 2; side.terminal_polish_solves: 3 -> 1; kkt_complementarity: 1.0960306240494223e-08 -> 1.0936668724819951e-08; kkt_stationarity: 2.6063617042382248e-08 -> 2.6062309643748449e-08; side.sqp_complementarity: 1.0960306240494223e-08 -> 1.0936668724819951e-08; side.sqp_kkt_residual: 2.6063617042382248e-08 -> 2.6062309643748449e-08; side.sqp_stationarity: 2.6063617042382248e-08 -> 2.6062309643748449e-08
+MOVER NEUTRAL  sd-hven-sqp-HS103.K
+    base: status=optimal iterations=21 objective=543.6679585036353 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=21 objective=543.66795850371852 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=198
+    diff: side.border_refine_steps: 370 -> 284; side.eqp_polish_steps: 219 -> 238; side.harness_factorizations_total: 49 -> 45; side.qp_minor_iters: 201 -> 198; side.terminal_polish_adopted: 4 -> 2; side.terminal_polish_solves: 4 -> 0; kkt_complementarity: 1.095988951641766e-08 -> 1.0936830784183062e-08; kkt_stationarity: 2.6062650704261614e-08 -> 2.606304860819364e-08; side.sqp_complementarity: 1.095988951641766e-08 -> 1.0936830784183062e-08; side.sqp_kkt_residual: 2.6062650704261614e-08 -> 2.606304860819364e-08; side.sqp_stationarity: 2.6062650704261614e-08 -> 2.606304860819364e-08
+MOVER NEUTRAL  sd-hven-sqp-HS104.D
+    base: status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    diff: side.border_refine_steps: 95 -> 83; side.eqp_polish_steps: 90 -> 81
+MOVER NEUTRAL  sd-hven-sqp-HS104.K
+    base: status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=59
+    new:  status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=59
+    diff: side.border_refine_steps: 91 -> 80; side.eqp_polish_steps: 85 -> 95
+MOVER NEUTRAL  sd-hven-sqp-HS107.D
+    base: status=optimal iterations=5 objective=5055.0118033914514 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=5 objective=5055.011803391455 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    diff: side.border_refine_steps: 19 -> 16; side.eqp_polish_steps: 12 -> 15; side.qp_minor_iters: 14 -> 15; kkt_stationarity: 2.6346516618771908e-12 -> 2.1551580335651393e-12; side.sqp_kkt_residual: 2.6346516618771908e-12 -> 2.1551580335651393e-12; side.sqp_stationarity: 2.6346516618771908e-12 -> 2.1551580335651393e-12
+MOVER NEUTRAL  sd-hven-sqp-HS107.K
+    base: status=optimal iterations=5 objective=5055.0118033914569 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=5 objective=5055.0118033914559 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    diff: side.border_refine_steps: 21 -> 18; side.eqp_polish_steps: 14 -> 13; side.qp_minor_iters: 14 -> 15; kkt_stationarity: 6.7529886681066447e-13 -> 7.7773614701726383e-13; side.sqp_kkt_residual: 6.7529886681066447e-13 -> 7.7773614701726383e-13; side.sqp_stationarity: 6.7529886681066447e-13 -> 7.7773614701726383e-13
+MOVER NEUTRAL  sd-hven-sqp-HS108.D
+    base: status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=147
+    new:  status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=133
+    diff: factorizations: 42 -> 45; side.active_set_delta_peak: 7 -> 6; side.border_refine_steps: 169 -> 165; side.dense_factorizations: 42 -> 45; side.eqp_polish_steps: 208 -> 179; side.factorizations: 42 -> 45; side.harness_factorizations_total: 42 -> 45; side.harness_qpsum_border_uncertified_fallbacks: 2 -> 3; side.harness_qpsum_dep_test_solves: 131 -> 133; side.harness_qpsum_entry_dependency_removals: 2 -> 4; side.harness_qpsum_reentry_exemptions: 3 -> 2; side.harness_qpsum_ride_declines_fallthrough_blocked: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS108.K
+    base: status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=133
+    new:  status=optimal iterations=17 objective=-0.86602540439606024 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=206
+    diff: eval_f: 12 -> 18; eval_g: 12 -> 18; eval_hess: 11 -> 15; eval_jac: 12 -> 16; factorizations: 42 -> 93; iterations: 11 -> 17; side.active_set_delta_total: 36 -> 33; side.border_refine_steps: 163 -> 320; side.eqp_polish_steps: 192 -> 406; side.eqp_refine_iters: 0 -> 6; side.eval_hess_calls: 10 -> 14; side.evals_full: 11 -> 15
+MOVER NEUTRAL  sd-hven-sqp-HS11.D
+    base: status=optimal iterations=7 objective=-8.4984642243504265 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    new:  status=optimal iterations=7 objective=-8.4984642243504265 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    diff: side.border_refine_steps: 66 -> 53; side.eqp_polish_steps: 55 -> 49
+MOVER NEUTRAL  sd-hven-sqp-HS11.K
+    base: status=optimal iterations=7 objective=-8.4984642243504265 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    new:  status=optimal iterations=7 objective=-8.4984642243504265 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=50
+    diff: side.border_refine_steps: 66 -> 53; side.eqp_polish_steps: 58 -> 59
+MOVER NEUTRAL  sd-hven-sqp-HS111LNP.D
+    base: status=optimal iterations=25 objective=-47.76109102074409 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    new:  status=optimal iterations=25 objective=-47.761091020744082 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    diff: side.border_refine_steps: 459 -> 415; side.eqp_polish_steps: 555 -> 533
+MOVER NEUTRAL  sd-hven-sqp-HS111LNP.K
+    base: status=optimal iterations=25 objective=-47.76109102074409 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    new:  status=optimal iterations=25 objective=-47.76109102074409 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    diff: side.border_refine_steps: 456 -> 416; side.eqp_polish_steps: 594 -> 567
+MOVER NEUTRAL  sd-hven-sqp-HS113.D
+    base: status=optimal iterations=5 objective=24.30620895553357 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=5 objective=24.306208955533574 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.eqp_polish_steps: 28 -> 26
+MOVER NEUTRAL  sd-hven-sqp-HS113.K
+    base: status=optimal iterations=5 objective=24.30620895553357 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=5 objective=24.306208955533574 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 25 -> 24; side.eqp_polish_steps: 32 -> 27
+MOVER NEUTRAL  sd-hven-sqp-HS117.D
+    base: status=optimal iterations=8 objective=32.348678965723892 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    new:  status=optimal iterations=8 objective=32.348678965723892 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    diff: side.border_refine_steps: 62 -> 60; side.eqp_polish_steps: 72 -> 65
+MOVER NEUTRAL  sd-hven-sqp-HS117.K
+    base: status=optimal iterations=8 objective=32.348678965723884 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    new:  status=optimal iterations=8 objective=32.348678965723884 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    diff: kkt_primal_ineq: 4.4408920985006262e-15 -> 0; side.border_refine_steps: 61 -> 60; side.eqp_polish_steps: 74 -> 70; side.sqp_feasibility: 4.4408920985006262e-15 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS15.D
+    base: status=optimal iterations=7 objective=360.37976717409555 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=33
+    new:  status=optimal iterations=7 objective=360.37976717409555 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=33
+    diff: side.border_refine_steps: 57 -> 49; side.dense_factorizations: 9 -> 8; side.harness_factorizations_total: 9 -> 8; side.harness_qpsum_dep_dependent: 2 -> 3; side.harness_qpsum_dep_test_solves: 65 -> 66; side.harness_qpsum_dep_tests: 5 -> 6; side.harness_qpsum_ws_exchanges: 1 -> 2; side.harness_qpsum_ws_exchanges_bound: 1 -> 2; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS15.K
+    base: status=optimal iterations=7 objective=360.37976717409555 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=33
+    new:  status=optimal iterations=7 objective=360.3797671740956 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=33
+    diff: side.border_refine_steps: 59 -> 48; side.eqp_polish_steps: 46 -> 45; kkt_stationarity: 1.6825651982799172e-10 -> 1.6837020666571334e-10; side.sqp_kkt_residual: 1.6825651982799172e-10 -> 1.6837020666571334e-10; side.sqp_stationarity: 1.6825651982799172e-10 -> 1.6837020666571334e-10
+MOVER NEUTRAL  sd-hven-sqp-HS17.D
+    base: status=optimal iterations=9 objective=1.0000000000000067 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=9 objective=1.0000000000000067 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.border_refine_steps: 39 -> 34; side.eqp_polish_steps: 41 -> 36
+MOVER NEUTRAL  sd-hven-sqp-HS17.K
+    base: status=optimal iterations=9 objective=1.0000000000000067 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=9 objective=1.0000000000000067 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.border_refine_steps: 38 -> 33; side.eqp_polish_steps: 41 -> 32
+MOVER NEUTRAL  sd-hven-sqp-HS19.D
+    base: status=optimal iterations=8 objective=-6961.8138755801547 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=59
+    new:  status=optimal iterations=8 objective=-6961.8138755801465 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=59
+    diff: side.border_refine_steps: 91 -> 73; side.dense_factorizations: 16 -> 15; side.eqp_polish_steps: 96 -> 92; side.harness_factorizations_total: 16 -> 15; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0; kkt_stationarity: 6.8922645368729718e-13 -> 1.1368683772161603e-12; side.sqp_kkt_residual: 6.8922645368729718e-13 -> 1.1368683772161603e-12; side.sqp_stationarity: 6.8922645368729718e-13 -> 1.1368683772161603e-12
+MOVER NEUTRAL  sd-hven-sqp-HS19.K
+    base: status=optimal iterations=8 objective=-6961.8138755801547 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=59
+    new:  status=optimal iterations=8 objective=-6961.813875580151 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=59
+    diff: side.border_refine_steps: 91 -> 73; side.eqp_polish_steps: 95 -> 89; side.harness_factorizations_total: 16 -> 15; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0; kkt_stationarity: 9.0949470177292824e-13 -> 1.5489831639570184e-12; side.sqp_kkt_residual: 9.0949470177292824e-13 -> 1.5489831639570184e-12; side.sqp_stationarity: 9.0949470177292824e-13 -> 1.5489831639570184e-12
+MOVER NEUTRAL  sd-hven-sqp-HS22.D
+    base: status=optimal iterations=2 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: side.border_refine_steps: 7 -> 6; side.eqp_polish_steps: 4 -> 6
+MOVER NEUTRAL  sd-hven-sqp-HS22.K
+    base: status=optimal iterations=2 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=5
+    diff: side.border_refine_steps: 7 -> 6
+MOVER NEUTRAL  sd-hven-sqp-HS26.D
+    base: status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.border_refine_steps: 38 -> 37; side.eqp_polish_steps: 45 -> 44
+MOVER NEUTRAL  sd-hven-sqp-HS26.K
+    base: status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.eqp_polish_steps: 51 -> 50
+MOVER NEUTRAL  sd-hven-sqp-HS27.D
+    base: status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    new:  status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 33 -> 35
+MOVER NEUTRAL  sd-hven-sqp-HS27.K
+    base: status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    new:  status=optimal iterations=4 objective=0.040000000000000001 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=31
+    diff: side.border_refine_steps: 17 -> 16; side.eqp_polish_steps: 31 -> 32
+MOVER NEUTRAL  sd-hven-sqp-HS30.D
+    base: status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 34 -> 25; side.eqp_polish_steps: 30 -> 28
+MOVER NEUTRAL  sd-hven-sqp-HS30.K
+    base: status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    new:  status=optimal iterations=11 objective=1.0000002384185791 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=24
+    diff: side.border_refine_steps: 36 -> 26; side.eqp_polish_steps: 27 -> 20
+MOVER NEUTRAL  sd-hven-sqp-HS31.D
+    base: status=optimal iterations=5 objective=5.9999999937241135 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    new:  status=optimal iterations=5 objective=5.9999999937241117 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    diff: side.border_refine_steps: 14 -> 13; side.eqp_polish_steps: 13 -> 11
+MOVER NEUTRAL  sd-hven-sqp-HS31.K
+    base: status=optimal iterations=5 objective=5.9999999937241135 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    new:  status=optimal iterations=5 objective=5.9999999937241135 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=11
+    diff: side.border_refine_steps: 14 -> 13
+MOVER NEUTRAL  sd-hven-sqp-HS32.D
+    base: status=optimal iterations=1 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    new:  status=optimal iterations=1 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    diff: kkt_stationarity: 4.4408920985006262e-16 -> 0; side.sqp_kkt_residual: 4.4408920985006262e-16 -> 0; side.sqp_stationarity: 4.4408920985006262e-16 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS32.K
+    base: status=optimal iterations=1 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    new:  status=optimal iterations=1 objective=1 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3
+    diff: kkt_stationarity: 4.4408920985006262e-16 -> 0; side.eqp_polish_steps: 4 -> 5; side.sqp_kkt_residual: 4.4408920985006262e-16 -> 0; side.sqp_stationarity: 4.4408920985006262e-16 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS33.D
+    base: status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 27 -> 17
+MOVER NEUTRAL  sd-hven-sqp-HS33.K
+    base: status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    new:  status=optimal iterations=4 objective=-3.9999999999737859 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=16
+    diff: side.eqp_polish_steps: 31 -> 21
+MOVER NEUTRAL  sd-hven-sqp-HS40.D
+    base: status=optimal iterations=4 objective=-0.25000000000317785 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=4 objective=-0.25000000000317796 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: side.eqp_polish_steps: 10 -> 11
+MOVER NEUTRAL  sd-hven-sqp-HS40.K
+    base: status=optimal iterations=4 objective=-0.2500000000031779 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=4 objective=-0.25000000000317796 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: side.eqp_polish_steps: 7 -> 10
+MOVER NEUTRAL  sd-hven-sqp-HS42.D
+    base: status=optimal iterations=5 objective=13.85786437620356 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=5 objective=13.85786437620356 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.border_refine_steps: 12 -> 11; side.eqp_polish_steps: 11 -> 10
+MOVER NEUTRAL  sd-hven-sqp-HS42.K
+    base: status=optimal iterations=5 objective=13.857864376203555 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=5 objective=13.85786437620356 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.eqp_polish_steps: 10 -> 11
+MOVER NEUTRAL  sd-hven-sqp-HS43.D
+    base: status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    diff: side.border_refine_steps: 25 -> 23; side.eqp_polish_steps: 28 -> 24
+MOVER NEUTRAL  sd-hven-sqp-HS43.K
+    base: status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    new:  status=optimal iterations=7 objective=-44.000000001934545 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=23
+    diff: side.border_refine_steps: 24 -> 23; side.eqp_polish_steps: 31 -> 20
+MOVER NEUTRAL  sd-hven-sqp-HS46.D
+    base: status=optimal iterations=18 objective=4.0985805106243857e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=18 objective=4.1071766521248601e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.eqp_polish_steps: 52 -> 48; side.terminal_polish_adopted: 2 -> 1; side.terminal_polish_rejected: 1 -> 2; kkt_primal_eq: 5.0207243063038476e-07 -> 5.0260290418435716e-07; kkt_stationarity: 1.1510081854247214e-08 -> 1.1528169793501224e-08; side.sqp_feasibility: 5.0207243063038476e-07 -> 5.0260290418435716e-07; side.sqp_kkt_residual: 5.0207243063038476e-07 -> 5.0260290418435716e-07; side.sqp_stationarity: 1.1510081854247214e-08 -> 1.1528169793501224e-08
+MOVER NEUTRAL  sd-hven-sqp-HS46.K
+    base: status=optimal iterations=18 objective=4.0830356747035857e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=18 objective=4.0792400282335729e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.eqp_polish_steps: 47 -> 44; side.harness_factorizations_total: 20 -> 19; side.terminal_polish_adopted: 2 -> 3; side.terminal_polish_rejected: 1 -> 0; side.terminal_polish_solves: 2 -> 1; kkt_primal_eq: 5.0469304013756044e-07 -> 5.0445861810022308e-07; kkt_stationarity: 1.1477283298232636e-08 -> 1.1469285850702704e-08; side.sqp_feasibility: 5.0469304013756044e-07 -> 5.0445861810022308e-07; side.sqp_kkt_residual: 5.0469304013756044e-07 -> 5.0445861810022308e-07; side.sqp_stationarity: 1.1477283298232636e-08 -> 1.1469285850702704e-08
+MOVER NEUTRAL  sd-hven-sqp-HS56.D
+    base: status=optimal iterations=39 objective=-3.4560000072757782 reference_abs_err=null elastic_activations=14 restoration_iters=0 qp_minor_iters=551
+    new:  status=optimal iterations=18 objective=-3.456000000001938 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=109
+    diff: eval_f: 42 -> 22; eval_g: 42 -> 22; eval_hess: 29 -> 16; eval_jac: 30 -> 17; factorizations: 401 -> 35; iterations: 39 -> 18; side.border_refine_steps: 723 -> 169; side.dense_factorizations: 401 -> 35; side.elastic_activations: 14 -> 0; side.elastic_escalations: 84 -> 0; side.eqp_polish_steps: 817 -> 239; side.eqp_refine_iters: 6 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS56.K
+    base: status=optimal iterations=18 objective=-3.4560000000019393 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=125
+    new:  status=optimal iterations=18 objective=-3.4560000000019393 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=124
+    diff: side.border_refine_steps: 203 -> 184; side.eqp_polish_steps: 287 -> 282; side.harness_qpsum_dep_dependent: 22 -> 21; side.harness_qpsum_dep_pin_skips: 2 -> 0; side.harness_qpsum_dep_stall_admits: 3 -> 2; side.harness_qpsum_dep_structural_first: 2 -> 0; side.harness_qpsum_dep_test_solves: 218 -> 214; side.harness_qpsum_dep_tests: 71 -> 70; side.harness_qpsum_reentry_exemptions: 1 -> 0; side.harness_qpsum_ride_declines_fallthrough_blocked: 1 -> 0; side.harness_qpsum_ws_exchanges: 20 -> 21; side.harness_qpsum_ws_exchanges_bound: 20 -> 21
+MOVER NEUTRAL  sd-hven-sqp-HS59.D
+    base: status=optimal iterations=15 objective=-6.749504719659285 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=117
+    new:  status=optimal iterations=15 objective=-6.749504719659285 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=117
+    diff: side.border_refine_steps: 162 -> 152; side.dense_factorizations: 37 -> 36; side.eqp_polish_steps: 178 -> 176; side.harness_factorizations_total: 37 -> 36; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS59.K
+    base: status=optimal iterations=15 objective=-6.7495047196591145 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=117
+    new:  status=optimal iterations=15 objective=-6.749504719659285 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=117
+    diff: side.border_refine_steps: 160 -> 151; side.eqp_polish_steps: 177 -> 172
+MOVER NEUTRAL  sd-hven-sqp-HS6.D
+    base: status=optimal iterations=8 objective=0 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    new:  status=optimal iterations=8 objective=0 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    diff: side.border_refine_steps: 26 -> 25; side.eqp_polish_steps: 33 -> 32
+MOVER NEUTRAL  sd-hven-sqp-HS6.K
+    base: status=optimal iterations=8 objective=0 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    new:  status=optimal iterations=8 objective=0 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=21
+    diff: side.border_refine_steps: 26 -> 25
+MOVER NEUTRAL  sd-hven-sqp-HS60.D
+    base: status=optimal iterations=6 objective=0.032568201536143114 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=12
+    new:  status=optimal iterations=6 objective=0.032568201536143114 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=12
+    diff: side.eqp_polish_steps: 17 -> 15
+MOVER NEUTRAL  sd-hven-sqp-HS60.K
+    base: status=optimal iterations=6 objective=0.032568201536143114 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=12
+    new:  status=optimal iterations=6 objective=0.032568201536143114 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=12
+    diff: side.eqp_polish_steps: 12 -> 9
+MOVER NEUTRAL  sd-hven-sqp-HS61.D
+    base: status=optimal iterations=8 objective=-143.64614219783743 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=37
+    new:  status=optimal iterations=8 objective=-143.64614219783743 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=37
+    diff: side.border_refine_steps: 45 -> 37; side.eqp_polish_steps: 46 -> 36
+MOVER NEUTRAL  sd-hven-sqp-HS61.K
+    base: status=optimal iterations=8 objective=-143.64614219783743 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=37
+    new:  status=optimal iterations=8 objective=-143.64614219783743 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=37
+    diff: side.border_refine_steps: 45 -> 37; side.eqp_polish_steps: 44 -> 36
+MOVER NEUTRAL  sd-hven-sqp-HS63.D
+    base: status=optimal iterations=7 objective=961.715172130052 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    new:  status=optimal iterations=7 objective=961.715172130052 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    diff: side.border_refine_steps: 59 -> 51
+MOVER NEUTRAL  sd-hven-sqp-HS63.K
+    base: status=optimal iterations=7 objective=961.715172130052 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    new:  status=optimal iterations=7 objective=961.715172130052 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    diff: side.border_refine_steps: 58 -> 52; side.eqp_polish_steps: 74 -> 70
+MOVER NEUTRAL  sd-hven-sqp-HS64.D
+    base: status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    new:  status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    diff: side.border_refine_steps: 275 -> 221; side.dense_factorizations: 29 -> 24; side.eqp_polish_steps: 186 -> 179; side.harness_factorizations_total: 29 -> 24; side.terminal_polish_adopted: 6 -> 1; side.terminal_polish_solves: 6 -> 1
+MOVER NEUTRAL  sd-hven-sqp-HS64.K
+    base: status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    new:  status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    diff: side.border_refine_steps: 272 -> 221; side.eqp_polish_steps: 193 -> 174; side.harness_factorizations_total: 28 -> 24; side.terminal_polish_adopted: 5 -> 1; side.terminal_polish_solves: 5 -> 1
+MOVER NEUTRAL  sd-hven-sqp-HS67.D
+    base: status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    new:  status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    diff: side.border_refine_steps: 55 -> 52; side.eqp_polish_steps: 24 -> 27
+MOVER NEUTRAL  sd-hven-sqp-HS67.K
+    base: status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    new:  status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    diff: side.eqp_polish_steps: 26 -> 24
+MOVER NEUTRAL  sd-hven-sqp-HS68.D
+    base: status=optimal iterations=15 objective=-0.92042505349640014 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    new:  status=optimal iterations=15 objective=-0.92042505349639647 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    diff: side.border_refine_steps: 70 -> 59; side.eqp_polish_steps: 109 -> 102
+MOVER NEUTRAL  sd-hven-sqp-HS68.K
+    base: status=optimal iterations=15 objective=-0.92042505349639692 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    new:  status=optimal iterations=15 objective=-0.92042505349639803 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    diff: side.border_refine_steps: 71 -> 58; side.eqp_polish_steps: 114 -> 106
+MOVER NEUTRAL  sd-hven-sqp-HS7.K
+    base: status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    new:  status=optimal iterations=9 objective=-1.7320508086422415 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=25
+    diff: side.eqp_polish_steps: 38 -> 36
+MOVER NEUTRAL  sd-hven-sqp-HS70.D
+    base: status=optimal iterations=22 objective=0.0074984635749341007 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    new:  status=optimal iterations=22 objective=0.0074984635749341007 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    diff: side.border_refine_steps: 114 -> 113; side.eqp_polish_steps: 137 -> 131
+MOVER NEUTRAL  sd-hven-sqp-HS70.K
+    base: status=optimal iterations=22 objective=0.0074984635749338882 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    new:  status=optimal iterations=22 objective=0.0074984635749338882 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    diff: side.border_refine_steps: 114 -> 113; side.eqp_polish_steps: 132 -> 130
+MOVER NEUTRAL  sd-hven-sqp-HS74.D
+    base: status=optimal iterations=51 objective=5126.4981095978101 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=981
+    new:  status=optimal iterations=51 objective=5126.4981095978101 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=981
+    diff: side.border_refine_steps: 1106 -> 1111; side.dense_factorizations: 232 -> 224; side.eqp_polish_steps: 882 -> 824; side.eqp_refine_iters: 4 -> 57; side.harness_factorizations_total: 232 -> 224; side.harness_qpsum_dep_stall_admits: 67 -> 66; side.terminal_polish_adopted: 68 -> 63; side.terminal_polish_rejected: 1 -> 0; side.terminal_polish_solves: 67 -> 59
+MOVER NEUTRAL  sd-hven-sqp-HS74.K
+    base: status=optimal iterations=51 objective=5126.4981095978092 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=982
+    new:  status=optimal iterations=51 objective=5126.4981095978092 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=982
+    diff: factorizations: 165 -> 164; side.border_refine_steps: 1133 -> 1129; side.eqp_polish_steps: 823 -> 842; side.eqp_refine_iters: 65 -> 68; side.factorizations: 165 -> 164; side.harness_factorizations_total: 229 -> 200; side.harness_qpsum_dep_stall_admits: 68 -> 69; side.harness_qpsum_dep_test_solves: 2067 -> 2033; side.terminal_polish_adopted: 66 -> 38; side.terminal_polish_solves: 64 -> 36
+MOVER NEUTRAL  sd-hven-sqp-HS75.D
+    base: status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=976
+    new:  status=optimal iterations=50 objective=5174.4126953803807 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=976
+    diff: kkt_primal_ineq: 1.6077417175353048e-14 -> 0; side.border_refine_steps: 1108 -> 1201; side.dense_factorizations: 225 -> 218; side.eqp_polish_steps: 873 -> 762; side.eqp_refine_iters: 4 -> 33; side.harness_factorizations_total: 225 -> 218; side.harness_qpsum_dep_test_solves: 2013 -> 1962; side.terminal_polish_adopted: 68 -> 63; side.terminal_polish_solves: 68 -> 61; kkt_complementarity: 4.4679914967265365e-11 -> 5.7850558870030364e-14; kkt_stationarity: 9.0949470177292824e-13 -> 4.5474735088646412e-13; side.restoration_h_out: 8.242295734817162e-13 -> 9.379164112033322e-13
+MOVER NEUTRAL  sd-hven-sqp-HS75.K
+    base: status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=977
+    new:  status=optimal iterations=50 objective=5174.4126953803798 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=977
+    diff: kkt_primal_ineq: 1.6091294963160863e-14 -> 0; side.border_refine_steps: 1136 -> 1211; side.eqp_polish_steps: 850 -> 813; side.eqp_refine_iters: 74 -> 46; side.harness_factorizations_total: 204 -> 195; side.terminal_polish_adopted: 45 -> 40; side.terminal_polish_rejected: 2 -> 0; side.terminal_polish_solves: 47 -> 38; kkt_complementarity: 4.4718482006511938e-11 -> 3.8567039246686918e-14; kkt_stationarity: 9.0949470177292824e-13 -> 4.4408920985006262e-16; side.restoration_feas_out: 5.684341886080801e-13 -> 7.958078640513122e-13; side.restoration_h_out: 6.536993168992922e-13 -> 1.0231815394945443e-12
+MOVER NEUTRAL  sd-hven-sqp-HS79.D
+    base: status=optimal iterations=4 objective=0.078776821222442464 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    new:  status=optimal iterations=4 objective=0.078776821222442464 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=8
+    diff: side.eqp_polish_steps: 8 -> 10
+MOVER NEUTRAL  sd-hven-sqp-HS80.D
+    base: status=optimal iterations=7 objective=0.053949847766714805 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    new:  status=optimal iterations=7 objective=0.053949847766714805 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    diff: side.eqp_polish_steps: 20 -> 21
+MOVER NEUTRAL  sd-hven-sqp-HS80.K
+    base: status=optimal iterations=7 objective=0.053949847766714805 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    new:  status=optimal iterations=7 objective=0.053949847766714853 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    diff: side.eqp_polish_steps: 18 -> 16
+MOVER NEUTRAL  sd-hven-sqp-HS81.D
+    base: status=optimal iterations=24 objective=0.43885121993859871 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    new:  status=optimal iterations=24 objective=0.43885121993859855 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    diff: side.border_refine_steps: 270 -> 241; side.dense_factorizations: 45 -> 44; side.eqp_polish_steps: 347 -> 337; side.harness_factorizations_total: 45 -> 44; side.harness_qpsum_dep_test_solves: 344 -> 343; side.terminal_polish_adopted: 1 -> 0; side.terminal_polish_solves: 1 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS81.K
+    base: status=optimal iterations=24 objective=0.4388512199385986 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    new:  status=optimal iterations=24 objective=0.43885121993859877 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    diff: side.border_refine_steps: 269 -> 240; side.eqp_polish_steps: 362 -> 355; side.harness_factorizations_total: 59 -> 56; side.harness_qpsum_dep_test_solves: 344 -> 343; side.terminal_polish_adopted: 3 -> 0; side.terminal_polish_solves: 3 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS83.D
+    base: status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=12 objective=-30665.538671783317 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=201
+    diff: factorizations: 186 -> 185; kkt_complementarity: 0 -> 5.7307954582529583e-12; kkt_primal_ineq: 0 -> 1.4210854715202004e-14; kkt_stationarity: 5.6843418860808015e-14 -> 0; side.border_refine_steps: 125 -> 120; side.dense_factorizations: 186 -> 185; side.eqp_polish_steps: 250 -> 225; side.factorizations: 186 -> 185; side.harness_factorizations_total: 186 -> 185; side.harness_qpsum_border_uncertified_fallbacks: 13 -> 12; side.harness_qpsum_dep_stall_admits: 9 -> 10; side.harness_qpsum_dep_test_solves: 433 -> 434
+MOVER NEUTRAL  sd-hven-sqp-HS83.K
+    base: status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=205
+    new:  status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=205
+    diff: factorizations: 193 -> 192; side.border_refine_steps: 124 -> 119; side.eqp_polish_steps: 261 -> 220; side.factorizations: 193 -> 192; side.harness_factorizations_total: 193 -> 192; side.harness_qpsum_border_uncertified_fallbacks: 12 -> 11; side.harness_qpsum_dep_stall_admits: 9 -> 10; side.harness_qpsum_dep_test_solves: 433 -> 434
+MOVER NEUTRAL  sd-hven-sqp-HS84.D
+    base: status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    new:  status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    diff: side.eqp_polish_steps: 56 -> 57
+MOVER NEUTRAL  sd-hven-sqp-HS84.K
+    base: status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    new:  status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    diff: side.eqp_polish_steps: 54 -> 57
+MOVER NEUTRAL  sd-hven-sqp-HS85.D
+    base: status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    new:  status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    diff: side.eqp_polish_steps: 22 -> 23
+MOVER NEUTRAL  sd-hven-sqp-HS85.K
+    base: status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    new:  status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    diff: side.eqp_polish_steps: 25 -> 23
+MOVER NEUTRAL  sd-hven-sqp-HS88.D
+    base: status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    new:  status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    diff: side.border_refine_steps: 356 -> 296; side.dense_factorizations: 47 -> 44; side.eqp_polish_steps: 297 -> 249; side.harness_factorizations_total: 46 -> 43; side.terminal_polish_adopted: 3 -> 0; side.terminal_polish_solves: 3 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS88.K
+    base: status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    new:  status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    diff: side.border_refine_steps: 358 -> 296; side.eqp_polish_steps: 304 -> 247; side.harness_factorizations_total: 46 -> 43; side.terminal_polish_adopted: 3 -> 0; side.terminal_polish_solves: 3 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS89.D
+    base: status=optimal iterations=21 objective=1.3626568148875193 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    new:  status=optimal iterations=21 objective=1.3626568148875091 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=100
+    diff: side.border_refine_steps: 108 -> 105; side.dense_factorizations: 33 -> 25; side.eqp_polish_steps: 120 -> 107; side.harness_factorizations_total: 33 -> 25; side.qp_minor_iters: 88 -> 100; side.terminal_polish_adopted: 8 -> 0; side.terminal_polish_solves: 8 -> 0; kkt_stationarity: 4.7569104211220292e-10 -> 4.7592030316678802e-10; side.sqp_kkt_residual: 4.7569104211220292e-10 -> 4.7592030316678802e-10; side.sqp_stationarity: 4.7569104211220292e-10 -> 4.7592030316678802e-10
+MOVER NEUTRAL  sd-hven-sqp-HS89.K
+    base: status=optimal iterations=21 objective=1.3626568148492262 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    new:  status=optimal iterations=21 objective=1.362656814887417 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=100
+    diff: side.eqp_polish_steps: 116 -> 114; side.harness_factorizations_total: 33 -> 25; side.qp_minor_iters: 88 -> 100; side.terminal_polish_adopted: 7 -> 0; side.terminal_polish_rejected: 1 -> 0; side.terminal_polish_solves: 8 -> 0; kkt_complementarity: 4.0763915278549945e-11 -> 2.5692678400509951e-12; kkt_stationarity: 9.9234798156544457e-09 -> 4.7628190280590843e-10; objective: 1.3626568148492262 -> 1.362656814887417; side.sqp_complementarity: 4.0763915278549945e-11 -> 2.5692678400509951e-12; side.sqp_kkt_residual: 9.9234798156544457e-09 -> 4.7628190280590843e-10; side.sqp_stationarity: 9.9234798156544457e-09 -> 4.7628190280590843e-10
+MOVER NEUTRAL  sd-hven-sqp-HS90.D
+    base: status=optimal iterations=50 objective=1.3626567971288293 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    new:  status=optimal iterations=50 objective=1.3626567971288348 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=272
+    diff: side.border_refine_steps: 608 -> 383; side.dense_factorizations: 98 -> 89; side.eqp_polish_steps: 386 -> 376; side.harness_factorizations_total: 98 -> 89; side.qp_minor_iters: 255 -> 272; side.terminal_polish_adopted: 9 -> 0; side.terminal_polish_solves: 9 -> 0; kkt_stationarity: 3.5632254036244149e-08 -> 3.5631495531873725e-08; side.sqp_kkt_residual: 3.5632254036244149e-08 -> 3.5631495531873725e-08; side.sqp_stationarity: 3.5632254036244149e-08 -> 3.5631495531873725e-08
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+    base: status=optimal iterations=50 objective=1.3626567971288286 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    new:  status=optimal iterations=50 objective=1.3626567971288353 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=272
+    diff: side.border_refine_steps: 609 -> 383; side.eqp_polish_steps: 396 -> 371; side.harness_factorizations_total: 98 -> 89; side.qp_minor_iters: 255 -> 272; side.terminal_polish_adopted: 9 -> 0; side.terminal_polish_solves: 9 -> 0; kkt_stationarity: 3.5631680272985022e-08 -> 3.5631899208965478e-08; side.sqp_kkt_residual: 3.5631680272985022e-08 -> 3.5631899208965478e-08; side.sqp_stationarity: 3.5631680272985022e-08 -> 3.5631899208965478e-08
+MOVER NEUTRAL  sd-hven-sqp-HS91.D
+    base: status=optimal iterations=53 objective=1.3626567971142309 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=308
+    new:  status=optimal iterations=53 objective=1.3626567971142487 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=345
+    diff: side.border_refine_steps: 737 -> 460; side.dense_factorizations: 108 -> 88; side.eqp_polish_steps: 417 -> 428; side.harness_factorizations_total: 108 -> 88; side.qp_minor_iters: 308 -> 345; side.terminal_polish_adopted: 20 -> 0; side.terminal_polish_solves: 20 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS91.K
+    base: status=optimal iterations=57 objective=1.3626568148205342 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=327
+    new:  status=optimal iterations=53 objective=1.3626567971141574 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=345
+    diff: eval_f: 65 -> 60; eval_g: 62 -> 57; eval_hess: 45 -> 43; eval_jac: 46 -> 44; factorizations: 98 -> 88; iterations: 57 -> 53; side.border_refine_steps: 793 -> 460; side.eqp_polish_steps: 479 -> 403; side.eval_hess_calls: 44 -> 42; side.evals_full: 45 -> 43; side.evals_values: 21 -> 18; side.factorizations: 98 -> 88
+MOVER NEUTRAL  sd-hven-sqp-HS92.D
+    base: status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=789
+    new:  status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=789
+    diff: side.border_refine_steps: 1178 -> 958; side.eqp_polish_steps: 414 -> 498
+MOVER NEUTRAL  sd-hven-sqp-HS92.K
+    base: status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=769
+    new:  status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=769
+    diff: side.border_refine_steps: 1083 -> 892; side.eqp_polish_steps: 381 -> 401
+MOVER NEUTRAL  sd-hven-sqp-HS93.D
+    base: status=optimal iterations=7 objective=135.07596378168057 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=135.07596378168051 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: kkt_primal_ineq: 4.4408920985006262e-16 -> 0; side.border_refine_steps: 33 -> 30; side.eqp_polish_steps: 46 -> 40; side.sqp_feasibility: 4.4408920985006262e-16 -> 0
+MOVER NEUTRAL  sd-hven-sqp-HS93.K
+    base: status=optimal iterations=7 objective=135.07596378168054 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=135.07596378168051 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: kkt_primal_ineq: 0 -> 4.4408920985006262e-16; side.border_refine_steps: 33 -> 30; side.eqp_polish_steps: 49 -> 45; side.sqp_feasibility: 0 -> 4.4408920985006262e-16
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.D
+    base: status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=8722
+    new:  status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=8680
+    diff: factorizations: 11111 -> 11107; side.border_refine_steps: 4565 -> 4266; side.dense_factorizations: 11161 -> 11112; side.eqp_polish_steps: 2762 -> 1899; side.eqp_refine_iters: 97 -> 109; side.factorizations: 11111 -> 11107; side.harness_factorizations_total: 11161 -> 11112; side.harness_qpsum_dep_border_retreats: 1 -> 0; side.harness_qpsum_dep_dependent: 547 -> 537; side.harness_qpsum_dep_implied_passovers: 67 -> 61; side.harness_qpsum_dep_stall_admits: 135 -> 129; side.harness_qpsum_dep_test_solves: 6385 -> 6613
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+    base: status=max_iter iterations=47 objective=-42935256.249999806 reference_abs_err=null elastic_activations=47 restoration_iters=253 qp_minor_iters=9404
+    new:  status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=9433
+    diff: eval_f: 48 -> 52; eval_g: 424 -> 421; eval_hess: 143 -> 141; eval_jac: 143 -> 141; factorizations: 12568 -> 12591; iterations: 47 -> 50; side.border_refine_steps: 3966 -> 4227; side.elastic_activations: 47 -> 50; side.elastic_escalations: 282 -> 300; side.eqp_polish_steps: 2896 -> 1951; side.eqp_refine_iters: 685 -> 723; side.eqp_residual_refusals: 346 -> 359
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6384
+    new:  status=max_iter iterations=10 objective=707576381483.37219 reference_abs_err=null elastic_activations=12 restoration_iters=290 qp_minor_iters=74097
+    diff: eval_f: 13 -> 12; eval_g: 19 -> 565; eval_hess: 14 -> 13; eval_jac: 15 -> 272; factorizations: 5375 -> 51548; iterations: 11 -> 10; outcome: error -> dnf_budget; side.active_set_delta_total: 70 -> 67; side.border_refine_steps: 4075 -> 37677; side.elastic_escalations: 60 -> 54; side.eqp_polish_steps: 1345 -> 6075; side.eqp_refine_iters: 4843 -> 18531
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6384
+    new:  status=max_iter iterations=10 objective=707576381483.37219 reference_abs_err=null elastic_activations=12 restoration_iters=290 qp_minor_iters=74097
+    diff: eval_f: 13 -> 12; eval_g: 19 -> 565; eval_hess: 14 -> 13; eval_jac: 15 -> 272; factorizations: 5375 -> 51548; iterations: 11 -> 10; outcome: error -> dnf_budget; side.active_set_delta_total: 70 -> 67; side.border_refine_steps: 4075 -> 37677; side.elastic_escalations: 60 -> 54; side.eqp_polish_steps: 1345 -> 6075; side.eqp_refine_iters: 4843 -> 18531
+MOVER NEUTRAL  sd-hven-sqp-LAUNCH.D
+    base: status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    new:  status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    diff: side.border_refine_steps: 97 -> 95; side.eqp_polish_steps: 42 -> 43
+MOVER NEUTRAL  sd-hven-sqp-LAUNCH.K
+    base: status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    new:  status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    diff: side.border_refine_steps: 124 -> 123
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+    base: status=infeasible iterations=3 objective=3.0023907754190295 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=83
+    new:  status=infeasible iterations=3 objective=3.0023907754190295 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=83
+    diff: side.harness_qpsum_dep_dependent: 29 -> 30; side.harness_qpsum_dep_implied_passovers: 0 -> 1; side.harness_qpsum_dep_structural_first: 2 -> 3; side.harness_qpsum_dep_test_solves: 186 -> 188; side.harness_qpsum_dep_tests: 38 -> 39
+MOVER NEUTRAL  sd-hven-sqp-LOOTSMA.D
+    base: status=infeasible iterations=2 objective=0 reference_abs_err=null elastic_activations=2 restoration_iters=1 qp_minor_iters=37
+    new:  status=infeasible iterations=2 objective=0 reference_abs_err=null elastic_activations=2 restoration_iters=1 qp_minor_iters=38
+    diff: factorizations: 24 -> 28; side.border_refine_steps: 24 -> 26; side.dense_factorizations: 25 -> 28; side.eqp_polish_steps: 32 -> 21; side.factorizations: 24 -> 28; side.harness_factorizations_total: 25 -> 28; side.harness_qpsum_dep_dependent: 1 -> 2; side.harness_qpsum_dep_test_solves: 73 -> 75; side.harness_qpsum_dep_tests: 3 -> 5; side.harness_qpsum_ws_exchanges: 0 -> 1; side.harness_qpsum_ws_exchanges_bound: 0 -> 1; side.qp_minor_iters: 37 -> 38
+MOVER NEUTRAL  sd-hven-sqp-LOOTSMA.K
+    base: status=infeasible iterations=2 objective=0 reference_abs_err=null elastic_activations=2 restoration_iters=1 qp_minor_iters=40
+    new:  status=infeasible iterations=2 objective=0 reference_abs_err=null elastic_activations=2 restoration_iters=1 qp_minor_iters=40
+    diff: eval_f: 3 -> 4; side.border_refine_steps: 29 -> 28; side.eqp_polish_steps: 24 -> 26; side.evals_full: 5 -> 6; side.harness_eval_f: 3 -> 4; side.harness_eval_grad_f: 3 -> 4; side.harness_qpsum_dep_test_solves: 82 -> 83
+MOVER NEUTRAL  sd-hven-sqp-LSNNODOC.D
+    base: status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=6 objective=123.11244879144519 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    diff: kkt_primal_ineq: 0 -> 2.2204460492503131e-16; side.border_refine_steps: 23 -> 20; side.sqp_feasibility: 0 -> 2.2204460492503131e-16; side.sqp_kkt_residual: 0 -> 2.2204460492503131e-16
+MOVER NEUTRAL  sd-hven-sqp-LSNNODOC.K
+    base: status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=6 objective=123.11244879144519 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    diff: kkt_primal_ineq: 0 -> 2.2204460492503131e-16; side.border_refine_steps: 24 -> 21; side.eqp_polish_steps: 22 -> 27; side.sqp_feasibility: 0 -> 2.2204460492503131e-16; side.sqp_kkt_residual: 0 -> 2.2204460492503131e-16
+MOVER NEUTRAL  sd-hven-sqp-MATRIX2.D
+    base: status=optimal iterations=11 objective=2.3841857910156051e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    new:  status=optimal iterations=11 objective=2.3841857910156239e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    diff: side.border_refine_steps: 37 -> 26; side.eqp_polish_steps: 36 -> 37
+MOVER NEUTRAL  sd-hven-sqp-MATRIX2.K
+    base: status=optimal iterations=11 objective=2.3841857910156208e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    new:  status=optimal iterations=11 objective=2.384185791015562e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    diff: side.border_refine_steps: 37 -> 26; side.eqp_polish_steps: 36 -> 31
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+    base: status=max_iter iterations=273 objective=-8.1453339138274874 reference_abs_err=null elastic_activations=5 restoration_iters=27 qp_minor_iters=4011
+    new:  status=max_iter iterations=200 objective=-6.7406814141100018 reference_abs_err=null elastic_activations=11 restoration_iters=100 qp_minor_iters=2919
+    diff: eval_f: 275 -> 206; eval_g: 299 -> 296; eval_hess: 278 -> 231; eval_jac: 300 -> 283; factorizations: 7177 -> 4703; iterations: 273 -> 200; kkt_complementarity: 2.3651907687269022e-29 -> 0; kkt_primal_ineq: 3.2153189985897032e-41 -> 0; side.active_set_delta_total: 670 -> 91; side.border_refine_steps: 8092 -> 5271; side.dense_factorizations: 7395 -> 3721; side.dense_flagged_factorizations: 1068 -> 279
+MOVER NEUTRAL  sd-hven-sqp-MESH.K
+    base: status=infeasible iterations=5 objective=-0.24525331631627278 reference_abs_err=null elastic_activations=3 restoration_iters=55 qp_minor_iters=653
+    new:  status=infeasible iterations=7 objective=-4.0515757696575303 reference_abs_err=null elastic_activations=5 restoration_iters=6 qp_minor_iters=878
+    diff: eval_f: 7 -> 9; eval_g: 64 -> 15; eval_hess: 10 -> 11; eval_jac: 59 -> 14; factorizations: 707 -> 1038; iterations: 5 -> 7; side.active_set_delta_total: 27 -> 48; side.border_refine_steps: 2520 -> 1395; side.elastic_activations: 3 -> 5; side.elastic_escalations: 12 -> 24; side.eqp_polish_steps: 1280 -> 708; side.eqp_refine_iters: 157 -> 218
+MOVER NEUTRAL  sd-hven-sqp-MISTAKE.D
+    base: status=optimal iterations=10 objective=-1.0000000000015949 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=65
+    new:  status=optimal iterations=10 objective=-1.0000000000015261 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=64
+    diff: factorizations: 40 -> 39; side.border_refine_steps: 77 -> 76; side.dense_factorizations: 41 -> 43; side.eqp_polish_steps: 57 -> 54; side.factorizations: 40 -> 39; side.harness_factorizations_total: 41 -> 43; side.harness_qpsum_dep_dependent: 5 -> 3; side.harness_qpsum_dep_stall_admits: 5 -> 6; side.harness_qpsum_dep_test_solves: 106 -> 105; side.harness_qpsum_dep_tests: 23 -> 21; side.harness_qpsum_ws_exchanges: 4 -> 2; side.harness_qpsum_ws_exchanges_bound: 4 -> 2
+MOVER NEUTRAL  sd-hven-sqp-MISTAKE.K
+    base: status=optimal iterations=10 objective=-1.000000000001696 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=65
+    new:  status=optimal iterations=12 objective=-1.0000000133638429 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=82
+    diff: eval_f: 11 -> 13; eval_g: 11 -> 13; eval_hess: 11 -> 13; eval_jac: 12 -> 14; factorizations: 43 -> 66; iterations: 10 -> 12; side.active_set_delta_total: 16 -> 17; side.border_refine_steps: 82 -> 132; side.eqp_polish_steps: 53 -> 76; side.eqp_refine_iters: 1 -> 5; side.eqp_residual_refusals: 1 -> 2; side.eval_hess_calls: 10 -> 12
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+    base: status=numerical_error iterations=11 objective=-13.92313248994623 reference_abs_err=null elastic_activations=6 restoration_iters=42 qp_minor_iters=9003
+    new:  status=numerical_error iterations=10 objective=-0.30327378213019018 reference_abs_err=null elastic_activations=4 restoration_iters=43 qp_minor_iters=28386
+    diff: eval_f: 16 -> 12; eval_g: 45 -> 59; eval_hess: 30 -> 35; eval_jac: 39 -> 42; factorizations: 10656 -> 29763; iterations: 11 -> 10; side.border_refine_steps: 5516 -> 8219; side.elastic_activations: 6 -> 4; side.elastic_escalations: 6 -> 18; side.eqp_polish_steps: 12211 -> 26691; side.eqp_refine_iters: 2239 -> 3047; side.eqp_residual_refusals: 467 -> 504
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+    base: status=numerical_error iterations=31 objective=-15.565129858673044 reference_abs_err=null elastic_activations=12 restoration_iters=72 qp_minor_iters=9521
+    new:  status=numerical_error iterations=10 objective=-6.1055447502325535 reference_abs_err=null elastic_activations=5 restoration_iters=20 qp_minor_iters=6629
+    diff: eval_f: 41 -> 12; eval_g: 83 -> 31; eval_hess: 58 -> 15; eval_jac: 70 -> 22; factorizations: 9501 -> 7177; iterations: 31 -> 10; side.border_refine_steps: 10508 -> 5348; side.elastic_activations: 12 -> 5; side.elastic_escalations: 6 -> 12; side.eqp_polish_steps: 10544 -> 8140; side.eqp_refine_iters: 1826 -> 2797; side.eqp_residual_refusals: 175 -> 358
+MOVER NEUTRAL  sd-hven-sqp-MWRIGHT.D
+    base: status=optimal iterations=6 objective=24.978809531706066 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    new:  status=optimal iterations=6 objective=24.978809531706066 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    diff: side.eqp_polish_steps: 17 -> 16
+MOVER NEUTRAL  sd-hven-sqp-MWRIGHT.K
+    base: status=optimal iterations=6 objective=24.978809531706066 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    new:  status=optimal iterations=6 objective=24.978809531706066 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    diff: side.eqp_polish_steps: 18 -> 14
+MOVER NEUTRAL  sd-hven-sqp-NET1.D
+    base: status=optimal iterations=13 objective=941194.33167399233 reference_abs_err=null elastic_activations=1 restoration_iters=15 qp_minor_iters=787
+    new:  status=optimal iterations=14 objective=941194.33167399233 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=1039
+    diff: eval_f: 14 -> 15; eval_g: 33 -> 34; eval_hess: 29 -> 30; eval_jac: 28 -> 29; factorizations: 298 -> 587; iterations: 13 -> 14; side.active_set_delta_peak: 9 -> 14; side.active_set_delta_total: 10 -> 26; side.border_refine_steps: 1037 -> 1359; side.dense_factorizations: 158 -> 391; side.dense_flagged_factorizations: 0 -> 1; side.dense_singular_refactors: 0 -> 1
+MOVER NEUTRAL  sd-hven-sqp-NET1.K
+    base: status=optimal iterations=13 objective=941194.33167399233 reference_abs_err=null elastic_activations=1 restoration_iters=15 qp_minor_iters=846
+    new:  status=optimal iterations=14 objective=941194.33167399233 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=983
+    diff: eval_f: 14 -> 15; eval_g: 33 -> 34; eval_hess: 29 -> 30; eval_jac: 28 -> 29; factorizations: 371 -> 585; iterations: 13 -> 14; side.active_set_delta_peak: 9 -> 20; side.active_set_delta_total: 10 -> 38; side.border_refine_steps: 1228 -> 1463; side.elastic_activations: 1 -> 2; side.elastic_escalations: 0 -> 6; side.eqp_polish_steps: 578 -> 712
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.D
+    base: status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1553
+    new:  status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1553
+    diff: factorizations: 842 -> 841; side.border_refine_steps: 1963 -> 1906; side.dense_factorizations: 851 -> 849; side.eqp_polish_steps: 1027 -> 996; side.eqp_refine_iters: 96 -> 93; side.factorizations: 842 -> 841; side.harness_factorizations_total: 851 -> 849; side.harness_qpsum_border_uncertified_fallbacks: 320 -> 319; side.harness_qpsum_dep_dependent: 201 -> 202; side.harness_qpsum_dep_passovers: 0 -> 1; side.harness_qpsum_dep_stall_admits: 23 -> 25; side.harness_qpsum_dep_test_solves: 2335 -> 2345
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.K
+    base: status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1567
+    new:  status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1556
+    diff: factorizations: 1187 -> 1191; side.border_refine_steps: 3266 -> 2775; side.eqp_polish_steps: 1199 -> 1219; side.eqp_refine_iters: 510 -> 365; side.eqp_residual_refusals: 5 -> 8; side.factorizations: 1187 -> 1191; side.harness_factorizations_total: 1193 -> 1205; side.harness_qpsum_border_uncertified_fallbacks: 228 -> 216; side.harness_qpsum_dep_dependent: 210 -> 200; side.harness_qpsum_dep_inertia_reread_flips: 27 -> 53; side.harness_qpsum_dep_inertia_rereads: 30 -> 57; side.harness_qpsum_dep_stall_admits: 332 -> 294
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+    base: status=numerical_error iterations=22 objective=21889874510.078705 reference_abs_err=null elastic_activations=11 restoration_iters=10 qp_minor_iters=23158
+    new:  status=numerical_error iterations=22 objective=21921061447.069958 reference_abs_err=null elastic_activations=11 restoration_iters=10 qp_minor_iters=17315
+    diff: factorizations: 45318 -> 34616; side.active_set_delta_peak: 41 -> 46; side.active_set_delta_total: 62 -> 75; side.border_refine_steps: 1608 -> 1576; side.dense_factorizations: 23857 -> 18148; side.elastic_escalations: 32 -> 41; side.eqp_polish_steps: 7717 -> 5575; side.eqp_refine_iters: 14 -> 12; side.eqp_residual_refusals: 10 -> 8; side.eqp_row_drift_refusals: 36 -> 40; side.factorizations: 45318 -> 34616; side.harness_factorizations_total: 45351 -> 34660
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+    base: status=numerical_error iterations=23 objective=21850262140.24538 reference_abs_err=null elastic_activations=11 restoration_iters=10 qp_minor_iters=20309
+    new:  status=numerical_error iterations=22 objective=21888954603.412827 reference_abs_err=null elastic_activations=11 restoration_iters=10 qp_minor_iters=20198
+    diff: eval_f: 23 -> 22; eval_g: 23 -> 22; eval_hess: 44 -> 43; eval_jac: 24 -> 23; factorizations: 40039 -> 40475; iterations: 23 -> 22; side.active_set_delta_peak: 42 -> 41; side.active_set_delta_total: 64 -> 65; side.border_refine_steps: 1576 -> 1584; side.elastic_escalations: 24 -> 40; side.eqp_polish_steps: 4408 -> 9646; side.eqp_refine_iters: 12 -> 13
+MOVER NEUTRAL  sd-hven-sqp-SYNTHES1.D
+    base: status=optimal iterations=4 objective=0.75928439194034247 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    new:  status=optimal iterations=4 objective=0.75928439194034247 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    diff: side.border_refine_steps: 16 -> 13
+MOVER NEUTRAL  sd-hven-sqp-SYNTHES1.K
+    base: status=optimal iterations=4 objective=0.75928439194034425 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    new:  status=optimal iterations=4 objective=0.75928439194034247 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=13
+    diff: side.border_refine_steps: 16 -> 13; side.eqp_polish_steps: 10 -> 9
+MOVER NEUTRAL  sd-hven-sqp-TRY-B.D
+    base: status=optimal iterations=10 objective=4.4673600395431652e-21 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=54
+    new:  status=optimal iterations=10 objective=4.4673600395431652e-21 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=54
+    diff: side.border_refine_steps: 70 -> 56; side.eqp_polish_steps: 61 -> 57
+MOVER NEUTRAL  sd-hven-sqp-TRY-B.K
+    base: status=optimal iterations=10 objective=4.4673600395431652e-21 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=54
+    new:  status=optimal iterations=10 objective=4.4673600395431652e-21 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=54
+    diff: side.border_refine_steps: 71 -> 56; side.eqp_polish_steps: 62 -> 56
+MOVER NEUTRAL  sd-hven-sqp-TWOBARS.D
+    base: status=optimal iterations=7 objective=1.5086524174094553 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    new:  status=optimal iterations=7 objective=1.5086524174094553 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    diff: side.eqp_polish_steps: 23 -> 18
+MOVER NEUTRAL  sd-hven-sqp-TWOBARS.K
+    base: status=optimal iterations=7 objective=1.5086524174094553 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    new:  status=optimal iterations=7 objective=1.5086524174094553 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=19
+    diff: side.border_refine_steps: 21 -> 19; side.eqp_polish_steps: 23 -> 22
+MOVER NEUTRAL  sd-hven-sqp-WATER.D
+    base: status=optimal iterations=45 objective=10549.379466956934 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1526
+    new:  status=optimal iterations=46 objective=10549.379466956929 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1527
+    diff: eval_f: 47 -> 48; eval_g: 60 -> 61; eval_hess: 38 -> 39; eval_jac: 37 -> 38; factorizations: 243 -> 174; iterations: 45 -> 46; side.active_set_delta_peak: 20 -> 22; side.active_set_delta_total: 88 -> 92; side.border_refine_steps: 4018 -> 3616; side.dense_factorizations: 280 -> 190; side.eqp_polish_steps: 1940 -> 1220; side.eval_hess_calls: 36 -> 37
+MOVER NEUTRAL  sd-hven-sqp-WATER.K
+    base: status=optimal iterations=48 objective=10549.379466956936 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1602
+    new:  status=optimal iterations=45 objective=10549.37946695694 reference_abs_err=null elastic_activations=30 restoration_iters=170 qp_minor_iters=2570
+    diff: eval_f: 50 -> 47; eval_g: 67 -> 166; eval_hess: 44 -> 196; eval_jac: 43 -> 143; factorizations: 172 -> 374; iterations: 48 -> 45; side.active_set_delta_peak: 22 -> 21; side.active_set_delta_total: 56 -> 50; side.border_refine_steps: 4416 -> 8129; side.eqp_polish_steps: 1532 -> 2819; side.eval_hess_calls: 42 -> 194; side.evals_full: 45 -> 145
+MOVER NEUTRAL  sd-hven-sqp-ZECEVIC3.D
+    base: status=optimal iterations=6 objective=97.30945001012492 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=32
+    new:  status=optimal iterations=6 objective=97.30945001012492 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=32
+    diff: side.border_refine_steps: 42 -> 34; side.eqp_polish_steps: 27 -> 35
+MOVER NEUTRAL  sd-hven-sqp-ZECEVIC3.K
+    base: status=optimal iterations=6 objective=97.30945001012492 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=32
+    new:  status=optimal iterations=6 objective=97.30945001012492 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=32
+    diff: side.border_refine_steps: 42 -> 34; side.eqp_polish_steps: 32 -> 35
+MOVER NEUTRAL  sd-hven-sqp-ZECEVIC4.D
+    base: status=optimal iterations=7 objective=7.557507768981786 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    new:  status=optimal iterations=7 objective=7.557507768981786 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    diff: side.border_refine_steps: 49 -> 39; side.eqp_polish_steps: 40 -> 38
+MOVER NEUTRAL  sd-hven-sqp-ZECEVIC4.K
+    base: status=optimal iterations=7 objective=7.557507768981786 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    new:  status=optimal iterations=7 objective=7.557507768981786 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=38
+    diff: side.border_refine_steps: 49 -> 39; side.eqp_polish_steps: 38 -> 34
+MOVER NEUTRAL  sd-hven-sqp-ZY2.D
+    base: status=optimal iterations=4 objective=2.0000000000305183 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=4 objective=2.0000000000305183 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.eqp_polish_steps: 6 -> 3
+MOVER NEUTRAL  sd-hven-sqp-ZY2.K
+    base: status=optimal iterations=4 objective=2.0000000000305183 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=4 objective=2.0000000000305183 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.eqp_polish_steps: 7 -> 4
+
+SUMMARY rows 476; movers vs arm A 224 (better 1, worse 2, neutral 221); missing/capped 0
+residual values equal within the gate but not byte-equal: 537
+  INGATE BASE hs-hven-sqp-hs005.K kkt_stationarity: 1.7993191381293627e-09 -> 1.7993193601739677e-09
+  INGATE BASE hs-hven-sqp-hs005.K side.sqp_kkt_residual: 1.7993191381293627e-09 -> 1.7993193601739677e-09
+  INGATE BASE hs-hven-sqp-hs005.K side.sqp_stationarity: 1.7993191381293627e-09 -> 1.7993193601739677e-09
+  INGATE BASE hs-hven-sqp-hs006.K kkt_stationarity: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE hs-hven-sqp-hs006.K side.sqp_kkt_residual: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE hs-hven-sqp-hs006.K side.sqp_stationarity: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE hs-hven-sqp-hs010.D kkt_complementarity: 2.4811380736516797e-09 -> 2.4811380736516801e-09
+  INGATE BASE hs-hven-sqp-hs010.D kkt_stationarity: 4.1911665915606022e-08 -> 4.1911666026628325e-08
+  INGATE BASE hs-hven-sqp-hs010.D side.sqp_complementarity: 2.4811380736516797e-09 -> 2.4811380736516801e-09
+  INGATE BASE hs-hven-sqp-hs010.D side.sqp_kkt_residual: 4.1911665915606022e-08 -> 4.1911666026628325e-08
+  INGATE BASE hs-hven-sqp-hs010.D side.sqp_stationarity: 4.1911665915606022e-08 -> 4.1911666026628325e-08
+  INGATE BASE hs-hven-sqp-hs010.K kkt_complementarity: 2.4811380736516797e-09 -> 2.4811380736516801e-09
+  INGATE BASE hs-hven-sqp-hs010.K kkt_stationarity: 4.1911665915606022e-08 -> 4.191166580458372e-08
+  INGATE BASE hs-hven-sqp-hs010.K side.sqp_complementarity: 2.4811380736516797e-09 -> 2.4811380736516801e-09
+  INGATE BASE hs-hven-sqp-hs010.K side.sqp_kkt_residual: 4.1911665915606022e-08 -> 4.191166580458372e-08
+  INGATE BASE hs-hven-sqp-hs010.K side.sqp_stationarity: 4.1911665915606022e-08 -> 4.191166580458372e-08
+  INGATE BASE hs-hven-sqp-hs012.D kkt_complementarity: 9.1036511662329251e-10 -> 9.1036511662329262e-10
+  INGATE BASE hs-hven-sqp-hs012.D kkt_stationarity: 4.7899106903059874e-10 -> 4.7899284538743814e-10
+  INGATE BASE hs-hven-sqp-hs012.D side.sqp_complementarity: 9.1036511662329251e-10 -> 9.1036511662329262e-10
+  INGATE BASE hs-hven-sqp-hs012.D side.sqp_stationarity: 4.7899106903059874e-10 -> 4.7899284538743814e-10
+  INGATE BASE hs-hven-sqp-hs014.D kkt_complementarity: 1.4162286526267269e-12 -> 1.4162286526267267e-12
+  INGATE BASE hs-hven-sqp-hs014.D kkt_stationarity: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs014.D side.sqp_complementarity: 1.4162286526267269e-12 -> 1.4162286526267267e-12
+  INGATE BASE hs-hven-sqp-hs014.D side.sqp_kkt_residual: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs014.D side.sqp_stationarity: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs014.K kkt_complementarity: 1.4162286526267269e-12 -> 1.4158186269600718e-12
+  INGATE BASE hs-hven-sqp-hs014.K kkt_primal_ineq: 7.6694206541105814e-13 -> 7.6672002080613311e-13
+  INGATE BASE hs-hven-sqp-hs014.K kkt_stationarity: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs014.K objective: 1.3934649806878856 -> 1.3934649806878863
+  INGATE BASE hs-hven-sqp-hs014.K reference_abs_err: 1.4159784456069247e-12 -> 1.4153123117921496e-12
+  INGATE BASE hs-hven-sqp-hs014.K side.sqp_complementarity: 1.4162286526267269e-12 -> 1.4158186269600718e-12
+  INGATE BASE hs-hven-sqp-hs014.K side.sqp_feasibility: 7.6694206541105814e-13 -> 7.6672002080613311e-13
+  INGATE BASE hs-hven-sqp-hs014.K side.sqp_kkt_residual: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs014.K side.sqp_stationarity: 5.8134386193842147e-11 -> 5.8134830283051997e-11
+  INGATE BASE hs-hven-sqp-hs027.D kkt_stationarity: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs027.D side.sqp_kkt_residual: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs027.D side.sqp_stationarity: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs027.K kkt_stationarity: 8.8817841970012523e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs027.K side.sqp_kkt_residual: 8.8817841970012523e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs027.K side.sqp_stationarity: 8.8817841970012523e-16 -> 1.3322676295501878e-15
+  INGATE BASE hs-hven-sqp-hs028.D kkt_stationarity: 1.5074277121896133e-16 -> 2.576955244148459e-16
+  INGATE BASE hs-hven-sqp-hs028.D objective: 4.9303806576313238e-32 -> 1.1093356479670479e-31
+  INGATE BASE hs-hven-sqp-hs028.D reference_abs_err: 4.9303806576313238e-32 -> 1.1093356479670479e-31
+  INGATE BASE hs-hven-sqp-hs028.D side.sqp_kkt_residual: 2.2204460492503131e-16 -> 2.576955244148459e-16
+  INGATE BASE hs-hven-sqp-hs028.D side.sqp_stationarity: 1.5074277121896133e-16 -> 2.576955244148459e-16
+  INGATE BASE hs-hven-sqp-hs028.K kkt_stationarity: 3.7278737114798916e-16 -> 1.6653345161210526e-16
+  INGATE BASE hs-hven-sqp-hs028.K objective: 1.1093356479670479e-31 -> 4.9303806576313238e-32
+  INGATE BASE hs-hven-sqp-hs028.K reference_abs_err: 1.1093356479670479e-31 -> 4.9303806576313238e-32
+  INGATE BASE hs-hven-sqp-hs028.K side.sqp_kkt_residual: 3.7278737114798916e-16 -> 2.2204460492503131e-16
+  INGATE BASE hs-hven-sqp-hs028.K side.sqp_stationarity: 3.7278737114798916e-16 -> 1.6653345161210526e-16
+  INGATE BASE hs-hven-sqp-hs030.D kkt_complementarity: 2.3830216377973596e-07 -> 2.3830216377973554e-07
+  INGATE BASE hs-hven-sqp-hs030.D side.sqp_complementarity: 2.3830216377973596e-07 -> 2.3830216377973554e-07
+  INGATE BASE hs-hven-sqp-hs030.K kkt_complementarity: 2.3830216377972339e-07 -> 2.3830216377973557e-07
+  INGATE BASE hs-hven-sqp-hs030.K side.sqp_complementarity: 2.3830216377972339e-07 -> 2.3830216377973557e-07
+  INGATE BASE hs-hven-sqp-hs033.K kkt_complementarity: 2.6214141955388931e-11 -> 2.6214141955388927e-11
+  INGATE BASE hs-hven-sqp-hs033.K kkt_stationarity: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE hs-hven-sqp-hs033.K side.sqp_complementarity: 2.6214141955388931e-11 -> 2.6214141955388927e-11
+  INGATE BASE hs-hven-sqp-hs033.K side.sqp_kkt_residual: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE hs-hven-sqp-hs033.K side.sqp_stationarity: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE hs-hven-sqp-hs035.D kkt_stationarity: 3.6082248300317588e-16 -> 5.2735593669694936e-16
+  INGATE BASE hs-hven-sqp-hs035.D objective: 0.11111111111111183 -> 0.11111111111111027
+  INGATE BASE hs-hven-sqp-hs035.D reference_abs_err: 7.2164496600635175e-16 -> 8.3266726846886741e-16
+  INGATE BASE hs-hven-sqp-hs035.D side.sqp_kkt_residual: 3.6082248300317588e-16 -> 5.2735593669694936e-16
+  INGATE BASE hs-hven-sqp-hs035.D side.sqp_stationarity: 3.6082248300317588e-16 -> 5.2735593669694936e-16
+  INGATE BASE hs-hven-sqp-hs035.K kkt_stationarity: 2.7755575615628914e-16 -> 3.8857805861880479e-16
+  INGATE BASE hs-hven-sqp-hs035.K objective: 0.11111111111111183 -> 0.11111111111111049
+  INGATE BASE hs-hven-sqp-hs035.K reference_abs_err: 7.2164496600635175e-16 -> 6.106226635438361e-16
+  INGATE BASE hs-hven-sqp-hs035.K side.sqp_kkt_residual: 2.7755575615628914e-16 -> 3.8857805861880479e-16
+  INGATE BASE hs-hven-sqp-hs035.K side.sqp_stationarity: 2.7755575615628914e-16 -> 3.8857805861880479e-16
+  INGATE BASE hs-hven-sqp-hs039.D kkt_stationarity: 2.0082933383544971e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs039.D side.sqp_kkt_residual: 2.0082933383544971e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs039.D side.sqp_stationarity: 2.0082933383544971e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs039.K kkt_stationarity: 2.0082933383550392e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs039.K side.sqp_kkt_residual: 2.0082933383550392e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs039.K side.sqp_stationarity: 2.0082933383550392e-07 -> 2.0082933383544966e-07
+  INGATE BASE hs-hven-sqp-hs043.D kkt_complementarity: 1.5220038543807931e-09 -> 1.5220056307376267e-09
+  INGATE BASE hs-hven-sqp-hs043.D kkt_primal_ineq: 7.610019281401037e-10 -> 7.610028163185234e-10
+  INGATE BASE hs-hven-sqp-hs043.D kkt_stationarity: 4.4746872873702159e-09 -> 4.4746881755486356e-09
+  INGATE BASE hs-hven-sqp-hs043.D objective: -44.000000001934545 -> -44.000000001934538
+  INGATE BASE hs-hven-sqp-hs043.D reference_abs_err: 1.9345449686625216e-09 -> 1.934537863235164e-09
+  INGATE BASE hs-hven-sqp-hs043.D side.sqp_complementarity: 1.5220038543807931e-09 -> 1.5220056307376267e-09
+  INGATE BASE hs-hven-sqp-hs043.D side.sqp_feasibility: 7.610019281401037e-10 -> 7.610028163185234e-10
+  INGATE BASE hs-hven-sqp-hs043.D side.sqp_kkt_residual: 4.4746872873702159e-09 -> 4.4746881755486356e-09
+  INGATE BASE hs-hven-sqp-hs043.D side.sqp_stationarity: 4.4746872873702159e-09 -> 4.4746881755486356e-09
+  INGATE BASE hs-hven-sqp-hs043.K kkt_complementarity: 1.5220074070944634e-09 -> 1.5220056307376271e-09
+  INGATE BASE hs-hven-sqp-hs043.K kkt_primal_ineq: 7.610037044969431e-10 -> 7.610028163185234e-10
+  INGATE BASE hs-hven-sqp-hs043.K kkt_stationarity: 4.4746863991917962e-09 -> 4.4746872873702159e-09
+  INGATE BASE hs-hven-sqp-hs043.K objective: -44.000000001934552 -> -44.000000001934545
+  INGATE BASE hs-hven-sqp-hs043.K reference_abs_err: 1.9345520740898792e-09 -> 1.9345449686625216e-09
+  INGATE BASE hs-hven-sqp-hs043.K side.sqp_complementarity: 1.5220074070944634e-09 -> 1.5220056307376271e-09
+  INGATE BASE hs-hven-sqp-hs043.K side.sqp_feasibility: 7.610037044969431e-10 -> 7.610028163185234e-10
+  INGATE BASE hs-hven-sqp-hs043.K side.sqp_kkt_residual: 4.4746863991917962e-09 -> 4.4746872873702159e-09
+  INGATE BASE hs-hven-sqp-hs043.K side.sqp_stationarity: 4.4746863991917962e-09 -> 4.4746872873702159e-09
+  INGATE BASE hs-hven-sqp-hs077.D kkt_stationarity: 2.1326045096525803e-11 -> 2.1326065913207515e-11
+  INGATE BASE hs-hven-sqp-hs077.D objective: 0.24150512879002811 -> 0.24150512879002822
+  INGATE BASE hs-hven-sqp-hs077.D reference_abs_err: 1.2099719004510234e-09 -> 1.209971789428721e-09
+  INGATE BASE hs-hven-sqp-hs077.D side.sqp_kkt_residual: 2.1326045096525803e-11 -> 2.1326065913207515e-11
+  INGATE BASE hs-hven-sqp-hs077.D side.sqp_stationarity: 2.1326045096525803e-11 -> 2.1326065913207515e-11
+  INGATE BASE hs-hven-sqp-hs071.D kkt_primal_eq: 3.8304932559185545e-09 -> 3.8304861504911969e-09
+  INGATE BASE hs-hven-sqp-hs071.D kkt_stationarity: 9.7050723013580864e-10 -> 9.7050545377896924e-10
+  INGATE BASE hs-hven-sqp-hs071.D objective: 17.014017287124126 -> 17.014017287124123
+  INGATE BASE hs-hven-sqp-hs071.D reference_abs_err: 1.2875872812401212e-08 -> 1.2875876365114891e-08
+  INGATE BASE hs-hven-sqp-hs071.D side.sqp_feasibility: 3.8304932559185545e-09 -> 3.8304861504911969e-09
+  INGATE BASE hs-hven-sqp-hs071.D side.sqp_kkt_residual: 3.8304932559185545e-09 -> 3.8304861504911969e-09
+  INGATE BASE hs-hven-sqp-hs071.D side.sqp_stationarity: 9.7050723013580864e-10 -> 9.7050545377896924e-10
+  INGATE BASE hs-hven-sqp-hs071.K kkt_complementarity: 1.4136737102892056e-09 -> 1.413675672430446e-09
+  INGATE BASE hs-hven-sqp-hs071.K kkt_primal_ineq: 2.5596413877337909e-09 -> 2.5596449404474697e-09
+  INGATE BASE hs-hven-sqp-hs071.K objective: 17.014017287124126 -> 17.014017287124123
+  INGATE BASE hs-hven-sqp-hs071.K reference_abs_err: 1.2875872812401212e-08 -> 1.2875876365114891e-08
+  INGATE BASE hs-hven-sqp-hs071.K side.sqp_complementarity: 1.4136737102892056e-09 -> 1.413675672430446e-09
+  INGATE BASE sd-hven-sqp-ACOPP30.D kkt_primal_eq: 2.0650148258027912e-14 -> 3.1974423109204508e-14
+  INGATE BASE sd-hven-sqp-ACOPP30.D kkt_primal_ineq: 3.5527136788005009e-15 -> 7.1054273576010019e-15
+  INGATE BASE sd-hven-sqp-ACOPP30.D objective: 576.89242601367209 -> 576.89242601380317
+  INGATE BASE sd-hven-sqp-ACOPP30.D side.sqp_feasibility: 2.0650148258027912e-14 -> 3.1974423109204508e-14
+  INGATE BASE sd-hven-sqp-ACOPP30.K kkt_primal_eq: 2.0650148258027912e-14 -> 3.1974423109204508e-14
+  INGATE BASE sd-hven-sqp-ACOPP30.K kkt_primal_ineq: 3.5527136788005009e-15 -> 7.1054273576010019e-15
+  INGATE BASE sd-hven-sqp-ACOPP30.K objective: 576.89242601367209 -> 576.89242601380317
+  INGATE BASE sd-hven-sqp-ACOPP30.K side.sqp_feasibility: 2.0650148258027912e-14 -> 3.1974423109204508e-14
+  INGATE BASE sd-hven-sqp-BT11.D kkt_stationarity: 2.7377433653441585e-11 -> 2.737721160883666e-11
+  INGATE BASE sd-hven-sqp-BT11.D side.sqp_kkt_residual: 2.7377433653441585e-11 -> 2.737721160883666e-11
+  INGATE BASE sd-hven-sqp-BT11.D side.sqp_stationarity: 2.7377433653441585e-11 -> 2.737721160883666e-11
+  INGATE BASE sd-hven-sqp-BT11.K kkt_primal_eq: 5.9614604919211445e-12 -> 5.9614396752394327e-12
+  INGATE BASE sd-hven-sqp-BT11.K objective: 0.82489177828992077 -> 0.824891778289921
+  INGATE BASE sd-hven-sqp-BT11.K side.sqp_feasibility: 5.9614604919211445e-12 -> 5.9614396752394327e-12
+  INGATE BASE sd-hven-sqp-BT12.D kkt_stationarity: 9.9173575486160475e-27 -> 4.9722840981138717e-30
+  INGATE BASE sd-hven-sqp-BT12.D side.sqp_stationarity: 9.9173575486160475e-27 -> 4.9722840981138717e-30
+  INGATE BASE sd-hven-sqp-BT12.K kkt_stationarity: 9.9061111411779112e-27 -> 1.0164657523788273e-29
+  INGATE BASE sd-hven-sqp-BT12.K side.sqp_stationarity: 9.9061111411779112e-27 -> 1.0164657523788273e-29
+  INGATE BASE sd-hven-sqp-BT6.D kkt_stationarity: 7.8739162795438133e-07 -> 7.8739162796132023e-07
+  INGATE BASE sd-hven-sqp-BT6.D side.sqp_kkt_residual: 7.8739162795438133e-07 -> 7.8739162796132023e-07
+  INGATE BASE sd-hven-sqp-BT6.D side.sqp_stationarity: 7.8739162795438133e-07 -> 7.8739162796132023e-07
+  INGATE BASE sd-hven-sqp-BT6.K kkt_primal_eq: 3.9519531869203206e-08 -> 3.9519531647158601e-08
+  INGATE BASE sd-hven-sqp-BT6.K side.sqp_feasibility: 3.9519531869203206e-08 -> 3.9519531647158601e-08
+  INGATE BASE sd-hven-sqp-BT7.D side.restoration_f_in: 1.0976562500000069 -> 1.0976562499999993
+  INGATE BASE sd-hven-sqp-BT7.K kkt_primal_eq: 2.138533794493469e-11 -> 2.1384671811119915e-11
+  INGATE BASE sd-hven-sqp-BT7.K kkt_stationarity: 1.7927228693554006e-09 -> 1.7927228691887043e-09
+  INGATE BASE sd-hven-sqp-BT7.K side.restoration_f_out: 606.1874872194195 -> 606.187487219423
+  INGATE BASE sd-hven-sqp-BT7.K side.restoration_feas_out: 5.366585109634059e-08 -> 5.3665850874295984e-08
+  INGATE BASE sd-hven-sqp-BT7.K side.restoration_h_in: 1.0009765701841746 -> 1.0009765701841742
+  INGATE BASE sd-hven-sqp-BT7.K side.restoration_h_out: 6.812899133734618e-08 -> 6.812899155939078e-08
+  INGATE BASE sd-hven-sqp-BT7.K side.sqp_feasibility: 2.138533794493469e-11 -> 2.1384671811119915e-11
+  INGATE BASE sd-hven-sqp-BT7.K side.sqp_kkt_residual: 1.7927228693554006e-09 -> 1.7927228691887043e-09
+  INGATE BASE sd-hven-sqp-BT7.K side.sqp_stationarity: 1.7927228693554006e-09 -> 1.7927228691887043e-09
+  INGATE BASE sd-hven-sqp-BT8.D kkt_primal_eq: 9.3877315521239896e-07 -> 9.3877315521238445e-07
+  INGATE BASE sd-hven-sqp-BT8.D kkt_stationarity: 4.7683715820312452e-07 -> 4.7683715820312468e-07
+  INGATE BASE sd-hven-sqp-BT8.D side.sqp_feasibility: 9.3877315521239896e-07 -> 9.3877315521238445e-07
+  INGATE BASE sd-hven-sqp-BT8.D side.sqp_kkt_residual: 9.3877315521239896e-07 -> 9.3877315521238445e-07
+  INGATE BASE sd-hven-sqp-BT8.D side.sqp_stationarity: 4.7683715820312452e-07 -> 4.7683715820312468e-07
+  INGATE BASE sd-hven-sqp-BT8.K kkt_primal_eq: 9.3877315521240203e-07 -> 9.3877315521238763e-07
+  INGATE BASE sd-hven-sqp-BT8.K kkt_stationarity: 4.7683715820312479e-07 -> 4.7683715820312484e-07
+  INGATE BASE sd-hven-sqp-BT8.K side.sqp_feasibility: 9.3877315521240203e-07 -> 9.3877315521238763e-07
+  INGATE BASE sd-hven-sqp-BT8.K side.sqp_kkt_residual: 9.3877315521240203e-07 -> 9.3877315521238763e-07
+  INGATE BASE sd-hven-sqp-BT8.K side.sqp_stationarity: 4.7683715820312479e-07 -> 4.7683715820312484e-07
+  INGATE BASE sd-hven-sqp-CRESC100.D side.ssn.ssn_sign_sweep_max: 1.7069347753734853e-27 -> 7.118375056138229e-16
+  INGATE BASE sd-hven-sqp-CRESC4.D side.ssn.ssn_sign_sweep_max: 5.704237504165679e-21 -> 3.574518717338519e-21
+  INGATE BASE sd-hven-sqp-CRESC4.K side.ssn.ssn_sign_sweep_max: 4.969206518042089e-21 -> 1.6187924587662752e-21
+  INGATE BASE sd-hven-sqp-CRESC50.D side.ssn.ssn_sign_sweep_max: 5.397625252661777e-21 -> 1.1486949521089278e-25
+  INGATE BASE sd-hven-sqp-CRESC50.K side.ssn.ssn_sign_sweep_max: 5.90171765445083e-23 -> 5.938503783965902e-23
+  INGATE BASE sd-hven-sqp-DECONVC.D objective: 2.0788530385055048e-11 -> 2.0798302766721459e-11
+  INGATE BASE sd-hven-sqp-DECONVC.K kkt_primal_eq: 1.2175422818300891e-07 -> 1.2175419574021046e-07
+  INGATE BASE sd-hven-sqp-DECONVC.K objective: 2.0788223401773871e-11 -> 2.0779203651027587e-11
+  INGATE BASE sd-hven-sqp-DECONVC.K side.sqp_feasibility: 1.2175422818300891e-07 -> 1.2175419574021046e-07
+  INGATE BASE sd-hven-sqp-DIXCHLNG.D kkt_primal_eq: 3.3967273438406664e-11 -> 3.396838366143129e-11
+  INGATE BASE sd-hven-sqp-DIXCHLNG.D objective: 2471.897810938734 -> 2471.8978109388108
+  INGATE BASE sd-hven-sqp-DIXCHLNG.D side.sqp_feasibility: 3.3967273438406664e-11 -> 3.396838366143129e-11
+  INGATE BASE sd-hven-sqp-DIXCHLNG.K kkt_primal_eq: 3.3967939572221439e-11 -> 3.3968161616826364e-11
+  INGATE BASE sd-hven-sqp-DIXCHLNG.K objective: 2471.897810938734 -> 2471.8978109388108
+  INGATE BASE sd-hven-sqp-DIXCHLNG.K side.sqp_feasibility: 3.3967939572221439e-11 -> 3.3968161616826364e-11
+  INGATE BASE sd-hven-sqp-DNIEPER.D objective: 18744.014418731251 -> 18744.014418731284
+  INGATE BASE sd-hven-sqp-DNIEPER.K kkt_primal_eq: 8.7427451944677159e-09 -> 8.7427736161771463e-09
+  INGATE BASE sd-hven-sqp-DNIEPER.K objective: 18744.014418731262 -> 18744.01441873128
+  INGATE BASE sd-hven-sqp-DNIEPER.K side.sqp_feasibility: 8.7427451944677159e-09 -> 8.7427736161771463e-09
+  INGATE BASE sd-hven-sqp-HS100.K kkt_complementarity: 6.4785579026869412e-14 -> 3.2392789513434706e-14
+  INGATE BASE sd-hven-sqp-HS100.K kkt_primal_ineq: 5.6843418860808015e-14 -> 2.8421709430404007e-14
+  INGATE BASE sd-hven-sqp-HS100.K side.sqp_complementarity: 6.4785579026869412e-14 -> 3.2392789513434706e-14
+  INGATE BASE sd-hven-sqp-HS100.K side.sqp_feasibility: 5.6843418860808015e-14 -> 2.8421709430404007e-14
+  INGATE BASE sd-hven-sqp-HS100MOD.D kkt_stationarity: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS100MOD.D side.sqp_kkt_residual: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS100MOD.D side.sqp_stationarity: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS100MOD.K kkt_stationarity: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS100MOD.K side.sqp_kkt_residual: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS100MOD.K side.sqp_stationarity: 7.4765083013517142e-11 -> 7.4762418478258041e-11
+  INGATE BASE sd-hven-sqp-HS101.D objective: 1809.7647657918353 -> 1809.7647657929008
+  INGATE BASE sd-hven-sqp-HS102.D kkt_complementarity: 3.3174599151500947e-13 -> 3.3174599151500937e-13
+  INGATE BASE sd-hven-sqp-HS102.D kkt_primal_ineq: 1.5265566588595902e-16 -> 3.3306690738754696e-16
+  INGATE BASE sd-hven-sqp-HS102.D objective: 911.88057153778061 -> 911.88057153778004
+  INGATE BASE sd-hven-sqp-HS102.D side.sqp_complementarity: 3.3174599151500947e-13 -> 3.3174599151500937e-13
+  INGATE BASE sd-hven-sqp-HS102.D side.sqp_feasibility: 1.5265566588595902e-16 -> 3.3306690738754696e-16
+  INGATE BASE sd-hven-sqp-HS102.K kkt_primal_ineq: 5.8980598183211441e-16 -> 2.2204460492503131e-16
+  INGATE BASE sd-hven-sqp-HS102.K objective: 911.88057153777993 -> 911.88057153778038
+  INGATE BASE sd-hven-sqp-HS102.K side.sqp_feasibility: 5.8980598183211441e-16 -> 2.2204460492503131e-16
+  INGATE BASE sd-hven-sqp-HS103.D kkt_primal_ineq: 1.314004460795104e-11 -> 1.3111706165247483e-11
+  INGATE BASE sd-hven-sqp-HS103.D objective: 543.66795850363519 -> 543.66795850371864
+  INGATE BASE sd-hven-sqp-HS103.D side.sqp_feasibility: 1.314004460795104e-11 -> 1.3111706165247483e-11
+  INGATE BASE sd-hven-sqp-HS103.K kkt_primal_ineq: 1.3139545007589959e-11 -> 1.3111900454276793e-11
+  INGATE BASE sd-hven-sqp-HS103.K objective: 543.6679585036353 -> 543.66795850371852
+  INGATE BASE sd-hven-sqp-HS103.K side.sqp_feasibility: 1.3139545007589959e-11 -> 1.3111900454276793e-11
+  INGATE BASE sd-hven-sqp-HS104.D kkt_complementarity: 4.2454833181269966e-11 -> 4.2454839059906793e-11
+  INGATE BASE sd-hven-sqp-HS104.D kkt_primal_ineq: 5.011188686232515e-11 -> 5.0111893801219054e-11
+  INGATE BASE sd-hven-sqp-HS104.D kkt_stationarity: 2.196490098533357e-10 -> 2.1964902161060938e-10
+  INGATE BASE sd-hven-sqp-HS104.D side.sqp_complementarity: 4.2454833181269966e-11 -> 4.2454839059906793e-11
+  INGATE BASE sd-hven-sqp-HS104.D side.sqp_feasibility: 5.011188686232515e-11 -> 5.0111893801219054e-11
+  INGATE BASE sd-hven-sqp-HS104.D side.sqp_kkt_residual: 2.196490098533357e-10 -> 2.1964902161060938e-10
+  INGATE BASE sd-hven-sqp-HS104.D side.sqp_stationarity: 2.196490098533357e-10 -> 2.1964902161060938e-10
+  INGATE BASE sd-hven-sqp-HS104.K kkt_complementarity: 4.2454833181269966e-11 -> 4.2454733244444057e-11
+  INGATE BASE sd-hven-sqp-HS104.K kkt_primal_ineq: 5.011188686232515e-11 -> 5.0111768901128784e-11
+  INGATE BASE sd-hven-sqp-HS104.K kkt_stationarity: 2.196490098533357e-10 -> 2.1964879822241026e-10
+  INGATE BASE sd-hven-sqp-HS104.K side.sqp_complementarity: 4.2454833181269966e-11 -> 4.2454733244444057e-11
+  INGATE BASE sd-hven-sqp-HS104.K side.sqp_feasibility: 5.011188686232515e-11 -> 5.0111768901128784e-11
+  INGATE BASE sd-hven-sqp-HS104.K side.sqp_kkt_residual: 2.196490098533357e-10 -> 2.1964879822241026e-10
+  INGATE BASE sd-hven-sqp-HS104.K side.sqp_stationarity: 2.196490098533357e-10 -> 2.1964879822241026e-10
+  INGATE BASE sd-hven-sqp-HS107.D kkt_primal_eq: 8.8817841970012523e-16 -> 4.4408920985006262e-16
+  INGATE BASE sd-hven-sqp-HS107.D objective: 5055.0118033914514 -> 5055.011803391455
+  INGATE BASE sd-hven-sqp-HS107.D side.sqp_feasibility: 8.8817841970012523e-16 -> 4.4408920985006262e-16
+  INGATE BASE sd-hven-sqp-HS107.K objective: 5055.0118033914569 -> 5055.0118033914559
+  INGATE BASE sd-hven-sqp-HS108.D kkt_complementarity: 8.5756624537089868e-10 -> 8.5756623203729418e-10
+  INGATE BASE sd-hven-sqp-HS108.D kkt_primal_ineq: 5.3553961265606631e-09 -> 5.3553960432939363e-09
+  INGATE BASE sd-hven-sqp-HS108.D kkt_stationarity: 1.9184679261874393e-09 -> 1.9184679123096515e-09
+  INGATE BASE sd-hven-sqp-HS108.D side.sqp_complementarity: 8.5756624537089868e-10 -> 8.5756623203729418e-10
+  INGATE BASE sd-hven-sqp-HS108.D side.sqp_feasibility: 5.3553961265606631e-09 -> 5.3553960432939363e-09
+  INGATE BASE sd-hven-sqp-HS108.D side.sqp_kkt_residual: 5.3553961265606631e-09 -> 5.3553960432939363e-09
+  INGATE BASE sd-hven-sqp-HS108.D side.sqp_stationarity: 1.9184679261874393e-09 -> 1.9184679123096515e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D kkt_primal_eq: 6.5899187495777056e-09 -> 6.5899186385554032e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D kkt_stationarity: 4.9823221104361437e-09 -> 4.9823256631498225e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D objective: -47.76109102074409 -> -47.761091020744082
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_feasibility: 6.5899187495777056e-09 -> 6.5899186385554032e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_kkt_residual: 6.5899187495777056e-09 -> 6.5899186385554032e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_stationarity: 4.9823221104361437e-09 -> 4.9823256631498225e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K kkt_primal_eq: 6.58991872182213e-09 -> 6.5899187634554934e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K kkt_stationarity: 4.9823256631498225e-09 -> 4.9823292158635013e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K side.sqp_feasibility: 6.58991872182213e-09 -> 6.5899187634554934e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K side.sqp_kkt_residual: 6.58991872182213e-09 -> 6.5899187634554934e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K side.sqp_stationarity: 4.9823256631498225e-09 -> 4.9823292158635013e-09
+  INGATE BASE sd-hven-sqp-HS113.D kkt_complementarity: 7.2866054401621992e-08 -> 7.2866058835813477e-08
+  INGATE BASE sd-hven-sqp-HS113.D kkt_stationarity: 3.780089565807998e-07 -> 3.7800895213990771e-07
+  INGATE BASE sd-hven-sqp-HS113.D objective: 24.30620895553357 -> 24.306208955533574
+  INGATE BASE sd-hven-sqp-HS113.D side.sqp_complementarity: 7.2866054401621992e-08 -> 7.2866058835813477e-08
+  INGATE BASE sd-hven-sqp-HS113.D side.sqp_stationarity: 3.780089565807998e-07 -> 3.7800895213990771e-07
+  INGATE BASE sd-hven-sqp-HS113.K kkt_complementarity: 7.2866054401621952e-08 -> 7.2866058835813477e-08
+  INGATE BASE sd-hven-sqp-HS113.K kkt_primal_ineq: 5.4554266171180643e-07 -> 5.45542633290097e-07
+  INGATE BASE sd-hven-sqp-HS113.K kkt_stationarity: 3.7800895480444296e-07 -> 3.7800895302808613e-07
+  INGATE BASE sd-hven-sqp-HS113.K objective: 24.30620895553357 -> 24.306208955533574
+  INGATE BASE sd-hven-sqp-HS113.K side.sqp_complementarity: 7.2866054401621952e-08 -> 7.2866058835813477e-08
+  INGATE BASE sd-hven-sqp-HS113.K side.sqp_feasibility: 5.4554266171180643e-07 -> 5.45542633290097e-07
+  INGATE BASE sd-hven-sqp-HS113.K side.sqp_kkt_residual: 5.4554266171180643e-07 -> 5.45542633290097e-07
+  INGATE BASE sd-hven-sqp-HS113.K side.sqp_stationarity: 3.7800895480444296e-07 -> 3.7800895302808613e-07
+  INGATE BASE sd-hven-sqp-HS117.D kkt_complementarity: 9.4495282734444649e-13 -> 9.4267033259240675e-13
+  INGATE BASE sd-hven-sqp-HS117.D side.sqp_complementarity: 9.4495282734444649e-13 -> 9.4267033259240675e-13
+  INGATE BASE sd-hven-sqp-HS117.K kkt_complementarity: 9.4267033259240655e-13 -> 9.4267033259240675e-13
+  INGATE BASE sd-hven-sqp-HS117.K side.sqp_complementarity: 9.4267033259240655e-13 -> 9.4267033259240675e-13
+  INGATE BASE sd-hven-sqp-HS15.K objective: 360.37976717409555 -> 360.3797671740956
+  INGATE BASE sd-hven-sqp-HS17.D side.sqp_complementarity: 6.6636249050968239e-15 -> 6.663624911714268e-15
+  INGATE BASE sd-hven-sqp-HS17.D side.sqp_kkt_residual: 1.4186170907856109e-12 -> 1.4186170902869056e-12
+  INGATE BASE sd-hven-sqp-HS17.D side.sqp_stationarity: 1.4186170907856109e-12 -> 1.4186170902869056e-12
+  INGATE BASE sd-hven-sqp-HS17.D side.ssn.ssn_sign_sweep_max: 1.3725288273768899e-12 -> 1.3725288281752038e-12
+  INGATE BASE sd-hven-sqp-HS17.K side.sqp_complementarity: 6.6636249050968239e-15 -> 6.6636249183317137e-15
+  INGATE BASE sd-hven-sqp-HS17.K side.sqp_kkt_residual: 1.4186170904377645e-12 -> 1.4186170899605029e-12
+  INGATE BASE sd-hven-sqp-HS17.K side.sqp_stationarity: 1.4186170904377645e-12 -> 1.4186170899605029e-12
+  INGATE BASE sd-hven-sqp-HS17.K side.ssn.ssn_sign_sweep_max: 1.3725288270290435e-12 -> 1.3725288265517819e-12
+  INGATE BASE sd-hven-sqp-HS19.D kkt_complementarity: 1.7472843961643082e-11 -> 1.7472843961643104e-11
+  INGATE BASE sd-hven-sqp-HS19.D objective: -6961.8138755801547 -> -6961.8138755801465
+  INGATE BASE sd-hven-sqp-HS19.D side.sqp_complementarity: 1.7472843961643082e-11 -> 1.7472843961643104e-11
+  INGATE BASE sd-hven-sqp-HS19.K kkt_complementarity: 1.7472843961643098e-11 -> 1.7472843961643088e-11
+  INGATE BASE sd-hven-sqp-HS19.K objective: -6961.8138755801547 -> -6961.813875580151
+  INGATE BASE sd-hven-sqp-HS19.K side.sqp_complementarity: 1.7472843961643098e-11 -> 1.7472843961643088e-11
+  INGATE BASE sd-hven-sqp-HS27.D kkt_stationarity: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE sd-hven-sqp-HS27.D side.sqp_kkt_residual: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE sd-hven-sqp-HS27.D side.sqp_stationarity: 4.4408920985006262e-16 -> 1.3322676295501878e-15
+  INGATE BASE sd-hven-sqp-HS27.K kkt_stationarity: 5.9674487573602164e-16 -> 1.7763568394002505e-15
+  INGATE BASE sd-hven-sqp-HS27.K side.sqp_kkt_residual: 5.9674487573602164e-16 -> 1.7763568394002505e-15
+  INGATE BASE sd-hven-sqp-HS27.K side.sqp_stationarity: 5.9674487573602164e-16 -> 1.7763568394002505e-15
+  INGATE BASE sd-hven-sqp-HS30.D kkt_complementarity: 2.3830216377973596e-07 -> 2.3830216377973554e-07
+  INGATE BASE sd-hven-sqp-HS30.D side.sqp_complementarity: 2.3830216377973596e-07 -> 2.3830216377973554e-07
+  INGATE BASE sd-hven-sqp-HS30.K kkt_complementarity: 2.3830216377972339e-07 -> 2.3830216377973557e-07
+  INGATE BASE sd-hven-sqp-HS30.K side.sqp_complementarity: 2.3830216377972339e-07 -> 2.3830216377973557e-07
+  INGATE BASE sd-hven-sqp-HS31.D kkt_complementarity: 6.2758871380091872e-09 -> 6.2758884702768159e-09
+  INGATE BASE sd-hven-sqp-HS31.D kkt_primal_ineq: 1.0459811905505489e-09 -> 1.0459814125951539e-09
+  INGATE BASE sd-hven-sqp-HS31.D kkt_stationarity: 7.593184303544831e-09 -> 7.5931851917232507e-09
+  INGATE BASE sd-hven-sqp-HS31.D objective: 5.9999999937241135 -> 5.9999999937241117
+  INGATE BASE sd-hven-sqp-HS31.D side.sqp_complementarity: 6.2758871380091872e-09 -> 6.2758884702768159e-09
+  INGATE BASE sd-hven-sqp-HS31.D side.sqp_feasibility: 1.0459811905505489e-09 -> 1.0459814125951539e-09
+  INGATE BASE sd-hven-sqp-HS31.D side.sqp_kkt_residual: 7.593184303544831e-09 -> 7.5931851917232507e-09
+  INGATE BASE sd-hven-sqp-HS31.D side.sqp_stationarity: 7.593184303544831e-09 -> 7.5931851917232507e-09
+  INGATE BASE sd-hven-sqp-HS33.K kkt_complementarity: 2.6214141955388931e-11 -> 2.6214141955388927e-11
+  INGATE BASE sd-hven-sqp-HS33.K kkt_stationarity: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE sd-hven-sqp-HS33.K side.sqp_complementarity: 2.6214141955388931e-11 -> 2.6214141955388927e-11
+  INGATE BASE sd-hven-sqp-HS33.K side.sqp_kkt_residual: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE sd-hven-sqp-HS33.K side.sqp_stationarity: 4.7710224659880396e-10 -> 4.7710235762110642e-10
+  INGATE BASE sd-hven-sqp-HS40.D kkt_primal_eq: 3.9335201762469296e-12 -> 3.9337422208518547e-12
+  INGATE BASE sd-hven-sqp-HS40.D kkt_stationarity: 4.4072523408544839e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS40.D objective: -0.25000000000317785 -> -0.25000000000317796
+  INGATE BASE sd-hven-sqp-HS40.D side.sqp_feasibility: 3.9335201762469296e-12 -> 3.9337422208518547e-12
+  INGATE BASE sd-hven-sqp-HS40.D side.sqp_kkt_residual: 4.4072523408544839e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS40.D side.sqp_stationarity: 4.4072523408544839e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS40.K kkt_primal_eq: 3.9335201762469296e-12 -> 3.9337422208518547e-12
+  INGATE BASE sd-hven-sqp-HS40.K kkt_stationarity: 4.4071413185520214e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS40.K objective: -0.2500000000031779 -> -0.25000000000317796
+  INGATE BASE sd-hven-sqp-HS40.K side.sqp_feasibility: 3.9335201762469296e-12 -> 3.9337422208518547e-12
+  INGATE BASE sd-hven-sqp-HS40.K side.sqp_kkt_residual: 4.4071413185520214e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS40.K side.sqp_stationarity: 4.4071413185520214e-12 -> 4.4070858074007901e-12
+  INGATE BASE sd-hven-sqp-HS42.K kkt_primal_eq: 2.5829116623299342e-11 -> 2.5828672534089492e-11
+  INGATE BASE sd-hven-sqp-HS42.K kkt_stationarity: 2.6034729927459921e-10 -> 2.6034818745301891e-10
+  INGATE BASE sd-hven-sqp-HS42.K objective: 13.857864376203555 -> 13.85786437620356
+  INGATE BASE sd-hven-sqp-HS42.K side.sqp_feasibility: 2.5829116623299342e-11 -> 2.5828672534089492e-11
+  INGATE BASE sd-hven-sqp-HS42.K side.sqp_kkt_residual: 2.6034729927459921e-10 -> 2.6034818745301891e-10
+  INGATE BASE sd-hven-sqp-HS42.K side.sqp_stationarity: 2.6034729927459921e-10 -> 2.6034818745301891e-10
+  INGATE BASE sd-hven-sqp-HS43.D kkt_complementarity: 1.5220038543807921e-09 -> 1.5220003016671188e-09
+  INGATE BASE sd-hven-sqp-HS43.D kkt_primal_ineq: 7.610019281401037e-10 -> 7.610001517832643e-10
+  INGATE BASE sd-hven-sqp-HS43.D kkt_stationarity: 4.4746855110133765e-09 -> 4.4746872873702159e-09
+  INGATE BASE sd-hven-sqp-HS43.D side.sqp_complementarity: 1.5220038543807921e-09 -> 1.5220003016671188e-09
+  INGATE BASE sd-hven-sqp-HS43.D side.sqp_feasibility: 7.610019281401037e-10 -> 7.610001517832643e-10
+  INGATE BASE sd-hven-sqp-HS43.D side.sqp_kkt_residual: 4.4746855110133765e-09 -> 4.4746872873702159e-09
+  INGATE BASE sd-hven-sqp-HS43.D side.sqp_stationarity: 4.4746855110133765e-09 -> 4.4746872873702159e-09
+  INGATE BASE sd-hven-sqp-HS43.K kkt_complementarity: 1.5220020780239522e-09 -> 1.5220020780239551e-09
+  INGATE BASE sd-hven-sqp-HS43.K side.sqp_complementarity: 1.5220020780239522e-09 -> 1.5220020780239551e-09
+  INGATE BASE sd-hven-sqp-HS46.D objective: 4.0985805106243857e-12 -> 4.1071766521248601e-12
+  INGATE BASE sd-hven-sqp-HS46.K objective: 4.0830356747035857e-12 -> 4.0792400282335729e-12
+  INGATE BASE sd-hven-sqp-HS56.K kkt_stationarity: 2.1797156973161109e-11 -> 2.1797156973161106e-11
+  INGATE BASE sd-hven-sqp-HS56.K side.sqp_kkt_residual: 2.1797156973161109e-11 -> 2.1797156973161106e-11
+  INGATE BASE sd-hven-sqp-HS56.K side.sqp_stationarity: 2.1797156973161109e-11 -> 2.1797156973161106e-11
+  INGATE BASE sd-hven-sqp-HS59.K kkt_stationarity: 2.7621292364443661e-08 -> 2.7621290588086822e-08
+  INGATE BASE sd-hven-sqp-HS59.K objective: -6.7495047196591145 -> -6.749504719659285
+  INGATE BASE sd-hven-sqp-HS59.K side.sqp_kkt_residual: 2.7621292364443661e-08 -> 2.7621290588086822e-08
+  INGATE BASE sd-hven-sqp-HS59.K side.sqp_stationarity: 2.7621292364443661e-08 -> 2.7621290588086822e-08
+  INGATE BASE sd-hven-sqp-HS6.K kkt_stationarity: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE sd-hven-sqp-HS6.K side.sqp_kkt_residual: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE sd-hven-sqp-HS6.K side.sqp_stationarity: 4.1653504873184247e-27 -> 3.0014744112612671e-26
+  INGATE BASE sd-hven-sqp-HS61.K kkt_primal_eq: 2.9615421226480976e-11 -> 2.9611868512802175e-11
+  INGATE BASE sd-hven-sqp-HS61.K kkt_stationarity: 1.7415402453480056e-10 -> 1.7415047182112176e-10
+  INGATE BASE sd-hven-sqp-HS61.K side.sqp_feasibility: 2.9615421226480976e-11 -> 2.9611868512802175e-11
+  INGATE BASE sd-hven-sqp-HS61.K side.sqp_kkt_residual: 1.7415402453480056e-10 -> 1.7415047182112176e-10
+  INGATE BASE sd-hven-sqp-HS61.K side.sqp_stationarity: 1.7415402453480056e-10 -> 1.7415047182112176e-10
+  INGATE BASE sd-hven-sqp-HS63.D kkt_primal_eq: 1.5099033134902129e-13 -> 1.4743761767022079e-13
+  INGATE BASE sd-hven-sqp-HS63.D side.sqp_feasibility: 1.5099033134902129e-13 -> 1.4743761767022079e-13
+  INGATE BASE sd-hven-sqp-HS63.D side.sqp_kkt_residual: 1.5099033134902129e-13 -> 1.4743761767022079e-13
+  INGATE BASE sd-hven-sqp-HS63.K kkt_primal_eq: 1.4921397450962104e-13 -> 1.5099033134902129e-13
+  INGATE BASE sd-hven-sqp-HS63.K side.sqp_feasibility: 1.4921397450962104e-13 -> 1.5099033134902129e-13
+  INGATE BASE sd-hven-sqp-HS63.K side.sqp_kkt_residual: 1.4921397450962104e-13 -> 1.5099033134902129e-13
+  INGATE BASE sd-hven-sqp-HS68.D kkt_stationarity: 1.744516815449515e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS68.D objective: -0.92042505349640014 -> -0.92042505349639647
+  INGATE BASE sd-hven-sqp-HS68.D side.sqp_kkt_residual: 1.744516815449515e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS68.D side.sqp_stationarity: 1.744516815449515e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS68.K kkt_stationarity: 1.7445168687402202e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS68.K objective: -0.92042505349639692 -> -0.92042505349639803
+  INGATE BASE sd-hven-sqp-HS68.K side.sqp_kkt_residual: 1.7445168687402202e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS68.K side.sqp_stationarity: 1.7445168687402202e-07 -> 1.7445167621588098e-07
+  INGATE BASE sd-hven-sqp-HS7.D kkt_stationarity: 1.2836705143293159e-08 -> 1.2836704921248554e-08
+  INGATE BASE sd-hven-sqp-HS7.D side.sqp_kkt_residual: 1.2836705143293159e-08 -> 1.2836704921248554e-08
+  INGATE BASE sd-hven-sqp-HS7.D side.sqp_stationarity: 1.2836705143293159e-08 -> 1.2836704921248554e-08
+  INGATE BASE sd-hven-sqp-HS74.D side.restoration_f_out: 5274.821774838102 -> 5274.821774838103
+  INGATE BASE sd-hven-sqp-HS74.D side.restoration_h_in: 1593.5188337644825 -> 1593.5188337644822
+  INGATE BASE sd-hven-sqp-HS74.D side.restoration_h_out: 8.526512829121202e-13 -> 8.810729923425242e-13
+  INGATE BASE sd-hven-sqp-HS74.K side.restoration_h_out: 8.526512829121202e-13 -> 9.379164112033322e-13
+  INGATE BASE sd-hven-sqp-HS75.D kkt_primal_eq: 1.1368683772161603e-13 -> 8.5265128291212022e-14
+  INGATE BASE sd-hven-sqp-HS75.D objective: 5174.4126953803361 -> 5174.4126953803807
+  INGATE BASE sd-hven-sqp-HS75.D side.restoration_h_in: 1593.3108040140153 -> 1593.3108040140062
+  INGATE BASE sd-hven-sqp-HS75.D side.sqp_feasibility: 1.1368683772161603e-13 -> 8.5265128291212022e-14
+  INGATE BASE sd-hven-sqp-HS75.K kkt_primal_eq: 8.5265128291212022e-14 -> 5.6843418860808015e-14
+  INGATE BASE sd-hven-sqp-HS75.K objective: 5174.4126953803361 -> 5174.4126953803798
+  INGATE BASE sd-hven-sqp-HS75.K side.sqp_feasibility: 8.5265128291212022e-14 -> 5.6843418860808015e-14
+  INGATE BASE sd-hven-sqp-HS79.D kkt_stationarity: 3.8019302428526913e-09 -> 3.8019301040748132e-09
+  INGATE BASE sd-hven-sqp-HS79.D side.sqp_stationarity: 3.8019302428526913e-09 -> 3.8019301040748132e-09
+  INGATE BASE sd-hven-sqp-HS79.K kkt_stationarity: 3.8019301040748132e-09 -> 3.8019302428526913e-09
+  INGATE BASE sd-hven-sqp-HS79.K side.sqp_stationarity: 3.8019301040748132e-09 -> 3.8019302428526913e-09
+  INGATE BASE sd-hven-sqp-HS80.D kkt_stationarity: 1.1284639889197479e-11 -> 1.1284653766985286e-11
+  INGATE BASE sd-hven-sqp-HS80.D side.sqp_stationarity: 1.1284639889197479e-11 -> 1.1284653766985286e-11
+  INGATE BASE sd-hven-sqp-HS80.K kkt_primal_eq: 6.3738347932940087e-11 -> 6.3737459754520387e-11
+  INGATE BASE sd-hven-sqp-HS80.K kkt_stationarity: 1.1284598255834055e-11 -> 1.1284709278136518e-11
+  INGATE BASE sd-hven-sqp-HS80.K objective: 0.053949847766714805 -> 0.053949847766714853
+  INGATE BASE sd-hven-sqp-HS80.K side.sqp_feasibility: 6.3738347932940087e-11 -> 6.3737459754520387e-11
+  INGATE BASE sd-hven-sqp-HS80.K side.sqp_kkt_residual: 6.3738347932940087e-11 -> 6.3737459754520387e-11
+  INGATE BASE sd-hven-sqp-HS80.K side.sqp_stationarity: 1.1284598255834055e-11 -> 1.1284709278136518e-11
+  INGATE BASE sd-hven-sqp-HS81.D kkt_primal_eq: 1.1596168469907298e-11 -> 1.1596612559117148e-11
+  INGATE BASE sd-hven-sqp-HS81.D kkt_stationarity: 5.0848603105890788e-11 -> 5.0849491284310488e-11
+  INGATE BASE sd-hven-sqp-HS81.D objective: 0.43885121993859871 -> 0.43885121993859855
+  INGATE BASE sd-hven-sqp-HS81.D side.sqp_feasibility: 1.1596168469907298e-11 -> 1.1596612559117148e-11
+  INGATE BASE sd-hven-sqp-HS81.D side.sqp_kkt_residual: 5.0848603105890788e-11 -> 5.0849491284310488e-11
+  INGATE BASE sd-hven-sqp-HS81.D side.sqp_stationarity: 5.0848603105890788e-11 -> 5.0849491284310488e-11
+  INGATE BASE sd-hven-sqp-HS81.K kkt_primal_eq: 1.1596501536814685e-11 -> 1.159627949220976e-11
+  INGATE BASE sd-hven-sqp-HS81.K objective: 0.4388512199385986 -> 0.43885121993859877
+  INGATE BASE sd-hven-sqp-HS81.K side.sqp_feasibility: 1.1596501536814685e-11 -> 1.159627949220976e-11
+  INGATE BASE sd-hven-sqp-HS83.D objective: -30665.538671783321 -> -30665.538671783317
+  INGATE BASE sd-hven-sqp-HS83.D side.sqp_kkt_residual: 5.6843418860808015e-14 -> 1.4210854715202004e-14
+  INGATE BASE sd-hven-sqp-HS85.D kkt_stationarity: 6.8601162077353006e-11 -> 6.8601161209991268e-11
+  INGATE BASE sd-hven-sqp-HS85.D side.sqp_stationarity: 6.8601162077353006e-11 -> 6.8601161209991268e-11
+  INGATE BASE sd-hven-sqp-HS85.K kkt_complementarity: 3.0695686007810187e-09 -> 3.0695686007810183e-09
+  INGATE BASE sd-hven-sqp-HS85.K side.sqp_complementarity: 3.0695686007810187e-09 -> 3.0695686007810183e-09
+  INGATE BASE sd-hven-sqp-HS89.D kkt_complementarity: 2.4628703032888687e-12 -> 2.4683855103780361e-12
+  INGATE BASE sd-hven-sqp-HS89.D kkt_primal_ineq: 2.3239738041955227e-15 -> 2.3291779746234531e-15
+  INGATE BASE sd-hven-sqp-HS89.D objective: 1.3626568148875193 -> 1.3626568148875091
+  INGATE BASE sd-hven-sqp-HS89.D side.sqp_complementarity: 2.4628703032888687e-12 -> 2.4683855103780361e-12
+  INGATE BASE sd-hven-sqp-HS89.D side.sqp_feasibility: 2.3239738041955227e-15 -> 2.3291779746234531e-15
+  INGATE BASE sd-hven-sqp-HS89.K kkt_primal_ineq: 3.8464985862261825e-14 -> 2.4243709253676804e-15
+  INGATE BASE sd-hven-sqp-HS89.K side.sqp_feasibility: 3.8464985862261825e-14 -> 2.4243709253676804e-15
+  INGATE BASE sd-hven-sqp-HS90.D kkt_complementarity: 1.7761155851904326e-08 -> 1.7761141144687466e-08
+  INGATE BASE sd-hven-sqp-HS90.D kkt_primal_ineq: 1.6759496392136468e-11 -> 1.675948251434866e-11
+  INGATE BASE sd-hven-sqp-HS90.D objective: 1.3626567971288293 -> 1.3626567971288348
+  INGATE BASE sd-hven-sqp-HS90.D side.sqp_complementarity: 1.7761155851904326e-08 -> 1.7761141144687466e-08
+  INGATE BASE sd-hven-sqp-HS90.D side.sqp_feasibility: 1.6759496392136468e-11 -> 1.675948251434866e-11
+  INGATE BASE sd-hven-sqp-HS90.K kkt_complementarity: 1.7761161367110489e-08 -> 1.7761150336698066e-08
+  INGATE BASE sd-hven-sqp-HS90.K kkt_primal_ineq: 1.6759501596306896e-11 -> 1.675949118796604e-11
+  INGATE BASE sd-hven-sqp-HS90.K objective: 1.3626567971288286 -> 1.3626567971288353
+  INGATE BASE sd-hven-sqp-HS90.K side.sqp_complementarity: 1.7761161367110489e-08 -> 1.7761150336698066e-08
+  INGATE BASE sd-hven-sqp-HS90.K side.sqp_feasibility: 1.6759501596306896e-11 -> 1.675949118796604e-11
+  INGATE BASE sd-hven-sqp-HS91.D kkt_complementarity: 1.7775763621282699e-08 -> 1.7775747075666057e-08
+  INGATE BASE sd-hven-sqp-HS91.D kkt_primal_ineq: 1.6773280342246254e-11 -> 1.677326472973497e-11
+  INGATE BASE sd-hven-sqp-HS91.D kkt_stationarity: 3.5945667331560571e-08 -> 3.5945622478550376e-08
+  INGATE BASE sd-hven-sqp-HS91.D objective: 1.3626567971142309 -> 1.3626567971142487
+  INGATE BASE sd-hven-sqp-HS91.D side.sqp_complementarity: 1.7775763621282699e-08 -> 1.7775747075666057e-08
+  INGATE BASE sd-hven-sqp-HS91.D side.sqp_feasibility: 1.6773280342246254e-11 -> 1.677326472973497e-11
+  INGATE BASE sd-hven-sqp-HS91.D side.sqp_kkt_residual: 3.5945667331560571e-08 -> 3.5945622478550376e-08
+  INGATE BASE sd-hven-sqp-HS91.D side.sqp_stationarity: 3.5945667331560571e-08 -> 3.5945622478550376e-08
+  INGATE BASE sd-hven-sqp-HS93.D kkt_complementarity: 3.1734388949081111e-14 -> 2.0700851605441279e-14
+  INGATE BASE sd-hven-sqp-HS93.D kkt_stationarity: 5.6843418860808015e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS93.D objective: 135.07596378168057 -> 135.07596378168051
+  INGATE BASE sd-hven-sqp-HS93.D side.sqp_complementarity: 3.1734388949081111e-14 -> 2.0700851605441279e-14
+  INGATE BASE sd-hven-sqp-HS93.D side.sqp_kkt_residual: 5.6843418860808015e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS93.D side.sqp_stationarity: 5.6843418860808015e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS93.K kkt_complementarity: 3.1734388949081104e-14 -> 3.1734388949081098e-14
+  INGATE BASE sd-hven-sqp-HS93.K kkt_stationarity: 8.5265128291212022e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS93.K objective: 135.07596378168054 -> 135.07596378168051
+  INGATE BASE sd-hven-sqp-HS93.K side.sqp_complementarity: 3.1734388949081104e-14 -> 3.1734388949081098e-14
+  INGATE BASE sd-hven-sqp-HS93.K side.sqp_kkt_residual: 8.5265128291212022e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS93.K side.sqp_stationarity: 8.5265128291212022e-14 -> 7.1054273576010019e-14
+  INGATE BASE sd-hven-sqp-HS99EXP.D side.restoration_h_in: 1066815.5465531098 -> 1066815.5465534138
+  INGATE BASE sd-hven-sqp-HS99EXP.D side.restoration_h_out: 1060497.8832140244 -> 1060497.883214353
+  INGATE BASE sd-hven-sqp-HS99EXP.K side.restoration_h_in: 1066815.5468427069 -> 1066815.5468427162
+  INGATE BASE sd-hven-sqp-LSNNODOC.D objective: 123.1124487914452 -> 123.11244879144519
+  INGATE BASE sd-hven-sqp-LSNNODOC.D side.eqb_max_gap: 4.4408920985011153e-16 -> 4.4408920985006262e-16
+  INGATE BASE sd-hven-sqp-LSNNODOC.K objective: 123.1124487914452 -> 123.11244879144519
+  INGATE BASE sd-hven-sqp-LSNNODOC.K side.eqb_max_gap: 4.8909376123702732e-29 -> 4.4408920985006262e-16
+  INGATE BASE sd-hven-sqp-MATRIX2.D kkt_complementarity: 2.3830216377973546e-07 -> 2.3830216377973564e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.D kkt_primal_ineq: 8.8673761665684567e-22 -> 5.2939559203393771e-23
+  INGATE BASE sd-hven-sqp-MATRIX2.D kkt_stationarity: 7.1525573730490434e-07 -> 7.1525573730501276e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.D objective: 2.3841857910156051e-07 -> 2.3841857910156239e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.D side.sqp_complementarity: 2.3830216377973546e-07 -> 2.3830216377973564e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.D side.sqp_feasibility: 8.8673761665684567e-22 -> 5.2939559203393771e-23
+  INGATE BASE sd-hven-sqp-MATRIX2.D side.sqp_kkt_residual: 7.1525573730490434e-07 -> 7.1525573730501276e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.D side.sqp_stationarity: 7.1525573730490434e-07 -> 7.1525573730501276e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K kkt_complementarity: 2.3830216377973567e-07 -> 2.3830216377973472e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K kkt_primal_ineq: 2.6469779601696886e-22 -> 2.7263872989747792e-21
+  INGATE BASE sd-hven-sqp-MATRIX2.K kkt_stationarity: 7.1525573730501276e-07 -> 7.1525573730479592e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K objective: 2.3841857910156208e-07 -> 2.384185791015562e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K side.sqp_complementarity: 2.3830216377973567e-07 -> 2.3830216377973472e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K side.sqp_feasibility: 2.6469779601696886e-22 -> 2.7263872989747792e-21
+  INGATE BASE sd-hven-sqp-MATRIX2.K side.sqp_kkt_residual: 7.1525573730501276e-07 -> 7.1525573730479592e-07
+  INGATE BASE sd-hven-sqp-MATRIX2.K side.sqp_stationarity: 7.1525573730501276e-07 -> 7.1525573730479592e-07
+  INGATE BASE sd-hven-sqp-MESH.K kkt_primal_ineq: 4.180349304172523e-24 -> 3.7195430633194102e-24
+  INGATE BASE sd-hven-sqp-MESH.K side.sqp_complementarity: 1.6224547951526424e-25 -> 1.4964391650934333e-31
+  INGATE BASE sd-hven-sqp-MISTAKE.D kkt_complementarity: 6.7570948836248661e-13 -> 5.9796612106310982e-13
+  INGATE BASE sd-hven-sqp-MISTAKE.D kkt_stationarity: 9.9920072216264089e-16 -> 1.0547118733938987e-15
+  INGATE BASE sd-hven-sqp-MISTAKE.D objective: -1.0000000000015949 -> -1.0000000000015261
+  INGATE BASE sd-hven-sqp-MISTAKE.D side.sqp_complementarity: 6.7570948836248661e-13 -> 5.9796612106310982e-13
+  INGATE BASE sd-hven-sqp-MISTAKE.D side.sqp_stationarity: 9.9920072216264089e-16 -> 1.0547118733938987e-15
+  INGATE BASE sd-hven-sqp-MISTAKE.K side.sqp_stationarity: 1.1657341758564144e-15 -> 3.3306690738754696e-16
+  INGATE BASE sd-hven-sqp-MSS1.K side.eqb_max_gap: 1.00000000000002 -> 1.0000000000000222
+  INGATE BASE sd-hven-sqp-MWRIGHT.D kkt_primal_eq: 1.8207657603852567e-14 -> 1.865174681370263e-14
+  INGATE BASE sd-hven-sqp-MWRIGHT.D kkt_stationarity: 1.7719159473017498e-12 -> 1.77280412572145e-12
+  INGATE BASE sd-hven-sqp-MWRIGHT.D side.sqp_feasibility: 1.8207657603852567e-14 -> 1.865174681370263e-14
+  INGATE BASE sd-hven-sqp-MWRIGHT.D side.sqp_kkt_residual: 1.7719159473017498e-12 -> 1.77280412572145e-12
+  INGATE BASE sd-hven-sqp-MWRIGHT.D side.sqp_stationarity: 1.7719159473017498e-12 -> 1.77280412572145e-12
+  INGATE BASE sd-hven-sqp-MWRIGHT.K kkt_stationarity: 1.7754686609805503e-12 -> 1.7772450178199506e-12
+  INGATE BASE sd-hven-sqp-MWRIGHT.K side.sqp_kkt_residual: 1.7754686609805503e-12 -> 1.7772450178199506e-12
+  INGATE BASE sd-hven-sqp-MWRIGHT.K side.sqp_stationarity: 1.7754686609805503e-12 -> 1.7772450178199506e-12
+  INGATE BASE sd-hven-sqp-NET1.D kkt_primal_eq: 2.3428583517670632e-12 -> 2.3283064365386963e-12
+  INGATE BASE sd-hven-sqp-NET1.D side.sqp_feasibility: 2.3428583517670632e-12 -> 2.3283064365386963e-12
+  INGATE BASE sd-hven-sqp-NET1.K kkt_primal_eq: 2.3428583517670632e-12 -> 2.3283064365386963e-12
+  INGATE BASE sd-hven-sqp-NET1.K side.sqp_feasibility: 2.3428583517670632e-12 -> 2.3283064365386963e-12
+  INGATE BASE sd-hven-sqp-OPTPRLOC.D kkt_complementarity: 1.3233858453531865e-16 -> 1.2523315717771767e-16
+  INGATE BASE sd-hven-sqp-OPTPRLOC.D kkt_primal_ineq: 1.1723955140041653e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-OPTPRLOC.D side.sqp_complementarity: 1.3233858453531865e-16 -> 1.2523315717771767e-16
+  INGATE BASE sd-hven-sqp-OPTPRLOC.D side.sqp_feasibility: 1.1723955140041653e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-OPTPRLOC.D side.sqp_kkt_residual: 1.1723955140041653e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-OPTPRLOC.K kkt_complementarity: 1.0302869668521453e-16 -> 1.2523315717771767e-16
+  INGATE BASE sd-hven-sqp-OPTPRLOC.K kkt_primal_ineq: 1.0391687510491465e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-OPTPRLOC.K side.sqp_complementarity: 1.0302869668521453e-16 -> 1.2523315717771767e-16
+  INGATE BASE sd-hven-sqp-OPTPRLOC.K side.sqp_feasibility: 1.0391687510491465e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-OPTPRLOC.K side.sqp_kkt_residual: 1.0391687510491465e-13 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-SPANHYD.D side.eqb_max_gap: 6.8282879350789472e-13 -> 7.443941296703116e-13
+  INGATE BASE sd-hven-sqp-SPANHYD.D side.restoration_feas_out: 2.3092638912203256e-13 -> 2.323297804140978e-13
+  INGATE BASE sd-hven-sqp-SYNTHES1.D kkt_complementarity: 2.2022754764894882e-10 -> 2.2022754764894895e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.D side.sqp_complementarity: 2.2022754764894882e-10 -> 2.2022754764894895e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.K kkt_complementarity: 2.2022736273389042e-10 -> 2.2022754764894871e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.K kkt_primal_ineq: 1.3222367645226996e-10 -> 1.3222378747457242e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.K kkt_stationarity: 1.0699764629862329e-08 -> 1.0699768182576008e-08
+  INGATE BASE sd-hven-sqp-SYNTHES1.K objective: 0.75928439194034425 -> 0.75928439194034247
+  INGATE BASE sd-hven-sqp-SYNTHES1.K side.sqp_complementarity: 2.2022736273389042e-10 -> 2.2022754764894871e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.K side.sqp_feasibility: 1.3222367645226996e-10 -> 1.3222378747457242e-10
+  INGATE BASE sd-hven-sqp-SYNTHES1.K side.sqp_kkt_residual: 1.0699764629862329e-08 -> 1.0699768182576008e-08
+  INGATE BASE sd-hven-sqp-SYNTHES1.K side.sqp_stationarity: 1.0699764629862329e-08 -> 1.0699768182576008e-08
+  INGATE BASE sd-hven-sqp-TRY-B.D kkt_stationarity: 2.3008877406584237e-08 -> 2.300887740658424e-08
+  INGATE BASE sd-hven-sqp-TRY-B.D side.sqp_stationarity: 2.3008877406584237e-08 -> 2.300887740658424e-08
+  INGATE BASE sd-hven-sqp-TRY-B.K kkt_stationarity: 2.3008877406584227e-08 -> 2.300887740658424e-08
+  INGATE BASE sd-hven-sqp-TRY-B.K side.sqp_stationarity: 2.3008877406584227e-08 -> 2.300887740658424e-08
+  INGATE BASE sd-hven-sqp-WATER.D kkt_primal_eq: 5.6843418860808015e-14 -> 5.6843419176137403e-14
+  INGATE BASE sd-hven-sqp-WATER.D kkt_primal_ineq: 2.0064323448827131e-16 -> 3.1532939039198385e-22
+  INGATE BASE sd-hven-sqp-WATER.D objective: 10549.379466956934 -> 10549.379466956929
+  INGATE BASE sd-hven-sqp-WATER.D side.eqb_max_gap: 2.4291679778798425e-13 -> 2.9709568138969189e-13
+  INGATE BASE sd-hven-sqp-WATER.D side.restoration_h_out: 1.1368683778177827e-13 -> 6.394884675773078e-14
+  INGATE BASE sd-hven-sqp-WATER.D side.sqp_feasibility: 5.6843418860808015e-14 -> 5.6843419176137403e-14
+  INGATE BASE sd-hven-sqp-WATER.K kkt_primal_eq: 8.5265128291212022e-14 -> 5.6843418860808015e-14
+  INGATE BASE sd-hven-sqp-WATER.K kkt_primal_ineq: 3.1425240852897029e-15 -> 1.6675575129756006e-15
+  INGATE BASE sd-hven-sqp-WATER.K objective: 10549.379466956936 -> 10549.37946695694
+  INGATE BASE sd-hven-sqp-WATER.K side.eqb_max_gap: 2.9665159217984183e-13 -> 2.9842794901924208e-13
+  INGATE BASE sd-hven-sqp-WATER.K side.restoration_h_out: 7.105427357719224e-14 -> 1.1368683772161603e-13
+  INGATE BASE sd-hven-sqp-WATER.K side.sqp_feasibility: 8.5265128291212022e-14 -> 5.6843418860808015e-14
+  INGATE BASE sd-hven-sqp-ZECEVIC3.D kkt_complementarity: 1.3184245690191556e-07 -> 1.3184243017694912e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.D kkt_primal_ineq: 1.6431212168654952e-08 -> 1.6431208837985878e-08
+  INGATE BASE sd-hven-sqp-ZECEVIC3.D side.sqp_complementarity: 1.3184245690191556e-07 -> 1.3184243017694912e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.D side.sqp_feasibility: 1.6431212168654952e-08 -> 1.6431208837985878e-08
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K kkt_complementarity: 1.3184242661362027e-07 -> 1.3184243017694912e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K kkt_primal_ineq: 1.6431208393896668e-08 -> 1.6431208837985878e-08
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K kkt_stationarity: 1.1544207723090949e-07 -> 1.1544208078362317e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K side.sqp_complementarity: 1.3184242661362027e-07 -> 1.3184243017694912e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K side.sqp_feasibility: 1.6431208393896668e-08 -> 1.6431208837985878e-08
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K side.sqp_kkt_residual: 1.1544207723090949e-07 -> 1.1544208078362317e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC3.K side.sqp_stationarity: 1.1544207723090949e-07 -> 1.1544208078362317e-07
+  INGATE BASE sd-hven-sqp-ZECEVIC4.D kkt_complementarity: 4.9993176371833775e-11 -> 4.9993176371833768e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.D kkt_stationarity: 5.0573767396144831e-11 -> 5.0572879217725131e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.D side.sqp_complementarity: 4.9993176371833775e-11 -> 4.9993176371833768e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.D side.sqp_kkt_residual: 5.0573767396144831e-11 -> 5.0572879217725131e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.D side.sqp_stationarity: 5.0573767396144831e-11 -> 5.0572879217725131e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.K kkt_complementarity: 4.9993176371833768e-11 -> 4.9993176371833775e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.K kkt_stationarity: 5.0572879217725131e-11 -> 5.0573767396144831e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.K side.sqp_complementarity: 4.9993176371833768e-11 -> 4.9993176371833775e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.K side.sqp_kkt_residual: 5.0572879217725131e-11 -> 5.0573767396144831e-11
+  INGATE BASE sd-hven-sqp-ZECEVIC4.K side.sqp_stationarity: 5.0572879217725131e-11 -> 5.0573767396144831e-11
+  INGATE BASE sd-hven-sqp-ZY2.D kkt_complementarity: 3.0518254572984096e-11 -> 3.0518254572984102e-11
+  INGATE BASE sd-hven-sqp-ZY2.D kkt_stationarity: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+  INGATE BASE sd-hven-sqp-ZY2.D side.sqp_complementarity: 3.0518254572984096e-11 -> 3.0518254572984102e-11
+  INGATE BASE sd-hven-sqp-ZY2.D side.sqp_kkt_residual: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+  INGATE BASE sd-hven-sqp-ZY2.D side.sqp_stationarity: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+  INGATE BASE sd-hven-sqp-ZY2.K kkt_complementarity: 3.0518254572984096e-11 -> 3.0518254572984102e-11
+  INGATE BASE sd-hven-sqp-ZY2.K kkt_stationarity: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+  INGATE BASE sd-hven-sqp-ZY2.K side.sqp_complementarity: 3.0518254572984096e-11 -> 3.0518254572984102e-11
+  INGATE BASE sd-hven-sqp-ZY2.K side.sqp_kkt_residual: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+  INGATE BASE sd-hven-sqp-ZY2.K side.sqp_stationarity: 5.4578397357119002e-10 -> 5.4578386254888756e-10
+REPORT_ONLY (dev run)

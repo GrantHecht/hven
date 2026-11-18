@@ -1,0 +1,13 @@
+[ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4758 facts=3588 rungs=1 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+[ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=19871 rungs=0 f=0.1394624338487416 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+[ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=5455 facts=4282 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global(s1) [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global(s1) [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 rungs=0 f=-0.003231904984786681 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+triggered+rung(s2) [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4757 facts=4757 arms=1 rungs=1 f=-0.00323190498478668 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+triggered+rung(s2) [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4757 facts=3587 arms=1 rungs=1 f=-0.003231904984786682 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+trig-norung refactorize [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=20000 arms=1 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+trig-norung border [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=19871 arms=1 rungs=0 f=0.1394624338487416 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global refactorize [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 arms=0 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global border [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 arms=0 rungs=0 f=-0.003231904984786681 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global-norung refactorize [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 arms=0 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+global-norung border [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 arms=0 rungs=0 f=-0.003231904984786681 in-cell: result status=1 minors=20000 facts=19871 hkc=0

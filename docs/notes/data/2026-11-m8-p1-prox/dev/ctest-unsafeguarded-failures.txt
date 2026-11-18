@@ -1,0 +1,600 @@
+=== QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2108: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+=== QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2049: Failure
+Expected: (s.counters.dep_structural_first) >= (1), actual: 0 vs 1
+=== QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+Expected equality of these values:
+    Which is: 198
+    Which is: 197
+=== QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+Expected equality of these values:
+    Which is: 179
+    Which is: 181
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2419: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2420: Failure
+Expected: (s.counters.ride_exchanges) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2419: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2420: Failure
+Expected: (s.counters.ride_exchanges) >= (1), actual: 0 vs 1
+=== QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp2
+[ e4 ] R2_Cs_STEENBRB_qp2.txt refactorize moved=249 above_floor=16 ascending=0 worst_rise=1.193e-07 status=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_flat_face_saddle.cpp:541: Failure
+Expected: (static_cast<double>(t.above_floor)) <= (kAscentFraction * static_cast<double>(t.moved)), actual: 16 vs 12.450000000000001
+=== QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=3 f=-384.000317091 minors=584 rides=66 zero_length=34 predicted_signs=0 vetoes=1 undos=1 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_flat_face_saddle.cpp:337: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_flat_face_saddle.cpp:363: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 1
+=== QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=3 f=-384.000317091 minors=584 rides=66 zero_length=34 predicted_signs=0 vetoes=1 undos=1 zmexh=0 zmcap=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_flat_face_saddle.cpp:337: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_flat_face_saddle.cpp:363: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 1
+=== QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2750: Failure
+Expected: (k.eq) <= (1e-12), actual: 9.663568556472768e-12 vs 9.9999999999999998e-13
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2753: Failure
+Expected: (s.counters.minor_iters) < (1000), actual: 1685 vs 1000
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2750: Failure
+Expected: (k.eq) <= (1e-12), actual: 9.663568556472768e-12 vs 9.9999999999999998e-13
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2753: Failure
+Expected: (s.counters.minor_iters) < (1000), actual: 1685 vs 1000
+=== QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+Expected equality of these values:
+    Which is: 575
+    Which is: 586
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2436: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 2
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_anti_cycling_arm.cpp:2436: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 2
+=== QpE2Fix7Acopr118.Major18SubproblemCertifiesRefactorize
+[ e2f7 ] ACOPR118_e4_qp6.txt refactorize status=0 minors=365 facts=515 f=0.0395282103263 stat=1.929e-14 screen_pins=5 pin_skips=0 deferred=0 undecidable=0 unrun=0 budget_stops=0 restarts=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_unrun_dependency_test.cpp:241: Failure
+Expected: (records[i].action) != (Action::kUnset), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+=== QpE2Fix7Acopr118.Major17SubproblemCertifiesRefactorize
+[ e2f7 ] ACOPR118_e4_qp5.txt refactorize status=0 minors=690 facts=842 f=-0.15437624726 stat=2.123e-14 screen_pins=5 pin_skips=0 deferred=0 undecidable=0 unrun=0 budget_stops=0 restarts=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_unrun_dependency_test.cpp:241: Failure
+Expected: (records[i].action) != (Action::kUnset), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_unrun_dependency_test.cpp:241: Failure
+Expected: (records[i].action) != (Action::kUnset), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+=== QpE2Fix7Acopr118.Major18SubproblemCertifiesBorder
+[ e2f7 ] ACOPR118_e4_qp6.txt border status=0 minors=416 facts=13 f=0.0395282103281 stat=2.895e-14 screen_pins=5 pin_skips=0 deferred=0 undecidable=0 unrun=0 budget_stops=0 restarts=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_unrun_dependency_test.cpp:241: Failure
+Expected: (records[i].action) != (Action::kUnset), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_unrun_dependency_test.cpp:241: Failure
+Expected: (records[i].action) != (Action::kUnset), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+=== QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize
+[ e2f9 ] ACOPP118_f81_qp1.txt refactorize status=1 minors=383 facts=394 f=9257.43810447 eq=3.28e-03 stat=2.64e-16 standstill_retreats=0 dep_border_retreats=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_standstill_retreat.cpp:75: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+=== QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+[ e2f9 ] ACOPP118_f81_qp0.txt border status=3 minors=167 facts=172 f=1155.78801918 eq=5.96e-12 stat=9.75e-01 standstill_retreats=0 dep_border_retreats=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_standstill_retreat.cpp:73: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_standstill_retreat.cpp:75: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+=== QpNc4ConvexCertificate.BritgasRestorationLpQp4
+[ nc4 ] C10_BRITGAS_qp4.txt border status=0 minors=843 facts=861 f=-19.1894367779 f*=-19.1894367779 eq=5.71e-17 box=0.00e+00 stat=7.42e-17 comp=3.71e-17 convex_certificates=1 saddle_exits=0 misses=0 rereads=3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_convex_certificate.cpp:95: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_convex_certificate.cpp:97: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 1
+[ nc4 ] C10_BRITGAS_qp4.txt refactorize status=0 minors=843 facts=860 f=-19.1894367779 f*=-19.1894367779 eq=5.71e-17 box=0.00e+00 stat=7.42e-17 comp=3.71e-17 convex_certificates=1 saddle_exits=0 misses=0 rereads=3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_convex_certificate.cpp:95: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+=== QpBpsBorderCertificate.Acopr118Entry9Border
+[ bps ] BPS_ACOPR118_entry9.txt border status=3 minors=161 facts=130 f=-25783.3435455 fallbacks=0 refine=267
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_border_certificate.cpp:66: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+=== QpBpsBorderCertificate.Acopr118Entry9Refactorize
+[ bps ] BPS_ACOPR118_entry9.txt refactorize status=3 minors=162 facts=318 f=-25783.3435455 fallbacks=0 refine=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_border_certificate.cpp:66: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+=== QpQc8ImpliedBlocker.DallasmQp1Border
+[ qc8 ] QC8_DALLASM_qp1.txt border status=0 minors=13 facts=1 f=-125712.835807 implied=0 blkterm=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_implied_blocker.cpp:64: Failure
+Expected: (s.counters.dep_implied_passovers) >= (1), actual: 0 vs 1
+=== QpQc8ImpliedBlocker.DallasmQp1Refactorize
+[ qc8 ] QC8_DALLASM_qp1.txt refactorize status=0 minors=13 facts=13 f=-125712.835807 implied=0 blkterm=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_implied_blocker.cpp:64: Failure
+Expected: (s.counters.dep_implied_passovers) >= (1), actual: 0 vs 1
+=== QpQc8ImpliedBlocker.DallasmQp7Refactorize
+[ qc8 ] QC8_DALLASM_qp7.txt refactorize status=3 minors=153 facts=153 f=-92397.2524604 implied=107 blkterm=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_implied_blocker.cpp:62: Failure
+Expected equality of these values:
+    Which is: 3
+    Which is: 0
+=== QpRdvRankRepair.YorknetQp1Border
+[ rdv ] C11_YORKNET_qp1.txt border status=0 minors=662 facts=648 f=1696529.72937 rank_repairs=0 releases=0 misses=0 blkterm=0 certrej=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_rank_repair.cpp:140: Failure
+Expected: (s.counters.rank_repairs) >= (1), actual: 0 vs 1
+=== QpRdvRankRepair.YorknetQp1Refactorize
+[ rdv ] C11_YORKNET_qp1.txt refactorize status=0 minors=662 facts=691 f=1696529.72937 rank_repairs=0 releases=0 misses=0 blkterm=0 certrej=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_rank_repair.cpp:140: Failure
+Expected: (s.counters.rank_repairs) >= (1), actual: 0 vs 1
+=== QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:317: Failure
+Expected: (s.counters.terminal_polish_adopted) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:317: Failure
+Expected: (s.counters.terminal_polish_adopted) >= (1), actual: 0 vs 1
+=== QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:329: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:343: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:372: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:388: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpYrkRefusedExchange.YorknetRestorationQp25Border
+[ yrk ] YRK_YORKNET_qp25.txt border status=0 minors=75 facts=113 f=-5.7995781471 refused_exchanges=4 refusals=24 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=16 min_curvature=-2.577e-16
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_refused_exchange.cpp:177: Failure
+=== QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+[ sdl ] DALLASM_QN_qp10 alg=1 status=0 minors=35 refusals=0 zmx=0 reverts=0 bound_refusals=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:420: Failure
+Expected: (s.counters.terminal_polish_sign_reverts) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:421: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:422: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 3
+[ sdl ] DALLASM_QN_qp10 alg=0 status=0 minors=43 refusals=0 zmx=0 reverts=0 bound_refusals=0
+=== QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+[ yrk ] YRK_YORKNET_qp25.txt refactorize status=0 minors=75 facts=112 f=-5.7995781471 refused_exchanges=4 refusals=24 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=16 min_curvature=-2.577e-16
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_refused_exchange.cpp:177: Failure
+=== QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible
+[ sdl6 ] NET3_QN_qp98 alg=1 status=1 minors=211 row_refusals=0 tfc=0 eq_res=3.169e-08 row_res=2.356e-03
+[ sdl6 ] NET3_QN_qp98 alg=0 status=0 minors=11 row_refusals=0 tfc=0 eq_res=6.562e-08 row_res=9.916e-08
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:551: Failure
+Expected: (r.row_res) > (1e-2), actual: 0.0023559136186783076 vs 0.01
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:552: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:553: Failure
+Expected equality of these values:
+    Which is: 0
+=== QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible
+[ sdl ] BRITGAS_QN_qp5 alg=1 status=0 minors=362 bound_refusals=0 polish_rejected=0 x326=1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:484: Failure
+Expected: (s.x(326) - d.qp.upper(326)) > (1e-2), actual: 0 vs 0.01
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:485: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:486: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:487: Failure
+Expected equality of these values:
+    Which is: 0
+[ sdl ] BRITGAS_QN_qp5 alg=0 status=0 minors=362 bound_refusals=0 polish_rejected=0 x326=1
+=== QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible
+[ sdl6 ] MSS2_QN_qp58 alg=1 status=1 minors=378 row_refusals=0 tfc=0 eq_res=1.595e-07 row_res=0.000e+00
+[ sdl6 ] MSS2_QN_qp58 alg=0 status=1 minors=378 row_refusals=0 tfc=0 eq_res=1.595e-07 row_res=0.000e+00
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:595: Failure
+Expected: (r.eq_res) > (1e-6), actual: 1.5950591537727052e-07 vs 1e-06
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:596: Failure
+Expected equality of these values:
+    Which is: 34
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:597: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_certificate_sign.cpp:598: Failure
+Expected equality of these values:
+    Which is: 0
+=== QpStagnationStop.AResidualContractingAtPointEightCertifiesWithoutAReading
+[ snx ] rate 0.8 status=1 minors=41 stagnation_drops=0 stagnation_stops=1 mu_refines=2 mu_rescues=2 last_action=15
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:283: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+[ snx ] rate 0.95 status=1 minors=32 stagnation_drops=0 stagnation_stops=1 mu_refines=2 mu_rescues=2 last_action=15
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:283: Failure
+Expected equality of these values:
+    Which is: 1
+=== QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+[ snx ] rate 0.95 + row status=1 minors=48 stagnation_drops=1 stagnation_stops=1 mu_refines=2 mu_rescues=2 last_action=15
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:275: Failure
+Expected equality of these values:
+    Which is: 10
+    Which is: 11
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:277: Failure
+=== QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch
+[ rla ] BRITGAS qp0 first 120: status=1 minors=120 facts=167 cap=0 cond=41 releases=40 holds=83
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_latch_reason.cpp:485: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_latch_reason.cpp:486: Failure
+Expected equality of these values:
+    Which is: 167
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_latch_reason.cpp:488: Failure
+Expected equality of these values:
+    Which is: 41
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_latch_reason.cpp:489: Failure
+Expected equality of these values:
+    Which is: 40
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_latch_reason.cpp:490: Failure
+Expected equality of these values:
+    Which is: 83
+=== QpStagnationStop.BritgasRestorationFootprintFace
+[ snx ] SNX_BRITGAS_resto_qp4.txt alg=1 status=3 minors=906 facts=921 stagnation_drops=1 stagnation_stops=0 f=-22.6631936523072 f_cap=-10.0215963744262 eq=1.332e-15 eq_cap=3.243e-04
+[ snx ] SNX_BRITGAS_resto_qp4.txt classification footprint: terminal_polish_solves=0 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refu
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_stagnation_stop.cpp:106: Failure
+Value of: s.status == QpStatus::kIterationLimit || s.status == QpStatus::kOptimal
+  Actual: false
+Expected: true
+=== SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_ladder_seams.cpp:1017: Failure
+Expected equality of these values:
+    Which is: 0
+=== Threads.ZeroLeavesEveryFactorAtTheBackendDefault
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/drivers/test_threads.cpp:306: Failure
+Expected: (SqpWarmAccess::state(sol.sqp_warm_start).hot) != (nullptr), actual: (nullptr) vs (nullptr)
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/drivers/test_threads.cpp:683: Failure
+Expected equality of these values:
+    Which is: -1
+=== Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/drivers/test_threads.cpp:306: Failure
+Expected: (SqpWarmAccess::state(sol.sqp_warm_start).hot) != (nullptr), actual: (nullptr) vs (nullptr)
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/drivers/test_threads.cpp:885: Failure
+Expected equality of these values:
+    Which is: -1
+    Which is: 2
+=== QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.157354196414622 f_cap=0.139462433848742
+[ pf1 ] post-rung: passes_with_verdict=0 not_kOk=0 perturbed_pivots_total=0 perturbed_unobserved=0; pre-rung perturbed_pivots_total=0
+[ pf1 ] post-rung: kSuspect=0 kWrong=0 max_perturbed_in_a_pass=0 max_primal_delta=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_release_readmission.cpp:132: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/qp/test_qp_release_readmission.cpp:135: Failure
+Expected equality of these values:
+    Which is: 400
+    Which is: 313
+=== B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_b1_gate.cpp:1672: Failure
+Expected: (ssn_r.complementarity) > (0.5 * walk_r.complementarity), actual: 6.8609668727564021e-14 vs 1.6135977645186354e-13
+=== CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 6.0107474990786587e-12 vs 3.053665099e-15
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 7.7882536274991147e-09 vs 3.2209504740000006e-12
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 6.0107474990786587e-12 vs 3.053665099e-15
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 4.0711963577146836e-16 vs 1.2755127373577148e-18
+=== SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness
+[ p1e ] YORKNET rung1 before: status=0 minors=662 facts=648 off_rows=1.13687e-13 | witness: start_off=0.000e+00 pins seeded=4 kept=4 | after: status=0 minors=288 facts=269 f=1696529.72937 slack_l1=17090.3 (witness 51001)
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_elastic_witness_start.cpp:165: Failure
+Expected: (before.counters.rank_repairs) >= (1), actual: 0 vs 1
+=== SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+[ p1e ] SAWPATH rung1 before: status=0 minors=42 facts=51 off_rows=1.77636e-15 | witness: start_off=0.000e+00 pins seeded=0 kept=0 | after: status=0 minors=32 facts=42 f=-376.163994774 slack_l1=2.56738 (witness 3.55954) 
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_elastic_witness_start.cpp:237: Failure
+Expected: (k.stationarity) <= (1e-6), actual: 2.5228755774329654e-06 vs 1e-06
+=== Continuation.ProbeBudgetBoundsAFailingProposal
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_continuation.cpp:1229: Failure
+Expected equality of these values:
+    Which is: 13
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_continuation.cpp:1277: Failure
+Expected equality of these values:
+    Which is: 8
+=== SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness
+[ p1e ] YORKNET ladder arm=0 (witness 0, last 0): usable=0 closed=0 reduced=0 status=3 slack_l1=0 (witness 51001) rungs=6 minors=732 facts=848 fallbacks=0
+[ p1e ] YORKNET ladder arm=1 (witness 1, last 0): usable=1 closed=0 reduced=1 status=0 slack_l1=17032 (witness 51001) rungs=7 minors=329 facts=409 fallbacks=0
+[ p1e ] YORKNET ladder arm=2 (witness 1, last 1): usable=1 closed=0 reduced=1 status=0 slack_l1=17032 (witness 51001) rungs=7 minors=329 facts=409 fallbacks=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_elastic_witness_start.cpp:318: Failure
+Value of: a.rep[0].usable
+  Actual: false
+Expected: true
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_elastic_witness_start.cpp:319: Failure
+Expected equality of these values:
+    Which is: 4-byte object <03-00 00-00>
+    Which is: 4-byte object <00-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_elastic_witness_start.cpp:320: Failure
+Value of: a.rep[0].reduced
+  Actual: false
+=== HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1636: Failure
+Expected equality of these values:
+    Which is: 33
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1637: Failure
+Expected equality of these values:
+    Which is: 98
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1638: Failure
+Expected equality of these values:
+    Which is: 41
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1639: Failure
+Expected equality of these values:
+    Which is: 6
+=== HsSweepCorpus.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1143: Failure
+Expected equality of these values:
+    Which is: 27
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1144: Failure
+Expected equality of these values:
+    Which is: 41
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_hs_sweeps.cpp:1431: Failure
+Expected equality of these values:
+    Which is: 3353
+=== ScaleF7.WideWindowWalkIsChurnNotDegeneracy
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_scale_problems.cpp:641: Failure
+Expected equality of these values:
+    Which is: 3
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_scale_problems.cpp:684: Failure
+Expected equality of these values:
+    Which is: 285
+    Which is: 280
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_scale_problems.cpp:685: Failure
+Expected equality of these values:
+    Which is: 102
+    Which is: 96
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_scale_problems.cpp:686: Failure
+Expected equality of these values:
+    Which is: 104
+=== SqpQnRestoration.TheSubSolveRunsItsOwnInstanceWithoutAHessianCall
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_qn_mode.cpp:617: Failure
+Expected: (sol.counters.restoration_entries) >= (1), actual: 0 vs 1
+=== SqpQnRestoration.TheRegularizedCurvatureNeverCallsTheCallersHessianInThePhase
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_qn_mode.cpp:658: Failure
+Expected: (sol.counters.restoration_entries) >= (1), actual: 0 vs 1
+=== SqpDriverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:11649: Failure
+Expected: (high.unlocks) >= (1), actual: 0 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:11650: Failure
+Expected: (high.worst_resid) <= (1.0e-12), actual: 8.8435925249541469e-12 vs 9.9999999999999998e-13
+=== SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12439: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12439: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12439: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12500: Failure
+Expected equality of these values:
+=== QpEngineStructuralViolation.T6bTheStiffBorderWalkAboveTheShippedDualMuReachesTheOptimum
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:11523: Failure
+Expected: (bordered.unlocks) >= (1), actual: 0 vs 1
+=== QpEngineStructuralViolation.T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12169: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12170: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12171: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12172: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12189: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12190: Failure
+Expected equality of these values:
+    Which is: 0
+=== QpEngineStructuralViolation.E2Fix4TheTerminalMuPointIsRefinedBeforeAnInfeasibleVerdict
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12325: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12326: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12328: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12329: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12333: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12341: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12342: Failure
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12346: Failure
+Expected equality of these values:
+    Which is: 0
+=== QpEngineStructuralViolation.E2Fix4ARealTerminalViolationStillEndsInfeasible
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12390: Failure
+Expected equality of these values:
+    Which is: 4-byte object <03-00 00-00>
+    Which is: 4-byte object <02-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12391: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12393: Failure
+Expected: (std::abs(qp.Ae.row(0).dot(s.x) - qp.be(0))) > (1.0), actual: 1 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12390: Failure
+Expected equality of these values:
+    Which is: 4-byte object <03-00 00-00>
+    Which is: 4-byte object <02-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_solver.cpp:12391: Failure
+=== SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefusesDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3853: Failure
+Expected: (c.stationarity) > (opts.common.optimality_tol), actual: 4.4146733113592518e-07 vs 4.88e-07
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3858: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+=== SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3853: Failure
+Expected: (c.stationarity) > (opts.common.optimality_tol), actual: 4.4146733113592518e-07 vs 4.88e-07
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3858: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+Expected: false
+=== SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3932: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+=== SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:5210: Failure
+Expected equality of these values:
+    Which is: 38
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:5211: Failure
+Expected equality of these values:
+    Which is: 28
+=== SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2385: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+=== SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2469: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2469: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+=== SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2553: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+=== SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2469: Failure
+Expected equality of these values:
+    Which is: 0
+    Which is: 1
+=== SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2562: Failure
+Expected equality of these values:
+    Which is: false
+    Which is: true
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2562: Failure
+Expected equality of these values:
+    Which is: false
+    Which is: true
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2562: Failure
+Expected equality of these values:
+    Which is: false
+    Which is: true
+=== SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2778: Failure
+Expected equality of these values:
+    Which is: 13
+=== SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2992: Failure
+Expected equality of these values:
+    Which is: 36
+    Which is: 15
+=== SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:2992: Failure
+Expected equality of these values:
+    Which is: 37
+    Which is: 15
+=== SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3313: Failure
+Expected equality of these values:
+    Which is: 0
+=== SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:3502: Failure
+Expected equality of these values:
+    Which is: 0
+=== SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:4782: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 2
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:4785: Failure
+Expected equality of these values:
+    Which is: 4-byte object <06-00 00-00>
+    Which is: 4-byte object <00-00 00-00>
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:4789: Failure
+Expected: (chk.stationarity) <= (10.0 * opts.common.optimality_tol), actual: 9.9996444784945275 vs 9.9999999999999991e-06
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:4790: Failure
+Expected: (chk.primal) <= (10.0 * opts.common.feasibility_tol), actual: 0.36745467658963438 vs 9.9999999999999991e-06
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_sqp_restoration.cpp:4782: Failure
+Expected equality of these values:
+=== WarmStartBattery.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_warm_start_battery.cpp:1468: Failure
+Expected equality of these values:
+    Which is: 154
+    Which is: 184
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_warm_start_battery.cpp:1468: Failure
+Expected equality of these values:
+    Which is: 44
+    Which is: 51
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_warm_start_battery.cpp:1468: Failure
+Expected equality of these values:
+    Which is: 41
+    Which is: 48
+/home/ghecht/Projects/hven/.claude/worktrees/p1/tests/sqp/test_warm_start_battery.cpp:1468: Failure
+Expected equality of these values:

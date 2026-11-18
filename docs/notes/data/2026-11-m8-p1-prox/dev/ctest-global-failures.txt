@@ -1,0 +1,256 @@
+=== QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp4
+tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+    Which is: 198
+    Which is: 197
+=== QpE2WorkingSet.ADeclinedRideIsExchangedOnSteenbrbRestorationQp5
+tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+    Which is: 179
+    Which is: 181
+tests/qp/test_qp_anti_cycling_arm.cpp:2419: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+tests/qp/test_qp_anti_cycling_arm.cpp:2420: Failure
+Expected: (s.counters.ride_exchanges) >= (1), actual: 0 vs 1
+tests/qp/test_qp_anti_cycling_arm.cpp:2419: Failure
+Expected: (s.counters.dep_ride_blockers) >= (1), actual: 0 vs 1
+tests/qp/test_qp_anti_cycling_arm.cpp:2420: Failure
+Expected: (s.counters.ride_exchanges) >= (1), actual: 0 vs 1
+=== QpE4ProximalEqp.NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp2
+[ e4 ] R2_Cs_STEENBRB_qp2.txt refactorize moved=249 above_floor=16 ascending=0 worst_rise=1.193e-07 status=0
+tests/qp/test_qp_flat_face_saddle.cpp:541: Failure
+Expected: (static_cast<double>(t.above_floor)) <= (kAscentFraction * static_cast<double>(t.moved)), actual: 16 vs 12.450000000000001
+=== QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=3 f=-384.000317091 minors=584 rides=66 zero_length=34 predicted_signs=0 vetoes=1 undos=1 zmexh=0 zmcap=0
+tests/qp/test_qp_flat_face_saddle.cpp:337: Failure
+    Which is: 3
+    Which is: 0
+tests/qp/test_qp_flat_face_saddle.cpp:363: Failure
+    Which is: 3
+    Which is: 1
+=== QpNc2FlatFace.TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt border status=3 f=-384.000317091 minors=584 rides=66 zero_length=34 predicted_signs=0 vetoes=1 undos=1 zmexh=0 zmcap=0
+tests/qp/test_qp_flat_face_saddle.cpp:337: Failure
+    Which is: 3
+    Which is: 0
+tests/qp/test_qp_flat_face_saddle.cpp:363: Failure
+    Which is: 3
+    Which is: 1
+=== QpE2WorkingSet.AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp
+tests/qp/test_qp_anti_cycling_arm.cpp:2049: Failure
+Expected: (s.counters.dep_structural_first) >= (1), actual: 0 vs 1
+=== QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+tests/qp/test_qp_anti_cycling_arm.cpp:2750: Failure
+Expected: (k.eq) <= (1e-12), actual: 9.663568556472768e-12 vs 9.9999999999999998e-13
+tests/qp/test_qp_anti_cycling_arm.cpp:2753: Failure
+Expected: (s.counters.minor_iters) < (1000), actual: 1685 vs 1000
+tests/qp/test_qp_anti_cycling_arm.cpp:2750: Failure
+Expected: (k.eq) <= (1e-12), actual: 9.663568556472768e-12 vs 9.9999999999999998e-13
+tests/qp/test_qp_anti_cycling_arm.cpp:2753: Failure
+Expected: (s.counters.minor_iters) < (1000), actual: 1685 vs 1000
+=== QpE2Fix9StandstillRetreat.Acopp118Qp0Border
+[ e2f9 ] ACOPP118_f81_qp0.txt border status=1 minors=204 facts=168 f=1340.98709887 eq=2.22e-06 stat=1.53e-06 standstill_retreats=0 dep_border_retreats=0
+tests/qp/test_qp_standstill_retreat.cpp:73: Failure
+    Which is: 0
+    Which is: 1
+tests/qp/test_qp_standstill_retreat.cpp:75: Failure
+    Which is: 1
+    Which is: 0
+=== QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+tests/qp/test_qp_anti_cycling_arm.cpp:2361: Failure
+    Which is: 554
+    Which is: 586
+tests/qp/test_qp_anti_cycling_arm.cpp:2436: Failure
+    Which is: 1
+    Which is: 2
+tests/qp/test_qp_anti_cycling_arm.cpp:2436: Failure
+    Which is: 1
+    Which is: 2
+=== QpBpsBorderCertificate.Acopr118Entry9Border
+[ bps ] BPS_ACOPR118_entry9.txt border status=0 minors=391 facts=79 f=75.2165872752 fallbacks=0 refine=546
+tests/qp/test_qp_border_certificate.cpp:126: Failure
+Expected: (2 * s.counters.border_refine_steps) > (3 * s.counters.minor_iters), actual: 1092 vs 1173
+=== QpQc8ImpliedBlocker.DallasmQp7Refactorize
+[ qc8 ] QC8_DALLASM_qp7.txt refactorize status=3 minors=154 facts=154 f=-92397.2524604 implied=106 blkterm=0
+tests/qp/test_qp_implied_blocker.cpp:62: Failure
+    Which is: 3
+    Which is: 0
+=== QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed
+tests/qp/test_qp_certificate_sign.cpp:317: Failure
+Expected: (s.counters.terminal_polish_adopted) >= (1), actual: 0 vs 1
+tests/qp/test_qp_certificate_sign.cpp:317: Failure
+Expected: (s.counters.terminal_polish_adopted) >= (1), actual: 0 vs 1
+=== QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent
+tests/qp/test_qp_certificate_sign.cpp:329: Failure
+    Which is: 1
+=== QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
+tests/qp/test_qp_certificate_sign.cpp:343: Failure
+    Which is: 1
+=== QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent
+tests/qp/test_qp_certificate_sign.cpp:372: Failure
+    Which is: 1
+=== QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible
+tests/qp/test_qp_certificate_sign.cpp:388: Failure
+    Which is: 1
+=== QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch
+[ rla ] BRITGAS qp0 first 120: status=1 minors=120 facts=169 cap=0 cond=43 releases=42 holds=81
+tests/qp/test_qp_latch_reason.cpp:485: Failure
+tests/qp/test_qp_latch_reason.cpp:486: Failure
+    Which is: 169
+tests/qp/test_qp_latch_reason.cpp:488: Failure
+    Which is: 43
+tests/qp/test_qp_latch_reason.cpp:489: Failure
+    Which is: 42
+tests/qp/test_qp_latch_reason.cpp:490: Failure
+    Which is: 81
+=== B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+tests/sqp/test_b1_gate.cpp:1672: Failure
+Expected: (ssn_r.complementarity) > (0.5 * walk_r.complementarity), actual: 6.8609668727564021e-14 vs 1.6135977645186354e-13
+=== QpNc4ConvexCertificate.BritgasRestorationLpQp4
+[ nc4 ] C10_BRITGAS_qp4.txt border status=0 minors=849 facts=867 f=-19.1894367779 f*=-19.1894367779 eq=1.11e-16 box=0.00e+00 stat=7.42e-17 comp=1.86e-16 convex_certificates=1 saddle_exits=0 misses=0 rereads=3
+tests/qp/test_qp_convex_certificate.cpp:95: Failure
+    Which is: 1
+    Which is: 0
+tests/qp/test_qp_convex_certificate.cpp:97: Failure
+    Which is: 3
+    Which is: 1
+[ nc4 ] C10_BRITGAS_qp4.txt refactorize status=0 minors=849 facts=866 f=-19.1894367779 f*=-19.1894367779 eq=1.11e-16 box=0.00e+00 stat=7.42e-17 comp=1.86e-16 convex_certificates=1 saddle_exits=0 misses=0 rereads=3
+tests/qp/test_qp_convex_certificate.cpp:95: Failure
+    Which is: 1
+    Which is: 0
+tests/qp/test_qp_convex_certificate.cpp:97: Failure
+=== CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+tests/bench/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 6.0107474990786587e-12 vs 3.053665099e-15
+tests/bench/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 7.7882536274991147e-09 vs 3.2209504740000006e-12
+tests/bench/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 6.0107474990786587e-12 vs 3.053665099e-15
+tests/bench/test_corpus_cells.cpp:4026: Failure
+Expected: (std::abs(observed - want)) <= (bound), actual: 4.0711963577146836e-16 vs 1.2755127373577148e-18
+=== SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+[ p1e ] SAWPATH rung1 before: status=0 minors=41 facts=50 off_rows=8.54872e-15 | witness: start_off=0.000e+00 pins seeded=0 kept=0 | after: status=0 minors=32 facts=42 f=-376.163994774 slack_l1=2.56738 (witness 3.55954) eq=1.78e-1
+tests/sqp/test_elastic_witness_start.cpp:237: Failure
+Expected: (k.stationarity) <= (1e-6), actual: 2.5228755774329654e-06 vs 1e-06
+=== HsSweepCorpus.Corpus
+tests/sqp/test_hs_sweeps.cpp:1143: Failure
+    Which is: 27
+tests/sqp/test_hs_sweeps.cpp:1144: Failure
+    Which is: 41
+tests/sqp/test_hs_sweeps.cpp:1160: Failure
+    Which is: 20
+tests/sqp/test_hs_sweeps.cpp:1161: Failure
+    Which is: 27
+tests/sqp/test_hs_sweeps.cpp:1431: Failure
+    Which is: 3838
+=== HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+tests/sqp/test_hs_sweeps.cpp:1622: Failure
+    Which is: 27
+tests/sqp/test_hs_sweeps.cpp:1636: Failure
+    Which is: 27
+tests/sqp/test_hs_sweeps.cpp:1637: Failure
+    Which is: 577
+tests/sqp/test_hs_sweeps.cpp:1638: Failure
+    Which is: 28
+tests/sqp/test_hs_sweeps.cpp:1639: Failure
+    Which is: 1
+=== ScaleF7.WideWindowWalkIsChurnNotDegeneracy
+tests/model/test_scale_problems.cpp:684: Failure
+    Which is: 527
+    Which is: 528
+tests/model/test_scale_problems.cpp:685: Failure
+    Which is: 179
+    Which is: 181
+tests/model/test_scale_problems.cpp:686: Failure
+    Which is: 182
+    Which is: 184
+tests/model/test_scale_problems.cpp:688: Failure
+    Which is: 68
+    Which is: 70
+=== SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefusesDenseArm
+tests/sqp/test_sqp_restoration.cpp:3853: Failure
+Expected: (c.stationarity) > (opts.common.optimality_tol), actual: 4.4146733113592518e-07 vs 4.88e-07
+tests/sqp/test_sqp_restoration.cpp:3858: Failure
+Value of: sol.infeasibility_certified
+  Actual: true
+=== SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm
+tests/sqp/test_sqp_restoration.cpp:5210: Failure
+    Which is: 38
+tests/sqp/test_sqp_restoration.cpp:5211: Failure
+    Which is: 28
+=== SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm
+tests/sqp/test_sqp_restoration.cpp:2469: Failure
+    Which is: 0
+    Which is: 1
+tests/sqp/test_sqp_restoration.cpp:2469: Failure
+    Which is: 0
+    Which is: 1
+=== SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm
+tests/sqp/test_sqp_restoration.cpp:2562: Failure
+    Which is: false
+    Which is: true
+tests/sqp/test_sqp_restoration.cpp:2562: Failure
+    Which is: false
+    Which is: true
+tests/sqp/test_sqp_restoration.cpp:2562: Failure
+    Which is: false
+    Which is: true
+=== SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+tests/sqp/test_sqp_restoration.cpp:2778: Failure
+    Which is: 13
+=== SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+tests/sqp/test_sqp_restoration.cpp:2992: Failure
+    Which is: 36
+    Which is: 15
+=== SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+tests/sqp/test_sqp_restoration.cpp:2992: Failure
+    Which is: 37
+    Which is: 15
+=== SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+tests/sqp/test_sqp_restoration.cpp:3313: Failure
+    Which is: 0
+=== SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+tests/sqp/test_sqp_restoration.cpp:3502: Failure
+    Which is: 0
+=== SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm
+tests/sqp/test_sqp_restoration.cpp:4782: Failure
+    Which is: 1
+    Which is: 2
+tests/sqp/test_sqp_restoration.cpp:4785: Failure
+    Which is: 4-byte object <06-00 00-00>
+    Which is: 4-byte object <00-00 00-00>
+tests/sqp/test_sqp_restoration.cpp:4789: Failure
+Expected: (chk.stationarity) <= (10.0 * opts.common.optimality_tol), actual: 9.9996444784945275 vs 9.9999999999999991e-06
+tests/sqp/test_sqp_restoration.cpp:4790: Failure
+Expected: (chk.primal) <= (10.0 * opts.common.feasibility_tol), actual: 0.36745467658963438 vs 9.9999999999999991e-06
+tests/sqp/test_sqp_restoration.cpp:4782: Failure
+    Which is: 1
+=== WarmStartBattery.Corpus
+tests/warmstart/test_warm_start_battery.cpp:1468: Failure
+    Which is: 154
+    Which is: 184
+tests/warmstart/test_warm_start_battery.cpp:1468: Failure
+    Which is: 44
+    Which is: 51
+tests/warmstart/test_warm_start_battery.cpp:1468: Failure
+    Which is: 41
+    Which is: 48
+tests/warmstart/test_warm_start_battery.cpp:1468: Failure
+    Which is: 44
+    Which is: 51
+=== QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.132842682932847 f_cap=0.139462433848742
+[ pf1 ] post-rung: passes_with_verdict=0 not_kOk=0 perturbed_pivots_total=0 perturbed_unobserved=0; pre-rung perturbed_pivots_total=0
+[ pf1 ] post-rung: kSuspect=0 kWrong=0 max_perturbed_in_a_pass=0 max_primal_delta=0
+tests/qp/test_qp_release_readmission.cpp:132: Failure
+    Which is: 0
+tests/qp/test_qp_release_readmission.cpp:135: Failure
+    Which is: 400
+    Which is: 313
+=== QpStagnationStop.BritgasRestorationFootprintFace
+[ snx ] SNX_BRITGAS_resto_qp4.txt alg=1 status=1 minors=11700 facts=11715 stagnation_drops=1 stagnation_stops=0 f=-20.6630511649169 f_cap=-10.0215963744262 eq=1.352e-15 eq_cap=3.243e-04
+[ snx ] SNX_BRITGAS_resto_qp4.txt classification footprint: terminal_polish_solves=0 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+tests/qp/test_qp_stagnation_stop.cpp:94: Failure
+Expected: (s.counters.minor_iters) < (3000), actual: 11700 vs 3000
+=== F7ColdScaleSmoke.SchurCapExhaustionBuysFactorizationsNotIterations
+tests/sqp/test_scale_smoke.cpp:709: Failure
+    Which is: 282
+    Which is: 280

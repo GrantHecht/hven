@@ -1,0 +1,1015 @@
+diff --git a/include/hven/core/solver_counters.h b/include/hven/core/solver_counters.h
+index 6d9530b53..2faabd67e 100644
+--- a/include/hven/core/solver_counters.h
++++ b/include/hven/core/solver_counters.h
+@@ -143,11 +143,19 @@ struct QpCounters {
+     /// Rungs of the release re-admission rule this solve spent (qp_engine.h,
+     /// THE RELEASE RE-ADMISSION): each multiplies the effective
+     /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
+-    /// refresh re-admitted the row the previous pass released, at most
++    /// refresh re-admitted the row the previous pass released with the dual
++    /// centre already armed (dual_centre_arms), at most
+     /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
+     /// released row; independent_working_set walks only.
+     Index dual_regularization_decreases = 0;
+ 
++    /// 1 iff the release re-admission armed THE DUAL PROXIMAL CENTRE this solve
++    /// (eqp_solve.h, M8 P-1): the first re-admission centres every later EQP's
++    /// dual regularization at the walk's multiplier estimate, and only a further
++    /// re-admission spends a dual_regularization_decreases rung. 0 on every solve
++    /// that never re-admits a released row; independent_working_set walks only.
++    Index dual_centre_arms = 0;
++
+     /// True iff qp_engine.h's border-mode reuse gate (`reuse_eligible` in
+     /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border cache
+     /// trustworthy for THIS solve() call -- whether the engine actually skipped
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index 094d7d3d9..9881f8a20 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -654,10 +654,17 @@ inline double bordered_shifted_backward_error(const SpMatRM &K0, const std::vect
+ // step and its iterated steps, the polish) is kept only while the residual it
+ // targets strictly falls, and the returned answer is the gated one plus those
+ // kept steps.
++//
++// `dual_k` is the DUAL PROXIMAL CENTRE (eqp_solve.h): -reg*lambda_k joins the rhs
++// on every regularized constraint row -- K0's equality and live working rows, a
++// kIneqRow border at lambda_i(row), and a kVarPin border at -z(i) (that border's
++// dual IS -z, the stationarity row reading Hx + g + A'lambda + y_pin = 0). A
++// kRowDelete border carries d = 0 and no term.
+ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
+                                     const std::vector<BorderLedgerEntry> &ledger,
+-                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts,
++                                    const WorkingSet &ws, const Vec &x_k,
++                                    const EqpDualCentre &dual_k, const QpOptions &opts,
+                                     const Vec *k0_shift_scale) {
+     const Index n = qp.n();
+     const Index me = qp.me();
+@@ -669,12 +676,37 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+             fmt::format("solve_bordered_eqp: proximal centre has size {}, expected n = {}",
+                         static_cast<long long>(x_k.size()), static_cast<long long>(n)));
+     }
++    validate_dual_centre(qp, dual_k, "solve_bordered_eqp");
+     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
+ 
+-    Vec sol = schur.solve(sys.rhs);
++    // THE DUAL PROXIMAL CENTRE: `rhs_reg` is what the factor solves; `sys.rhs` stays
++    // the refinement's and the polish's target.
++    Vec centre = Vec::Zero(n0 + m);
++    if (dual_k.lambda_e != nullptr) {
++        centre.segment(n, me) = *dual_k.lambda_e;
++    }
++    if (dual_k.lambda_i != nullptr) {
++        for (std::size_t k = 0; k < k0_rows.size(); ++k) {
++            if (!sys.k0_row_deleted[k]) {
++                centre(n + me + static_cast<Index>(k)) = (*dual_k.lambda_i)(k0_rows[k]);
++            }
++        }
++    }
++    for (Index b = 0; b < m; ++b) {
++        const BorderLedgerEntry &e = ledger[static_cast<std::size_t>(b)];
++        if (e.kind == BorderLedgerEntry::Kind::kVarPin && dual_k.z != nullptr) {
++            centre(n0 + b) = -(*dual_k.z)(e.target);
++        } else if (e.kind == BorderLedgerEntry::Kind::kIneqRow && dual_k.lambda_i != nullptr) {
++            centre(n0 + b) = (*dual_k.lambda_i)(e.target);
++        }
++    }
++    const Vec rhs_reg =
++        sys.rhs + bordered_regularization(n0, n, sys.border_d, opts).cwiseProduct(centre);
++
++    Vec sol = schur.solve(rhs_reg);
+     const bool shifted_refused = k0_shift_scale != nullptr &&
+                                  !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d,
+-                                                                   sys.rhs, sol, *k0_shift_scale) <=
++                                                                   rhs_reg, sol, *k0_shift_scale) <=
+                                    detail::kDenseShiftedBackwardErrorTol);
+ 
+     // ---- THE EQP-SITE RESIDUAL CHECK (E4-4), the border twin. Same object, same
+@@ -684,7 +716,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+     // IS a constraint row). Runs BEFORE the model's refinement, for the reason
+     // stated there: afterwards the row residual is the model's own mu*lambda.
+     const Index nc = n0 + m - n;
+-    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(sys.rhs.segment(n, nc)) : 0.0;
++    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs_reg.segment(n, nc)) : 0.0;
+     // The constraint rows only, for the reason (and with the measurement)
+     // eqp_solve.h states at its own copy of this rule.
+     const auto ratio_of = [&](const Vec &ss, const Vec &r) {
+@@ -696,14 +728,14 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+                      opts.dual_regularization * detail::nan_sticky_inf_norm(ss.segment(n, nc)));
+         return detail::nan_sticky_inf_norm(r.segment(n, nc)) / scale;
+     };
+-    Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, sol);
++    Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, rhs_reg, sol);
+     double ratio = ratio_of(sol, r_reg);
+     Index res_iters = 0;
+     while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
+         ++res_iters; // spent, kept or not -- solver_counters.h's eqp_refine_iters
+         const Vec candidate = sol + schur.solve(r_reg);
+         Vec candidate_r =
+-            bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, candidate);
++            bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, rhs_reg, candidate);
+         const double candidate_ratio = ratio_of(candidate, candidate_r);
+         if (!(candidate_ratio < ratio)) {
+             break; // stagnated, diverging, or NaN -- keep the better answer
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index d3233342c..b84b996e6 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -109,6 +109,25 @@
+ // is one step of iterative refinement, bringing accuracy from ~1e-8 to
+ // ~1e-10..1e-12 — load-bearing for later tolerances.
+ //
++// --- THE DUAL PROXIMAL CENTRE (M8 P-1) ---
++//
++// The dual regularization is centred at the caller's multiplier estimate
++// lambda_k (EqpDualCentre), not at 0: the constraint rows solved are
++//     Ae_F x_F - mu*(lambda_e - lambda_e,k) = be - eq_shift   (and the working rows alike),
++// i.e. the regularized rhs carries -mu*lambda_k on those rows. That is the
++// proximal method of multipliers' subproblem (Rockafellar 1976; Friedlander &
++// Orban 2012; Pougkakiotis & Gondzio 2021; stabilized SQP's -mu(y - y_E):
++// Wright 1998, Gill & Robinson 2013). It equals starting the refinement below at
++// y0 = [0; lambda_k] instead of 0, so the target system (K0, rhs) is unchanged
++// and only the start moves: after s steps the error along a row direction of
++// singular value sigma is (mu/(mu + sigma^2))^(s+1) * (lambda* - lambda_k).
++// Centred at 0 that error is a fraction of lambda* itself, which on a face with
++// sigma^2 << mu leaves the multipliers at a FALSE FIXED POINT the drop rule
++// cycles on (M8 PF-1/PF-1b: f7_n1000_path_corrupted QP1, sigma_min^2 6.5e-12);
++// centred at lambda_k the regularized and exact answers coincide at any fixed
++// point, at a mu that stays bounded away from 0. A zero centre is the pre-P-1
++// system. Only the rhs moves: K, its factorization and its inertia do not.
++//
+ // THE PRIMAL `delta` IS NOT BACKED OUT, and that is the other half of the
+ // proximal pair (M7 W2 E4, ruling E4-1). Once the regularization is centred at
+ // x_k it is a TERM OF THE MODEL -- the proximal penalty -- and not an error:
+@@ -144,7 +163,7 @@
+ //
+ // ORDER IS LOAD-BEARING: the accuracy loop runs BEFORE the mu-free model step,
+ // because after that step y no longer solves K y = rhs -- it solves the proximal
+-// system, whose regularized residual is mu*lambda by construction -- so a check
++// system, whose regularized residual is mu*(lambda - lambda_k) by construction -- so a check
+ // placed after it would read the model's own footprint as a defect.
+ //
+ // ONE step is all this path takes, and the reason is structural: the shared
+@@ -286,6 +305,30 @@ constexpr double kEqpPolishStepCap = 1e-6;
+ // end, so every step it takes is one the verdict asked for.
+ constexpr Index kMaxVerdictRefineSteps = 10;
+ 
++// THE DUAL PROXIMAL CENTRE (header section above): the multiplier estimate the
++// dual regularization is centred at, in the QP's own indexing. A null block is
++// centred at 0. `lambda_i` is read on working rows only and `z` on pinned
++// variables only (the bordered path's pin borders; the eliminated path has no
++// pin rows). A centre is part of the system solved, so every caller names one.
++struct EqpDualCentre {
++    const Vec *lambda_e = nullptr; // me
++    const Vec *lambda_i = nullptr; // mi
++    const Vec *z = nullptr;        // n
++};
++
++inline void validate_dual_centre(const QpProblem &qp, const EqpDualCentre &c, const char *who) {
++    const auto check = [&](const Vec *v, Index want, const char *name) {
++        if (v != nullptr && v->size() != want) {
++            throw std::invalid_argument(fmt::format("{}: dual centre {} has size {}, expected {}", who,
++                                                    name, static_cast<long long>(v->size()),
++                                                    static_cast<long long>(want)));
++        }
++    };
++    check(c.lambda_e, qp.me(), "lambda_e");
++    check(c.lambda_i, qp.mi(), "lambda_i");
++    check(c.z, qp.n(), "z");
++}
++
+ struct EqpResult {
+     Vec x, lambda_e, lambda_w;
+ 
+@@ -392,15 +435,19 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
+ // `x_k` is the PROXIMAL CENTRE: the iterate this EQP is being solved from, of
+ // size qp.n(). See the header's PROXIMAL CENTRE section -- it is required, and
+ // passing a zero vector is the pre-E4 ABSOLUTE centring, a different system.
++//
++// `dual_k` is the DUAL PROXIMAL CENTRE (EqpDualCentre); `EqpDualCentre{}` is the
++// centre at 0.
+ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+-                           detail::KktFactor &kkt, const QpOptions &opts,
+-                           EqpResult *unrefined_out = nullptr) {
++                           const EqpDualCentre &dual_k, detail::KktFactor &kkt,
++                           const QpOptions &opts, EqpResult *unrefined_out = nullptr) {
+     qp.validate();
+     if (x_k.size() != qp.n()) {
+         throw std::invalid_argument(
+             fmt::format("solve_eqp: proximal centre has size {}, expected n = {}",
+                         static_cast<long long>(x_k.size()), static_cast<long long>(qp.n())));
+     }
++    validate_dual_centre(qp, dual_k, "solve_eqp");
+ 
+     const Index n = qp.n();
+     const Index me = qp.me();
+@@ -448,11 +495,25 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+ 
+     // A dense factorization the detector flags is refactored shifted;
+     // kkt.dense_shifted then gates the one unconditional step below.
++    // THE DUAL PROXIMAL CENTRE: the regularized system's rhs is `rhs` plus
++    // -mu*lambda_k on the constraint rows. `rhs` stays the target of the model's
++    // refinement step below; `rhs_reg` is what the factor is asked to solve.
++    Vec rhs_reg = rhs;
++    const double mu = opts.dual_regularization;
++    if (dual_k.lambda_e != nullptr) {
++        rhs_reg.segment(n_free, me) -= mu * *dual_k.lambda_e;
++    }
++    if (dual_k.lambda_i != nullptr) {
++        for (Index k = 0; k < n_working; ++k) {
++            rhs_reg(n_free + me + k) -= mu * (*dual_k.lambda_i)(aw[static_cast<std::size_t>(k)]);
++        }
++    }
++
+     detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
+-    Vec y = detail::solve_vec(kkt, rhs);
+-    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
++    Vec y = detail::solve_vec(kkt, rhs_reg);
++    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs_reg, kkt, y);
+     // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+-    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
++    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs_reg, kkt, y);
+ 
+     auto scatter = [&](const Vec &yy) {
+         EqpResult res;
+@@ -472,9 +533,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+     const Index nc = me + n_working;
+     const auto regularized_residual = [&](const Vec &yy) {
+         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
+-        return Vec(rhs - Kyy);
++        return Vec(rhs_reg - Kyy);
+     };
+-    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs.segment(n_free, nc)) : 0.0;
++    const double rhs_rows_inf =
++        nc > 0 ? detail::nan_sticky_inf_norm(rhs_reg.segment(n_free, nc)) : 0.0;
+     // THE SCALES CARRY THE REGULARIZATION'S OWN FOOTPRINT ON THIS ANSWER --
+     // delta*||x_F|| on the free block, mu*||lambda|| on the rows. Those are the
+     // sizes of terms that are IN the regularized equations, so a residual at or
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index d66e79594..384146ecb 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -786,13 +786,17 @@
+ // bring the rows to their floor within the minors left (the cap's status either way); a run that
+ // can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
+ // the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
+-// THE RELEASE RE-ADMISSION (independent_working_set; dual_regularization_decreases). When the
+-// shift refresh re-admits the row the previous pass's drop released, dual_mu is multiplied by
+-// kDualRegDecreaseFactor (1e-2) and the factor state is discarded so the next pass factorizes with
+-// it; at most kMaxDualRegDecreases times per solve. The release was on a residual dual_mu's
+-// footprint excused; a face whose smallest singular value is below what dual_mu resolves then
+-// cycles release -> re-admission until the minor cap. Nothing is certified; a walk that never
+-// re-admits a released row is untouched.
++// THE RELEASE RE-ADMISSION (independent_working_set; dual_centre_arms,
++// dual_regularization_decreases). The release was on a residual dual_mu's footprint excused; a
++// face whose smallest singular value is below what dual_mu resolves then cycles release ->
++// re-admission until the minor cap, the multipliers held at a false fixed point by a dual
++// regularization centred at 0. When the shift refresh re-admits the row the previous pass's drop
++// released, the walk ARMS THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1): every later EQP is
++// centred at the walk's multiplier estimate, so dual_mu stays where it was and the regularized
++// and exact answers coincide at a fixed point. A re-admission with the centre already armed
++// multiplies dual_mu by kDualRegDecreaseFactor (1e-2) and discards the factor state so the next
++// pass factorizes with it; at most kMaxDualRegDecreases times per solve. Nothing is certified; a
++// walk that never re-admits a released row is untouched.
+ //
+ // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
+ // would END the solve -- no admissible member and no verified certificate (kRejected) or no
+@@ -2266,6 +2270,17 @@ class QpEngine {
+     // stationarity 1.24); advisory keeps it, still converges
+     // `indefinite_equality_qp`, and converts `A0_YORKNET`/qp1 (num/329 ->
+     // opt/717, a conversion fix round 1's polish step cap had given up).
++    // THE DUAL CENTRE's SAFEGUARD (M8 P-1; eqp_solve.h): the pass's multipliers
++    // become the next pass's dual centre only if its EQP answer meets every equality
++    // and working inequality row within row_tolerance (its own multipliers pricing the
++    // footprint). On an inconsistent row set the multipliers are 1/dual_mu-sized
++    // regularization artifacts, and centring on them would grow them by r/mu per
++    // pass (the proximal method of multipliers on an infeasible system); such a pass
++    // centres the next one at 0, the pre-P-1 system.
++    bool eqp_answer_meets_working_rows(const QpProblem &qp, const WorkingSet &ws,
++                                       const EqpResult &eqp, const Vec &ai_row_norm1,
++                                       const Vec &ae_row_norm1, const QpOptions &opts) const;
++
+     bool eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                         const EqpResult &eqp, const Vec &Aix,
+                                         const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+@@ -2468,7 +2483,13 @@ class QpEngine {
+     // signatures can see which point the answer is a step from. The probe and
+     // inertia-read call sites pass the same iterate even though only the
+     // FACTORIZATION's inertia is read there and the rhs cannot reach it.
++    //
++    // `dual_k` is THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1), threaded the
++    // same way: the walk's own multiplier estimate on its passes once the release
++    // re-admission has armed it, else 0; 0 at a mu-free solve (no term to centre)
++    // and at a site that reads only the factor.
+     EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++                            const EqpDualCentre &dual_k,
+                             detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                             QpCounters &counters, detail::InertiaVerdict &verdict,
+                             const QpOptions &opts) const;
+@@ -2479,6 +2500,7 @@ class QpEngine {
+     // also why a border-mode fallback on an all-variables-pinned working set
+     // costs no factorization at all.
+     EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++                                   const EqpDualCentre &dual_k,
+                                    detail::KktFactor &kkt, EliminatedFace &face,
+                                    QpCounters &counters, detail::InertiaVerdict &verdict,
+                                    const QpOptions &opts) const;
+@@ -2527,6 +2549,7 @@ class QpEngine {
+     // short-circuit above has no counterpart here and needs none -- K0 spans
+     // all n variables whatever the working set does.
+     EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++                               const EqpDualCentre &dual_k,
+                                detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                                QpCounters &counters, detail::InertiaVerdict &verdict,
+                                const QpOptions &opts) const;
+@@ -2537,6 +2560,7 @@ class QpEngine {
+     // when it is not. `opts` is the effective options this solve resolved
+     // (see run()'s `eff_opts`).
+     EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++                                        const EqpDualCentre &dual_k,
+                                         detail::KktFactor &kkt, EliminatedFace &face,
+                                         BorderState &border, QpCounters &counters,
+                                         detail::InertiaVerdict &verdict, bool rebuilt,
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index d2f6095bf..71420fe2f 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -31,6 +31,7 @@
+ // a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
+ // re-derivation.
+ 
++#include <cstdlib> // P1SCRATCH
+ #include <bit>
+ #include <exception>
+ 
+@@ -223,7 +224,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
+         const detail::DenseTallyScope tally(
+             kkt, out.counters.dense_factorizations, out.counters.dense_flagged_factorizations,
+             out.counters.dense_singular_refactors, out.counters.dense_platform_retakes);
+-        return solve_eqp(qp, ws, face.x, kkt, eff_opts);
++        return solve_eqp(qp, ws, face.x, EqpDualCentre{}, kkt, eff_opts);
+     }();
+     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
+     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
+@@ -541,6 +542,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+     Vec lambda_e = Vec::Zero(me);
+     Vec lambda_i = Vec::Zero(mi);
+     Vec z = Vec::Zero(n);
++    // THE DUAL PROXIMAL CENTRE (eqp_solve.h, M8 P-1): once armed by the release
++    // re-admission below, every pass's EQP is centred at the walk's current
++    // multiplier estimate (the last priced pass; a row or pin new to the working
++    // set at 0), re-read at each price() under the safeguard
++    // (eqp_answer_meets_working_rows). Unarmed, the centre is 0.
++    bool dual_centring = std::getenv("HVEN_P1_GLOBAL") != nullptr; // P1SCRATCH
++    EqpDualCentre dual_k{};
+ 
+     Vec shift = Vec::Zero(mi);
+     Vec Aix = Vec::Zero(mi);
+@@ -873,8 +881,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+ #endif
+         const EqpResult eqp =
+             eliminated_only
+-                ? eliminated_candidate(qp, ws, x, kkt, face, counters, verdict, eff_opts)
+-                : eqp_candidate(qp, ws, x, kkt, face, *border_, counters, verdict, eff_opts);
++                ? eliminated_candidate(qp, ws, x, dual_k, kkt, face, counters, verdict, eff_opts)
++                : eqp_candidate(qp, ws, x, dual_k, kkt, face, *border_, counters, verdict, eff_opts);
+         if (verdict == detail::InertiaVerdict::kSuspect) {
+             ++counters.inertia_suspect_verdicts;
+         } else if (verdict == detail::InertiaVerdict::kWrong) {
+@@ -1127,6 +1135,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+         }
+ 
+         price(qp, ws, eqp, lambda_e, lambda_i, z);
++        dual_k = dual_centring && eqp_answer_meets_working_rows(qp, ws, eqp, ai_row_norm1,
++                                                                ae_row_norm1, eff_opts)
++                     ? EqpDualCentre{&lambda_e, &lambda_i, &z}
++                     : EqpDualCentre{};
+ 
+         // THE EQUALITY DRIFT (section 4c): once the iterate has met its equality
+         // rows it keeps meeting them -- a CHECKED invariant, counted. "Met" is
+@@ -1931,7 +1943,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                     detail::InertiaVerdict diag_verdict = detail::InertiaVerdict::kOk;
+                     bool diag_ok = true;
+                     try {
+-                        (void)eliminated_candidate(qp, ws, x, *diag_kkt, diag_face, counters,
++                        (void)eliminated_candidate(qp, ws, x, dual_k, *diag_kkt, diag_face, counters,
+                                                    diag_verdict, eff_opts);
+                     } catch (...) {
+                         // SWALLOWED AND COUNTED. A diagnostic may not end a
+@@ -2977,11 +2989,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+         // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
+         // the previous pass released, so the residual the row was released with was dual_mu's
+-        // footprint. One rung down, and the factor state discarded so the next pass factorizes with
+-        // it.
+-        if (released_row_out && in_working(ws, dropped.idx) &&
+-            counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
+-            eff_opts.dual_regularization > 0.0) {
++        // footprint. The first answer is THE DUAL PROXIMAL CENTRE (M8 P-1): the rhs moves, the
++        // factor does not. A re-admission with the centre already armed takes one rung down, and
++        // the factor state is discarded so the next pass factorizes with it.
++        const bool readmitted = released_row_out && in_working(ws, dropped.idx);
++        if (readmitted && !dual_centring) {
++            dual_centring = true;
++            ++counters.dual_centre_arms;
++        } else if (readmitted && std::getenv("HVEN_P1_NORUNG") == nullptr && // P1SCRATCH
++                   counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
++                   eff_opts.dual_regularization > 0.0) {
+             ++counters.dual_regularization_decreases;
+             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
+             if (border_.use_count() > 1) {
+@@ -3403,6 +3420,34 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
+ // restoration pass. The lambdas priced here are the CANDIDATE's own
+ // (eqp.lambda_e / eqp.lambda_w), because the drift being measured is the one
+ // THOSE multipliers produce.
++bool QpEngine::eqp_answer_meets_working_rows(const QpProblem &qp, const WorkingSet &ws,
++                                             const EqpResult &eqp, const Vec &ai_row_norm1,
++                                             const Vec &ae_row_norm1, const QpOptions &opts) const {
++    if (!eqp.x.allFinite()) {
++        return false;
++    }
++    const double xmag = eqp.x.lpNorm<Eigen::Infinity>();
++    if (qp.me() > 0) {
++        const Vec r = qp.Ae * eqp.x - qp.be;
++        for (Index j = 0; j < qp.me(); ++j) {
++            const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
++            if (!(std::abs(r(j)) <= row_tolerance(row_scale, eqp.lambda_e(j), opts))) {
++                return false;
++            }
++        }
++    }
++    const auto &aw = ws.active_ineq();
++    for (std::size_t k = 0; k < aw.size(); ++k) {
++        const Index j = aw[k];
++        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
++        if (!(std::abs(qp.Ai.row(j).dot(eqp.x) - qp.bi(j)) <=
++              row_tolerance(row_scale, eqp.lambda_w(static_cast<Index>(k)), opts))) {
++            return false;
++        }
++    }
++    return true;
++}
++
+ bool QpEngine::eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws,
+                                               const Vec &x, const EqpResult &eqp, const Vec &Aix,
+                                               const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+@@ -3760,7 +3805,7 @@ bool QpEngine::in_working(const WorkingSet &ws, Index row) {
+     return std::binary_search(aw.begin(), aw.end(), row);
+ }
+ 
+-EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
+                                   detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                                   QpCounters &counters, detail::InertiaVerdict &verdict,
+                                   const QpOptions &opts) const {
+@@ -3769,12 +3814,12 @@ EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, con
+     // no call of this iteration produced.
+     face.factorized = false;
+     if (opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder) {
+-        return border_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
++        return border_candidate(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict, opts);
+     }
+-    return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++    return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+ }
+ 
+-EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
+                                          detail::KktFactor &kkt, EliminatedFace &face,
+                                          QpCounters &counters, detail::InertiaVerdict &verdict,
+                                          const QpOptions &opts) const {
+@@ -3809,7 +3854,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
+         const detail::DenseTallyScope tally(
+             kkt, counters.dense_factorizations, counters.dense_flagged_factorizations,
+             counters.dense_singular_refactors, counters.dense_platform_retakes);
+-        return solve_eqp(qp, ws, x_k, kkt, opts);
++        return solve_eqp(qp, ws, x_k, dual_k, kkt, opts);
+     }();
+     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
+     // face's factorization and the verdict site may solve through it.
+@@ -3866,7 +3911,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
+     return res;
+ }
+ 
+-EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
++EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
+                                      detail::KktFactor &kkt, EliminatedFace &face,
+                                      BorderState &border, QpCounters &counters,
+                                      detail::InertiaVerdict &verdict, const QpOptions &opts) const {
+@@ -3889,7 +3934,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
+     // work the dominant cost.
+     if (border.latched) {
+         if (detail::latch_still_holds(ws, border, counters, opts.max_schur_border_dimension)) {
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+         // Bordering may be possible again: a cap latch's pin count fell back to
+         // schur_cap or below, or a conditioning latch's rule let it go (see
+@@ -3901,7 +3946,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
+         ++counters.border_latch_releases;
+         rebuild_k0(qp, ws, border, counters, opts);
+         sync_borders(qp, ws, border, counters, opts);
+-        return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict,
++        return border_solve_or_fall_back(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict,
+                                          /*rebuilt=*/true, opts);
+     }
+ 
+@@ -3935,12 +3980,12 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
+         rebuilt = true;
+     }
+     sync_borders(qp, ws, border, counters, opts);
+-    return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict, rebuilt,
++    return border_solve_or_fall_back(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict, rebuilt,
+                                      opts);
+ }
+ 
+ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
+-                                              const Vec &x_k, detail::KktFactor &kkt,
++                                              const Vec &x_k, const EqpDualCentre &dual_k, detail::KktFactor &kkt,
+                                               EliminatedFace &face, BorderState &border,
+                                               QpCounters &counters, detail::InertiaVerdict &verdict,
+                                               bool rebuilt, const QpOptions &opts) const {
+@@ -3967,13 +4012,13 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+         // eliminable, and stop maintaining a border stack nothing reads.
+         if (rebuild_would_be_noop(ws, border)) {
+             detail::take_latch(ws, border, counters, opts, /*rebuilt=*/rebuilt);
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+         // A rebuild that has already been spent this iteration, or one
+         // that did not clear the flag, also falls back -- but only latches
+         // if the state it left behind is the pins-only dead end.
+         if (rebuilt) {
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+         rebuild_k0(qp, ws, border, counters, opts);
+         sync_borders(qp, ws, border, counters, opts);
+@@ -3981,7 +4026,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+             if (rebuild_would_be_noop(ws, border)) {
+                 detail::take_latch(ws, border, counters, opts, /*rebuilt=*/true);
+             }
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+     }
+ 
+@@ -4011,7 +4056,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+         // (solve_bordered_eqp).
+         EqpResult res =
+             solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
+-                               opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
++                               dual_k, opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
+         // TOTAL steps, mandatory first one included (solver_counters.h).
+         counters.border_refine_steps += res.refine_steps;
+         counters.eqp_refine_iters += res.residual_refine_iters;
+@@ -4030,7 +4075,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+                 ++counters.dense_shifted_solve_refusals;
+                 ++counters.dense_shifted_k0_fallbacks;
+             }
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+         if (res.border_uncertified) {
+             // THE BORDERED ANSWER'S CERTIFICATE FAILED (bordered_eqp.h; M7 W2 BPS): the
+@@ -4038,7 +4083,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+             // above, for the same reason -- an answer this factor cannot vouch for -- for
+             // this pass only.
+             ++counters.border_uncertified_fallbacks;
+-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+         }
+ #ifdef HVEN_TESTING
+         // The seam's record that the direction THIS pass used came through the
+@@ -4061,7 +4106,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
+         if (!border.schur->needs_refactorization()) {
+             throw;
+         }
+-        return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
++        return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
+     }
+ }
+ 
+@@ -4127,7 +4172,7 @@ detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const Workin
+     // THE LOOP'S OWN KEY, not a throwaway: this call re-factorizes `kkt` for a
+     // HYPOTHETICAL working set, so the key must follow it there -- disarmed on
+     // the border path, re-armed on the PROBED set otherwise. See EliminatedFace.
+-    (void)eqp_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
++    (void)eqp_candidate(qp, ws, x_k, EqpDualCentre{}, kkt, face, border, counters, verdict, opts);
+     return verdict;
+ }
+ 
+@@ -4368,7 +4413,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
+         o.dual_regularization = mu;
+         detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+         try {
+-            (void)eliminated_candidate(qp, ws, x_k, local, local_face, counters, v, o);
++            (void)eliminated_candidate(qp, ws, x_k, EqpDualCentre{}, local, local_face, counters, v, o);
+         } catch (const std::runtime_error &) {
+             v = detail::InertiaVerdict::kWrong; // no read: the kWrong stands
+         }
+@@ -4450,7 +4495,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
+     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+     EqpResult r;
+     try {
+-        r = eliminated_candidate(qp, ws, x, local, local_face, counters, v, o);
++        r = eliminated_candidate(qp, ws, x, EqpDualCentre{}, local, local_face, counters, v, o);
+     } catch (const std::runtime_error &) {
+         return false; // no mu-free solve: the existing classification stands
+     }
+@@ -4698,7 +4743,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
+     QpCounters local_counters;
+     EqpResult r;
+     try {
+-        r = eliminated_candidate(qp, ws, x, local, local_face, local_counters, v, o);
++        r = eliminated_candidate(qp, ws, x, EqpDualCentre{}, local, local_face, local_counters, v, o);
+     } catch (const std::runtime_error &) {
+         counters.eqp_refine_iters += local_counters.eqp_refine_iters;
+         counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
+@@ -5599,7 +5644,7 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
+     EliminatedFace own_face;
+     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+     try {
+-        (void)eliminated_candidate(qp, ws, x, own, own_face, counters, v, opts);
++        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, own, own_face, counters, v, opts);
+     } catch (const std::runtime_error &) {
+         return false;
+     }
+@@ -6393,7 +6438,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const
+     o.dual_regularization = 0.0;
+     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
+     try {
+-        (void)eliminated_candidate(qp, ws, x, kkt, face, counters, v, o);
++        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, kkt, face, counters, v, o);
+     } catch (const std::runtime_error &) {
+         return Vec(); // no factor: no direction, and the exit stands
+     }
+@@ -6416,7 +6461,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const
+     detail::KktFactor shifted(threads_, dense_policy_);
+     EliminatedFace shifted_face;
+     try {
+-        (void)eliminated_candidate(qp, ws, x, shifted, shifted_face, counters, v, os);
++        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, shifted, shifted_face, counters, v, os);
+     } catch (const std::runtime_error &) {
+         return Vec();
+     }
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 67a02ec7e..8622a0067 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -515,6 +515,7 @@ add_executable(hven_qp_walk_seam_tests
+     qp/test_qp_stagnation_stop.cpp
+     qp/test_qp_latch_reason.cpp
+     qp/test_qp_release_readmission.cpp
++    qp/test_qp_dual_centre.cpp
+     qp/test_route_reference.cpp
+     # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
+     # E2-D4 dump fixtures).
+diff --git a/tests/kkt/test_border_ops.cpp b/tests/kkt/test_border_ops.cpp
+index 46e8d4778..b2dfd644e 100644
+--- a/tests/kkt/test_border_ops.cpp
++++ b/tests/kkt/test_border_ops.cpp
+@@ -268,7 +268,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
+     WorkingSet ws_pin(qp.n(), qp.mi());
+     ws_pin.bound_state()[0] = BoundState::kAtLower;
+     detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
+-    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
++    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), EqpDualCentre{}, kkt1, opts);
+ 
+     ASSERT_EQ(x_border.size(), eqp.x.size());
+     EXPECT_LT((x_border - eqp.x).norm(), 1e-9);
+diff --git a/tests/qp/test_eqp_refine_ab.cpp b/tests/qp/test_eqp_refine_ab.cpp
+index aa6c5e729..0db2aa371 100644
+--- a/tests/qp/test_eqp_refine_ab.cpp
++++ b/tests/qp/test_eqp_refine_ab.cpp
+@@ -548,7 +548,7 @@ TEST(EqpRefinementAb, DISABLED_FootprintRuleProbe) {
+     const auto probe = [](const std::string &name, const QpProblem &qp, const WorkingSet &ws) {
+         QpOptions on;
+         detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-        const EqpResult r = solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, on);
++        const EqpResult r = solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, on);
+ 
+         Vec stat = qp.H.selfadjointView<Eigen::Upper>() * r.x + qp.g;
+         if (qp.me() > 0) {
+diff --git a/tests/qp/test_eqp_solve.cpp b/tests/qp/test_eqp_solve.cpp
+index 14ec1976a..67fcd716e 100644
+--- a/tests/qp/test_eqp_solve.cpp
++++ b/tests/qp/test_eqp_solve.cpp
+@@ -84,7 +84,7 @@ TEST(EqpSolve, MatchesOracleOnItsOptimalWorkingSet) {
+     // assembly, the sign convention and the refinement rather than about the
+     // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
+     // model and not of this solve.
+-    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
++    auto eqp = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{});
+ 
+     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
+ }
+@@ -102,7 +102,7 @@ TEST(EqpSolve, MatchesOracleOnEqualityOnlyProblem) {
+     // assembly, the sign convention and the refinement rather than about the
+     // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
+     // model and not of this solve.
+-    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
++    auto eqp = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{});
+ 
+     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
+     ASSERT_EQ(eqp.lambda_e.size(), 1);
+@@ -141,7 +141,7 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
+     // Centred at the point under test, as above: what this fixture is about is the
+     // refinement step removing the O(mu*|lambda_e|) DUAL error, which the centring
+     // does not touch (it is still 1e-7 here before the step).
+-    auto refined = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{}, &unrefined);
++    auto refined = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{}, &unrefined);
+ 
+     const double unrefined_err = (unrefined.x - oracle.x).norm();
+     const double refined_err = (refined.x - oracle.x).norm();
+diff --git a/tests/qp/test_qp_dense_arm.cpp b/tests/qp/test_qp_dense_arm.cpp
+index cab47f7e5..afae05341 100644
+--- a/tests/qp/test_qp_dense_arm.cpp
++++ b/tests/qp/test_qp_dense_arm.cpp
+@@ -438,7 +438,7 @@ EqpRun eqp_on(DensePolicy policy, const QpProblem &qp, const QpOptions &opts) {
+     EqpRun r;
+     {
+         const DenseTallyScope tally(k, r.dense, r.flagged, r.refactors, r.retakes);
+-        r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
++        r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), EqpDualCentre{}, k, opts);
+     }
+     r.verdict = inertia_verdict(k.factor.inertia(), 3, qp.me());
+     return r;
+@@ -699,7 +699,7 @@ TEST(QpDenseArm, TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm) {
+     EqpResult r;
+     {
+         const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
+-        r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), k, opts);
++        r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), EqpDualCentre{}, k, opts);
+     }
+     EXPECT_EQ(flagged, 0);
+     EXPECT_EQ(refactors, 0);
+@@ -1061,7 +1061,7 @@ BorderRun border_with_live_borders(const QpProblem &qp) {
+     r.ledger = static_cast<Index>(border.ledger.size());
+     r.shifted = border.kkt.dense_shifted;
+     r.res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws,
+-                               Vec::Zero(3), o, &border.kkt.dense_scale);
++                               Vec::Zero(3), EqpDualCentre{}, o, &border.kkt.dense_scale);
+     const Vec x0 = Vec::Zero(3);
+     const BorderedSystem sys =
+         build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, x0, o);
+@@ -1688,7 +1688,7 @@ TEST(QpDenseArm, TheRawFactorsOfAScaleClearedKktAreAccurateInEveryBlock) {
+             EXPECT_FALSE(k.dense_shifted);
+             EXPECT_LE(worst_relerr(solve_vec(k, rhs)), 1e-14);
+             KktFactor kd(0, DensePolicy::kAlways);
+-            const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), kd, o);
++            const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), EqpDualCentre{}, kd, o);
+             Vec ye(5);
+             ye << e.x, e.lambda_e;
+             EXPECT_FALSE(e.residual_refused);
+diff --git a/tests/qp/test_qp_dual_centre.cpp b/tests/qp/test_qp_dual_centre.cpp
+new file mode 100644
+index 000000000..d861efbb3
+--- /dev/null
++++ b/tests/qp/test_qp_dual_centre.cpp
+@@ -0,0 +1,130 @@
++// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
++// (see LICENSE).
++
++// test_qp_dual_centre.cpp -- M8 P-1: THE DUAL PROXIMAL CENTRE of the walk's EQP (eqp_solve.h).
++// A face whose two equality rows are nearly dependent (sigma_min^2 = eps^2/4 = 2.5e-9, below
++// dual_mu = 1e-8): centred at 0 the regularized answer's multipliers are a fraction of the exact
++// ones; centred at the exact multipliers the answer IS the exact point; fed back, the centre
++// contracts toward it (the proximal method of multipliers).
++
++#include <cmath>
++#include <stdexcept>
++
++#include <Eigen/Dense>
++#include <gtest/gtest.h>
++
++#include <hven/detail/qp/walk/eqp_solve.h>
++
++using namespace hven;
++using namespace hven::detail;
++
++namespace {
++
++constexpr double kEps = 1e-4;
++
++// min 1/2||x||^2 + g'x  s.t.  x0 + x1 = 1,  x0 + (1 + eps) x1 = 1 + eps/4,  x2 <= 1 (working).
++QpProblem near_dependent_face() {
++    QpProblem qp;
++    qp.H = Eigen::MatrixXd::Identity(3, 3).triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
++    qp.g = Vec(3);
++    qp.g << 1.0, -2.0, -0.5;
++    Eigen::MatrixXd ae(2, 3);
++    ae << 1.0, 1.0, 0.0, 1.0, 1.0 + kEps, 0.0;
++    qp.Ae = ae.sparseView();
++    qp.be = Vec(2);
++    qp.be << 1.0, 1.0 + 0.25 * kEps;
++    Eigen::MatrixXd ai(1, 3);
++    ai << 0.0, 0.0, 1.0;
++    qp.Ai = ai.sparseView();
++    qp.bi = Vec::Constant(1, 1.0);
++    qp.lower = Vec::Constant(3, -1e20);
++    qp.upper = Vec::Constant(3, 1e20);
++    return qp;
++}
++
++WorkingSet face_ws() {
++    WorkingSet ws(3, 1);
++    ws.add_ineq(0);
++    return ws;
++}
++
++// The face's exact KKT point [x; lambda_e; lambda_w], unregularized, dense.
++Vec exact_point(const QpProblem &qp) {
++    Eigen::MatrixXd k = Eigen::MatrixXd::Zero(6, 6);
++    k.topLeftCorner(3, 3) = Eigen::MatrixXd::Identity(3, 3);
++    Eigen::MatrixXd a(3, 3);
++    a.topRows(2) = Eigen::MatrixXd(qp.Ae);
++    a.row(2) = Eigen::MatrixXd(qp.Ai).row(0);
++    k.topRightCorner(3, 3) = a.transpose();
++    k.bottomLeftCorner(3, 3) = a;
++    Vec rhs(6);
++    rhs << -qp.g, qp.be, qp.bi;
++    return k.fullPivLu().solve(rhs);
++}
++
++double multiplier_error(const EqpResult &r, const Vec &ex) {
++    Vec l(3);
++    l << r.lambda_e, r.lambda_w;
++    return (l - ex.tail(3)).lpNorm<Eigen::Infinity>() / ex.tail(3).lpNorm<Eigen::Infinity>();
++}
++
++} // namespace
++
++TEST(QpDualCentre, ZeroCentreIsBiasedExactCentreIsTheExactPoint) {
++    const QpProblem qp = near_dependent_face();
++    const WorkingSet ws = face_ws();
++    const Vec ex = exact_point(qp);
++    const Vec x_star = ex.head(3);
++    const QpOptions o; // dual_mu = primal_delta = 1e-8
++    ASSERT_DOUBLE_EQ(o.dual_regularization, 1e-8);
++
++    KktFactor k0(0, linear::DensePolicy::kNever);
++    const EqpResult zero = solve_eqp(qp, ws, x_star, EqpDualCentre{}, k0, o);
++    // Two solves' worth of contraction (mu/(mu + sigma^2))^2 = 0.64 of the exact multipliers left.
++    EXPECT_GT(multiplier_error(zero, ex), 0.3);
++
++    const Vec le = ex.segment(3, 2);
++    const Vec li = Vec::Constant(1, ex(5));
++    KktFactor k1(0, linear::DensePolicy::kNever);
++    const EqpResult centred = solve_eqp(qp, ws, x_star, EqpDualCentre{&le, &li, nullptr}, k1, o);
++    EXPECT_LT(multiplier_error(centred, ex), 1e-8);
++    EXPECT_LT((centred.x - x_star).lpNorm<Eigen::Infinity>(), 1e-10);
++    EXPECT_FALSE(centred.residual_refused);
++    // Only the rhs moved: the same factorization, the same inertia.
++    EXPECT_EQ(k0.factor.inertia().positive, k1.factor.inertia().positive);
++    EXPECT_EQ(k0.factor.inertia().negative, k1.factor.inertia().negative);
++}
++
++TEST(QpDualCentre, FedBackTheCentreContractsTowardTheExactMultipliers) {
++    const QpProblem qp = near_dependent_face();
++    const WorkingSet ws = face_ws();
++    const Vec ex = exact_point(qp);
++    const Vec x_star = ex.head(3);
++    const QpOptions o;
++    Vec le = Vec::Zero(2);
++    Vec li = Vec::Zero(1);
++    double prev = 1.0;
++    for (int it = 0; it < 6; ++it) {
++        KktFactor k(0, linear::DensePolicy::kNever);
++        const EqpResult r = solve_eqp(qp, ws, x_star, EqpDualCentre{&le, &li, nullptr}, k, o);
++        const double e = multiplier_error(r, ex);
++        EXPECT_LT(e, 0.7 * prev) << it;
++        prev = e;
++        le = r.lambda_e;
++        li = r.lambda_w;
++    }
++    EXPECT_LT(prev, 0.1);
++}
++
++TEST(QpDualCentre, AMissizedCentreIsRefused) {
++    const QpProblem qp = near_dependent_face();
++    const WorkingSet ws = face_ws();
++    const Vec bad = Vec::Zero(5);
++    KktFactor k(0, linear::DensePolicy::kNever);
++    EXPECT_THROW((void)solve_eqp(qp, ws, Vec::Zero(3), EqpDualCentre{&bad, nullptr, nullptr}, k,
++                                 QpOptions{}),
++                 std::invalid_argument);
++    EXPECT_THROW((void)solve_eqp(qp, ws, Vec::Zero(3), EqpDualCentre{nullptr, &bad, nullptr}, k,
++                                 QpOptions{}),
++                 std::invalid_argument);
++}
+diff --git a/tests/qp/test_qp_engine_border.cpp b/tests/qp/test_qp_engine_border.cpp
+index dd1926f30..e4cffc54d 100644
+--- a/tests/qp/test_qp_engine_border.cpp
++++ b/tests/qp/test_qp_engine_border.cpp
+@@ -643,7 +643,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
+     WorkingSet ws_pin(qp.n(), qp.mi());
+     ws_pin.bound_state()[0] = BoundState::kAtLower;
+     detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
+-    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
++    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), EqpDualCentre{}, kkt1, opts);
+ 
+     ASSERT_EQ(x_border.size(), eqp.x.size());
+     EXPECT_LT((x_border - eqp.x).norm(), 1e-9);
+diff --git a/tests/qp/test_qp_release_readmission.cpp b/tests/qp/test_qp_release_readmission.cpp
+index d765954fb..18a90354f 100644
+--- a/tests/qp/test_qp_release_readmission.cpp
++++ b/tests/qp/test_qp_release_readmission.cpp
+@@ -18,6 +18,7 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <cstdio>
++#include <cstdlib>
+ #include <string>
+ #include <vector>
+ 
+@@ -176,3 +177,30 @@ TEST(QpReleaseReadmission, TheOptionOffWalkKeepsItsRegularization) {
+                 static_cast<long>(s.counters.dual_regularization_decreases));
+     EXPECT_EQ(s.counters.dual_regularization_decreases, 0);
+ }
++
++// P1 SCRATCH PROBE (never committed): HVEN_P1_DUMP=<file under e2-d4> HVEN_P1_MAXIT=<n> runs a dump to the end.
++TEST(P1Probe, RunDump) {
++    const char *f = std::getenv("HVEN_P1_DUMP");
++    if (f == nullptr) {
++        GTEST_SKIP();
++    }
++    const QpDump d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + f);
++    QpOptions o = d.opts;
++    if (const char *m = std::getenv("HVEN_P1_MAXIT")) {
++        o.max_iterations = std::atol(m);
++    }
++    if (const char *m = std::getenv("HVEN_P1_MU")) {
++        o.dual_regularization = std::atof(m);
++    }
++    if (const char *m = std::getenv("HVEN_P1_ALG")) {
++        o.working_set_algebra = std::string(m) == "border" ? QpWorkingSetAlgebra::kSchurBorder
++                                                           : QpWorkingSetAlgebra::kRefactorize;
++    }
++    const QpSolution s = hven::test_support::solve_qp_dump(d, o);
++    const double fv = hven::test_support::qp_dump_objective(d, s.x);
++    std::printf("[ p1 ] %s status=%d minors=%ld facts=%ld arms=%ld rungs=%ld f=%.16g in-cell: %s\n", f,
++                static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
++                static_cast<long>(s.counters.factorizations),
++                static_cast<long>(s.counters.dual_centre_arms),
++                static_cast<long>(s.counters.dual_regularization_decreases), fv, d.result.c_str());
++}
+diff --git a/tests/qp/test_qp_ws_independence.cpp b/tests/qp/test_qp_ws_independence.cpp
+index f51032e84..15a309e7d 100644
+--- a/tests/qp/test_qp_ws_independence.cpp
++++ b/tests/qp/test_qp_ws_independence.cpp
+@@ -206,7 +206,7 @@ TEST(WsIndependenceDetector, TheEliminatedSupportNamesThePinsTheDependencyUses)
+     ws.bound_state()[0] = BoundState::kFixed;
+     ws.bound_state()[2] = BoundState::kAtLower;
+     detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
++    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, o);
+     detail::DepFactorView v;
+     v.eliminated = &kkt;
+     const detail::EntryDetection d = detail::detect_dependency(qp, ws, v, o);
+@@ -255,7 +255,7 @@ QpProblem near_dependent_rows_qp(bool as_equalities, double b = 1.0) {
+ detail::EntryDetection detect_on(const QpProblem &qp, const WorkingSet &ws) {
+     QpOptions o;
+     detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
++    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, o);
+     detail::DepFactorView v;
+     v.eliminated = &kkt;
+     return detail::detect_dependency(qp, ws, v, o);
+@@ -356,7 +356,7 @@ TEST(WsIndependenceCalibration, RefinedStatisticSeparates) {
+             WorkingSet ws(3, 2);
+             ws.add_ineq(0);
+             detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
++            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, o);
+             detail::DepFactorView v;
+             v.eliminated = &kkt;
+ 
+@@ -467,7 +467,7 @@ struct RowsView {
+             for (const Index r : border_rows) {
+                 ws.add_ineq(r);
+             }
+-            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
++            (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, o);
+             return;
+         }
+         k0 = assemble_kkt_full(qp, ws, o);
+@@ -743,7 +743,7 @@ TEST(WsIndependenceReadOnly, TestAndDetectorWriteNothing) {
+     EXPECT_EQ(b.ledger.size(), ledger.size());
+ 
+     detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-    (void)solve_eqp(b.qp, b.ws, Vec::Zero(b.qp.n()), kkt, b.o);
++    (void)solve_eqp(b.qp, b.ws, Vec::Zero(b.qp.n()), EqpDualCentre{}, kkt, b.o);
+     detail::DepFactorView v;
+     v.eliminated = &kkt;
+     const auto sid2 = kkt.factor.session_id();
+@@ -873,7 +873,7 @@ TEST_P(WsIndependence, AUsableFactorIsNeverAnUnrunTest) {
+     WorkingSet ws(3, 2);
+     ws.add_ineq(0);
+     detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+-    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
++    (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), EqpDualCentre{}, kkt, o);
+     detail::DepFactorView v;
+     v.eliminated = &kkt;
+     Vec a(3);

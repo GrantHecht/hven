@@ -1,0 +1,2 @@
+99% tests passed, 1 tests failed out of 3873
+	710 - QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (Failed)
