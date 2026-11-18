@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_warm_start.cpp — Phase-4 Task 2: the SqpWarmState value object
+// Phase-4 Task 2: the SqpWarmState value object
 // (warm_start.h) SqpSolver::solve() emits on SqpResult::warm_start.
 //
 // THREE CHECKS, per the task brief:
@@ -1667,7 +1667,7 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
     }
 
     // (The console renders this flag as the `w` code on the row; that rendering is pinned by
-    // the footer/row goldens in tests/drivers/test_console_sink.cpp.)
+    // the footer/row goldens in tests/trace/test_console_sink.cpp.)
 }
 
 // FIX ROUND 1 (F1): THE OTHER WATCHDOG EXIT -- THE STALL WINDOW. Both fixtures
@@ -2277,7 +2277,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 // kkt_tol at the IP point" and "took one more QP step" -- both inside tolerance,
 // and the seeded arm's is the one the crossover asked for. The B-1 clear did not
 // fire because no row is slack; O-1's legitimate-zero-major feature is what
-// permits the exit, and tests/test_b1_gate.cpp's seeded twin of
+// permits the exit, and tests/sqp/test_b1_gate.cpp's seeded twin of
 // AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies guards it directly.
 TEST(WarmStart, CrossoverRecoversExactSolveHs14) {
     const auto p = make_hs(14);
@@ -3705,7 +3705,7 @@ TEST(WarmStart, CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel) {
 // object that cannot say which model it came from may not set it.
 //
 // THE LEVER ITSELF (`SqpOptions::ssn_prox_carry`, default false) and the sweep
-// behind its default are tests/test_sqp_solver.cpp's SsnProxCarry arms. What
+// behind its default are tests/sqp/test_sqp_solver.cpp's SsnProxCarry arms. What
 // is asserted here is the GATE, in both directions, and the emission contract.
 // =====================================================================
 TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
@@ -3745,7 +3745,7 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     // ones, because an escaped iterate is a diverged point by construction. On
     // HS27 the max-sigma subproblem escapes, so the block ships a real level
     // with both vectors empty -- which warm_start.h's own field note admits
-    // ("n, or empty"). tests/test_sqp_solver.cpp's
+    // ("n, or empty"). tests/sqp/test_sqp_solver.cpp's
     // TheCarriedProximalCentreIsNeverAnEscapedIterate pins both polarities.
     EXPECT_EQ(0, SqpWarmAccess::state(ssn.sqp_warm_start).prox_center_x.size())
         << "HS27's ladder is climbed on a subproblem that then ESCAPES";

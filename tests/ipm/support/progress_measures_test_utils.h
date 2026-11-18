@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Shared ProgressMeasures literal builder for acceptance/restoration tests.
 //
-// Deliberately includes ONLY globalization/progress_measures.h -- NOT
+// Deliberately includes ONLY detail/ipm/globalization/progress_measures.h -- NOT
 // solver_test_utils.h. This hven-side solver_test_utils.h is itself the
 // VF-free half of the old combined header (InertSolverContext only; it
 // includes just solver_context.h and jet.h, not tycho/tycho.h -- see its own
@@ -14,7 +14,7 @@
 // and include nothing heavier than that component's own header); routing
 // pm() through solver_test_utils.h would still be an unjustified coupling for
 // a helper that only ever touches the plain-data ProgressMeasures type. (The
-// tycho-side copy of solver_test_utils.h, tests/cpp/solvers/solver_test_utils.h,
+// tycho-side copy of solver_test_utils.h, tests/ipm/support/solver_test_utils.h,
 // is the one that pulls the full tycho/tycho.h umbrella, for its SolverTest
 // fixture and make_brach_solver_phase() -- not this one.)
 ///////////////////////////////////////////////////////////////////////////////

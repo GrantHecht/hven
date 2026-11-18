@@ -134,7 +134,7 @@ struct SqpSolveRecord {
 
 /// One record per WHOLE INTERIOR-POINT SOLVE -- the interior-point engine's
 /// counterpart to SqpSolveRecord above, written by
-/// IpmSolver::attach_ledger (see drivers/ipm_solver.h),
+/// IpmSolver::attach_ledger (see ipm/ipm_solver.h),
 /// one per public solve() call that RETURNS. A call that leaves by an
 /// exception writes nothing, which is the honest record of one.
 ///
@@ -253,8 +253,8 @@ class Ledger {
     // this file, and every one of those is a core/ header.
     //
     // THIS HEADER'S INCLUDE CLOSURE IS core/ HEADERS PLUS <string>, <vector>,
-    // fmt AND EIGEN, AND NOTHING ELSE. DO NOT ADD AN INCLUDE OF drivers/,
-    // qp/, model/, kkt/, interior/, linear/, globalization/, warmstart/ OR
+    // fmt AND EIGEN, AND NOTHING ELSE. DO NOT ADD AN INCLUDE OF solver/,
+    // ipm/, sqp/, trace/, qp/, model/, kkt/, linear/, warmstart/ OR
     // detail/ TO THIS OR ANY OTHER core/ HEADER: core/ is the bottom tier of
     // the project's layer map and depends on nothing above it. ENFORCED, not
     // merely asked for: tests/core/test_core_layering.cpp scans every header

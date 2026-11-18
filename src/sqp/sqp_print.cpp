@@ -19,9 +19,9 @@
 //
 // WHAT LIVES WHERE. The display strings for `SolveStatus` and `StartLevel` are
 // defined in `src/core/enum_names.cpp`, so no `core/` object resolves a symbol
-// out of a `drivers/` one (an edge pointing up CLAUDE.md section 2's tier
+// out of an `sqp/` one (an edge pointing up CLAUDE.md section 2's tier
 // order). What stays here points DOWNWARD and is not an inversion:
-// `StepVerdict` and `SqpResult` are `drivers/` types, and
+// `StepVerdict` and `SqpResult` are public `solver/` and `sqp/` types, and
 // `PredictorOutcome` is a `detail/warmstart/` one.
 
 #include <string>

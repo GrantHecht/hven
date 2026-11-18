@@ -42,14 +42,14 @@
 // infinite one, i.e. that bound is dropped in x~.
 //
 // WHAT IS SCALED IN UNITS OF WHAT -- the contract the driver keeps
-// (drivers/sqp_solver.h, SqpSolver::solve_column_scaled):
+// (sqp/sqp_solver.h, SqpSolver::solve_column_scaled):
 //   * The convergence test, the trust region (an l-infinity box on the step in x~,
 //     i.e. |dx_j| <= d_j * radius), the funnel, SOC and restoration all run on the
 //     scaled problem; restoration builds its feasibility model around it.
 //   * The caller receives x, z, lambda and every terminal residual in ITS units, the
 //     residuals re-measured on its own model at the returned point.
 //   * A kOptimal needs, beside the scaled test, the CALLER-unit feasibility
-//     <= feas_tol (drivers/sqp_solver.cpp, the convergence test).
+//     <= feas_tol (sqp/sqp_solver.cpp, the convergence test).
 
 #include <hven/core/types.h>
 #include <hven/detail/model/absent_bound.h>

@@ -5,7 +5,7 @@
 
 /// @file
 /// @brief The interior-point engine's option enums, including the phase
-///        vocabulary `IpmPhase`. Reached through drivers/ipm_options.h; a header of
+///        vocabulary `IpmPhase`. Reached through ipm/ipm_options.h; a header of
 ///        its own so that the trace interface can name them without the options
 ///        struct.
 

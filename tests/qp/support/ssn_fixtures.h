@@ -8,15 +8,15 @@
 // =============================================================================
 //
 // **SHARED, NOT COPIED** (review fix round 1, I5). These builders were defined
-// in tests/test_ssn_engine.cpp's anonymous namespace, which made them
+// in tests/qp/test_ssn_engine.cpp's anonymous namespace, which made them
 // unreachable from a measurement binary -- so the safeguards note's trajectory
 // figures (docs/notes/2026-08-07-ssn-safeguards.md sections 3.4, 6 and 10.1)
 // had no committed vehicle and could only be re-derived by rebuilding the
 // fixtures somewhere else, which is exactly the drift a second copy
 // guarantees. They live here now, and BOTH consumers include this one file:
-// tests/test_ssn_engine.cpp (the behavioural record) and
+// tests/qp/test_ssn_engine.cpp (the behavioural record) and
 // bench/ssn_safeguard_probe.cpp (the note's reproduction vehicle). This is the
-// pattern bench/corpus_cells.h and tests/sqp/support/hs_sweeps.h already follow.
+// pattern bench/corpus_cells.h and tests/model/support/hs_sweeps.h already follow.
 //
 // Test-support only, and deliberately gtest-free so a bench target can link
 // it. Nothing here is shipped.
@@ -155,7 +155,7 @@ inline QpProblem equality_only_qp() {
 // non-finite probe have me = 0; box_qp has me = 0; equality_only_qp has
 // mi = mb = 0, so its diagonal-refresh loop body never executes at all. The
 // `+ me` term in the engine's positional diagonal write
-// (`vals[outer[n + me + k]]`, in SsnEngine::solve, src/qp/ssn_engine.cpp) was
+// (`vals[outer[n + me + k]]`, in SsnEngine::solve, src/qp/ssn/ssn_engine.cpp) was
 // therefore never exercised by any test, and
 // the reviewer's planted mutant (`outer[n + me + k]` -> `outer[n + k]`, which
 // aims the FB diagonals at the EQUALITY rows) passed the whole 574-test suite

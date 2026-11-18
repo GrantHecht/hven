@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/model_surface_kkt.h — the model-surface scorer
+// The model-surface scorer
 // (docs/notes/2026-08-21-m4-task5-design.md). An ENGINE-INDEPENDENT KKT
 // residual scorer, computed ONLY off
 // NlpAssembly::evaluate_candidate_first_order and AssemblyDeclaration's own
@@ -16,7 +16,7 @@
 //
 // ENGINE-INDEPENDENT BY CONSTRUCTION, AND THE CHECK IS THIS FILE'S OWN
 // INCLUDE LIST. This header may include ONLY model/ headers, core/ headers,
-// Eigen, fmt, and the standard library -- never qp/, drivers/, kkt/, or any
+// Eigen, fmt, and the standard library -- never qp/, solver/, ipm/, sqp/, kkt/, or any
 // interior header. The compile is the proof: a later edit that pulls an
 // engine header in here breaks that proof the moment it is added, and no
 // runtime check could catch what a missing #include already prevents.

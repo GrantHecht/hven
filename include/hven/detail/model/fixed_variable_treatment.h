@@ -5,7 +5,7 @@
 
 // The fixed-variable vocabulary's internals: the bound-relaxation limits the
 // interior-point options validation reads, and the treatments' snake-case names
-// for diagnostics. The enum itself is public (drivers/ipm_options.h).
+// for diagnostics. The enum itself is public (ipm/ipm_options.h).
 
 #include "hven/ipm/ipm_enums.h"
 
@@ -26,7 +26,7 @@ inline const char *fixed_variable_treatment_name(IpmFixedVariableTreatment treat
 
 /// Default widening of every finite, non-fixing variable bound: b moves outward
 /// by this factor times max(1, |b|). Ipopt's bound_relax_factor default. Equal
-/// to `IpmOptions{}.bound_relax_factor` (pinned in src/drivers/ipm_options.cpp).
+/// to `IpmOptions{}.bound_relax_factor` (pinned in src/ipm/ipm_options.cpp).
 inline constexpr double kDefaultBoundRelaxFactor = 1.0e-8;
 
 /// Largest widening the options accept. The relaxed box is the one every barrier

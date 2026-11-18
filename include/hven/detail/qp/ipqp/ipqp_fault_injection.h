@@ -12,14 +12,14 @@
 // LINEAR LAYER's seam: everything it declares lives in
 // `hven::linear::detail::testing` and is consumed by the two backend adapter
 // TUs. What this file declares is consumed by the QP tier
-// (src/qp/ipqp_engine.cpp) and is about the tier's own reading of an
+// (src/qp/ipqp/ipqp_engine.cpp) and is about the tier's own reading of an
 // already-computed factorization, not about a backend call. Putting a
 // `hven` injector inside a `hven::linear` header would make the
 // linear layer's seam header depend on a consumer above it. The CONVENTION is
 // the shared thing, and it is followed exactly (CLAUDE.md section 8: "use this
 // convention for any new need rather than inventing another").
 //
-// WHERE THE HOOK GOES: src/qp/ipqp_engine.cpp -- an APACHE-2.0 FILE THIS
+// WHERE THE HOOK GOES: src/qp/ipqp/ipqp_engine.cpp -- an APACHE-2.0 FILE THIS
 // REPOSITORY WROTE, at the one line where the tier reads
 // `KktFactorization::inertia_evidence()`. CLAUDE.md section 6's boundary
 // preference is satisfied WITHOUT a deviation: the fact being injected (what

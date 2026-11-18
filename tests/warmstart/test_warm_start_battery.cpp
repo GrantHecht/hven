@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_warm_start_battery.cpp — PHASE-4 TASK 13: THE WARM-START
+// PHASE-4 TASK 13: THE WARM-START
 // BENCHMARK BATTERY, the evidence generator the whole phase exists to feed.
 // Everything Tasks 0-12 built is composed here into one sweep grid and
 // MEASURED; the numbers this file pins are the ones
@@ -32,7 +32,7 @@
 //                        Kungurtsev-Diehl rule, the OPEN QUESTION this battery
 //                        was built to answer (see FULL-STEP DECISION INPUT).
 //
-//   x FAMILIES (6)       tests/sqp/support/parametric_families.h
+//   x FAMILIES (6)       tests/model/support/parametric_families.h
 //     F1        n = 2   box QP, p: 0 -> 1, crosses both bound activations.
 //     F2        n = 2   disk NLP, p: 0 -> 1, crosses p* = 0.786151377757423.
 //     F2far     n = 2   THE SAME F2 with one thing changed -- start_point()
@@ -1116,7 +1116,7 @@ void check_hot_steps_skip_factorizations() {
     // minors and factorizations are IDENTICAL to the warm arm's. The engine's
     // own K0 cache already skips those factorizations for a warm sweep on a
     // single driver; `hot` buys nothing there and its value is the
-    // CROSS-INSTANCE hand-off (tests/test_warm_start.cpp's
+    // CROSS-INSTANCE hand-off (tests/warmstart/test_warm_start.cpp's
     // HotReusesFactorization) that a single-driver sweep never exercises.
     for (const char *name : {"F1", "F3n50", "F3n1000", "F3stress"}) {
         for (int fi = 0; fi < 2; ++fi) {
@@ -1652,7 +1652,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 // -- the three-figure decomposition of docs/notes/2026-07-30-warm-start-
 // battery-results.md sec 2 ((a) matched-grid per-solve, (b) traversal, (c)
 // end-to-end), plus the hot arm and the pinned corpus-totals discipline --
-// on F7CollocationChain (tests/sqp/support/scale_problems.h) at N = 2000 nodes,
+// on F7CollocationChain (tests/model/support/scale_problems.h) at N = 2000 nodes,
 // ns = 3, nc = 2, i.e. n = N*(ns+nc) = 10000. See
 // docs/notes/2026-07-31-warm-start-at-scale.md for the full story, including
 // the n = 10^5 and wide-crossing measurements this one cell deliberately does
@@ -1951,12 +1951,12 @@ TEST(ScaleF7Slow, F7AtTenThousandVariablesSweep) {
 // Release / 613.3 s Debug -- runnable, and PINNED FROM BOTH BUILDS below. The
 // nx = 10^5 economics stay where a 36-minute measurement belongs: in
 // docs/notes/2026-08-02-controller-retry-economics.md, with committed
-// artifacts under prototypes/psiopt_bridge/results/.
+// artifacts under the external comparison bridge's results/.
 //
 // THE TWO ARMS ARE THE SAME SWEEP with the probe budget OFF (which, together
 // with the growth suspension held off, IS the pre-Task-1 controller) and at
 // its default. Holding the suspension off in both arms is what makes this a
-// one-lever cell; tests/test_continuation.cpp's
+// one-lever cell; tests/sqp/test_continuation.cpp's
 // GrowthSuspensionSkipsTheStepAfterAFailure is the other lever's fixture.
 //
 // WHAT THIS CELL DOES *NOT* EXERCISE, stated so it is not read as coverage it
@@ -2015,7 +2015,7 @@ const FailureEconomics &f7_failure_economics_cell() {
         // That is recorded and priced in the note; it is not pinned here,
         // because this cell already costs ~35 s (Release) / ~613 s (Debug) and
         // a third arm would not earn its place beside the smaller version of
-        // the same measurement in tests/test_continuation.cpp's arms D and E.
+        // the same measurement in tests/sqp/test_continuation.cpp's arms D and E.
         const auto cap500 = [](SqpOptions o) {
             o.qp.max_iterations = 500;
             return o;
@@ -2131,7 +2131,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 //
 // **THE ONE THING THIS CELL CANNOT DO, STATED FIRST BECAUSE IT BOUNDS EVERY
 // NUMBER BELOW: IT DOES NOT USE THE IPM ENGINE'S OWN MULTIPLIERS, BECAUSE THE SHIPPED
-// BRIDGE CANNOT PRODUCE THEM.** prototypes/psiopt_bridge/run_comparison.py
+// BRIDGE CANNOT PRODUCE THEM.** the external comparison bridge's run_comparison.py
 // reaches the IPM engine through `tychopy.solvers.OptimizationProblem`, which is
 // tychopy's only route to the IPM engine for a generic NLP, and whose entire Python
 // surface is set_vars / return_vars / add_equal_con / add_inequal_con /
@@ -2150,7 +2150,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 //     `sweep_n100` row -- and at the bridge's own tolerances (kkt_tol =
 //     feas_tol = 1e-8).
 //   - THE IP ITERATE IS SYNTHESIZED THE WAY THIS PROJECT ALREADY SYNTHESIZES
-//     ONE, by the recipe tests/test_warm_start.cpp's
+//     ONE, by the recipe tests/warmstart/test_warm_start.cpp's
 //     CrossoverRecoversExactSolveHs14 shipped in Phase 4: take a converged
 //     reference point, displace x by a small amount, and give each ACTIVE row
 //     the barrier residue slack = -mu/lambda that an interior-point method

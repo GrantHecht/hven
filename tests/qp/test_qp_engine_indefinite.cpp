@@ -16,7 +16,7 @@
 // the test itself, per mode -- never against each other.
 //
 // Task 8 generalized that into an enumerated LOCAL-MINIMIZER ORACLE
-// (tests/sqp/support/dense_oracle.h's enumerate_local_minimizers), which the last
+// (tests/qp/support/dense_oracle.h's enumerate_local_minimizers), which the last
 // third of this file exercises: the oracle's own hand-derived self-tests, then
 // a battery -- eight hand-built indefinite QPs plus 25 randomized ones -- that
 // only requires the engine's answer to be SOME local minimizer, which is all a
@@ -1618,7 +1618,7 @@ TEST(QpEngineIndefinite, RideOnAWideBoxLpReachesTheTrueMinimizer) {
 
 // === Task 8: the local-minimizer oracle ===================================
 //
-// tests/sqp/support/dense_oracle.h's enumerate_local_minimizers() runs the SAME
+// tests/qp/support/dense_oracle.h's enumerate_local_minimizers() runs the SAME
 // exhaustive active-set enumeration solve_dense_oracle() does, but instead of
 // returning the single lowest-objective KKT point it returns EVERY enumerated
 // KKT point whose reduced Hessian (H projected onto the null space of the
@@ -1843,7 +1843,7 @@ QpProblem negative_diagonal_box_qp() {
 
 // THE THREE ROW-CARRYING INDEFINITE FIXTURES THAT USED TO BE DEFINED HERE NOW
 // LIVE IN support/indefinite_fixtures.h -- ONE implementation, shared with the
-// IPQP tier's A11 cell (tests/sqp/test_ipqp_certification.cpp), not a second
+// IPQP tier's A11 cell (tests/qp/test_ipqp_certification.cpp), not a second
 // copy that could drift. Their full derivations moved with them. Pulled back
 // into this file's own namespace so every call site below reads exactly as it
 // did.

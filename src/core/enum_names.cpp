@@ -4,7 +4,7 @@
 // Display-string switches, and the reporting order, for the solver enums whose
 // headers live in core/: SolveStatus and StopReason (core/solver_status.h)
 // and StartLevel (core/start_level.h). Defined here so a core/ TU never links
-// against a drivers/ object -- core/ledger.cpp calls to_string(SolveStatus).
+// against a solver/ or sqp/ object -- core/ledger.cpp calls to_string(SolveStatus).
 // FP-arithmetic-free: no double is read, written or compared in this file.
 
 #include <stdexcept>
@@ -19,7 +19,7 @@ namespace hven {
 // to_string(SqpStatus) stood here until M6 W5 T8.4, returning the CAPITALISED
 // display names Optimal / MaxIter / Infeasible / NumericalError /
 // BudgetExhausted. SqpStatus is gone and to_string(SolveStatus)
-// (src/drivers/solve_status.cpp) spells its values in lower snake, so the
+// (src/ipm/ipm_phase_status.cpp) spells its values in lower snake, so the
 // capitalised vocabulary has exactly one consumer left: the corpus and
 // crossover CSV writers, whose committed baselines and control pin those bytes.
 // It lives there now, as bench-local corpus::legacy_status_string(), and its

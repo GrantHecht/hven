@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_degeneracy_arm.cpp — M7 W2 M5's DEGENERACY ARMS
-// (hven/detail/qp/qp_degeneracy_arm.h), on the `HVEN_TESTING` test-seam
+// (hven/detail/qp/walk/degeneracy_arm.h), on the `HVEN_TESTING` test-seam
 // convention docs/testing.md describes.
 //
 // IT COVERS ARM A, THE DIAGNOSTIC HALF, AND ARM B1 -- the

@@ -4,7 +4,7 @@
 // The interior-point crossover's ingest orchestration, from_interior_point.
 // The sign conventions, the activity-inference derivation, and what the
 // emitted object does and does not carry are documented in
-// detail/warmstart/warm_start.h.
+// detail/warmstart/crossover.h.
 
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/crossover.h>

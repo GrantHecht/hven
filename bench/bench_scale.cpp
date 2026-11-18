@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_scale.cpp — PHASE-5 TASK 2: the bench harness and wall-time
+// PHASE-5 TASK 2: the bench harness and wall-time
 // instrumentation, the measurement instrument the rest of Phase 5 (Tasks 3,
 // 4, 5, 9) reads. This is NOT a new algorithm: every number it reports comes
 // from a Ledger (ledger.h) attached to an ordinary SqpSolver, exactly as
-// tests/test_warm_start_battery.cpp's corpus does -- see that file's own
+// tests/warmstart/test_warm_start_battery.cpp's corpus does -- see that file's own
 // EVERY COUNT IN THIS FILE COMES OFF A LEDGER note, which this harness
 // deliberately follows rather than re-deriving its own counters.
 //
@@ -40,11 +40,11 @@
 //          (the tangential predictor, Task 9).
 //
 // ---------------------------------------------------------------------
-// THE TWO FAMILIES (tests/sqp/support/{parametric_families,scale_problems}.h):
+// THE TWO FAMILIES (tests/model/support/{parametric_families,scale_problems}.h):
 //
 //   F3   F3SpringChain(n, /*p_act=*/0.5, /*p0=*/0.25) swept over p: 0.25 ->
 //        0.75 -- the SAME construction and range
-//        tests/test_warm_start_battery.cpp's "F3n1000"/"F3n50" cells use, so
+//        tests/warmstart/test_warm_start_battery.cpp's "F3n1000"/"F3n50" cells use, so
 //        a bench run at --n 1000 is directly comparable to that corpus.
 //   F7   F7CollocationChain(n, 3, 2, 0.68, 1.0) (n = node count) swept over
 //        p: 0.3 -> 0.9 -- inside the family's design range (0, R = 1) and
@@ -64,7 +64,7 @@
 //                 timed record -- the harness does not need to (and does
 //                 not) time the whole continuation call to get a per-row
 //                 number.
-//   peak_rss_mib  tests/sqp/support/scale_problems.h's peak_rss_mib() (moved
+//   peak_rss_mib  tests/model/support/scale_problems.h's peak_rss_mib() (moved
 //                 there from test_scale_problems.cpp by this same task so
 //                 the /proc/self/status parser is not duplicated): the
 //                 WHOLE-PROCESS high-water mark (-1 off Linux or if
@@ -112,7 +112,7 @@
 // -- F3SpringChain(1000, 0.5, 0.25) swept p: 0.25 -> 0.75, warm arm, full_step
 // ON, ContinuationOptions{} DEFAULTS (dp_init = 0.1, NOT derived from any
 // --sweep flag) -- and compares its ledger-summed counters against the
-// pinned reference in tests/test_warm_start_battery.cpp's
+// pinned reference in tests/warmstart/test_warm_start_battery.cpp's
 // kPins["F3n1000"].arm[kArmWarm] row ({6, 30, 84, 25, 0, 22, 1, 5, 0, 0, 84,
 // 0}; cell[0], i.e. warm_full_step ON): steps, majors, minors,
 // factorizations, factorizations_saved, full_step_majors, the resolved-level
@@ -128,7 +128,7 @@
 // PHASE-5 TASK 3 ADDITION -- THE DIAGNOSTIC FLAGS AND THE QP-LEVEL CSV.
 //
 // Task 3's first job is diagnosing the F7 N=200 wall-time cliff recorded in
-// tests/test_scale_problems.cpp's CARRY 2. The columns above could not
+// tests/model/test_scale_problems.cpp's CARRY 2. The columns above could not
 // discriminate its candidate causes (minor-iteration blow-up vs factorization
 // cost vs cycling) for two reasons, both of them OBSERVATION gaps on this
 // side of the library rather than anything missing from the engine:
@@ -468,7 +468,7 @@ std::vector<double> linspace(double p0, double p1, std::size_t steps) {
 }
 
 // The one SqpOptions every arm shares apart from start_level -- mirrors
-// tests/test_warm_start_battery.cpp's battery_options() exactly (same
+// tests/warmstart/test_warm_start_battery.cpp's battery_options() exactly (same
 // tolerances, same adaptive_mu = false so a kHot resolution stays reachable
 // -- see that function's own note on why adaptive_mu is off everywhere).
 //
@@ -621,12 +621,12 @@ struct ExpectedCounts {
     Index n_cold, n_seeded, n_warm, n_hot, predictor_calls, border_refine, elastic_activations;
 };
 
-// tests/test_warm_start_battery.cpp, kPins[] "F3n1000" row, arm[kArmWarm]
+// tests/warmstart/test_warm_start_battery.cpp, kPins[] "F3n1000" row, arm[kArmWarm]
 // (index 1), cell[0] (warm_full_step ON): {6, 30, 89, 25, 0, 22, 1, 5, 0, 0,
 // 89, 0}.
 // RE-MEASURED AT M7 W2 E4 FIX ROUND 2 (a declared event, and the grep-sweep
 // convention's own instance: this row is a HARD-CODED COPY of
-// tests/sqp/test_warm_start_battery.cpp's `F3n1000` warm-arm pin, and that file's
+// tests/warmstart/test_warm_start_battery.cpp's `F3n1000` warm-arm pin, and that file's
 // THE E4 RE-MEASUREMENT OF THE THREE F3 FAMILIES note carries the measurement, the
 // cause and the cap search). `minors` 84 -> 89, and `border_refine` with it in the
 // test's own copy; MAJORS, steps, factorizations, fact_saved, full_step_majors and
@@ -655,7 +655,7 @@ constexpr ExpectedCounts kF3n1000WarmPin{/*steps=*/6,
                                          /*predictor_calls=*/0,
 // 84 -> 89 (E4 fix round 2, stale by then) -> 91 Release /
 // 93 Debug (M7 W2 BPS: the bordered certificate's extra
-// refinement; follows tests/sqp/test_warm_start_battery.cpp's
+// refinement; follows tests/warmstart/test_warm_start_battery.cpp's
 // F3n1000 warm-arm pin).
 #ifdef NDEBUG
                                          /*border_refine=*/91,

@@ -37,7 +37,7 @@ namespace {
 using hven::crossover::ModelAsNlpProblem;
 
 // The test fixture's own spelling of an absent upper bound
-// (tests/interior/test_ipm_solver_entry.cpp:20), copied with it.
+// (tests/ipm/test_ipm_solver_entry.cpp:20), copied with it.
 constexpr double kSolverInf = std::numeric_limits<double>::infinity();
 
 double seconds_since(const std::chrono::steady_clock::time_point &t0) {
@@ -45,7 +45,7 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 }
 
 // The Ipopt HS071 example with x1 PINNED by equal bounds, copied from
-// tests/interior/test_ipm_solver_entry.cpp:33 because a bench binary does not
+// tests/ipm/test_ipm_solver_entry.cpp:33 because a bench binary does not
 // include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
 struct Hs071FixedProblem final : Nlp {
@@ -136,7 +136,7 @@ Vec hs071_fixed_start() {
 // start throws the unlinesearched feasibility step out to |x0| ~ 1e4 and the
 // pure power walks it back a tenth at a time, which is the sustained worsening
 // the stall detector certifies. Shares its shape with the live pin in
-// tests/interior/test_ipm_stop_reason.cpp; a bench binary does not include a
+// tests/ipm/test_ipm_stop_reason.cpp; a bench binary does not include a
 // test file, so it is a copy.
 struct PowerSpikeProblem final : Nlp {
     hven::NlpDimensions dimensions() const override {

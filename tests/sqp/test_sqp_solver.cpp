@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_solver.cpp — the SQP driver: Task 4's skeleton and Task 6's
+// The SQP driver: Task 4's skeleton and Task 6's
 // trust-region major loop.
 //
 // Seven batteries:
@@ -150,7 +150,7 @@ using hven::test_support::make_hs;
 // keep a second copy of it. The definitions are unchanged; only their home is.
 using hven::test_support::NlpKktResidual;
 using hven::test_support::self_check_kkt;
-// W5 T5 LIFTED THESE THREE to tests/sqp/support/ipqp_test_support.h: the trace
+// W5 T5 LIFTED THESE THREE to tests/qp/support/ipqp_test_support.h: the trace
 // suite replicated them, and the W2 acceptance record holds an archived copy.
 using hven::test_support::w2_antiparallel_eq_qp;
 using hven::test_support::w2_box_blocked_qp;
@@ -784,7 +784,7 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
 // 2-arg cold solve from the same corrected x0, which is what "the caller's
 // own x0 was honoured" actually means. (The zero-major repair itself is
 // untouched by this -- it is about solves that CONVERGED at a good point;
-// tests/test_warm_start.cpp pins that half.)
+// tests/warmstart/test_warm_start.cpp pins that half.)
 TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured) {
     NanPastRadiusModel model;
     SqpOptions opts;
@@ -1064,14 +1064,14 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
 // no longer one place. The driver's solve path evaluates through the Level 2
 // aggregate and does not call the free functions at all any more:
 //   (a) and (b) pin the FREE FUNCTIONS -- eval_nlp and eval_nlp_values, which
-//       remain in drivers/sqp_solver.h as a supported direct-use surface for
+//       remain in sqp/sqp_solver.h as a supported direct-use surface for
 //       tests and for callers measuring a single point. They are called
 //       directly here, never through solve(), so they pin exactly that
 //       retained surface and nothing about the loop.
 //   (c) is THE LIVE-PATH ARM. It goes through driver.solve(), and the box is
 //       the one mis-sized return that still reaches a driver-owned check
 //       there: require_declared_box, at the model-taking entries in
-//       src/drivers/sqp_solver.cpp, which runs before the model is wrapped in
+//       src/sqp/sqp_solver.cpp, which runs before the model is wrapped in
 //       a bridge so that this two-block message is the one that fires.
 //   (d) is the control for all of the above.
 // The solve path's rejection of the OTHER mis-sized returns has moved to the
@@ -1234,7 +1234,7 @@ TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
 // THE DRIVER'S BRIDGE LAY ADDS ONE EXTRA CLAIM PASS, WHICH IS WHY THE THREE
 // DERIVATIVE IDENTITIES CARRY AN EXPLICIT `+ 1` BELOW AND THE THREE VALUE ONES
 // DO NOT. The driver's solve path consumes the Level 2 aggregate
-// (detail/drivers/assembly_eval_seam.h), and a model-taking solve() builds
+// (detail/sqp/assembly_eval_seam.h), and a model-taking solve() builds
 // one bridge over the caller's model for the duration of the call. Building
 // it is a CLAIM PASS: it walks eval_hess,
 // eval_jac_e and eval_jac_i once each at the model's start point, because the
@@ -5541,7 +5541,7 @@ namespace {
 // second near-copy of the model. See
 // SqpDriverElastic.ElasticSurvivesALargeConstraintScale.
 //
-// REPRODUCED FROM tests/test_sqp_restoration.cpp (Phase-5 Task 10, for
+// REPRODUCED FROM tests/sqp/test_sqp_restoration.cpp (Phase-5 Task 10, for
 // SqpDriverElastic.EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly),
 // rather than shared, to keep this file's own fixture set self-contained --
 // same model, same constants, byte-for-byte. min x0 + x1 s.t.
@@ -6337,7 +6337,7 @@ TEST(SqpDriverElastic, EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture) 
 }
 
 // THE UNSAFE CASE, DOCUMENTED RATHER THAN HIDDEN: InfeasibleCircleLineModel
-// (tests/test_sqp_restoration.cpp; reproduced here rather than shared, to
+// (tests/sqp/test_sqp_restoration.cpp; reproduced here rather than shared, to
 // keep this file's own TDD self-contained) has an elastic relaxation whose
 // Lagrangian Hessian is IDENTICALLY ZERO (docs/notes/
 // 2026-07-31-schur-cap-policy.md section 4), so its subproblem is a genuine
@@ -6386,7 +6386,7 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     // stops trusting a rung the full ladder would still have escalated past.
     // This is the counter-example that keeps the lever off by default; see
     // this test's own banner and sqp_solver_types.h's note for the reading on
-    // tests/sqp/support/hs_sweeps.h's HS15, which shows the same effect on an
+    // tests/model/support/hs_sweeps.h's HS15, which shows the same effect on an
     // unrelated published problem.
     // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): `<` -> `<=`, measured
     // 2 majors on BOTH arms. The lever's counter-example was that the early-exit run
@@ -6411,7 +6411,7 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
 
 namespace {
 
-// PORTED from tests/test_eqp_solve.cpp's
+// PORTED from tests/qp/test_eqp_solve.cpp's
 // FixedVariableWithEqualityRefinementImprovesAccuracy (Task 3's QP-level
 // refinement fixture), as an NlpModel:
 //
@@ -6964,7 +6964,7 @@ TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpReco
 // SqpDriverEvalEconomics -- Task 8: the values/derivatives split, measured.
 // =========================================================================
 //
-// THE FIXTURE: HS40 re-posed by tests/sqp/support/hs_sweeps.h's HsSweep (the
+// THE FIXTURE: HS40 re-posed by tests/model/support/hs_sweeps.h's HsSweep (the
 // same tilt/shift hs_sweep_spec(40) uses for the Phase-5 Task-7 corpus,
 // spec.number/tilt/ce_shift/ci_shift), POISONED by posing it at p = 2 --
 // well outside the corpus's own [p0, p1] = [0, 1] sweep range -- while
@@ -7637,7 +7637,7 @@ TEST(SqpDriverCrashBasis, SeededIngestWithNoActivityHintStillArmsTheCrashBasis) 
 namespace {
 
 // An NLP whose subproblem is EXACTLY Task 4's `indefinite_qp` fixture
-// (tests/sqp/support/ssn_fixtures.h), lifted to the driver:
+// (tests/qp/support/ssn_fixtures.h), lifted to the driver:
 //
 //     min  1/2 x0^2 - x1^2 - c x0 + 1/4 x1     on [-1, 1]^2
 //
@@ -7760,7 +7760,7 @@ TEST(SqpDriverSsnMode, EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn) {
             << "a problem the walk certifies must certify under kSsn too";
         // 2. THE CERTIFICATE IS REAL, verified against the MODEL rather than
         // against the driver's own residual -- the battery's own primary
-        // guard (tests/test_hs_battery.cpp), applied at its own bars. This is
+        // guard (tests/sqp/test_hs_battery.cpp), applied at its own bars. This is
         // the assertion that actually carries the brief's "certifies at the
         // same tolerance"; a mode that certified at a non-KKT point would fail
         // here even if its status and objective matched.
@@ -9318,7 +9318,7 @@ TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
 // =====================================================================
 // M6 W0.3 -- THE R6 SIGN SWEEP ON EXPORTED FACE PRICES.
 //
-// The defect (tycho_sqp record, accepted-with-disclosure as D2): a certifying
+// The defect (pre-migration SQP record, accepted-with-disclosure as D2): a certifying
 // SSN exit's inequality prices are not sign-constrained where they are
 // produced, so a NEGATIVE price reaches SqpResult::lambda_i and
 // SqpWarmState::lambda_i -- and through the currency's `iq_lmults_` an

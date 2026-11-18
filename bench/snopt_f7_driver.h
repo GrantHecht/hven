@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/snopt_f7_driver.h — PHASE-6 TASK 0. THE SNOPT BRIDGE: F7 at (N, p)
+// PHASE-6 TASK 0. THE SNOPT BRIDGE: F7 at (N, p)
 // mapped onto SNOPT's snOptA problem form, solved cold or warm-basis, with the
 // counters and the accuracy metrics the first-contact note needs.
 //
@@ -69,7 +69,7 @@
 // THE MAPPING, STATED IN BOTH DIRECTIONS (fidelity is the whole point: a
 // comparison against a DIFFERENT problem is worthless).
 //
-// F7 (tests/sqp/support/scale_problems.h, nlp_model.h's sign conventions) is
+// F7 (tests/model/support/scale_problems.h, nlp_model.h's sign conventions) is
 //
 //     min f(x)  s.t.  cE(x) = 0,  cI(x) <= 0,  l <= x <= u,
 //

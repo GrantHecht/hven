@@ -5,7 +5,7 @@
 // ConstraintInterface / ObjectiveInterface, and what it refuses to.
 //
 // The refusals are compile-time, so they are covered by the compile-fail
-// probes in compile_fail/ (wired in tests/interior/CMakeLists.txt) rather
+// probes in compile_fail/ (wired in tests/ipm/CMakeLists.txt) rather
 // than here. What this file pins is the acceptance side and, crucially, the
 // STORED DYNAMIC TYPE -- the observation that distinguishes one virtual
 // dispatch from two. Sizes and numerics cannot tell those apart; typeid can.

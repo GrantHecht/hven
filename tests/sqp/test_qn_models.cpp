@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_qn_models.cpp -- the full-memory damped BFGS and the nonlinear-variables-only
+// The full-memory damped BFGS and the nonlinear-variables-only
 // restriction (qn_models.h) in ISOLATION, and the mixed lift's scalar-part replacements
 // (MixedLiftData::diag / base / support) they publish. The oracle for the full-memory model is
 // an explicit recursion written independently of the class.

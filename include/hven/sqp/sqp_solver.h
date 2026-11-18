@@ -280,7 +280,7 @@ class SqpSolver {
     std::unique_ptr<detail::SqpSolverImpl> impl_;
 };
 
-// Defined in src/drivers/sqp_print.cpp.
+// Defined in src/sqp/sqp_print.cpp.
 /// @brief Human-readable name of a step verdict, for the iteration printer.
 /// @param v The verdict.
 /// @return A static string; nothing in the driver branches on it.

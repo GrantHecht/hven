@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_walk_seam.cpp — the primal active-set walk's READ-ONLY per-minor
-// observer (hven/detail/qp/qp_walk_trace.h), on the test-seam convention
+// observer (hven/detail/qp/walk/walk_trace.h), on the test-seam convention
 // docs/testing.md describes.
 //
 // WHAT THIS FILE HAS TO PROVE, and it is not "the observer records something":
@@ -59,7 +59,7 @@ namespace {
 
 // --- The three fixtures -------------------------------------------------
 //
-// Transcribed from tests/sqp/test_qp_engine.cpp's battery (that file is not
+// Transcribed from tests/qp/test_qp_engine.cpp's battery (that file is not
 // included: a test TU never includes another test TU) so that the degenerate
 // one is the SAME degenerate problem the ordinary QP suite pins.
 

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// nan_sticky_inf_norm and nan_sticky_max (hven/core/detail/inf_norm.h): a NaN at ANY index
+// nan_sticky_inf_norm and nan_sticky_max (hven/detail/core/inf_norm.h): a NaN at ANY index
 // reads NaN -- including past every vectorization width and in the scalar tail -- and on
 // input without a NaN the result is bit-identical to lpNorm<Infinity> / std::max.
 

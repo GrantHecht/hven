@@ -542,7 +542,7 @@ struct IpmPhaseExitTraceEvent {
 /// site checks before emitting; the tier events and every message are built only
 /// there, while `fallback.verdict` is the judge's own out-param and is filled
 /// whether or not a sink is attached (a handful of scalars). The destructor is
-/// out-of-line (src/drivers/trace.cpp).
+/// out-of-line (src/trace/trace.cpp).
 ///
 /// CONTRACT: a sink serves ONE solve at a time on ONE thread (a nested restoration
 /// sub-solve shares it sequentially); events are not synchronized. A solve that throws

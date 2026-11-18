@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_nlp_model.cpp — Task 3: NlpModel interface, derivative checker,
+// Task 3: NlpModel interface, derivative checker,
 // and the first six Hock-Schittkowski problems.
 //
 // Two batteries:
@@ -285,7 +285,7 @@ TEST(NlpModelHs, Hs76DimensionsAndDerivatives) {
 // --- Task 11: the twenty-one problems added for the HS battery. ---
 //
 // STEP 1 OF THE BATTERY'S BRIEF: each of these must pass the derivative
-// checker BEFORE it is allowed into tests/test_hs_battery.cpp. They are
+// checker BEFORE it is allowed into tests/sqp/test_hs_battery.cpp. They are
 // spelled out one TEST per problem rather than looped, so a transcription
 // error names the problem in the gtest failure line instead of stopping a
 // loop at the first bad one and hiding the rest.

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_f7_cold.cpp — PHASE-5 TASK 3 (fix round 1): the single-solve F7
+// PHASE-5 TASK 3 (fix round 1): the single-solve F7
 // cold-start probe. THE VEHICLE FOR docs/notes/2026-07-30-scale-study-cold.md
 // SECTIONS 4.1, 4.2 AND 5 — every number in those three sections came out of
 // this program, and it is committed so they are reproducible from the
@@ -17,9 +17,9 @@
 // this probe needs to vary, and cannot report a third:
 //
 //   (a) TOLERANCES. bench_options() hardcodes kkt_tol = feas_tol = 1e-8 so its
-//       rows stay comparable with tests/test_warm_start_battery.cpp's corpus.
+//       rows stay comparable with tests/warmstart/test_warm_start_battery.cpp's corpus.
 //       The scale study's Arm B is quoted at 1e-9, which is what
-//       tests/test_scale_problems.cpp's own tight_options() publishes its
+//       tests/model/test_scale_problems.cpp's own tight_options() publishes its
 //       figures at, so a scale number is comparable with the fixture's.
 //   (b) adaptive_mu. bench_options() sets it FALSE (so a kHot resolution stays
 //       reachable — see its own note); the library DEFAULT is true, and the
@@ -33,7 +33,7 @@
 //       whole reason F7 exists, and it is reported here.
 //
 // Both programs read the same F7CollocationChain from
-// tests/sqp/support/scale_problems.h and the same SqpSolver, so where their
+// tests/model/support/scale_problems.h and the same SqpSolver, so where their
 // configurations coincide their counters agree; the note records one such
 // cross-check (N = 150, both tolerance settings, identical 1276 minors and
 // 853/4 factorizations).
@@ -99,7 +99,7 @@
 //     schur=   summed QpCounters::schur_updates over every QP subproblem of
 //              this solve. SqpCounters has NO schur_updates field (see
 //              sqp_solver_types.h), so this is read from a Ledger attached to the
-//              driver -- the same route tests/test_scale_smoke.cpp uses -- by
+//              driver -- the same route tests/sqp/test_scale_smoke.cpp uses -- by
 //              summing the QP-level SolveRecords. Identically 0 under
 //              ws_algebra = refactorize, where no border stack exists.
 //     symb=    SqpCounters::symbolic_analyses, the Pardiso phase-11 count.

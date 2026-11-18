@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_mu0_rule.cpp -- M7 W2 A2's two IPQP toggles:
+// M7 W2 A2's two IPQP toggles:
 // `IpqpOptions::ipqp_mu0_rule` (the complementarity-derived mu_0) and
 // `IpqpOptions::ipqp_mu_residual_floor` (A1-R1's residual-proportional floor).
 // Design and rule text: docs/notes/2026-10-m7-w2-a2-mu0-design.md sections 3-5.

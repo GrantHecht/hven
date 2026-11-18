@@ -191,7 +191,7 @@ struct StepContext {
 };
 
 // StepVerdict, the four outcomes of KLV Algorithm 2's optimality branch, is
-// public: drivers/step_verdict.h (a history row reports it).
+// public: solver/step_verdict.h (a history row reports it).
 
 // Generalization note for h: KLV Sec. 2.4.1 defines h(x) = ||c(x)||_1 for an
 // NCO whose only inequalities are bounds ("always feasible throughout SQP
@@ -346,7 +346,7 @@ class GlobalizationStrategy {
 /// back out of restoration still taking unit steps.
 ///
 /// Definitions: the three VIRTUAL overrides live out-of-line in
-/// src/globalization/sqp/funnel.cpp; the four inline members after them stay
+/// src/sqp/globalization/funnel.cpp; the four inline members after them stay
 /// INLINE here deliberately — a clean Release build emits no symbol for any of
 /// the four (fully inlined at every call site), and moving them would cost
 /// exactly what moving the virtuals does not. The include set is unchanged by

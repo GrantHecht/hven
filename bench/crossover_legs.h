@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/crossover_legs.h — the IPM -> SQP crossover measurement legs, and the
+// The IPM -> SQP crossover measurement legs, and the
 // dual-bind path that makes a replay-corpus cell reachable from BOTH engines
 // under ONE declaration. Protocol: docs/notes/2026-08-m5-ledger.md, "W5 LEG
 // PROTOCOL". Four legs per dual-bindable cell:

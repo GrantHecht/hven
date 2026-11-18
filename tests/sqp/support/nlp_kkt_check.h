@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/nlp_kkt_check.h — test-support only, NOT part of the public
+// Test-support only, NOT part of the public
 // library surface. The IN-TEST KKT SELF-CHECK: given a model and the
 // SqpResult a driver returned for it, recompute the whole KKT quadruple
 // FROM THE MODEL at the returned point.
@@ -20,9 +20,9 @@
 // mismeasured its own residual cannot certify itself. It is the NLP analogue
 // of test_scale_smoke.cpp's self_check_kkt, which does the same for a QP.
 //
-// TASK 11 MOVED THIS OUT OF tests/test_sqp_solver.cpp, where it was a
+// TASK 11 MOVED THIS OUT OF tests/sqp/test_sqp_solver.cpp, where it was a
 // file-local helper, because the Hock-Schittkowski battery
-// (tests/test_hs_battery.cpp) needs the SAME check on 27 problems and a
+// (tests/sqp/test_hs_battery.cpp) needs the SAME check on 27 problems and a
 // second copy of it would be a second thing to keep correct. The code is
 // unchanged from that file's version; only its home and its namespace moved.
 //

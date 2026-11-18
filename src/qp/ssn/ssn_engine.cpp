@@ -7,7 +7,7 @@
 // This TU holds the DEFINITIONS of every SsnEngine member function except the
 // constructor and the two trivial accessors; the class, its data members, its
 // documentation and the file's SCOPE/loop contract stay in
-// include/hven/detail/qp/ssn_engine.h. The engine is a plain (non-template)
+// include/hven/detail/qp/ssn/ssn_engine.h. The engine is a plain (non-template)
 // class, so CLAUDE.md §5's header/templated exception does not apply to it:
 // what is here is orchestration -- the attempt loop, the FB classification,
 // the KKT pattern cache, the globalization helpers and the exports.
@@ -28,8 +28,8 @@
 //
 // The `detail::` free functions and constants above SsnEngine (the
 // safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
-// types) stay inline in the header: tests, bench, src/drivers/sqp_solver.cpp
-// and include/hven/detail/warmstart/warm_start.h name them directly, and this
+// types) stay inline in the header: tests, bench, src/sqp/sqp_solver.cpp
+// and include/hven/detail/warmstart/crossover.h name them directly, and this
 // TU inlines them exactly as before.
 //
 // FP arithmetic crosses this TU boundary under ONE uniform flag regime on both

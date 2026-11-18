@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_restoration.cpp — Task 9: the restoration phase and the
+// Task 9: the restoration phase and the
 // rapid infeasibility detection it makes possible.
 //
 // Three batteries:
@@ -576,7 +576,7 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblem) {
 }
 
 // ALL FOUR DERIVATIVE BLOCKS, against central differences -- the same
-// transcription guard every model in tests/sqp/support/hs_problems.h passes
+// transcription guard every model in tests/model/support/hs_problems.h passes
 // (test_nlp_model.cpp), pointed at the wrapper. This is the check that the
 // Jacobian's constant slack columns, the linear objective's gradient and the
 // obj_scale = 0 Hessian pass-through are all what the header says they are.
@@ -2286,7 +2286,7 @@ const char *seed_mode_name(QpMode m) {
 //
 // SEVEN fixtures in this file and one in the proximity group read
 // `seeded_rows(sol) == 0` where they pinned 1. It is ONE ROUTE CHANGE, at one
-// line of `src/drivers/sqp_solver.cpp`: the seed guard takes an offered candidate
+// line of `src/sqp/sqp_solver.cpp`: the seed guard takes an offered candidate
 // only when it MEASURES BETTER,
 //
 //     if (constraint_violation_l1(probe) < h_entry) { ... take = true; }
@@ -3584,7 +3584,7 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
     const std::string text = os.str();
     EXPECT_NE(text.find("restoration_proximity = 0.25\n"), std::string::npos) << text;
     // DECLARATION POSITION: after M1's pair and before the `common.` block,
-    // which is what the drift pin's line count in tests/drivers/
+    // which is what the drift pin's line count in tests/solver/
     // test_options_dump.cpp is counting.
     EXPECT_LT(text.find("qp_iteration_limit_retry"), text.find("restoration_proximity"));
     EXPECT_LT(text.find("restoration_proximity"), std::string::npos)
@@ -3898,7 +3898,7 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
 // the identity over EVERY watched point that the guard's own test admits. For
 // any such point the wrapper's start objective is h + P with P > 0 -- never h
 // -- and that is the declared price of centring on `x_k`
-// (detail/globalization/sqp/restoration.h's class note).
+// (detail/sqp/globalization/restoration.h's class note).
 static void
 run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy policy) {
     const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;

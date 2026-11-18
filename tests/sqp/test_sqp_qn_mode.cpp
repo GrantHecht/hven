@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_qn_mode.cpp -- M7 QN stage 3: the SQP driver under
+// M7 QN stage 3: the SQP driver under
 // SqpOptions::hessian_mode = kLbfgsDamped (design .superpowers/m7-qn-design.md sections 2-3;
 // rulings C30, C32, C33).
 //

@@ -162,7 +162,7 @@ struct QpOptions {
     /// meaning only +inf has).
     double trust_region_radius = std::numeric_limits<double>::infinity();
 
-    /// Keep the walk's working set linearly independent (qp/ws_independence.h).
+    /// Keep the walk's working set linearly independent (detail/qp/walk/ws_independence.h).
     /// false disables the independence check.
     bool independent_working_set = true;
 
@@ -180,7 +180,7 @@ struct QpOptions {
 /// @brief A field-wise hash of the options a QpEngine was built under, plus the
 ///        thread count in force.
 ///
-/// WHY IT EXISTS. A hot handle (`SqpWarmStart::hot`, detail/qp/qp_engine.h's
+/// WHY IT EXISTS. A hot handle (`SqpWarmStart::hot`, detail/qp/walk/walk_engine.h's
 /// HotState) carries a factorized K0 across engines. The reuse conditions
 /// (a)-(e) fingerprint the PROBLEM (the structural and value hashes, the
 /// effective delta/mu, the working set) and the FACTOR OBJECT (its
@@ -198,7 +198,7 @@ struct QpOptions {
 /// only when set, so a default value hashes as it did before the field existed)
 /// -- because a field left out is a hole of exactly the kind above.
 /// Add a field to QpOptions and you add it here; the field-coverage test in
-/// tests/drivers/test_options.cpp flips each one alone and requires the hash to
+/// tests/solver/test_options.cpp flips each one alone and requires the hash to
 /// move.
 ///
 /// PADDING-SAFE: a field-wise mix, never a byte hash over the struct, so

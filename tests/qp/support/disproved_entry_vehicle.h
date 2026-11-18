@@ -34,7 +34,7 @@
 //   * `ns` ZERO-CURVATURE penalty columns priced `rho * sigma` linearly and
 //     boxed `[0, cap]` -- structurally empty rows and columns of H, exactly as
 //     `build_elastic_subproblem` leaves the slack block
-//     (src/globalization/sqp/soc_elastic_restoration.cpp);
+//     (src/sqp/globalization/soc_elastic_restoration.cpp);
 //   * `ns` equality rows `x_(k mod ne) + sigma * s_k = target`, the elastic
 //     form's `A_e` augmented by its scaled slack column;
 //   * `nc` "pulled" variables with curvature 2 and gradient `-pull`, whose only
@@ -52,7 +52,7 @@
 // elastic copy closes its slacks on it -- which is what `ipqp_suspicion_disproved` counts.
 //
 // WHY THE DETECTOR FIRES, in the terms of its own two conjuncts
-// (src/qp/ipqp_engine.cpp's `primal_flat_on_floor` and the growth test): the
+// (src/qp/ipqp/ipqp_engine.cpp's `primal_flat_on_floor` and the growth test): the
 // huge linear price on the zero-curvature columns drives the dual norm past
 // `kSsnDualGrowthFactor = 1e4` within the stall window -- MEASURED 1e6 on the
 // shipped cell -- while the primal residual is still above the feasibility

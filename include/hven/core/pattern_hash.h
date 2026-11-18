@@ -12,7 +12,7 @@
 // still matches the model being solved.
 //
 // The SQP engine keeps two structural keys of its own
-// (`hven/detail/qp/qp_engine.h`, `hven/detail/qp/ssn_engine.h`); both are
+// (`hven/detail/qp/walk/walk_engine.h`, `hven/detail/qp/ssn/ssn_engine.h`); both are
 // built ON this surface -- the QP engine's is `combined_pattern_hash` over
 // its three matrices, the SSN engine's threads `feed_index` and
 // `feed_pattern` through one accumulator and pairs the digest with a

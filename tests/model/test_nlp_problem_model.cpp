@@ -368,7 +368,7 @@ TEST(NlpProblemModelTest, TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle)
 }
 
 // M8 B7: at the default CommonOptions::infinite_bound (1e20) these bounds are
-// ABSENT (tests/drivers/test_infinite_bound.cpp pins that side); with the
+// ABSENT (tests/solver/test_infinite_bound.cpp pins that side); with the
 // threshold at infinity every finite value is a real bound, which is what this
 // test pins -- the pre-B7 convention, now an explicit setting.
 TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsUnderAnInfiniteThreshold) {

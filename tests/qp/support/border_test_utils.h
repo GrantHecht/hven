@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/border_test_utils.h — test-support only, NOT part of the
+// Test-support only, NOT part of the
 // public library surface. Thin alias for the shared iterative-refinement
 // helper used by tests that compare a Schur-complement border solve against a
 // DIFFERENT formulation of the same problem (e.g. solve_eqp's

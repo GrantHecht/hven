@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_snopt_bridge_gate.cpp — PHASE-6 TASK 0. THE REFEREE GATE for the
+// PHASE-6 TASK 0. THE REFEREE GATE for the
 // SNOPT bridge.
 //
 // WHAT THIS FILE IS FOR. Phase 6 compares this SQP engine against SNOPT on F7, and
@@ -15,7 +15,7 @@
 // F7 carries a manufactured solution at all.
 //
 // THE REFEREE IS F7'S ANALYTIC OPTIMUM, not our solver's answer.
-// tests/sqp/support/scale_problems.h derives x*(p), f*(p), the multipliers and the
+// tests/model/support/scale_problems.h derives x*(p), f*(p), the multipliers and the
 // active set in closed form (its prose was NumPy-verified), so the assertion
 // below compares SNOPT against MATHEMATICS rather than against our engine.
 // That ordering matters: if this gate compared the two solvers to each other,

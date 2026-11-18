@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_lbfgs_damped.cpp -- the damped compact L-BFGS class in ISOLATION (no driver, no
+// The damped compact L-BFGS class in ISOLATION (no driver, no
 // QP). The oracle is an explicit dense recursive damped BFGS that applies the SAME sigma-rebuild
 // sequence (each step: B0 = sigma_k*I, replay the stored pairs), written independently of the
 // class's compact / eigen machinery.

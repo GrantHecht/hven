@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // M8 TR-E: the v1 READER FIXTURES. Three small streams written by JsonLinesTraceSink from
-// hand-filled records, committed under tests/drivers/golden/trace_v1/, so an outside reader (the
+// hand-filled records, committed under tests/trace/golden/trace_v1/, so an outside reader (the
 // hven-bench trace reader, schema/trace_v1.py) has golden lines to test against that this suite
 // holds byte-exact:
 //   ipm_complete.jsonl  solve.begin, two iter rows (one restoration), a message, solve.end
@@ -28,7 +28,7 @@
 #include <hven/trace/json_lines_trace_sink.h>
 
 #ifndef HVEN_TRACE_FIXTURE_DIR
-#error "HVEN_TRACE_FIXTURE_DIR must be defined by tests/drivers/CMakeLists.txt"
+#error "HVEN_TRACE_FIXTURE_DIR must be defined by tests/solver/CMakeLists.txt"
 #endif
 
 namespace {

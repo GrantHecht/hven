@@ -4,7 +4,7 @@
 // The one validator of CommonOptions. Every numeric check is the NEGATION of its
 // acceptance condition, so a NaN (which compares false against everything) is
 // refused; the library builds with -fno-finite-math-only for exactly this (see
-// the banner of src/drivers/sqp_options.cpp). There is no floating-point
+// the banner of src/sqp/sqp_options.cpp). There is no floating-point
 // arithmetic here, only comparisons and values handed to fmt.
 
 #include "hven/detail/solver/common_options_validate.h"

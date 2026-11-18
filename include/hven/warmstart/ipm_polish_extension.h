@@ -111,7 +111,7 @@ const WarmExtension *find_ipm_polish(const WarmStart &data);
 /// the extension's `iq_values`/`z_lower`/`z_upper` are handed to
 /// `from_interior_point` as `x`, `lambda_e`, `lambda_i`, `slack_i`, `z_lower`,
 /// `z_upper`, with the problem's own bounds. Every sign convention, activity rule
-/// and ingest semantic is that function's, in detail/warmstart/warm_start.h. Read
+/// and ingest semantic is that function's, in detail/warmstart/crossover.h. Read
 /// it before wiring a caller: the resulting object carries no structure hash
 /// (there is no model here to hash) and so resolves StartLevel::kSeeded, never
 /// kWarm or kHot.

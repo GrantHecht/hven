@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_scale_smoke.cpp — Task 10: moderate-scale smoke test.
+// Task 10: moderate-scale smoke test.
 //
 // Every other test in this suite runs at toy sizes (n <= ~10 in the dense-
 // oracle-checked batteries, n <= ~30 in the largest randomized ones). This
@@ -9,7 +9,7 @@
 // convex QP at n ~ 3000, solved cold and warm, in both ws_algebra modes, with
 // SELF-CHECKED KKT residuals standing in for the dense oracle (which is
 // exponential in mi + bounded-variable count and cannot run at this size at
-// all -- see tests/sqp/support/dense_oracle.h).
+// all -- see tests/qp/support/dense_oracle.h).
 //
 // This is deliberately also a SPIKE (per the task brief): the assertions
 // below are chosen to be ROBUST to small cross-machine/library-version
@@ -26,7 +26,7 @@
 //
 // Everything above this line is Phase-3's QP-LEVEL spike (a hand-built banded
 // QP handed straight to a QpEngine). What follows is Phase-5's DRIVER-LEVEL
-// one: whole SqpSolver cold solves of tests/sqp/support/scale_problems.h's F7
+// one: whole SqpSolver cold solves of tests/model/support/scale_problems.h's F7
 // collocation family, whose optimum is known in closed form at every size, so
 // these can pin CORRECTNESS at scale and not merely self-consistency.
 //
@@ -45,7 +45,7 @@
 //     two size-carrying tests below live on.
 //   * WIDE WINDOW (p in (R/2, R), ~0.9N path rows active). Cost is dominated
 //     by identifying a Theta(n)-sized active set, and it is the regime the
-//     N = 200 wall-time cliff recorded in tests/test_scale_problems.cpp's
+//     N = 200 wall-time cliff recorded in tests/model/test_scale_problems.cpp's
 //     CARRY 2 lives in. n = 10^4 WAS NOT REACHED THERE as a single cold solve
 //     in either configuration the study tried (kNumericalError after 819 s at
 //     qp.max_iterations = 20000; no finish in 3000 s uncapped); the largest that
@@ -221,7 +221,7 @@ QpProblem banded_qp(Index n_blocks, Index block, unsigned seed) {
 //
 // No dense oracle exists at this size (enumerate_kkt_candidates is
 // exponential in mi + bounded-variable count; 300 general rows alone put
-// 2^mi far beyond tests/sqp/support/dense_oracle.h's own guard). Instead this
+// 2^mi far beyond tests/qp/support/dense_oracle.h's own guard). Instead this
 // verifies the returned QpSolution is a KKT point OF ITS OWN RIGHT, reading
 // only qp_problem.h's stationarity convention (grad(f) + Ae^T lambda_e +
 // Ai^T lambda_i - z = 0, lambda_i >= 0, z >= 0 at an active lower bound,
@@ -454,7 +454,7 @@ using hven::test_support::F7CollocationChain;
 
 // The options every F7 smoke below solves with, EXCEPT for the one knob each
 // test names. Deliberately the same tolerances as
-// tests/test_scale_problems.cpp's tight_options() so a counter measured here
+// tests/model/test_scale_problems.cpp's tight_options() so a counter measured here
 // is comparable with the ones recorded there; qp.max_iterations is left at the
 // LIBRARY DEFAULT here rather than that file's 5000, because every
 // solve below is either an empty-window solve (2 minors -- the cap is not
@@ -478,7 +478,7 @@ SqpOptions f7_smoke_options() {
 // The checks every F7 cold solve below makes against the family's MANUFACTURED
 // optimum -- the thing a self-consistency check cannot do and the reason these
 // tests use F7 rather than the banded QP above. Everything except `x_tol`
-// matches tests/test_scale_problems.cpp's check_path_at; this asserts on the
+// matches tests/model/test_scale_problems.cpp's check_path_at; this asserts on the
 // same quantities at sizes that file does not reach.
 //
 // WHY x_tol IS A PARAMETER AND THE OTHER TOLERANCES ARE NOT. The FORWARD error
@@ -519,7 +519,7 @@ void check_against_manufactured_optimum(const F7CollocationChain &model, const S
 
 // n = 10^4 (N = 2000 nodes, ns = 3, nc = 2, so n = N*(ns + nc) = 5N -- the
 // mapping the whole study uses), cold, EMPTY WINDOW (p = 0.45 < R/2, the same
-// empty-window sample tests/test_scale_problems.cpp's path_samples() uses).
+// empty-window sample tests/model/test_scale_problems.cpp's path_samples() uses).
 //
 // THIS IS THE BRIEF'S n = 10^4 PIN, ON THE ONLY ARM THAT REACHES IT. The
 // original brief asked for an n = 10^4 F7 cold solve without distinguishing
@@ -612,7 +612,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 
 // THE CLIFF'S MECHANISM, at a size the per-commit Debug suite can afford.
 //
-// The N = 200 wall-time cliff (tests/test_scale_problems.cpp's CARRY 2) is a
+// The N = 200 wall-time cliff (tests/model/test_scale_problems.cpp's CARRY 2) is a
 // QpOptions::max_schur_border_dimension-triggered K0-REBUILD STORM, not a minor-iteration
 // blow-up and not cycling: once the live border count exceeds schur_cap,
 // qp_engine.h's border_solve_or_fall_back finds needs_refactorization() true on
@@ -637,7 +637,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // pinned CONTROLS are Theta(N), which is what crosses 128 between N = 100
 // (peak 126, no latch, 8 factorizations) and N = 125. That correction is what
 // made the storm fixable: see LatchedBorderModeDoesNotThrashOnRowChanges in
-// tests/test_qp_engine_border.cpp.
+// tests/qp/test_qp_engine_border.cpp.
 //
 // This test reproduces exactly that signature at N = 30 (n = 150, ~1.9 s Debug
 // per wide-window solve per test_scale_problems.cpp's own timings) by moving

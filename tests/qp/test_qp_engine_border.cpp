@@ -22,7 +22,7 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from tests/test_qp_engine.cpp's simple_box_qp().
+// Repeated verbatim from tests/qp/test_qp_engine.cpp's simple_box_qp().
 QpProblem simple_box_qp() {
     // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10.
     // Optimum (0, 1) is a DEGENERATE vertex: the inequality is active with
@@ -74,7 +74,7 @@ SpMatRM make_kkt3() {
 // --- Equivalence-battery fixtures ---------------------------------------
 //
 // Repeated VERBATIM (modulo the simple_box_qp above, reused as-is) from
-// tests/test_qp_engine.cpp's battery, so BorderModeMatchesRefactorizeMode
+// tests/qp/test_qp_engine.cpp's battery, so BorderModeMatchesRefactorizeMode
 // exercises the border path against the exact same problems the refactorize
 // path is pinned on -- including the infeasible, crossed-bounds, degenerate
 // and start-infeasible ones, whose regularization-artifact regimes are
@@ -624,7 +624,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     // factorized) regularized system. solve_eqp applies this same step, so
     // without it the two paths agree only to O(primal_delta) ~ 1e-8, not the
     // 1e-9 this test asserts. Shared with BorderOps.PinVariableMatchesEliminated
-    // (test_border_ops.cpp) via tests/sqp/support/border_test_utils.h.
+    // (test_border_ops.cpp) via tests/qp/support/border_test_utils.h.
     std::vector<Vec> border_v{e0};
     std::vector<double> border_d{-opts.dual_regularization};
     sol = test_support::refine_bordered_solve(full.K, qp.n(), border_v, border_d, schur, rhs, sol,

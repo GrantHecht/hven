@@ -15,7 +15,7 @@
 // contract governs every compound KKT vector in the engine. The two views
 // duplicate the short accessor expressions that spell that contract out -- see
 // ConstKktVector's own note for why it is a second class and not a template
-// instantiation -- and tests/interior/test_structure_epoch_gating.cpp pins the
+// instantiation -- and tests/ipm/test_structure_epoch_gating.cpp pins the
 // duplication accessor for accessor, since nothing else holds them in step.
 // Each component supplies its own kkt_view() factory, since dimensions come
 // from different places.

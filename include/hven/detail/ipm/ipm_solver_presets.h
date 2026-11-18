@@ -12,7 +12,7 @@
 // monitored governor with max_iters = 1000, and `classic` did NOT move with it.
 // The table is therefore the thing that keeps the old default REACHABLE:
 // ipm_preset("classic") with max_iters = 500 reconstructs it exactly, and
-// tests/interior/test_ipm_solver_presets.cpp pins that reconstruction field by
+// tests/ipm/test_ipm_solver_presets.cpp pins that reconstruction field by
 // field and dump line by dump line.
 //
 // Every preset assigns exactly the same nine globalization fields (the full

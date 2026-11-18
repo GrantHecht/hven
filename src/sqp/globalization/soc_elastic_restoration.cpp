@@ -2,18 +2,18 @@
 // (see LICENSE).
 
 // The executable form of the SQP driver's three step-recovery tiers: the
-// second-order correction (detail/globalization/sqp/soc.h), the elastic l1
+// second-order correction (detail/sqp/globalization/soc.h), the elastic l1
 // exact-penalty tier (elastic.h), and the restoration phase's
 // feasibility-model wrapper (restoration.h). Every contract, derivation and
 // "why" stays in those headers.
 
 // One include, deliberately not the three obvious ones: soc.h and restoration.h
 // are NOT self-contained -- their declarations name `NlpEval`, which only
-// drivers/sqp_solver.h defines -- and that header includes all three at exactly
+// sqp/sqp_solver.h defines -- and that header includes all three at exactly
 // the point after NlpEval where they belong. Including them here directly does
 // not work and must not be "restored" by a tidying pass or an
-// include-what-you-use run: clang-format sorts `detail/globalization/...`
-// ahead of `drivers/...`, which would put the three headers BEFORE the
+// include-what-you-use run: clang-format sorts `detail/sqp/globalization/...`
+// ahead of `detail/sqp/sqp_solver_impl.h`, which would put the three headers BEFORE the
 // definition they depend on and fail to compile.
 #include <hven/detail/sqp/sqp_solver_impl.h>
 
@@ -314,7 +314,7 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     // COMPUTED ONCE, FROM DATA ALREADY IN HAND, and only when the term is on:
     // at the shipped OFF nothing is stored and nothing is copied. d_i =
     // min(1, 1/|x_{k,i}|) is the interior-point lane's own per-coordinate
-    // scaling (detail/globalization/proximal_restoration.h): a coordinate with
+    // scaling (detail/ipm/globalization/proximal_restoration.h): a coordinate with
     // |x_{k,i}| <= 1 is unscaled, a larger one shrinks in proportion to the
     // centre's magnitude so the proximal curvature stays bounded near a large
     // centre, and |x_{k,i}| == 0 takes the first branch without a division.

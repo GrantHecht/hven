@@ -1,14 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_assembly_eval_seam.cpp — the consumer-side binding's pins.
+// The consumer-side binding's pins.
 //
 // WHAT IS BEING PINNED. AssemblyEvalSeam
-// (include/hven/detail/drivers/assembly_eval_seam.h) reproduces the driver's
+// (include/hven/detail/sqp/assembly_eval_seam.h) reproduces the driver's
 // evaluation moments against an NlpAssembly instead of an NlpModel. The
 // preservation bar is BIT-IDENTITY: every NlpEval field and every QpProblem
 // block the seam produces must equal, bit for bit, what the free functions in
-// drivers/sqp_solver.h produce from the same model at the same point, with
+// sqp/sqp_solver.h produce from the same model at the same point, with
 // identical sparse structure arrays. Everything downstream -- the KKT residual,
 // the funnel, the structural hash, every pinned counter -- reads those two
 // objects and nothing else, so their bit-identity is the whole preservation
@@ -143,7 +143,7 @@ using hven::test_support::detail::make_upper;
 //
 // grad f = (-2 x0, 4 x1 + x2, 6 x2 + x1), so grad f (0) is -0.0 wherever
 // x0 == 0; d(cI1)/dx2 = -4 x2 is -0.0 wherever x2 == 0. No HS problem in
-// tests/sqp/support/hs_problems.h has both constraint kinds AND an off-diagonal
+// tests/model/support/hs_problems.h has both constraint kinds AND an off-diagonal
 // Hessian entry, which is why this one exists rather than being reused.
 // ---------------------------------------------------------------------------
 class SeamCouplingModel : public NlpModel {
@@ -278,7 +278,7 @@ void expect_same_vector(const Vec &actual, const Vec &expected, const char *what
 /// stronger reading of "identical structure arrays", and it holds for every
 /// QpProblem block unconditionally, because build_subproblem compresses. It
 /// does NOT hold for an NlpEval Jacobian on a model that returns an
-/// UNCOMPRESSED matrix -- tests/sqp/support/hs_problems.h's HS76 builds its
+/// UNCOMPRESSED matrix -- tests/model/support/hs_problems.h's HS76 builds its
 /// inequality Jacobian with insert() and never compresses it, so the free
 /// function's NlpEval carries an uncompressed matrix where the seam's carries a
 /// compressed one holding the same content. That divergence is pinned

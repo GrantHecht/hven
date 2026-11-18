@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_qp_cap_levers.cpp -- M7 W2 M1: a subproblem that ran out of its
+// M7 W2 M1: a subproblem that ran out of its
 // own minor budget, the counters that say so, and the two levers behind toggles.
 //
 // WHAT THE FIXTURE REPRODUCES. On the CUTEst TRAIN set, nine cells exit
@@ -323,7 +323,7 @@ TEST(QpCapRetry, ADoubledCapThatSufficesRecoversTheSolve) {
     // The retry's minors are REAL WORK and are folded in like any subproblem's:
     // the retried major's own ROW carries the RETRY's minor count, because the
     // retry replaces `mj.qs` before the row is written
-    // (src/drivers/sqp_solver.cpp:5795 against :5888-5892), so the CAPPED
+    // (src/sqp/sqp_solver.cpp:5795 against :5888-5892), so the CAPPED
     // attempt's minors live only in the aggregate and the aggregate must exceed
     // the rows' sum by at least them. It is the SOC convention INVERTED: SOC
     // keeps the primary solve on the row and folds its re-solve in.

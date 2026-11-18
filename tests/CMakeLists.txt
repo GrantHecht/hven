@@ -1,6 +1,5 @@
 ################################################################################
-# hven unit tests — Google Test via FetchContent (same pattern as tycho's
-# tests/cpp/CMakeLists.txt and psiopt/tests/CMakeLists.txt).
+# hven unit tests — Google Test via FetchContent.
 ################################################################################
 
 include(FetchContent)
@@ -26,7 +25,7 @@ FetchContent_MakeAvailable(googletest)
 
 # Clang with MSVC headers: suppress char8_t->char32_t implicit conversion
 # warning in gtest-printers.h. gtest compiles with -WX so this becomes an
-# error without the suppression. Mirrors tycho's tests/cpp/CMakeLists.txt.
+# error without the suppression.
 #
 # -Wno-character-conversion is itself a version-dependent flag: clang only
 # grew a -Wcharacter-conversion diagnostic group at some point after LLVM
@@ -104,12 +103,12 @@ if(WIN32)
     set(HVEN_GTEST_DISCOVERY_MODE PRE_TEST)
 endif()
 
-# The reference dispatch for exact route pins (tests/common_support/route_reference.h;
+# The reference dispatch for exact route pins (tests/support/route_reference.h;
 # docs/testing.md "The reference build"; WX-R13). The pins were measured at ONE MKL dispatch --
 # the derivation box's -- and a Linux x86-64 clang MKL build on any other CPU is a different
 # build in fact (CI run 40985070468: the same commit and image went 0 -> 39 route failures on
 # an AVX-512 runner). So the build decides it by probing the host it configures on:
-# tests/common_support/mkl_dispatch_probe.cpp prints the CPU vendor / AVX2 / FMA / AVX-512F bits
+# tests/support/mkl_dispatch_probe.cpp prints the CPU vendor / AVX2 / FMA / AVX-512F bits
 # and mkl_cbwr_get_auto_branch(), and exits 0 only on the reference signature. Every test target
 # below sees HVEN_TEST_REFERENCE_DISPATCH=0|1 (route_reference.h refuses to compile without
 # it). A probe that cannot compile or run is off-reference. OFF forces the portable arms (the
@@ -387,7 +386,7 @@ gtest_discover_tests(hven_fault_injection_tests DISCOVERY_MODE ${HVEN_GTEST_DISC
 # case the specification names is an Accelerate path, which under CLAUDE.md §6's
 # never-fabricate rule stays UNOBSERVED here until real Mac hardware runs it.
 #
-# The hook is ONE function in src/qp/ipqp_engine.cpp -- an Apache-2.0 file this
+# The hook is ONE function in src/qp/ipqp/ipqp_engine.cpp -- an Apache-2.0 file this
 # repository wrote, at the single line where the tier reads
 # KktFactorization::inertia_evidence(). §6's boundary preference is satisfied
 # with NO deviation: no session file is touched, nothing MPL-derived is
@@ -431,7 +430,7 @@ else()
 endif()
 
 # Target-wide, not per-source-file: the injector and the observer in
-# hven/detail/qp/ipqp_fault_injection.h must be visible both to the tier TU
+# hven/detail/qp/ipqp/ipqp_fault_injection.h must be visible both to the tier TU
 # that guards its one call site with `#ifdef HVEN_TESTING` and to this target's
 # own test source, which arms and reads them. This is the SECOND of the three
 # targets in this tree that define HVEN_TESTING (hven_fault_injection_tests
@@ -473,7 +472,7 @@ gtest_discover_tests(hven_ipqp_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_
 # needed all four to tell six different degeneracy mechanisms apart and could
 # not get them, and recorded the gap.
 #
-# The hooks are in `src/qp/qp_engine.cpp`, an Apache-2.0 file this repository
+# The hooks are in `src/qp/walk/walk_engine.cpp`, an Apache-2.0 file this repository
 # wrote; §6's boundary preference is satisfied with NO deviation, no session
 # file is touched, and nothing MPL-derived is involved, so this target adds no
 # `notices/` entry.
@@ -536,7 +535,7 @@ else()
 endif()
 
 # Target-wide, not per-source-file: the observer in
-# hven/detail/qp/qp_walk_trace.h must be visible both to the walk TU that
+# hven/detail/qp/walk/walk_trace.h must be visible both to the walk TU that
 # guards its hooks with `#ifdef HVEN_TESTING` and to this target's own test
 # source, which arms and reads it.
 target_compile_definitions(hven_qp_walk_seam_tests PRIVATE HVEN_TESTING=1)
@@ -564,8 +563,8 @@ gtest_discover_tests(hven_qp_walk_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVE
 ################################################################################
 # SQP equality-basis seam tests (docs/testing.md: the same HVEN_TESTING
 # convention; M7 W2 E1b), and since the M7 W2 ladder round the SQP ladder seam's
-# (hven/detail/drivers/ladder_testing.h, the sixth seam). Both seams (the first
-# is hven/detail/drivers/equality_basis_testing.h) sit in sqp_solver.cpp, whose
+# (hven/detail/sqp/ladder_testing.h, the sixth seam). Both seams (the first
+# is hven/detail/sqp/equality_basis_testing.h) sit in sqp_solver.cpp, whose
 # transitive closure is the whole library, so this target recompiles EVERY
 # source of the hven target a SECOND time with HVEN_TESTING defined, taking
 # hven's own sources, include directories and compile definitions from the
@@ -590,7 +589,7 @@ add_executable(hven_sqp_seam_tests
     ipm/test_ipm_dense_guard_seams.cpp
     # C341: the SSN tier's dense solve gates under a wounded factor (DenseSolveFaultInjector).
     qp/test_dense_solve_wound_seams.cpp
-    # M8 AP-5 G4: the intra-iteration stop polls (StopPollSeam, core/detail/stop_poll.h).
+    # M8 AP-5 G4: the intra-iteration stop polls (StopPollSeam, detail/core/stop_poll.h).
     solver/test_stop_poll_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
@@ -617,16 +616,14 @@ gtest_discover_tests(hven_sqp_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_M
 add_subdirectory(golden_rig)
 
 ################################################################################
-# The interior-point engine (ex-PSIOPT) test suite, migrated in from
-# psiopt/tests/ (hven M2 milestone, engine-move task). See
-# tests/interior/CMakeLists.txt.
+# The interior-point engine test suite. See tests/ipm/CMakeLists.txt.
 ################################################################################
 
 add_subdirectory(ipm)
 
 ################################################################################
-# The shared driver surface's test suite: the include/hven/drivers/ types that
-# belong to neither engine. See tests/drivers/CMakeLists.txt.
+# The shared solver surface's test suite: the include/hven/solver/ types that
+# belong to neither engine. See tests/solver/CMakeLists.txt.
 ################################################################################
 
 add_subdirectory(solver)

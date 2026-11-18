@@ -1,9 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_crossover.cpp — the crossover-leg runner. CLI glue only; the legs,
+// The crossover-leg runner. CLI glue only; the legs,
 // the dual-bind adapter and the margin arithmetic all live in
-// bench/crossover_legs.h (a header, so tests/sqp/test_crossover_legs.cpp shares
+// bench/crossover_legs.h (a header, so tests/bench/test_crossover_legs.cpp shares
 // exactly this implementation rather than a bench-only copy that could drift).
 //
 // PROTOCOL (docs/notes/2026-08-m5-ledger.md, "W5 LEG PROTOCOL"; CLAUDE.md §7).

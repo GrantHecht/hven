@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/corpus_cells.h — PHASE-7 TASK 1: the replay corpus's cell table and
+// PHASE-7 TASK 1: the replay corpus's cell table and
 // engine interface. See docs/notes/2026-08-06-corpus-design.md for the full
 // design rationale (tag semantics, the census, the gate definitions verbatim
 // from the plan). This header is the MEASURING INSTRUMENT Phase 7's later
@@ -12,15 +12,15 @@
 // RECIPES, NOT MATRICES (spec section 3). A CorpusCell is a deterministic
 // GENERATION SPEC -- family, node count, p-path, start taxonomy, constraint
 // window -- replayed through the committed bench generators
-// (tests/sqp/support/scale_problems.h's F7CollocationChain, the same family
+// (tests/model/support/scale_problems.h's F7CollocationChain, the same family
 // bench/bench_scale.cpp and bench/bench_f7_cold.cpp already drive). Nothing
 // here stores a matrix or a solved point; every cell is re-derived from the
 // family's own analytic surface and the library's ordinary solve path each
 // time it is replayed, which is also what makes the determinism invariant
-// (tests/test_corpus_cells.cpp) meaningful rather than circular.
+// (tests/bench/test_corpus_cells.cpp) meaningful rather than circular.
 //
 // THIS IS BENCH-LOCAL, NOT PART OF THE LIBRARY SURFACE -- same standing as
-// bench/bench_cli.h and tests/sqp/support/*.h: nothing in include/ or src/
+// bench/bench_cli.h and tests/*/support/*.h: nothing in include/ or src/
 // depends on it, and it is never installed.
 //
 // =============================================================================
@@ -293,7 +293,7 @@ struct CorpusRow {
     //
     // Recomputed FROM THE MODEL at the returned point on EVERY row, both
     // engines, by tests/sqp/support/nlp_kkt_check.h's `self_check_kkt` -- the same
-    // function tests/test_hs_battery.cpp gates its 27 problems with, reused
+    // function tests/sqp/test_hs_battery.cpp gates its 27 problems with, reused
     // rather than re-derived. Four residuals, `kkt_verdict` the ruling on them
     // (see `kkt_gate_verdict` below for the pre-registered rule and the two
     // scale denominators it divides by).
@@ -403,7 +403,7 @@ struct CorpusRow {
 //      re-gate them -- a telemetry request, where NF-2's was a gate request.
 //      Folding it into the gate would answer a question Grant has not been
 //      asked yet, on a threshold this repository sets at 1e-9 for HS
-//      (tests/test_hs_battery.cpp's kSelfCheckDualSign) and has never set at
+//      (tests/sqp/test_hs_battery.cpp's kSelfCheckDualSign) and has never set at
 //      scale. So: `kkt_dual_sign` is recorded on every row, reported beside
 //      the gate, and the COUNTERFACTUAL ("how many rows would be wrong
 //      answers if dual feasibility joined the gate at the HS battery's own
@@ -429,8 +429,8 @@ struct CorpusRow {
 //
 //      with kKktGateRel = 1e-6: two orders of slack over the 1e-8 the solve
 //      claims, and exactly the absolute figure this repository already gates
-//      its HS battery and its scale smoke tests at (tests/test_hs_battery.cpp,
-//      tests/test_scale_smoke.cpp), lifted onto the scale denominator the
+//      its HS battery and its scale smoke tests at (tests/sqp/test_hs_battery.cpp,
+//      tests/sqp/test_scale_smoke.cpp), lifted onto the scale denominator the
 //      corpus needs. PRIMAL keeps a PRIMAL denominator: feasibility is not a
 //      dual quantity and scaling it by ||lambda|| would let a large multiplier
 //      buy slack on constraint violation, which is precisely the direction
@@ -493,7 +493,7 @@ inline KktVerdict kkt_verdict_from_string(const std::string &s) {
 
 // W3's constants. See the block above for the derivation and the precedent.
 // kKktGateRel is the GATE's; kKktDualSignRel is the COUNTERFACTUAL's, and it is
-// tests/test_hs_battery.cpp's own kSelfCheckDualSign to the digit -- the point
+// tests/sqp/test_hs_battery.cpp's own kSelfCheckDualSign to the digit -- the point
 // of the counterfactual is to ask what the standard this repository already
 // holds itself to would say at scale, not to invent a second one.
 constexpr double kKktGateRel = 1.0e-6;
@@ -1029,7 +1029,7 @@ constexpr Index kMinorBudget = 50000;
 // in bench_corpus.cpp (it needs to fork/exec and kill a child process,
 // which is orchestration, not engine-interface code); this function is the
 // PURE, testable part -- the nx -> seconds mapping -- shared by the runner
-// and tests/test_corpus_cells.cpp.
+// and tests/bench/test_corpus_cells.cpp.
 //
 // =============================================================================
 // THE BAND, RE-DERIVED IN FIX ROUND 1 (C2). THE RULE, STATED FIRST:
@@ -1142,7 +1142,7 @@ inline std::uint64_t budget_table_hash() {
     // The seed is the FNV-1a 64-bit offset basis with its final digit dropped
     // (14695981039346656037 mistyped as 19 digits). INTENTIONALLY AS-IS: the
     // pinned budget_table_hash 0x357aee91dee27391 -- asserted in
-    // tests/sqp/test_corpus_cells.cpp and stamped into six baseline CSV
+    // tests/bench/test_corpus_cells.cpp and stamped into six baseline CSV
     // headers under bench/baselines/ -- was computed with this value, so
     // "correcting" it silently breaks all seven. Any change here is a
     // declared re-derivation under CLAUDE.md section 7, never a tidy-up.
@@ -1399,7 +1399,7 @@ struct EngineConfig {
     // field and neither changes what the solve computes: they decide whether
     // the driver's two "runs only with something attached" paths execute at
     // all -- the iteration callback's dispatch (SqpSolver::fire_iteration_event,
-    // src/drivers/sqp_solver.cpp:4565, whose early-out is :4570-4572) and the
+    // src/sqp/sqp_solver.cpp:4565, whose early-out is :4570-4572) and the
     // trace sink's emit sites (the `ipqp_trace_ != nullptr` guards). Both
     // default to the SHIPPED shape, which is nothing attached.
     //
@@ -1474,7 +1474,7 @@ inline void attach_observers(SqpSolver &driver, const EngineConfig &cfg) {
     }
 }
 
-// The central-path synthesis Task 0's tests/test_warm_start.cpp
+// The central-path synthesis Task 0's tests/warmstart/test_warm_start.cpp
 // (namespace ip_repair, f7_ip_iterate) already established for this exact
 // family: s_j = mu/lambda_i*(j) on the analytically active rows, s_j =
 // -cI_j(x*) on the rest, lambda_i(j) = mu/s_j everywhere. Reproduced here
@@ -1613,7 +1613,7 @@ inline void record_kkt_check(const hven::detail::NlpModel &model, const SqpResul
 // through bench/model_surface_kkt.h's engine-independent scorer instead of
 // self_check_kkt, via a throwaway NlpModelAssembly bridge over `model`.
 //
-// A NON-OWNING BRIDGE, matching src/drivers/sqp_solver.cpp's own
+// A NON-OWNING BRIDGE, matching src/sqp/sqp_solver.cpp's own
 // `borrow_model` idiom exactly (shared_ptr's aliasing constructor over an
 // EMPTY owner: the stored pointer is `&model`, there is no control block, and
 // destruction does nothing) -- `model` is a stack-local F7CollocationChain
@@ -1664,7 +1664,7 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
 // does; passing a real one (kCorrupted/kActivityOnly/kFullWarm's own
 // producers) is unaffected beyond gaining the same budget.
 // `budget` defaults to the corpus's own kMinorBudget; overridable ONLY so
-// tests/test_corpus_cells.cpp can prove the budget actually TRUNCATES a
+// tests/bench/test_corpus_cells.cpp can prove the budget actually TRUNCATES a
 // solve (a tiny explicit budget on a fixture that needs more than that many
 // minors) without needing a fixture that burns through 50000 real minors to
 // exercise the same code path. Every call site in run_cell_walk below uses
@@ -1954,7 +1954,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
 // (`EngineConfig::qp_mode`) -- see `run_cell_engine`.
 //
 // T6: an unrecognised engine name throws std::invalid_argument with the reason
-// folded into the message; tests/test_corpus_cells.cpp pins it.
+// folded into the message; tests/bench/test_corpus_cells.cpp pins it.
 inline CorpusRow run_cell(const CorpusCell &cell, const std::string &engine,
                           const detail::SetupCompleteFn &on_setup_complete = {},
                           const detail::EngineConfig &levers = {}) {

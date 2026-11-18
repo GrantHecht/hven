@@ -66,7 +66,7 @@ if(NOT DEFINED EXPECTED_REGEX OR EXPECTED_REGEX STREQUAL "")
         "EXPECTED_REGEX not set or empty.  Each compile-fail probe must "
         "supply a regex that pins the diagnostic, otherwise an unrelated "
         "build break would silently pass.  See "
-        "tests/interior/CMakeLists.txt for examples.")
+        "tests/ipm/CMakeLists.txt for examples.")
 endif()
 
 set(_build_args --build "${BINARY_DIR}" --target "${TARGET}")

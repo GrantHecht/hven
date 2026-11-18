@@ -24,7 +24,7 @@
 //         <the portable contract>
 //     #endif
 //
-// Reached as "../common_support/route_reference.h" (the console_capture.h precedent).
+// Reached as "support/route_reference.h" (the console_capture.h precedent).
 // MKL_CBWR set, or a reference binary run on a host with another dispatch, puts it off-reference
 // in fact while the macro still says 1; the sentinel test
 // RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch fails both cases.

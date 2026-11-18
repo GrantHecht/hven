@@ -4,7 +4,7 @@
 // The LIVE pins on the engine's own phase stop (detail::IpmPhaseStop, read through
 // IpmSolverAccess since M8 AP-5 G1 retired IpmSolver::last_stop_reason()): the two abnormal
 // NOTCONVERGED doors and the stall-beats-cap tie. The mapping onto SolveStatus
-// is pinned in tests/drivers/test_solve_status.cpp; the iteration-cap pin is in
+// is pinned in tests/ipm/test_ipm_phase_status.cpp; the iteration-cap pin is in
 // test_ipm_solver_entry.cpp, on HS071.
 
 #include <gtest/gtest.h>
@@ -49,7 +49,7 @@ constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
 // Newton step out to |x0| ~ 1/eps and the pure power then walks it back by a
 // tenth per iteration. That long walk back is the SUSTAINED WORSENING the stall
 // detector certifies -- a violation a full window of iterations above the
-// phase's own best (detail/globalization/feasibility_stall.h).
+// phase's own best (detail/ipm/globalization/feasibility_stall.h).
 struct PowerSpikeProblem final : hven::Nlp {
     hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
@@ -284,7 +284,7 @@ hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
 // `ipm_solver.cpp:2884-2975` block that decides whether a converged/stalled
 // proximal subproblem is "near-feasible, resume the true objective" or "locally
 // infeasible" -- entirely cold, the third-largest uncovered region in
-// `src/drivers/`. One option value away from the arm above.
+// `src/ipm/`. One option value away from the arm above.
 hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_iters) {
     hven_interior_tests::IpmCase c = make_locally_infeasible_solver(max_iters);
     auto o = c.engine->options();
@@ -920,7 +920,7 @@ TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
 // `ipm_solver.cpp:2884-2975` block that decides whether a converged or stalled
 // proximal subproblem is near-feasible enough to leave restoration for, or a
 // local-infeasibility declaration -- entirely cold, the third-largest uncovered
-// region in `src/drivers/`.
+// region in `src/ipm/`.
 //
 // Both tests below assert what the arm DECIDED, not that it ran.
 
@@ -1012,7 +1012,7 @@ TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
 // std::runtime_error).
 //
 // The W6 T0 coverage read found that first branch cold (`ipm_solver.cpp
-// :3828-3858`, the fourth-largest uncovered region in `src/drivers/`). The two
+// :3828-3858`, the fourth-largest uncovered region in `src/ipm/`). The two
 // tests below are the SAME fixture at the SAME start, differing only in whether
 // the acceptable tier contains the committed iterate -- so what is asserted is
 // the branch's own decision and not the fixture's arithmetic.

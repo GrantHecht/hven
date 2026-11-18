@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_warm_restart.cpp -- M6 W1 task 7 pins for the interior-point tier's
+// M6 W1 task 7 pins for the interior-point tier's
 // SUBPROBLEM-LEVEL warm restart (spec section 5). The DRIVER half is in
 // test_sqp_warm_currency.cpp. Every value pin is shown fallible by a neighbouring fixture.
 

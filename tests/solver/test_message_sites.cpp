@@ -18,7 +18,7 @@
 #include <vector>
 
 #ifndef HVEN_SRC_ROOT
-#error "HVEN_SRC_ROOT must be defined by tests/drivers/CMakeLists.txt"
+#error "HVEN_SRC_ROOT must be defined by tests/solver/CMakeLists.txt"
 #endif
 
 namespace {

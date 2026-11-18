@@ -6,7 +6,7 @@
 // Four Hock-Schittkowski problems x both engines x the four rungs that print (kWarnings, kSummary,
 // kIterations, kDetail), plus a restoration fixture and an elastic fixture, with
 // `Format{color: kNever, timing: false}`. Each transcript is compared to
-// tests/drivers/golden/human_trace/<engine>_<case>_<rung>.txt.
+// tests/trace/golden/human_trace/<engine>_<case>_<rung>.txt.
 //
 // Regenerate (a DECLARED event, with the console-bytes event of TR-A):
 //   HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests --gtest_filter='HumanTraceGoldens.*'
@@ -36,7 +36,7 @@
 #include "trace/support/trace_battery.h"
 
 #ifndef HVEN_GOLDEN_DIR
-#error "HVEN_GOLDEN_DIR must be defined by tests/drivers/CMakeLists.txt"
+#error "HVEN_GOLDEN_DIR must be defined by tests/solver/CMakeLists.txt"
 #endif
 
 namespace {

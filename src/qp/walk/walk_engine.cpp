@@ -7,7 +7,7 @@
 // This TU holds the DEFINITIONS of every QpEngine member function except the
 // constructor; the class, its data members, its nested types, its
 // documentation and its constructor stay in
-// include/hven/detail/qp/qp_engine.h, and the file's loop contract stays there
+// include/hven/detail/qp/walk/walk_engine.h, and the file's loop contract stays there
 // too. The engine is a plain (non-template) class, so CLAUDE.md §5's
 // header/templated exception does not apply to any of it: what is here is
 // orchestration -- the walk, its classification, the border-mode linear
@@ -23,7 +23,7 @@
 //
 // The `detail::` free functions above QpEngine (the iteration cap, the inertia
 // verdict, the ride constants, the hot-start fingerprints) stay inline in the
-// header: tests, bench and src/drivers/sqp_solver.cpp call them directly, and
+// header: tests, bench and src/sqp/sqp_solver.cpp call them directly, and
 // this TU inlines them exactly as before.
 //
 // FP arithmetic crosses this TU boundary under ONE uniform flag regime on both
@@ -88,7 +88,7 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
 
     // EVERY field of QpOptions, in declaration order. A field added there and
     // not folded here is a hole in the hot-handle reuse gate -- see the contract
-    // in qp_types.h, and the field-coverage pin in tests/drivers/test_options.cpp
+    // in qp_types.h, and the field-coverage pin in tests/solver/test_options.cpp
     // that flips each one alone and requires the hash to move.
     fold_double(opts.primal_regularization);
     fold_double(opts.dual_regularization);
@@ -6616,7 +6616,7 @@ QpEngine::RideOutcome QpEngine::ride_direction(QpCounters &counters, WalkSeen &s
 // M7 W2 M4's TWO ANTI-CYCLING ARMS, entirely inside this `#ifdef` so a
 // production translation unit sees no token of them. Both are OFF by default;
 // the switch and the parameters are in
-// `include/hven/detail/qp/qp_anti_cycling_arm.h`, which states what each arm
+// `include/hven/detail/qp/walk/anti_cycling_arm.h`, which states what each arm
 // is, which paper it comes from, and what it is NOT claimed to prove.
 //
 // Every rule below carries the citation of the rule it transcribes:

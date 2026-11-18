@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_continuation.cpp — Phase-4 Task 10: the CONTINUATION DRIVER
+// Phase-4 Task 10: the CONTINUATION DRIVER
 // (continuation.h), the sweep loop that composes everything the phase built --
 // warm ingest (Task 3), the hot handle (Task 4), the Kungurtsev-Diehl
 // full-step-first rule (Task 5), budgeted mode (Task 6) and the tangential
@@ -10,7 +10,7 @@
 // only warm ones.
 //
 // WHAT IS ASSERTED, AND WHY EACH FAMILY WAS PICKED FOR IT
-// (tests/sqp/support/parametric_families.h has the analytic paths):
+// (tests/model/support/parametric_families.h has the analytic paths):
 //
 //   (a) SweepF1CrossesActivationsWarm. F1, p: 0 -> 1. The sweep must reach p1,
 //       every step past the first must have RESOLVED to kWarm or above (a
@@ -101,7 +101,7 @@
 // backend available in this session. The QP engine's factorization backend can
 // change which trial steps are accepted, hence how many majors a step costs,
 // hence -- through target_majors -- the dp schedule itself, so these are
-// backend-sensitive numbers in the same way tests/test_sqp_solver.cpp's
+// backend-sensitive numbers in the same way tests/sqp/test_sqp_solver.cpp's
 // suspect_escalations pins are. A first Accelerate run that lands on different
 // counts is a RE-MEASUREMENT, not automatically a defect; what is NOT
 // backend-sensitive, and must hold on any backend, is everything asserted
@@ -153,7 +153,7 @@ SqpOptions sweep_options() {
 Vec p_vec(double p) { return Vec::Constant(1, p); }
 
 // SqpWarmState::bound_active's encoding read off a point GEOMETRICALLY -- the
-// same helper tests/test_predictor.cpp uses, and the only notion of activity
+// same helper tests/sqp/test_predictor.cpp uses, and the only notion of activity
 // that is determinate where a multiplier vanishes (F1's DEGENERACY note).
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
     std::vector<std::int8_t> out(static_cast<std::size_t>(model.n()), 0);
@@ -254,7 +254,7 @@ class SolvedStartF2 : public F2CircleNlp {
 // the sweep itself does -- which is what makes the degradation mid-sweep
 // rather than fatal.
 //
-// This is Task 9's ProbeRejectingF1 pattern (tests/test_predictor.cpp), which
+// This is Task 9's ProbeRejectingF1 pattern (tests/sqp/test_predictor.cpp), which
 // rejected every parameter but its entry value; that shape cannot be swept at
 // all, so the rejection is narrowed to the probe here. It is still one of the
 // three cases predictor.h's VALIDATE-THEN-CATCH-EVERYTHING note names as
@@ -1095,7 +1095,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
 // PHASE-6 TASK 1 -- RETRY ECONOMICS (continuation.h's RETRY ECONOMICS note).
 //
 // THE FIXTURE, and why it is this one. F7CollocationChain
-// (tests/sqp/support/scale_problems.h) at N = 100 nodes (n = 500 variables),
+// (tests/model/support/scale_problems.h) at N = 100 nodes (n = 500 variables),
 // swept p: 0.3 -> 0.9 with dp_init = 0.4. The FIRST proposal, 0.3 -> 0.7,
 // lands in the WIDE-WINDOW regime -- the same regime in which every one of
 // the five failed proposals of the nx = 10^5 sweep failed
@@ -1211,7 +1211,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // and it re-adjudicated the same number every time. So the arm below is
     // written, still as a NUMBER on each backend rather than a widened
     // inequality. D19's Debug half is not re-observed here: this lane has no
-    // Debug leg, and that claim stays on the origin pass's authority.
+    // Debug leg, and that claim stays on the pre-migration pass's authority.
     //
     // PHASE-6 TASK 4 (M6) DID NOT MOVE IT. The cap this arm runs at is the
     // pre-M6 500, restored explicitly in make_options above, so arms A-C are

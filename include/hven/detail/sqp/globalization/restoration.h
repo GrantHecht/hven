@@ -5,15 +5,15 @@
 
 // restoration.h -- the restoration phase's l1 feasibility-problem model
 // wrapper. The RESTORATION PHASE note ("the header note"), build_subproblem,
-// and qp_failure_is_retryable live in drivers/sqp_solver.h; the elastic tier
-// compared against is detail/globalization/sqp/elastic.h's. Every member
+// and qp_failure_is_retryable live in sqp/sqp_solver.h; the elastic tier
+// compared against is detail/sqp/globalization/elastic.h's. Every member
 // function of RestorationModel declared here is defined in
-// src/globalization/sqp/soc_elastic_restoration.cpp (with soc.h's and
+// src/sqp/globalization/soc_elastic_restoration.cpp (with soc.h's and
 // elastic.h's definitions). One consequence worth stating where the class is:
 // `n()` is the class's KEY FUNCTION, so the vtable/typeinfo are emitted in that
 // TU alone rather than weakly in every TU touching the class.
 //
-// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_solver.h,
+// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in sqp/sqp_solver.h,
 // which includes this header after NlpEval's definition and before the driver
 // class, so no header cycle exists (this header never includes sqp_solver.h).
 // Any other includer must have NlpEval complete first.
@@ -89,7 +89,7 @@ inline constexpr double kCertificateViolationMargin = 2.0;
 /// the REQUESTING ITERATE handed in beside `x_entry`. `D` is computed ONCE at
 /// construction from data already in hand -- O(n), no model query -- and the
 /// term is the interior-point lane's, transcribed: see
-/// detail/globalization/l1_restoration.h, whose nested-l1 restoration carries
+/// detail/ipm/globalization/l1_restoration.h, whose nested-l1 restoration carries
 /// `rho*sum(n+p) + (eta(mu)/2)*|D_R (x - x_R)|^2`. What it buys is the one
 /// piece of information the feasibility problem is missing -- that `x` should
 /// stay near the point that asked for the phase.

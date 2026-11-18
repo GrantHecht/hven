@@ -147,7 +147,7 @@ struct SqpScalingReport {
 };
 
 /// @brief Why an equality-basis split dropped nothing although it was computed
-/// (`detail/drivers/equality_basis.h`, EqualityBasisRefusal, one for one).
+/// (`detail/sqp/equality_basis.h`, EqualityBasisRefusal, one for one).
 enum class SqpEqualityBasisRefusal {
     kNone,        ///< No computation was refused.
     kSpectrum,    ///< No gap, a failed retained-set check, reconstruction or coefficient cap.
@@ -294,7 +294,7 @@ struct SqpResult : SolveResult {
     // The base carries the ANSWER -- status, message, x, lambda, z, f, the
     // shared declared diagnostics, g, iterations, work, wall_seconds and the
     // warm-start snapshot -- in the problem's row space and caller units
-    // (drivers/solve_result.h). Everything below is this engine's own.
+    // (solver/solve_result.h). Everything below is this engine's own.
 
     /// @brief Work spent by this solve, restoration folded in.
     SqpCounters counters;
@@ -345,7 +345,7 @@ struct SqpResult : SolveResult {
 ///
 /// Lines, in order: the direct `SqpCounters` fields in declaration order, then the `ssn` block's
 /// fields under `ssn.` and the `ipqp` block's under `ipqp.`. The text format is the one stated
-/// at `dump_counters(const IpmResult &, std::ostream &)` (drivers/ipm_solver_types.h).
+/// at `dump_counters(const IpmResult &, std::ostream &)` (ipm/ipm_solver_types.h).
 ///
 /// Counters only: the per-QP sums a harness takes over a `Ledger` are not here.
 void dump_counters(const SqpResult &r, std::ostream &os);

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_bench_dump.cpp — PHASE-5 TASK 9. The asserting cover for
+// PHASE-5 TASK 9. The asserting cover for
 // bench/bench_cli.h's two --dump-solution helpers.
 //
 // WHY THIS FILE EXISTS AT ALL, given that bench/ is deliberately NOT
@@ -12,7 +12,7 @@
 // cross-validation rests on -- one is a T6 error path (a --dump-solution path
 // that cannot be opened must throw with the usage text folded in, never
 // silently drop the dump), the other is the FILE FORMAT that
-// prototypes/psiopt_bridge/run_comparison.py parses. Both are pure functions
+// the external comparison bridge's run_comparison.py parses. Both are pure functions
 // of their arguments, cost microseconds, and would otherwise be covered by
 // nothing at all: a format drift would surface as a Python traceback in a
 // throwaway prototype rather than as a failing test here.
@@ -161,7 +161,7 @@ TEST(BenchDump, OpenOutputReturnsAWritableStreamOnAGoodPath) {
 }
 
 // ---------------------------------------------------------------------
-// THE FORMAT CONTRACT with prototypes/psiopt_bridge/run_comparison.py: a
+// THE FORMAT CONTRACT with the external comparison bridge's run_comparison.py: a
 // '# key: value' header, then one x component per line and nothing else.
 TEST(BenchDump, HeaderCarriesEveryKeyTheBridgeReads) {
     const std::vector<double> x{1.0, -2.5, 0.0};

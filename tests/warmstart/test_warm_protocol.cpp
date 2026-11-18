@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/drivers/test_warm_protocol.cpp — THE WARM MATRIX (M6 W5 T8.5).
+// THE WARM MATRIX (M6 W5 T8.5).
 //
 // One protocol, two identities (design 2.4). This file pins the PROTOCOL
 // itself, across BOTH engines and both routes, which is why it lives in the
-// shared drivers/ suite rather than in either engine's:
+// shared solver/ suite rather than in either engine's:
 //
 //   THE PAYLOAD ROUTE -- `solve(model, x0, const WarmStart &, budget)` on
 //   the interior-point solver and on the SQP driver. `WarmStart` is the
@@ -37,8 +37,8 @@
 //
 // The engine-specific halves of the currency -- the export's declared-space
 // mapping, the polish extension's own codec, the IPM's bound-dual seeding --
-// stay in tests/interior/test_ipm_warm_start.cpp and
-// tests/sqp/test_sqp_warm_currency.cpp. What is here is only what has to be
+// stay in tests/ipm/test_ipm_warm_start.cpp and
+// tests/warmstart/test_sqp_warm_currency.cpp. What is here is only what has to be
 // true of BOTH.
 
 #include <gtest/gtest.h>

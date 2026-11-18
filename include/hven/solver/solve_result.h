@@ -381,7 +381,7 @@ struct SolveResult {
     /// and residuals in the engine's internal split, and the two parts of
     /// @ref feasibility. The solve entry maps them into
     /// @ref lambda and @ref g; library internals and tests read them through
-    /// detail::engine_rows (detail/drivers/result_access.h).
+    /// detail::engine_rows (detail/solver/result_access.h).
     struct EngineRows {
         Vec lambda_e;
         Vec lambda_i;

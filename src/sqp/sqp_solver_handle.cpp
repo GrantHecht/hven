@@ -3,7 +3,7 @@
 
 // The public SqpSolver handle: construction, transfer and forwarding.
 //
-// Everything the engine does lives in SqpSolverImpl (src/drivers/sqp_solver.cpp);
+// Everything the engine does lives in SqpSolverImpl (src/sqp/sqp_solver.cpp);
 // the bodies here only reach it. They are a separate translation unit so the
 // engine's own source stays free of the handle, and so the one boundary the
 // private implementation draws is a single, named file.

@@ -36,15 +36,15 @@
 // MKL_NUM_THREADS=1):
 //
 //   for TAU in 1 10 100 1e3 1e5; do
-//     D=/tmp/tau_bar_patch/hven/detail/globalization/sqp; rm -rf /tmp/tau_bar_patch
-//     mkdir -p "$D" && cp include/hven/detail/globalization/sqp/globalization.h "$D/"
+//     D=/tmp/tau_bar_patch/hven/detail/sqp/globalization; rm -rf /tmp/tau_bar_patch
+//     mkdir -p "$D" && cp include/hven/detail/sqp/globalization/funnel.h "$D/"
 //     F="$D/globalization.h"
 //     sed -i "s/kFunnelTauBar = 100.0;/kFunnelTauBar = ${TAU};/" "$F"
 //     clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
 //       -I /tmp/tau_bar_patch -I include -I tests/sqp \
 //       -isystem dep/eigen -isystem dep/fmt/include \
 //       -isystem /opt/intel/oneapi/mkl/latest/include \
-//       bench/tau_bar_sweep_probe.cpp src/globalization/sqp/funnel.cpp \
+//       bench/tau_bar_sweep_probe.cpp src/sqp/globalization/funnel.cpp \
 //       build/libhven.a -o /tmp/tau_bar_probe \
 //       -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
 //       /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a \
@@ -55,14 +55,14 @@
 //   done
 //
 // The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes `#include
-// <hven/detail/globalization/sqp/globalization.h>` resolve to the patched copy
+// <hven/detail/sqp/globalization/funnel.h>` resolve to the patched copy
 // while every OTHER header (sqp_solver.h, qp_types.h, ...) still resolves to the
-// real `include/hven/detail/globalization/sqp/`, unmodified -- this file does
+// real `include/hven/detail/sqp/globalization/`, unmodified -- this file does
 // not, and cannot, change anything the shipped library ships; only the SWEEP
 // invocation above (never `cmake --build`) touches a patched header, and only
 // in a scratch directory outside the repository.
 //
-// `src/globalization/sqp/funnel.cpp` JOINS THE SWEEP COMMAND LINE (M3 phase-C
+// `src/sqp/globalization/funnel.cpp` JOINS THE SWEEP COMMAND LINE (M3 phase-C
 // T4) for the same reason the `-I` ordering is there. That carve moved
 // FunnelStrategy's three virtual definitions -- including reset(), the ONLY
 // reader of kFunnelTauBar -- out of the header and into a library TU, so this
@@ -78,8 +78,8 @@
 // still resolves to the funnel.cpp compiled here -- against the PATCHED
 // header -- and the archive's own copy of FunnelStrategy is never pulled.
 //
-// WHAT IT MEASURES: the COLD ARM of all six `tests/sqp/support/hs_sweeps.h`
-// corpus problems (the same vehicle `tests/test_hs_sweeps.cpp`'s
+// WHAT IT MEASURES: the COLD ARM of all six `tests/model/support/hs_sweeps.h`
+// corpus problems (the same vehicle `tests/sqp/test_hs_sweeps.cpp`'s
 // `run_cold_grid`/`spec_grid` use, at the same default options
 // `sweep_options(StartLevel::kCold, /*full_step=*/false, /*enable_soc=*/false,
 // spec.max_iter)` builds -- KD and SOC both off, the simplest baseline) --

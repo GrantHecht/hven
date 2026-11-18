@@ -12,7 +12,7 @@
 // re-check removed it -- on the strength of a rho that had never been computed.
 //
 // The test's own contract (every field of the verdict, and the screen-positive half) is
-// asserted at the unit level in tests/sqp/test_qp_ws_independence.cpp. What is here is the
+// asserted at the unit level in tests/qp/test_qp_ws_independence.cpp. What is here is the
 // WALK: a pass that actually reaches its add site with no factor, and a blocker there that
 // MOVES.
 
@@ -116,7 +116,7 @@ TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
     // factor that holds the working set. The un-run test that fix7's rule answers therefore
     // does not occur here any more: `dep_unrun_tests` is 0, and rule A's own contract is
     // asserted where it cannot be taken away, at the factor-view level in
-    // tests/sqp/test_qp_ws_independence.cpp.
+    // tests/qp/test_qp_ws_independence.cpp.
     EXPECT_EQ(s.counters.dep_repair_restarts, 1);
     EXPECT_EQ(s.counters.dep_repair_budget_stops, 0) << "3 pins, budget max(8, ceil(4/2)) = 8";
     EXPECT_EQ(s.counters.dep_unrun_tests, 0) << "F7-1 removed the pass that had no factor";

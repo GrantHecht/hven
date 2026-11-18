@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_sqp_ladder_seams.cpp — the M7 W2 ladder round's driver fixtures through the
-// HVEN_TESTING ladder seam (hven/detail/drivers/ladder_testing.h; docs/testing.md,
+// HVEN_TESTING ladder seam (hven/detail/sqp/ladder_testing.h; docs/testing.md,
 // the sixth seam). Compiled only into hven_sqp_seam_tests.
 //
 //   L1  DALLASM's shape: restoration succeeds, the next QP at the feasible point

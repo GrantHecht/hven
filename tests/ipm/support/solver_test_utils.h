@@ -6,11 +6,11 @@
 // tests that only need a SolverContext-satisfying signature, not a live solve.
 //
 // This is the VF-free half of what used to be a single
-// tests/cpp/solvers/solver_test_utils.h. The other half -- the SolverTest
+// tests/ipm/support/solver_test_utils.h. The other half -- the SolverTest
 // fixture and make_brach_solver_phase(), which build a real
 // ODEPhase<BrachODE> and therefore need the full tycho/tycho.h umbrella --
 // stays on the Tycho side under its original name and path
-// (tests/cpp/solvers/solver_test_utils.h), since hven has no VectorFunction
+// (tests/ipm/support/solver_test_utils.h), since hven has no VectorFunction
 // dependency to build that against.
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_crossover_legs.cpp — the correctness gate for
+// The correctness gate for
 // bench/crossover_legs.h, the M5 W5 measurement instrument.
 //
 // The bench binary that produces the W5 artifact

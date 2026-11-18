@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/scale_problems.h — test-support only, NOT part of the public
+// Test-support only, NOT part of the public
 // library surface. THE PHASE-5 SCALE GENERATOR: one parametric family, F7,
 // shaped like the workload tycho actually runs (a direct-collocation optimal
 // control transcription) and carrying a MANUFACTURED SOLUTION that is exact in
@@ -11,7 +11,7 @@
 // IPM head-to-head in Phase 5 is measured against this family, so its
 // analytic surface -- x*(p), f*(p), the multipliers, the active set and the
 // activity junctions -- is DERIVED here in full rather than asserted, in the
-// same style as tests/sqp/support/parametric_families.h's F1-F6. This header
+// same style as tests/model/support/parametric_families.h's F1-F6. This header
 // INCLUDES that one, for its AnalyticActiveSet encoding and its
 // parametric_detail helpers: there is no second copy of either.
 //
@@ -274,7 +274,7 @@
 // (V5) STATIONARITY. By construction (F7-G): g is DEFINED as the residual that
 //      makes it hold. The check that (F7-G) is the correct transcription of
 //      (F7-ADJ) and of Ji is numerical -- the derivative checker at small N and
-//      the KKT self-check at every tested N, in tests/test_scale_problems.cpp.
+//      the KKT self-check at every tested N, in tests/model/test_scale_problems.cpp.
 //
 // f*(p) IN CLOSED FORM, DERIVED RATHER THAN EVALUATED. Writing f as
 // (1/2)x^T W x - g^T x and substituting the stationarity identity
@@ -297,7 +297,7 @@
 // (F7-F) is a DIFFERENT expression from eval_f's -- it never touches g -- so
 // comparing eval_f(x_star(p)) against f_star(p) is a genuine transcription
 // check on the source terms rather than a tautology. That comparison is pinned
-// in tests/test_scale_problems.cpp.
+// in tests/model/test_scale_problems.cpp.
 //
 // ---------------------------------------------------------------------
 // STRUCTURE, AND WHY NOTHING DENSIFIES. Per node the Hessian's upper triangle
@@ -519,7 +519,7 @@ class F7CollocationChain : public ParametricNlpModel {
     // 0 < p <= p_activation() = R/2 the defining quantity xi(p) = R/p - 1 is
     // >= 1, arcsin's argument is clamped to 1, and BOTH junctions collapse to
     // t = 1/2 -- an empty window, no row active, which is a legitimate branch of
-    // the family (path_samples() in tests/test_scale_problems.cpp samples it at
+    // the family (path_samples() in tests/model/test_scale_problems.cpp samples it at
     // p = 0.45) and NOT an error. At p = R/2 EXACTLY the collapse is to the
     // single point t = 1/2 where psi = R exactly: row_active()'s strict > calls
     // that node INACTIVE while it is geometrically ON the bound with a zero
@@ -584,7 +584,7 @@ class F7CollocationChain : public ParametricNlpModel {
     // n = 10^4 gate calls it 20000 times; reading x through Eigen's checked
     // operator() (or through .segment() Blocks) costs 32.7 s of the Debug
     // build's budget there against 4.1 s reading x.data() -- measured, both
-    // figures, in tests/test_scale_problems.cpp's gate. Every OTHER eval_*
+    // figures, in tests/model/test_scale_problems.cpp's gate. Every OTHER eval_*
     // below keeps Eigen's Debug bounds checks, and this function's index
     // arithmetic is the same arithmetic they use, pinned by the structure
     // tests and by the derivative checker at small N.

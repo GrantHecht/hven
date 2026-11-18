@@ -1,5 +1,5 @@
 ################################################################################
-# Migrated from the origin project; flags kept identical.
+# Flags kept identical to the module this was extracted from.
 #
 # hven_compile_options()
 #
@@ -18,8 +18,8 @@
 # via PARENT_SCOPE; a macro avoids that entirely by executing directly in the
 # caller's scope, matching the behavior of the code this was extracted from.
 #
-# Migrated from the origin project's compile-options module -- no flag values
-# were changed by this move.
+# Extracted from a compile-options module -- no flag values were changed by
+# the extraction.
 #
 # Prerequisites the caller must set before invoking (all read from caller
 # scope; the wheel path below sets two of them itself, noted per entry):

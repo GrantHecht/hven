@@ -3,11 +3,11 @@
 
 #pragma once
 
-// tests/sqp/support/indefinite_fixtures.h -- test-support only, NOT part of
+// Test-support only, NOT part of
 // the public library surface.
 //
 // THE THREE ROW-CARRYING INDEFINITE QPs the SQP suite already owns, factored
-// out of tests/sqp/test_qp_engine_indefinite.cpp (where they were written, and
+// out of tests/qp/test_qp_engine_indefinite.cpp (where they were written, and
 // where their battery still consumes them) so the IPQP tier's A11 cell can
 // assert against THE SAME PROBLEMS rather than a second hand-built copy.
 //
@@ -156,7 +156,7 @@ inline QpProblem two_negative_eigenvalue_row_qp() {
 }
 
 // THE T4b GATE-9 BOX/EQUALITY FIXTURES, moved verbatim from
-// tests/sqp/test_ipqp_certification.cpp (M7 W2 A3) so `hven_sqp_ipqp_e1_arm --ladder` solves the
+// tests/qp/test_ipqp_certification.cpp (M7 W2 A3) so `hven_sqp_ipqp_e1_arm --ladder` solves the
 // same problems the gate asserts on. Built from (row, col, value) triplets exactly as that file's
 // `dense_upper` / `dense_rows` built them.
 inline SpMatRM fixture_sparse(Index rows, Index cols,

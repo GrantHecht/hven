@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_nlp_kkt_check.cpp — M6 W0.4. The pins on
+// M6 W0.4. The pins on
 // tests/sqp/support/nlp_kkt_check.h's `self_check_kkt` NON-FINITE CONTRACT.
 //
 // self_check_kkt is the primary correctness guard of the HS battery, the B1

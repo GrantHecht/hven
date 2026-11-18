@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_funnel.cpp — Task 5: the KLV funnel acceptance test, in
+// Task 5: the KLV funnel acceptance test, in
 // ISOLATION (no driver, no NLP, no QP). Every fixture is a scripted
 // StepContext sequence whose expected verdict is HAND-DERIVED from the
 // transcribed rules, and every derivation cites the equation it comes from:
@@ -9,7 +9,7 @@
 //   [KLV] D. Kiessling, S. Leyffer, C. Vanaret, "A Unified Funnel Restoration
 //         SQP Algorithm", arXiv:2409.09208, Math. Program. (2025).
 //
-// Equation map (see include/hven/detail/globalization/sqp/globalization.h for the full
+// Equation map (see include/hven/detail/sqp/globalization/funnel.h for the full
 // source-mapping note):
 //   Eq. (8)  h(x̂) <= τ                     funnel condition (membership)
 //   Eq. (9)  τ⁰ = max(τ̄, κ̄·h⁰)             initialization
@@ -869,7 +869,7 @@ TEST(FunnelInvariant, DrivesThroughTheGlobalizationStrategyInterface) {
 // =============================================================================
 // FunnelFullStep — the Phase-4 Task 5 mode, at the STRATEGY level. The driver
 // half (engagement, the watchdog, the counters) is
-// tests/test_warm_start.cpp's; these four are the properties this class alone
+// tests/warmstart/test_warm_start.cpp's; these four are the properties this class alone
 // is responsible for.
 // =============================================================================
 

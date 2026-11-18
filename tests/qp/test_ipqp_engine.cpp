@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_engine.cpp -- the M6 W1 task 4 pins for the
+// The M6 W1 task 4 pins for the
 // interior-point QP tier's cold solve, its clamp-centred box, its domain gate
 // and its (rho, delta) ladder.
 //
@@ -152,7 +152,7 @@ TEST(IpqpBoxTest, TheCentreIsRefineOnFacesOwnClampedOrigin) {
     const IpqpBox box = make_ipqp_box(qp, 1.0);
 
     // clamp(0, l, u): 0 is BELOW [3, 7] and ABOVE [-8, -2], so the centre is
-    // the nearer endpoint in each case -- exactly src/qp/qp_engine.cpp's
+    // the nearer endpoint in each case -- exactly src/qp/walk/walk_engine.cpp's
     // `c = min(max(0, lo), up)`.
     EXPECT_DOUBLE_EQ(box.centre(0), 3.0);
     EXPECT_DOUBLE_EQ(box.centre(1), -2.0);

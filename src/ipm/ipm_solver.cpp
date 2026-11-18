@@ -407,7 +407,7 @@ void hven::detail::IpmSolverImpl::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd>
 }
 
 // max_step_to_boundary lives on BacktrackingLineSearch
-// (src/drivers/ipm_solver_globalization.cpp).
+// (src/ipm/ipm_solver_globalization.cpp).
 
 void hven::detail::IpmSolverImpl::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                                   Eigen::Ref<Eigen::VectorXd> S,
@@ -512,7 +512,7 @@ void hven::detail::IpmSolverImpl::barrier_hessian(
 }
 
 // loqo_mu / mpc_mu live on ClassicAdaptiveGovernor
-// (src/drivers/ipm_solver_globalization.cpp); the barrier-parameter
+// (src/ipm/ipm_solver_globalization.cpp); the barrier-parameter
 // update runs through governor_->update_barrier().
 
 // Native variable-bound helpers. Every one is a no-op when bounds_ is null,
@@ -979,7 +979,7 @@ void hven::detail::IpmSolverImpl::transcribe_bound_program() {
     this->qp_params_dirty_ = false;
 #ifdef USE_ACCELERATE_SPARSE
     // Retained because the sparse linear surface applies no Accelerate thread
-    // control of its own — see detail/interior/utils/accelerate_threads.h.
+    // control of its own — see detail/ipm/accelerate_threads.h.
     // There is no MKL counterpart here any more: on that backend the factor
     // applies its own thread count at backend-call scope and undoes it
     // afterwards, so a driver-level thread-local set would only be reaching
@@ -1119,8 +1119,8 @@ hven::detail::IpmSolverImpl::kkt_pattern_check() const {
 // field (which alg_impl/governor_/etc. already read live off opts_ each
 // iteration). Before this fix, these knobs were snapshotted at whichever
 // (re)transcription last ran set_nlp() and silently ignored by a later
-// solve() call that changed them without retranscribing — see the origin
-// project's component-rebuild-takes-effect-without-retranscription test
+// solve() call that changed them without retranscribing — see the pre-migration
+// component-rebuild-takes-effect-without-retranscription test
 // for the reachable-from-a-binding repro (the two acceptance strategies
 // produce different iteration counts from the same cold start, so a stale
 // acceptance_ is directly observable).
@@ -1151,7 +1151,7 @@ void hven::detail::IpmSolverImpl::rebuild_globalization_components() {
     // is constructed and every restoration branch in the solver stays dead.
     // proximal_switch builds a ProximalSwitchRestoration; l1_nested builds a
     // NestedL1Restoration instead (the condensed l1 elastic reformulation,
-    // globalization/l1_restoration.h) — either way the matching outermost
+    // detail/ipm/globalization/l1_restoration.h) — either way the matching outermost
     // FeasibilitySwitchRecovery link is wrapped around the recovery chain
     // below. No strategy-compatibility validation is needed for either mode:
     // every shipped acceptance strategy (classic_merit, merit, funnel, filter)
@@ -1237,8 +1237,8 @@ void hven::detail::IpmSolverImpl::rebuild_globalization_components() {
     // pre-recovery-chain behavior.
     //
     // Opting in to SOC and/or extended backtracking composes them (in that
-    // fixed order — see ChainedRecovery's class doc, globalization/
-    // watchdog.h) into a ChainedRecovery; either link may be individually
+    // fixed order — see ChainedRecovery's class doc,
+    // detail/ipm/globalization/watchdog.h) into a ChainedRecovery; either link may be individually
     // enabled. The watchdog, if enabled, then wraps whatever chain resulted
     // (even plain NoopRecovery) as an outer decorator, per WatchdogRecovery's
     // class doc.
@@ -1275,7 +1275,7 @@ void hven::detail::IpmSolverImpl::rebuild_globalization_components() {
 }
 
 // max_primal_dual_step lives on BacktrackingLineSearch
-// (src/drivers/ipm_solver_globalization.cpp). alg_impl drives it
+// (src/ipm/ipm_solver_globalization.cpp). alg_impl drives it
 // through mechanism_ (fused into compute_step on the main path; via the public
 // method at the PROBE predictor call site).
 
@@ -2729,7 +2729,7 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     // objective on both of those paths, but only because it EVALUATES for it
     // (assemble_objective at the exit); an event evaluates nothing, by
     // construction, so what it can honestly report there is NaN. Unmeasured is
-    // NaN and never zero -- drivers/solve_result.h's rule, applied to `f`.
+    // NaN and never zero -- solver/solve_result.h's rule, applied to `f`.
     const bool objective_measured = prov.objective_bearing && !restoration_contaminated;
     const double f_declared = objective_measured ? prim_obj / scale : nan;
 
@@ -3447,7 +3447,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // fully determined -- kkt_inf_ reads prim_grad() (just updated above; the
         // barrier writes later this iteration target the *disjoint* dual_grad()
         // block, see hven::detail::KktVector::prim_grad()/dual_grad()
-        // (include/hven/detail/interior/kkt_vector.h) for their segment
+        // (include/hven/detail/ipm/kkt_vector.h) for their segment
         // boundaries), econ_inf_/icon_inf_ read eq_cons()/iq_cons() (set by
         // eval_nlp + apply_reset_slacks above, before this point), and barr_inf_ is
         // the complementarity(slacks, iq_lmults) computed above from XSL, which
@@ -5713,7 +5713,7 @@ void hven::detail::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
 
 // export_warm_start() and stage_warm_start() were REMOVED from this class in
 // M6 W5 T8.5. The export is `SolveResult::warm_start` (a field of the returned
-// value, drivers/solve_result.h), fed by the capture below;
+// value, solver/solve_result.h), fed by the capture below;
 // staging is the payload OVERLOAD, whose hand-over checks are inlined at that
 // entry and whose against-the-problem checks are in run_phase_sequence.
 // completed_warm_/solve_completed_ survive as the capture's own state.
@@ -7186,7 +7186,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // =====================================================================
     // THE DECLARED-SPACE SEAM (M6 W5 T8.4). Everything above wrote the
     // ENGINE's shapes into the result; from here the result is the CALLER's,
-    // and every base field means what drivers/solve_result.h says it means.
+    // and every base field means what solver/solve_result.h says it means.
     //
     // Placed AFTER capture_completed_warm_start deliberately: the capture reads
     // result_.z at the SOLVER's reduced width and does its own scatter, so
@@ -7373,7 +7373,7 @@ void hven::detail::IpmSolverImpl::finish_declared_result(Index analyses_before) 
     //     the declared residuals -- `infeas2_stationary`'s declared
     //     equality is x0^2 + x1^2 + 1, which is >= 1 everywhere, while the
     //     copied row is a tiny condensed number. So the blocks are
-    //     EMPTIED, not copied: drivers/solve_result.h states an empty
+    //     EMPTIED, not copied: solver/solve_result.h states an empty
     //     block as "unmeasured" and a zero-length vector cannot be read as
     //     a feasible point the way a copied one can.
     const ExitEvalProvenance &prov = this->exit_eval_prov_;

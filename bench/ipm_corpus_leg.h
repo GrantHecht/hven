@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/ipm_corpus_leg.h — the TOP-LEVEL interior-point replay leg
+// The TOP-LEVEL interior-point replay leg
 // (`--engine interior`). The corpus's `ipm` arm is the SQP driver's
 // interior-point QP tier; nothing in bench/ replays the IpmSolver
 // loop itself. This leg does, over the dual-bindable U0 cells plus one
@@ -257,7 +257,7 @@ struct InteriorRow {
     // NOT kkt_inf/barr_inf/econ_inf/icon_inf beside them, which are the
     // ENGINE's own measurements in the engine's own space. These four are over
     // the DECLARED problem in CALLER units, by the one definition both engines
-    // feed (drivers/solve_result.h) -- which is what makes them comparable
+    // feed (solver/solve_result.h) -- which is what makes them comparable
     // across the three fixed-variable treatments, and what the bound-fixed
     // cell's three rows are pinned on.
     double stationarity = 0.0;

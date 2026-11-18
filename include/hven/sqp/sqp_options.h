@@ -45,7 +45,7 @@ class GlobalizationStrategy;
 /// kWalk is the primal active-set walk (qp_engine.h): one working-set change per
 /// minor iteration. kSsn is the semismooth-Newton kernel (ssn_engine.h), whose
 /// step changes the whole implied active set at once. kIpqp is the interior-point
-/// tier (detail/qp/ipqp_engine.h), which acquires the active set from an interior
+/// tier (detail/qp/ipqp/ipqp_engine.h), which acquires the active set from an interior
 /// start and hands a converged iterate to the tier-3 exact face refinement.
 ///
 /// The default is kWalk.
@@ -308,13 +308,13 @@ enum class SqpElasticRungEngine { kWalk, kTier };
 ///
 /// `kExact` evaluates the model's Lagrangian Hessian at every subproblem build.
 /// `kLbfgsDamped` never calls eval_hess: the subproblem curvature is a damped
-/// compact L-BFGS approximation B (detail/globalization/sqp/lbfgs_damped.h),
+/// compact L-BFGS approximation B (detail/sqp/quasi_newton/lbfgs_damped.h),
 /// positive definite by construction, carried into every QP engine call through
 /// the mixed lift (mixed_lift.h).
 enum class SqpHessianMode { kExact, kLbfgsDamped };
 
 /// @brief The VARIABLE (column) half of problem scaling; see
-///        SqpOptions::column_scaling and detail/drivers/column_scaling.h.
+///        SqpOptions::column_scaling and detail/sqp/column_scaling.h.
 ///
 /// `kOff` never scales a variable. `kAlways` installs the rule's column factors
 /// whenever they are not all 1 (a decision carried by a warm start replaces the
@@ -334,7 +334,7 @@ enum class SqpColumnScaling { kOff, kAlways, kAuto };
 /// model's sum lambda_i * hess c_i, with lambda the l1 subgradient selectors), the
 /// quasi-Newton B under kLbfgsDamped. `kRegularized` gives it the Levenberg-Marquardt
 /// model B = mu(x) D^2 on the original variables and no constraint curvature, with
-/// mu(x) = min(1, h(x)) (detail/globalization/sqp/restoration.h).
+/// mu(x) = min(1, h(x)) (detail/sqp/globalization/restoration.h).
 /// `kModelThenRegularized` runs the phase as kModel and restarts it from the point it
 /// stands at under kRegularized at the first failed subproblem or exhausted elastic tier
 /// inside the phase (the two triggers SqpOptions::restoration_curvature states); under
@@ -575,7 +575,7 @@ struct SqpAdvancedOptions {
     double restoration_proximity = 0.0;
 
     /// Split the equality rows into an independent set B and a set D dependent on
-    /// it on the non-fixed columns (`detail/drivers/equality_basis.h`); every QP
+    /// it on the non-fixed columns (`detail/sqp/equality_basis.h`); every QP
     /// then carries only B with a projected rhs, and multipliers stay full-size.
     /// A split that drops nothing leaves every QP byte-identical to off.
     /// `SqpResult::equality_basis` reports what happened. Default true; the split's
@@ -750,7 +750,7 @@ struct SqpOptions {
     /// Which QP kernel the driver's subproblems go through. kWalk is the shipped
     /// primal active-set walk (qp_engine.h) and is the default; kSsn selects the
     /// semismooth-Newton kernel (ssn_engine.h); kIpqp selects the interior-point
-    /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpqp's own doc comment above.
+    /// tier (detail/qp/ipqp/ipqp_engine.h) -- see QpMode::kIpqp's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
 
     // --- Problem scaling ---
@@ -796,7 +796,7 @@ struct SqpOptions {
     /// The column (variable) layer of problem scaling. When it fires the
     /// engine solves the problem in the variables x~ = x / d, d the power-of-two column
     /// half of a Ruiz equilibration of [Je; Ji] at the start point
-    /// (detail/drivers/column_scaling.h); restoration, the trust region and the funnel
+    /// (detail/sqp/column_scaling.h); restoration, the trust region and the funnel
     /// all run in x~, and every exported quantity is mapped back.
     ///
     /// What changes when it fires: the trust region is an l-infinity box in x~, i.e.
@@ -919,7 +919,7 @@ SqpOptions sqp_preset(std::string_view name);
 ///        DECLARATION order.
 ///
 /// The format is the one stated at `dump_options(const IpmOptions &,
-/// std::ostream &)` (drivers/ipm_options.h). Nested blocks print under their
+/// std::ostream &)` (ipm/ipm_options.h). Nested blocks print under their
 /// member names (`common.`, `qp.`, `linear.`, `advanced.`, `advanced.ipqp.`).
 /// `advanced.make_strategy` prints `set` or `unset`.
 ///

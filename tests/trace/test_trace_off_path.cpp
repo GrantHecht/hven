@@ -4,7 +4,7 @@
 // test_trace_off_path.cpp -- M8 TR-A, cost contract proof 1 (spec section 4, rule C1): with nothing
 // attached the engines construct no trace event and call no emit helper.
 //
-// A source scan, in the pattern of tests/sqp/test_qp_mode_sites.cpp. In src/drivers/ and src/qp/
+// A source scan, in the pattern of tests/sqp/test_qp_mode_sites.cpp. In src/{ipm,sqp,solver,qp,warmstart}/
 // every
 // `*TraceEvent` construction and every `emit_*`, `make_iteration_record` or sink `on_*` call must
 // sit lexically inside a block opened by a sink guard (`!= nullptr`) or inside a builder lambda
@@ -28,7 +28,7 @@
 #include <vector>
 
 #ifndef HVEN_SRC_ROOT
-#error "HVEN_SRC_ROOT must be defined by tests/drivers/CMakeLists.txt"
+#error "HVEN_SRC_ROOT must be defined by tests/solver/CMakeLists.txt"
 #endif
 
 namespace {

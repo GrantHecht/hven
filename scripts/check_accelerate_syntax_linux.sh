@@ -22,8 +22,8 @@
 # backend-neutral public API, so their
 # checks below need real gtest headers but not the stub Accelerate.h.
 #
-# hven's psiopt/tycho_sqp precedents were searched for an existing
-# "Apple-TU compile lane on Linux" trick and none was found: tycho's own
+# The two ports this backend follows were searched for an existing
+# "Apple-TU compile lane on Linux" trick and none was found: their own
 # Accelerate hygiene canary (scripts/check_accelerate_warnings.sh) is
 # Apple-only and exits immediately on any other platform. So this script is
 # a `clang++ -fsyntax-only` pass against a minimal, hand-written stub of

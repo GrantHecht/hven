@@ -5,7 +5,7 @@
 
 // ipqp_math.h -- the interior-point QP tier's per-element barrier kernels.
 //
-// QP-shaped RE-DERIVATIONS of interior/barrier_math.h's kernels, each naming the one
+// QP-shaped RE-DERIVATIONS of detail/barrier/barrier_math.h's kernels, each naming the one
 // it mirrors; header-inline. PRECONDITION: callers keep x STRICTLY inside these bounds,
 // no kernel re-checks. Reused vs re-derived vs deliberately NOT shared: spec section 3.5.
 

@@ -1,15 +1,14 @@
 ################################################################################
-# Interior-point engine (ex-PSIOPT) test suite — migrated as-is from
-# psiopt/tests/ (hven M2 milestone, engine-move task). Same test names,
-# same GoogleTest fixtures; only the include paths were mechanically
-# retargeted onto include/hven/.
+# Interior-point engine test suite — migrated as-is (hven M2 milestone,
+# engine-move task). Same test names, same GoogleTest fixtures; only the
+# include paths were mechanically retargeted onto include/hven/.
 #
-# A separate executable, not folded into hven_tests: it mirrors psiopt's own
+# A separate executable, not folded into hven_tests: it is a
 # separately-buildable test binary, keeps this migration's diff reviewable on
 # its own, and does not disturb hven_tests' existing HVEN_TEST_SOURCES list or
 # discovery-mode logic. googletest is already fetched by the parent
 # tests/CMakeLists.txt (FetchContent_MakeAvailable(googletest) runs before
-# add_subdirectory(interior) below), so this file links GTest::gtest_main
+# add_subdirectory(ipm) below), so this file links GTest::gtest_main
 # directly rather than re-declaring the fetch.
 ################################################################################
 
@@ -53,12 +52,12 @@ target_link_libraries(hven_interior_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_interior_tests PRIVATE ${COMPILE_FLAGS})
 
 # Unity build -- merge test TUs, same pattern (and batch size) as
-# psiopt/tests/CMakeLists.txt's psiopt_tests. This is load-bearing, not just
+# the engine's pre-migration test binary. This is load-bearing, not just
 # a compile-time optimization: test_nlp_adapter.cpp (and others) only
 # #include nlp_adapter.h, which forward-declares NonLinearProgram, and rely
 # on another test TU in the same unity batch to have already pulled in the
-# complete definition (non_linear_program.h) -- exactly as they did in
-# psiopt/tests. Splitting this into separate TUs is a source-level fix
+# complete definition (non_linear_program.h) -- exactly as they did
+# before the migration. Splitting this into separate TUs is a source-level fix
 # (adding the missing include) that AS-IS migration does not make; carried
 # over unchanged, see the migration report.
 set_target_properties(hven_interior_tests PROPERTIES
@@ -67,7 +66,7 @@ set_target_properties(hven_interior_tests PROPERTIES
 )
 
 # Reduce optimization level for tests to improve compile time, matching
-# psiopt/tests/CMakeLists.txt and hven's own test targets.
+# hven's own test targets.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(hven_interior_tests PRIVATE $<$<CONFIG:Release>:-O1>)
 endif()

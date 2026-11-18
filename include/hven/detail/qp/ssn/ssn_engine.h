@@ -802,7 +802,7 @@ class SsnEngine {
     bool has_deferred_certification() const { return deferred_pending_; }
 
     /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
-    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// detail/core/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
     /// it before the flag's owner can go away. A requested stop leaves the solve
     /// through its iteration-budget exit, and the driver discards that answer.
     void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }

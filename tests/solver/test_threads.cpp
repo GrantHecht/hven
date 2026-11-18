@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/drivers/test_threads.cpp -- `common.threads` REACHES EVERY SQP FACTOR
+// `common.threads` REACHES EVERY SQP FACTOR
 // PATH, AND EVERY BACKEND CALL RESTORES THE CALLER'S SETTING (M6 W5 T8.8).
 //
 // `CommonOptions::threads` is shared surface, so it is pinned here rather than
@@ -35,7 +35,7 @@
 //   scope is per BACKEND CALL and is undone before any callback fires. They
 //   are covered by CONSTRUCTION RULE instead: `detail::KktFactor`'s
 //   constructor is the single point every walk/SSN-tier factor is built
-//   through (pinned in tests/sqp/test_kkt_calls.cpp), and no library site
+//   through (pinned in tests/kkt/test_kkt_calls.cpp), and no library site
 //   default-constructs one. An `HVEN_TESTING` construction observer in
 //   `qp_engine.cpp` is REGISTERED for W6 if they are ever to be OBSERVED.
 //   Where a counter exists, this file asserts that the temporary's PATH RAN as
@@ -65,13 +65,13 @@
 //
 // TWO PINS THAT LIVE ELSEWHERE AND ARE CITED, NOT REWRITTEN:
 //   * a changed thread count refuses a hot handle --
-//     tests/sqp/test_warm_start.cpp, `SqpWarmState.AChangedThreadCountRefusesAHotHandle`
+//     tests/warmstart/test_warm_start.cpp, `SqpWarmState.AChangedThreadCountRefusesAHotHandle`
 //     (the options fingerprint folds `threads`; T8.3 built it, T8.8 gives the
 //     number teeth). Adoption also takes the SESSION's live count
 //     (SymmetricFactor::adopt), so an adopted handle at a matching fingerprint
 //     carries the right count by construction.
 //   * a negative `common.threads` is refused on the SqpOptions value itself --
-//     tests/drivers/test_options.cpp's
+//     tests/solver/test_options.cpp's
 //     `Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused`, which
 //     calls `validate()` directly. That the DRIVER's construction path refuses
 //     it the same way, and with the same message, is this file's own
@@ -254,7 +254,7 @@ class InfeasibleCircleLineModel : public NlpModel {
 };
 
 // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10.
-// tests/sqp/test_qp_engine.cpp's `simple_box_qp`, verbatim: the face
+// tests/qp/test_qp_engine.cpp's `simple_box_qp`, verbatim: the face
 // {row 0 working, both variables free} is the fixture that reaches
 // `QpEngine::refine_on_face`, whose one temporary factor this file asserts the
 // PATH of.
@@ -712,7 +712,7 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // The EQP-refine temporary (QpEngine::refine_on_face). `factorizations`
     // counts exactly the temporary this call builds, so a count of 1 IS the
     // statement that the site ran; what count that temporary was built at is
-    // covered by KktFactor's constructor (tests/sqp/test_kkt_calls.cpp) and by
+    // covered by KktFactor's constructor (tests/kkt/test_kkt_calls.cpp) and by
     // the report's grep, because the object dies before this line runs.
     const QpProblem qp = simple_box_qp();
     Vec off(2);

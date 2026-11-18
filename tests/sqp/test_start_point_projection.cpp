@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_start_point_projection.cpp -- M7 W2 M4: the out-of-box start
+// M7 W2 M4: the out-of-box start
 // point, `SqpOptions::project_start_point`, and `SqpCounters::start_point_clamps`.
 //
 // WHAT THE FIXTURE REPRODUCES. CUTEst declares three problems (NET3, STEENBRD,
@@ -302,7 +302,7 @@ TEST(StartPointProjection, TheOptionsValidatorAcceptsBothStatesAndTheDumpCarries
     EXPECT_NO_THROW(validate(o));
 
     // The dump's own line, in declaration position; the LINE COUNT and the
-    // field count are pinned by tests/drivers/test_options_dump.cpp.
+    // field count are pinned by tests/solver/test_options_dump.cpp.
     std::ostringstream os;
     dump_options(o, os);
     EXPECT_NE(os.str().find("project_start_point = true\n"), std::string::npos) << os.str();

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_warm_currency.cpp — SqpSolver::export_warm_start and the
+// SqpSolver::export_warm_start and the
 // PAYLOAD route `solve(bridge, x0, const WarmStart &, budget)`, the SQP
 // engine's half of the warm-start currency.
 //
@@ -589,7 +589,7 @@ TEST(SqpWarmCurrency, TheHandOverRefusesAMalformedPolishPayloadNamingTheTag) {
 // price FREE while z = z_lower - z_upper carries the corruption into the
 // object regardless; the kSeeded clamp defends `lambda_i`, not these blocks.
 // Refused here so the class is loud on both engines rather than half-absorbed
-// on each (tests/interior/test_ipm_warm_start.cpp pins the IPM half).
+// on each (tests/ipm/test_ipm_warm_start.cpp pins the IPM half).
 TEST(SqpWarmCurrency, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -1258,7 +1258,7 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
 // rebuilt anyway. What these two pin is that whatever the driver carried out of
 // an earlier solve changed nothing. The case where the fast path demonstrably
 // DOES skip a factorization and the answer is still bit-identical is pinned by
-// tests/sqp/test_warm_start.cpp's SqpWarmState.HotReuseIsNeverAnswerObservable.
+// tests/warmstart/test_warm_start.cpp's SqpWarmState.HotReuseIsNeverAnswerObservable.
 TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);

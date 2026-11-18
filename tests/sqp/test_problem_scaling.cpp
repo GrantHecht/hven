@@ -367,7 +367,7 @@ SpMatRM row_matrix(std::initializer_list<std::initializer_list<double>> rows) {
 } // namespace
 
 // ===========================================================================
-// THE FACTOR RULE (detail/drivers/problem_scaling.h).
+// THE FACTOR RULE (detail/sqp/problem_scaling.h).
 // ===========================================================================
 
 TEST(ProblemScalingRule, TheObjectiveFactorAimsTheGradientAtMaxGradient) {
@@ -904,7 +904,7 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.history.back().f.value());
 
     // (The console footer's `scaling on` word reads this same report; pinned in
-    // tests/drivers/test_console_sink.cpp.)
+    // tests/trace/test_console_sink.cpp.)
     EXPECT_TRUE(sol.scaling.active);
     EXPECT_GE(sol.scaling.scaled_kkt_residual, 0.0);
 }

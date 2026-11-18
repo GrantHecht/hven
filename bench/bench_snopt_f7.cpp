@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_snopt_f7.cpp — PHASE-6 TASK 0. THE SNOPT MEASUREMENT BINARY:
+// PHASE-6 TASK 0. THE SNOPT MEASUREMENT BINARY:
 // the CLI over bench/snopt_f7_driver.h that produced every SNOPT column in
 // docs/notes/2026-08-02-snopt-first-contact.md, and that Task 6 re-runs
 // VERBATIM for the full three-solver calibration.
@@ -67,7 +67,7 @@
 // re-solve carrying the previous point's basis, primal iterate and duals.
 //
 // --dump-solution writes bench_cli.h's solution-dump format (the same one
-// hven_sqp_bench writes and prototypes/psiopt_bridge/run_comparison.py
+// hven_sqp_bench writes and the external comparison bridge's run_comparison.py
 // reads), so a SNOPT solution can be cross-validated against ours by the
 // existing tooling rather than by a new comparison path. On a sweep it is
 // the LAST point that is dumped.

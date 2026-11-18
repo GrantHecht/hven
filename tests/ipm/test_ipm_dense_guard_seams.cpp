@@ -143,7 +143,7 @@ std::vector<double> scale_family() {
     return scales;
 }
 
-// The platform's codes for the two kinds (src/interior/kkt_factorization.cpp's categorization):
+// The platform's codes for the two kinds (src/kkt/kkt_factorization.cpp's categorization):
 // a numeric refusal (Eigen::NumericalIssue) and a hard backend error (Eigen::InvalidInput).
 #if defined(USE_ACCELERATE_SPARSE)
 constexpr int kNumericRefusal = static_cast<int>(SparseFactorizationFailed);
@@ -209,7 +209,7 @@ using EventHook = std::function<void(const hven::IterationEvent &)>;
 // Which singular policy the IPM's dense arm runs under. The production policy is kReport (M8
 // DN-3b); the tests written before it pin routes through the platform session, which only
 // kSparseFallback reaches (FactorizeFaultInjector fails it there), so they keep that policy through
-// the IPM's own seam (hven/detail/drivers/ipm_dense_testing.h).
+// the IPM's own seam (hven/detail/ipm/ipm_dense_testing.h).
 enum class SingularPolicy { kSparseFallback, kReport };
 
 struct PolicyScope {

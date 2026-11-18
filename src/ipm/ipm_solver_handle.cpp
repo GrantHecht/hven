@@ -3,7 +3,7 @@
 
 // The public IpmSolver handle: construction, transfer and forwarding.
 //
-// Everything the engine does lives in IpmSolverImpl (src/drivers/ipm_solver.cpp);
+// Everything the engine does lives in IpmSolverImpl (src/ipm/ipm_solver.cpp);
 // the bodies here only reach it. They are a separate translation unit so the
 // engine's own source stays free of the handle, and so the one boundary the
 // private implementation draws is a single, named file.

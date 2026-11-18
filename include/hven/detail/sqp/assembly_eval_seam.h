@@ -8,7 +8,7 @@
 // interface (model/claim_stream_source.h).
 //
 // WHAT IT IS. One object that reproduces the driver's evaluation moments —
-// today's free functions in drivers/sqp_solver.h — against an aggregate
+// today's free functions in sqp/sqp_solver.h — against an aggregate
 // instead of an NlpModel, and reproduces them BIT-IDENTICALLY: the same
 // NlpEval fields, the same QpProblem blocks, the same sparse structures. The
 // driver's own arithmetic is untouched by construction, because the objects it
@@ -45,8 +45,8 @@
 // preservation bar here is bit-identity, and this costs nothing to keep.
 //
 // NOT SELF-CONTAINED BY DESIGN, on the same footing as
-// detail/globalization/sqp/soc.h: `NlpEval` is defined in
-// drivers/sqp_solver.h and nowhere else, and this header never includes that
+// detail/sqp/globalization/soc.h: `NlpEval` is defined in
+// sqp/sqp_solver.h and nowhere else, and this header never includes that
 // one (the driver includes this one). Any includer must have NlpEval complete
 // first.
 
@@ -119,7 +119,7 @@ class AssemblyEvalSeam {
 
     /// @brief Full first-order evaluation at @p x: f, grad f, cE, cI, Je, Ji.
     ///
-    /// Reproduces eval_nlp (drivers/sqp_solver.h) field for field, through the
+    /// Reproduces eval_nlp (sqp/sqp_solver.h) field for field, through the
     /// candidate values entry plus one assemble of the gradient-and-Jacobians
     /// shape. `all_finite` covers f, grad, cE and cI, exactly as there.
     ///
@@ -141,7 +141,7 @@ class AssemblyEvalSeam {
     /// @brief Values only at @p x: f, cE, cI, with grad/Je/Ji carrying no
     ///        derivative information.
     ///
-    /// Reproduces eval_nlp_values (drivers/sqp_solver.h), including its
+    /// Reproduces eval_nlp_values (sqp/sqp_solver.h), including its
     /// n / (me x n) / (mi x n)-sized empty linearization — an honestly empty
     /// one, not this seam's claim patterns.
     ///
@@ -154,7 +154,7 @@ class AssemblyEvalSeam {
     ///        `all_finite`.
     ///
     /// The accepted-trial moment. Reproduces upgrade_to_full
-    /// (drivers/sqp_solver.h), values deliberately not re-evaluated.
+    /// (sqp/sqp_solver.h), values deliberately not re-evaluated.
     ///
     /// Jacobian finiteness is NOT screened here. `all_finite` carries the
     /// objective, the gradient and the two residual blocks and nothing else,
@@ -176,7 +176,7 @@ class AssemblyEvalSeam {
 
     /// @brief The QP subproblem at @p x, from a bundle taken at THIS x.
     ///
-    /// Reproduces build_subproblem (drivers/sqp_solver.h): the Lagrangian
+    /// Reproduces build_subproblem (sqp/sqp_solver.h): the Lagrangian
     /// Hessian is the one evaluation this call makes, and every other block
     /// comes from @p ev or from the materialized bounds. No trust region is
     /// baked in.
@@ -214,7 +214,7 @@ class AssemblyEvalSeam {
     ///
     /// ONCE PER SOLVE, before the first evaluation moment, and never again --
     /// the factors are fixed for a solve by design
-    /// (detail/drivers/problem_scaling.h). Installing the default-constructed
+    /// (detail/sqp/problem_scaling.h). Installing the default-constructed
     /// (inactive) value is legal and is exactly the state a seam is born in.
     ///
     /// THE INVARIANT, held by this seam rather than assumed of its caller: while
@@ -241,7 +241,7 @@ class AssemblyEvalSeam {
     ///
     /// It exists for ONE caller -- the restoration phase, which builds a
     /// `RestorationModel` around the RAW model but reads the entry bundle for
-    /// its slack sigmas and its start point (drivers/sqp_solver.cpp). Pairing a
+    /// its slack sigmas and its start point (sqp/sqp_solver.cpp). Pairing a
     /// scaled bundle with an unscaled model there would be a unit error, so the
     /// bundle is mapped back first.
     ///

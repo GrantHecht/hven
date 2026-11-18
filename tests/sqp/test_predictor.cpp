@@ -1,12 +1,12 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_predictor.cpp — Phase-4 Task 9: the TANGENTIAL PREDICTOR
+// Phase-4 Task 9: the TANGENTIAL PREDICTOR
 // (predictor.h), i.e. the parametric-sensitivity step that turns a converged
 // SqpWarmState at p into a first-order-accurate SqpWarmState at p + dp.
 //
 // WHAT IS ASSERTED, AND WHY EACH FAMILY WAS PICKED FOR IT
-// (tests/sqp/support/parametric_families.h has the analytic paths):
+// (tests/model/support/parametric_families.h has the analytic paths):
 //
 //   1. ORDER OF ACCURACY (PredictorTracksSmoothPath). On F2 -- the only one of
 //      the three families whose solution path is genuinely CURVED in p -- the
@@ -168,7 +168,7 @@ hven::detail::SqpWarmState with_regularization(hven::detail::SqpWarmState warm, 
 }
 
 // SqpWarmState::bound_active's encoding, read off a point geometrically. Same
-// notion tests/test_parametric_families.cpp uses, and the only one that is
+// notion tests/model/test_parametric_families.cpp uses, and the only one that is
 // determinate at a zero multiplier.
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
     std::vector<std::int8_t> out(static_cast<std::size_t>(model.n()), 0);
@@ -235,7 +235,7 @@ class ProbeRejectingF1 : public F1BoxQp {
 //    paths must be where a cold solve actually lands. Everything below
 //    treats F4/F5's closed forms as ground truth, so this comes first --
 //    the same TRANSCRIPTION/PATH gate structure
-//    tests/test_parametric_families.cpp applies to F1-F3.
+//    tests/model/test_parametric_families.cpp applies to F1-F3.
 // ---------------------------------------------------------------------
 TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
     const SqpOptions opts = tight_options();
@@ -1002,7 +1002,7 @@ TEST(Predictor, PredictorDropsAStrictlyActiveRowAcrossItsThreshold) {
 //     passing. What covers the band is F7 below: without it, a symmetric pair
 //     of nodes costs two rounds instead of one, the whole budget sweep shifts
 //     by one column, and the F7 cell's pinned minor count moves 9 -> 8.
-//   * F7 IS THE CURVED, MANY-JUNCTION CASE (tests/sqp/support/scale_problems.h),
+//   * F7 IS THE CURVED, MANY-JUNCTION CASE (tests/model/support/scale_problems.h),
 //     and the one where the old scheme did not merely cost minors but produced
 //     a seed the consuming solve could not converge from at all.
 // =====================================================================

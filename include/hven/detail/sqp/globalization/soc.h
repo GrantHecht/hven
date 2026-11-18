@@ -5,13 +5,13 @@
 
 // soc.h -- the second-order-correction subproblem construction of the SQP
 // driver. The SECOND-ORDER CORRECTION and MODEL EVALUATION notes cited below
-// live at the top of drivers/sqp_solver.h (which includes this header); the
+// live at the top of sqp/sqp_solver.h (which includes this header); the
 // body of the function declared here lives in
-// src/globalization/sqp/soc_elastic_restoration.cpp, together with elastic.h's
+// src/sqp/globalization/soc_elastic_restoration.cpp, together with elastic.h's
 // and restoration.h's definitions -- one TU for the three recovery tiers,
 // because all three are reached from one place in SqpSolver::solve_impl.
 //
-// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_solver.h,
+// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in sqp/sqp_solver.h,
 // which includes this header at the exact point the carved code stood -- after
 // NlpEval's definition, before the driver class -- so no header cycle exists
 // (this header never includes sqp_solver.h). Any other includer must have

@@ -5,7 +5,7 @@
 
 /// @file
 /// @brief What an interior-point solve returns (`IpmResult`). The options are in
-///        drivers/ipm_options.h, which this header includes.
+///        ipm/ipm_options.h, which this header includes.
 
 #include <array>
 #include <iosfwd>

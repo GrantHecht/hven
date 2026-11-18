@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_column_scaling.cpp — the M7 W2 SCL column (variable) layer of problem
-// scaling (detail/drivers/column_scaling.h, SqpOptions::column_scaling) and the
+// scaling (detail/sqp/column_scaling.h, SqpOptions::column_scaling) and the
 // caller-unit feasibility guard it brought into the convergence test.
 //
 //   (a) THE RULE: Ruiz's column half, power-of-two factors, the clamp, the gate,

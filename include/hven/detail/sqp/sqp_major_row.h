@@ -4,7 +4,7 @@
 #pragma once
 
 // sqp_major_row.h -- the SQP driver's internal per-major working row. It is not part of the
-// result: `SqpResult::history` carries `IterationRecord` (drivers/iteration_record.h), built
+// result: `SqpResult::history` carries `IterationRecord` (solver/iteration_record.h), built
 // from this row when it is pushed.
 
 #include <hven/core/types.h>

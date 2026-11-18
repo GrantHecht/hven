@@ -5,7 +5,7 @@
 // orchestrates.
 //
 // This TU holds the DEFINITIONS of every SqpSolver member function except the
-// two constructors, AND of the free functions drivers/sqp_solver.h declares
+// two constructors, AND of the free functions sqp/sqp_solver.h declares
 // alongside the class -- the evaluation, measurement, subproblem-construction
 // and counter-folding helpers. The class, its data members, all of that
 // documentation and the constructors stay in the header. The members the
@@ -248,7 +248,7 @@ void validate_staged_polish(const WarmStart &data) {
     //
     // WHY IT MATTERS ON THIS SIDE: to_sqp_warm_start hands both blocks to
     // from_interior_point, whose activity rule leaves a wrong-sign price FREE
-    // rather than certifying it (detail/warmstart/warm_start.h), and whose
+    // rather than certifying it (detail/warmstart/crossover.h), and whose
     // z = z_lower - z_upper then carries the corruption into an object the
     // kSeeded clamp defends only within kSeededDualClampTol of zero. Refusing
     // at staging keeps the corruption class loud on both engines instead of
@@ -452,7 +452,7 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
 } // namespace
 
 // THE SHARED DECLARED DIAGNOSTICS OF ONE POINT (M6 W5 T8.4). Declared in
-// drivers/sqp_solver.h, defined here with its free-function neighbours.
+// sqp/sqp_solver.h, defined here with its free-function neighbours.
 DeclaredDiagnosticsStash detail::stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
                                                             const Vec &x, const Vec &lambda_i,
                                                             const Vec &lo, const Vec &up,
@@ -492,7 +492,7 @@ DeclaredDiagnosticsStash detail::stash_declared_diagnostics(const NlpEval &ev, c
 
 // --- THE DRIVER'S FREE FUNCTIONS ------------------------------------------
 // The evaluation, measurement, subproblem-construction and counter-folding
-// helpers declared in drivers/sqp_solver.h, defined here for the same reason
+// helpers declared in sqp/sqp_solver.h, defined here for the same reason
 // the class's own members are: none of them depends on inlining through a
 // template parameter, and every one of them is driver-tier orchestration or
 // instrumentation, which CLAUDE.md §5 places in a .cpp TU. They land in THIS
@@ -2360,7 +2360,7 @@ void SqpSolverImpl::set_options(SqpOptions o) {
     // aggregate of scalars, enums, QpOptions and std::function/std::vector
     // members, every one of whose move assignments is itself noexcept, so this
     // cannot throw and leave the new engine standing beside the old options.
-    // That is not a hope -- tests/drivers/test_options.cpp static_asserts
+    // That is not a hope -- tests/solver/test_options.cpp static_asserts
     // std::is_nothrow_move_assignable_v<SqpOptions>, so a future field whose
     // move assignment CAN throw is a compile error there rather than a silent
     // hole here; when that day comes, move this assignment above the swap and
@@ -2402,7 +2402,7 @@ SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts, RestorationSubDriverTag)
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
 // deliberately here rather than in the header: the two `unique_ptr` members'
 // deleters are instantiated at this point, where both types are complete, so no
-// consumer of `drivers/sqp_solver.h` has to see `drivers/console_trace_sink.h`
+// consumer of `sqp/sqp_solver.h` has to see `trace/console_trace_sink.h`
 // (or the `fmt/color.h` it pulls) to destroy a driver.
 SqpSolverImpl::~SqpSolverImpl() = default;
 
@@ -3095,8 +3095,8 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
 // ===========================================================================
 // THE W0.2 PROBLEM-SCALING LAYER'S DRIVER-SIDE HALF.
 //
-// detail/drivers/problem_scaling.h carries the transformation and its inverse;
-// drivers/assembly_eval_seam.cpp applies it. What is here is the three things
+// detail/sqp/problem_scaling.h carries the transformation and its inverse;
+// sqp/assembly_eval_seam.cpp applies it. What is here is the three things
 // only the driver can do: decide the factors once per solve, keep the
 // restoration phase out of the scaled space, and map everything back at the one
 // export boundary this driver has.
@@ -3129,7 +3129,7 @@ Index SqpSolverImpl::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0
 }
 
 // ===========================================================================
-// THE COLUMN LAYER'S DRIVER-SIDE HALF (M7 W2 SCL). detail/drivers/column_scaling.h
+// THE COLUMN LAYER'S DRIVER-SIDE HALF (M7 W2 SCL). detail/sqp/column_scaling.h
 // carries the transformation, the rule and the scaled model; this is the one entry
 // that decides the factors, runs solve_impl in the scaled variables, and maps the
 // answer back. It sits OUTSIDE solve_impl so that everything inside -- the trust
@@ -7101,7 +7101,7 @@ SqpIterationInfo sqp_iteration_info(const SqpMajorRow &row, Index depth) {
 
 // ---------------------------------------------------------------------------
 // ONE ITERATION EVENT, IN CALLER UNITS (M6 W5 T8.6). Declared in
-// drivers/sqp_solver.h, where the contract is.
+// sqp/sqp_solver.h, where the contract is.
 //
 // AS OF fix1 THIS FUNCTION COMPUTES NOTHING. Every vector and every diagnostic
 // it hands out was snapshotted by `measure_iterate`, at the statement that
@@ -7420,7 +7420,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // them AND something was measured here -- the non-finite-start row
             // is the second case, and a zero would read as a converged
             // residual. Under a mask that omits them the same NaN means NOT
-            // REQUESTED (drivers/solve_result.h's IterationPayload).
+            // REQUESTED (solver/solve_result.h's IterationPayload).
             mj.event_diag = detail::DeclaredDiagnostics{};
             mj.event_rows_measured = false;
         }
@@ -7837,7 +7837,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // ingest tau >= kFunnelTauBar/2 = 50, so binding needs an
             // iterate that is simultaneously the BEST by inf-norm
             // residual and carrying an l1 violation above 50.
-            // tests/sqp/test_warm_start.cpp's WatchdogRebaseNeverWidens-
+            // tests/warmstart/test_warm_start.cpp's WatchdogRebaseNeverWidens-
             // TheFunnel is one of the three, measured at h_best = 330
             // against a width of 65.6 (an unclamped re-base there
             // widens to 198).

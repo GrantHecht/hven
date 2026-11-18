@@ -12,7 +12,7 @@
 // THE COST READING is the second half, and it is COUNTERS (CLAUDE.md section 7):
 // the rung count, the minor iterations each rung spent, and each rung's outcome,
 // read off the `qp.mode` trace event's `kElasticRung` site -- one line per rung,
-// emitted where the rung has run (src/drivers/sqp_solver.cpp's ladder). Wall is
+// emitted where the rung has run (src/sqp/sqp_solver.cpp's ladder). Wall is
 // printed and NEVER asserted. Factorizations are attributed through the Ledger,
 // whose QP-level `SolveRecord` stream is one record per engine solve -- the
 // attribution is PROVEN rather than assumed by checking that the correlated

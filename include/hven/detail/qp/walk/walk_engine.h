@@ -655,7 +655,7 @@
 // --- Degeneracy ---
 //
 // With QpOptions::independent_working_set (default) the working set is kept
-// linearly independent (qp/ws_independence.h): an entry detector runs on the
+// linearly independent (detail/qp/walk/ws_independence.h): an entry detector runs on the
 // first factorization and after untested growth or an over-count (Debug
 // asserts that an over-count is always found), and each ratio-test blocker is
 // tested against the pass's factor (a ride's too: 4c, THE DECLINED RIDE). A
@@ -864,7 +864,7 @@
 #include <hven/detail/qp/qp_problem.h>
 // The walk's READ-ONLY test seam (docs/testing.md; CLAUDE.md §8). It compiles
 // to NOTHING without HVEN_TESTING, and it is included HERE rather than in
-// src/qp/qp_engine.cpp so that that TU gains no line and its one `assert`'s
+// src/qp/walk/walk_engine.cpp so that that TU gains no line and its one `assert`'s
 // __LINE__ immediate cannot move -- see qp_walk_trace.h's own note.
 #include <hven/detail/qp/walk/walk_trace.h>
 #include <hven/detail/qp/working_set.h>
@@ -1146,7 +1146,7 @@ inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
 // free-block stationarity check fails: multiply primal_delta by
 // kSuspectDeltaFactor and resume, at most kMaxSuspectEscalations times, then
 // report kNumericalError. ONE DECADE PER RUNG, matching the driver's elastic
-// penalty ladder (kElasticRhoFactor in globalization/sqp/elastic.h); no exact
+// penalty ladder (kElasticRhoFactor in detail/sqp/globalization/elastic.h); no exact
 // Hessian/primal_delta cancellation survives a 10x change in delta. THREE
 // RUNGS, i.e. delta 1e-8 -> 1e-5 at the defaults. Per-SOLVE.
 constexpr double kSuspectDeltaFactor = 10.0;
@@ -1769,7 +1769,7 @@ class QpEngine {
     // THE LIVE K0 FACTOR'S OWN COUNT, read through to the backend session --
     // NOT the carried `threads_` this engine was built with (M6 W5 T8.8). The
     // two agree by construction on an engine solving through its own border,
-    // and tests/drivers/test_threads.cpp asserts they do; they are nonetheless
+    // and tests/solver/test_threads.cpp asserts they do; they are nonetheless
     // different facts, and this accessor exists to make the FACTOR's answer
     // observable at the boundary. After a hot handle is adopted, `border_`
     // is the PRODUCING engine's BorderState -- adoption requires an equal
@@ -1900,7 +1900,7 @@ class QpEngine {
                         const QpSolveOverrides &overrides, QpSolution &out) const;
 
     /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
-    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// detail/core/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
     /// it before the flag's owner can go away. A requested stop leaves the solve
     /// through its iteration-budget exit, and the driver discards that answer.
     void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }

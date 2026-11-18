@@ -3,7 +3,7 @@
 
 // The consumer-side binding's claim pass and its evaluation moments. The
 // contract text it implements against is model/nlp_assembly.h; the moments it
-// reproduces are the free functions in drivers/sqp_solver.h, which this TU
+// reproduces are the free functions in sqp/sqp_solver.h, which this TU
 // includes for NlpEval (see the seam header's NOT SELF-CONTAINED note).
 
 #include <hven/detail/sqp/sqp_solver_impl.h>
@@ -567,7 +567,7 @@ void AssemblyEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &pa
 // ===========================================================================
 // THE W0.2 PROBLEM-SCALING LAYER'S APPLY SITES.
 //
-// detail/drivers/problem_scaling.h carries the transformation, its inverse and
+// detail/sqp/problem_scaling.h carries the transformation, its inverse and
 // the argument for both. What is here is only the applying, and it is here
 // rather than in that TU because this is where the values are: a scale is one
 // multiply per element on a buffer this seam has just filled and still owns.

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/qp_as_nlp_model.h -- test-support only, NOT part of the public library
+// Test-support only, NOT part of the public library
 // surface. One engine-agnostic adapter, deliberately gtest-free so a measurement binary can
 // include it without pulling GoogleTest in. Requirement: `.superpowers/w5-t5-report.md`.
 

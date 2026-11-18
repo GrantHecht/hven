@@ -6,19 +6,19 @@
 // public headers in include/hven/core/.
 //
 // WHAT IT ASSERTS. `core/` is the BOTTOM tier of the repository map. Every other
-// tier -- linear/, model/, kkt/, interior/, qp/, globalization/, warmstart/,
-// drivers/, and the detail/ bodies of all of them -- is allowed to depend on
+// tier -- linear/, model/, kkt/, qp/, warmstart/, solver/,
+// ipm/, sqp/, trace/, and the detail/ bodies of all of them -- is allowed to depend on
 // core/, and core/ is allowed to depend on none of them. So a header in
 // include/hven/core/ may include: standard-library headers, third-party headers
 // hven vendors (Eigen, fmt), and OTHER core/ headers. Nothing else under hven/.
 //
 // WHY IT EXISTS, stated because a rule with no failure story is decoration. Before
-// M3 phase-C S2, core/ledger.h included drivers/sqp_solver_types.h and, through it,
+// M3 phase-C S2, core/ledger.h included sqp/sqp_solver_types.h and, through it,
 // detail/globalization/ and detail/warmstart/ -- core/ depending upward on
 // drivers/. S2 eliminated that by moving the counters, the two status enums and
 // StartLevel into core/ homes. Nothing then stopped it coming back: the property
 // was asserted once, by hand, with `clang++ -H` in a report, and a single
-// `#include <hven/drivers/sqp_solver_types.h>` added to a core/ header would compile
+// `#include <hven/sqp/sqp_solver_types.h>` added to a core/ header would compile
 // cleanly, pass every other test, and silently restore the inversion while the
 // plan record still claimed it was gone. This test is the thing that fails.
 //
@@ -26,7 +26,7 @@
 //   * core/ledger.h's private section used to carry a note asserting the very
 //     dependency S2 deleted. It has been corrected and now says the opposite,
 //     but a reader who wants a status-rendering helper is exactly the reader who
-//     reaches for drivers/sqp_solver_types.h.
+//     reaches for sqp/sqp_solver_types.h.
 //   * core/start_level.h once re-declared `using Index = Eigen::Index;` rather
 //     than including qp/qp_types.h for it (S2); S2c deleted that alias and the
 //     header now takes `Index` from core/types.h. A later "simplification" that

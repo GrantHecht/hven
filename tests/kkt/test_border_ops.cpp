@@ -21,7 +21,7 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from tests/test_qp_engine.cpp's simple_box_qp() (also
+// Repeated verbatim from tests/qp/test_qp_engine.cpp's simple_box_qp() (also
 // duplicated in test_qp_engine_border.cpp, following that file's own
 // precedent of copying rather than sharing this tiny fixture).
 QpProblem simple_box_qp() {

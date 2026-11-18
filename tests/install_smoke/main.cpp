@@ -5,7 +5,7 @@
 // Not part of hven's own build (see this directory's CMakeLists.txt) --
 // built against an *installed* hven package via find_package(hven), the
 // same way an external consumer would. Solves the canonical Ipopt HS071
-// example (borrowed from tests/interior/test_ipm_solver_entry.cpp) and checks
+// example (borrowed from tests/ipm/test_ipm_solver_entry.cpp) and checks
 // the known optimum, so a green run proves both link-time (libhven.a's symbols
 // actually resolve) and run-time (the sparse backend the installed package
 // re-found is the real one) correctness -- not just "it configured".

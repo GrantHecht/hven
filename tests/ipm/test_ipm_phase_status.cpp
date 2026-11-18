@@ -3,7 +3,7 @@
 
 // The shared status vocabulary: the severity order, the interior-point PHASE
 // RESOLUTION with its stop-reason split, and the SQP mapping. The LIVE pins on
-// the stop reason itself are in tests/interior/ -- they need a solve.
+// the stop reason itself are in tests/ipm/ -- they need a solve.
 //
 // M6 W5 T8.4: the engine's own ConvergenceFlags is gone, so what used to be a
 // MAPPING from that enum onto SolveStatus is now a RESOLUTION of one SolveStatus

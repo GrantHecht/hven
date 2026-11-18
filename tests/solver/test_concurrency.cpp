@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/drivers/test_concurrency.cpp -- THE CONCURRENCY CONTRACT'S TWO PINS
+// THE CONCURRENCY CONTRACT'S TWO PINS
 // (M6 W6 T4, and the shared-pool fan-out pin added at M7 W0 T1).
 //
 // The owner's ruling of 2026-09-11 (docs/notes/2026-08-m6-ledger.md:4421-4431,
@@ -32,10 +32,10 @@
 // three process-global exceptions; `docs/concurrency.md` names them as audited.
 // The one that could reach those cells is the interior-point engine's
 // EVALUATION POOL (`hven::detail::set_num_threads`,
-// src/interior/utils/thread_pool.cpp), which is process-global by design. Those
+// src/util/thread_pool.cpp), which is process-global by design. Those
 // cells avoid it BY CONSTRUCTION rather than by arrangement: `make_nlp_program`
 // defaults to one partition, and `parallel_sequence`
-// (include/hven/detail/interior/utils/thread_pool.h) runs inline whenever
+// (include/hven/detail/util/thread_pool.h) runs inline whenever
 // `nparts <= 1`, so the pool is never dispatched to by these cells (and, when
 // they run first in the process, not yet constructed -- a test-order fact, not
 // a guarantee: the fan-out pin below constructs it).
@@ -81,7 +81,7 @@
 //
 //   STEP TWO -- ASSERT. Counters and statuses EXACT; the floating-point
 //   measures through the 1e-5 relative gate with the 1e-13 absolute floor. That
-//   is the rule tests/sqp/test_corpus_cells.cpp:908-944 states and :3618 floors,
+//   is the rule tests/bench/test_corpus_cells.cpp:908-944 states and :3618 floors,
 //   and the reason it applies here is §7's own: MKL's kernels are
 //   address-sensitive, and two runs of the same solve at different addresses --
 //   which is exactly what a heap touched by four threads produces -- may differ
@@ -125,7 +125,7 @@
 namespace {
 
 // The residual-class gate and its absolute floor, carried verbatim from
-// tests/sqp/test_corpus_cells.cpp:935 and :3618 rather than re-derived: the
+// tests/bench/test_corpus_cells.cpp:935 and :3618 rather than re-derived: the
 // same measures, the same reason, so the same numbers.
 constexpr double kResidualRelativeGate = 1.0e-5;
 constexpr double kResidualAbsFloor = 1.0e-13;

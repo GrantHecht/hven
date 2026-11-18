@@ -10,7 +10,7 @@
 //
 //   1. DECLARED FIELD COUNT, at compile time. kAggregateArity<T> is the number
 //      of initializers T{...} accepts, which for these aggregates is the field
-//      count (a nested aggregate counts as ONE -- core/detail/aggregate_arity.h
+//      count (a nested aggregate counts as ONE -- detail/core/aggregate_arity.h
 //      states the rule and its three unsupported shapes). This is the sharp
 //      instrument: it moves for an added field and for nothing else.
 //   2. sizeof, at compile time. Weaker than (1) -- a field that lands in

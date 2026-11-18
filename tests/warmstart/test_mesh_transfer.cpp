@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_mesh_transfer.cpp — Phase-4 Task 11: mesh_transfer.h's MeshTransfer,
+// Phase-4 Task 11: mesh_transfer.h's MeshTransfer,
 // the synthetic (transcription-agnostic) map of a SqpWarmState between
 // discretization meshes.
 //
-// THE FIXTURE IS F6PathBoundQuadrature (tests/sqp/support/parametric_families.h),
+// THE FIXTURE IS F6PathBoundQuadrature (tests/model/support/parametric_families.h),
 // the quadrature discretization of
 //     min_y INTEGRAL_0^1 (cosh(y - sin(pi t)) - 1) dt  s.t.  y(t) <= p,
 // whose analytic multipliers are lambda_i = w_i * nu(t_i) with the mesh-free
@@ -487,7 +487,7 @@ TEST(MeshTransfer, WarmSolveOnFineMeshBeatsCold) {
 // only FIRST-order across the two activity junctions, so its Lagrangian
 // gradient at the fine mesh is outside kkt_tol and a real major is owed. A
 // fixture whose transfer landed inside tolerance would certify for free --
-// tests/test_b1_gate.cpp's seeded zero-major guard covers that shape.
+// tests/sqp/test_b1_gate.cpp's seeded zero-major guard covers that shape.
 //
 // THE ANSWER IS CHECKED INDEPENDENTLY, not taken on the certificate's word:
 // the seeded arm's x is compared against the COLD arm's converged answer.

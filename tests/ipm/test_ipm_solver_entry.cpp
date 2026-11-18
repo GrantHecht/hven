@@ -1939,7 +1939,7 @@ TEST(IpmSolverEntry, OneIterationShortOfConvergenceRecordsTheCap) {
 // `opt_ls_mode` and `opt_bar_mode` are public options, and two of the values
 // each can take had no test in the tree at all: the W6 T0 coverage read found
 // `ClassicMeritAcceptance::ls_lang` and `ls_l1` cold as ONE 104-line run (the
-// largest uncovered region in src/drivers/ipm_solver_globalization.cpp), and
+// largest uncovered region in src/ipm/ipm_solver_globalization.cpp), and
 // `ClassicAdaptiveGovernor::complementarity`, which only the PROBE (Mehrotra
 // predictor-corrector) barrier oracle reaches, cold as another.
 //
@@ -2092,7 +2092,7 @@ TEST(IpmSolverEntry, TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule) {
 // so rather than the reading of the source that suggested it.
 //
 // The mechanism is `IpmSolver::push_initial_point_interior`
-// (src/drivers/ipm_solver.cpp), which runs once per solve, after the gather and
+// (src/ipm/ipm_solver.cpp), which runs once per solve, after the gather and
 // BEFORE any evaluation, and whose own comment states the contract this pins:
 // "A guess sitting on or outside a bound is projected, not rejected."
 //

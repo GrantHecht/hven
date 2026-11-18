@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_b1_gate.cpp — PHASE-5 TASK 7b: THE REGRESSION CORPUS FOR THE B-1
+// PHASE-5 TASK 7b: THE REGRESSION CORPUS FOR THE B-1
 // REPAIR (sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY).
 //
 // =====================================================================
@@ -34,7 +34,7 @@
 // **THAT "NO" IS A DISJUNCTION, ROW-WISE OVER EVERY CHANNEL p ENTERS
 // THROUGH**, and it is the trap a corpus designer falls into. ONE COUPLED
 // GATE RESCUES A MODEL WHOSE INEQUALITY ROW IS OTHERWISE EXPOSED. F4 of
-// tests/sqp/support/parametric_families.h is exactly that near-miss: its cI row IS
+// tests/model/support/parametric_families.h is exactly that near-miss: its cI row IS
 // B-1-shaped in isolation (relaxing, stale positive price), and it survives
 // only because the same scalar a(p) simultaneously moves an equality row
 // (feasibility fires at |Delta a|) and a lower bound (the released bound gives
@@ -54,7 +54,7 @@
 // THE SEVEN ELEMENTS THIS FILE AND ITS SIBLING CARRY
 //
 //   1. The three broken HS sweep specs, flipped to sound
-//                                       -- tests/test_hs_sweeps.cpp (sibling).
+//                                       -- tests/sqp/test_hs_sweeps.cpp (sibling).
 //   2. F6PathBoundQuadrature, a SHIPPED convex family, both directions -- the
 //      criterion demonstrating itself                        -- (5)/(6) below.
 //   3. The Task-7 review's convex n = 3 sphere class, reconstructed and cited
@@ -85,7 +85,7 @@
 // interior-point crossover taken before full convergence can carry a negative
 // price on a GEOMETRICALLY ACTIVE row -- which is exactly the configuration the
 // clear leaves alone, since the clear only zeroes STRICTLY SLACK rows.
-// tests/test_warm_start.cpp's SqpWarmState.CrossoverWrongSignDualLeavesRowFree
+// tests/warmstart/test_warm_start.cpp's SqpWarmState.CrossoverWrongSignDualLeavesRowFree
 // ships a fixture of that shape (lambda_i = -1e-8 against a slack of -1e-9).
 // The magnitude is bounded by the producer's sign violation and is orders below
 // kkt_tol, which is why the repair's verdict is unchanged.
@@ -691,12 +691,12 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     // Measured: gating sqp_solver.h's B-1 clear on `warm_state_ingest` instead
     // of `warm_ingest` -- i.e. skipping it on the seeded route entirely -- does
     // NOT fail this test. The transferred point's interpolation error across
-    // F6's two activity junctions is first-order (tests/test_mesh_transfer.cpp
+    // F6's two activity junctions is first-order (tests/warmstart/test_mesh_transfer.cpp
     // (a')), so its Lagrangian gradient at the fine mesh is outside kkt_tol
     // whether or not the stale prices survive, and a major is owed either way.
     // The mutation-sensitive B-1 pins on this route are
     // B1Gate.SeededIngestCarriesTheB1Repair and
-    // tests/test_warm_start.cpp's SeededB1ClearRunsBeforeTheSignClampAnd-
+    // tests/warmstart/test_warm_start.cpp's SeededB1ClearRunsBeforeTheSignClampAnd-
     // TheOrderIsObservable, both of which that mutation kills. What THIS test
     // is for is the ROUTE -- that a transferred object reaches the ingest at
     // all, and at which level -- which is the thing its pre-Task-5 form pinned
@@ -726,7 +726,7 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
 // equality on every count, against numbers taken before the change existed.
 //
 // HS7 is the equality-only problem Phase-5 Task 0's own O-1 chain test uses
-// (tests/test_warm_start.cpp), HS26/HS40/HS77 are the nonconvex sweep corpus's
+// (tests/warmstart/test_warm_start.cpp), HS26/HS40/HS77 are the nonconvex sweep corpus's
 // equality-only third, and hs_problems.h gives all four no finite bounds -- so
 // their KKT system genuinely is {cE = 0, grad f + Je^T lambda_e = 0} with no
 // third condition for any gate to touch.
@@ -755,7 +755,7 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // below is quoted in full in this comment, and this comment is the
     // citable record for it in this repository. What was observed: an
     // on-Apple A/B (pre-repair 0fbdca6 sqp_solver.h shadowing the repaired
-    // one, same protocol the origin documents for the MKL measurement)
+    // one, same protocol the pre-migration record documents for the MKL measurement)
     // reproduced every field below bit-identically ACROSS THE REPAIR, so the
     // control's PURPOSE -- the repair moves nothing on equality-only models
     // -- holds on this backend exactly as on MKL. Only its ENCODING (MKL
@@ -765,10 +765,10 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // and HS26 x0 take the Accelerate-observed constants below (distances
     // 4.2e-22, 2.4e-21, 1.6e-13 respectively -- HS7 x0 and HS26 f are both
     // near-zero readings, where ulp distance is enormous but absolute
-    // distance is tiny, per the origin's caution (i), quoted here because the
-    // origin itself is not readable from this tree).
+    // distance is tiny, per the pre-migration record's caution (i), quoted here because that
+    // record is not readable from this tree).
     //
-    // HS77 f is the origin's flagged TRAP: it passes on Accelerate against the
+    // HS77 f is the pre-migration record's flagged TRAP: it passes on Accelerate against the
     // MKL constant, but only through EXPECT_DOUBLE_EQ's 4-ulp gate, at
     // EXACTLY 4 ulps -- zero margin, one further ulp of drift anywhere in
     // this dependency chain flips it to a failure with no warning. Rather
@@ -890,7 +890,7 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
 // inequality price on a row that is STILL ACTIVE. The gate must leave that
 // price alone and the solve must still certify in zero majors.
 //
-// tests/test_warm_start.cpp's ZeroMajorSolveEmitsTheSameStructureHashAsABuilt-
+// tests/warmstart/test_warm_start.cpp's ZeroMajorSolveEmitsTheSameStructureHashAsABuilt-
 // Subproblem is the chain half of the same guarantee (on HS7, equality-only).
 // This is the inequality half, which nothing else in the suite covered.
 // =====================================================================
@@ -1212,7 +1212,7 @@ class B1ScaledStalePrice : public NlpModel {
 };
 
 // A hand-assembled hash-less object -- the shape kSeeded exists to admit, and
-// the same helper tests/test_warm_start.cpp's seeded arms use. The activity
+// the same helper tests/warmstart/test_warm_start.cpp's seeded arms use. The activity
 // hint is deliberately EMPTY: the B-1 clear and the W1 gate both read GEOMETRY,
 // not the hint, so leaving it out keeps the fixture about the multiplier.
 hven::detail::SqpWarmState scaled_seed(const Vec &x, double lambda_i0) {

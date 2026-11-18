@@ -390,12 +390,12 @@ hven::IpmOptions hven::worker_options(IpmOptions base) {
 // M7 W0 T5(b): the options dump.
 //
 // A hand-written printer, one line per field, pinned against IpmOptions by
-// tests/drivers/test_options_dump.cpp. The contract -- order, prefixes,
+// tests/solver/test_options_dump.cpp. The contract -- order, prefixes,
 // enumerator names, shortest round-trip doubles -- is documented once at the
-// declaration in drivers/ipm_options.h and is not restated here.
+// declaration in ipm/ipm_options.h and is not restated here.
 //
 // The four kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
-// deliberately duplicated in src/drivers/sqp_options.cpp rather than promoted
+// deliberately duplicated in src/sqp/sqp_options.cpp rather than promoted
 // to a shared header: the dump is the only consumer either engine has for an
 // enumerator-name table, and a public enum-to-string surface is a bigger
 // commitment than this task takes. If a third consumer appears, promote them

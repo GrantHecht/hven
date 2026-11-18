@@ -7,17 +7,14 @@
 // The console-capture helper the live console pins share (M6 W5 T8.7 fix1,
 // astra's I2).
 //
-// THE DIRECTORY IS `tests/common_support/`, NOT `tests/support/` (M6 W5 T8.7b,
-// the lane's third rider). `tests/sqp/` has a `support/` of its own, so a
-// quoted `"support/console_capture.h"` written from a file in that directory
-// resolves to a DIFFERENT tree than the same spelling written from
-// `tests/interior/`. One unambiguous name removes the trap without a CMake
-// include-directory change in every test target: every suite reaches this file
-// as `"../common_support/console_capture.h"`, which resolves to exactly one
-// place from anywhere under `tests/`.
+// THE DIRECTORY IS `tests/support/`: fixtures owned by no component. Every suite
+// reaches this file as `"support/console_capture.h"` through the tests include
+// root; a component's own `support/` is searched first, so no basename may be
+// shared between `tests/support/` and a component's `support/` -- the
+// configure-time duplicate-basename check in tests/CMakeLists.txt enforces it.
 //
-// WHY IT EXISTS. Both console-capture suites -- tests/sqp/test_trace_writer.cpp
-// and tests/interior/test_ipm_trace.cpp -- had a private copy of the same
+// WHY IT EXISTS. Both console-capture suites -- tests/trace/test_trace_writer.cpp
+// and tests/ipm/test_ipm_trace.cpp -- had a private copy of the same
 // class, and each copy included <unistd.h> and called ::dup/::dup2/::fileno
 // unconditionally. Both targets are built on Windows, where that header does
 // not exist and those names are spelled with a leading underscore in <io.h>, so

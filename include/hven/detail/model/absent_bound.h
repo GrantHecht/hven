@@ -34,7 +34,7 @@ namespace hven::detail {
 
 /// CommonOptions{}.infinite_bound, for the layers that are built before any
 /// options exist (a Problem's first transcription, the internal routes). Tied to
-/// the public default by a static_assert in src/drivers/common_options.cpp.
+/// the public default by a static_assert in src/solver/common_options.cpp.
 inline constexpr double kDefaultInfiniteBound = 1e20;
 
 /// The bound @p b as the rule reads it under @p infinite_bound.

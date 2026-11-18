@@ -80,7 +80,7 @@ LLVM_COV=${LLVM_COV:-llvm-cov}
 #     construction in M6 W0.4 (docs/notes/2026-08-m6-ledger.md:164-176) -- its
 #     per-backend exact pins are retired, so the L-1 route into it is gone.
 #   * CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
-#     still has a byte-strict Debug-arm compare (tests/sqp/test_corpus_cells.cpp
+#     still has a byte-strict Debug-arm compare (tests/bench/test_corpus_cells.cpp
 #     :3866) where the Release arm already uses a 1e-5 residual gate (:3818).
 #     If it ever does fail here, that gate -- W6 T1's item -- is the remedy, not
 #     this list: the fix belongs at the compare, where it is visible to every

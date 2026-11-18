@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_eqp_refine_ab.cpp — the EQP-refinement A/B harness (Phase-4
+// The EQP-refinement A/B harness (Phase-4
 // Task 0, discharging the Phase-3 carry in
 // docs/notes/2026-07-29-phase-3-close-carries.md).
 //
@@ -292,7 +292,7 @@ void sweep(const Regime &g) {
 }
 
 // THE ILL-SCALED FIXTURE, ported verbatim (modulo naming) from
-// tests/test_sqp_solver.cpp's ScaledRowModel -- the fixture the two
+// tests/sqp/test_sqp_solver.cpp's ScaledRowModel -- the fixture the two
 // SqpDriverAdaptiveMu tests are built on, and the ONLY place in this project
 // where the fixed-mu accuracy ceiling has ever been demonstrated:
 //
@@ -313,7 +313,7 @@ void sweep(const Regime &g) {
 // exists, and this is that fixture.
 // The "no bound" sentinel this project's models use (nlp_model.h treats
 // magnitudes at or beyond 1e20 as absent), spelled out here exactly as
-// tests/test_sqp_restoration.cpp does.
+// tests/sqp/test_sqp_restoration.cpp does.
 constexpr double kInfBound = 1e20;
 
 class ScaledRowModel : public NlpModel {
@@ -376,7 +376,7 @@ class ScaledRowModel : public NlpModel {
 // two variables before any refinement default is re-ruled. This is it.
 //
 // THE CONSTRUCTION: F7, THE COLLOCATION FAMILY, WITH ITS OBJECTIVE INFLATED.
-// tests/sqp/support/scale_problems.h's F7CollocationChain wrapped so that
+// tests/model/support/scale_problems.h's F7CollocationChain wrapped so that
 //
 //     f_S(x) = S * f(x),      constraints, bounds and start point UNTOUCHED.
 //

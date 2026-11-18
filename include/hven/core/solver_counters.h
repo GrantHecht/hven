@@ -285,7 +285,7 @@ struct QpCounters {
     /// in a loop that runs half a million times.
     Index ratio_ties = 0;
 
-    // Working-set independence (qp/ws_independence.h). Solves are triangular
+    // Working-set independence (detail/qp/walk/ws_independence.h). Solves are triangular
     // solves on the pass's own factor; none factorizes. The terminal certificate's solves (the
     // pass's factor, or a local eliminated factor whose factorization lands in `factorizations`)
     // also land here.
@@ -785,7 +785,7 @@ struct SsnCounters {
 // struct without a table entry does not silently vanish from the stream.
 //
 // EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert (in
-// src/drivers/trace_writer.cpp): the largest N for which the struct is
+// src/trace/trace_writer.cpp): the largest N for which the struct is
 // brace-initializable with N arguments. Not sizeof, which is padding-dependent.
 //
 // TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE SAME
@@ -1234,7 +1234,7 @@ struct IpqpCounters {
     /// `ipqp_to_ssn` cannot stand in it -- a refinement refusal reaches SSN as a
     /// SECOND destination and is already in `ipqp_to_refine` -- and
     /// `ipqp_declined_pinned` is subtracted because a decline is counted here
-    /// without the tier having run. `tests/sqp/support/ipqp_test_support.h`'s
+    /// without the tier having run. `tests/qp/support/ipqp_test_support.h`'s
     /// `assert_ipqp_routing_partition` asserts exactly this.
     Index ipqp_to_walk = 0;
 
@@ -1878,7 +1878,7 @@ struct SqpCounters {
     // THE SUBPROBLEM-EXIT GROUP. Five fields that say WHY a subproblem failed
     // and what the driver did about it. `map_status` folds `QpStatus::kIterationLimit` and
     // `QpStatus::kNumericalError` into the same `SolveStatus::kNumericalError`
-    // (src/drivers/sqp_solver.cpp), and `rejected_steps` conflates a routed
+    // (src/sqp/sqp_solver.cpp), and `rejected_steps` conflates a routed
     // failure with a strategy rejection BY DESIGN (see its note above).
     //
     // ALL FIVE ARE COUNTED AT ONE SITE -- the SUBPROBLEM FAILURE ROUTING block
@@ -2462,7 +2462,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // the struct takes `kSqpCountersFieldCount + 2` initializers.
 //
 // The three arity pins (SsnCounters, IpqpCounters, SqpCounters against their tables)
-// live in src/drivers/trace_writer.cpp, which already includes this header: a
+// live in src/trace/trace_writer.cpp, which already includes this header: a
 // struct-table mismatch still fails the library build.
 
 /// The SqpCounters table's field offsets, in table order. `offsetof` is only

@@ -21,7 +21,7 @@ namespace hven::detail {
 //
 // The net is in the tests: `-Wswitch` is an ERROR there, over one exhaustive
 // switch per enum, and no emitted line may contain `"unknown"`
-// (tests/sqp/test_trace_writer.cpp).
+// (tests/trace/test_trace_writer.cpp).
 inline const char *to_json(IpqpTraceRegDirection v) {
     switch (v) {
     case IpqpTraceRegDirection::kDown:

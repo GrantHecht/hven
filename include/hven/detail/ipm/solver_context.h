@@ -22,7 +22,7 @@
 namespace hven::detail {
 
 // Forward declaration only: SolverContext carries a non-owning pointer to the
-// active RestorationStrategy (complete type in globalization/restoration.h,
+// active RestorationStrategy (complete type in detail/ipm/globalization/restoration.h,
 // which includes THIS header — a plain include here would be circular). The
 // pointer is null whenever feasibility restoration is off (the default), which
 // is exactly when every restoration branch that consults it is provably dead.

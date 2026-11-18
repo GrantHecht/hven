@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // M8 AP-5 G4: the intra-iteration stop polls, on the StopPollSeam
-// (hven/core/detail/stop_poll.h; docs/testing.md). The design page's test-plan rows
+// (hven/detail/core/stop_poll.h; docs/testing.md). The design page's test-plan rows
 // (docs/notes/2026-11-m8-ap5-interface-design.md section 3.6):
 //
 //   T3  a token stop between inertia-ladder attempts returns the iteration's start
@@ -931,9 +931,9 @@ TEST(StopPollSeam, AResolveAfterAnIntraSubproblemStopIsAFreshSolve) {
 }
 
 // The elastic re-solve: InfeasibleCircleLineModel's first subproblem is infeasible, so
-// the walk's second solve is the elastic ladder's first rung (tests/sqp/
-// test_sqp_restoration.cpp derives the trajectory; copied verbatim from
-// tests/drivers/test_callback.cpp).
+// the walk's second solve is the elastic ladder's first rung (tests/sqp/test_sqp_restoration.cpp
+// derives the trajectory; copied verbatim from
+// tests/solver/test_callback.cpp).
 class InfeasibleCircleLineModel : public NlpModel {
   public:
     Index n() const override { return 2; }
@@ -1261,7 +1261,7 @@ TEST(StopPollSeam, T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTest
 }
 
 // The second-order correction's re-solve is not a safe point: the walk is not armed for
-// it. Copied verbatim from tests/drivers/test_callback.cpp (MaratosModel): at theta = 0.1
+// it. Copied verbatim from tests/solver/test_callback.cpp (MaratosModel): at theta = 0.1
 // the second major's rejected trial is rescued by a SOC re-solve.
 class MaratosModel : public NlpModel {
   public:

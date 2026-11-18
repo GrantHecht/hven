@@ -501,7 +501,7 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
 // ===========================================================================
 // R1(c) -- THE COMPILE-TIME NET the production TU cannot provide
 // ===========================================================================
-// `-Wswitch` in `src/drivers/trace_writer.cpp` only WARNS: this tree carries no
+// `-Wswitch` in `src/trace/trace_writer.cpp` only WARNS: this tree carries no
 // `-Werror`, so an enumerator added without a spelling ships a `"unknown"`.
 //
 // Here it is an ERROR, over one exhaustive switch per enum. An added enumerator
@@ -4275,7 +4275,7 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
 //
 // The DRIVER-side pins (both emit sites, the count identity, the callback as
 // the oracle, the null sink, the exit statuses, the mixed stream) are in
-// tests/interior/test_ipm_trace.cpp; these are the serializer's.
+// tests/ipm/test_ipm_trace.cpp; these are the serializer's.
 
 /// Three interior-point rows, one per shape the block has: a barrier row with
 /// the step leaving it (every optional present), a barrier row with NO step
@@ -5209,7 +5209,7 @@ namespace {
 
 /// The live console pins below read the process's real `stdout`: the DRIVER
 /// builds its own console and gives it `stdout`, so there is no `FILE *` for a
-/// test to hand it. `hven::testing::StdoutCapture` (tests/common_support/) is that
+/// test to hand it. `hven::testing::StdoutCapture` (tests/support/) is that
 /// redirection, in one portable place.
 using hven::testing::StdoutCapture;
 

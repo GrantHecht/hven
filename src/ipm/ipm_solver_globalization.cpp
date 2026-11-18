@@ -552,7 +552,7 @@ double ClassicMeritAcceptance::classic_line_search(IpmLineSearchMode lsmode, dou
 
 // ModernMeritAcceptance — the modernized merit family (WMNO / flexible penalty
 // rules), driven through the GENERIC AcceptanceStrategy path. See
-// globalization/modern_merit.h for the full paper-derived formulation and the
+// detail/ipm/globalization/modern_merit.h for the full paper-derived formulation and the
 // ProgressMeasures mapping; the code below is a direct transcription of the
 // (accept-π), (threshold), and penalty-update equations documented there.
 
@@ -1340,7 +1340,7 @@ void commit_recovered_step(Eigen::VectorXd &DXSL, double &alpha, IpmIterate &Cit
 // reached when SOC is enabled (max_soc_ > 0, so rebuild_globalization_
 // components() built a SocRecovery)
 // AND the line search rejected a usable step (the recovery-dispatch gate). See
-// globalization/soc.h for the algorithm overview and the trigger/termination
+// detail/ipm/globalization/soc.h for the algorithm overview and the trigger/termination
 // predicates driven below.
 
 void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
@@ -1768,7 +1768,7 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
 }
 
 // SwitchingAcceptance — the shared Wächter–Biegler switching-condition
-// skeleton (filter/funnel shared base). See globalization/switching_acceptance.h
+// skeleton (filter/funnel shared base). See detail/ipm/globalization/switching_acceptance.h
 // for the full formulation; the code below is a direct transcription of the
 // θ_min/θ_max derivation, the switching condition (Eq. 19), and the F-type
 // Armijo test (Eq. 20) documented there.
@@ -1896,7 +1896,7 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
 }
 
 // FunnelAcceptance — scalar-funnel H-type strategy on the switching skeleton.
-// See globalization/funnel_acceptance.h for the full formulation; the code
+// See detail/ipm/globalization/funnel_acceptance.h for the full formulation; the code
 // below transcribes the width initialization (init), the H-type verdict (2),
 // and the width update (3) documented there, following Uno's shipped default
 // funnel_update_strategy = 1.
@@ -2035,7 +2035,7 @@ void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
 }
 
 // FilterAcceptance — (θ, φ)-pair filter H-type strategy on the switching
-// skeleton. See globalization/filter_acceptance.h for the full formulation and
+// skeleton. See detail/ipm/globalization/filter_acceptance.h for the full formulation and
 // the rule-by-rule Ipopt citations; the code below transcribes the
 // acceptable-to-current test (1a), the acceptable-to-filter test (1b), the
 // augmentation (2), and the filter-reset heuristic (4) documented there.

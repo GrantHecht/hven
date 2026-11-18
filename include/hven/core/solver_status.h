@@ -8,11 +8,11 @@
 // reason both engines record beside it, the display-string helpers and the
 // reporting order.
 //
-// SolveStatus lives here, at the bottom tier, and not in drivers/: core/
+// SolveStatus lives here, at the bottom tier, and not in solver/: core/
 // ledger.h reports a status, and a core header may depend on no tier above it
 // (pinned by CoreLayering). resolve_ipm_phase_status(), a statement about one
 // engine's exits rather than about the vocabulary, is in
-// detail/drivers/ipm_phase_status.h.
+// detail/ipm/ipm_phase_status.h.
 
 #include <type_traits>
 

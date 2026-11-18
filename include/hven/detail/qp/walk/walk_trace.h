@@ -98,7 +98,7 @@
 // `hven_qp_walk_seam_tests`), which is what keeps the production library and
 // every ordinary test binary untouched by it.
 //
-// WHERE THE HOOKS GO: `src/qp/qp_engine.cpp`, an APACHE-2.0 FILE THIS
+// WHERE THE HOOKS GO: `src/qp/walk/walk_engine.cpp`, an APACHE-2.0 FILE THIS
 // REPOSITORY WROTE. CLAUDE.md §6's boundary preference is satisfied WITHOUT a
 // deviation — no MPL-derived session file is touched and nothing about a
 // backend call is observed — so this seam adds NO entry to `notices/` and no new
@@ -107,7 +107,7 @@
 // exactly the case §6 says the boundary cannot see.
 //
 // WHY THE INCLUDE IS IN `qp_engine.h` AND NOT IN `qp_engine.cpp`. Stated
-// plainly, because it is unusual: `src/qp/qp_engine.cpp` carries an `assert()`
+// plainly, because it is unusual: `src/qp/walk/walk_engine.cpp` carries an `assert()`
 // ABOVE the walk loop, and `assert` materializes `__LINE__` as an immediate
 // operand in a Debug object. An `#include` added at the top of that TU would
 // move that immediate, so the production Debug object would differ in its

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/ipqp_test_support.h -- test-support only, NOT part of the public library
+// Test-support only, NOT part of the public library
 // surface. Shared IPQP counter predicates; AssertionResult, not a direct assert, so the checker
 // stays mutation-pinnable by test_ipqp_counters.cpp. Requirement: `.superpowers/w1-t2-report.md`.
 // It also holds the M6 W2 tier fixtures three suites share (W5 T5).

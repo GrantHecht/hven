@@ -20,7 +20,7 @@ using hven::Vec;
 
 namespace {
 
-// THE ANALYTIC FIXTURES live in tests/sqp/support/ssn_fixtures.h, shared with
+// THE ANALYTIC FIXTURES live in tests/qp/support/ssn_fixtures.h, shared with
 // bench/ssn_safeguard_probe.cpp so the safeguards note has a committed
 // reproduction vehicle (review fix round 1, I5). The banner that used to sit
 // here -- every iteration count below is an OBSERVED VALUE measured with

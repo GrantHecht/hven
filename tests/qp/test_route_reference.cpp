@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_route_reference.cpp -- M7 WX B0: the sentinel for the reference build
-// (tests/common_support/route_reference.h; docs/testing.md "The reference build").
+// (tests/support/route_reference.h; docs/testing.md "The reference build").
 //
 // Exact route pins are measured at MKL's AUTO dispatch on the derivation box's CPU
 // (mkl_dispatch_signature.h). Two things put a reference build off-reference in fact while

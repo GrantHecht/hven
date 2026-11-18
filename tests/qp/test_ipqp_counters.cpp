@@ -78,7 +78,7 @@ TEST(IpqpCounters, SqpCountersCarriesAZeroInitializedIpqpFieldBesideSsn) {
 }
 
 // ===========================================================================
-// THE ESCAPE-CENSUS INVARIANT, as the reusable helper in tests/sqp/support/ipqp_test_support.h.
+// THE ESCAPE-CENSUS INVARIANT, as the reusable helper in tests/qp/support/ipqp_test_support.h.
 // ===========================================================================
 
 TEST(IpqpCounters, EscapeCensusHelperAcceptsAConsistentCensus) {

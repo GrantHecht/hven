@@ -506,7 +506,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
 // from the monotone mode MonitoredBarrierGovernor runs inside its own
 // update_barrier, which sections (6) and (7) above drive -- and it was cold on
 // the W6 T0 coverage read, the fifth-largest uncovered region in
-// src/drivers/ipm_solver_globalization.cpp.
+// src/ipm/ipm_solver_globalization.cpp.
 //
 // Driven directly, at a real KKT layout: 2 primals, 2 slacks, 1 equality and 2
 // inequality rows, so the objective/dual-gradient tail writes into real

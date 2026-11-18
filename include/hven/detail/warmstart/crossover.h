@@ -189,7 +189,7 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 /// @throws std::invalid_argument On any size mismatch (offending sizes in
 /// the message).
 ///
-/// The body lives in src/warmstart/warm_start.cpp (runs at most once per
+/// The body lives in src/warmstart/crossover.cpp (runs at most once per
 /// solve; never inlined at its call sites). detail::ip_activity_threshold
 /// above STAYS HERE: it is a template on purpose, so this function can pass
 /// it an Eigen expression rather than materialize two n-sized temporaries.

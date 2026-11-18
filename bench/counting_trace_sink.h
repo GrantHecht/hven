@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/counting_trace_sink.h -- THE COUNTING TRACE SINK, SHARED BY THE TWO
+// THE COUNTING TRACE SINK, SHARED BY THE TWO
 // BENCH TUs THAT ATTACH ONE (M7 W0 T2).
 //
 // The class below is M6 W6 T6's, MOVED here VERBATIM from bench_corpus.cpp's

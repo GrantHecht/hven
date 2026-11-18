@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_seams.cpp -- M6 W1 task 5 pins for paths no LEGAL subproblem reaches on
+// M6 W1 task 5 pins for paths no LEGAL subproblem reaches on
 // this backend: section 2.2's evidence-failure policy and the two terminal inertia states the
 // item 4 certification read can report. Measurements: `.superpowers/w1-t4-report.md` F8.
 //

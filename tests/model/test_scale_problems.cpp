@@ -1,9 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_scale_problems.cpp — Phase-5 Task 1: the F7 collocation-chain
-// scale generator of tests/sqp/support/scale_problems.h, held to the two gates
-// tests/test_parametric_families.cpp holds F1-F6 to, plus the two Phase-5
+// Phase-5 Task 1: the F7 collocation-chain
+// scale generator of tests/model/support/scale_problems.h, held to the two gates
+// tests/model/test_parametric_families.cpp holds F1-F6 to, plus the two Phase-5
 // additions that are the point of this family.
 //
 //   1. THE TRANSCRIPTION GATE (small N). Every analytic derivative is
@@ -30,7 +30,7 @@
 // bytes at n = 10^4 and 8e10 at n = 10^5 -- not a slow test, an impossible
 // one. The substitute is the Phase-4 Task-8 precedent
 // (ParametricF3.ScaleReadinessAtTenThousand in
-// tests/test_parametric_families.cpp): the exact sparsity STRUCTURE, entry by
+// tests/model/test_parametric_families.cpp): the exact sparsity STRUCTURE, entry by
 // entry against the closed-form counts, plus a DIRECTIONAL H*v check against a
 // central difference of the Lagrangian gradient along several v. The same
 // substitution is made for the gradient and the Jacobians at n = 10^5, where
@@ -38,7 +38,7 @@
 //
 // ACTIVITY IS MEASURED GEOMETRICALLY -- a constraint is active at the returned
 // point iff it holds with equality there, to a tolerance -- for the reason
-// tests/test_parametric_families.cpp states. F7 is strictly complementary at
+// tests/model/test_parametric_families.cpp states. F7 is strictly complementary at
 // every sampled (N, p) (junction_margin() below is asserted to stay well above
 // zero), so the geometric and working-set notions coincide here.
 
@@ -214,7 +214,7 @@ SqpOptions tight_options() {
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
 // therefore SqpWarmState's) encoding. Mirrors the helper of the same name in
-// tests/test_parametric_families.cpp, which is file-local there.
+// tests/model/test_parametric_families.cpp, which is file-local there.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;
     a.bound_active.assign(static_cast<std::size_t>(model.n()), 0);
@@ -284,7 +284,7 @@ Vec probe_direction(Index n, int seed) {
 }
 
 // peak_rss_mib() -- PHASE-5 TASK 2 moved this from a local helper here into
-// tests/sqp/support/scale_problems.h so bench/bench_scale.cpp can share the same
+// tests/model/support/scale_problems.h so bench/bench_scale.cpp can share the same
 // /proc/self/status parser rather than duplicating it; see that header's own
 // note for the -1 sentinel contract (unchanged) and this file's THE PEAK-RSS
 // PRINT IS INFORMATIONAL note below for how the one call site here still
@@ -579,7 +579,7 @@ TEST(ScaleF7, AnalyticPathMatchesColdSolveAtHundredNodes) {
 // The Task-3 walk counters this test reads, summed over every QP subproblem of
 // one solve (five from the original round, six from its fix round).
 // SqpCounters carries none of them (sqp_solver_types.h), so an attached Ledger is the
-// only route -- the same route tests/test_scale_smoke.cpp uses for
+// only route -- the same route tests/sqp/test_scale_smoke.cpp uses for
 // schur_updates.
 struct WalkCounts {
     Index minors = 0;
@@ -1335,7 +1335,7 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
 //
 // WHY HERE AND NOT IN THE PER-COMMIT SUITE. It costs ~1 s in Release and
 // several in Debug, and the POLICY it exercises is already pinned directly and
-// cheaply by tests/test_qp_engine.cpp's QpEngineSizeDerivedCap battery (the
+// cheaply by tests/qp/test_qp_engine.cpp's QpEngineSizeDerivedCap battery (the
 // base, the coefficient, the floor and the precedence rule, all without
 // solving anything). This test adds the end-to-end consequence, which belongs
 // with the family that produces it and at the cadence this suite already runs.

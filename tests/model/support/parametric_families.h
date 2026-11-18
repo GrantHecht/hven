@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/parametric_families.h — test-support only, NOT part of the
+// Test-support only, NOT part of the
 // public library surface. SIX SYNTHETIC PARAMETRIC FAMILIES with fully
 // ANALYTIC solution paths: the fixed test bed the rest of Phase 4's
 // parametric half is written against (the tangential predictor's O(||dp||^2)
@@ -83,7 +83,7 @@
 // CROSS-CHECK. Every path below was cross-checked during development against
 // an INDEPENDENT numerical optimizer (scipy.optimize.minimize, SLSQP) at
 // 8-12 parameter values per family, agreeing to 1e-8 in x and ~1e-16 in f;
-// the tests in tests/test_parametric_families.cpp then re-check the same
+// the tests in tests/model/test_parametric_families.cpp then re-check the same
 // claims against THIS project's driver, which is the check that ships.
 
 #include <algorithm>
@@ -269,7 +269,7 @@ class F1BoxQp : public ParametricNlpModel {
     // because kSumLimit - kBoxUpper evaluates to 0.19999999999999996 in
     // binary64 (0.8 is not representable); the two agree to 1 ulp and the
     // literal is the value the derivation names. ThresholdsMatchTheirDefining
-    // Geometry in tests/test_parametric_families.cpp pins that agreement so
+    // Geometry in tests/model/test_parametric_families.cpp pins that agreement so
     // the two constants cannot drift apart.
     static constexpr double kPLow = 0.2;
     static constexpr double kPHigh = kBoxUpper;
@@ -677,7 +677,7 @@ class F2CircleNlp : public ParametricNlpModel {
 // closes the null direction, and the engine's own primal_delta/dual_mu
 // regularization is applied on top of it, so
 // K0 = [[L + delta I, e_1], [e_1^T, -mu]] is nonsingular for any
-// delta, mu > 0. No counter pinned in tests/test_parametric_families.cpp
+// delta, mu > 0. No counter pinned in tests/model/test_parametric_families.cpp
 // depends on a backend-specific factorization path.
 // =====================================================================
 class F3SpringChain : public ParametricNlpModel {
@@ -1284,7 +1284,7 @@ class F5MovingThreshold : public ParametricNlpModel {
 // from the junctions and only FIRST-order in the one cell containing each
 // junction (the standard h/4 * (slope jump) bound for a linear interpolant
 // straddling a kink), so a transfer's error, measured over the whole vector,
-// is dominated by the two junction cells. tests/test_mesh_transfer.cpp
+// is dominated by the two junction cells. tests/warmstart/test_mesh_transfer.cpp
 // measures and pins both numbers separately for exactly this reason.
 //
 // ---------------------------------------------------------------------

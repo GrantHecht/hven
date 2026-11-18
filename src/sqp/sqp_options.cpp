@@ -493,17 +493,17 @@ SqpOptions worker_options(SqpOptions base) {
 // M7 W0 T5(b): the options dump.
 //
 // A hand-written printer, one line per field, pinned against SqpOptions (and
-// the nested structs) by tests/drivers/test_options_dump.cpp. The contract --
+// the nested structs) by tests/solver/test_options_dump.cpp. The contract --
 // order, prefixes, enumerator names, shortest round-trip doubles -- is
 // documented once at dump_options(const IpmOptions &, std::ostream &) in
-// drivers/ipm_options.h and is not restated here.
+// ipm/ipm_options.h and is not restated here.
 //
 // NOTHING BELOW WEAKENS THIS FILE'S FP PREMISE. The dump performs no
 // floating-point operation either: every double it touches is handed to
 // fmt::format for rendering, exactly as the rejection messages above do.
 //
 // The kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
-// deliberately duplicated from src/drivers/ipm_options.cpp; the reasoning is
+// deliberately duplicated from src/ipm/ipm_options.cpp; the reasoning is
 // recorded there.
 // =============================================================================
 
@@ -513,7 +513,7 @@ namespace {
 // Important 1): every line is rendered whole by fmt and handed to the stream by
 // `write()`, an UNFORMATTED output function, so the caller's flags, precision,
 // width, fill and imbued locale reach no byte of the output. The reasoning is
-// recorded in full in src/drivers/ipm_options.cpp.
+// recorded in full in src/ipm/ipm_options.cpp.
 void emit(std::ostream &os, const std::string &line) {
     os.write(line.data(), static_cast<std::streamsize>(line.size()));
 }
@@ -527,7 +527,7 @@ void kv_bool(std::ostream &os, const char *name, bool v) {
 void kv_str(std::ostream &os, const char *name, const char *v) {
     emit(os, fmt::format("{} = {}\n", name, v));
 }
-// Shortest round-trip (`1e-06`); see src/drivers/ipm_options.cpp.
+// Shortest round-trip (`1e-06`); see src/ipm/ipm_options.cpp.
 void kv_dbl(std::ostream &os, const char *name, double v) {
     emit(os, fmt::format("{} = {}\n", name, v));
 }
@@ -546,7 +546,7 @@ void kv_opt_dbl(std::ostream &os, const char *name, const std::optional<double> 
     }
 }
 
-// ENUMERATOR NAMES, not display strings -- see src/drivers/ipm_options.cpp.
+// ENUMERATOR NAMES, not display strings -- see src/ipm/ipm_options.cpp.
 const char *enum_name(QpMode v) {
     switch (v) {
     case QpMode::kWalk:

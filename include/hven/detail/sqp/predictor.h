@@ -187,7 +187,7 @@ struct PredictorOptions {
 // emits and where a predictor-only field would be meaningless.
 enum class PredictorOutcome { kPredicted, kZeroStep, kDegraded };
 
-// Defined in src/drivers/sqp_print.cpp with the other solver-enum printers:
+// Defined in src/sqp/sqp_print.cpp with the other solver-enum printers:
 // printing belongs in a .cpp TU, and code-generating this switch into every
 // TU including this header was measurable build cost for nothing.
 const char *to_string(PredictorOutcome outcome);

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/hs_sweeps.h — test-support only, NOT part of the public
+// Test-support only, NOT part of the public
 // library surface. PHASE-5 TASK 7: a NONCONVEX PARAMETRIC CORPUS, built by
 // re-posing six of hs_problems.h's Hock-Schittkowski models along a
 // one-dimensional parameter.
@@ -12,7 +12,7 @@
 // WHY THIS EXISTS, AND WHY IT IS NOT parametric_families.h
 //
 // Phase 4 shipped seven synthetic parametric families (F1-F7,
-// tests/sqp/support/parametric_families.h) with analytic solution paths, and the
+// tests/model/support/parametric_families.h) with analytic solution paths, and the
 // Task-13 warm-start battery measured the whole warm-start subsystem on them.
 // That corpus answered the economics questions it was built for and left TWO
 // POLICY LEVERS UNADJUDICATED, for the same underlying reason in both cases:
@@ -91,7 +91,7 @@
 // none of the three. The eval_hess clause added in Phase-5 Task 0 --
 // independence of obj_scale and of the lambda VALUES -- likewise transfers
 // unchanged, because the forward passes all four arguments straight through.
-// tests/test_hs_sweeps.cpp pins the pattern across two x AND two p per problem
+// tests/sqp/test_hs_sweeps.cpp pins the pattern across two x AND two p per problem
 // rather than resting on this paragraph.
 //
 // =====================================================================
@@ -130,7 +130,7 @@
 // choosing rule is stated so it is reproducible: for each problem the shift
 // direction is the one that moves the ACTIVE geometry (the constraint whose
 // activity defines the solution) rather than a slack row, and the range is the
-// widest one on which every arm of tests/test_hs_sweeps.cpp still converges at
+// widest one on which every arm of tests/sqp/test_hs_sweeps.cpp still converges at
 // every grid point. There is no analytic solution path here -- unlike
 // parametric_families.h, these problems have none in closed form -- so a
 // sweep's correctness evidence is the per-solve KKT self-check

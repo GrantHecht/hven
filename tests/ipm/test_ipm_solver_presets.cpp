@@ -39,7 +39,7 @@
 //      with max_iters = 500, and the diff against IpmOptions{} is EXACTLY the
 //      three lines the event moved.
 //
-// Ported from tycho's tests/cpp/solvers/test_ipm_solver_presets.cpp
+// Ported from the engine's pre-migration test of the same name
 // (the file-name-uniqueness prefix there was PresetGate; kept here so the
 // intent stays traceable, and because it does not collide with anything else
 // in this unity-merged test binary).

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// detail/warmstart/sqp_warm_state.h -- SqpWarmState, the SQP engine's native
+// SqpWarmState, the SQP engine's native
 // warm-start STATE, the plain-data body behind the opaque public handle
 // `warmstart/sqp_warm_start.h::SqpWarmStart`.
 //

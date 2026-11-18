@@ -7,7 +7,7 @@
 // seam, not a per-element hot path, so they live in a .cpp. They EVALUATE
 // NOTHING: every model quantity arrives as an argument, from the evaluation the
 // engine already holds at the point it is about to return (see
-// detail/drivers/declared_diagnostics.h).
+// detail/solver/declared_diagnostics.h).
 
 #include <hven/detail/solver/declared_diagnostics.h>
 #include <hven/solver/solve_result.h>

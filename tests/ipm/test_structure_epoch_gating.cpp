@@ -790,7 +790,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
         //
         // THE MAPPING, stated: the compound iterate is laid out
         // [primals | slacks | eq multipliers | ineq multipliers]
-        // (detail/interior/kkt_vector.h). This problem has ONE equality row, no
+        // (detail/ipm/kkt_vector.h). This problem has ONE equality row, no
         // inequality rows and therefore no slack block, so its equality
         // multiplier is the single entry at index kN. The event's `lambda_e` is
         // the DECLARED rows of that block -- here all of it, there being no

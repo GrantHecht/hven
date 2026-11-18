@@ -1,10 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_corpus.cpp — PHASE-7 TASK 1: the replay corpus runner. Thin CLI
+// PHASE-7 TASK 1: the replay corpus runner. Thin CLI
 // glue over bench/corpus_cells.h's engine interface -- every actual cell
 // spec, tag, the gate evaluator and the walk engine's implementation live
-// there (and are shared with tests/test_corpus_cells.cpp, the SNOPT-gate
+// there (and are shared with tests/bench/test_corpus_cells.cpp, the SNOPT-gate
 // precedent bench/CMakeLists.txt already follows for exactly this reason: one
 // implementation, not a bench copy and a test copy that could drift).
 //
@@ -17,7 +17,7 @@
 // it is a measurement instrument, and the baseline sweep this task commits
 // (docs/notes/data/2026-08-06-corpus/walk_baseline.csv) touches N = 20000
 // cells that run for minutes to hours. Its correctness gate is
-// tests/test_corpus_cells.cpp, which drives this binary as a subprocess for
+// tests/bench/test_corpus_cells.cpp, which drives this binary as a subprocess for
 // everything a linked-in test cannot reach.
 //
 // T6: every rejection throws std::invalid_argument with the usage text
@@ -518,7 +518,7 @@ struct Args {
     // `--internal-run-one --engine interior` and REFUSED everywhere else.
     std::optional<std::string> treatment;
     // Hidden TEST-ONLY overrides of the two phase budgets in THIS invocation,
-    // so tests/test_corpus_cells.cpp can force each DNF path deterministically
+    // so tests/bench/test_corpus_cells.cpp can force each DNF path deterministically
     // (kill during setup vs kill during the reported solve) without waiting
     // out a real 900 s+ deadline. Never documented in --help; a production
     // invocation never passes them -- and if one does, the runner says so
@@ -543,7 +543,7 @@ struct Args {
     SsnHintRule ssn_hint_rule = SsnHintRule::kIterationZeroFree;
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
     // Hidden TEST-ONLY lever. Makes the CHILD throw immediately after it
-    // signals setup-complete, so tests/test_corpus_cells.cpp can drive the
+    // signals setup-complete, so tests/bench/test_corpus_cells.cpp can drive the
     // PARENT's engine_error path deterministically. It exists because the
     // census's own throwing cells (the four kSsn rows of Task 6's battery) are
     // N >= 2000 cells that run for minutes -- far too heavy for ctest -- and a
@@ -553,7 +553,7 @@ struct Args {
     bool internal_force_child_throw = false;
     // Hidden TEST-ONLY lever, the SIGNAL counterpart of the one above. Makes
     // the child die by SIGABRT rather than by a caught exception, so
-    // tests/test_corpus_cells.cpp can drive the parent's OTHER branch: "a
+    // tests/bench/test_corpus_cells.cpp can drive the parent's OTHER branch: "a
     // signal, or any other exit code, is a runner failure, never a
     // measurement". Without it that rule is unfixturable -- the deadline path
     // SIGKILLs the child but returns its DNF outcome before ever inspecting a
@@ -2732,7 +2732,7 @@ int main(int argc, char **argv) {
             // CountingTraceSink the HS leg attaches. What is being measured is
             // the ATTACHED-ONLY PAYLOAD PREPARATION the attachment turns on --
             // O(n) per event, not an O(1) dispatch (M6 W6 T6 fix1: the guarded
-            // snapshot/mapping/diagnostics at src/drivers/sqp_solver.cpp:4695,
+            // snapshot/mapping/diagnostics at src/sqp/sqp_solver.cpp:4695,
             // not fire_iteration_event, which computes nothing at :4562) -- so
             // an observer that did real work would measure the observer
             // instead.

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_corpus_cells.cpp — PHASE-7 TASK 1: the replay corpus's own
+// PHASE-7 TASK 1: the replay corpus's own
 // correctness gate. Shares bench/corpus_cells.h's implementation with
 // bench/bench_corpus.cpp rather than duplicating it (the SNOPT-gate
 // precedent tests/CMakeLists.txt already documents).
@@ -2702,7 +2702,7 @@ const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
         // monitored governor) this cell's restoration episode is classified
         // locally infeasible where the pre-event default left it near-feasible,
         // so the phase leaves by a different labelled door -- the same flip
-        // `make_stall_solver` shows in tests/interior/test_ipm_stop_reason.cpp,
+        // `make_stall_solver` shows in tests/ipm/test_ipm_stop_reason.cpp,
         // on a different problem. This row tracks the SHIPPED default, because
         // that is what the bench artifact is a census of; the stage-stalled
         // door keeps its own coverage in the unit suite, which pins the
@@ -4083,7 +4083,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // a gate difference. That single rule is the suite's since M6 W6 T6b --
         // byte equality first, then 1e-5 relative with the 1e-13 absolute floor,
         // non-finite refused -- and is what scripts/census_compare.py:46-48,
-        // scripts/compare_replay.py and tests/drivers/test_concurrency.cpp state.
+        // scripts/compare_replay.py and tests/solver/test_concurrency.cpp state.
         //
         // WHAT THE MOVE ACTUALLY LOOSENED, measured rather than argued: five
         // bounds on ONE row, f7_n1000_bound_neutral's, whose Release residuals

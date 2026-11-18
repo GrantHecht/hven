@@ -2951,7 +2951,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //
     // Written ONCE, from the single classified `escape_reason`, so the census is a PARTITION by
     // construction: exactly one branch below can run, and each runs `ipqp_escapes` with it --
-    // the whole of the sum invariant `tests/sqp/support/ipqp_test_support.h` asserts.
+    // the whole of the sum invariant `tests/qp/support/ipqp_test_support.h` asserts.
     //
     // THREE OUTCOMES DELIBERATELY CONTRIBUTE NOTHING: `kNone` on a clean solve; `kNone` on a
     // DOWNGRADED solve (plan section 7 note (j): "a downgrade, not an escape ... no census entry,

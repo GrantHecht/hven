@@ -1,14 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_parametric_families.cpp — Phase-4 Task 8: the synthetic
-// parametric families of tests/sqp/support/parametric_families.h, checked in the
+// Phase-4 Task 8: the synthetic
+// parametric families of tests/model/support/parametric_families.h, checked in the
 // two ways that make them usable as a test bed for Tasks 9/10 and Phase 5/6.
 //
 // F1-F3 ARE TASK 8's; F6 WAS ADDED IN TASK 11's FIX ROUND 1, held to the same
 // two gates because its analytic multipliers are the REFERENCE
-// tests/test_mesh_transfer.cpp measures the whole costate transfer against.
-// (F4/F5 are exercised by tests/test_predictor.cpp, which is what they were
+// tests/warmstart/test_mesh_transfer.cpp measures the whole costate transfer against.
+// (F4/F5 are exercised by tests/sqp/test_predictor.cpp, which is what they were
 // built for.)
 //
 // PER FAMILY, IN ORDER:
@@ -572,7 +572,7 @@ TEST(ParametricF3, ScaleReadinessAtTenThousand) {
 // F6 -- discretized integral penalty with a path bound (Phase-4 Task 11).
 //
 // SAME TWO GATES AS F1-F3, for the same reason: F6's analytic claims are
-// consumed by tests/test_mesh_transfer.cpp, which uses lambda_i_star as the
+// consumed by tests/warmstart/test_mesh_transfer.cpp, which uses lambda_i_star as the
 // reference its whole costate measurement is taken against, and by whatever
 // Phase 5/6 builds on it next. The rest of the family's analytic surface
 // (x_star, f_star, z_star, lambda_e_star, active_set, the junctions and the

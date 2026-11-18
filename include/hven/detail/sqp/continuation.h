@@ -426,7 +426,7 @@ inline constexpr Index kProbeBudgetFloor = 200;
 // so a rejected call cannot leave the model re-posed (the same
 // validate-first discipline predictor.h uses).
 //
-// The body is in src/warmstart/continuation.cpp, next to run_continuation's
+// The body is in src/sqp/continuation.cpp, next to run_continuation's
 // -- its only caller.
 void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
               const ContinuationOptions &opts);
@@ -459,7 +459,7 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 // THE MODEL IS LEFT POSED AT THE LAST PARAMETER VALUE ATTEMPTED, which on a
 // successful sweep is p1. This function does not restore p0.
 //
-// The body is in src/warmstart/continuation.cpp, together with
+// The body is in src/sqp/continuation.cpp, together with
 // continuation_detail::validate above: this function runs once per sweep,
 // each of its steps is a whole SqpSolver::solve(), and it was never inlined.
 // The algorithm, the budget rule and every "why" stay here.

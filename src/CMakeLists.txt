@@ -9,9 +9,9 @@ target_sources(hven PRIVATE
     core/pattern_hash.cpp
     core/ledger.cpp
     # The display-string switches for the two solver enums core/ owns
-    # (SolveStatus, StartLevel). They are in a core/ TU, not the drivers/ printing
+    # (SolveStatus, StartLevel). They are in a core/ TU, not the sqp/ printing
     # TU that carries the other three, so that no core/ object resolves a symbol
-    # out of a drivers/ one -- see the file's own banner.
+    # out of an sqp/ one -- see the file's own banner.
     core/enum_names.cpp
     linear/dense_symmetric_factor.cpp
     # The dense arm behind SymmetricFactor: both platforms run the same LAPACK
@@ -72,7 +72,7 @@ target_sources(hven PRIVATE
 
 ################################################################################
 # The shared solve-outcome vocabulary (core/solver_status.h), the interior-point
-# phase-status resolution (detail/drivers/ipm_phase_status.h), the shared declared
+# phase-status resolution (detail/ipm/ipm_phase_status.h), the shared declared
 # diagnostics and the one-line stop message. Its own block because it belongs to neither engine: the status both report and the
 # mappings from the two engine-native enums onto it. A TU on the same footing as
 # core/enum_names.cpp -- switches over enums, not a per-element path.
@@ -88,10 +88,10 @@ target_sources(hven PRIVATE
 
 ################################################################################
 # Interior-point engine — the top-level IpmSolver algorithm
-# (drivers/), the Nlp contract with its adapter and the
+# (ipm/ + solver/), the Nlp contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
-# interior-point machinery under include/hven/detail/ (interior/ +
-# globalization/), split along those same seams.
+# interior-point machinery under include/hven/detail/ (barrier/ + kkt/ +
+# ipm/globalization/), split along those same seams.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -113,59 +113,59 @@ target_sources(hven PRIVATE
 ################################################################################
 # SQP engine
 #
-# The SQP engine's code lives in include/hven/drivers/, include/hven/detail/,
+# The SQP engine's code lives in include/hven/sqp/, include/hven/detail/sqp/,
 # and these TUs. Each TU below is a carve of header-side code into a .cpp
 # under CLAUDE.md §5's rule that orchestration, printing, and options belong
 # outside headers; each file's own banner carries its argument:
 #
-#   - drivers/sqp_print.cpp: the printing surface.
+#   - sqp/sqp_print.cpp: the printing surface.
 #
-#   - drivers/trace_writer.cpp: JsonLinesTraceSink, the machine-trace schema
+#   - trace/trace_writer.cpp: JsonLinesTraceSink, the machine-trace schema
 #     v0 serializer (M6 W4). Printing code by any reading -- one ostream, one
 #     line per event, no arithmetic on the values it formats -- so section 5
 #     selects a TU for it on exactly the ground sqp_print.cpp stands on. It is
 #     off by default: nothing in the library constructs one.
 #
-#   - drivers/sqp_options.cpp: SqpOptions boundary validation. Its banner
+#   - sqp/sqp_options.cpp: SqpOptions boundary validation. Its banner
 #     carries the ONE flag premise in this tree that a comparison's spelling
 #     depends on -- `-fno-finite-math-only`, without which `!(x > 0.0)` may be
 #     rewritten to `x <= 0.0` and stop rejecting NaN -- and a battery pins
 #     that premise by disassembling this TU.
 #
-#   - drivers/assembly_eval_seam.cpp and drivers/sqp_solver.cpp: the driver's
+#   - sqp/assembly_eval_seam.cpp and sqp/sqp_solver.cpp: the driver's
 #     consumer-side seam and the major loop itself (SqpSolver::solve_impl plus
 #     everything it orchestrates), together with the free functions
-#     drivers/sqp_solver.h declares alongside the class. That TU's banner
+#     sqp/sqp_solver.h declares alongside the class. That TU's banner
 #     carries the counter-identity bar any redraw of the boundary must clear,
 #     and the ruling under which the TR update functions travel with the loop
 #     while the TR policy constants stay in globalization. The object-file
 #     evidence that the carve removed no inlining is in the W0.1c report, not
 #     in that banner.
 #
-#   - drivers/problem_scaling.cpp: the W0.2 problem-scaling layer's factor
+#   - sqp/problem_scaling.cpp: the W0.2 problem-scaling layer's factor
 #     computation. Options-shaped code that runs once per solve, so section 5
 #     selects a TU for it on the same ground sqp_options.cpp stands on; it
 #     carries the same `!(x > 0.0)` NaN-rejection idiom and names that file's
 #     banner for the flag premise. The APPLYING of the factors is not here --
-#     it stays beside the values it multiplies, in drivers/assembly_eval_seam.cpp.
+#     it stays beside the values it multiplies, in sqp/assembly_eval_seam.cpp.
 #
-#   - globalization/sqp/funnel.cpp: FunnelStrategy's acceptance state machine,
+#   - sqp/globalization/funnel.cpp: FunnelStrategy's acceptance state machine,
 #     the first carve whose arithmetic is re-associable under -ffast-math; its
 #     proof is bit-identity of every asserted counter across the boundary.
 #
-#   - globalization/sqp/soc_elastic_restoration.cpp: ONE TU for the three
+#   - sqp/globalization/soc_elastic_restoration.cpp: ONE TU for the three
 #     step-recovery tiers (second-order correction, elastic l1 exact-penalty
 #     tier, restoration phase's feasibility-model wrapper), because soc.h and
 #     restoration.h both declare themselves not self-contained (they need
-#     NlpEval, which only drivers/sqp_solver.h defines) and because the three
+#     NlpEval, which only sqp/sqp_solver.h defines) and because the three
 #     tiers are entered from one place in solve_impl.
 #
-#   - warmstart/warm_start.cpp and warmstart/continuation.cpp: the interior-
+#   - warmstart/crossover.cpp and sqp/continuation.cpp: the interior-
 #     point crossover's ingest and the continuation sweep. detail::
 #     ip_activity_threshold stays a header template so the ingest can pass an
 #     Eigen expression rather than materialise two n-sized temporaries.
 #
-#   - qp/qp_engine.cpp: QpEngine's primal active-set walk -- every member
+#   - qp/walk/walk_engine.cpp: QpEngine's primal active-set walk -- every member
 #     function of it except the constructor. The engine is a plain, non-
 #     template class, so section 5's header/templated exception selects none of
 #     it: what is here is orchestration. Every member travels into THIS ONE TU
@@ -176,9 +176,9 @@ target_sources(hven PRIVATE
 #     as header siblings. The only boundary this carve introduces is
 #     engine-to-caller, crossed once per QP subproblem. The `detail::` free
 #     functions above QpEngine stay inline in the header: tests, bench and
-#     drivers/sqp_solver.cpp name them directly.
+#     sqp/sqp_solver.cpp name them directly.
 #
-#   - qp/ssn_engine.cpp: SsnEngine's safeguarded semismooth-Newton iteration --
+#   - qp/ssn/ssn_engine.cpp: SsnEngine's safeguarded semismooth-Newton iteration --
 #     every member function of it except the constructor and the two trivial
 #     accessors (options(), has_deferred_certification()). The engine is a
 #     plain, non-template class, so section 5's header/templated exception
@@ -198,7 +198,7 @@ target_sources(hven PRIVATE
 #     engine-to-caller -- solve(), finish_deferred_certification(),
 #     discard_deferred_certification() -- crossed at most twice per QP
 #     subproblem. The `detail::` free functions and constants above SsnEngine
-#     stay inline in the header: tests, bench, drivers/sqp_solver.cpp and
+#     stay inline in the header: tests, bench, sqp/sqp_solver.cpp and
 #     warmstart/warm_start.h name them directly.
 ################################################################################
 
@@ -285,7 +285,7 @@ target_sources(hven PRIVATE
 #     (this source has since moved to model/non_linear_program.cpp; the row
 #     above is left at its original path, recording the sweep as it ran)
 #   drivers/interior_point_solver_settings.cpp    4.00 -> 2.45  -1.55  identical
-#     (renamed to drivers/ipm_options.cpp at M6 W5 T8.3, which also deleted the
+#     (renamed to ipm/ipm_options.cpp at M6 W5 T8.3, which also deleted the
 #     ~50 set_*() bodies and the four strto_*() parsers this row was measured
 #     over; the row is left as it ran, and the shrunken TU's own PCH benefit is
 #     UNMEASURED -- registered for the next measurement pass, not re-derived
@@ -361,7 +361,7 @@ set(_hven_pch_sources
 # on disk no longer matches the table inside it. MEASURED here on GCC 16.2.1
 # with ccache 4.12.3: such an edit to include/hven/core/solver_status.h gets a
 # `preprocessed_cache_hit` and a served .gch byte-identical to the pre-edit one,
-# and compiling src/drivers/ipm_solver.cpp against that .gch fails on every enum
+# and compiling src/ipm/ipm_solver.cpp against that .gch fails on every enum
 # in that header. That -- not the sources -- is what failed M7 W2 E4's install
 # smoke, whose default arm is the system compiler, i.e. GCC on this box and on
 # CI's Linux runner.
@@ -421,11 +421,11 @@ endif()
 # header set from the one src/hven_pch.h prefixes, which is the property that
 # has failed bar 2 for every TU measured so far.
 #
-# 31 as of drivers/assembly_eval_seam.cpp, the SQP driver's consumer-side
+# 31 as of sqp/assembly_eval_seam.cpp, the SQP driver's consumer-side
 # binding onto the provider contract. It stays OUT on the same footing as the
 # two above -- no measurement exists for it, and out is the unmeasured default
 # -- and on the stronger prior the SQP-side carves established: it includes
-# drivers/sqp_solver.h (for NlpEval) plus the model contract, which is a
+# sqp/sqp_solver.h (for NlpEval) plus the model contract, which is a
 # different header set in a different order from the one src/hven_pch.h
 # prefixes, and that property has failed bar 2 for all eight SQP-side TUs
 # measured so far.
@@ -450,8 +450,8 @@ endif()
 # structure-identity header, and fmt: again a different header set in a
 # different order from the one src/hven_pch.h prefixes.
 #
-# 35 as of qp/qp_engine.cpp, the QP walk carved out of
-# include/hven/detail/qp/qp_engine.h. It stays OUT on the same footing as the
+# 35 as of qp/walk/walk_engine.cpp, the QP walk carved out of
+# include/hven/detail/qp/walk/walk_engine.h. It stays OUT on the same footing as the
 # six above -- no measurement exists for it, and out is the unmeasured default
 # -- and on the SQP-side prior: it includes the QP engine header, which pulls
 # the KKT assembly, the border stack, the sparse factor and the QP types, a
@@ -459,8 +459,8 @@ endif()
 # prefixes, and that property has failed bar 2 for every SQP-side TU measured
 # so far.
 #
-# 36 as of qp/ssn_engine.cpp, the semismooth-Newton iteration carved out of
-# include/hven/detail/qp/ssn_engine.h. It stays OUT on the same footing as the
+# 36 as of qp/ssn/ssn_engine.cpp, the semismooth-Newton iteration carved out of
+# include/hven/detail/qp/ssn/ssn_engine.h. It stays OUT on the same footing as the
 # seven above -- no measurement exists for it, and out is the unmeasured
 # default -- and on the SQP-side prior: it includes the SSN engine header,
 # which pulls the KKT call helpers, the QP problem and QP types, the sparse
@@ -468,15 +468,15 @@ endif()
 # different order from the one src/hven_pch.h prefixes, and that property has
 # failed bar 2 for every SQP-side TU measured so far.
 #
-# 37 as of drivers/problem_scaling.cpp, the M6 W0.2 problem-scaling layer's
+# 37 as of sqp/problem_scaling.cpp, the M6 W0.2 problem-scaling layer's
 # factor computation. It stays OUT on the same footing as the eight above --
 # no measurement exists for it, and out is the unmeasured default. It is also
 # the cheapest TU in the target to compile: two standard headers and one
-# self-contained project header (detail/drivers/problem_scaling.h, which pulls
+# self-contained project header (detail/sqp/problem_scaling.h, which pulls
 # only core/types.h), so it shares none of src/hven_pch.h's prefix and has
 # almost nothing for a PCH to save.
 #
-# 38 as of qp/ipqp_kkt_layout.cpp, the M6 W1 interior-point QP tier's KKT
+# 38 as of qp/ipqp/ipqp_kkt_layout.cpp, the M6 W1 interior-point QP tier's KKT
 # scatter plan. It stays OUT on the same footing as the nine above -- no
 # measurement exists for it, and out is the unmeasured default. Its include
 # set is small and shares little with src/hven_pch.h's prefix: its own header
@@ -486,7 +486,7 @@ endif()
 # blocks and their dimensions, not against QpProblem -- so there is even less
 # for a shared PCH to save here than for the SQP-side TUs above it.
 #
-# 39 as of qp/ipqp_engine.cpp, the M6 W1 interior-point QP tier's iteration:
+# 39 as of qp/ipqp/ipqp_engine.cpp, the M6 W1 interior-point QP tier's iteration:
 # the clamp-centred box, the Mehrotra predictor-corrector, the monotone
 # (rho, delta) ladder and the relative-KKT stopping rule. It stays OUT on the
 # same footing as the ten above -- no measurement exists for it, and out is the
@@ -500,35 +500,35 @@ endif()
 # so far.
 #
 # 40 as of qp/ipqp_trace.cpp (M6 W1 task 8 fix round 1, R6; the file is
-# drivers/trace.cpp since M6 W5 T4): one out-of-line defaulted destructor for
+# trace/trace.cpp since M6 W5 T4): one out-of-line defaulted destructor for
 # TraceSink, one include. Stays OUT on the same unmeasured-default footing as
 # the eleven above -- there is nothing here for a shared PCH to save.
 #
-# 41 as of drivers/trace_writer.cpp (M6 W4 task 1): the machine-trace schema v0
+# 41 as of trace/trace_writer.cpp (M6 W4 task 1): the machine-trace schema v0
 # serializer. Stays OUT on the same unmeasured-default footing as the twelve
-# above. It includes its own header (core/types.h plus drivers/trace.h),
+# above. It includes its own header (core/types.h plus trace/trace.h),
 # fmt/format.h and four standard headers -- a different set in a different
 # order from the one src/hven_pch.h prefixes, which is the SQP-side prior that
 # has failed bar 2 for every such TU measured so far.
 #
-# 42 as of drivers/solve_status.cpp (M6 W5 T8.2): the shared status vocabulary's
+# 42 as of ipm/ipm_phase_status.cpp (M6 W5 T8.2): the shared status vocabulary's
 # switches. Stays OUT on the same unmeasured-default footing as the thirteen
 # above. It includes its own header (core/solver_status.h plus the interior-point
 # forward header), fmt/format.h and <stdexcept> -- a different set in a different
 # order from the one src/hven_pch.h prefixes.
 #
-# 43 as of drivers/solve_result.cpp (M6 W5 T8.4): the shared declared
+# 43 as of solver/solve_result.cpp (M6 W5 T8.4): the shared declared
 # diagnostics' one definition. Stays OUT on the same unmeasured-default footing
 # as the fourteen above. It includes its own header (core/types.h,
 # warmstart/warm_start.h), fmt/format.h and
 # three standard headers -- a different set in a different order from the one
 # src/hven_pch.h prefixes.
 #
-# 44 as of drivers/console_trace_sink.cpp (M6 W5 T8.7): both engines' console
+# 44 as of trace/console_trace_sink.cpp (M6 W5 T8.7): both engines' console
 # tables, rendered from the trace stream. NOT a PCH source, on the same
 # unmeasured-default footing as the fifteen above -- it includes its own header
-# (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_solver.h,
-# drivers/ipm_iterate.h and three standard headers, again a different
+# (trace/trace.h, fmt/color.h, <cstdio>), sqp/sqp_solver.h,
+# ipm/ipm_iterate.h and three standard headers, again a different
 # set in a different order from src/hven_pch.h's prefix.
 #
 # 43 as of M6 W5 T8.7b, which DELETED drivers/interior_point_solver_print.cpp.
@@ -541,55 +541,55 @@ endif()
 # left as it ran, recording a measurement of a file that no longer exists.
 # THIS IS THE FIRST TIME THE COUNT HAS GONE DOWN, and it goes down because the
 # engine has no printing TU left at all: there is no fmt::print anywhere in
-# src/drivers/ipm_solver.cpp.
+# src/ipm/ipm_solver.cpp.
 #
-# 43 as of drivers/equality_basis.cpp (M7 W2 E1): the SQP driver's independent
+# 43 as of sqp/equality_basis.cpp (M7 W2 E1): the SQP driver's independent
 # equality basis. NOT a PCH source, on the same unmeasured-default footing as
 # the others outside the list: it includes its own header, Eigen's SparseQR,
 # OrderingMethods and SparseCholesky modules, fmt/format.h and four standard
 # headers, a different set from src/hven_pch.h's prefix.
 #
-# 44 as of qp/ws_independence.cpp (M7 W2 E2): the QP walk's working-set
+# 44 as of qp/walk/ws_independence.cpp (M7 W2 E2): the QP walk's working-set
 # dependency test and entry detector. NOT a PCH source, on the same
 # unmeasured-default footing.
 #
-# 45 as of globalization/sqp/lbfgs_damped.cpp (M7 QN stage 1): the damped compact
+# 45 as of sqp/quasi_newton/lbfgs_damped.cpp (M7 QN stage 1): the damped compact
 # L-BFGS math class. NOT a PCH source, on the same unmeasured-default footing: it
 # includes its own header (Eigen/Dense), fmt/format.h and standard headers, a
 # different set from src/hven_pch.h's prefix.
 #
-# 46 as of globalization/sqp/mixed_lift.cpp (M7 QN stage 2): the quasi-Newton mixed-lift QP
+# 46 as of sqp/quasi_newton/mixed_lift.cpp (M7 QN stage 2): the quasi-Newton mixed-lift QP
 # adapter. NOT a PCH source, on the same unmeasured-default footing: it includes its own
 # header, fmt/format.h and standard headers, a different set from src/hven_pch.h's prefix.
 #
-# 47 as of globalization/sqp/qn_lift_bridge.cpp (M7 QN stage 3): the quasi-Newton engine-call
+# 47 as of sqp/quasi_newton/qn_lift_bridge.cpp (M7 QN stage 3): the quasi-Newton engine-call
 # decorator. NOT a PCH source, on the same unmeasured-default footing.
-# 48 as of globalization/sqp/qn_models.cpp (M7 QN quality): the full-memory damped BFGS and
+# 48 as of sqp/quasi_newton/qn_models.cpp (M7 QN quality): the full-memory damped BFGS and
 # the nonlinear-variables-only restriction. NOT a PCH source, on the same unmeasured-default
 # footing.
 # 49 as of model/validation_errors.cpp (M8 AP-2 B1): the cold throw-message paths of the model
 # contract's inline checks. NOT a PCH source, on the same unmeasured-default footing: it
 # includes fmt and the four model headers, a different set from src/hven_pch.h's prefix.
-# 50, 51 as of drivers/ipm_solver_handle.cpp and drivers/sqp_solver_handle.cpp (M8 AP-2 B1):
+# 50, 51 as of ipm/ipm_solver_handle.cpp and sqp/sqp_solver_handle.cpp (M8 AP-2 B1):
 # the public IpmSolver / SqpSolver handles' forwarding bodies. NOT PCH sources, on the same
 # footing: each includes only its implementation header.
 # 52, 53 as of model/nlp.cpp and model/problem.cpp (M8 AP-2 B2): the Nlp contract's default
 # members and the Problem every solve takes. NOT PCH sources, on the same unmeasured-default
 # footing: nlp.cpp includes its own header and fmt; problem.cpp the model transcription
 # headers in its own order, a different set from src/hven_pch.h's prefix.
-# 54 as of drivers/common_options.cpp (M8 AP-2 B3): the one CommonOptions validator. NOT a PCH
+# 54 as of solver/common_options.cpp (M8 AP-2 B3): the one CommonOptions validator. NOT a PCH
 # source, on the same unmeasured-default footing: it includes only its own header, fmt and
 # the standard library.
-# 55 as of drivers/result_message.cpp (M8 AP-2 B4): the one-line stop message built by the
+# 55 as of solver/result_message.cpp (M8 AP-2 B4): the one-line stop message built by the
 # public handles. NOT a PCH source, on the same footing: it includes only its own header,
 # the option and result headers, fmt and the standard library.
-# 56 as of drivers/callback_rows.cpp (M8 AP-2 B4): the row-space compose of an iteration
+# 56 as of solver/callback_rows.cpp (M8 AP-2 B4): the row-space compose of an iteration
 # event's multipliers. NOT a PCH source, on the same footing: it includes only its own header
 # and the problem access header.
 # 57 as of linear/dense_session.cpp (M8 DN-1): the dense arm behind SymmetricFactor. NOT a PCH
 # source, on the same unmeasured-default footing: it includes its own header, fmt, the LAPACKE
 # header (or the Accelerate shim) and the standard library.
-# 58 as of drivers/counters_dump.cpp (M8 TR-E): dump_counters for both results, written from the
+# 58 as of solver/counters_dump.cpp (M8 TR-E): dump_counters for both results, written from the
 # counters' X-macro tables. NOT a PCH source, on the same footing: it includes only the counter and
 # result headers, fmt and the standard library.
 # 57 as of RS-1a: util/color_text.cpp (enable_color_console, no caller) deleted with its private header.

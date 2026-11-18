@@ -22,7 +22,7 @@ find_package(hven REQUIRED)
 # own include order, had already pulled the missing declaration in.
 #
 # That is exactly the property W5 relies on: T4 MOVED the trace sink into a
-# public drivers/ header and split the evidence structs out of the engine
+# public trace/ header and split the evidence structs out of the engine
 # header, and T8.10 renamed the four model-layer headers listed below and both
 # engine headers. Both are public-surface changes whose failure mode is
 # "compiles in-tree, does not compile for a consumer".
@@ -48,7 +48,7 @@ find_package(hven REQUIRED)
 #
 # M8 AP-2 B8: three raw-protocol headers took the names of what they declare
 # (solver_indexing_data, sizable_spec, piece_interfaces), and the umbrella
-# hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37. B8 riders: model/pieces.h
+# hven/hven.h and ipm/ipm_iterate.h joined, 35 -> 37. B8 riders: model/pieces.h
 # deleted (the umbrella covers it), trace_writer.h renamed json_lines_trace_sink.h, 37 -> 36.
 # M8 AP-5 G1: core/stop.h (StopSource, StopToken) joined, 36 -> 37.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES

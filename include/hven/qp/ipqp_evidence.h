@@ -4,7 +4,7 @@
 #pragma once
 
 // ipqp_evidence.h -- the IPQP tier's two ESCAPE EVIDENCE BLOCKS, as the trace
-// schema (`drivers/trace.h`) carries them in `IpqpTraceEscapeEvidence`.
+// schema (`trace/trace.h`) carries them in `IpqpTraceEscapeEvidence`.
 //
 // Storage is `bool`/`Index`/`double`/`Vec` only, so this header includes
 // `core/types.h` and nothing else.

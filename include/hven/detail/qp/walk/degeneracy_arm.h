@@ -48,7 +48,7 @@
 //     stationarity scale of 1.6e+11, i.e. 8.3e-04 ulps of the very gradient
 //     terms `z` is a cancellation of. The drop clears the engine's bar only
 //     because `drop_worst` tests `viol > opt_tol` ABSOLUTELY
-//     (`src/qp/qp_engine.cpp`), while the same header's
+//     (`src/qp/walk/walk_engine.cpp`), while the same header's
 //     `free_block_stationarity` / `free_block_is_stationary` test the same
 //     class of residual RELATIVELY and say why in their own comment
 //     (`qp_engine.h` ~:516: "THE THRESHOLD IS SCALED, unlike this file's other
@@ -324,7 +324,7 @@
 // --- SITE COVERAGE: THE SIX MUTATION SITES, AND HOW EACH IS COVERED --------
 //
 // A3 requires the predicate at every add site. The six sites the walk has in
-// `src/qp/qp_engine.cpp`, and what the arm does at each:
+// `src/qp/walk/walk_engine.cpp`, and what the arm does at each:
 //
 //   1. ORDINARY BLOCKER ADD (`QpEngine::run`). COVERED, and it is the arm's
 //      primary rule: the candidates are taken in ratio order and the first
@@ -423,7 +423,7 @@
 namespace hven::detail::testing {
 
 /// Which degeneracy arm is armed on this thread. `kOff` is the default and is
-/// production behaviour EXACTLY: every hook site in `src/qp/qp_engine.cpp`
+/// production behaviour EXACTLY: every hook site in `src/qp/walk/walk_engine.cpp`
 /// runs the unmodified production statements under `kOff`, rather than a
 /// generalized form specialized by a neutral parameter.
 ///
@@ -464,7 +464,7 @@ struct QpDegeneracyParams {
     /// repeated here rather than referenced for the same reason
     /// `dependency_tol`'s is: `qp_engine.h` includes this file (through
     /// `qp_walk_trace.h`) ABOVE its own declarations of them. They are TIED to
-    /// the engine's own constants by `static_assert`s in `src/qp/qp_engine.cpp`
+    /// the engine's own constants by `static_assert`s in `src/qp/walk/walk_engine.cpp`
     /// beside M4's, where both are visible, so an edit to either one fails the
     /// build rather than silently giving the arm a different candidate set.
     double negligible_pivot = 1e-12;
@@ -483,7 +483,7 @@ struct QpDegeneracyParams {
 };
 
 /// THE WORKING-SET MUTATION SITES THE WALK HAS, as amendment A3 enumerates
-/// them and as they stand in `src/qp/qp_engine.cpp` at this commit. The value
+/// them and as they stand in `src/qp/walk/walk_engine.cpp` at this commit. The value
 /// is what a disarm, a refusal or a trace column NAMES, so a read-out can say
 /// WHERE the arm acted rather than only that it did.
 ///
@@ -845,14 +845,14 @@ struct QpDegeneracyArmState {
 // `indep_no_blocker_passes` branch). Three further defects, named rather
 // than silently folded into that one: initial shift additions run through
 // `refresh_shifts` BEFORE the per-solve reset in `begin_solve()`
-// (`src/qp/qp_engine.cpp:505` vs `:618`; `qp_degeneracy_arm.h:1190`'s
+// (`src/qp/walk/walk_engine.cpp:505` vs `:618`; `qp_degeneracy_arm.h:1190`'s
 // `generation`/signature cache can therefore see a preceding QP's disarm
 // state or a stale QR); seed entry repair does not decide every seed member
 // through `admit_if_independent` as this file's own site-coverage table
 // claims -- it calls `b1_projection_residual` directly
 // (`qp_degeneracy_arm.h:337` vs `:1442`); and temporary pin restoration
 // mutates the working set outside the shared predicate
-// (`src/qp/qp_engine.cpp:2530`). No redesign of arm b1 ships in this round --
+// (`src/qp/walk/walk_engine.cpp:2530`). No redesign of arm b1 ships in this round --
 // the production design item is an independent active working set with a
 // multiplier-aware exchange (Gill & Wong, *Math. Prog. Comp.* 7 (2015) §4),
 // registered in the M5 README's item 2 and NOT this ratio-order/full-step

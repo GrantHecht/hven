@@ -2,17 +2,17 @@
 // (see LICENSE).
 
 // problem_scaling.cpp -- the factor computation declared in
-// detail/drivers/problem_scaling.h.
+// detail/sqp/problem_scaling.h.
 //
 // CLAUDE.md section 5 homes orchestration and options-shaped code in .cpp
 // translation units regardless of how hot the surrounding loop is. This code
 // runs ONCE PER SOLVE, over the start point's derivatives, and nothing in it
 // depends on inlining through a template parameter -- the per-major and
 // per-minor arithmetic that DOES is the applying, which stays where the values
-// are (drivers/assembly_eval_seam.cpp).
+// are (sqp/assembly_eval_seam.cpp).
 //
 // THE `!(x > 0.0)` IDIOM APPEARS HERE FOR THE SAME REASON IT APPEARS IN
-// drivers/sqp_options.cpp, and that file's banner carries the full argument:
+// sqp/sqp_options.cpp, and that file's banner carries the full argument:
 // under SAFER_FAST (`-ffast-math -fno-finite-math-only`, this library's one
 // uniform flag regime) the negated form is the one that REJECTS NaN, because
 // NaN compares false against everything. A row norm that came back NaN must
@@ -123,7 +123,7 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
 }
 
 // ===========================================================================
-// THE COLUMN LAYER (M7 W2 SCL), declared in detail/drivers/column_scaling.h. In
+// THE COLUMN LAYER (M7 W2 SCL), declared in detail/sqp/column_scaling.h. In
 // this TU rather than one of its own for the reason the row layer is here: it
 // runs once per solve over the start point's derivatives, and ColumnScaledModel's
 // per-evaluation arithmetic is one multiply per stored entry beside the model call

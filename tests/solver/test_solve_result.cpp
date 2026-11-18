@@ -7,7 +7,7 @@
 // THE DIAGNOSTICS PINS BELOW ARE INDEPENDENT COMPUTATIONS. Nothing here asks an
 // engine what it measured; the model quantities are written out by hand at a
 // point whose KKT multipliers are known, and the expected answers follow from
-// the definitions in drivers/solve_result.h rather than from any engine's own
+// the definitions in solver/solve_result.h rather than from any engine's own
 // convergence test. That is the whole point of the pin: if the shared
 // definition ever drifts toward one engine's internal measure, these fail.
 
@@ -1014,7 +1014,7 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
 TEST(SolveBudget, IpmClampsBeforeNarrowing) {
     // INT_MAX is the largest accepted budget and a WEAK constraint: it is far
     // above this engine's own limit, so the effective cap is that limit. (A
-    // budget above INT_MAX is refused at entry: tests/drivers/test_limits.cpp.)
+    // budget above INT_MAX is refused at entry: tests/solver/test_limits.cpp.)
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
@@ -1113,7 +1113,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
 // Every throw in solve_result.cpp is a SIZE check at the public boundary --
 // CLAUDE.md §4's rule that Eigen's own asserts, compiled out under NDEBUG, must
 // never be the only guard. The W6 T0 coverage read found all of them cold
-// (src/drivers/solve_result.cpp was the lowest-read driver TU, 66.67 % lines,
+// (src/solver/solve_result.cpp was the lowest-read driver TU, 66.67 % lines,
 // and 33 of its 33 missed lines are these checks plus the finiteness gate).
 //
 // Each case below is asserted on the MESSAGE as well as the type: five

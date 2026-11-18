@@ -1970,7 +1970,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
 // floor is a magnitude guard for legitimate near-zero and unpriced entries,
 // and without this check it would silently turn a wrong-sign price into a
 // floor value. The SQP staging path refuses the same thing in the same terms
-// (tests/sqp/test_sqp_warm_currency.cpp).
+// (tests/warmstart/test_sqp_warm_currency.cpp).
 TEST(IpmWarmStart, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
     const WarmBoundedSolve solved;
     hven::IpmPolishData polish = polish_of(solved.warm_);
@@ -2199,7 +2199,7 @@ TEST(IpmWarmStart, TheBridgeRefusesTheStampOfADifferentStructure) {
 // --- R6: cold-vs-hot is never answer-observable ---
 //
 // THE ONLY HOT STATE THIS ENGINE CARRIES ACROSS SOLVES is the epoch-gated KKT
-// sparsity analysis (tests/interior/test_structure_epoch_gating.cpp pins the
+// sparsity analysis (tests/ipm/test_structure_epoch_gating.cpp pins the
 // gate itself). What is pinned here is the consequence of that reuse: a second
 // solve that SKIPS the analysis must answer exactly what a fresh engine that
 // PAID it answers, bit for bit. Epoch-keyed reuse is answer-neutral by

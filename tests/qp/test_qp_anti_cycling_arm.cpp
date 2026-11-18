@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_anti_cycling_arm.cpp — M7 W2 M4's TWO ANTI-CYCLING ARMS
-// (hven/detail/qp/qp_anti_cycling_arm.h), on the `HVEN_TESTING` test-seam
+// (hven/detail/qp/walk/anti_cycling_arm.h), on the `HVEN_TESTING` test-seam
 // convention docs/testing.md describes.
 //
 // WHAT THIS FILE HAS TO PROVE, in the order the round needs it:
@@ -620,7 +620,7 @@ TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerived
     // AND §4.5's `t` IS hven's OWN ENGINE THRESHOLD, at the default (FIX
     // ROUND 1, review Important 5). The arm READS this field now, so the
     // default has to BE production's threshold rather than merely resemble it:
-    // `src/qp/qp_engine.cpp` ties the two literals together with a
+    // `src/qp/walk/walk_engine.cpp` ties the two literals together with a
     // `static_assert`, and this is the same fact asserted from outside, where
     // a reader of the fixtures can see it.
     EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::detail::kEngineDenomTol);
@@ -1064,7 +1064,7 @@ TEST(QpAntiCyclingArm, ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned) {
 /// read; the arms always used `detail::kEngineDenomTol`. It is read now, and
 /// the two halves of that are asserted here: at the DEFAULT the arm's
 /// candidate set is production's (the default IS that constant, asserted in the
-/// defaults fixture above and by a `static_assert` in `src/qp/qp_engine.cpp`),
+/// defaults fixture above and by a `static_assert` in `src/qp/walk/walk_engine.cpp`),
 /// and at a NON-default value the eligible set really changes.
 TEST(QpAntiCyclingArm, ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock) {
     ArmGuard guard;

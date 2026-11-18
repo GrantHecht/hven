@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // M7 W2 E2 step 1: the working-set dependency test and the entry detector
-// (qp/ws_independence.h), on constructed QPs, in both ws_algebra modes.
+// (detail/qp/walk/ws_independence.h), on constructed QPs, in both ws_algebra modes.
 
 #include <cmath>
 #include <initializer_list>

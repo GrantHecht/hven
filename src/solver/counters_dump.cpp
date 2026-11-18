@@ -75,7 +75,7 @@ void put(std::string &out, const std::string &prefix, const char *name, const T 
 static_assert(sizeof(linear::SymmetricFactor::Counters) ==
                   (0 HVEN_DUMP_LINEAR_COUNTERS(HVEN_DUMP_COUNT_ONE)) * sizeof(Index),
               "SymmetricFactor::Counters gained or lost a field: update "
-              "HVEN_DUMP_LINEAR_COUNTERS in drivers/counters_dump.cpp.");
+              "HVEN_DUMP_LINEAR_COUNTERS in solver/counters_dump.cpp.");
 #undef HVEN_DUMP_COUNT_ONE
 
 } // namespace

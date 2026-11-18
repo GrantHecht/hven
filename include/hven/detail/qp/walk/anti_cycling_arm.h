@@ -46,7 +46,7 @@
 // procedure for linearly constrained optimization", Mathematical Programming
 // 45 (1989) 437-474. Every rule this file transcribes carries the paper's own
 // section or equation number at its implementation site in
-// `src/qp/qp_engine.cpp` and again in `QpAntiCycleParams` below. The three
+// `src/qp/walk/walk_engine.cpp` and again in `QpAntiCycleParams` below. The three
 // pieces are: a WORKING feasibility tolerance that grows by a fixed increment
 // at the start of every minor (§4.2, and (4.2) for the increment itself); the
 // two-pass ratio test — a relaxed first pass (Harris, (3.2)) followed by a
@@ -137,7 +137,7 @@
 namespace hven::detail::testing {
 
 /// Which arm is armed on this thread. `kOff` is the default and is production
-/// behaviour EXACTLY: every hook site in `src/qp/qp_engine.cpp` runs the
+/// behaviour EXACTLY: every hook site in `src/qp/walk/walk_engine.cpp` runs the
 /// unmodified production statements under `kOff`, rather than a generalized
 /// form specialized by a zero parameter.
 enum class QpAntiCycleArm : int { kOff = 0, kExpand = 1, kLexicographic = 2 };
@@ -176,7 +176,7 @@ struct QpAntiCycleParams {
     /// sweep tests eligibility against THIS field, so a leg that sets it gets
     /// the eligibility it asked for rather than a printed value the code
     /// ignores. Its DEFAULT is hven's own engine threshold
-    /// `detail::kEngineDenomTol`, BY CONSTRUCTION: `src/qp/qp_engine.cpp`
+    /// `detail::kEngineDenomTol`, BY CONSTRUCTION: `src/qp/walk/walk_engine.cpp`
     /// carries a `static_assert` that the two are equal, so at the default the
     /// set of constraints an arm can block on is production's set exactly and
     /// no landed row is touched by the field becoming live. The literal is
@@ -332,7 +332,7 @@ struct QpAntiCycleArmState {
     /// second -- so ARM E could return a floor step on the ride and have it
     /// undone. Asking ONE function at both sites is what stops the two
     /// diverging again. It lives here, and not as a free function in
-    /// `src/qp/qp_engine.cpp`, because a definition there would have to sit
+    /// `src/qp/walk/walk_engine.cpp`, because a definition there would have to sit
     /// ABOVE that TU's one `assert()` to precede the first call site, which
     /// would move a `__LINE__` immediate in the Debug object's INSTRUCTION
     /// stream and break the round's declared debug-only shape.

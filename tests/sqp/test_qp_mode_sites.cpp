@@ -17,7 +17,7 @@
 //        call sites are the ones it names, and nothing in the type system says
 //        so.
 //
-//        The scan reads src/drivers/sqp_solver.cpp and requires every
+//        The scan reads src/sqp/sqp_solver.cpp and requires every
 //        `QpEngine::solve` / SSN `solve` / `refine_on_face` invocation to be
 //        covered by a nearby emit or by an explicit `// trace:` marker.
 //

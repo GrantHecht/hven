@@ -537,7 +537,7 @@ class NlpAssembly {
     /// Provider-internal scratch is a separate matter and stays the provider's
     /// own to zero. Accumulation is exact only against a -0.0-seeded arena;
     /// the seed choice is the consumer's and is byte-identity-relevant (the
-    /// mechanism is detail/drivers/assembly_eval_seam.h's, not restated here).
+    /// mechanism is detail/sqp/assembly_eval_seam.h's, not restated here).
     ///
     /// IF assemble THROWS, the destinations hold an unspecified prefix of the
     /// fill. This call is not scratch-then-commit: a caller that retries

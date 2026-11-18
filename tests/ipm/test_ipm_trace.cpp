@@ -6,7 +6,7 @@
 // events) as the DRIVER produces them.
 //
 // The serializer's own golden lines live with every other golden line, in
-// tests/sqp/test_trace_writer.cpp; what is pinned HERE is the driver side:
+// tests/trace/test_trace_writer.cpp; what is pinned HERE is the driver side:
 //
 //   (i)   THE CALLBACK IS THE ORACLE. Both are attached at once, and the two
 //         are emitted at the same point, so any divergence between the stream
@@ -1312,7 +1312,7 @@ namespace {
 /// The live console pins below read the process's real `stdout`: the SOLVER
 /// builds its own console and gives it `stdout`, and the print sites this task
 /// left direct write there too. `hven::testing::StdoutCapture`
-/// (tests/common_support/console_capture.h) is that redirection, in one portable
+/// (tests/support/console_capture.h) is that redirection, in one portable
 /// place -- this file used to carry its own copy of it (M6 W5 T8.7 fix1,
 /// astra's I2).
 using hven::testing::StdoutCapture;
@@ -1735,7 +1735,7 @@ TEST(IpmTrace, SolveBeginCarriesTheEngineFactsTheConsoleHeaderNeeds) {
 // The engine's last direct prints are events. These pin the SHAPE of the
 // stream they make -- the per-phase bracket, the analysis count, the embedded
 // report, and the line arithmetic -- where the BYTES are pinned by
-// tests/drivers/test_console_sink.cpp and by the live-transcript leg.
+// tests/trace/test_console_sink.cpp and by the live-transcript leg.
 // ===========================================================================
 
 namespace {
@@ -2087,7 +2087,7 @@ TEST(IpmTrace, AWholeHs071StreamHasOneLinePerRecordKindAndNoUnknownSpelling) {
 // THE INITIALIZATION NOTICE CANNOT BE PINNED THE SAME WAY, and this is the
 // place that says so. `solver_initialized` fires at most ONCE PER PROCESS --
 // `ensure_solver_initialized()` is a `std::call_once` over a function-local
-// `std::once_flag` (src/drivers/solver_init.cpp:19) with no reset -- and this
+// `std::once_flag` (src/ipm/solver_init.cpp:19) with no reset -- and this
 // file's tests share one process with every other interior test, in an order
 // no test controls. No test here can be the process's first solve, so an
 // assertion about a set made from that notice would be vacuous whenever it did
@@ -2535,7 +2535,7 @@ TEST(IpmConsole, TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing) {
     // The console the SOLVER attaches for itself, on a live solve. What is
     // pinned here is the SHAPE -- the header, the legend, the column header, the
     // rows, the footer -- and that a silent level writes not one byte. The BYTES
-    // are pinned in tests/drivers/test_console_sink.cpp.
+    // are pinned in tests/trace/test_console_sink.cpp.
     std::string printed;
     Index iterations = 0;
     {

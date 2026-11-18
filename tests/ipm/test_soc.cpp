@@ -4,8 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Unit tests for the second-order correction (Wächter & Biegler 2006, §2.4):
 // the policy predicates and the correction loop in
-// globalization/soc.h, and SocRecovery's own body in
-// src/drivers/ipm_solver_globalization.cpp.
+// detail/ipm/globalization/soc.h, and SocRecovery's own body in
+// src/ipm/ipm_solver_globalization.cpp.
 //
 // The file test_recovery_dispatch_gate.cpp and test_watchdog.cpp have both
 // named "test_soc.cpp" as the home of the SOC policy tests since the engine
@@ -90,7 +90,7 @@ using TychoTest::InertSolverContext;
 using Action = RecoveryChain::Action;
 
 constexpr double kSocInf = std::numeric_limits<double>::infinity();
-/// A real upper bound far past the far-slack width (hven/detail/interior/barrier_math.h).
+/// A real upper bound far past the far-slack width (hven/detail/barrier/barrier_math.h).
 constexpr double kSocFarUpper = 1e19;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -4,7 +4,7 @@
 // The continuation driver, run_continuation, and the input validation it
 // runs first, continuation_detail::validate. The algorithm, the budget rule,
 // the predictor interaction, and what the sweep leaves the model posed at are
-// documented in detail/warmstart/continuation.h.
+// documented in detail/sqp/continuation.h.
 
 #include <hven/detail/sqp/continuation.h>
 

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/drivers/test_callback.cpp -- ONE PER-ITERATION CALLBACK, BOTH ENGINES
+// ONE PER-ITERATION CALLBACK, BOTH ENGINES
 // (M6 W5 T8.6).
 //
 // `set_iteration_callback(IterationCallback)` / `clear_iteration_callback()`
@@ -424,7 +424,7 @@ struct Hs071View {
 //
 //   min (x0-1)^2 + (x1-1)^2,   x1 fixed at 3 by equal bounds.
 //
-// Shaped after tests/interior/test_ipm_solver_entry.cpp's FixedVarProblem, which the
+// Shaped after tests/ipm/test_ipm_solver_entry.cpp's FixedVarProblem, which the
 // treatment pins already use; copied rather than shared because that fixture is
 // a local of a .cpp in another suite.
 struct FixedVarProblem final : hven::Nlp {
@@ -2601,7 +2601,7 @@ TEST(Callback, ClearingTheCallbackStopsTheEvents) {
 // WHAT "EMPTY" AND "NaN" MEAN HERE. Under a mask that omits kVectors the four
 // views arrive at SIZE 0 -- not a zero vector, which would read as a measured
 // point at the origin. Under a mask that omits kDiagnostics the four
-// diagnostics arrive NaN, which is drivers/solve_result.h's own "unmeasured is
+// diagnostics arrive NaN, which is solver/solve_result.h's own "unmeasured is
 // NaN, never zero" rule carrying one more meaning: NOT REQUESTED.
 // ===========================================================================
 namespace {

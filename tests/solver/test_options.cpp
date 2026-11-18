@@ -25,7 +25,7 @@
 //     label sequence.
 //
 // The SQP half of the same surface is pinned below it, and the hot-handle
-// fingerprint lives in tests/sqp/test_warm_start.cpp beside the kHot chain it
+// fingerprint lives in tests/warmstart/test_warm_start.cpp beside the kHot chain it
 // belongs to.
 
 #include "hven/detail/sqp/globalization/funnel.h"
@@ -101,7 +101,7 @@ void expect_refused(const IpmOptions &o, const char *field) {
 // Both solvers are handles over a heap-allocated private implementation: they
 // are movable (the implementation keeps its address, so the cross-references
 // inside it survive a move) and not copyable. A moved-from solver may only be
-// destroyed or assigned to; tests/drivers/test_solver_move.cpp pins the
+// destroyed or assigned to; tests/solver/test_solver_move.cpp pins the
 // behaviour of a move, not just its traits.
 //
 // These are static_asserts rather than a TEST body deliberately: what is being
@@ -126,7 +126,7 @@ static_assert(std::is_nothrow_move_assignable_v<IpmSolver>,
 // swap has already committed, so a throwing move assignment there would leave
 // the new engine standing beside the old options. This assert is what makes
 // that argument checkable: add a field whose move assignment can throw and the
-// build fails here, pointing at src/drivers/sqp_solver.cpp's set_options().
+// build fails here, pointing at src/sqp/sqp_solver.cpp's set_options().
 static_assert(std::is_nothrow_move_assignable_v<hven::SqpOptions>,
               "SqpSolver::set_options() commits the options after the engine swap on the "
               "strength of this");

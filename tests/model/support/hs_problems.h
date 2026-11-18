@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/hs_problems.h — test-support only, NOT part of the public
+// Test-support only, NOT part of the public
 // library surface. Twenty-seven problems of the Hock-Schittkowski (HS) test
 // collection, transcribed into NlpModel (nlp_model.h) form.
 //
@@ -17,7 +17,7 @@
 // "TASK 11 ADDITIONS" banner further down for the class breakdown, the
 // once-and-for-all g(x) >= 0 -> cI(x) <= 0 sign conversion, and the
 // two-independent-ports cross-check policy. hs_numbers() is the canonical
-// list; tests/test_hs_battery.cpp iterates it.
+// list; tests/sqp/test_hs_battery.cpp iterates it.
 //
 // PRIMARY SOURCE (every problem, cited again per-class below): Hock, W.,
 // Schittkowski, K. (1981). "Test Examples for Nonlinear Programming Codes."
@@ -551,7 +551,7 @@ class Hs76Model : public NlpModel {
 // f* self-check below is what confirms which variant a transcription
 // actually implements.
 //
-// f* IS NEVER TRUSTED FROM THE CITATION ALONE. tests/test_hs_battery.cpp
+// f* IS NEVER TRUSTED FROM THE CITATION ALONE. tests/sqp/test_hs_battery.cpp
 // re-derives a full KKT quadruple from the MODEL at each returned point and
 // asserts on that; the cited f* is a cross-check on top, not the guard.
 // Where an f* has an exact closed form it is STORED in that form rather than
@@ -2273,7 +2273,7 @@ struct HsProblem {
 };
 
 // Every problem number this header ships, in ascending order -- the battery
-// (tests/test_hs_battery.cpp) iterates it rather than re-listing the numbers,
+// (tests/sqp/test_hs_battery.cpp) iterates it rather than re-listing the numbers,
 // so a problem added above and to make_hs below joins the battery by
 // construction and cannot be silently left out of it.
 inline const std::vector<int> &hs_numbers() {
@@ -2288,7 +2288,7 @@ inline const std::vector<int> &hs_numbers() {
 // for any other number.
 //
 // EVERY f* BELOW IS SOURCE-CITED AND SELF-CHECKED. The citation is `source`;
-// the self-check is tests/test_hs_battery.cpp, which re-derives a KKT
+// the self-check is tests/sqp/test_hs_battery.cpp, which re-derives a KKT
 // quadruple from the model at the returned point instead of trusting the
 // number. An f* with an exact closed form is stored in that form (HS7, HS14,
 // HS33, HS35) so that no hand-typed decimal sits between the source and the

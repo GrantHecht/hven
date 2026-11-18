@@ -1,12 +1,12 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_hs_battery.cpp — Task 11: the Hock-Schittkowski battery, the
+// Task 11: the Hock-Schittkowski battery, the
 // first WHOLE-SOLVER validation in this project. Every driver mechanism that
 // Tasks 4-10 landed (funnel trust region, second-order correction, elastic
 // tier, restoration phase, adaptive dual regularization) runs together, from
 // each problem's PUBLISHED start point, over the 27 problems
-// tests/sqp/support/hs_problems.h ships.
+// tests/model/support/hs_problems.h ships.
 //
 // WHAT THIS FILE ASSERTS, AND IN WHAT ORDER OF AUTHORITY:
 //

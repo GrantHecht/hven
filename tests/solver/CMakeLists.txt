@@ -1,5 +1,5 @@
 ################################################################################
-# The shared driver surface's test suite: the types in include/hven/drivers/
+# The shared solver surface's test suite: the types in include/hven/solver/
 # that belong to neither engine -- the status vocabulary today, the result core,
 # the shared diagnostics and the console sink as W5 T8 lands them.
 #
@@ -92,7 +92,7 @@ set(HVEN_DRIVERS_TEST_SOURCES
 add_executable(hven_drivers_tests ${HVEN_DRIVERS_TEST_SOURCES})
 
 # The tests tree root joins the path so a cross-suite fixture is named rooted --
-# "sqp/support/..." or "interior/..." -- rather than reached by a ../ traversal.
+# "sqp/support/..." or "ipm/..." -- rather than reached by a ../ traversal.
 # This directory stays first, so this suite's own headers resolve here.
 target_include_directories(hven_drivers_tests PRIVATE ${HVEN_TESTS_INCLUDE_ROOT})
 # Rooted at this directory, not CMAKE_SOURCE_DIR (see tests/CMakeLists.txt's HVEN_SRC_DIR note).

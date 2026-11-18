@@ -11,7 +11,7 @@
 // the encoder and decoder still agree with each other.
 //
 // The bridge is pinned against hand-built blocks here and against a real
-// solve's own export in tests/interior/test_ipm_warm_start.cpp: this file
+// solve's own export in tests/ipm/test_ipm_warm_start.cpp: this file
 // fixes the mapping, that one fixes the producer.
 
 #include <bit>

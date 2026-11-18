@@ -241,7 +241,7 @@ class NlpModel {
     /// compilation; under the library's Release flag regime (fast-math),
     /// agreement is to reassociation residue -- the same last-bit freedom the
     /// compiler already has within any one evaluation. eval_nlp rests its
-    /// f/ce/ci fields on the same invariant. tests/sqp/support/scale_problems.h's
+    /// f/ce/ci fields on the same invariant. tests/model/support/scale_problems.h's
     /// F7CollocationChain is the one model in this tree that overrides rather
     /// than taking the default.
     virtual void eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) const {

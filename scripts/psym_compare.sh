@@ -123,7 +123,7 @@
 #
 # `hven_drivers_tests` joined in M6 W6 T5 (2026-09-14), and it is the one join
 # that corrects an OVERSIGHT rather than a judgement. The target did not exist
-# when W5 T0 drew the set: `tests/drivers/CMakeLists.txt` was created later in
+# when W5 T0 drew the set: `tests/solver/CMakeLists.txt` was created later in
 # the same window (b74f8850, T8.2) and the suite grew TU by TU through
 # T8.3-T8.8, so it was never weighed for the set and never named in the
 # exclusion list below either -- absent from both lists is the one state the

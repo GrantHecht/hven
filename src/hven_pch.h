@@ -18,7 +18,7 @@
 //
 // WHAT IS IN IT, AND WHY THE ORDER MATTERS
 //
-// The list below is the include block of drivers/ipm_solver.cpp,
+// The list below is the include block of ipm/ipm_solver.cpp,
 // verbatim and in its original order. That is deliberate and load-bearing:
 // prefixing a TU with a *differently ordered* header set changes the order in
 // which templates are instantiated, which changes the order functions are
@@ -41,7 +41,7 @@
 // Include sorting is disabled for this block on purpose: clang-format's
 // default is to alphabetize, which would silently cost the byte-identity
 // property described above -- the order below matches
-// drivers/ipm_solver.cpp (dependency order, not alphabetical).
+// ipm/ipm_solver.cpp (dependency order, not alphabetical).
 // Note that clang-format would also reorder that .cpp's own include block,
 // so if it is ever reformatted, this list has to be brought back into step
 // with it and the byte-identity check re-run.

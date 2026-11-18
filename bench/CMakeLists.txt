@@ -8,8 +8,7 @@
 # Every binary here is a measurement instrument, deliberately NOT registered
 # with ctest; each one's correctness gate is a registered test that shares its
 # implementation (never a copy). They are BUILT whenever the suite is, because
-# an uncompiled probe rots silently — the origin project's own committed
-# rationale, kept.
+# an uncompiled probe rots silently.
 #
 # COMPILE FLAGS: ${COMPILE_FLAGS}, same as tests/sqp/CMakeLists.txt — the
 # uniform regime (owner ruling, CLAUDE.md §7), adopted at phase-C U0 together
@@ -23,7 +22,7 @@
 add_executable(hven_sqp_bench bench_scale.cpp)
 target_link_libraries(hven_sqp_bench PRIVATE hven::hven)
 target_compile_options(hven_sqp_bench PRIVATE ${COMPILE_FLAGS})
-# tests/sqp/support/{parametric_families,scale_problems}.h are
+# tests/model/support/{parametric_families,scale_problems}.h are
 # test-support-only headers (no gtest dependency), included by relative path.
 target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
@@ -50,7 +49,7 @@ target_include_directories(hven_sqp_tau_bar_sweep_probe
 # the root-level SNOPT detection succeeded — a machine without SNOPT keeps
 # building and testing unchanged. SNOPT is commercial and is NOT vendored:
 # bench/snopt_f7_driver.h documents the source firewall in full. Its
-# correctness gate is tests/sqp/test_snopt_bridge_gate.cpp, which shares this
+# correctness gate is tests/bench/test_snopt_bridge_gate.cpp, which shares this
 # target's SnoptF7Driver implementation and IS registered.
 if(HVEN_SQP_HAVE_SNOPT)
     add_executable(hven_sqp_snopt_f7 bench_snopt_f7.cpp)
@@ -61,11 +60,11 @@ endif()
 
 # hven_sqp_corpus — the replay corpus runner: cell specs, tags, the engine
 # interface and the walk engine's own implementation all live in
-# corpus_cells.h (a header, deliberately, so tests/sqp/test_corpus_cells.cpp
+# corpus_cells.h (a header, deliberately, so tests/bench/test_corpus_cells.cpp
 # shares exactly this implementation rather than a bench-only copy that could
 # drift). bench_corpus.cpp is CLI glue only. NOT ctest-registered: its
 # baseline sweep touches N = 20000 cells that run for minutes to hours. Its
-# correctness gate is tests/sqp/test_corpus_cells.cpp.
+# correctness gate is tests/bench/test_corpus_cells.cpp.
 # ipm_corpus_leg.cpp is the ONE non-glue TU here: the top-level interior-point
 # replay leg (--engine interior). A .cpp rather than a header because it is
 # ordinary non-template code with two consumers, and both COMPILE IT: this
@@ -153,7 +152,7 @@ if(NOT WIN32)
                 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp.sh")
 endif()
 
-# The wall-deadline tests in tests/sqp/test_corpus_cells.cpp
+# The wall-deadline tests in tests/bench/test_corpus_cells.cpp
 # (CorpusRunnerProcess.WallDeadline*) are SUBPROCESS tests — they invoke the
 # actual compiled hven_sqp_corpus binary (the deadline enforcement itself is
 # fork/exec orchestration in bench_corpus.cpp's main(), not something a gtest
@@ -172,8 +171,8 @@ endif()
 # hven_sqp_ssn_safeguard_probe — the reproduction vehicle for the archived SSN
 # safeguards note's search and sweep populations. Committed and built so the
 # note's evidence cannot rot; NOT ctest-registered (its documented populations
-# run for minutes). Its fixtures are tests/sqp/support/ssn_fixtures.h, the
-# same file tests/sqp/test_ssn_engine.cpp includes, so the note and the test
+# run for minutes). Its fixtures are tests/qp/support/ssn_fixtures.h, the
+# same file tests/qp/test_ssn_engine.cpp includes, so the note and the test
 # suite cannot drift apart on a fixture. The band variants it compares are
 # patched-header recompiles outside this build — see the probe's banner.
 add_executable(hven_sqp_ssn_safeguard_probe ssn_safeguard_probe.cpp)
@@ -184,11 +183,11 @@ target_include_directories(hven_sqp_ssn_safeguard_probe
 
 # hven_sqp_crossover — the M5 W5 crossover-leg runner: the dual-bind adapter,
 # the four legs and the margin arithmetic all live in bench/crossover_legs.h (a
-# header, deliberately, so tests/sqp/test_crossover_legs.cpp shares exactly this
+# header, deliberately, so tests/bench/test_crossover_legs.cpp shares exactly this
 # implementation rather than a bench-only copy that could drift).
 # bench_crossover.cpp is CLI glue only. NOT ctest-registered: a full sweep of
 # the dual-bindable census runs for hours. Its correctness gate is
-# tests/sqp/test_crossover_legs.cpp, which pins the adapter's round trip and the
+# tests/bench/test_crossover_legs.cpp, which pins the adapter's round trip and the
 # cross-engine declaration key at a size a test can afford.
 add_executable(hven_sqp_crossover bench_crossover.cpp)
 target_link_libraries(hven_sqp_crossover PRIVATE hven::hven)
@@ -202,7 +201,7 @@ target_compile_definitions(hven_sqp_crossover PRIVATE
 # hven_sqp_ipqp_e1_arm — M6 W1 T10's acceptance arm: the IPQP tier over E1's
 # 29 constructed cells (A4), the Q4 `ipqp_init_mu` sweep and the A13/A14 wall
 # legs. The arm lives in bench/ipqp_e1_arm.h (a header, for the same reason
-# corpus_cells.h is one: tests/sqp/test_ipqp_acceptance.cpp gates exactly this
+# corpus_cells.h is one: tests/qp/test_ipqp_acceptance.cpp gates exactly this
 # implementation rather than a bench-only copy). Its `--gate` mode IS
 # ctest-registered, below, under a label the default run excludes; the sweep
 # modes are not (one A4 pass at nx = 1e5 runs for tens of minutes).

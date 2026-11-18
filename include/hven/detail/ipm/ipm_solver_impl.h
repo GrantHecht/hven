@@ -78,7 +78,7 @@ enum class AlgorithmMode { kOpt, kOptNo, kSoe, kInit };
 // forward-declared rather than included: it appears here only as a `const &`
 // parameter of one private method, and including it would pull the SQP
 // crossover header and hven/qp/qp_types.h behind it into every consumer of
-// this header. src/drivers/ipm_solver.cpp takes the include.
+// this header. src/ipm/ipm_solver.cpp takes the include.
 
 /// @brief Number of consecutive trailing iterates that must ALL exceed a
 ///        divergence threshold before converge_check() declares DIVERGING on a
@@ -104,7 +104,7 @@ class RestorationStrategy;
 struct ProgressMeasures;
 struct FeasibilityStallDetector;
 
-/// @brief Forward-declared, not included: `drivers/trace.h` pulls types this
+/// @brief Forward-declared, not included: `trace/trace.h` pulls types this
 /// driver does not use, and only `attach_trace`'s parameter and one member
 /// pointer name this type here. The .cpp takes the include.
 
@@ -112,7 +112,7 @@ struct FeasibilityStallDetector;
 /// this header names the event is `emit_message`'s parameter, which is a
 /// reference, and the nine call sites that build one are all in the .cpp.
 
-/// The two composition sinks (M6 W5 T8.7, `drivers/console_trace_sink.h`),
+/// The two composition sinks (M6 W5 T8.7, `trace/console_trace_sink.h`),
 /// forward-declared for the same reason and held through `unique_ptr`s whose
 /// deleters are instantiated in the .cpp -- which is where the destructor is,
 /// so an incomplete type here is fine.
@@ -125,11 +125,11 @@ struct FeasibilityStallDetector;
 /// feasibility-restoration mode switches.
 class IpmSolverImpl {
   public:
-    // The options are hven::IpmOptions (drivers/ipm_options.h). Read it through
+    // The options are hven::IpmOptions (ipm/ipm_options.h). Read it through
     // options(), replace it through set_options().
 
     // The nested struct SolveResult that lived here is GONE (M6 W5 T8.4). Its
-    // replacement is hven::IpmResult in drivers/ipm_solver_types.h --
+    // replacement is hven::IpmResult in ipm/ipm_solver_types.h --
     // the same fields under the same names with the trailing underscores gone,
     // on top of the shared hven::SolveResult base that carries the
     // answer itself (status, x, lambda_e, lambda_i, z, f, the four shared
@@ -152,7 +152,7 @@ class IpmSolverImpl {
     ///
     /// LABELLED AS SUCH AND NOT INVENTED FOR THE SQP ENGINE. The shared
     /// per-iteration callback both engines carry is IterationCallback
-    /// (drivers/solve_result.h), installed with set_iteration_callback(); this
+    /// (solver/solve_result.h), installed with set_iteration_callback(); this
     /// hook is a different thing entirely -- it hands out the ASSEMBLED,
     /// NOT-YET-FACTORIZED KKT matrix of the interior-point Newton system, which
     /// is a structure the SQP engine does not have. Nothing equivalent exists
@@ -184,14 +184,14 @@ class IpmSolverImpl {
     /// point after the callback returns, including before this iteration computes
     /// a step at all -- the nested-restoration pre-exit re-initialises XSL's
     /// multiplier blocks and abandons the iteration
-    /// (src/drivers/ipm_solver.cpp:2199).
+    /// (src/ipm/ipm_solver.cpp:2199).
     /// @see docs/notes/2026-09-header-prose-archive.md §ipm_solver.h
     using KktHook =
         std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
                           ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
 
     // LateCallBackType WENT in M6 W5 T8.6, and IpmIterate left the CALLBACK
-    // surface with it -- it remains the trace row type in drivers/trace.h,
+    // surface with it -- it remains the trace row type in trace/trace.h,
     // which hands it out by reference as IpmIterTraceEvent::iterate exactly as
     // the IPQP's trace event types are handed out, and T8.7's console sink
     // renders from it (fix1, ruling R3: the earlier "left the public surface"
@@ -199,7 +199,7 @@ class IpmSolverImpl {
     // public event is on the public surface). Its replacement ON THE CALLBACK
     // is the SHARED per-iteration callback
     // both engines take -- hven::IterationCallback, over
-    // IterationEvent, in drivers/solve_result.h -- installed with
+    // IterationEvent, in solver/solve_result.h -- installed with
     // set_iteration_callback() below. The old type handed out this engine's own
     // per-iteration record in this engine's own space; the new one hands out
     // one view of one iteration, in DECLARED space and CALLER units, that a
@@ -490,7 +490,7 @@ class IpmSolverImpl {
     // apply_preset() was REMOVED in M6 W5 T8.3: the preset is now the free
     // function hven::ipm_preset(name), which RETURNS a full IpmOptions
     // value rather than mutating a solver's settings in place. See
-    // drivers/ipm_solver_types.h.
+    // ipm/ipm_solver_types.h.
 
     // --- The shared per-iteration callback (M6 W5 T8.6) ---
     /// @brief Installs the per-iteration callback both engines take.
@@ -805,7 +805,7 @@ class IpmSolverImpl {
     ///        solve() call that RETURNS.
     ///
     /// The SQP driver's `attach_ledger` in shape and in every rule (see
-    /// `drivers/sqp_solver.h`): the ledger is borrowed and must outlive every
+    /// `sqp/sqp_solver.h`): the ledger is borrowed and must outlive every
     /// solve made while it is attached, the label is
     /// `"{label_prefix}_{n}"` with `n` a per-solver counter this call RESETS to
     /// 0, and the counter advances only when a record is actually written -- so
@@ -868,7 +868,7 @@ class IpmSolverImpl {
     //                                           lives exactly as long as the
     //                                           call it is an argument to)
     //   solver.export_warm_start()         ->  result.warm_start
-    //                                           (drivers/solve_result.h; empty
+    //                                           (solver/solve_result.h; empty
     //                                           when the solve captured
     //                                           nothing)
     //
@@ -881,7 +881,7 @@ class IpmSolverImpl {
     // THE CONSOLE TABLE LEFT THIS CLASS IN M6 W5 T8.7. `print_header()`,
     // `print_banner()`, `print_stats()`, `print_last_iterate()`,
     // `print_timing_summary()` and `calculate_color()` are gone; what they
-    // wrote is written by `ConsoleTraceSink` (`drivers/console_trace_sink.h`)
+    // wrote is written by `ConsoleTraceSink` (`trace/console_trace_sink.h`)
     // from the events this solver emits, and the solver attaches one of those
     // itself when `common.print_level` says printing is on. `print_settings()`
     // was declared and defined with NO caller and is simply deleted.
@@ -890,7 +890,7 @@ class IpmSolverImpl {
     // the KKT-analysis block, the per-PHASE exit statistics and the nine
     // messages are `ipm.phase.begin`/`.end`, `ipm.kkt_analysis`,
     // `ipm.phase.exit` and `ipm.message`; `interior_point_solver_print.cpp` is
-    // gone. `grep fmt::print src/drivers/ipm_solver.cpp` finds
+    // gone. `grep fmt::print src/ipm/ipm_solver.cpp` finds
     // nothing in the solve path -- the console is a SINK now, in full, and a
     // caller's own sink receives every fact the transcript carries.
 
@@ -1216,7 +1216,7 @@ class IpmSolverImpl {
     //       replaces the constraint rows with the CONDENSED residuals r-tilde
     //       (eval_nlp's nested arm), so ce/ci are not the declared residuals
     //       either -- which is why an exit failing (c) EMPTIES them rather
-    //       than copying them, per drivers/solve_result.h's "absent is never
+    //       than copying them, per solver/solve_result.h's "absent is never
     //       zero-filled".
     //
     // Recorded where the evaluation happens (cur_eval_prov_), carried through
@@ -1488,7 +1488,7 @@ class IpmSolverImpl {
     // builds a `ProximalSwitchRestoration` and `l1_nested` a
     // `NestedL1Restoration`, and both of those are STRATEGY objects that reuse
     // the outer barrier algorithm's own KKT system (see
-    // `detail/globalization/l1_restoration.h`: "an in-place phase reusing the
+    // `detail/ipm/globalization/l1_restoration.h`: "an in-place phase reusing the
     // outer barrier algorithm's KKT system rather than a separate nested solver
     // instance"). "Nested" in `l1_nested` names the nested PHASE, not a nested
     // solver. A restoration phase therefore never re-enters this guard because
@@ -1620,7 +1620,7 @@ class IpmSolverImpl {
     bool solve_exit_stash_point_ = false;
 
     // KktVector — the compound-KKT segment view — lives in
-    // detail/interior/kkt_vector.h as hven::detail::KktVector, shared with
+    // detail/ipm/kkt_vector.h as hven::detail::KktVector, shared with
     // the globalization components (which are non-member, non-friend).
 
     /// @brief Create a KktVector view over a VectorXd using this solver's dimensions.
@@ -2031,7 +2031,7 @@ class IpmSolverImpl {
     // previous-iteration infeasibility, econ_tol_) (Ipopt RestoConvCheck's
     // orig_inf_pr_max, single-tolerance floor). Reads resto_theta_orig_prev_
     // (seeded at entry, ratcheted each phase iteration). Defined in ipm_solver.cpp so
-    // the kKappaResto constant (globalization/acceptance_mode.h) stays out of
+    // the kKappaResto constant (detail/ipm/globalization/acceptance_mode.h) stays out of
     // this header's include set.
     bool resto_ratchet_passes(double theta_orig) const;
 

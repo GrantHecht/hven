@@ -11,7 +11,7 @@
 /// schedule, and the Wachter-Biegler inertia ladder.
 /// @see docs/notes/2026-09-header-prose-archive.md §ipqp_engine.h
 //
-// NOT a branch inside IpmSolver and NOT a user of detail/globalization/:
+// NOT a branch inside IpmSolver and NOT a user of detail/{ipm,sqp}/globalization/:
 // fraction-to-boundary is the whole of globalization here. Declarations ONLY; the
 // iteration, ladder and equilibration are in the .cpp.
 //
@@ -37,7 +37,7 @@
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
-// Forward-declared, not included: `drivers/trace.h` is the PUBLIC schema and
+// Forward-declared, not included: `trace/trace.h` is the PUBLIC schema and
 // this header must not pull it in; a pointer/const-ref suffices.
 namespace hven {
 class TraceSink;
@@ -522,7 +522,7 @@ class IpqpEngine {
     ///         surface's own rule, reached through
     ///         KktFactorization::set_num_threads). SqpOptions validation
     ///         refuses a negative common.threads long before any engine is
-    ///         built (tests/drivers/test_options.cpp), so this is a
+    ///         built (tests/solver/test_options.cpp), so this is a
     ///         defence-in-depth throw, not the primary gate.
     explicit IpqpEngine(const QpOptions &opts, int threads = 0,
                         hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever);
@@ -596,7 +596,7 @@ class IpqpEngine {
     void reset_warm_carry();
 
     /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
-    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// detail/core/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
     /// it before the flag's owner can go away. A requested stop leaves the solve
     /// through its iteration-budget exit, and the driver discards that answer.
     void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }

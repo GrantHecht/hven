@@ -19,7 +19,7 @@
 // hven_sqp_f7_cold: "an uncompiled probe rots silently." Deliberately NOT
 // ctest-registered -- it is a measurement instrument whose longest documented
 // invocation runs for many minutes, not a per-commit assertion. Its fixtures
-// are tests/sqp/support/ssn_fixtures.h, the SAME file tests/test_ssn_engine.cpp
+// are tests/qp/support/ssn_fixtures.h, the SAME file tests/qp/test_ssn_engine.cpp
 // includes, so a fixture cannot drift between the note and the test suite.
 //
 // INVOCATIONS (from the repo root, after `cmake --build build`; this project's
@@ -54,22 +54,22 @@
 // so the tau sweep and the tau null result are ordinary invocations. The band's
 // two INTERNALS -- the hysteresis ratio detail::kSsnUncertainLeaveRatio and the
 // symmetry of the damped element -- are an `inline constexpr` in
-// include/hven/detail/qp/ssn_engine.h and straight-line code in
-// src/qp/ssn_engine.cpp, so comparing the shipped classification against a
+// include/hven/detail/qp/ssn/ssn_engine.h and straight-line code in
+// src/qp/ssn/ssn_engine.cpp, so comparing the shipped classification against a
 // variant of either is a PATCHED-SOURCE RECOMPILE outside this build, exactly
 // as bench/tau_bar_sweep_probe.cpp documents for kFunnelTauBar. `band` prints
 // the per-tau aggregate that such a diff is taken on.
 //
 // **THE ENGINE IS NO LONGER HEADER-ONLY** -- M6 W0.1b carved SsnEngine's member
-// definitions into src/qp/ssn_engine.cpp -- so a patched build takes BOTH
+// definitions into src/qp/ssn/ssn_engine.cpp -- so a patched build takes BOTH
 // files (the header copy carries the constants, the .cpp copy the
 // straight-line code) AND links the built library after them. EXACT INVOCATION
 // for the no-hysteresis variant (the alpha-only-damping variant is the same
 // recipe with the other sed):
 //
 //   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/qp
-//   cp include/hven/detail/qp/ssn_engine.h /tmp/ssn_patch/hven/detail/qp/
-//   cp src/qp/ssn_engine.cpp /tmp/ssn_patch/ssn_engine.cpp
+//   cp include/hven/detail/qp/ssn/ssn_engine.h /tmp/ssn_patch/hven/detail/qp/
+//   cp src/qp/ssn/ssn_engine.cpp /tmp/ssn_patch/ssn_engine.cpp
 //   C=/tmp/ssn_patch/ssn_engine.cpp
 //   # no hysteresis: the leave gate becomes the enter gate (select_branch)
 //   sed -i 's/was_uncertain ? tau \* detail::kSsnUncertainLeaveRatio : tau/tau/' "$C"
@@ -782,7 +782,7 @@ void mode_pdas(long long qps, std::uint64_t seed) {
                 // A CYCLE is a repeat at separation >= 2: the partition equals
                 // one the iteration already visited, and not merely the one it
                 // visited last (which is a fixed point, not an orbit). Same
-                // rule tests/test_ssn_engine.cpp's cycling assertion uses.
+                // rule tests/qp/test_ssn_engine.cpp's cycling assertion uses.
                 for (std::size_t i = 0; i + 1 < seen_parts.size(); ++i) {
                     cycled = cycled || seen_parts[i] == p;
                 }

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_ladder_skip.cpp -- M7 W2 A3's IPQP lever
+// M7 W2 A3's IPQP lever
 // `IpqpOptions::ipqp_ladder_skip_after` (formerly `detail::kIpqpLadderSkipAfter`) and its fire
 // counter `ipqp_ladder_zero_trial_skips`. Design:
 // docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md.

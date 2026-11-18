@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_hs_sweeps.cpp — PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
+// PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
 // the policy adjudications it exists to produce.
 //
 // STEP 1 (this file's first half) is the TRANSCRIPTION GUARD on
-// tests/sqp/support/hs_sweeps.h: derivative checks and pattern-invariance checks
+// tests/model/support/hs_sweeps.h: derivative checks and pattern-invariance checks
 // on every corpus member at several parameter values, plus the T6 contract
 // checks on set_parameters. Nothing in the second half means anything if a
 // wrapper reports a gradient its own objective does not have.
@@ -50,7 +50,7 @@
 // applies to BOUNDS. Step (3)'s argument is thereby made true again rather than
 // patched around: the ingested multipliers are complementary by construction,
 // so (stationarity, feasibility) is once more a COMPLETE KKT test where it
-// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/test_b1_gate.cpp; this
+// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/sqp/test_b1_gate.cpp; this
 // file carries element 1 of it (these three specs flipping to sound).
 //
 // THE CRITERION FOR WHAT WAS EXPOSED -- READ THE NOTE'S §1.4, NOT THIS
@@ -63,7 +63,7 @@
 // trap a corpus designer falls into: ONE COUPLED GATE RESCUES A MODEL WHOSE
 // INEQUALITY ROW IS OTHERWISE EXPOSED, so a family can contain a perfectly
 // B-1-shaped relaxing inequality and still be immune. F4 of
-// tests/sqp/support/parametric_families.h is exactly that near-miss -- its cI row
+// tests/model/support/parametric_families.h is exactly that near-miss -- its cI row
 // IS exposed in isolation, and it survives only because the same scalar a(p)
 // simultaneously moves an equality row and a bound (note §1.4). CONSEQUENCE FOR
 // ANY REGRESSION CORPUS BUILT AGAINST B-1: it must contain a problem where a
@@ -79,7 +79,7 @@
 // only, not the criterion -- see those constants' own note. The Task-7 review
 // reproduced the defect on a convex n = 3 problem of its own AND on
 // F6PathBoundQuadrature, a CONVEX family already shipped in
-// tests/sqp/support/parametric_families.h, whose p is a pure constant shift of cI.
+// tests/model/support/parametric_families.h, whose p is a pure constant shift of cI.
 // An earlier version of this banner and of the note scoped the defect by
 // convexity; that was wrong and is corrected in the note's §1.4.
 //
@@ -746,7 +746,7 @@ std::string corpus_table() {
 //   ALSO WHY THEY ARE THE REPAIR'S CONTROL SET: the repair touches lambda_i
 //   only, and on a model with mi() == 0 its loop does not execute at all, so
 //   these three must be bit-identical across it (asserted in
-//   tests/test_b1_gate.cpp, against values measured at the pre-repair commit).
+//   tests/sqp/test_b1_gate.cpp, against values measured at the pre-repair commit).
 //
 //   BREAKAGE was confounded. HS10/HS15/HS33 are ALSO exactly the three specs
 //   with tilt == vec0 and a pure ci_shift, while HS26/HS40/HS77 all carry an

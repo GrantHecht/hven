@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T4 moves the sink type into a public drivers/ header; this is the consumer view of it.
+// W5 T4 moves the sink type into a public trace/ header; this is the consumer view of it.
 
 #include "hven/trace/json_lines_trace_sink.h"
 

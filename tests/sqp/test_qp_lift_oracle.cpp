@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_qp_lift_oracle.cpp -- the mixed-lift adapter (mixed_lift.h) against the DENSE-B
+// The mixed-lift adapter (mixed_lift.h) against the DENSE-B
 // ORACLE (M7 QN stage 2; rulings C30 BLOCKING-1/BLOCKING-2, AMEND-6/8/9). No driver is involved.
 //
 // The oracle: the same random convex QP solved (a) LIFTED -- MixedLift of the quasi-Newton B from

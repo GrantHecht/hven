@@ -57,12 +57,12 @@ namespace hven::detail {
 
 /// @brief Forward-declared, not included (M6 W5 T8.7 fix1, the lane's M4): only
 /// two `unique_ptr` members name these types here, and including
-/// `drivers/console_trace_sink.h` pulled `fmt/color.h` and both sink classes
+/// `trace/console_trace_sink.h` pulled `fmt/color.h` and both sink classes
 /// into EVERY consumer of this header -- FORTY-NINE translation units in this
 /// tree, all but a handful of which never name a console. The interior-point solver's header
 /// already forward-declares them for the same reason. A `unique_ptr` member of an incomplete type
 /// needs the owner's destructor (and any `reset()`) where the type is complete, which is why
-/// `~SqpSolver` is declared below and DEFINED in src/drivers/sqp_solver.cpp; both sink classes are
+/// `~SqpSolver` is declared below and DEFINED in src/sqp/sqp_solver.cpp; both sink classes are
 /// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
 class EqualityBasis;
 
@@ -157,7 +157,7 @@ struct SqpKkt {
 ///        engine still holds the evaluation they are computed from.
 ///
 /// THE WHOLE REASON THIS TYPE EXISTS is that the four shared diagnostics
-/// (drivers/solve_result.h) must be computed from a STASHED evaluation and
+/// (solver/solve_result.h) must be computed from a STASHED evaluation and
 /// never from a fresh one: a fresh evaluation at the exit would move
 /// `evals_full` on every solve and break the identity proofs W5 rests on. Some
 /// of this driver's exits return a point whose evaluation has already gone out
@@ -660,13 +660,13 @@ inline constexpr double kAdaptiveMuMax = 1e-8;
 // IPM's own two seeding constants -- three policies, three derivations, one
 // header, values DELIBERATELY NOT UNIFIED (design 2.4). It keeps this exact
 // namespace-scope spelling, so nothing that names it had to change; this
-// public header `hven/drivers/sqp_solver.h` does not pull it in; a consumer
+// public header `hven/sqp/sqp_solver.h` does not pull it in; a consumer
 // that names it includes `hven/warmstart/seeding.h`. This implementation
 // header includes that file for its own use.
 
 /// @brief The SQP driver: a trust-region SQP major loop over one QpEngine.
 /// Every member below -- and every free function declared above -- is defined
-/// in src/drivers/sqp_solver.cpp; read that file's banner before changing this
+/// in src/sqp/sqp_solver.cpp; read that file's banner before changing this
 /// class's structure. (The two constructors joined them in M6 W5 T8.7 fix1,
 /// when the console members' types became forward declarations.)
 class SqpSolverImpl {
@@ -735,7 +735,7 @@ class SqpSolverImpl {
     // implementation would leave a null `engine_` that every use below
     // dereferences unchecked. The four operations are deleted explicitly so the
     // invariant is a property of the class; the traits are pinned in
-    // tests/drivers/test_options.cpp.
+    // tests/solver/test_options.cpp.
     /// @brief Deleted: a driver is not copy-constructible.
     SqpSolverImpl(const SqpSolverImpl &) = delete;
     /// @brief Deleted: a driver is not copy-assignable.
@@ -751,7 +751,7 @@ class SqpSolverImpl {
     /// members above are `unique_ptr`s to forward-declared types, and a
     /// destructor the compiler writes into each consumer would need those types
     /// complete there. Out of line, the deleter is instantiated once, in the
-    /// one translation unit that includes `drivers/console_trace_sink.h`.
+    /// one translation unit that includes `trace/console_trace_sink.h`.
     ~SqpSolverImpl();
 
     // --- THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5) ------------------
@@ -1087,7 +1087,7 @@ class SqpSolverImpl {
     /// too. What the rebuild costs is this driver's cached K0 border; what it
     /// does NOT cost is a hot handle's reuse, which is keyed on the producing
     /// engine's OPTIONS FINGERPRINT rather than its identity, so a rebuild at
-    /// identical options still adopts (detail/qp/qp_engine.h's HotState).
+    /// identical options still adopts (detail/qp/walk/walk_engine.h's HotState).
     ///
     /// Legal BETWEEN SOLVES only.
     ///
@@ -1858,7 +1858,7 @@ class SqpSolverImpl {
     /// (counted in `evals_values`) at the point the solve's ingest gate admits --
     /// warm.x when the warm start passes that gate, else x0, projected iff
     /// SqpOptions::project_start_point -- computes the factors
-    /// (detail/drivers/column_scaling.h) and, when they are installed, solves a fresh
+    /// (detail/sqp/column_scaling.h) and, when they are installed, solves a fresh
     /// bridge and seam over a ColumnScaledModel of `bridge.model()` from x0 / d with
     /// the warm start mapped in. The answer is mapped out by map_column_scaled_answer,
     /// inside solve_impl and before its `sqp.solve.end` emission; the decision rides

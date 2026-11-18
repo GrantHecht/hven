@@ -3,13 +3,13 @@
 # pre-migration sandbox at its archived tag. Same test names, same GoogleTest
 # fixtures; the identity collapse (namespace, include paths, macro prefixes)
 # is the only rewrite. A separate executable, not folded into hven_tests, for
-# the same reasons hven_interior_tests is one: it mirrors the origin suite's
-# own separately-buildable binary and keeps the migration diff reviewable on
+# the same reasons hven_interior_tests is one: it is a
+# separately-buildable binary and keeps the migration diff reviewable on
 # its own. googletest is already fetched by the parent tests/CMakeLists.txt.
 #
 # COMPILE FLAGS: ${COMPILE_FLAGS}, like every other target in this repository
 # (the owner's uniform-flags ruling, CLAUDE.md §7, executed at phase-C U0).
-# The origin-regime exception that used to live here — plain per-config
+# The pre-U0 flag-regime exception that used to live here — plain per-config
 # defaults, matching the flags every pre-U0 pinned value was derived under —
 # was retired by U0's declared mass re-derivation event; the pins this suite
 # asserts are derived under the unified regime and the pre-U0 artifacts are

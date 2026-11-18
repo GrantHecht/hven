@@ -4,13 +4,13 @@
 // The shared driver surface's two small exhaustive-table functions, both cold
 // on the W6 T0 coverage read:
 //
-//   * `to_string(PredictorOutcome)` (src/drivers/sqp_print.cpp:38-48) had NO
+//   * `to_string(PredictorOutcome)` (src/sqp/sqp_print.cpp:38-48) had NO
 //     caller in the test suites at all -- the whole function read 0, which made
 //     it the largest uncovered region in that TU. `to_string(StepVerdict)`'s
 //     four arms are exercised by the console-sink tests; only its
 //     unknown-value fallback (`:61`) was cold.
 //
-//   * `census_variable_bounds` (src/drivers/trace.cpp) is the ONE copy of the
+//   * `census_variable_bounds` (src/trace/trace.cpp) is the ONE copy of the
 //     bound-census arithmetic, shared by both engines' `solve.begin` lines. Its
 //     three boundary refusals and two of its five classification arms read 0.
 //

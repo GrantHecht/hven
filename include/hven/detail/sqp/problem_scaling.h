@@ -9,7 +9,7 @@
 // CONSTRAINT ROW, computed once from the derivatives at the start point and
 // held fixed for the solve. The declared problem is never touched: the caller's
 // model is read verbatim, the transformation is applied where the engine reads
-// it (detail/drivers/assembly_eval_seam.h), and every exported quantity is
+// it (detail/sqp/assembly_eval_seam.h), and every exported quantity is
 // mapped back to the caller's units at the driver's one export boundary.
 //
 // THE TRANSFORMATION.
@@ -47,7 +47,7 @@
 //
 // THE TWO NEIGHBOURING `obj_scale` SURFACES, neither of which this is and
 // neither of which it changes. `SqpSolver`'s per-subproblem `obj_scale`
-// (drivers/sqp_solver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
+// (sqp/sqp_solver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
 // 0.0 to drop the objective during restoration -- and it multiplies ON TOP of
 // `obj` here, exactly as THE HESSIAN above spells out.
 // `IpmOptions::obj_scale` is the OTHER engine's
@@ -60,7 +60,7 @@ namespace hven::detail {
 /// @brief The rule that turns derivatives at the start point into factors.
 ///
 /// Both fields are validated where the caller's own options are validated
-/// (drivers/sqp_options.cpp), never here.
+/// (sqp/sqp_options.cpp), never here.
 struct ScalingRule {
     /// The inf-norm each scaled gradient and each scaled Jacobian row is aimed
     /// at. Follows IPOPT's `nlp_scaling_max_gradient` in name and in default.

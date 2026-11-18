@@ -41,7 +41,7 @@ add_executable(hven_model_tests ${HVEN_MODEL_TEST_SOURCES})
 
 # Two roots on the include path, and the second one is why: the bridge's
 # equivalence pins consume the HS transcriptions that live beside the SQP suite
-# (tests/sqp/support/hs_problems.h, header-only test support). The tests tree
+# (tests/model/support/hs_problems.h, header-only test support). The tests tree
 # root joins the path so that fixture is named rooted -- "sqp/support/..." --
 # rather than reached by a ../ traversal from a source file. This directory
 # itself stays first, so a quoted include of this suite's own support/ headers
