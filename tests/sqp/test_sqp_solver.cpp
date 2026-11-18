@@ -13169,20 +13169,29 @@ TEST(SqpGl0, TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation) {
     volatile double neg = -3.5;
     volatile double zero = 0.0;
     volatile double h = 0.0;
-    std::feclearexcept(FE_ALL_EXCEPT);
-    const double a = hven::detail::switching_ratio_value(pos, kFunnelDelta * h * h);
-    const double b = hven::detail::switching_ratio_value(neg, kFunnelDelta * h * h);
-    const double c = hven::detail::switching_ratio_value(zero, kFunnelDelta * h * h);
-    const double d = hven::detail::switching_ratio_value(zero, 0.0);
-    EXPECT_EQ(std::fetestexcept(FE_DIVBYZERO | FE_INVALID), 0);
+    // Each result goes through a volatile store before the flags are read: the optimizer (the
+    // build is -ffast-math, no FENV_ACCESS) may not move a floating-point operation across a
+    // volatile access, so the flags read are those of the helper's own operations.
+    volatile double out = 0.0;
+    int raised = 0;
+    const auto take = [&](double pred_df, double denominator) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        out = hven::detail::switching_ratio_value(pred_df, denominator);
+        raised |= std::fetestexcept(FE_DIVBYZERO | FE_INVALID);
+        return out;
+    };
+    const double a = take(pos, kFunnelDelta * h * h);
+    const double b = take(neg, kFunnelDelta * h * h);
+    const double c = take(zero, kFunnelDelta * h * h);
+    const double d = take(zero, 0.0);
+    EXPECT_EQ(raised, 0);
     EXPECT_EQ(a, std::numeric_limits<double>::infinity());
     EXPECT_EQ(b, -std::numeric_limits<double>::infinity());
     EXPECT_TRUE(std::isnan(c));
     EXPECT_TRUE(std::isnan(d));
     // A nonzero denominator divides exactly as written.
     volatile double h1 = 0.5;
-    EXPECT_EQ(hven::detail::switching_ratio_value(pos, kFunnelDelta * h1 * h1),
-              pos / (kFunnelDelta * h1 * h1));
+    EXPECT_EQ(take(pos, kFunnelDelta * h1 * h1), pos / (kFunnelDelta * h1 * h1));
     std::feclearexcept(FE_ALL_EXCEPT);
 }
 
