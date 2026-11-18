@@ -2,9 +2,11 @@
 """M8 GL-0 (../DECLARATION.md M): the control fails nothing; every MUST-KILL id is killed by a failing test (a BUILD_FAIL is an instrument fault).
 usage: mutation_verdict.py <mutation-table.csv> <out>"""
 import csv
+import os
 import sys
 
 MUST = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'f1', 'r1', 'r2', 'r3', 'r4', 'r5', 'h1', 'h2', 'h3']
+MUST += os.environ.get('MUST_EXTRA', '').split()  # r4: n1 n1b n2
 REPORTED = ['x1']
 BUILD_KILL = set()
 rows = {r['id']: r for r in csv.DictReader(open(sys.argv[1]))}

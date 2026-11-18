@@ -6,6 +6,7 @@ import sys
 SQP = 'src/sqp/sqp_solver.cpp'
 FUN = 'src/sqp/globalization/funnel.cpp'
 TRW = 'src/trace/trace_writer.cpp'
+HDR = 'include/hven/detail/sqp/sqp_major_row.h'
 M = {
     # c1: a funnel-ceiling rejection is counted as an Armijo failure.
     'c1': (SQP, '    case detail::RejectCause::kFunnelCeiling:\n        ++c.reject_funnel_ceiling;',
@@ -27,13 +28,13 @@ M = {
     'f1': (SQP, '            } else {\n                ++st.out.counters.accepted_h_type;',
            '            } else {\n                ++st.out.counters.accepted_f_type;'),
     # r1: the switching ratio is unwired (never stored on the row).
-    'r1': (SQP, '    mj.row.switching_ratio = mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);\n', ''),
+    'r1': (SQP, '    mj.row.switching_ratio = detail::switching_ratio_value(\n        mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);\n', ''),
     # r2: the ratio divides by the trial's h instead of the iterate's.
-    'r2': (SQP, 'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
-           'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_new * mj.ctx.h_new);'),
+    'r2': (SQP, 'mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
+           'mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_new * mj.ctx.h_new);'),
     # r3: the ratio drops the delta factor.
-    'r3': (SQP, 'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
-           'mj.ctx.pred_df / (mj.ctx.h_old * mj.ctx.h_old);'),
+    'r3': (SQP, 'mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
+           'mj.ctx.pred_df, mj.ctx.h_old * mj.ctx.h_old);'),
     # r4: the trace writer drops the key (the row still carries it).
     'r4': (TRW, '    key_opt_double(b, f, "switching_ratio", r.switching_ratio);\n', ''),
     # r5: the row builder drops the ratio (the driver's row has it; the record does not).
@@ -46,6 +47,14 @@ M = {
     # h3: the routed-failure site does not advance the run (always position 1).
     'h3': (SQP, '            count_rejection(st.out.counters, detail::RejectCause::kNone, st.rejections_at_iterate);',
            '            count_rejection(st.out.counters, detail::RejectCause::kNone, 1);'),
+    # n1 (r4): the ratio's call site restored to the plain division (the original defect: FE_DIVBYZERO at h == 0).
+    'n1': (SQP, 'detail::switching_ratio_value(\n        mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
+           'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);'),
+    # n1b (r4): the helper's zero-denominator branch removed (plain division inside the helper).
+    'n1b': (HDR, '    if (denominator == 0.0) {\n        if (pred_df == 0.0 || std::isnan(pred_df)) {\n            return std::numeric_limits<double>::quiet_NaN();\n        }\n        return std::copysign(std::numeric_limits<double>::infinity(), pred_df);\n    }\n', ''),
+    # n2 (r4): the non-finite rollback advances the histogram's run (the pre-r4 behaviour of the shared counter).
+    'n2': (SQP, '        st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;\n',
+           '        st.counted_run_at_iterate = st.rollback.counted_run_at_iterate + 1;\n'),
     # x1 (REPORTED, not must-kill): the cause is read after the second-order correction's own judgement.
     'x1': (SQP, '    const detail::RejectCause reject_cause = verdict == StepVerdict::kReject\n                                                 ? st.strategy->last_reject_cause()\n                                                 : detail::RejectCause::kNone;\n',
            '    detail::RejectCause reject_cause = detail::RejectCause::kNone;\n'),
