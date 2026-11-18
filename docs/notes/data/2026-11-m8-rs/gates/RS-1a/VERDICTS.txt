@@ -1,0 +1,32 @@
+== gate RS-1a head a24f0cabd steps: psym flags 2026-11-17T20:36:31-05:00
+objmap-gen rc=0 2026-11-17T20:36:32-05:00
+psym-compare rc=0 2026-11-17T20:36:54-05:00
+flags-diff rc=1 2026-11-17T20:36:54-05:00
+== gate RS-1a done 2026-11-17T20:36:54-05:00
+== gate RS-1a head a24f0cabd steps: build psym 2026-11-17T20:37:18-05:00
+build-release rc=0 2026-11-17T20:41:00-05:00
+objmap-gen rc=0 2026-11-17T20:41:01-05:00
+psym-compare rc=1 2026-11-17T20:41:23-05:00
+== gate RS-1a done 2026-11-17T20:41:23-05:00
+== gate RS-1a head a24f0cabd steps: psym flags lists ctest smoke replay pch debug 2026-11-17T20:41:31-05:00
+objmap-gen rc=0 2026-11-17T20:41:32-05:00
+psym-compare rc=0 2026-11-17T20:41:54-05:00
+flags-diff rc=1 2026-11-17T20:41:55-05:00
+lists-identical rc=0 2026-11-17T20:42:38-05:00
+ctest-release rc=0 2026-11-17T20:44:12-05:00
+100% tests passed, 0 tests failed out of 3869
+install-smoke rc=0 2026-11-17T20:45:54-05:00
+listing-default rc=0 2026-11-17T20:45:54-05:00
+listing-clang rc=0 2026-11-17T20:45:54-05:00
+replay rc=0 2026-11-17T20:51:28-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-17T20:52:38-05:00
+build-debug rc=0 2026-11-17T20:55:11-05:00
+ctest-debug rc=0 2026-11-17T21:03:17-05:00
+100% tests passed, 0 tests failed out of 3869
+== gate RS-1a done 2026-11-17T21:03:17-05:00
+== gate RS-1a head a24f0cabd steps: flags 2026-11-17T21:03:24-05:00
+flags-diff rc=0 2026-11-17T21:03:24-05:00
+== gate RS-1a done 2026-11-17T21:03:24-05:00

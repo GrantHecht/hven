@@ -167,7 +167,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>

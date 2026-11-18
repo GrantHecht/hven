@@ -25,7 +25,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/core/aggregate_arity.h>
 #include <hven/core/version.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/drivers/json_lines_trace_sink.h>

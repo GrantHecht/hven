@@ -25,7 +25,7 @@
 
 #include <Eigen/Core>
 
-#include <hven/core/detail/stop_poll.h>
+#include <hven/detail/core/stop_poll.h>
 #include <hven/core/ledger.h>
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>

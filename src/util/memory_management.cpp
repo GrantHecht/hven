@@ -6,7 +6,7 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/interior/utils/memory_management.h"
+#include "hven/detail/util/memory_management.h"
 
 namespace hven::detail {
 

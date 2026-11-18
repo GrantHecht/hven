@@ -142,6 +142,11 @@ std::string violation_reason(std::string path) {
         // reaching for one would be reaching outside core/ just the same.
         const std::string tier =
             (slash == std::string::npos) ? std::string() : rest.substr(0, slash);
+        // include/hven/detail/core/ is core's own internal tier (RS-1a): the same layer, one
+        // directory over, and scanned by this test as well.
+        if (tier == "detail" && rest.compare(0, 12, "detail/core/") == 0) {
+            return {};
+        }
         if (tier != "core") {
             return tier.empty()
                        ? "reaches outside core/ (a loose header directly under include/hven/)"
@@ -164,14 +169,13 @@ std::string violation_reason(std::string path) {
     return {};
 }
 
-std::vector<std::filesystem::path> core_headers() {
+std::vector<std::filesystem::path> headers_under(const std::filesystem::path &dir) {
     std::vector<std::filesystem::path> headers;
-    const std::filesystem::path dir(HVEN_CORE_INCLUDE_DIR);
     if (!std::filesystem::is_directory(dir)) {
         return headers;
     }
-    // Recursive so that a future include/hven/core/<subdir>/ is covered the day
-    // it appears rather than the day someone remembers this file.
+    // Recursive so that a future subdirectory is covered the day it appears rather than the day
+    // someone remembers this file.
     for (const auto &entry : std::filesystem::recursive_directory_iterator(dir)) {
         if (entry.is_regular_file() && entry.path().extension() == ".h") {
             headers.push_back(entry.path());
@@ -179,6 +183,26 @@ std::vector<std::filesystem::path> core_headers() {
     }
     std::sort(headers.begin(), headers.end());
     return headers;
+}
+
+// include/hven/detail/core, reached from the one directory definition tests/CMakeLists.txt passes
+// (HVEN_CORE_INCLUDE_DIR = <include root>/hven/core), so no second definition has to be kept.
+std::filesystem::path core_detail_dir() {
+    return std::filesystem::path(HVEN_CORE_INCLUDE_DIR).parent_path() / "detail" / "core";
+}
+
+// Every header of core's two directories: include/hven/core and include/hven/detail/core.
+std::vector<std::filesystem::path> core_headers() {
+    std::vector<std::filesystem::path> headers = headers_under(HVEN_CORE_INCLUDE_DIR);
+    const std::vector<std::filesystem::path> detail = headers_under(core_detail_dir());
+    headers.insert(headers.end(), detail.begin(), detail.end());
+    return headers;
+}
+
+// The directory a scanned header lives in, spelled for a failure message.
+std::string label_of(const std::filesystem::path &h) {
+    return h.parent_path().parent_path().filename() == "detail" ? "include/hven/detail/core/"
+                                                                : "include/hven/core/";
 }
 
 } // namespace
@@ -202,6 +226,15 @@ TEST(CoreLayering, TheScanActuallyReadsTheCoreHeaders) {
     // Index re-declaration a future simplification is most likely to "fix" by
     // including qp/qp_types.h. If either is ever renamed, this test is the place
     // that says so out loud instead of quietly scanning less.
+    // THE COUNT (RS-1a): 11 public headers and 6 internal ones, so a new core file has to be
+    // acknowledged here, in the same commit, with the reason for it. It is asserted inside this
+    // test, not as a test of its own, so the gtest list stays what it was.
+    EXPECT_EQ(headers_under(HVEN_CORE_INCLUDE_DIR).size(), 11U)
+        << "include/hven/core/ gained or lost a header: acknowledge it here";
+    EXPECT_EQ(headers_under(core_detail_dir()).size(), 6U)
+        << "include/hven/detail/core/ gained or lost a header: acknowledge it here";
+    EXPECT_EQ(headers.size(), 17U);
+
     std::vector<std::string> names;
     names.reserve(headers.size());
     for (const auto &h : headers) {
@@ -234,7 +267,7 @@ TEST(CoreLayering, NoCoreHeaderDependsUpwardOnAnotherTier) {
         for (const IncludeSite &site : scan_includes(header)) {
             const std::string reason = violation_reason(site.path);
             if (!reason.empty()) {
-                violations.push_back("include/hven/core/" + site.file + ":" +
+                violations.push_back(label_of(header) + site.file + ":" +
                                      std::to_string(site.line) + ": #include of '" + site.path +
                                      "' " + reason);
             }

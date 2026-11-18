@@ -30,7 +30,7 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/core/eigen_types.h"
 #include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/nlp.h"

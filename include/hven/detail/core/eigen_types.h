@@ -10,7 +10,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/interior/typedefs/super_scalar_traits.h"
+#include "hven/detail/core/super_scalar_traits.h"
 
 namespace hven::detail {
 

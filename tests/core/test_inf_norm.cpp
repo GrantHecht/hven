@@ -15,7 +15,7 @@
 #include <Eigen/Core>
 #include <gtest/gtest.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 
 namespace {
 

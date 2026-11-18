@@ -32,8 +32,8 @@
 
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/detail/core/eigen_types.h"
+#include "hven/detail/util/thread_pool.h"
 #include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/claim_restatement.h"
 #include "hven/detail/model/fixed_variable_treatment.h"

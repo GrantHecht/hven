@@ -17,7 +17,7 @@
 // definition they depend on and fail to compile.
 #include <hven/detail/drivers/sqp_solver_impl.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 
 using namespace hven::detail;
 

@@ -12,7 +12,7 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/QR>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/bordered_eqp.h>
 
 namespace hven::detail {

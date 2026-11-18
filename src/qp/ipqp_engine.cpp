@@ -43,7 +43,7 @@
 #include <Eigen/Core>
 #include <fmt/format.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/globalization/inertia_regularization.h>
 #include <hven/detail/interior/barrier_math.h>
 #include <hven/detail/kkt/dense_selection.h>

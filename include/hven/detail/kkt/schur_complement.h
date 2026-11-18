@@ -78,7 +78,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/core/errors.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/linear/dense_symmetric_factor.h>

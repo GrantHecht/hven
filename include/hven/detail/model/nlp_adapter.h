@@ -36,7 +36,7 @@
 #include <fmt/format.h>
 
 #include "hven/core/types.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/core/eigen_types.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/constraint_function.h"

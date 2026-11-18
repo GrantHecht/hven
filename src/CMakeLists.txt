@@ -105,21 +105,9 @@ target_sources(hven PRIVATE
     model/nlp_adapter.cpp
     model/problem.cpp
     interior/kkt_factorization.cpp
-    interior/utils/color_text.cpp
-    interior/utils/get_core_count.cpp
-    interior/utils/memory_management.cpp
-    interior/utils/thread_pool.cpp
-)
-# interior/utils/fmtlib.cpp is NOT compiled here: it is a bare
-# `#include "fmtlib.h"` with no definitions of its own, so there is nothing
-# for this target to compile. The file still lives in src/interior/utils/;
-# only its compilation into hven is skipped.
-
-# color_text.h / fmtlib.h are private headers the driver TUs above include
-# unqualified (#include "color_text.h"), which is what this PRIVATE
-# include-dir setup makes possible.
-target_include_directories(hven PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/interior/utils
+    util/get_core_count.cpp
+    util/memory_management.cpp
+    util/thread_pool.cpp
 )
 
 ################################################################################
@@ -604,7 +592,8 @@ endif()
 # 58 as of drivers/counters_dump.cpp (M8 TR-E): dump_counters for both results, written from the
 # counters' X-macro tables. NOT a PCH source, on the same footing: it includes only the counter and
 # result headers, fmt and the standard library.
-set(_hven_expected_source_count 58)
+# 57 as of RS-1a: util/color_text.cpp (enable_color_console, no caller) deleted with its private header.
+set(_hven_expected_source_count 57)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

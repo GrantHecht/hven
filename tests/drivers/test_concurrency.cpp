@@ -109,7 +109,7 @@
 
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/interior/utils/thread_pool.h>
+#include <hven/detail/util/thread_pool.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/non_linear_program.h>

@@ -5,10 +5,10 @@
 
 #include <mutex>
 
-#include "hven/detail/interior/utils/timer.h"
+#include "hven/detail/util/timer.h"
 
 #ifdef USE_ACCELERATE_SPARSE
-#include "hven/detail/interior/utils/accelerate_threads.h"
+#include "hven/detail/ipm/accelerate_threads.h"
 #else
 #include <mkl.h>
 #endif

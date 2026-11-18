@@ -852,7 +852,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/core/detail/stop_poll.h>
+#include <hven/detail/core/stop_poll.h>
 #include <hven/core/ledger.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/border_ops.h>

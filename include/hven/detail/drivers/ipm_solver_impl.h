@@ -26,7 +26,7 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
-#include "hven/core/detail/stop_poll.h"
+#include "hven/detail/core/stop_poll.h"
 #include "hven/detail/drivers/declared_diagnostics.h"
 #include "hven/detail/drivers/ipm_phase_status.h"
 #include "hven/detail/drivers/result_access.h"
@@ -34,7 +34,7 @@
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/core/eigen_types.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_iterate.h"

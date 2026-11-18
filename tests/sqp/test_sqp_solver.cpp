@@ -114,7 +114,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/core/aggregate_arity.h>
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_major_row.h>

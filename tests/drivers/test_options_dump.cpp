@@ -35,7 +35,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/core/aggregate_arity.h>
 #include <hven/drivers/common_options.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver_types.h>

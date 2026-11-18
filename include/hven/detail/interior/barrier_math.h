@@ -28,7 +28,7 @@
 #include <Eigen/Core>
 
 #include "hven/detail/interior/bound_set.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/core/eigen_types.h"
 
 namespace hven::detail {
 

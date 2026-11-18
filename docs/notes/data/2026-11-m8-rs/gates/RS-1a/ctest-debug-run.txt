@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T20:55:11-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	839 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2524 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2525 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-17T21:03:17-05:00

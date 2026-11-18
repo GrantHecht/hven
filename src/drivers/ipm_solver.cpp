@@ -18,7 +18,7 @@
 // scripts/check_pch_neutrality.sh for the check that proves they still are.
 
 #include "hven/core/errors.h"
-#include "hven/detail/drivers/finite_screen.h"
+#include "hven/detail/core/finite_screen.h"
 #include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/drivers/ipm_dense_testing.h"
@@ -40,13 +40,13 @@
 #include "hven/drivers/trace.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
-#include "hven/detail/interior/utils/get_core_count.h"
-#include "hven/detail/interior/utils/timer.h"
+#include "hven/detail/util/get_core_count.h"
+#include "hven/detail/util/timer.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 // The engine's own Accelerate thread control, which the sparse linear surface
 // deliberately does not provide -- see that header for the ownership split.
-#include "hven/detail/interior/utils/accelerate_threads.h"
+#include "hven/detail/ipm/accelerate_threads.h"
 #endif
 
 // Globalization component interfaces. Included here (rather than from
@@ -83,7 +83,7 @@
 // public header only forward-declares IpmPolishData -- see its note there.
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/warmstart/ipm_polish_extension.h"
-#include "hven/core/detail/inf_norm.h"
+#include "hven/detail/core/inf_norm.h"
 
 using namespace hven::detail;
 

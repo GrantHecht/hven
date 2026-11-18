@@ -7,6 +7,8 @@ tokens are dropped (per-file spellings).  The worktree root is rewritten to '@' 
 '@/<path>' that names a moved/renamed source (MAPFILE lines `old -> new`) is rewritten to its new path in the BEFORE
 arm, so a define such as HVEN_SQP_SOLVER_SOURCE=@/src/drivers/sqp_solver.cpp compares equal to its re-pointed
 spelling.  A TU is keyed by (mapped source, CMake target dir of its -o).  Deleted sources are listed.
+Provenance stamps (-DHVEN_*_GIT_DESCRIBE=..., -DHVEN_RIG_COMMIT=...: the build tree's git revision) are compared as
+'<git-stamp>': they move on every commit by construction (and the object bytes they reach are .rodata strings).
 --expect-removed: a literal token (after '@' rewriting) allowed to be present only in BEFORE, e.g. -I@/src/interior/utils.
 Exit 0 iff the TU sets match (modulo deletions) and every flag list is equal modulo the expected removals."""
 import json, shlex, sys, re, argparse
@@ -48,6 +50,8 @@ def load(p, is_before):
         norm = []
         for t in keep:
             t = t.replace(root, '@')
+            # provenance stamps: the git revision of the tree being built is a per-commit value by construction
+            t = re.sub(r'^(-DHVEN_[A-Z0-9_]*(?:GIT_DESCRIBE|RIG_COMMIT)=).*$', r'\1<git-stamp>', t)
             if is_before:
                 for m in re.finditer(r'@/([\w./+-]+)', t):
                     p0 = m.group(1)

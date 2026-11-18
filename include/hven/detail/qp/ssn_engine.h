@@ -35,7 +35,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/core/detail/stop_poll.h>
+#include <hven/detail/core/stop_poll.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>

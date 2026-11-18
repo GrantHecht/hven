@@ -34,7 +34,7 @@
 #include <bit>
 #include <exception>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/qp/qp_engine.h>
 
 #include <optional>

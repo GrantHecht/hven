@@ -45,7 +45,7 @@
 #include "drivers/support/hs071_problem.h"
 #include "hven/core/errors.h"
 #include "hven/core/stop.h"
-#include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/detail/util/thread_pool.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"

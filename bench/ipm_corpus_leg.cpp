@@ -19,7 +19,7 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/detail/drivers/result_access.h>
-#include <hven/detail/interior/utils/thread_pool.h>
+#include <hven/detail/util/thread_pool.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/warm_start_access.h>

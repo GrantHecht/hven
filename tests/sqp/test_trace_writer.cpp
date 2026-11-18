@@ -41,7 +41,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/core/aggregate_arity.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/model/nlp_model.h>

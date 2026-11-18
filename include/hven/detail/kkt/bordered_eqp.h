@@ -74,7 +74,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/schur_complement.h>

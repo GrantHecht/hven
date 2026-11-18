@@ -10,7 +10,7 @@
 
 #include <Eigen/SparseCore>
 
-#include <hven/core/detail/inf_norm.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/dense_selection.h>
 #include <hven/linear/symmetric_factor.h>

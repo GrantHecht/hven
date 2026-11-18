@@ -40,7 +40,7 @@
 // the wiring overview.
 
 #include "hven/core/errors.h"
-#include "hven/detail/drivers/finite_screen.h"
+#include "hven/detail/core/finite_screen.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"

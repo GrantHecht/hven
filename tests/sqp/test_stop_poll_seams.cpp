@@ -44,7 +44,7 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include <hven/core/detail/stop_poll.h>
+#include <hven/detail/core/stop_poll.h>
 #include <hven/core/stop.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>

@@ -56,13 +56,13 @@
 
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
-#include "hven/detail/interior/utils/get_core_count.h"
-#include "hven/detail/interior/utils/timer.h"
+#include "hven/detail/util/get_core_count.h"
+#include "hven/detail/util/timer.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 // The engine's own Accelerate thread control, which the sparse linear surface
 // deliberately does not provide -- see that header for the ownership split.
-#include "hven/detail/interior/utils/accelerate_threads.h"
+#include "hven/detail/ipm/accelerate_threads.h"
 #endif
 
 // Globalization component interfaces, dependency-ordered. Included here

@@ -1,0 +1,11 @@
+RS-1a gate result (final run of every step on the committed content; earlier rc lines in VERDICTS.txt are the superseded runs, see DECLARATION-r2.md and gates/RS-1a-run1)
+G1 clean configure CCACHE_DISABLE=1 + Release build: rc 0
+G2' P-SYM vs RS-0 capture, generated object map (3 renamed library objects, 1 deleted): 198 objects, 193 byte-identical, 3 noise-class (bench/ipqp __LINE__ shifts),
+    0 unclassified, 0 missing; 9 excepted entries = test_core_layering.cpp.o only (the design-mandated test edit). Removed object color_text.cpp.o: removed-symbols.txt.
+G3' flags diff 363 TUs (2 deleted: color_text in hven and in the seam executable that recompiles the library): IDENTICAL; 122 TUs carried the expected -I src/interior/utils removal; git stamps normalised.
+G4  check_pch_neutrality.sh: PASS (pch-neutrality.txt)
+G5  ctest Release 3869/3869 pass; Debug 3869/3869 pass; gtest lists per executable and ctest -N IDENTICAL to RS-0 (lists-diff.txt empty)
+G6  core layering: scans include/hven/core + include/hven/detail/core, asserts 11 + 6 = 17 inside the existing test (gtest list unchanged)
+G7  install smoke default + clang PASS, export contract OK; installed listing == baseline-with-map (listing-*.txt); no include/hven/drivers change yet (1a)
+G8  golden rig native arm: inside ctest, pass (3-seam arms: see 1e)
+G9  27-cell replay x walk/ssn/ipm vs RS-0 (== WX2 pin): 0 differences x3
