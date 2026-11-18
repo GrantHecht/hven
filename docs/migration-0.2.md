@@ -289,6 +289,27 @@ gray zone empty):
 Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by
 name); a walk subproblem's route can differ by a step where a row sat between 1x and 10x.
 
+## On-demand matched factorization of the SQP's KKT (M8 sparse-equil-v2)
+
+MKL Pardiso factors the SQP's KKT matrices without weighted matching or scaling (`sqp_kkt_options`: `iparm[10]` and
+`iparm[12]` are not written). A pivot it cannot take inside a supernode is replaced by a static perturbation and the
+solve leans on refinement. When that fails -- a badly scaled K, or a saddle-point K whose small diagonal pivots need
+pairing into 2x2 blocks, which no diagonal scaling can supply -- the walk now notices and switches.
+
+- The check (`detail::platform_solve_failed`): in `solve_eqp` and `solve_bordered_eqp`, on platform numerics that
+  reported perturbed pivots, the answer refined against K (the residual loop's; at `dual_mu = 0` the proximal step's) is
+  measured by its normwise backward error in the Ruiz-equilibrated metric. Above `kPlatformSolveFailureTol` = 1e-5 the
+  factorization has failed.
+- The response: the factor enters matched mode for the rest of its life (a second `SymmetricFactor` with
+  `weighted_matching` and `matrix_scaling`, the interior-point engine's configuration); every later platform factorization
+  that perturbs pivots is retaken there, analyzed on its own values. The eliminated path re-solves the EQP at once; the
+  border path marks K0 for a rebuild and takes the eliminated twin for the pass.
+- Unaffected: unperturbed factorizations (bit-identical), the dense arm (its own check), Accelerate (no perturbed-pivot
+  count), the SSN and IPQP tiers' factors (no check runs there).
+- New counter `sparse_matched_refactors` (`QpCounters`, `SqpCounters`, trace key after `payload_ignored`).
+- IPARM-SURFACE: the SQP now configures `iparm[10] = iparm[12] = 1` on the on-demand session. Evidence:
+  `docs/notes/data/2026-11-m8-sparse-equil-v2/`.
+
 ## G5 -- the widened payload
 
 Every addition is delivered only to a callback that asks for it, so nothing here moves a

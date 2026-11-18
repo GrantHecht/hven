@@ -78,8 +78,8 @@
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/schur_complement.h>
-#include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
@@ -713,6 +713,10 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         ratio = candidate_ratio;
     }
     const double row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n, nc)) : 0.0;
+    // The answer refined against the bordered K, for the platform solve check
+    // below (copied only where the check applies).
+    const bool platform_check = detail::platform_solve_check_applies(schur.k0_factor());
+    const Vec sol_refined = platform_check ? sol : Vec();
 
     Index refine_steps = 0;
     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
@@ -727,6 +731,19 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
                                          opts, &refine_steps, certify ? &resolution : nullptr,
                                          certify ? &outcome : nullptr, k0_shift_scale != nullptr);
+    // THE PLATFORM SOLVE CHECK (M8 sparse-equil-v2; kkt_factor.h), the bordered
+    // twin of solve_eqp's: the answer refined against the bordered K (the
+    // residual loop's, or at dual_mu = 0 the refinement's), judged in the
+    // equilibrated metric of K0 (borders unscaled, bordered_shifted_backward_error's
+    // metric). A miss is reported; the caller switches K0's factor.
+    bool platform_failed = false;
+    if (platform_check) {
+        const Vec d0 = detail::equilibration_scale(k0.K);
+        platform_failed =
+            !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
+                                              opts.dual_regularization == 0.0 ? sol : sol_refined,
+                                              d0) <= detail::kPlatformSolveFailureTol);
+    }
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.
     const Index polish_kept =
@@ -737,6 +754,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     res.polish_steps = polish_kept;
     res.refine_steps = refine_steps;
     res.border_uncertified = !outcome.target_met;
+    res.platform_failed = platform_failed;
     res.row_residual = row_residual;
     res.residual_ratio = ratio;
     res.residual_refine_iters = res_iters;

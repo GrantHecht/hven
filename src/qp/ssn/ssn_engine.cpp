@@ -44,8 +44,8 @@
 
 #include <Eigen/SparseCore>
 
-#include <hven/detail/core/inf_norm.h>
 #include <hven/core/pattern_hash.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
 
 using namespace hven::detail;
@@ -656,7 +656,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             // diagnostics alike, so a message can never describe a
             // different factorization than the verdict judged
             // (docs/retarget-design-sqp.md SS4.2).
-            const hven::linear::InertiaEvidence ie = kkt_.factor.inertia();
+            const hven::linear::InertiaEvidence ie = detail::kkt_inertia(kkt_);
             const detail::SsnInertia verdict = detail::ssn_inertia_verdict(ie, n, me + mi + mb);
             if (verdict == detail::SsnInertia::kWrong) {
                 if (verifying) {
@@ -966,7 +966,7 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         ++out->counters.ssn_escape_singular;
         return false;
     }
-    const hven::linear::InertiaEvidence ie = kkt_.factor.inertia();
+    const hven::linear::InertiaEvidence ie = detail::kkt_inertia(kkt_);
     if (detail::ssn_inertia_verdict(ie, deferred_pos_, deferred_neg_) ==
         detail::SsnInertia::kWrong) {
         out->status = QpStatus::kNumericalError;

@@ -160,6 +160,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -334,6 +336,13 @@ struct EqpResult {
     /// only; the caller takes the eliminated twin for the pass. Always false from
     /// solve_eqp.
     bool border_uncertified = false;
+
+    /// THE PLATFORM SOLVE CHECK failed on the border path (M8 sparse-equil-v2;
+    /// kkt_factor.h): K0's platform numerics perturbed pivots and the refined
+    /// bordered answer missed kPlatformSolveFailureTol. The caller switches K0's
+    /// factor to the matched session and takes the eliminated twin for the pass.
+    /// Always false from solve_eqp, which re-solves in place instead.
+    bool platform_failed = false;
 };
 
 // THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11): the loop, and
@@ -526,6 +535,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     const bool refused = !(ratio <= 1.0) || shifted_refused;
     const double row_residual =
         nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
+    // The answer refined against K, kept for the platform solve check below
+    // (copied only where the check applies).
+    const bool platform_check = detail::platform_solve_check_applies(kkt);
+    const Vec y_refined = platform_check ? y : Vec();
 
     if (unrefined_out != nullptr) {
         *unrefined_out = scatter(y);
@@ -556,6 +569,21 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         }
     }
 
+    // ---- THE PLATFORM SOLVE CHECK (M8 sparse-equil-v2; kkt_factor.h) ----
+    // On platform numerics that perturbed pivots, the answer the engine has
+    // refined against K -- the residual loop's, or at dual_mu = 0 (where the
+    // proximal system IS K) the proximal step's -- is judged for a FAILED
+    // factorization. A miss switches `kkt` to the matched session for good and
+    // the EQP is solved again from the start on it; that answer is returned
+    // (the matched factorization pivots correctly where the platform one could
+    // not, and a K no factorization answers fails both alike).
+    if (platform_check && !kkt.matched_mode &&
+        detail::platform_solve_failed(kkt, asm_.K, rhs,
+                                      opts.dual_regularization == 0.0 ? y : y_refined)) {
+        detail::enter_matched_mode(kkt);
+        return solve_eqp(qp, ws, x_k, kkt, opts, unrefined_out);
+    }
+
     // ---- THE UNREGULARIZED POLISH (E4-11; polish_eqp_core, and the header's own
     // section) ----
     // The step above targets the PROXIMAL system, whose answer is the face's exact
@@ -574,6 +602,9 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     const Index polish_kept =
         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
 
+    if (std::getenv("HVEN_SEQ_DBG") && (kkt.perturbed_pivots > 0 || kkt.matched_numerics)) // DEVDBG
+        std::fprintf(stderr, "SEQDBG eqp n=%ld matched=%d ratio=%.2e refused=%d\n", (long)dim,
+                     (int)kkt.matched_numerics, ratio, (int)refused);
     EqpResult out = scatter(y);
     out.polish_steps = polish_kept;
     out.refine_steps = 0; // no iterated loop on this path -- see the header note

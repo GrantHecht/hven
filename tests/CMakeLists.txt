@@ -519,6 +519,8 @@ add_executable(hven_qp_walk_seam_tests
     # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
     # E2-D4 dump fixtures).
     qp/test_qp_dense_arm.cpp
+    # M8 sparse-equil-v2: the platform solve check and the on-demand matched session.
+    qp/test_qp_platform_matched.cpp
 )
 
 # The dense arm's session TU, which the adapter below dispatches to.

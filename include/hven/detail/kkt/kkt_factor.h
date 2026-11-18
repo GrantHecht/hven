@@ -5,13 +5,14 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <utility>
 
 #include <Eigen/SparseCore>
 
-#include <hven/detail/core/inf_norm.h>
 #include <hven/core/pattern_hash.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/dense_selection.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
@@ -110,6 +111,26 @@ struct KktFactor {
     /// them in dense_singular_count); dense_response_tally() takes them back
     /// out, so its `flagged` counts unshifted factorizations only.
     Index shifted_exact_singular = 0;
+
+    /// THE ON-DEMAND MATCHED SESSION (M8 sparse-equil-v2; see
+    /// platform_solve_failed()). `matched_session` is built on the first
+    /// platform solve failure and `matched_mode` then stays set for this
+    /// factor's lifetime: every later platform factorization that reports
+    /// perturbed pivots is retaken there (weighted matching + its scaling,
+    /// analyzed on the current values). `matched_numerics` is true iff the
+    /// current numerics are that retake: solve_vec() and kkt_inertia() then read
+    /// the matched session. `matched_rebuild_pending` asks a holder of numerics
+    /// taken before the switch (a Schur stack's K0) to refactor.
+    std::unique_ptr<hven::linear::SymmetricFactor> matched_session;
+    bool matched_mode = false;
+    bool matched_numerics = false;
+    bool matched_rebuild_pending = false;
+    /// Platform retakes on the matched session (cumulative).
+    Index matched_refactors = 0;
+    /// The perturbed-pivot count of the current platform numerics (0 when the
+    /// backend reports none, on the dense arm, and on matched numerics).
+    Index perturbed_pivots = 0;
+    Vec matched_scale; // DEVDBG arms P/R: matched numerics are D K D, solve through D
 };
 
 // The analyze-or-not decision for K, carrying the pattern hash it was taken
@@ -198,29 +219,35 @@ struct DenseResponseTally {
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
+    Index matched = 0;
 };
 inline DenseResponseTally dense_response_tally(const KktFactor &k) {
     const auto &c = k.factor.counters();
-    return DenseResponseTally{c.dense_factorize_count + c.dense_singular_count,
-                              c.dense_flagged_count + c.dense_singular_count -
-                                  k.shifted_exact_singular,
-                              c.dense_shift_refactor_count, c.dense_retake_count};
+    return DenseResponseTally{
+        c.dense_factorize_count + c.dense_singular_count,
+        c.dense_flagged_count + c.dense_singular_count - k.shifted_exact_singular,
+        c.dense_shift_refactor_count, c.dense_retake_count, k.matched_refactors};
 }
 
-/// @brief Adds a factor's tally delta to four counters when it leaves scope,
-/// a throw included.
+/// @brief Adds a factor's tally delta to four counters (five with the matched
+/// retakes) when it leaves scope, a throw included.
 class DenseTallyScope {
   public:
     DenseTallyScope(const KktFactor &k, Index &dense, Index &flagged, Index &refactors,
-                    Index &retakes)
+                    Index &retakes, Index &matched)
         : k_(k), dense_(dense), flagged_(flagged), refactors_(refactors), retakes_(retakes),
-          before_(dense_response_tally(k)) {}
+          matched_(matched), before_(dense_response_tally(k)) {}
+    /// The four dense counters only; the matched retakes are not reported.
+    DenseTallyScope(const KktFactor &k, Index &dense, Index &flagged, Index &refactors,
+                    Index &retakes)
+        : DenseTallyScope(k, dense, flagged, refactors, retakes, discarded_) {}
     ~DenseTallyScope() {
         const DenseResponseTally after = dense_response_tally(k_);
         dense_ += after.dense - before_.dense;
         flagged_ += after.flagged - before_.flagged;
         refactors_ += after.refactors - before_.refactors;
         retakes_ += after.retakes - before_.retakes;
+        matched_ += after.matched - before_.matched;
     }
     DenseTallyScope(const DenseTallyScope &) = delete;
     DenseTallyScope &operator=(const DenseTallyScope &) = delete;
@@ -231,11 +258,64 @@ class DenseTallyScope {
     Index &flagged_;
     Index &refactors_;
     Index &retakes_;
+    Index &matched_;
+    Index discarded_ = 0;
     DenseResponseTally before_;
 };
 
-/// @brief Allocate and solve, returning the solution by value.
+/// @brief Allocate and solve, returning the solution by value (through the
+/// matched session when `k.matched_numerics`).
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
+
+/// @brief The inertia evidence of `k`'s current numerics: the matched
+/// session's when `k.matched_numerics`, else the factor's own.
+hven::linear::InertiaEvidence kkt_inertia(const KktFactor &k);
+
+// THE PLATFORM SOLVE CHECK AND THE ON-DEMAND MATCHED SESSION (M8
+// sparse-equil-v2). MKL Pardiso runs the SQP's KKT factors without matching or
+// scaling, so a pivot it cannot take inside a supernode is replaced by a static
+// perturbation of 10^-8 ||K|| and the solve leans on iterative refinement. Two
+// failures follow, both measured: on a badly scaled K the threshold is taken
+// against an unscaled norm; and on a saddle-point K whose diagonal pivots need
+// pairing into 2x2 blocks no symmetric diagonal scaling helps -- the 1x1 pivot's
+// growth delta_i mu_j / a_ij^2 is invariant under K -> D K D -- so a D K D
+// refactor reproduces the failure while a weighted-matching factorization
+// (Duff & Pralet 2005; Schenk & Gaertner 2006) takes the pairs as 2x2 pivots.
+//
+// The check runs where the engine has finished refining its answer against K
+// (solve_eqp and solve_bordered_eqp), only on platform numerics that reported
+// perturbed pivots, and measures the answer's normwise backward error in the
+// equilibrated metric (dense_backward_error with D = equilibration_scale(K),
+// the dense arm's measure; the raw metric is vacuous on a badly scaled K). A
+// miss of kPlatformSolveFailureTol is a FAILED factorization, not an
+// imprecise one: the threshold is IPOPT's documented residual_ratio_singular
+// default, and the measured distribution is bimodal around it (benign
+// static-pivot answers at <= 1e-6 after refinement, failed ones >= 1e-4).
+// On a miss the factor switches to the matched session for good (IPOPT's
+// documented linear_scaling_on_demand behaviour: "start the scaling method only
+// when the solutions to the linear system seem not good, and then use it until
+// the end") and the caller re-solves. Accelerate reports no perturbed-pivot
+// count, so the check never applies there; nor on the dense arm, which has its
+// own check.
+
+/// The failed-solve threshold (see above).
+inline constexpr double kPlatformSolveFailureTol = 1e-5;
+
+/// @brief True iff `k`'s current numerics are platform numerics that reported
+/// perturbed pivots, so platform_solve_failed() judges answers through them.
+inline bool platform_solve_check_applies(const KktFactor &k) {
+    return k.perturbed_pivots > 0 && !k.matched_numerics && !k.dense_shifted;
+}
+
+/// @brief True iff the check applies and `y`, an answer to K y = rhs (K the
+/// matrix `k` factored, upper-stored), misses kPlatformSolveFailureTol in the
+/// equilibrated metric (a NaN misses).
+bool platform_solve_failed(const KktFactor &k, const SpMatRM &K, const Vec &rhs, const Vec &y);
+
+/// @brief Enters matched mode (sticky): builds the matched session on first use
+/// and marks every holder of earlier numerics for a refactor. A no-op when
+/// already in matched mode. Pardiso only (never reached on Accelerate).
+void enter_matched_mode(KktFactor &k);
 
 // THE DENSE ARM'S SOLVE GATES judge an answer y to K y = b by its normwise
 // backward error (Rigal-Gaches; Higham, Accuracy and Stability of Numerical

@@ -100,20 +100,20 @@
 #include <mkl_service.h>
 #endif
 
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
-#include <hven/sqp/sqp_solver_types.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
-#include "solver/support/iteration_record_eq.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "model/support/hs_problems.h"
+#include "solver/support/iteration_record_eq.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -455,9 +455,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `dense_shifted_solve_refusals`, then `dense_shifted_k0_fallbacks`, then
 // `dense_shifted_terminations`; 92 until M8 DN-3a appended `dense_solve_residual_refusals`; 93
 // until M8 DN-3 appended `dense_factorizations`; 94 until M8 kopt-1x appended
-// `optimal_row_gray_exits`; 95 since M8 AP-5 G7 appended `payload_ignored`.)
+// `optimal_row_gray_exits`; 95 until M8 AP-5 G7 appended `payload_ignored`; 96 since M8
+// sparse-equil-v2 appended `sparse_matched_refactors`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 95 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 96 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -555,6 +556,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, dense_factorizations);
     HVEN_EXPECT_SAME(a, b, optimal_row_gray_exits);
     HVEN_EXPECT_SAME(a, b, payload_ignored);
+    HVEN_EXPECT_SAME(a, b, sparse_matched_refactors);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

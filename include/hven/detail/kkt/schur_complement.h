@@ -78,8 +78,8 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/core/inf_norm.h>
 #include <hven/core/errors.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
@@ -378,9 +378,12 @@ class SchurComplement {
     // (DenseFactorizeOutcome::kExactlySingular) -- any of which means the
     // caller must stop
     // bordering this factorization and take a different path.
+    // The K0 factor this stack solves through (read-only).
+    const detail::KktFactor &k0_factor() const { return kkt_; }
+
     bool needs_refactorization() const {
-        return (dim() > 0 && !evidence_usable()) || nearly_singular() ||
-               dim() > opts_.max_schur_border_dimension ||
+        return kkt_.matched_rebuild_pending || (dim() > 0 && !evidence_usable()) ||
+               nearly_singular() || dim() > opts_.max_schur_border_dimension ||
                cond_estimate() > opts_.schur_condition_max;
     }
 
