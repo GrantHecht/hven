@@ -26,10 +26,9 @@
 #include <utility>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/claim_restatement.h>
 #include <hven/detail/model/non_linear_program.h>

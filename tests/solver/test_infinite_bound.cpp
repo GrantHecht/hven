@@ -15,8 +15,6 @@
 //   * the count in Problem::statistics() and the solve-begin trace lines;
 //   * the QP tier's one cutoff (QpProblem::infinite_bound).
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -29,11 +27,9 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/compiler.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/sqp/globalization/restoration.h>
 #include <hven/detail/barrier/barrier_math.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_adapter.h>
@@ -43,14 +39,17 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/globalization/restoration.h>
 #include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
-#include <hven/ipm/ipm_solver.h>
-#include <hven/trace/json_lines_trace_sink.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/hven.h>
+#include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #include "support/console_capture.h"
 #include "support/route_reference.h"

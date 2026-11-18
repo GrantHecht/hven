@@ -25,17 +25,17 @@
 
 #include <Eigen/Core>
 
-#include <hven/detail/core/stop_poll.h>
 #include <hven/core/ledger.h>
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
+#include <hven/detail/core/stop_poll.h>
 #include <hven/detail/kkt/kkt_factorization.h>
 #include <hven/detail/qp/ipqp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 // Forward-declared, not included: `trace/trace.h` is the PUBLIC schema and
 // this header must not pull it in; a pointer/const-ref suffices.

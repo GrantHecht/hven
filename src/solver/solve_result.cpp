@@ -9,15 +9,15 @@
 // engine already holds at the point it is about to return (see
 // detail/solver/declared_diagnostics.h).
 
-#include <hven/detail/solver/declared_diagnostics.h>
-#include <hven/solver/solve_result.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/solver/solve_result.h>
 
 namespace hven {
 

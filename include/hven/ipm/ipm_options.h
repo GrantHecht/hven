@@ -28,9 +28,9 @@
 #include <vector>
 
 #include <hven/core/types.h>
-#include <hven/solver/common_options.h>
 #include <hven/ipm/ipm_enums.h>
 #include <hven/linear/dense_policy.h>
+#include <hven/solver/common_options.h>
 
 /// The interior-point engine's default factorization thread count (`IpmOptions::common.threads`).
 /// The CMake target sets it (8) as a usage requirement; this fallback serves a consumer that

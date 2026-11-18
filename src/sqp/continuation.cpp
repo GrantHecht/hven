@@ -6,9 +6,8 @@
 // the predictor interaction, and what the sweep leaves the model posed at are
 // documented in detail/sqp/continuation.h.
 
-#include <hven/detail/sqp/continuation.h>
-
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/continuation.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
 
 using namespace hven::detail;

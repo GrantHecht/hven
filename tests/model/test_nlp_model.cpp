@@ -25,12 +25,11 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_model.h>
 
 #include "model/support/derivative_check.h"
 #include "model/support/hs_problems.h"
-
-#include <hven/core/compiler.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

@@ -1,10 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <gtest/gtest.h>
-#include <hven/detail/kkt/kkt_factor.h>
-
 #include <fmt/format.h>
+#include <gtest/gtest.h>
+
+#include <hven/detail/kkt/kkt_factor.h>
 
 using namespace hven;
 using hven::SpMatRM;

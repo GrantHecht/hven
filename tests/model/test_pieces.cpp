@@ -22,8 +22,6 @@
 //     four partitions; a 256 x 256 piece on per-copy scratch; C-array patterns;
 //     default names; the row and empty-declaration refusals.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -38,14 +36,15 @@
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <gtest/gtest.h>
 
 #include <hven/core/errors.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/ipm/ipm_solver.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/hven.h>
+#include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
+#include <hven/sqp/sqp_solver.h>
 #include <hven/warmstart/warm_start.h>
 
 namespace pieces_test {

@@ -25,9 +25,10 @@
 // remains unobserved; the mechanism is retained because dropping it would be a
 // new, unexplained behavior change, not because its reach has been measured.
 
-#include <Accelerate/Accelerate.h>
 #include <cstdlib>
 #include <string>
+
+#include <Accelerate/Accelerate.h>
 
 // BLASSetThreading (macOS 15+) provides per-thread dynamic control via
 // thread-local storage. It supports a binary toggle: single-threaded vs

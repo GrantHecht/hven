@@ -12,6 +12,7 @@
 #include <hven/core/types.h>
 #include <hven/model/candidate_point.h>
 #include <hven/model/structure_identity.h>
+
 #include "model/support/fake_aggregate.h"
 
 using hven::candidate_value_digest;

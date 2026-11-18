@@ -50,16 +50,15 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/walk/eqp_solve.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "model/support/hs_problems.h"
 #include "model/support/scale_problems.h"
-
-#include <hven/core/compiler.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

@@ -29,7 +29,6 @@
 #include <tycho/detail/solvers/linear/accelerate_interface.h>
 #else
 #include <mkl_service.h>
-
 #include <tycho/detail/solvers/linear/pardiso_interface.h>
 #endif
 

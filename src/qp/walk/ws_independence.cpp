@@ -1,8 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/qp/walk/ws_independence.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -14,6 +12,7 @@
 
 #include <hven/detail/core/inf_norm.h>
 #include <hven/detail/qp/walk/bordered_eqp.h>
+#include <hven/detail/qp/walk/ws_independence.h>
 
 namespace hven::detail {
 

@@ -5,12 +5,12 @@
 // last_ran_phase) and IpmSolveRecord::counters. Every read below is of a value a
 // real solve produced; the wiring tests fail when a field is dropped or crossed.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
+
+#include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
 #include <hven/core/solver_counters.h>

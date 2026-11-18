@@ -32,7 +32,6 @@
 #include <vector>
 
 #include <Eigen/Dense>
-
 #include <gtest/gtest.h>
 
 #include <hven/detail/kkt/kkt_assembly.h>

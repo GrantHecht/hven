@@ -12,8 +12,8 @@
 #include <optional>
 
 #include <hven/core/types.h>
-#include <hven/solver/step_verdict.h>
 #include <hven/qp/qp_types.h>
+#include <hven/solver/step_verdict.h>
 
 namespace hven {
 

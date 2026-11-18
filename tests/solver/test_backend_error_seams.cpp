@@ -19,21 +19,21 @@
 // Compiled into hven_sqp_seam_tests, which recompiles the whole library with
 // HVEN_TESTING and does not link hven::hven.
 
-#include <gtest/gtest.h>
-
 #include <memory>
 #include <string>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
-#include "model/support/hs071_problem.h"
 #include <hven/core/errors.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/problem.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/model/problem.h>
+
+#include "model/support/hs071_problem.h"
 
 namespace {
 

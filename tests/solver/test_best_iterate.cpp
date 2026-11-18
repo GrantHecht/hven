@@ -19,8 +19,6 @@
 // SqpOptions::return_best_on_max_iterations) the primary fields and best_iterate
 // come from different code and must agree bit for bit.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -30,15 +28,16 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/stop.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/model/nlp.h>
-#include <hven/model/problem.h>
 
 #include "model/support/hs071_problem.h"
 

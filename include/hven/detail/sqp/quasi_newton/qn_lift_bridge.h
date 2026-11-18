@@ -9,12 +9,12 @@
 #include <optional>
 
 #include <hven/core/types.h>
-#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
-#include <hven/detail/sqp/quasi_newton/mixed_lift.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/mixed_lift.h>
 
 namespace hven::detail {
 

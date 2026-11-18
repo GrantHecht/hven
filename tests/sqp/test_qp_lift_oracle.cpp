@@ -39,13 +39,14 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include "support/route_reference.h"
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/sqp/globalization/elastic.h>
 #include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 #include <hven/detail/sqp/quasi_newton/mixed_lift.h>
-#include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
-#include <hven/detail/qp/ssn/ssn_engine.h>
+
+#include "support/route_reference.h"
 
 using namespace hven::detail;
 

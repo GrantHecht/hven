@@ -29,6 +29,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/linear/dense_symmetric_factor.h>
+
 #include "recipes.h"
 #include "trace_support.h"
 

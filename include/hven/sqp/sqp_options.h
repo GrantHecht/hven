@@ -27,9 +27,9 @@
 #include <string_view>
 
 #include <hven/core/types.h>
-#include <hven/solver/common_options.h>
 #include <hven/linear/dense_policy.h>
 #include <hven/qp/qp_types.h>
+#include <hven/solver/common_options.h>
 
 namespace hven {
 

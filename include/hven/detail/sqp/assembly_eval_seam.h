@@ -56,8 +56,8 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
-#include <hven/detail/sqp/problem_scaling.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/sqp/problem_scaling.h>
 #include <hven/model/claim_space.h>
 #include <hven/model/claim_stream_source.h>
 #include <hven/model/structure_identity.h>

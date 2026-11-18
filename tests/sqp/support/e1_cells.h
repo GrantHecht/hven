@@ -21,8 +21,8 @@
 #include <vector>
 
 #include <hven/core/types.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 #include "model/support/scale_problems.h"
 

@@ -11,8 +11,6 @@
 //   proof 3: counters, statuses and points are the same with nothing attached, with the JSON sink
 //   and the kDetail console, and with a callback on top.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -25,12 +23,14 @@
 #include <string>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include <hven/core/solver_counters.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/trace/json_lines_trace_sink.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #include "support/console_capture.h"
 #include "trace/support/trace_battery.h"

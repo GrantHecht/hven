@@ -15,16 +15,15 @@
 // The minimizer itself is scale-invariant for a positive scale, so the primals
 // are the control: they were already the same at every scale and stay so.
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <memory>
 #include <string>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
-#include <hven/detail/solver/result_access.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
 

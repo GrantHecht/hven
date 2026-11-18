@@ -8,9 +8,6 @@
 // the dense arm; the options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a
 // numerically singular dense factor, and its absence under kNever.
 
-#include "ipm/support/ipm_row_view.h"
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -22,18 +19,20 @@
 
 #include <Eigen/Core>
 #include <Eigen/QR>
+#include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/trace/trace.h>
-#include <hven/model/nlp.h>
-#include <hven/model/problem.h>
 
+#include "ipm/support/ipm_row_view.h"
 #include "model/support/hs071_problem.h"
 
 namespace {
@@ -351,7 +350,8 @@ class RowSink final : public hven::TraceSink {
 };
 
 hven::IpmResult solve_ipm_rows(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
-                               const Eigen::VectorXd &x0, std::vector<hven::test::IpmRowView> &rows) {
+                               const Eigen::VectorXd &x0,
+                               std::vector<hven::test::IpmRowView> &rows) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     o.linear.dense_factorization = policy;

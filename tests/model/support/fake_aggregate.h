@@ -19,7 +19,6 @@
 #include <vector>
 
 #include <Eigen/Core>
-
 #include <fmt/format.h>
 
 #include <hven/core/types.h>

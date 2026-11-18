@@ -6,13 +6,13 @@
 // members that are not: a std::string (libstdc++ small-string optimisation
 // points into the object itself) and a std::vector.
 
-#include <gtest/gtest.h>
-
 #include <cstddef>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include <hven/core/type_storage.h>
 #include <hven/detail/model/fixed_variable_row.h>

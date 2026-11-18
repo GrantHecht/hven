@@ -13,10 +13,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <gtest/gtest.h>
 
 #include <hven/core/types.h>
 #include <hven/detail/kkt/kkt_factorization.h>

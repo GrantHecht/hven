@@ -95,20 +95,19 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "model/support/derivative_check.h"
 #include "model/support/parametric_families.h"
 #include "model/support/scale_problems.h"
-
-#include <hven/core/compiler.h>
-#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;

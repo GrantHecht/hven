@@ -1,10 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/util/thread_pool.h>
 #include <atomic>
 #include <mutex>
 #include <thread>
+
+#include <hven/detail/util/thread_pool.h>
 
 namespace {
 std::atomic<int> g_num_threads{static_cast<int>(std::max(1u, std::thread::hardware_concurrency()))};

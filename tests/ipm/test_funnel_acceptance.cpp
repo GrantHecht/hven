@@ -30,15 +30,15 @@
 // tests/cpp/ (grep-confirmed no other "Funnel" symbol exists).
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/progress_measures_test_utils.h"
-
-#include <hven/detail/ipm/globalization/funnel_acceptance.h>
-
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+
+#include <gtest/gtest.h>
+
+#include <hven/detail/ipm/globalization/funnel_acceptance.h>
+
+#include "ipm/support/progress_measures_test_utils.h"
 
 namespace {
 

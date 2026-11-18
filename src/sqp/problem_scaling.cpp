@@ -19,16 +19,15 @@
 // take the "no usable data" branch and yield 1.0; it must never reach the
 // clamp, where it would propagate into every value the row carries.
 
-#include <hven/detail/sqp/problem_scaling.h>
-
-#include <hven/detail/sqp/column_scaling.h>
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
 
 #include <fmt/format.h>
+
+#include <hven/detail/sqp/column_scaling.h>
+#include <hven/detail/sqp/problem_scaling.h>
 
 namespace hven::detail {
 namespace {

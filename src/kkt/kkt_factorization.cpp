@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/kkt/kkt_factorization.h>
-
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/detail/kkt/kkt_factorization.h>
 
 #ifdef USE_ACCELERATE_SPARSE
 // For the backend's own status enumerators. The two backends' error codes

@@ -89,8 +89,6 @@
 //   statuses are not produced by floating-point arithmetic, so a single-bit
 //   move in one of those is a real regression and is refused.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <atomic>
 #include <bit>
@@ -106,21 +104,22 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/util/thread_pool.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/util/thread_pool.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>
+#include <hven/sqp/sqp_solver_types.h>
 
-#include "model/support/hs_problems.h"
 #include "model/support/hs071_problem.h"
+#include "model/support/hs_problems.h"
 
 namespace {
 

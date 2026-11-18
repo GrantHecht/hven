@@ -79,8 +79,6 @@
 //     T8.8 fix1): at T8.8 as first written the engine was built first and the
 //     factor's own validator threw instead.
 
-#include <gtest/gtest.h>
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -91,6 +89,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <gtest/gtest.h>
 
 // MKL's own thread state is the only way to check that a call-scoped count was
 // undone. Guarded rather than gated in CMake so the backend-neutral half of
@@ -100,20 +99,20 @@
 #include <mkl_service.h>
 #endif
 
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
-#include <hven/sqp/sqp_solver_types.h>
-#include <hven/qp/qp_types.h>
-
-#include "solver/support/iteration_record_eq.h"
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
+
 #include "model/support/hs_problems.h"
+#include "solver/support/iteration_record_eq.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

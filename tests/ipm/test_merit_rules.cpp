@@ -28,15 +28,15 @@
 //   threshold τ/χ = −pred.objective / ((1−ρ)·pred.infeasibility)      (σ=0)
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/progress_measures_test_utils.h"
+#include <cmath>
+#include <stdexcept>
+
+#include <gtest/gtest.h>
 
 #include <hven/detail/ipm/globalization/modern_merit.h>
 #include <hven/ipm/ipm_options.h>
 
-#include <gtest/gtest.h>
-
-#include <cmath>
-#include <stdexcept>
+#include "ipm/support/progress_measures_test_utils.h"
 
 namespace {
 

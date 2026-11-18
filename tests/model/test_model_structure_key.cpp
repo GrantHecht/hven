@@ -15,7 +15,6 @@
 #include <vector>
 
 #include <Eigen/Core>
-
 #include <gtest/gtest.h>
 
 #include <hven/core/pattern_hash.h>

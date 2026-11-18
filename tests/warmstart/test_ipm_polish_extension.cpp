@@ -25,9 +25,7 @@
 #include <vector>
 
 #include <Eigen/Core>
-
 #include <fmt/format.h>
-
 #include <gtest/gtest.h>
 
 #include <hven/detail/warmstart/crossover.h>

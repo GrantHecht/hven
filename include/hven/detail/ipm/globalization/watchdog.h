@@ -9,11 +9,11 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/barrier/bound_set.h>
 #include <hven/detail/ipm/globalization/acceptance_mode.h>
 #include <hven/detail/ipm/globalization/globalization_mechanism.h>
 #include <hven/detail/ipm/globalization/recovery_chain.h>
 #include <hven/detail/ipm/solver_context.h>
-#include <hven/detail/barrier/bound_set.h>
 #include <hven/ipm/ipm_iterate.h>
 
 namespace hven::detail {

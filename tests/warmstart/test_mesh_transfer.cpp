@@ -62,13 +62,13 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/mesh_transfer.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/mesh_transfer.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include <hven/detail/warmstart/sqp_warm_access.h>
 #include "model/support/parametric_families.h"
 
 namespace {

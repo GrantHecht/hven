@@ -12,26 +12,25 @@
 // bounds, so every KKT system is [H A'; A 0] of order n + m on both engines: 120 sits between
 // the two thresholds (the SQP's patterns sparse, the IPM's dense), 200 above both.
 
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <limits>
 #include <memory>
 #include <string>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/detail/kkt/dense_selection.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/sqp/sqp_solver.h>
-#include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "model/support/hs071_problem.h"
 

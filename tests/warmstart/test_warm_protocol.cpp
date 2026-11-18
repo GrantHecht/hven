@@ -41,8 +41,6 @@
 // tests/warmstart/test_sqp_warm_currency.cpp. What is here is only what has to be
 // true of BOTH.
 
-#include <gtest/gtest.h>
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -55,27 +53,28 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
 #include <hven/core/start_level.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/nlp_problem_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/sqp/sqp_solver_types.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start.h>
 
-#include <hven/detail/warmstart/sqp_warm_access.h>
-#include <hven/detail/warmstart/warm_start_access.h>
 #include "model/support/hs071_problem.h"
 
 namespace {

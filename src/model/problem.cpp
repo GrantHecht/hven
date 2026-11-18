@@ -1,8 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/model/problem.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -15,7 +13,6 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/solver/result_access.h>
 #include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/counting_nlp.h>
 #include <hven/detail/model/make_nlp_program.h>
@@ -25,10 +22,12 @@
 #include <hven/detail/model/nlp_problem_model.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/solver/solve_result.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/model/assembly_declaration.h>
 #include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 #include <hven/model/structure_identity.h>
+#include <hven/solver/solve_result.h>
 
 namespace hven {
 namespace detail {

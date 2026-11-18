@@ -11,8 +11,8 @@
 
 #include <hven/detail/ipm/globalization/acceptance_mode.h>
 #include <hven/detail/ipm/globalization/globalization_mechanism.h>
-#include <hven/detail/ipm/solver_context.h>
 #include <hven/detail/ipm/kkt_vector.h>
+#include <hven/detail/ipm/solver_context.h>
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_solver.h>
 

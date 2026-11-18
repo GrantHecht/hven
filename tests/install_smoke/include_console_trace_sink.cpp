@@ -14,9 +14,9 @@
 // A consumer that includes only this header and constructs a console must
 // compile, and that is what this TU is.
 
-#include <hven/trace/console_trace_sink.h>
-
 #include <cstdio>
+
+#include <hven/trace/console_trace_sink.h>
 
 namespace hven_install_smoke {
 int standalone_include_console_trace_sink() {

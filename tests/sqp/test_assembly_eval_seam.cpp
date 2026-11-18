@@ -50,20 +50,18 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/model/problem_access.h>
-
-#include <hven/detail/sqp/assembly_eval_seam.h>
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/assembly_eval_seam.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 #include "model/support/claim_stream_double.h"
 #include "model/support/hs_problems.h"
 #include "model/support/parametric_families.h"
-
-#include <hven/core/compiler.h>
-#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;

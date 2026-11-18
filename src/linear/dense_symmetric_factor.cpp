@@ -1,20 +1,19 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/linear/dense_symmetric_factor.h>
-
 #include <hven/core/errors.h>
+#include <hven/linear/dense_symmetric_factor.h>
 
 // The 2x2 block read, shared with the dense arm's block walk.
 #include <hven/detail/linear/block_decode.h>
 // The per-call thread scope, shared with the sparse session (M6 W5 T8.8).
-#include <hven/detail/linear/thread_scope.h>
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/detail/linear/thread_scope.h>
 
 // Backend routing: HVEN_USE_ACCELERATE_LAPACK is defined project-wide (see
 // cmake/hven_sparse_backend.cmake) exactly on Apple, where Accelerate ships

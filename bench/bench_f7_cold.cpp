@@ -157,13 +157,12 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/sqp/sqp_solver_types.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "bench_cli.h"
-
 #include "model/support/scale_problems.h"
 
 namespace {

@@ -4,8 +4,6 @@
 // test_trace_messages.cpp -- M8 TR-B: the message identities of spec 2.7 on live solves of both
 // engines. Counter identities where a counter exists; scenario pins where one does not (V5).
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <map>
 #include <memory>
@@ -13,12 +11,14 @@
 #include <string_view>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include <hven/core/errors.h>
 #include <hven/core/stop.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
 
 #include "model/support/hs071_problem.h"
 #include "trace/support/trace_battery.h"

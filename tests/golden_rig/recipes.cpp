@@ -3,14 +3,14 @@
 
 // See recipes.h for the recipes-not-matrices rule these all obey.
 
+#include "recipes.h"
+
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
 
 #include <Eigen/SparseCore>
-
-#include "recipes.h"
 
 namespace hven::rig {
 namespace {
@@ -437,26 +437,27 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
 
     Fixture f;
     f.name = "pd_on_face";
-    f.provenance = "the accepted case of the sqp checkout's on-face refinement path, "
-                   "reconstructed at the seam level: a Hessian that is positive definite on the "
-                   "face and a full-rank face block, whose correct inertia is therefore exactly "
-                   "(free variables, face rows, 0). The path itself is engine logic; what this "
-                   "pins is the evidence the engine reads off the factorization. "
-                   "NOT RATIFIABLE 2026-08-15, for a reason worth stating precisely: the "
-                   "authority named a PATH, not a matrix. QpEngine::refine_on_face migrated "
-                   "(include/hven/detail/qp/walk/walk_engine.h), and its accepted arm is under test "
-                   "(tests/qp/test_qp_engine.cpp), but that arm builds its face by hand on a "
-                   "small box QP rather than instantiating any named fixture -- there is no "
-                   "committed matrix for this recipe to have been transcribed from, then or "
-                   "now. So the matrix below is an INDEPENDENT construction and is not upgraded "
-                   "to verified. The PROPERTY it exists to pin does check out against the "
-                   "migrated arm: on a face that is positive definite with a full-rank face "
-                   "block, the accepted path's inertia is exactly (free variables, face rows, "
-                   "0), which is what this recipe is built to produce and what T5's case c "
-                   "asserts. PER C0.4 RULING 1: authority not reproducible in this repository "
-                   "(authority names a code path, not a matrix); structural reconstruction, "
-                   "verified against no fixture -- C0.4 report, 2026-08-15." +
-                   std::string(kRegularizationNote);
+    f.provenance =
+        "the accepted case of the sqp checkout's on-face refinement path, "
+        "reconstructed at the seam level: a Hessian that is positive definite on the "
+        "face and a full-rank face block, whose correct inertia is therefore exactly "
+        "(free variables, face rows, 0). The path itself is engine logic; what this "
+        "pins is the evidence the engine reads off the factorization. "
+        "NOT RATIFIABLE 2026-08-15, for a reason worth stating precisely: the "
+        "authority named a PATH, not a matrix. QpEngine::refine_on_face migrated "
+        "(include/hven/detail/qp/walk/walk_engine.h), and its accepted arm is under test "
+        "(tests/qp/test_qp_engine.cpp), but that arm builds its face by hand on a "
+        "small box QP rather than instantiating any named fixture -- there is no "
+        "committed matrix for this recipe to have been transcribed from, then or "
+        "now. So the matrix below is an INDEPENDENT construction and is not upgraded "
+        "to verified. The PROPERTY it exists to pin does check out against the "
+        "migrated arm: on a face that is positive definite with a full-rank face "
+        "block, the accepted path's inertia is exactly (free variables, face rows, "
+        "0), which is what this recipe is built to produce and what T5's case c "
+        "asserts. PER C0.4 RULING 1: authority not reproducible in this repository "
+        "(authority names a code path, not a matrix); structural reconstruction, "
+        "verified against no fixture -- C0.4 report, 2026-08-15." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = n_free;
     f.n_dual = m_face;

@@ -39,31 +39,31 @@
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
 
-#include <hven/core/errors.h>
-#include <hven/detail/core/finite_screen.h>
-#include <hven/detail/ipm/globalization/backtracking_line_search.h>
-#include <hven/detail/ipm/classic_adaptive_governor.h>
-#include <hven/detail/ipm/globalization/feasibility_switch_recovery.h>
-#include <hven/detail/ipm/globalization/filter_acceptance.h>
-#include <hven/detail/ipm/globalization/funnel_acceptance.h>
-#include <hven/detail/ipm/globalization/l1_restoration.h>
-#include <hven/detail/ipm/globalization/merit_acceptance.h>
-#include <hven/detail/ipm/globalization/modern_merit.h>
-#include <hven/detail/ipm/monitored_governor.h>
-#include <hven/detail/ipm/globalization/proximal_restoration.h>
-#include <hven/detail/ipm/globalization/soc.h>
-#include <hven/detail/ipm/globalization/switching_acceptance.h>
-#include <hven/detail/ipm/globalization/watchdog.h>
-#include <hven/detail/ipm/aggregate_views.h>
-#include <hven/detail/barrier/barrier_math.h>
-#include <hven/detail/ipm/eval_error_log.h>
-
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
+
+#include <hven/core/errors.h>
+#include <hven/detail/barrier/barrier_math.h>
+#include <hven/detail/core/finite_screen.h>
+#include <hven/detail/ipm/aggregate_views.h>
+#include <hven/detail/ipm/classic_adaptive_governor.h>
+#include <hven/detail/ipm/eval_error_log.h>
+#include <hven/detail/ipm/globalization/backtracking_line_search.h>
+#include <hven/detail/ipm/globalization/feasibility_switch_recovery.h>
+#include <hven/detail/ipm/globalization/filter_acceptance.h>
+#include <hven/detail/ipm/globalization/funnel_acceptance.h>
+#include <hven/detail/ipm/globalization/l1_restoration.h>
+#include <hven/detail/ipm/globalization/merit_acceptance.h>
+#include <hven/detail/ipm/globalization/modern_merit.h>
+#include <hven/detail/ipm/globalization/proximal_restoration.h>
+#include <hven/detail/ipm/globalization/soc.h>
+#include <hven/detail/ipm/globalization/switching_acceptance.h>
+#include <hven/detail/ipm/globalization/watchdog.h>
+#include <hven/detail/ipm/monitored_governor.h>
 
 using namespace hven::detail;
 

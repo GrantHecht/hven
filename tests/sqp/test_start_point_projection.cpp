@@ -33,12 +33,12 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 using namespace hven::detail;
 

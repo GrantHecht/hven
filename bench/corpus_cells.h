@@ -120,18 +120,18 @@
 #include <fmt/format.h>
 
 #include <hven/core/stop.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/crossover.h>
-#include <hven/sqp/sqp_solver_types.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
+#include "model/support/scale_problems.h"
 #include "model_surface_kkt.h"
 #include "sqp/support/nlp_kkt_check.h"
-#include "model/support/scale_problems.h"
 
 using namespace hven::detail;
 

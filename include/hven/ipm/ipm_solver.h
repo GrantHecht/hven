@@ -21,10 +21,10 @@
 #include <Eigen/Sparse>
 
 #include <hven/core/solver_status.h>
-#include <hven/solver/common_options.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/solver/solve_result.h>
 #include <hven/model/problem.h>
+#include <hven/solver/common_options.h>
+#include <hven/solver/solve_result.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/warm_start.h>
 

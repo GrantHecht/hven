@@ -6,8 +6,6 @@
 // `solve.end.counters` object: the two are written from one table, so a key the trace writes the
 // dump must write with the same value.
 
-#include <gtest/gtest.h>
-
 #include <map>
 #include <memory>
 #include <regex>
@@ -15,11 +13,13 @@
 #include <string>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include <hven/core/solver_counters.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/trace/json_lines_trace_sink.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #include "model/support/hs071_problem.h"
 

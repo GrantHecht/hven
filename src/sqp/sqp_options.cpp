@@ -73,8 +73,8 @@
 #include <fmt/format.h>
 
 #include <hven/detail/solver/common_options_validate.h>
-#include <hven/sqp/sqp_options.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_options.h>
 
 namespace hven {
 

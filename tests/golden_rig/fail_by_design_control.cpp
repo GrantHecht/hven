@@ -25,6 +25,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/linear/symmetric_factor.h>
+
 #include "seam.h"
 
 namespace hven::rig {

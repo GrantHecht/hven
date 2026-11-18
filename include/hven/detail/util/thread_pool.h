@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <hven/core/errors.h>
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -20,6 +19,8 @@
 #include <thread>
 #include <type_traits>
 #include <vector>
+
+#include <hven/core/errors.h>
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <pthread.h>

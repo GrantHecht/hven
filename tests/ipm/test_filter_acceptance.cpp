@@ -41,14 +41,14 @@
 // tests/cpp/ (grep-confirmed no other "Filter"-prefixed free helper exists).
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/progress_measures_test_utils.h"
-
-#include <hven/detail/ipm/globalization/filter_acceptance.h>
+#include <algorithm>
+#include <stdexcept>
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
-#include <stdexcept>
+#include <hven/detail/ipm/globalization/filter_acceptance.h>
+
+#include "ipm/support/progress_measures_test_utils.h"
 
 namespace {
 

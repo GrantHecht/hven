@@ -18,9 +18,9 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/qp/qp_types.h>
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/trace/trace.h>
-#include <hven/qp/qp_types.h>
 
 using namespace hven::detail;
 

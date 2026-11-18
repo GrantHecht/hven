@@ -23,6 +23,7 @@
 //
 // Names carry a `QpCap` prefix: this suite's TUs share a link unit.
 
+#include <array>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -31,17 +32,15 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
-#include <array>
-
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #include "qp/support/qp_as_nlp_model.h"
 

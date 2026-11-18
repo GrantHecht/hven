@@ -32,7 +32,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-
 #include <fmt/format.h>
 
 #include <hven/core/types.h>

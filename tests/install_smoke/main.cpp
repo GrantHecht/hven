@@ -32,13 +32,13 @@
 
 #include <hven/core/ledger.h>
 #include <hven/core/solver_status.h>
-#include <hven/ipm/ipm_solver.h>
-#include <hven/trace/json_lines_trace_sink.h>
-#include <hven/solver/solve_result.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/hven.h>
+#include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/solver/solve_result.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/warmstart/warm_start.h>
 
 namespace {

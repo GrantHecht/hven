@@ -46,7 +46,6 @@
 // never factorized successfully (docs/testing.md). Every test below is a kAlways (dense-arm)
 // solve for that reason; the sparse arm's no-numerics exit runs the same code after factor_impl.
 
-#include "ipm/support/ipm_row_view.h"
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -61,22 +60,25 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include "ipm/support/ipm_row_view.h"
+
 #if defined(USE_ACCELERATE_SPARSE)
 #include <Accelerate/Accelerate.h>
 #endif
 
-#include "model/support/hs071_problem.h"
 #include <hven/core/errors.h>
-#include <hven/detail/ipm/ipm_dense_testing.h>
 #include <hven/detail/ipm/globalization/recovery_chain.h>
+#include <hven/detail/ipm/ipm_dense_testing.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/ipm/ipm_enums.h>
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/trace/trace.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/trace/trace.h>
+
+#include "model/support/hs071_problem.h"
 
 namespace {
 

@@ -4,8 +4,8 @@
 #pragma once
 
 #include <hven/core/types.h>
-#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 
 namespace hven::detail {
 

@@ -25,15 +25,14 @@
 // tests/cpp/ (grep-confirmed no other "L1Resto" symbol exists).
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/solver_test_utils.h"
+#include <cmath>
+
+#include <Eigen/Dense>
+#include <gtest/gtest.h>
 
 #include <hven/detail/ipm/globalization/l1_restoration.h>
 
-#include <gtest/gtest.h>
-
-#include <Eigen/Dense>
-
-#include <cmath>
+#include "ipm/support/solver_test_utils.h"
 
 namespace {
 

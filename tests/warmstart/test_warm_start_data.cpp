@@ -25,7 +25,6 @@
 #include <vector>
 
 #include <Eigen/Core>
-
 #include <gtest/gtest.h>
 
 #include <hven/detail/warmstart/warm_start_access.h>

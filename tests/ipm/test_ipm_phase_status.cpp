@@ -10,11 +10,11 @@
 // against a stop reason -- resolve_ipm_phase_status, applied per phase. The
 // rules it pins are the same rules, one enum lighter.
 
-#include <gtest/gtest.h>
-
 #include <set>
 #include <stdexcept>
 #include <string>
+
+#include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
 #include <hven/detail/ipm/ipm_phase_status.h>

@@ -7,8 +7,6 @@
 // door pushes a row without a step), and (TR-D/TR-D') `history` == the depth-0 `iter` stream, row
 // for row, on both engines.
 
-#include <gtest/gtest.h>
-
 #include <chrono>
 #include <functional>
 #include <limits>
@@ -19,15 +17,17 @@
 #include <thread>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include <hven/core/stop.h>
 #include <hven/detail/solver/return_best.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
 
-#include "solver/support/iteration_record_eq.h"
 #include "model/support/hs071_problem.h"
+#include "solver/support/iteration_record_eq.h"
 #include "trace/support/trace_battery.h"
 
 namespace {

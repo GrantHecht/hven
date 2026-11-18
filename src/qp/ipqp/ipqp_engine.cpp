@@ -43,15 +43,15 @@
 #include <Eigen/Core>
 #include <fmt/format.h>
 
-#include <hven/detail/core/inf_norm.h>
-#include <hven/detail/kkt/inertia_regularization.h>
 #include <hven/detail/barrier/barrier_math.h>
+#include <hven/detail/core/inf_norm.h>
 #include <hven/detail/kkt/dense_selection.h>
+#include <hven/detail/kkt/inertia_regularization.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp/ipqp_math.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/trace/trace.h>
 
 using namespace hven::detail;

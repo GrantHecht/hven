@@ -17,8 +17,6 @@
 // console_trace_sink.cpp -- the human trace (docs/trace-schema-v1.md, "Human trace"). Printing
 // code, so CLAUDE.md section 5 puts it in a TU.
 
-#include <hven/trace/console_trace_sink.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -31,6 +29,7 @@
 #include <hven/core/start_level.h>
 #include <hven/core/version.h>
 #include <hven/solver/iteration_record.h>
+#include <hven/trace/console_trace_sink.h>
 
 #include "trace_names.h"
 

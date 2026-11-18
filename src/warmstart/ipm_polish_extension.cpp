@@ -24,8 +24,6 @@
 // a KNOWN tag is corruption. Naming the tag in every message is what keeps the
 // two apart for whoever reads the exception.
 
-#include <hven/warmstart/ipm_polish_extension.h>
-
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -37,9 +35,10 @@
 #include <fmt/format.h>
 
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/warmstart/ipm_polish_extension.h>
 
 namespace hven {
 

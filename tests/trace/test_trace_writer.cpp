@@ -43,12 +43,12 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/core/aggregate_arity.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/sqp/globalization/elastic.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/sqp/globalization/elastic.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/trace/console_trace_sink.h>
 #include <hven/trace/json_lines_trace_sink.h>
 
@@ -56,9 +56,9 @@
 // astra's I2): this file used to carry its own copy, which included <unistd.h>
 // and called the POSIX descriptor functions unconditionally -- source that
 // cannot be compiled on Windows, where this target is also built.
-#include "support/console_capture.h"
 #include "model/support/hs_problems.h"
 #include "qp/support/ipqp_test_support.h"
+#include "support/console_capture.h"
 
 namespace hven {
 namespace {

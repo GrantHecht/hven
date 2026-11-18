@@ -72,9 +72,8 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/model/nlp_model.h>
-
 #include <hven/core/compiler.h>
+#include <hven/detail/model/nlp_model.h>
 
 using namespace hven::detail;
 

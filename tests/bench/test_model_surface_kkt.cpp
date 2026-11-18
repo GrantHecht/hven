@@ -40,7 +40,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
-
 #include <gtest/gtest.h>
 
 #include <hven/detail/model/nlp_model.h>

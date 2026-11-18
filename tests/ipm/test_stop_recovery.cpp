@@ -21,8 +21,6 @@
 // The fixture is a locally infeasible problem (c(x) = x0^2 + x1^2 + 1 = 0 has no
 // real root), so the solve enters feasibility restoration and stays there.
 
-#include <gtest/gtest.h>
-
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -32,14 +30,15 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/stop.h>
 #include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/solver/solve_result.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/solver/solve_result.h>
 
 namespace {
 

@@ -18,8 +18,6 @@
 // here therefore carries a distinct prefix rather than relying on the anonymous
 // namespace to keep it local.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -31,6 +29,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 
 #include <hven/detail/ipm/aggregate_views.h>
 #include <hven/detail/model/nlp_adapter.h>

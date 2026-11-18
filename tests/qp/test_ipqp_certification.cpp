@@ -15,8 +15,8 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 #include "qp/support/indefinite_fixtures.h"
 #include "qp/support/ipqp_test_support.h"

@@ -6,8 +6,8 @@
 // emitted object does and does not carry are documented in
 // detail/warmstart/crossover.h.
 
-#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 using namespace hven::detail;
 

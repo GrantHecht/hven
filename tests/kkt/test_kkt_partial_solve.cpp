@@ -2,6 +2,7 @@
 // (see LICENSE).
 
 #include <gtest/gtest.h>
+
 #include <hven/detail/kkt/kkt_factor.h>
 
 using namespace hven;

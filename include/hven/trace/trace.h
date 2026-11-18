@@ -25,13 +25,13 @@
 #include <hven/ipm/ipm_options.h>
 #include <hven/ipm/ipm_phase_report.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/problem.h>
+#include <hven/qp/ipqp_evidence.h>
+#include <hven/qp/qp_types.h>
 #include <hven/solver/iteration_record.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_options.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/model/problem.h>
-#include <hven/qp/ipqp_evidence.h>
-#include <hven/qp/qp_types.h>
 
 namespace hven {
 

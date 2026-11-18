@@ -21,14 +21,14 @@
 // `default`, so a new enumerator falls to the trailing sentinel, and the
 // sentinel is asserted here to belong to no declared value.
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <stdexcept>
 #include <string>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <gtest/gtest.h>
+
 #include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/trace/trace.h>
 
 using hven::census_variable_bounds;

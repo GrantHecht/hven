@@ -122,10 +122,10 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/sqp/continuation.h>
 #include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/crossover.h>
 #include <hven/sqp/sqp_solver_types.h>
 

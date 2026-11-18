@@ -4,9 +4,9 @@
 // test_trace_messages_sqp.cpp -- M8 TR-B: the SQP's restoration episodes that RESUME the solve
 // are written as `restoration_exited{s: resumed}`, one per `restoration_entered`.
 
-#include <gtest/gtest.h>
-
 #include <string_view>
+
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver.h>

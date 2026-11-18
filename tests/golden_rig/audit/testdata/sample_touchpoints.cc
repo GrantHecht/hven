@@ -26,8 +26,8 @@ void sample() {
     pardisoinit(pt, &mtype, iparm);
     pardiso(pt, &maxfct, &mnum, &mtype, &phase, &n, a, ia, ja, perm, &nrhs, iparm, &msglvl, b, x,
             &error);
-    pardiso_64(pt, &maxfct, &mnum, &mtype, &phase, &n, a, ia, ja, perm, &nrhs, iparm, &msglvl, b,
-               x, &error);
+    pardiso_64(pt, &maxfct, &mnum, &mtype, &phase, &n, a, ia, ja, perm, &nrhs, iparm, &msglvl, b, x,
+               &error);
 
     // --- Accelerate calls (3) ---
     SparseFactor(SparseFactorizationLDLTTPP, structure, fopts);

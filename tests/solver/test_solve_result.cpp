@@ -11,8 +11,6 @@
 // convergence test. That is the whole point of the pin: if the shared
 // definition ever drifts toward one engine's internal measure, these fail.
 
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -20,25 +18,27 @@
 #include <string>
 #include <vector>
 
-#include <hven/detail/solver/declared_diagnostics.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <gtest/gtest.h>
+
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/model/nlp.h>
-#include <hven/model/problem.h>
 
-#include <hven/detail/warmstart/sqp_warm_access.h>
-#include <hven/detail/warmstart/warm_start_access.h>
-#include "model/support/hs_problems.h"
 #include "model/support/hs071_problem.h"
+#include "model/support/hs_problems.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

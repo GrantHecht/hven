@@ -12,8 +12,6 @@
 // validation, pattern-hash discipline, counters, epochs, the entitlement
 // rules around shared sessions -- and none of the backend's vocabulary.
 
-#include <hven/linear/symmetric_factor.h>
-
 #include <cmath>
 #include <optional>
 #include <stdexcept>
@@ -26,6 +24,7 @@
 #include <hven/detail/linear/dense_session.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/detail/linear/pardiso_session.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace {
 

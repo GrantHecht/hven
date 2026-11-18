@@ -1,10 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <memory>
+
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_problem_model.h>

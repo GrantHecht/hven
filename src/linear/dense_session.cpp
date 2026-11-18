@@ -1,8 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/linear/dense_session.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -14,6 +12,7 @@
 
 #include <hven/core/errors.h>
 #include <hven/detail/linear/block_decode.h>
+#include <hven/detail/linear/dense_session.h>
 #include <hven/detail/linear/session_id.h>
 #include <hven/detail/linear/thread_scope.h>
 

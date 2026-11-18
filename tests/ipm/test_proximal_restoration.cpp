@@ -27,13 +27,13 @@
 // across tests/cpp/ (grep-confirmed no other "ProxResto" symbol exists).
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/solver_test_utils.h"
-
-#include <hven/detail/ipm/globalization/proximal_restoration.h>
+#include <cmath>
 
 #include <gtest/gtest.h>
 
-#include <cmath>
+#include <hven/detail/ipm/globalization/proximal_restoration.h>
+
+#include "ipm/support/solver_test_utils.h"
 
 namespace {
 

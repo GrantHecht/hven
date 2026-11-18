@@ -15,14 +15,14 @@
 // Regenerate (a DECLARED event: every outside reader's fixtures move with it):
 //   HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests --gtest_filter='TraceV1Fixtures.*'
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+
+#include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
 #include <hven/trace/json_lines_trace_sink.h>

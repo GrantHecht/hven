@@ -269,9 +269,8 @@
 
 #include <hven/qp/qp_types.h>
 
-#include "snoptProblem.hpp"
-
 #include "model/support/scale_problems.h"
+#include "snoptProblem.hpp"
 
 namespace hven::snopt_bridge {
 

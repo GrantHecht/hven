@@ -23,8 +23,6 @@
 // both engines, so it lands on a trial point or on the derivatives of a point a
 // step reached. `fired` is asserted so no case passes vacuously.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -41,21 +39,23 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
-#include "model/support/hs071_problem.h"
 #include <hven/core/errors.h>
 #include <hven/core/stop.h>
 #include <hven/detail/util/thread_pool.h>
-#include <hven/trace/console_trace_sink.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
+#include <hven/trace/console_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/trace/trace.h>
-#include <hven/model/nlp.h>
-#include <hven/model/problem.h>
+
+#include "model/support/hs071_problem.h"
 
 namespace {
 

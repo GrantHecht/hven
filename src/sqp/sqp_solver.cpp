@@ -33,27 +33,25 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
-
 #include <hven/core/errors.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
 // lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
 // `FanOutTraceSink` and holds them through `unique_ptr`s; this file builds
 // them, resets them and defines `~SqpSolver`, so it is the file that needs them
 // complete.
-#include <hven/trace/console_trace_sink.h>
-
 #include <hven/detail/solver/callback_rows.h>
+#include <hven/detail/solver/return_best.h>
 #include <hven/detail/sqp/column_scaling.h>
 #include <hven/detail/sqp/equality_basis.h>
 #include <hven/detail/sqp/equality_basis_testing.h>
 #include <hven/detail/sqp/ladder_testing.h>
-#include <hven/detail/solver/return_best.h>
+#include <hven/detail/warmstart/crossover.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/sqp_warm_state.h>
-#include <hven/detail/warmstart/crossover.h>
 #include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/trace/console_trace_sink.h>
 
 using namespace hven::detail;
 

@@ -6,10 +6,6 @@
 // reproduces are the free functions in sqp/sqp_solver.h, which this TU
 // includes for NlpEval (see the seam header's NOT SELF-CONTAINED note).
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
-
-#include <hven/detail/sqp/assembly_eval_seam.h>
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -19,6 +15,9 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/detail/sqp/assembly_eval_seam.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 using namespace hven::detail;
 

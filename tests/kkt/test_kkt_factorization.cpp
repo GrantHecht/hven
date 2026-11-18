@@ -7,8 +7,6 @@
 // integers the engine consumes -- so each row of it is checked against a
 // system whose inertia is known by hand.
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -16,6 +14,7 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/detail/kkt/kkt_factorization.h>
 #include <hven/detail/model/nlp_adapter.h>

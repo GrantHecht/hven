@@ -19,8 +19,6 @@
 // unchanged -- which is exactly the case after a partition renegotiation. The
 // next solve then scattered through a location table of -1s.
 
-#include <gtest/gtest.h>
-
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -31,11 +29,12 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <gtest/gtest.h>
 
-#include <hven/detail/solver/result_access.h>
 #include <hven/detail/ipm/kkt_vector.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
 

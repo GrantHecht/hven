@@ -7,8 +7,6 @@
 // is pinned in tests/ipm/test_ipm_phase_status.cpp; the iteration-cap pin is in
 // test_ipm_solver_entry.cpp, on HS071.
 
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -17,22 +15,23 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
+#include <hven/core/errors.h>
 #include <hven/core/stop.h>
+#include <hven/detail/ipm/globalization/recovery_chain.h>
 #include <hven/detail/ipm/ipm_phase_status.h>
 #include <hven/detail/ipm/ipm_solver_impl.h>
-#include <hven/detail/ipm/globalization/recovery_chain.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/trace/json_lines_trace_sink.h>
-#include <hven/solver/solve_result.h>
-#include <hven/trace/trace.h>
 #include <hven/model/nlp.h>
+#include <hven/solver/solve_result.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/trace/trace.h>
 
-#include "support/console_capture.h"    // NOLINT(build/include_subdir)
 #include "ipm/support/declared_route.h" // NOLINT(build/include_subdir)
-#include <hven/core/errors.h>
+#include "support/console_capture.h"    // NOLINT(build/include_subdir)
 
 namespace stop_reason_test {
 namespace {

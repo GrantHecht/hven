@@ -7,8 +7,6 @@
 // here instead of going unrepresented. The table covers EVERY enumerator of `MessageKind`
 // (read from solver_status.h), so a new kind forces a decision. Falsified by planted sites.
 
-#include <gtest/gtest.h>
-
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -16,6 +14,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #ifndef HVEN_SRC_ROOT
 #error "HVEN_SRC_ROOT must be defined by tests/solver/CMakeLists.txt"

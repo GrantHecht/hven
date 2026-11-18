@@ -101,7 +101,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <hven/detail/model/problem_access.h>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -111,11 +110,12 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <fmt/format.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "bench_cli.h"
 #include "corpus_cells.h"

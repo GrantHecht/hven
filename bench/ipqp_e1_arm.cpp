@@ -5,6 +5,8 @@
 // sweep, and the A13/A14 wall legs. `--gate` is the ctest entry labelled
 // `a4_gate`; the arm is ipqp_e1_arm.h, the argument is the acceptance README.
 
+#include "ipqp_e1_arm.h"
+
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -16,12 +18,11 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
-#include "ipqp_e1_arm.h"
 #include "model/support/hs_problems.h"
 #include "qp/support/indefinite_fixtures.h"
 

@@ -7,14 +7,14 @@
 // the banner of src/sqp/sqp_options.cpp). There is no floating-point
 // arithmetic here, only comparisons and values handed to fmt.
 
-#include <hven/detail/solver/common_options_validate.h>
-#include <hven/detail/model/absent_bound.h>
-
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/detail/model/absent_bound.h>
+#include <hven/detail/solver/common_options_validate.h>
 
 namespace hven::detail {
 

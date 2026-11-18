@@ -146,12 +146,11 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 #include "hs_problems.h"
-
-#include <hven/core/compiler.h>
 
 using namespace hven::detail;
 

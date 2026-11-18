@@ -42,22 +42,20 @@
 // remainder of hven is Apache-2.0. See notices/eigen-mpl2.txt.
 // =============================================================================
 
-#include <hven/detail/linear/pardiso_session.h>
-
 #include <hven/detail/linear/fault_injection.h>
+#include <hven/detail/linear/pardiso_session.h>
 // MklThreadScope, LIFTED OUT OF THIS FILE in M6 W5 T8.8. It was hven's own
 // code, named in no upstream module and in no line of this file's
 // derived-material list in notices/eigen-mpl2.txt, and moving it makes this
 // file's diff against its upstream SMALLER. The dense border factor brackets
 // its own LAPACK calls with the same scope. Nothing else about this file moved.
-#include <hven/detail/linear/thread_scope.h>
-
 #include <algorithm>
 #include <stdexcept>
 
 #include <fmt/format.h>
-
 #include <mkl_service.h>
+
+#include <hven/detail/linear/thread_scope.h>
 
 namespace hven::linear::detail {
 

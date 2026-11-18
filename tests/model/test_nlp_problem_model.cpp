@@ -1,20 +1,19 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <gtest/gtest.h>
-
 #include <limits>
 #include <memory>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_problem_model.h>
 // The adapter above only FORWARD-DECLARES NonLinearProgram, and this file
 // dereferences one (the previous unity batch happened to supply the definition
 // from a neighbouring TU; M6 W4 T4 re-batched the suite and exposed it).
-#include <hven/detail/model/non_linear_program.h>
-
 #include <hven/core/compiler.h>
+#include <hven/detail/model/non_linear_program.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

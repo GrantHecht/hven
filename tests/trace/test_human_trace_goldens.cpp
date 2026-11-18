@@ -13,8 +13,6 @@
 // and read the diff. Wall-clock never appears: `timing: false`, and the `solver_initialized`
 // notice is suppressed by warming the process first.
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -28,10 +26,12 @@
 #include <sstream>
 #include <string>
 
-#include <hven/trace/console_trace_sink.h>
+#include <gtest/gtest.h>
+
 #include <hven/ipm/ipm_solver.h>
-#include <hven/sqp/sqp_solver.h>
 #include <hven/model/problem.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/trace/console_trace_sink.h>
 
 #include "trace/support/trace_battery.h"
 

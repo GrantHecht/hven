@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <Eigen/Core>
-
 #include <cmath>
+
+#include <Eigen/Core>
 
 #include <hven/detail/ipm/globalization/progress_measures.h>
 #include <hven/detail/ipm/globalization/proximal_restoration.h>

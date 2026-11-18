@@ -89,9 +89,8 @@
 #include <hven/qp/qp_types.h>
 
 #include "bench_cli.h"
-#include "snopt_f7_driver.h"
-
 #include "model/support/scale_problems.h"
+#include "snopt_f7_driver.h"
 
 namespace {
 

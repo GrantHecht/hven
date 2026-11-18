@@ -26,7 +26,6 @@
 #include <utility>
 
 #include <Eigen/Core>
-
 #include <fmt/format.h>
 
 #include <hven/detail/model/nlp_adapter.h>

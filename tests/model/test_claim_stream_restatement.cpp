@@ -21,9 +21,8 @@
 #include <memory>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/model/structure_identity.h>

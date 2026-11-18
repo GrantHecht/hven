@@ -1,8 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/sqp/equality_basis.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -11,6 +9,7 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
+#include <hven/detail/sqp/equality_basis.h>
 #include <hven/linear/symmetric_factor.h>
 
 namespace hven::detail {

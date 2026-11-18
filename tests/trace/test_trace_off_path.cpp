@@ -4,8 +4,8 @@
 // test_trace_off_path.cpp -- M8 TR-A, cost contract proof 1 (spec section 4, rule C1): with nothing
 // attached the engines construct no trace event and call no emit helper.
 //
-// A source scan, in the pattern of tests/sqp/test_qp_mode_sites.cpp. In src/{ipm,sqp,solver,qp,warmstart}/
-// every
+// A source scan, in the pattern of tests/sqp/test_qp_mode_sites.cpp. In
+// src/{ipm,sqp,solver,qp,warmstart}/ every
 // `*TraceEvent` construction and every `emit_*`, `make_iteration_record` or sink `on_*` call must
 // sit lexically inside a block opened by a sink guard (`!= nullptr`) or inside a builder lambda
 // handed to `emit_message`, except for the named allowlist. Falsified below by a planted unguarded
@@ -18,14 +18,14 @@
 // occurred: the non-finite abort block accumulating the gradient into the retained right-hand
 // side more than once.
 
-#include <gtest/gtest.h>
-
 #include <filesystem>
 #include <fstream>
 #include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #ifndef HVEN_SRC_ROOT
 #error "HVEN_SRC_ROOT must be defined by tests/solver/CMakeLists.txt"

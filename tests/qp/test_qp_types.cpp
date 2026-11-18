@@ -2,6 +2,7 @@
 // (see LICENSE).
 
 #include <gtest/gtest.h>
+
 #include <hven/qp/qp_types.h>
 
 TEST(Types, DefaultsMatchSpec) {

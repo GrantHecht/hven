@@ -99,10 +99,12 @@
 // a fixture IS sensitive to the trust-region radius, the sensitivity is
 // measured and stated rather than hidden behind a lucky default.
 
-#include "support/console_capture.h"
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <cfenv>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -115,27 +117,23 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/core/aggregate_arity.h>
+#include <hven/core/compiler.h>
 #include <hven/core/ledger.h>
+#include <hven/detail/core/aggregate_arity.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_major_row.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/model/problem_access.h>
-#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include <array>
-#include <bit>
-#include <cstdint>
-
-#include "support/route_reference.h"
 #include "model/support/hs_problems.h"
 #include "model/support/hs_sweeps.h"
 #include "qp/support/ipqp_test_support.h"
 #include "sqp/support/nlp_kkt_check.h"
-
-#include <hven/core/compiler.h>
-#include <hven/detail/warmstart/sqp_warm_access.h>
+#include "support/console_capture.h"
+#include "support/route_reference.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

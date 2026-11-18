@@ -7,17 +7,17 @@
 // trace battery; it exists with no sink attached and is the same with one attached; and the SQP
 // row carries `factorizations` unconditionally.
 
-#include <gtest/gtest.h>
-
 #include <string>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/sqp/sqp_solver.h>
 
-#include "solver/support/iteration_record_eq.h"
 #include "model/support/hs_problems.h"
+#include "solver/support/iteration_record_eq.h"
 #include "trace/support/trace_battery.h"
 
 namespace {

@@ -9,8 +9,8 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 #include "qp/support/ssn_fixtures.h"
 

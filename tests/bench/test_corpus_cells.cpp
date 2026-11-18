@@ -26,8 +26,6 @@
 #include <cstdlib>
 #include <deque>
 #include <fstream>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/model/problem_access.h>
 #include <map>
 #include <set>
 #include <sstream>
@@ -39,9 +37,12 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipm_corpus_leg.h"
-#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;

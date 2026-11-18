@@ -18,9 +18,9 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 #include <hven/core/types.h>
+#include <hven/model/problem.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/model/problem.h>
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start.h>
 

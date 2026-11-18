@@ -12,16 +12,15 @@
 #include <limits>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/types.h>
 #include <hven/detail/barrier/barrier_math.h>
 #include <hven/detail/barrier/bound_set.h>
 #include <hven/detail/qp/ipqp/ipqp_math.h>
-#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 namespace {
 

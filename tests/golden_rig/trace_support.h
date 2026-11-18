@@ -27,8 +27,9 @@
 #include <string>
 #include <vector>
 
-#include "expected_table.h"
 #include <hven/core/types.h>
+
+#include "expected_table.h"
 #include "recipes.h"
 #include "seam.h"
 

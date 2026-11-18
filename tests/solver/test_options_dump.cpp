@@ -36,10 +36,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/core/aggregate_arity.h>
-#include <hven/solver/common_options.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
+#include <hven/solver/common_options.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 namespace {
 

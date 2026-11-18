@@ -15,9 +15,8 @@
 // include-what-you-use run: clang-format sorts `detail/sqp/globalization/...`
 // ahead of `detail/sqp/sqp_solver_impl.h`, which would put the three headers BEFORE the
 // definition they depend on and fail to compile.
-#include <hven/detail/sqp/sqp_solver_impl.h>
-
 #include <hven/detail/core/inf_norm.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 using namespace hven::detail;
 

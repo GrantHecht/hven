@@ -30,11 +30,13 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/core/compiler.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/nlp_problem_model.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
@@ -42,9 +44,6 @@
 
 #include "../../bench/crossover_legs.h"
 #include "support/route_reference.h"
-
-#include <hven/core/compiler.h>
-#include <hven/detail/warmstart/warm_start_access.h>
 
 namespace {
 using hven::detail::WarmStartAccess;

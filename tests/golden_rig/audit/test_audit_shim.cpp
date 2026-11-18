@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/linear/symmetric_factor.h>
+
 #include "pardiso_recorder.h"
 #include "recipes.h"
 #include "seam.h"

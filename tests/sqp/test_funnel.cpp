@@ -54,8 +54,8 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
 using namespace hven;
 using namespace hven::detail;

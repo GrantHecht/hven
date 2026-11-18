@@ -16,7 +16,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-
 #include <fmt/format.h>
 
 #include <hven/detail/core/eigen_types.h>

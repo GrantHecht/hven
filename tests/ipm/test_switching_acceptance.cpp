@@ -29,13 +29,13 @@
 //   φ(pt) = pt.objective + pt.auxiliary
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ipm/support/progress_measures_test_utils.h"
-
-#include <hven/detail/ipm/globalization/switching_acceptance.h>
+#include <stdexcept>
 
 #include <gtest/gtest.h>
 
-#include <stdexcept>
+#include <hven/detail/ipm/globalization/switching_acceptance.h>
+
+#include "ipm/support/progress_measures_test_utils.h"
 
 namespace {
 

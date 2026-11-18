@@ -27,6 +27,7 @@
 #include <hven/model/nlp_assembly.h>
 #include <hven/model/solver_indexing_data.h>
 #include <hven/model/structure_identity.h>
+
 #include "model/support/fake_aggregate.h"
 
 using hven::AssemblyDeclaration;

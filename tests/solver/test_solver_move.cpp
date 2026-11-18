@@ -12,8 +12,6 @@
 // solves, so the comparison is between two second solves with the same history
 // (a re-solve reuses the symbolic analysis on both arms alike).
 
-#include <gtest/gtest.h>
-
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -23,20 +21,21 @@
 #include <utility>
 
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/solver/result_access.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "model/support/hs_problems.h"
 #include "model/support/hs071_problem.h"
+#include "model/support/hs_problems.h"
 
 namespace {
 

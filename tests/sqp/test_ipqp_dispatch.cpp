@@ -18,12 +18,12 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_major_row.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/model/problem_access.h>
-
 #include <hven/detail/warmstart/sqp_warm_access.h>
+
 #include "model/support/hs_problems.h"
 #include "qp/support/ipqp_test_support.h"
 

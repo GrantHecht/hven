@@ -28,10 +28,10 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/sqp_major_row.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/sqp_major_row.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
 
 #include "model/support/hs_problems.h"

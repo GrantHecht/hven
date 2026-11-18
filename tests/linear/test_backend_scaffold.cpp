@@ -6,11 +6,10 @@
 // (MKL Pardiso / Apple Accelerate) links and factorizes through Eigen's
 // wrapper the way a consumer's linear-solver interfaces do.
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 
 #ifdef USE_ACCELERATE_SPARSE
 #include <Eigen/AccelerateSupport>

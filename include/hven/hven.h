@@ -58,19 +58,19 @@
 #include <hven/warmstart/warm_start.h>
 
 // the engines, their options, results and traces
-#include <hven/solver/common_options.h>
-#include <hven/trace/console_trace_sink.h>
 #include <hven/ipm/ipm_enums.h>
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_options.h>
 #include <hven/ipm/ipm_phase_report.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
+#include <hven/solver/common_options.h>
 #include <hven/solver/iteration_record.h>
-#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/solver/solve_result.h>
+#include <hven/solver/step_verdict.h>
 #include <hven/sqp/sqp_options.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/solver/step_verdict.h>
+#include <hven/trace/console_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/trace/trace.h>

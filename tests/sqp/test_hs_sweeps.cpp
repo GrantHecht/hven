@@ -111,22 +111,21 @@
 #include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
+#include <hven/core/compiler.h>
 #include <hven/core/ledger.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/sqp_solver_impl.h>
-#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/continuation.h>
-#include <hven/sqp/sqp_solver_types.h>
+#include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
-#include "support/route_reference.h"
 #include "model/support/derivative_check.h"
 #include "model/support/hs_sweeps.h"
 #include "sqp/support/nlp_kkt_check.h"
-
-#include <hven/core/compiler.h>
+#include "support/route_reference.h"
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

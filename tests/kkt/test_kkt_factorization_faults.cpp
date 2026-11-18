@@ -24,9 +24,8 @@
 
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include <Eigen/Core>
+#include <gtest/gtest.h>
 
 #include <hven/core/types.h>
 #include <hven/detail/kkt/kkt_factorization.h>

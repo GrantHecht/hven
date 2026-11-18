@@ -8,9 +8,9 @@
 // includes the local-block layer at its end, so no translation unit that can
 // convert a piece can disagree with another about which adapter it takes.
 
-#include <gtest/gtest.h>
-
 #include <typeinfo>
+
+#include <gtest/gtest.h>
 
 #include <hven/model/piece_interfaces.h>
 

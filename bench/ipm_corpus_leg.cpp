@@ -18,10 +18,10 @@
 #include <fmt/format.h>
 
 #include <hven/core/solver_status.h>
-#include <hven/detail/solver/result_access.h>
-#include <hven/detail/util/thread_pool.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/util/thread_pool.h>
 #include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/solver/solve_result.h>
 #include <hven/warmstart/ipm_polish_extension.h>

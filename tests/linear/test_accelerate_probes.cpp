@@ -28,16 +28,14 @@
 
 #ifdef USE_ACCELERATE_SPARSE
 
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <cstdlib>
 #include <string>
 #include <vector>
 
-#include <fmt/format.h>
-
 #include <Accelerate/Accelerate.h>
+#include <fmt/format.h>
+#include <gtest/gtest.h>
 
 #include <hven/detail/linear/lapacke_shim.h>
 #include <hven/qp/qp_types.h>

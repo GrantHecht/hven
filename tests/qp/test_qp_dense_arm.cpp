@@ -30,15 +30,15 @@
 #include <Eigen/Eigenvalues>
 #include <gtest/gtest.h>
 
-#include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/linear/fault_injection.h>
+#include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 
-#include "support/route_reference.h"
 #include "qp/support/qp_dump.h"
+#include "support/route_reference.h"
 
 namespace hven::detail {
 // QpEngine's named friend, DEFINED here for this executable (test_qp_engine_indefinite.cpp

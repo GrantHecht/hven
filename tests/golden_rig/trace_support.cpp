@@ -8,9 +8,8 @@
 #include <iostream>
 #include <utility>
 
-#include <gtest/gtest.h>
-
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 
 #if !defined(__APPLE__)
 #include <mkl_service.h>

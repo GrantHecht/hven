@@ -70,17 +70,14 @@
 #include <algorithm>
 #include <cmath>
 
+#include <Eigen/Core>
 #include <gtest/gtest.h>
 
-#include <Eigen/Core>
-
+#include <hven/core/compiler.h>
 #include <hven/qp/qp_types.h>
 
 #include "../../bench/snopt_f7_driver.h"
-
 #include "model/support/scale_problems.h"
-
-#include <hven/core/compiler.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

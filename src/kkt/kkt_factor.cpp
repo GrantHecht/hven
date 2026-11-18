@@ -1,16 +1,15 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include <hven/detail/kkt/kkt_factor.h>
-
-#include <hven/core/errors.h>
-#include <hven/detail/linear/dense_session.h>
-
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
 #include <fmt/format.h>
+
+#include <hven/core/errors.h>
+#include <hven/detail/kkt/kkt_factor.h>
+#include <hven/detail/linear/dense_session.h>
 
 namespace hven::detail {
 
