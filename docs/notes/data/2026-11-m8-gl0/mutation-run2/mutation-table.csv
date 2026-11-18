@@ -1,0 +1,18 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+c1,ceiling rejection counted as Armijo,ok,SqpGl0.FunnelCeilingRejectionsFormOneRunOfThree sqp rc=1 
+c2,Armijo failure counted as h-type funnel failure,ok,SqpGl0.AnArmijoFailureIsCountedAsOne sqp rc=1 
+c3,h-type funnel failure counted as ceiling,ok,SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne sqp rc=1 
+c4,routed QP failure counted as other,ok,SqpGl0.ARoutedQpFailureIsItsOwnCause sqp rc=1 
+c5,strategy swaps its Armijo and h-type causes,ok,FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1 
+c6,strategy reports no cause for a ceiling rejection,ok,FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1 
+f1,h-type acceptance counted as f-type,ok,SqpGl0.AnHTypeAcceptanceIsCountedAsHType sqp rc=1 
+r1,switching ratio unwired (not stored on the row),APPLY_FAIL,
+r2,ratio divides by the trial h instead of the iterate h,ok,SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+r3,ratio drops the delta factor,ok,SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+r4,trace writer drops the switching_ratio key,ok,JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier TraceV1Fixtures.SqpCompleteStream drivers rc=1 sqp rc=1 
+r5,record builder drops the ratio,ok,SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1 
+h1,histogram off by one,ok,SqpGl0.AnArmijoFailureIsCountedAsOne sqp rc=1 
+h2,histogram last bucket saturates one early,ok,SqpGl0.ACallersStrategyWithoutACauseCountsAsOther sqp rc=1 
+h3,routed-failure site never advances the run,ok,SURVIVES
+x1,cause read after the SOC judgement (reported),ok,SURVIVES

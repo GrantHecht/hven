@@ -1,0 +1,211 @@
+PGREP_EMPTY
+DRIVER_START 2026-11-18T11:04:02-05:00 head=fcd93dd44
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T11:04:02-05:00
+[62/62] Linking CXX executable bench/hven_sqp_corpus
+rc=0
+FOREGROUND_END 2026-11-18T11:05:11-05:00
+d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armAbin/hven_sqp_corpus
+FOREGROUND_END 2026-11-18T11:05:12-05:00
+rc=0
+FOREGROUND_END 2026-11-18T11:08:56-05:00
+ARMA=d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809 ARMB=43820c2985f0f5cb7a15f437f280f8cefb76c6aeb37e9863bf5ba1576d6b56b0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T11:08:56-05:00
+LEG mode=interior rc=0 2026-11-18T11:10:36-05:00
+ANALYSIS mode=interior rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=2.484610e+05 B=2.484620e+05 B/A=1.000004
+  all samples                      A=2.484610e+05 B=2.484620e+05 B/A=1.000004
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938942e+10 B=9.938941e+10 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000004
+  round 2: B/A=1.000004
+  round 3: B/A=1.000004
+MODE interior FILTERED B/A = 1.000004 -> WITHIN [0.995, 1.005]
+LEG mode=ipm rc=0 2026-11-18T11:15:55-05:00
+ANALYSIS mode=ipm rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=5.947900e+05 B=5.947900e+05 B/A=1.000000
+  all samples                      A=5.947900e+05 B=5.947900e+05 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.379218e+11 B=2.379218e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000000
+  round 3: B/A=0.999998
+MODE ipm FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=ssn rc=0 2026-11-18T11:20:50-05:00
+ANALYSIS mode=ssn rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=4.099440e+05 B=4.099440e+05 B/A=1.000000
+  all samples                      A=4.099440e+05 B=4.099440e+05 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=1.639836e+11 B=1.639837e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000005
+  round 2: B/A=0.999998
+  round 3: B/A=1.000000
+MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=walk rc=0 2026-11-18T11:54:24-05:00
+ANALYSIS mode=walk rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126678e+06 B=7.126691e+06 B/A=1.000002
+  all samples                      A=7.126678e+06 B=7.126691e+06 B/A=1.000002
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850676e+12 B=2.850682e+12 B/A=1.000002
+per-round filtered B/A (informational):
+  round 1: B/A=1.000002
+  round 2: B/A=1.000000
+  round 3: B/A=1.000002
+MODE walk FILTERED B/A = 1.000002 -> WITHIN [0.995, 1.005]
+VERDICT PASS
+FOREGROUND_END 2026-11-18T11:54:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T11:54:25-05:00
+d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armAbin/hven_sqp_corpus
+43820c2985f0f5cb7a15f437f280f8cefb76c6aeb37e9863bf5ba1576d6b56b0  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armBbin/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-18T11:56:06-05:00
+ANALYSIS mode=interior rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=2.484650e+05 B=2.484650e+05 B/A=1.000000
+  all samples                      A=2.484650e+05 B=2.484650e+05 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938940e+10 B=9.938940e+10 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000000
+  round 3: B/A=0.999992
+MODE interior FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=ipm rc=0 2026-11-18T12:01:25-05:00
+ANALYSIS mode=ipm rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=5.947900e+05 B=5.947890e+05 B/A=0.999998
+  all samples                      A=5.947900e+05 B=5.947890e+05 B/A=0.999998
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.379215e+11 B=2.379215e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000002
+  round 3: B/A=0.999995
+MODE ipm FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]
+LEG mode=ssn rc=0 2026-11-18T12:06:18-05:00
+ANALYSIS mode=ssn rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=4.099440e+05 B=4.099440e+05 B/A=1.000000
+  all samples                      A=4.099440e+05 B=4.099440e+05 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=1.639834e+11 B=1.639834e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000005
+  round 2: B/A=1.000000
+  round 3: B/A=1.000002
+MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=walk rc=0 2026-11-18T12:39:53-05:00
+ANALYSIS mode=walk rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126675e+06 B=7.126643e+06 B/A=0.999996
+  all samples                      A=7.126675e+06 B=7.126643e+06 B/A=0.999996
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850676e+12 B=2.850663e+12 B/A=0.999995
+per-round filtered B/A (informational):
+  round 1: B/A=0.999992
+  round 2: B/A=0.999997
+  round 3: B/A=0.999997
+MODE walk FILTERED B/A = 0.999996 -> WITHIN [0.995, 1.005]
+VERDICT PASS
+FOREGROUND_END 2026-11-18T12:39:54-05:00
+RUNTIME_BOTH_DONE
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T12:39:54-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T12:39:54-05:00
+
+The following tests did not run:
+	839 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2524 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2525 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T12:41:28-05:00
+STEP ctest-rel rc=0 2026-11-18T12:41:28-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T12:41:28-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	839 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2524 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2525 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T12:49:08-05:00
+STEP ctest-dbg rc=0 2026-11-18T12:49:08-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T12:49:08-05:00
+d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armAbin/hven_sqp_corpus
+43820c2985f0f5cb7a15f437f280f8cefb76c6aeb37e9863bf5ba1576d6b56b0  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-18T12:49:09-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-18T12:53:57-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-18T12:58:46-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-18T12:59:07-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-18T12:59:27-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-18T12:59:53-05:00
+run rc=0
+compare A vs B rc=0
+=== gl0-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-18T13:00:19-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-18T13:05:05-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-18T13:05:26-05:00
+run rc=0
+compare armed rc=0
+=== gl0-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-18T13:05:52-05:00
+STEP replay rc=0 2026-11-18T13:05:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T13:05:52-05:00
+d3d6c0602c57b08d4f59b531fc29d20eb2df095e6939f092a44303beeff29809  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armAbin/hven_sqp_corpus
+43820c2985f0f5cb7a15f437f280f8cefb76c6aeb37e9863bf5ba1576d6b56b0  /home/ghecht/Projects/hven/.claude/worktrees/gl0/.scratch/build-gl0/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/gl0/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+    infeas2_stationary/MakeParameter/resto_infeasible phases                             A=kOptimize:stalled:22  B=kOptimize:infeasible:22
+compare promoted rc=1
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=1
+FOREGROUND_END 2026-11-18T13:06:36-05:00
+STEP interior rc=1 2026-11-18T13:06:36-05:00
+CHAIN_STOPPED_AT interior
+FOREGROUND_END 2026-11-18T13:06:36-05:00
+STOP chain
+DRIVER_EXIT=1
