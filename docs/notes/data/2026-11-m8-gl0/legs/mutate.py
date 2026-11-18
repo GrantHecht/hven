@@ -27,7 +27,7 @@ M = {
     'f1': (SQP, '            } else {\n                ++st.out.counters.accepted_h_type;',
            '            } else {\n                ++st.out.counters.accepted_f_type;'),
     # r1: the switching ratio is unwired (never stored on the row).
-    'r1': (SQP, '    mj.row.switching_ratio =\n        mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);\n', ''),
+    'r1': (SQP, '    mj.row.switching_ratio = mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);\n', ''),
     # r2: the ratio divides by the trial's h instead of the iterate's.
     'r2': (SQP, 'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
            'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_new * mj.ctx.h_new);'),

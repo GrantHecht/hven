@@ -31,6 +31,8 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <array>
+
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
@@ -568,6 +570,23 @@ TEST(QpFailureStep, TheDumpCarriesTheLineAfterTheCapRetry) {
     EXPECT_NE(text.find("qp_failure_step = true\n"), std::string::npos) << text;
     EXPECT_LT(text.find("qp_iteration_limit_retry"), text.find("qp_failure_step"));
     EXPECT_LT(text.find("qp_failure_step"), text.find("restoration_proximity"));
+}
+
+// GL-0: three routed failures in a row at one iterate are one run of three: each lands in
+// `reject_qp_failed` and in the next bucket of the run histogram.
+TEST(QpCapBudget, ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters) {
+    SqpOptions o = base_options();
+    o.qp.max_iterations = 1;
+    o.advanced.max_consecutive_qp_failures = 3;
+    BoxPullModel model;
+    SqpSolver driver(o);
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
+    const SqpCounters &c = out.counters;
+    EXPECT_EQ(c.qp_failures_routed, 3);
+    EXPECT_EQ(c.rejected_steps, 3);
+    EXPECT_EQ(c.reject_qp_failed, 3);
+    EXPECT_EQ(c.reject_funnel_ceiling + c.reject_f_armijo + c.reject_h_funnel + c.reject_other, 0);
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 1, 1, 0, 0}));
 }
 
 } // namespace hven

@@ -25,7 +25,7 @@ FILES="src/sqp/sqp_solver.cpp src/sqp/globalization/funnel.cpp src/trace/trace_w
 build() { SRC=$SRC bash "$D/legs/build.sh" Release mut hven_drivers_tests hven_sqp_tests > "$RAW/build-$1.log" 2>&1; }
 runall() {
   local B=$WT/.scratch/build-gl0/mut/tests
-  {     timeout 900 "$B/drivers/hven_drivers_tests" --gtest_brief=1 --gtest_fail_fast 2>&1; echo "drivers rc=$?";
+  {     timeout 900 "$B/solver/hven_drivers_tests" --gtest_brief=1 --gtest_fail_fast 2>&1; echo "drivers rc=$?";
     timeout 900 "$B/sqp/hven_sqp_tests" --gtest_brief=1 --gtest_fail_fast \
       --gtest_filter='SqpGl0.*:FunnelRejectCause.*:JsonLinesTraceSink.*:SqpConsole.*:*Counters*' 2>&1; echo "sqp rc=$?";
     true; } > "$RAW/run-$1.log"
