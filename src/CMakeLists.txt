@@ -17,7 +17,7 @@ target_sources(hven PRIVATE
     # The dense arm behind SymmetricFactor: both platforms run the same LAPACK
     # calls (MKL's LAPACKE, or the Accelerate shim), as the file above does.
     linear/dense_session.cpp
-    kkt/kkt_calls.cpp
+    kkt/kkt_factor.cpp
 )
 
 # The sparse symmetric factor's two backends are split at the source level,
@@ -104,7 +104,7 @@ target_sources(hven PRIVATE
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/problem.cpp
-    interior/kkt_factorization.cpp
+    kkt/kkt_factorization.cpp
     util/get_core_count.cpp
     util/memory_management.cpp
     util/thread_pool.cpp
@@ -219,11 +219,11 @@ target_sources(hven PRIVATE
     globalization/sqp/qn_lift_bridge.cpp
     globalization/sqp/qn_models.cpp
     globalization/sqp/soc_elastic_restoration.cpp
-    qp/ipqp_engine.cpp
-    qp/ipqp_kkt_layout.cpp
-    qp/qp_engine.cpp
-    qp/ssn_engine.cpp
-    qp/ws_independence.cpp
+    qp/ipqp/ipqp_engine.cpp
+    qp/ipqp/ipqp_kkt_layout.cpp
+    qp/walk/walk_engine.cpp
+    qp/ssn/ssn_engine.cpp
+    qp/walk/ws_independence.cpp
     warmstart/continuation.cpp
     warmstart/warm_start.cpp
 )

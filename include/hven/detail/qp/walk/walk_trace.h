@@ -143,17 +143,17 @@
 // this file's own `#ifdef HVEN_TESTING` rather than from `qp_engine.h`, so no
 // production translation unit gains a line; see that file's own header note
 // for why it is a separate file and not more of this one.
-#include <hven/detail/qp/qp_anti_cycling_arm.h>
+#include <hven/detail/qp/walk/anti_cycling_arm.h>
 // M7 W2 M5's DEGENERACY EXPERIMENT, whose per-thread switch, shared
 // stationarity scale and diagnostic switch live beside this observer's arming
 // and on the same conventions. Included from INSIDE this file's own
 // `#ifdef HVEN_TESTING` for the same reason M4's arm file is: no production
 // translation unit gains a line.
-#include <hven/detail/qp/qp_degeneracy_arm.h>
+#include <hven/detail/qp/walk/degeneracy_arm.h>
 // M7 W2 E4 fix round 1's CERTIFICATE SEAM, included from inside this file's
 // own `#ifdef HVEN_TESTING` for the same reason: no production translation unit
 // gains a line.
-#include <hven/detail/qp/qp_certificate_seam.h>
+#include <hven/detail/qp/walk/certificate_seam.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>

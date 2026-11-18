@@ -33,9 +33,9 @@
 
 #include "hven/core/errors.h"
 #include "hven/core/types.h"
-#include "hven/detail/kkt/kkt_calls.h"
+#include "hven/detail/kkt/kkt_factor.h"
 #include "hven/detail/linear/dense_session.h"
-#include "hven/detail/qp/ws_independence.h"
+#include "hven/detail/qp/walk/ws_independence.h"
 #include "hven/linear/symmetric_factor.h"
 
 namespace {

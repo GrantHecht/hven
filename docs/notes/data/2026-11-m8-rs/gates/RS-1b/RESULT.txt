@@ -1,0 +1,11 @@
+RS-1b gate result (cumulative against the RS-0 baseline; final run of each step; VERDICTS.txt keeps the superseded first psym/flags lines, whose cause was gate.sh not yet
+carrying RS-1a's exceptions and -I removal forward: runner fix only, no tree change)
+G1 clean configure CCACHE_DISABLE=1 + Release build: rc 0
+G2' P-SYM, generated object map (10 library objects: 1a's 3 + 1b's 7 renamed/moved TUs; 1 deleted): 198 objects, 191 byte-identical, 3 noise-class, 0 unclassified, 0 missing.
+    kkt_calls->kkt_factor and qp_engine->walk_engine objects pass PER SYMBOL, identical; only exception is test_core_layering.cpp.o (1a's declared edit, carried).
+G3' flags diff 363 TUs: IDENTICAL (git stamps normalised; -I src/interior/utils removal carried from 1a)
+G4  check_pch_neutrality.sh: PASS (PCH engaged on 4 TUs, 58 objects byte-identical with and without it)
+G5  ctest Release 3869/3869; Debug 3869/3869; gtest lists + ctest -N IDENTICAL to RS-0
+G7  install smoke default + clang PASS, export contract OK; installed listing == baseline-with-map (cumulative)
+G8  golden rig native arm in ctest: pass
+G9  27-cell replay x walk/ssn/ipm: 0 differences x3

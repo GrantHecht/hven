@@ -13,7 +13,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/bound_set.h"
+#include "hven/detail/barrier/bound_set.h"
 #include "hven/drivers/ipm_iterate.h"
 
 namespace hven::detail {

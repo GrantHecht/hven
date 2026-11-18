@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 
 namespace hven::test_support {

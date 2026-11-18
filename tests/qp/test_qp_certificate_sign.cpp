@@ -39,7 +39,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"

@@ -18,7 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/detail/interior/fixed_variable_row.h"
+#include "hven/detail/model/fixed_variable_row.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/model/assembly_declaration.h"

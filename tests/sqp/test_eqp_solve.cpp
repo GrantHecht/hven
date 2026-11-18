@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/qp/eqp_solve.h>
+#include <hven/detail/qp/walk/eqp_solve.h>
 
 #include "support/dense_oracle.h"
 

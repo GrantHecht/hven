@@ -44,14 +44,14 @@
 #include <fmt/format.h>
 
 #include <hven/detail/core/inf_norm.h>
-#include <hven/detail/globalization/inertia_regularization.h>
-#include <hven/detail/interior/barrier_math.h>
+#include <hven/detail/kkt/inertia_regularization.h>
+#include <hven/detail/barrier/barrier_math.h>
 #include <hven/detail/kkt/dense_selection.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/ipqp_fault_injection.h>
-#include <hven/detail/qp/ipqp_math.h>
-#include <hven/detail/qp/qp_engine.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_fault_injection.h>
+#include <hven/detail/qp/ipqp/ipqp_math.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/drivers/trace.h>
 
 using namespace hven::detail;

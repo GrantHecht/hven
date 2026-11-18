@@ -16,9 +16,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/qp_engine.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 
 #include "support/ipqp_test_support.h"
 

@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/kkt/kkt_factor.h>
 
 using namespace hven;
 using hven::Index;

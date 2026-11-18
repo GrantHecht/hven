@@ -30,8 +30,8 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/bound_set.h"
-#include "hven/detail/interior/fixed_variable_row.h"
+#include "hven/detail/barrier/bound_set.h"
+#include "hven/detail/model/fixed_variable_row.h"
 #include "hven/detail/core/eigen_types.h"
 #include "hven/detail/util/thread_pool.h"
 #include "hven/detail/model/absent_bound.h"

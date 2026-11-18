@@ -16,7 +16,7 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
-#include <hven/detail/qp/ipqp_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>

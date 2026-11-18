@@ -36,7 +36,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/kkt/kkt_assembly.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 #include "support/dense_oracle.h"
 #include "support/indefinite_fixtures.h"

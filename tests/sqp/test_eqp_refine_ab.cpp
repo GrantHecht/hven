@@ -53,7 +53,7 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/qp/eqp_solve.h>
+#include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/hs_problems.h"

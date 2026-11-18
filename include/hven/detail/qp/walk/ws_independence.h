@@ -76,7 +76,7 @@
 
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
-#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/kkt/schur_complement.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>

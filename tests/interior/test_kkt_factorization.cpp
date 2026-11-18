@@ -17,7 +17,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/interior/kkt_factorization.h"
+#include "hven/detail/kkt/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"

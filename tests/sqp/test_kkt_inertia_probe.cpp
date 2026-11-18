@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 #include <gtest/gtest.h>
-#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/kkt/kkt_factor.h>
 
 #include <fmt/format.h>
 

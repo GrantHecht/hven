@@ -35,12 +35,16 @@ if has psym; then
     nm -C --defined-only "$WT/.scratch/psym-base/$o" >> "$GD/removed-symbols.txt"
     rm -f "$SC/psym-before/$o"; grep -vxF "$o" "$SC/psym-before/.psym-manifest" > "$SC/psym-before/.m" && mv "$SC/psym-before/.m" "$SC/psym-before/.psym-manifest"
   done
-  EXC=""; [ -f "$GD/exceptions.txt" ] && EXC="--exceptions $GD/exceptions.txt"
+  # The comparison is cumulative against RS-0, so the (design-mandated, declared) test edits of EARLIER groups are still in the diff:
+  # the exceptions are the union of every group's file up to this one.
+  : > "$SC/exceptions-merged.txt"
+  for g in a b c d e; do [ -f "$E/gates/RS-1$g/exceptions.txt" ] && cat "$E/gates/RS-1$g/exceptions.txt" >> "$SC/exceptions-merged.txt"; [ "$g" = "$G" ] && break; done
+  EXC=""; [ -s "$SC/exceptions-merged.txt" ] && EXC="--exceptions $SC/exceptions-merged.txt"
   scripts/psym_compare.sh compare --object-map "$GD/object-map.txt" $EXC "$SC/psym-before" "$SC/psym" > "$GD/psym.txt" 2>&1
   rec psym-compare $?; tail -4 "$GD/psym.txt"
 fi
 if has flags; then
-  EXP=""; [ "$G" = a ] && EXP="--expect-removed=-I@/src/interior/utils"
+  EXP="--expect-removed=-I@/src/interior/utils"   # RS-1a removed the PRIVATE include directory; every later group carries it (cumulative)
   python3 $E/tools/flags_diff.py "$WT/.scratch/cc-base.json" build/compile_commands.json --root "$WT" --map "$SC/cumulative.map" $EXP > "$GD/flags.txt" 2>&1
   rec flags-diff $?; tail -8 "$GD/flags.txt"
 fi

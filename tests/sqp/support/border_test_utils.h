@@ -59,7 +59,7 @@
 // sites do, through the second alias below, with x_k = 0 -- the centre those two
 // tests pass to solve_eqp.
 
-#include <hven/detail/kkt/bordered_eqp.h>
+#include <hven/detail/qp/walk/bordered_eqp.h>
 
 namespace hven::test_support {
 

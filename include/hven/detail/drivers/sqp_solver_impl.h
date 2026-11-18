@@ -33,10 +33,10 @@
 #include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver.h>

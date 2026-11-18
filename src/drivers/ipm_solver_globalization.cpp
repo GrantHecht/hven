@@ -55,7 +55,7 @@
 #include "hven/detail/globalization/switching_acceptance.h"
 #include "hven/detail/globalization/watchdog.h"
 #include "hven/detail/interior/aggregate_views.h"
-#include "hven/detail/interior/barrier_math.h"
+#include "hven/detail/barrier/barrier_math.h"
 #include "hven/detail/interior/eval_error_log.h"
 
 #include <algorithm>

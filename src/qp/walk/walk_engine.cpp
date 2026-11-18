@@ -35,7 +35,7 @@
 #include <exception>
 
 #include <hven/detail/core/inf_norm.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 #include <optional>
 #include <utility>

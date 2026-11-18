@@ -19,8 +19,8 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
-#include "hven/detail/interior/kkt_factorization.h"
-#include "hven/detail/qp/ipqp_kkt_layout.h"
+#include "hven/detail/kkt/kkt_factorization.h"
+#include "hven/detail/qp/ipqp/ipqp_kkt_layout.h"
 
 namespace {
 

@@ -73,7 +73,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 using namespace hven;
 using namespace hven::detail;

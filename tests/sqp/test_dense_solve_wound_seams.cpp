@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/linear/fault_injection.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 
 namespace {
 

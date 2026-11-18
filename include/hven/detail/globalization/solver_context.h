@@ -13,9 +13,9 @@
 // (Before M6 W5 T8.3 the options were the nested IpmSolver::Settings,
 // so the include was mandatory; the options are their own header now, but this
 // context still names the solver's other types.)
-#include "hven/detail/interior/bound_set.h"
+#include "hven/detail/barrier/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
-#include "hven/detail/interior/kkt_factorization.h"
+#include "hven/detail/kkt/kkt_factorization.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/ipm_solver.h"
 

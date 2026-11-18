@@ -24,7 +24,7 @@
 #include <Eigen/QR>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/drivers/ipm_iterate.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>

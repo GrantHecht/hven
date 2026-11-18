@@ -17,11 +17,11 @@
 #include <Eigen/Core>
 
 #include "hven/core/types.h"
-#include "hven/detail/interior/barrier_math.h"
-#include "hven/detail/interior/bound_set.h"
-#include "hven/detail/qp/ipqp_math.h"
-#include "hven/detail/qp/qp_engine.h"
-#include "hven/detail/qp/ssn_engine.h"
+#include "hven/detail/barrier/barrier_math.h"
+#include "hven/detail/barrier/bound_set.h"
+#include "hven/detail/qp/ipqp/ipqp_math.h"
+#include "hven/detail/qp/walk/walk_engine.h"
+#include "hven/detail/qp/ssn/ssn_engine.h"
 
 namespace {
 

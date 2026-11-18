@@ -76,7 +76,7 @@
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "support/hs_problems.h"

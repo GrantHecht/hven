@@ -22,10 +22,10 @@
 #include <Eigen/Core>
 
 #include <hven/detail/kkt/dense_selection.h>
-#include <hven/detail/kkt/kkt_calls.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/qp_engine.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/kkt/kkt_factor.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>

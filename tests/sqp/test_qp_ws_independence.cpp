@@ -13,9 +13,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/kkt/dense_selection.h>
-#include <hven/detail/qp/eqp_solve.h>
-#include <hven/detail/qp/qp_engine.h>
-#include <hven/detail/qp/ws_independence.h>
+#include <hven/detail/qp/walk/eqp_solve.h>
+#include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/qp/walk/ws_independence.h>
 
 using namespace hven;
 using namespace hven::detail;

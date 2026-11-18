@@ -301,7 +301,7 @@ add_executable(hven_fault_injection_tests
     # are both backend-specific and both unreachable from any fixture. The TU
     # depends on nothing but the linear surface's public header, so it
     # compiles here as cheaply as it does into the library.
-    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
     linear/test_fault_injection.cpp
     interior/test_kkt_factorization_faults.cpp
 )
@@ -386,10 +386,10 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/drivers/common_options.cpp
     ${HVEN_SRC_DIR}/drivers/sqp_options.cpp
     ${HVEN_SRC_DIR}/drivers/trace.cpp
-    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
-    ${HVEN_SRC_DIR}/kkt/kkt_calls.cpp
-    ${HVEN_SRC_DIR}/qp/ipqp_engine.cpp
-    ${HVEN_SRC_DIR}/qp/ipqp_kkt_layout.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_factor.cpp
+    ${HVEN_SRC_DIR}/qp/ipqp/ipqp_engine.cpp
+    ${HVEN_SRC_DIR}/qp/ipqp/ipqp_kkt_layout.cpp
     sqp/test_ipqp_seams.cpp
 )
 
@@ -468,11 +468,11 @@ add_executable(hven_qp_walk_seam_tests
     ${HVEN_SRC_DIR}/core/enum_names.cpp
     ${HVEN_SRC_DIR}/core/ledger.cpp
     ${HVEN_SRC_DIR}/core/pattern_hash.cpp
-    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
-    ${HVEN_SRC_DIR}/kkt/kkt_calls.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_factor.cpp
     ${HVEN_SRC_DIR}/linear/dense_symmetric_factor.cpp
-    ${HVEN_SRC_DIR}/qp/qp_engine.cpp
-    ${HVEN_SRC_DIR}/qp/ws_independence.cpp
+    ${HVEN_SRC_DIR}/qp/walk/walk_engine.cpp
+    ${HVEN_SRC_DIR}/qp/walk/ws_independence.cpp
     qp/test_qp_walk_seam.cpp
     qp/test_qp_anti_cycling_arm.cpp
     qp/test_qp_degeneracy_arm.cpp

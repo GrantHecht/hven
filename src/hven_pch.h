@@ -54,7 +54,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "hven/detail/interior/barrier_math.h"
+#include "hven/detail/barrier/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/util/get_core_count.h"
 #include "hven/detail/util/timer.h"
@@ -84,7 +84,7 @@
 #include "hven/detail/globalization/modern_merit.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
 #include "hven/detail/globalization/filter_acceptance.h"
-#include "hven/detail/globalization/inertia_regularization.h"
+#include "hven/detail/kkt/inertia_regularization.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/noop_recovery.h"
 #include "hven/detail/globalization/soc.h"

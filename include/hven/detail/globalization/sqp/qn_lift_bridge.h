@@ -11,10 +11,10 @@
 #include <hven/core/types.h>
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 #include <hven/detail/globalization/sqp/mixed_lift.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 
 namespace hven::detail {
 

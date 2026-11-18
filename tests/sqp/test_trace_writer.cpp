@@ -46,8 +46,8 @@
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/ipqp/ipqp_engine.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/drivers/console_trace_sink.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 

@@ -30,8 +30,8 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/detail/interior/kkt_factorization.h>
-#include <hven/detail/qp/ipqp_kkt_layout.h>
+#include <hven/detail/kkt/kkt_factorization.h>
+#include <hven/detail/qp/ipqp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/ipqp_evidence.h>

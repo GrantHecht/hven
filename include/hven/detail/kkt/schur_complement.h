@@ -80,7 +80,7 @@
 
 #include <hven/detail/core/inf_norm.h>
 #include <hven/core/errors.h>
-#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/kkt/kkt_factor.h>
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
