@@ -24,6 +24,9 @@ set(INSTALL_GTEST OFF)   # keep gtest out of any future cmake --install of hven
 FetchContent_MakeAvailable(googletest)
 
 # Clang with MSVC headers: suppress char8_t->char32_t implicit conversion
+# (gmock/gmock_main compile gtest-printers.h too, and are built even though
+# only gtest_main is linked; clang 22 -- required by the 14.52 MSVC STL --
+# makes the warning fire there)
 # warning in gtest-printers.h. gtest compiles with -WX so this becomes an
 # error without the suppression.
 #
@@ -65,7 +68,7 @@ if(WIN32)
             "surface as a build failure right after this message rather than "
             "silently).")
     endif()
-    foreach(_t gtest gtest_main)
+    foreach(_t gtest gtest_main gmock gmock_main)
         if(TARGET ${_t} AND HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
             target_compile_options(${_t} PRIVATE -Wno-character-conversion)
         endif()

@@ -615,6 +615,29 @@ jobs:
       - name: Install ninja
         run: choco install ninja --no-progress -y
 
+      - name: Report runner image and MSVC toolset
+        shell: pwsh
+        run: |
+          "ImageVersion=$env:ImageVersion ImageOS=$env:ImageOS"
+          Get-ChildItem 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC' | Select-Object -ExpandProperty Name
+
+      # Pin clang-cl to an exact LLVM release. The windows-2025-vs2026 image
+      # rolled from 20261103.298.1 (MSVC 14.51.36231) to 20261116.315.1 (MSVC
+      # 14.52.37025), whose STL static-asserts (STL1000) on clang older than
+      # 22; the image still preinstalls LLVM 20.1.8 (run 44373091547). The
+      # rollout is partial -- runners land on either image -- so the pin must
+      # work on both (clang 22.1.7 does). Installing over the preinstalled
+      # LLVM keeps C:/Program Files/LLVM, the path the windows-clang-release
+      # preset hard-codes. The exact version (not 'latest') keeps the lane
+      # from drifting with the image; bump deliberately. The STL version
+      # check is NOT silenced.
+      - name: Install LLVM (pinned clang-cl matching the image's STL)
+        shell: pwsh
+        run: |
+          choco upgrade llvm --version=22.1.7 --allow-downgrade --no-progress -y
+          & 'C:\Program Files\LLVM\bin\clang-cl.exe' --version
+          if (-not ((& 'C:\Program Files\LLVM\bin\clang-cl.exe' --version | Out-String) -match 'version 22\.1\.7')) { throw 'clang-cl 22.1.7 not installed' }
+
       - name: Cache Intel oneAPI MKL + OpenMP install
         id: cache-oneapi-mkl
         uses: actions/cache@v4
