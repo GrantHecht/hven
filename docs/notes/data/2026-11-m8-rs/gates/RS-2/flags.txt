@@ -1,0 +1,38 @@
+TUs before 363 (after 363 deleted sources removed: 0), after 363, in both 363
+deleted sources: none
+only before: none
+only after:  none
+TUs with an expected removal applied: 0 (tokens none)
+declared deltas applied, per CMake target (TUs, removed, added):
+  hven_compile_fail_adapter_missing_objective    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_constraint_hook_as_objective    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_constraint_only_objective    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_constraint_unsupported_mixin    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_constraint_hessian_signature    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_hessian_pattern_upper    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_hook_ambiguous    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_jacobian_pattern_out_of_range    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_nonconst_name    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_nonconst_value    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_not_copyable    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_local_outputs_on_objective    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_no_constraint_surface    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_objective_unsupported_mixin    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_compile_fail_partial_objective_surface    1  -['-I@/tests/interior'] +['-I@/tests']
+  hven_drivers_tests                   30  -['-I@/tests/drivers'] +[]
+  hven_interior_tests                   4  -['-I@/tests/interior'] +['-I@/tests']
+  hven_ipqp_seam_tests                 14  -[] +['-I@/tests']
+  hven_model_tests                     12  -['-I@/tests/model'] +[]
+  hven_qp_walk_seam_tests              31  -[] +['-I@/tests']
+  hven_sqp_bench                        1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_corpus                       2  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_crossover                    1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_f7_cold                      1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_ipqp_e1_arm                  1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_seam_tests                  64  -[] +['-I@/tests']
+  hven_sqp_snopt_f7                     1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_ssn_safeguard_probe          1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_tau_bar_sweep_probe          1  -['-I@/tests/sqp'] +['-I@/tests']
+  hven_sqp_tests                       73  -['-I@/tests/sqp'] +['-I@/tests']
+TUs whose flag list differs beyond the expected: 0
+RESULT: IDENTICAL

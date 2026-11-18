@@ -1,0 +1,114 @@
+P-SYM tool sha256 (runner):   57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d
+P-SYM tool sha256 (captures): 57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d
+P-SYM maps: object-map=/home/ghecht/Projects/hven/.claude/worktrees/rs2/docs/notes/data/2026-11-m8-rs/gates/RS-2/object-map.txt symbol-map=/home/ghecht/Projects/hven/.claude/worktrees/rs2/docs/notes/data/2026-11-m8-rs/gates/RS-2/symbol-map.txt exceptions=none
+
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_accelerate_probes.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/linear/test_accelerate_probes.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_bench_dump.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_border_ops.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_crossover_legs.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_dense_oracle.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_eqp_refine_ab.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_eqp_solve.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_acceptance.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_certification.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_counters.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_kkt_layout.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_kkt_layout.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_ladder_skip.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_ladder_skip.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_math.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_mu0_rule.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_mu0_rule.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_options.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_trace.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_warm_restart.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_assembly.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_assembly.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_calls.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_calls.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_inertia_probe.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_inertia_probe.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_partial_solve.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_partial_solve.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/core/test_ledger.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_mesh_transfer.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_model.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_nlp_model.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_parametric_families.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_border.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_indefinite.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_tr.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_row_contract.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_row_contract.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_warm_start.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_ws_independence.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scaffold.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/linear/test_backend_scaffold.cpp.o
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scaffold.cpp.o: PERSYM 150 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1346 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_scale_problems.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_schur.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_snopt_bridge_gate.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_snopt_bridge_gate.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_sqp_warm_currency.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ssn_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/trace/test_trace_writer.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_types.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_types.cpp.o
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_types.cpp.o: PERSYM 14 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 181 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_warm_start.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o -> tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_warm_start_battery.cpp.o
+RENAMED     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o -> tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+RENAMED     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o -> tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+RENAMED     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o -> tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+RENAMED     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o -> tests/ipm/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+RENAMED     tests/model/CMakeFiles/hven_model_tests.dir/test_model_surface_kkt.cpp.o -> tests/model/CMakeFiles/hven_model_tests.dir/__/bench/test_model_surface_kkt.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_best_iterate.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_best_iterate.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_console_sink.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_counters_dump.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_counters_dump.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_dense_arm_engines.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_dense_arm_engines.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_dense_auto.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_dense_auto.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_exit_door_walk.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_exit_door_walk.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_human_trace_goldens.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_human_trace_goldens.cpp.o
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_human_trace_goldens.cpp.o: PERSYM 353 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2777 relocation records compared (1 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_ipm_counters.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_ipm_counters.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_iteration_history.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_iteration_history.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o: PERSYM 298 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2720 relocation records compared (3 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_print_tables.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_problem.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/model/test_problem.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_ipm_phase_status.cpp.o
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o: PERSYM 50 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1575 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_stop_recovery.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_stop_recovery.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_stop_token.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_stop_token.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_messages.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_messages.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_off_path.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_off_path.cpp.o
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_off_path.cpp.o: PERSYM 277 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2683 relocation records compared (3 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_v1_contract.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_contract.cpp.o
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_v1_fixtures.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_fixtures.cpp.o
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_trace_v1_fixtures.cpp.o: PERSYM 29 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 1 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 394 relocation records compared (1 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o -> tests/solver/CMakeFiles/hven_drivers_tests.dir/__/warmstart/test_warm_protocol.cpp.o
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 89348 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 53544 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 104548 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+
+P-SYM warning: 56 key(s) needed the [#n] rank fallback, and a symbol map is
+               in play. The rank is assigned over the union of both arms' MANGLED names,
+               so it is stable for a name a rename does not touch but NOT across a rename:
+               two indistinguishable twins can swap ranks between the arms. A DIFFERS or
+               an ONLY-BEFORE/ONLY-AFTER pair on a [#n]-tagged key may be a limit of this
+               tool rather than a code difference. The failure direction is conservative
+               (a false finding, never a masked one), but read such a finding by hand.
+               THIS COUNT IS DOMINATED BY `__cxx_global_var_init`, and for that family
+               the rank is NO LONGER what pairs the bodies: since M6 W5 T6 commit 0 the
+               per-symbol layer keys each initialiser by the GLOBAL it touches, and the
+               PERSYM line's `N global-var-init keyed by identity (M unresolved)` column
+               is the sharper statement -- M is the number this warning is really about.
+               Read that column first; a rank-tagged initialiser with M = 0 was paired by
+               identity, not by rank.
+P-SYM: 198 objects — 188 byte-identical, 3 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 79 objects matched through the object map, 7 compared per symbol, 7 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 92416 matched (7 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 56 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 795 matched by count, 0 differing (103621 before-arm and 103621 after-arm symbols accounted by family); relocations — 11676 records compared (8 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
