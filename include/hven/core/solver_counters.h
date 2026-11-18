@@ -2353,6 +2353,44 @@ struct SqpCounters {
     ///        `common.start_level` is kCold, as `IpmCounters::payload_ignored`.
     ///        Appended last.
     Index payload_ignored = 0;
+
+    // GL-0: where globalization spends work without progress. Counted on the caller's own
+    // iterate exactly as rejected_steps and steps_accepted are, and NOT folded from a
+    // restoration sub-solve for the same reason. Always on; each is one increment at a site that
+    // already increments rejected_steps or steps_accepted.
+    //
+    //     rejected_steps == reject_funnel_ceiling + reject_f_armijo + reject_h_funnel
+    //                       + reject_qp_failed + reject_other
+    //     steps_accepted == accepted_f_type + accepted_h_type
+    //
+    // Cause is the ORIGINAL trial's: a trial whose second-order correction is also refused is one
+    // rejection, counted by the cause of the first judgement.
+
+    /// Rejections by KLV Eq. (8): the trial's h exceeds the funnel width. A trial answered
+    /// kRestore (the restoration signature) is not a rejection and is in none of these.
+    Index reject_funnel_ceiling = 0;
+    /// Rejections of an f-type trial (switching condition held) that failed Eq. (11), Armijo.
+    Index reject_f_armijo = 0;
+    /// Rejections of an h-type trial (switching condition violated, inside the funnel) that
+    /// failed Eq. (12), the funnel sufficient decrease.
+    Index reject_h_funnel = 0;
+    /// Majors whose QP subproblem failed (iteration limit or numerical error) and were routed to
+    /// a radius shrink: no trial was judged, or the failed solve's own step was offered
+    /// (`qp_failure_step`) and refused; both are counted here, not by Eq. (8/11/12). Includes
+    /// the restoration-curvature-switch exit.
+    Index reject_qp_failed = 0;
+    /// Rejections of a non-finite trial, or by a caller's own strategy that reports no cause.
+    Index reject_other = 0;
+    /// Accepted steps with verdict kAcceptObjectiveStep (an f-type trial, and also the zero-step
+    /// accept and any full-step-mode accept, which no Eq. (11) test judged).
+    Index accepted_f_type = 0;
+    /// Accepted steps with verdict kAcceptFeasibilityStep (an h-type trial, Eq. (12)).
+    Index accepted_h_type = 0;
+    /// Rejections by their position in the run at one iterate: entry k-1 counts the rejections
+    /// that were the k-th consecutive at their iterate (the last entry is 5 or more). Every
+    /// rejected_steps increment lands in exactly one bucket, so the sum is rejected_steps.
+    /// Entry 0 is the number of runs; entry k is the number that lasted past k.
+    std::array<Index, 5> rejection_run_histogram{};
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2450,7 +2488,15 @@ struct SqpCounters {
     X(dense_solve_residual_refusals, counter_never_absent)                                         \
     X(dense_factorizations, counter_never_absent)                                                  \
     X(optimal_row_gray_exits, counter_never_absent)                                                \
-    X(payload_ignored, counter_never_absent)
+    X(payload_ignored, counter_never_absent)                                                       \
+    X(reject_funnel_ceiling, counter_never_absent)                                                 \
+    X(reject_f_armijo, counter_never_absent)                                                       \
+    X(reject_h_funnel, counter_never_absent)                                                       \
+    X(reject_qp_failed, counter_never_absent)                                                      \
+    X(reject_other, counter_never_absent)                                                          \
+    X(accepted_f_type, counter_never_absent)                                                       \
+    X(accepted_h_type, counter_never_absent)                                                       \
+    X(rejection_run_histogram, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

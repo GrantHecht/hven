@@ -1811,6 +1811,33 @@ ProblemStatistics census_from_seam(const AssemblyEvalSeam &seam, Index absent_bo
     return st;
 }
 
+// GL-0: one rejected step, by cause and by its position in the run at its iterate. The caller
+// increments rejected_steps itself; `run_position` is the 1-based count of consecutive
+// rejections at the iterate including this one.
+void count_rejection(SqpCounters &c, detail::RejectCause cause, Index run_position) {
+    switch (cause) {
+    case detail::RejectCause::kFunnelCeiling:
+        ++c.reject_funnel_ceiling;
+        break;
+    case detail::RejectCause::kArmijo:
+        ++c.reject_f_armijo;
+        break;
+    case detail::RejectCause::kFunnelDecrease:
+        ++c.reject_h_funnel;
+        break;
+    case detail::RejectCause::kNone: // the QP-failure routes pass kNone
+        ++c.reject_qp_failed;
+        break;
+    case detail::RejectCause::kNonFinite:
+    case detail::RejectCause::kUnclassified:
+        ++c.reject_other;
+        break;
+    }
+    const std::size_t last = c.rejection_run_histogram.size() - 1;
+    ++c.rejection_run_histogram[std::min(
+        static_cast<std::size_t>(std::max<Index>(run_position, 1)) - 1, last)];
+}
+
 IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpTraceMode mode,
                                           Index depth, Index factorizations) {
     IterationRecord rec;
@@ -1872,6 +1899,7 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.active_rows = r.active_rows;
     row.active_lower_sides = r.active_lower_sides;
     row.active_upper_sides = r.active_upper_sides;
+    row.switching_ratio = r.switching_ratio;
     rec.sqp = row;
     return rec;
 }
@@ -8822,6 +8850,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         if (stop_phase_on_qp_failure_ && mj.walk_owns_this_qp) {
             ++st.out.counters.restoration_curvature_switches;
             ++st.out.counters.rejected_steps;
+            count_rejection(st.out.counters, detail::RejectCause::kNone,
+                            st.rejections_at_iterate + 1);
             note_failure(false);
             push_history(mj.row);
             return MajorOutcome::kFinishQpFailure;
@@ -8925,6 +8955,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             note_failure(false);
             ++st.rejections_at_iterate;
             ++st.out.counters.rejected_steps;
+            count_rejection(st.out.counters, detail::RejectCause::kNone, st.rejections_at_iterate);
             // THE RADIUS FLOOR applies to a ROUTED failure
             // exactly as to a judged rejection: both are "the radius
             // was shrunk here and the iterate did not move", and the
@@ -9020,6 +9051,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                   : predicted_decrease(st.qp, mj.qs.x);
     mj.ctx.tr_active = mj.row.tr_binding;
     mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
+    mj.row.switching_ratio = mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);
 
     // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (docs/migration-0.2.md, "Zero-step
     // short-circuit", for why it is here and not left to the convergence test at the top
@@ -9058,6 +9090,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     StepVerdict verdict = zero_elastic_exhaustion ? StepVerdict::kRestore
                           : zero_step             ? StepVerdict::kAcceptObjectiveStep
                                                   : st.strategy->judge(mj.ctx);
+    // GL-0: the first judgement's cause, read before a second-order correction judges again.
+    const detail::RejectCause reject_cause = verdict == StepVerdict::kReject
+                                                 ? st.strategy->last_reject_cause()
+                                                 : detail::RejectCause::kNone;
     // A ZERO-STEP COMMIT HAS NO JUDGEMENT (M7 W2 R2-1 rider R2): a non-finite step
     // rollback of this commit must not retract the funnel move of an EARLIER major.
     if (zero_step && !zero_elastic_exhaustion) {
@@ -9225,6 +9261,11 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // attempted above -- see the note.
         ++st.rejections_at_iterate;
         ++st.out.counters.rejected_steps;
+        count_rejection(st.out.counters,
+                        reject_cause == detail::RejectCause::kNone
+                            ? detail::RejectCause::kUnclassified
+                            : reject_cause,
+                        st.rejections_at_iterate);
         // THE UPDATE-ON-REJECT ABLATION (SqpOptions::lbfgs_update_on_reject, off by default): the
         // rejected trial's pair, priced at this QP's own multipliers, for one derivative query.
         // The trial is not the iterate, so a derivative failure there is not the
@@ -9587,6 +9628,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 st.seed = std::move(mj.qs);
             }
             ++st.out.counters.steps_accepted;
+            if (mj.row.verdict == StepVerdict::kAcceptObjectiveStep) {
+                ++st.out.counters.accepted_f_type;
+            } else {
+                ++st.out.counters.accepted_h_type;
+            }
             // THE ACCEPTED-ONLY UPDATE (ruling C30 AMEND-4): the step just taken -- the SOC
             // correction when it was promoted -- priced at the committed multipliers.
             if (st.qn) {

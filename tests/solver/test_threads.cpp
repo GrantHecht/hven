@@ -455,9 +455,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `dense_shifted_solve_refusals`, then `dense_shifted_k0_fallbacks`, then
 // `dense_shifted_terminations`; 92 until M8 DN-3a appended `dense_solve_residual_refusals`; 93
 // until M8 DN-3 appended `dense_factorizations`; 94 until M8 kopt-1x appended
-// `optimal_row_gray_exits`; 95 since M8 AP-5 G7 appended `payload_ignored`.)
+// `optimal_row_gray_exits`; 95 until M8 AP-5 G7 appended `payload_ignored`; 107 since M8 GL-0
+// appended seven `Index` and a five-`Index` array.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 95 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 107 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -555,6 +556,14 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, dense_factorizations);
     HVEN_EXPECT_SAME(a, b, optimal_row_gray_exits);
     HVEN_EXPECT_SAME(a, b, payload_ignored);
+    HVEN_EXPECT_SAME(a, b, reject_funnel_ceiling);
+    HVEN_EXPECT_SAME(a, b, reject_f_armijo);
+    HVEN_EXPECT_SAME(a, b, reject_h_funnel);
+    HVEN_EXPECT_SAME(a, b, reject_qp_failed);
+    HVEN_EXPECT_SAME(a, b, reject_other);
+    HVEN_EXPECT_SAME(a, b, accepted_f_type);
+    HVEN_EXPECT_SAME(a, b, accepted_h_type);
+    HVEN_EXPECT_SAME(a, b, rejection_run_histogram);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

@@ -100,6 +100,9 @@ IterationRecord sqp_row(Index iteration, int depth) {
     r.sqp->trust_radius = 2.0;
     r.sqp->violation_l1 = 1.5;
     r.sqp->qp_solved = true;
+    if (depth == 0) {
+        r.sqp->switching_ratio = 0.5; // R_k < 1: an h-type trial
+    }
     return r;
 }
 

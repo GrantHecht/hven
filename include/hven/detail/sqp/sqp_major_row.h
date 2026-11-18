@@ -7,6 +7,8 @@
 // result: `SqpResult::history` carries `IterationRecord` (solver/iteration_record.h), built
 // from this row when it is pushed.
 
+#include <optional>
+
 #include <hven/core/types.h>
 #include <hven/solver/step_verdict.h>
 #include <hven/qp/qp_types.h>
@@ -251,6 +253,12 @@ struct SqpMajorRow {
     /// residual columns may be NaN. False on every other row. Appended per
     /// `watchdog_restored`'s precedent; several rows per solve may carry it.
     bool rolled_back = false;
+
+    /// GL-0: the switching ratio R = pred_df / (kFunnelDelta * h_old^2), KLV Eq. (10)'s
+    /// left side over its right: R >= 1 selects an f-type trial. Set on every row whose QP
+    /// solved to kOptimal (the point the strategy was shown, zero-step rows included); nullopt
+    /// otherwise. At h_old == 0 it is +/-inf (pred_df != 0) or NaN (pred_df == 0).
+    std::optional<double> switching_ratio;
 };
 
 } // namespace hven

@@ -997,3 +997,72 @@ TEST(FunnelMeasure, PropagatesNonFiniteConstraintValues) {
         EXPECT_FALSE(std::isfinite(constraint_violation_l1(ineq)));
     }
 }
+
+// =============================================================================
+// FunnelRejectCause (GL-0) -- last_reject_cause() names which test turned the
+// trial down. One fixture per branch of judge(), on a funnel with tau = 1000.
+// =============================================================================
+
+TEST(FunnelRejectCause, EachRejectingBranchReportsItsOwnCause) {
+    // Eq. (8): h_new above the width.
+    {
+        FunnelStrategy s = funnel_at_1000();
+        EXPECT_EQ(s.judge(ctx(0.0, 0.0, 1.0, 1500.0, 5.0)), StepVerdict::kReject);
+        EXPECT_EQ(s.last_reject_cause(), RejectCause::kFunnelCeiling);
+    }
+    // f-type (pred_df >= delta h^2) that fails Armijo: f rises.
+    {
+        FunnelStrategy s = funnel_at_1000();
+        EXPECT_EQ(s.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kReject);
+        EXPECT_EQ(s.last_reject_cause(), RejectCause::kArmijo);
+    }
+    // h-type (pred_df < delta h^2) inside the funnel, but h_new above beta*tau = 990.
+    {
+        FunnelStrategy s = funnel_at_1000();
+        EXPECT_EQ(s.judge(ctx(0.0, 0.0, 1.0, 995.0, 0.0)), StepVerdict::kReject);
+        EXPECT_EQ(s.last_reject_cause(), RejectCause::kFunnelDecrease);
+    }
+    // A non-finite measurement.
+    {
+        FunnelStrategy s = funnel_at_1000();
+        EXPECT_EQ(s.judge(ctx(0.0, std::numeric_limits<double>::quiet_NaN(), 1.0, 1.0, 5.0)),
+                  StepVerdict::kReject);
+        EXPECT_EQ(s.last_reject_cause(), RejectCause::kNonFinite);
+    }
+}
+
+TEST(FunnelRejectCause, EveryOtherVerdictLeavesNone) {
+    FunnelStrategy s = funnel_at_1000();
+    // Poison the slot with a rejection first, so a verdict that forgets to clear it is caught.
+    ASSERT_EQ(s.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kReject);
+    ASSERT_EQ(s.last_reject_cause(), RejectCause::kArmijo);
+    EXPECT_EQ(s.judge(ctx(1.0, 0.0, 1.0, 1.0, 5.0)), StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(s.last_reject_cause(), RejectCause::kNone);
+
+    ASSERT_EQ(s.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kReject);
+    EXPECT_EQ(s.judge(ctx(0.0, 0.0, 1.0, 1.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
+    EXPECT_EQ(s.last_reject_cause(), RejectCause::kNone);
+
+    // The restoration signature is not a rejection: h_new above the width, with all five
+    // conjuncts.
+    FunnelStrategy r = funnel_at_1000();
+    ASSERT_EQ(r.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kReject);
+    EXPECT_EQ(r.judge(stalled_ctx(0.0, 0.0, 1.0, 5000.0, -1.0)), StepVerdict::kRestore);
+    EXPECT_EQ(r.last_reject_cause(), RejectCause::kNone);
+
+    // The full-step mode accepts without a test.
+    FunnelStrategy f = funnel_at_1000();
+    ASSERT_EQ(f.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kReject);
+    f.begin_full_step();
+    EXPECT_EQ(f.judge(ctx(0.0, 1.0, 1.0, 1.0, 5.0)), StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(f.last_reject_cause(), RejectCause::kNone);
+}
+
+TEST(FunnelRejectCause, ABaseStrategyThatDoesNotOverrideReportsUnclassified) {
+    struct Bare final : GlobalizationStrategy {
+        StepVerdict judge(const StepContext &) override { return StepVerdict::kReject; }
+        void reset(double) override {}
+    };
+    Bare b;
+    EXPECT_EQ(b.last_reject_cause(), RejectCause::kUnclassified);
+}

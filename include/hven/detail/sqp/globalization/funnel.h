@@ -150,6 +150,16 @@ inline constexpr double kFunnelFeasEps = 1.0e-6;
 /// schedule was derived alongside the value.
 inline constexpr Index kRestoreMinRejections = 4;
 
+/// @brief Why judge() returned kReject (GL-0). kNone for every other verdict.
+enum class RejectCause {
+    kNone,
+    kNonFinite,      ///< a non-finite f/h/pred_df reached the strategy
+    kFunnelCeiling,  ///< Eq. (8): h_new > tau
+    kArmijo,         ///< f-type step failed Eq. (11)
+    kFunnelDecrease, ///< h-type step failed Eq. (12)
+    kUnclassified    ///< a strategy that does not report a cause
+};
+
 /// @brief Everything the acceptance test reads about one trial step.
 ///
 /// h is the KLV infeasibility measure (see the generalization note at
@@ -223,6 +233,10 @@ class GlobalizationStrategy {
     /// kReject — at most one mutating verdict per iterate. A strategy mutating
     /// state on ANY verdict must account for this explicitly.
     virtual StepVerdict judge(const StepContext &ctx) = 0;
+
+    /// The cause of the most recent judge() call's kReject; kNone after any other verdict. A
+    /// strategy that does not override this reports kUnclassified for every call.
+    virtual RejectCause last_reject_cause() const { return RejectCause::kUnclassified; }
 
     /// Begins a new solve from an iterate whose infeasibility is h0. Must be
     /// called before the first judge(). h0 must be finite and >= 0.
@@ -366,6 +380,8 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// not a rearrangement. See the class note for kRestore.
     StepVerdict judge(const StepContext &ctx) override;
 
+    RejectCause last_reject_cause() const override { return last_cause_; }
+
     /// @brief KLV Algorithm 2's switch back from restoration: the width is
     /// RE-BASED at the restored point by the ordinary Eq. (13) update
     ///     tau_+ = (1 - kappa)*h_restored + kappa*tau —
@@ -445,6 +461,8 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// True from a judge() call until the next retraction, reset() or resume.
     bool judged_since_ = false;
     bool initialized_ = false;
+    /// The cause of the most recent judge() call's kReject (kNone otherwise).
+    RejectCause last_cause_ = RejectCause::kNone;
     /// Full-step-mode flag; false is the mode-less class, exactly.
     bool full_step_ = false;
 };

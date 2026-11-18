@@ -98,8 +98,10 @@ direction (`inertia_corrections`); the backend does not report it (`perturbed_pi
 `qp_factorizations`; `tr_binding`; `elastic`; `elastic_clamped`; `restoration_seed_used`;
 `ipqp_least_infeasible_primal`; `ipqp_farkas_corroborated`; `active_set_size` (= `active_rows +
 active_lower_sides + active_upper_sides`); `active_set_delta`; `weak_active_rows`; `near_active_rows`;
-`active_rows`; `active_lower_sides`; `active_upper_sides`. `null` when `!qp_solved`: `verdict`,
-`regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. The two `ipqp_*` keys are
+`active_rows`; `active_lower_sides`; `active_upper_sides`; `switching_ratio` (GL-0; the last key). `null` when `!qp_solved`: `verdict`,
+`regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. `switching_ratio` is
+`pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10): `>= 1` selects an f-type trial), `null` on a row whose
+subproblem did not solve to `kOptimal`, and `"inf"`/`"-inf"`/`"nan"` at `h == 0`. The two `ipqp_*` keys are
 `null` unless the row is an IPQP escape row, which is observable as `ipqp_least_infeasible_primal != 0 ||
 ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 
@@ -212,6 +214,7 @@ meaning) is v2.
 |---|---|---|---|
 | v1 | M8 TR-A | all | initial freeze; `ipm.phase.exit` carries `stationarity`/`complementarity` (engine scale) in place of `kkt_inf`/`barr_inf` |
 | none | M8 TR-B | `message` | the SQP kinds and the IPM `restoration_entered` and the other `restoration_exited` values are emitted; every kind, key and enum value was already in the v1 freeze, so no schema change |
+| new trailing key | M8 GL-0 | `iter`, `sqp` block | `switching_ratio` (double or `null`), after `active_upper_sides`; the `sqp` block's arity pin moves 23 -> 24. `solve.end.counters` (SQP) gains eight trailing keys after `payload_ignored`: `reject_funnel_ceiling`, `reject_f_armijo`, `reject_h_funnel`, `reject_qp_failed`, `reject_other`, `accepted_f_type`, `accepted_h_type`, `rejection_run_histogram` (a 5-integer array); the three golden lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map

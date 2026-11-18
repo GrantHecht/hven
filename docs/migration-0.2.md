@@ -792,3 +792,43 @@ against an RS head; none is a behaviour change:
   `tests/drivers/golden/trace_v1/` is now `tests/trace/golden/trace_v1/`, with the bytes unchanged
   (the recorded sha256 copies still match).
 - A hven pin bump is needed to consume the RS head.
+
+## GL-0 -- globalization diagnostics
+
+Additions only; no behaviour change. The SQP reports where globalization spends work without progress, so a reader of a
+solve (or of the tuning pilot's rows) can tell *why* a step was refused. All of it is always on: each counter is one
+increment at a site that already incremented `rejected_steps` or `steps_accepted`, and the iteration row's new field is
+one stored double in a row that is built regardless of a sink.
+
+`SqpCounters` gains eight fields, appended after `payload_ignored` (so `solve.end.counters` and `dump_counters` gain eight
+trailing keys, the last an array):
+
+| field | counts |
+|---|---|
+| `reject_funnel_ceiling` | rejected trials with `h_new` above the funnel width (KLV Eq. (8)) |
+| `reject_f_armijo` | rejected f-type trials that failed the Armijo test (Eq. (11)) |
+| `reject_h_funnel` | rejected h-type trials inside the funnel that failed the funnel sufficient decrease (Eq. (12)) |
+| `reject_qp_failed` | majors whose QP subproblem failed and was routed to a radius shrink (no judged trial, or the failed solve's own step was offered under `qp_failure_step` and refused) |
+| `reject_other` | a non-finite trial, or a rejection by a caller's own `make_strategy` strategy that reports no cause |
+| `accepted_f_type` | accepted steps with verdict `kAcceptObjectiveStep` (this includes the zero-step accept and any full-step-mode accept, which no Eq. (11) test judged) |
+| `accepted_h_type` | accepted steps with verdict `kAcceptFeasibilityStep` |
+| `rejection_run_histogram` | `std::array<Index, 5>`: each rejection placed by its position in the run at one iterate; entry `k-1` counts rejections that were the `k`-th consecutive, the last entry is 5 or more |
+
+Identities, on every solve: `rejected_steps == reject_funnel_ceiling + reject_f_armijo + reject_h_funnel +
+reject_qp_failed + reject_other`; `steps_accepted == accepted_f_type + accepted_h_type`; `sum(rejection_run_histogram) ==
+rejected_steps`. Entry 0 of the histogram is the number of rejection runs and entry `k` the number that lasted past `k`.
+The cause is the original trial's: a trial whose second-order correction is also refused is one rejection, counted by the
+first judgement's cause. A trial answered `kRestore` is not a rejection and is in none of these. Like `rejected_steps`
+and `steps_accepted`, none is folded from a restoration sub-solve. Second-order-correction attempts and rescues are the
+existing `soc_steps` and `soc_applied` (`soc_steps == soc_applied + soc_qp_infeasible + soc_rejected`).
+
+The switching ratio is the iteration row's: `SqpIterationRow::switching_ratio` (`std::optional<double>`), the `sqp` block's
+trailing key `switching_ratio` in the trace. It is `pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10)); `>= 1` selects
+an f-type trial. `nullopt`/`null` on a row whose subproblem did not solve to `kOptimal`; `+/-inf` or NaN at `h == 0`. The
+v1 freeze table admits a new trailing key in a block (`docs/trace-schema-v1.md` section 6), so it is a row field and not a
+per-solve summary.
+
+Custom strategies: `detail::GlobalizationStrategy::last_reject_cause()` is a new virtual with a default (`kUnclassified`);
+a decorator around `FunnelStrategy` should forward it, or its rejections count as `reject_other`.
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-gl0/CATCH-UP.txt`.

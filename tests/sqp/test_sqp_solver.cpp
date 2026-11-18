@@ -123,6 +123,10 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/sqp/sqp_solver_types.h>
 
+#include <array>
+#include <bit>
+#include <cstdint>
+
 #include "support/route_reference.h"
 #include "model/support/hs_problems.h"
 #include "model/support/hs_sweeps.h"
@@ -2545,6 +2549,8 @@ class RecordingStrategy final : public GlobalizationStrategy {
         log_->verdict.push_back(v);
         return v;
     }
+    // GL-0: a decorator forwards the cause, or its rejections count as `reject_other`.
+    RejectCause last_reject_cause() const override { return inner_.last_reject_cause(); }
 
   private:
     FunnelStrategy inner_;
@@ -12888,6 +12894,296 @@ TEST(SqpDriverCertifiedFallback, E1TheDependentInconsistentPairIsCertifiedByTheE
         EXPECT_GT(rep.evidence_major_second, rep.evidence_major_first);
         EXPECT_EQ(sol.counters.elastic_activations, 0);
     }
+}
+
+// =============================================================================
+// SqpGl0 (M8 GL-0): where globalization spends work without progress. The cause split of
+// rejected steps, the f/h split of accepted steps, the run-length histogram and the
+// per-major switching ratio, each pinned on a fixture whose trajectory is derived above.
+// =============================================================================
+
+namespace {
+
+// min 0 s.t. x^2 - 1 = 0 from x0 = (1 + s^2)/(2 s)-inverse such that the Newton step lands at
+// h_new = 99.5: (1 - x0^2)/(2 x0) = 9.975 gives x_new^2 - 1 = 9.975^2 = 99.5006. With f == 0 the
+// model predicts nothing (pred_df = 0 < delta h^2), so the trial is h-type; tau_0 = 100, so it
+// clears Eq. (8) (99.5006 <= 100) and fails Eq. (12) (> 0.99 * 100 = 99).
+class HTypeRejectModel : public NlpModel {
+  public:
+    static double x0() { return -9.975 + std::sqrt(9.975 * 9.975 + 1.0); }
+    Index n() const override { return 1; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &) const override { return 0.0; }
+    Vec eval_grad(const Vec &) const override { return Vec::Zero(1); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) * x(0) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &le, const Vec &) const override {
+        SpMatRM h(1, 1);
+        h.insert(0, 0) = 2.0 * le(0);
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(1, 1);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 1); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(1, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(1, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(1);
+        x << x0();
+        return x;
+    }
+};
+
+// The two identities every solve satisfies, whatever the strategy.
+void expect_gl0_identities(const SqpCounters &c) {
+    EXPECT_EQ(c.rejected_steps, c.reject_funnel_ceiling + c.reject_f_armijo + c.reject_h_funnel +
+                                    c.reject_qp_failed + c.reject_other);
+    EXPECT_EQ(c.steps_accepted, c.accepted_f_type + c.accepted_h_type);
+    Index run_sum = 0;
+    for (const Index b : c.rejection_run_histogram) {
+        run_sum += b;
+    }
+    EXPECT_EQ(run_sum, c.rejected_steps);
+}
+
+} // namespace
+
+// FlatQuarticModel at radius 2: the first trial is an f-type step (h == 0) whose objective RISES
+// (RejectionShrinksAndRetriesHotly), so the one rejection is an Armijo failure, a run of length
+// one; the second trial is accepted, f-type.
+TEST(SqpGl0, AnArmijoFailureIsCountedAsOne) {
+    FlatQuarticModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 2.0;
+    opts.common.max_iterations = 20;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    EXPECT_EQ(c.rejected_steps, 2);
+    EXPECT_EQ(c.reject_f_armijo, 2);
+    EXPECT_EQ(c.reject_funnel_ceiling, 0);
+    EXPECT_EQ(c.reject_h_funnel, 0);
+    EXPECT_EQ(c.reject_qp_failed, 0);
+    EXPECT_EQ(c.reject_other, 0);
+    EXPECT_EQ(c.accepted_h_type, 0) << "h == 0 throughout: the switching condition always holds";
+    EXPECT_EQ(c.accepted_f_type, c.steps_accepted);
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 1, 0, 0, 0}));
+}
+
+// The restoration-signature fixture (SecondOrderInfeasibleModel): trials at radius 4, 2, 1 each
+// overshoot the funnel (h_new = 1000 Delta^2 > tau = 100). Stopped after three majors, the solve
+// holds exactly three consecutive Eq. (8) rejections at the start point: one run, reaching position
+// three.
+TEST(SqpGl0, FunnelCeilingRejectionsFormOneRunOfThree) {
+    SecondOrderInfeasibleModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 4.0;
+    opts.common.max_iterations = 3;
+    StepLog log;
+    record_steps_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    ASSERT_EQ(log.verdict.size(), 3u);
+    for (int k = 0; k < 3; ++k) {
+        EXPECT_EQ(log.verdict[k], StepVerdict::kReject) << k;
+        EXPECT_GT(log.ctx[k].h_new, kFunnelTauBar) << k;
+    }
+    EXPECT_EQ(c.rejected_steps, 3);
+    EXPECT_EQ(c.reject_funnel_ceiling, 3);
+    EXPECT_EQ(c.reject_f_armijo + c.reject_h_funnel + c.reject_qp_failed + c.reject_other, 0);
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 1, 1, 0, 0}));
+    EXPECT_EQ(c.steps_accepted, 0);
+}
+
+// An h-type trial inside the funnel that fails Eq. (12): see HTypeRejectModel.
+TEST(SqpGl0, AnHTypeFunnelDecreaseFailureIsCountedAsOne) {
+    HTypeRejectModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 20.0;
+    opts.common.max_iterations = 30;
+    StepLog log;
+    record_steps_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    ASSERT_GE(log.ctx.size(), 1u);
+    EXPECT_EQ(log.verdict[0], StepVerdict::kReject);
+    EXPECT_NEAR(log.ctx[0].h_new, 99.5006, 1e-3);
+    EXPECT_GT(log.ctx[0].h_new, kFunnelBeta * kFunnelTauBar);
+    EXPECT_LE(log.ctx[0].h_new, kFunnelTauBar);
+    EXPECT_GE(c.reject_h_funnel, 1);
+    EXPECT_EQ(c.reject_h_funnel, 2);
+    EXPECT_EQ(c.reject_funnel_ceiling, 0);
+    EXPECT_EQ(c.reject_f_armijo, 0);
+}
+
+// A routed QP failure is a rejection with no judged trial: the TwinSaddle fixture's first
+// subproblem fails and the radius shrinks (QpNumericalErrorShrinksInsteadOfAborting).
+TEST(SqpGl0, ARoutedQpFailureIsItsOwnCause) {
+    TwinSaddleModel model(2);
+    SqpOptions opts;
+    opts.trust_region_initial = 3.0;
+    opts.trust_region_max = 100.0;
+    opts.common.max_iterations = 40;
+    twin_saddle_premise(opts);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    EXPECT_EQ(c.rejected_steps, 1);
+    EXPECT_EQ(c.reject_qp_failed, 1);
+    EXPECT_EQ(c.reject_funnel_ceiling + c.reject_f_armijo + c.reject_h_funnel + c.reject_other, 0);
+    EXPECT_EQ(c.qp_failures_routed, 1);
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 0, 0, 0, 0}));
+    EXPECT_EQ(c.steps_accepted, 2);
+}
+
+// An h-type acceptance is counted as one: HS-style start with h > 0 and an objective that
+// predicts little (HTypeRejectModel at a start whose Newton step lands inside beta*tau).
+TEST(SqpGl0, AnHTypeAcceptanceIsCountedAsHType) {
+    HTypeRejectModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 1.0e3;
+    opts.trust_region_max = 1.0e4;
+    opts.common.max_iterations = 40;
+    SqpSolver driver(opts);
+    Vec x0(1);
+    x0 << 30.0; // h0 = 899, tau = 1123.75; the Newton step to ~15 lowers h
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), x0);
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    EXPECT_GE(c.accepted_h_type, 1);
+}
+
+// A strategy that reports no cause is counted in reject_other, never dropped; six refusals in a row
+// at one iterate fill the histogram through its last bucket.
+TEST(SqpGl0, ACallersStrategyWithoutACauseCountsAsOther) {
+    struct RejectTwice final : GlobalizationStrategy {
+        FunnelStrategy inner;
+        Index rejects = 0;
+        StepVerdict judge(const StepContext &c) override {
+            return rejects++ < 6 ? StepVerdict::kReject : inner.judge(c);
+        }
+        void reset(double h0) override { inner.reset(h0); }
+        void resume_from_restoration(double h) override { inner.resume_from_restoration(h); }
+    };
+    FlatQuarticModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 2.0;
+    opts.common.max_iterations = 40;
+    opts.advanced.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
+        return std::make_unique<RejectTwice>();
+    };
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpCounters &c = sol.counters;
+    expect_gl0_identities(c);
+    EXPECT_EQ(c.reject_other, 6);
+    EXPECT_EQ(c.reject_f_armijo + c.reject_funnel_ceiling + c.reject_h_funnel, 0);
+    // One run of six: positions 1..6, the last two sharing the "5 or more" bucket.
+    EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 1, 1, 1, 2}));
+}
+
+// R_k on SecondOrderInfeasibleModel at the start point: h = 0.5, g = (-0.01, -9.9995), the
+// first trial's step p = (4, -0.5) (radius-pinned in x0, forced in x1) with H = diag(0.001, 0.001):
+//   pred_df = -(g.p + 0.5 p.H.p) = -(-0.04 + 4.99975 + 0.5 * 0.001 * 16.25) = -4.967875
+//   R_0     = pred_df / (0.999 * 0.25) = -19.890...
+TEST(SqpGl0, TheSwitchingRatioIsPredOverDeltaHSquared) {
+    SecondOrderInfeasibleModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 4.0;
+    opts.common.max_iterations = 40;
+    StepLog log;
+    record_steps_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_FALSE(sol.history.empty());
+    ASSERT_TRUE(sol.history[0].sqp->switching_ratio.has_value());
+    const double r0 = *sol.history[0].sqp->switching_ratio;
+    EXPECT_NEAR(r0, -4.967875 / (0.999 * 0.25), 1e-9);
+    // And it is the formula applied to the first judged context, bit for bit.
+    ASSERT_FALSE(log.ctx.empty());
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(r0),
+              std::bit_cast<std::uint64_t>(log.ctx[0].pred_df /
+                                           (kFunnelDelta * log.ctx[0].h_old * log.ctx[0].h_old)));
+    // R < 1 is the switching condition violated: the trial is h-type, as the log's own reading of
+    // the same context shows.
+    EXPECT_LT(r0, 1.0);
+}
+
+// At h == 0 the ratio is +inf (the model predicts a decrease), the f-type regime; a row whose
+// QP did not solve to a step carries none.
+TEST(SqpGl0, TheSwitchingRatioIsInfiniteAtZeroViolationAndAbsentWithoutAStep) {
+    FlatQuarticModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 2.0;
+    opts.common.max_iterations = 20;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_GE(sol.history.size(), 2u);
+    for (const IterationRecord &r : sol.history) {
+        if (r.sqp->qp_solved) {
+            ASSERT_TRUE(r.sqp->switching_ratio.has_value());
+            EXPECT_EQ(r.sqp->violation_l1, 0.0);
+            EXPECT_EQ(*r.sqp->switching_ratio, std::numeric_limits<double>::infinity());
+        } else {
+            EXPECT_FALSE(r.sqp->switching_ratio.has_value());
+        }
+    }
+    EXPECT_FALSE(sol.history.back().sqp->qp_solved) << "the converged row builds no subproblem";
+}
+
+// The identities over the HS battery's models at the default options: they hold on every solve,
+// accepted-only and rejection-heavy alike.
+TEST(SqpGl0, TheIdentitiesHoldAcrossTheHsBattery) {
+    Index total_rejections = 0;
+    Index solves = 0;
+    const auto run = [&](const NlpModel &m, double tr) {
+        SqpOptions opts;
+        opts.trust_region_initial = tr;
+        opts.trust_region_max = 1.0e4;
+        opts.common.max_iterations = 120;
+        const SqpResult sol = SqpSolver(opts).solve(hven::detail::problem_ref(m), m.start_point());
+        expect_gl0_identities(sol.counters);
+        total_rejections += sol.counters.rejected_steps;
+        ++solves;
+    };
+    for (const double tr : {1.0, 10.0, 1000.0}) {
+        run(hven::test_support::Hs1Model(), tr);
+        run(hven::test_support::Hs3Model(), tr);
+        run(hven::test_support::Hs5Model(), tr);
+        run(hven::test_support::Hs6Model(), tr);
+        run(hven::test_support::Hs7Model(), tr);
+        run(hven::test_support::Hs76Model(), tr);
+        run(hven::test_support::Hs10Model(), tr);
+        run(hven::test_support::Hs11Model(), tr);
+        run(hven::test_support::Hs12Model(), tr);
+        run(hven::test_support::Hs14Model(), tr);
+    }
+    EXPECT_EQ(solves, 30);
+    EXPECT_GT(total_rejections, 0) << "premise: the battery rejects somewhere";
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

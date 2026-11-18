@@ -891,6 +891,14 @@ group; `SqpOptions::hessian_mode`).
 | `dense_factorizations` | integer | `SqpCounters::dense_factorizations` | factorizations on the dense arm (M8 DN-3): `SymmetricFactor`'s `dense_factorize_count + dense_singular_count` deltas (taken, or reported exactly singular; shifted refactors included) over the walk's, the SSN's and the IPQP tiers' KKT factors and the rank repair's Gram factor. 0 under `DensePolicy::kNever`; under `kAuto`, 0 when every analyzed pattern was above the SQP's threshold (105). Folded like `dense_flagged_factorizations` |
 | `optimal_row_gray_exits` | integer | `SqpCounters::optimal_row_gray_exits` | walk subproblems that ended `kOptimal` with an equality or working-row residual still above 1x of its `row_tolerance` after the terminal polish (M8 kopt-1x). `kOptimal` promises every such row within 1x; 0 is the contract, a nonzero count is a gray-zone exit. Folded like the other walk counters. No sentinel. |
 | `payload_ignored` | integer | `SqpCounters::payload_ignored` | 1 when a non-empty warm start (payload or native) was handed in and ignored because `common.start_level` is kCold, as `IpmCounters::payload_ignored` (M8 AP-5 G7). 0 on a cold solve and at every ceiling above kCold. No sentinel. |
+| `reject_funnel_ceiling` | integer | `SqpCounters::reject_funnel_ceiling` | rejected steps whose trial violated the funnel ceiling, KLV Eq. (8) (M8 GL-0). Not folded from a restoration sub-solve, as `rejected_steps`. No sentinel. |
+| `reject_f_armijo` | integer | `SqpCounters::reject_f_armijo` | rejected f-type steps (switching condition held) that failed the Armijo test, Eq. (11) (M8 GL-0). No sentinel. |
+| `reject_h_funnel` | integer | `SqpCounters::reject_h_funnel` | rejected h-type steps inside the funnel that failed the funnel sufficient decrease, Eq. (12) (M8 GL-0). No sentinel. |
+| `reject_qp_failed` | integer | `SqpCounters::reject_qp_failed` | rejected majors whose QP subproblem failed and was routed to a radius shrink; no trial judged, or the failed solve's own step was offered and refused (M8 GL-0). No sentinel. |
+| `reject_other` | integer | `SqpCounters::reject_other` | rejections of a non-finite trial, or by a caller's strategy that reports no cause (M8 GL-0). `rejected_steps` is the sum of these five. No sentinel. |
+| `accepted_f_type` | integer | `SqpCounters::accepted_f_type` | accepted steps with verdict `kAcceptObjectiveStep`, including the zero-step and full-step-mode accepts (M8 GL-0). No sentinel. |
+| `accepted_h_type` | integer | `SqpCounters::accepted_h_type` | accepted steps with verdict `kAcceptFeasibilityStep`; `steps_accepted` is the sum of the two (M8 GL-0). No sentinel. |
+| `rejection_run_histogram` | 5-integer array | `SqpCounters::rejection_run_histogram` | each rejection placed by its position in the run at one iterate: entry `k-1` counts rejections that were the `k`-th consecutive, the last entry 5 or more; the sum is `rejected_steps` (M8 GL-0). No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -966,6 +974,11 @@ with a "RE-DERIVED AT M8 kopt-1x" note.
 after `optimal_row_gray_exits`, the same route: one key before the `ssn` object, the nested
 tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE with a
 "RE-DERIVED AT M8 AP-5 G7" note.
+
+**THE DIRECT COUNTERS M8 GL-0 APPENDED — EIGHT** (`reject_funnel_ceiling` through
+`rejection_run_histogram`, the table rows above), after `payload_ignored`, the same route: eight keys
+before the `ssn` object (the last an array, one table entry), the nested tables' distinct values up by
+eight, no sentinel, the golden lines re-derived ONCE with a "RE-DERIVED AT M8 GL-0" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

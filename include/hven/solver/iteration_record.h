@@ -72,6 +72,9 @@ struct SqpIterationRow {
     Index active_rows = 0;
     Index active_lower_sides = 0;
     Index active_upper_sides = 0;
+    /// GL-0: pred_df / (delta * h^2) at the iterate, KLV Eq. (10); >= 1 selects an f-type trial.
+    /// nullopt when no solved subproblem was shown to the strategy.
+    std::optional<double> switching_ratio;
 };
 
 /// @brief One iteration row: the shared core plus exactly one engine block.

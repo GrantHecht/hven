@@ -37,6 +37,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
     }
     width_at_last_judge_ = width_;
     judged_since_ = true;
+    last_cause_ = RejectCause::kNone;
 
     // Wrong-answer guard, not a robustness nicety: every comparison against a
     // NaN is false, so an unguarded NaN would be classified by accident of
@@ -45,6 +46,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
     // radius as for any other rejection.
     if (!std::isfinite(ctx.f_old) || !std::isfinite(ctx.f_new) || !std::isfinite(ctx.h_old) ||
         !std::isfinite(ctx.h_new) || !std::isfinite(ctx.pred_df)) {
+        last_cause_ = RejectCause::kNonFinite;
         return StepVerdict::kReject;
     }
 
@@ -66,6 +68,9 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
             ctx.pred_df <= 0.0 &&                               // (c) weak on its own
             ctx.h_new >= ctx.h_old &&                           // (d)
             ctx.rejections_at_iterate >= kRestoreMinRejections; // (e) Lemma 5's hypothesis
+        if (!infeasible_stationary) {
+            last_cause_ = RejectCause::kFunnelCeiling;
+        }
         return infeasible_stationary ? StepVerdict::kRestore : StepVerdict::kReject;
     }
 
@@ -82,8 +87,11 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
         // f-TYPE. Eq. (11): the Armijo-type sufficient decrease on f.
         // Accepted or not, the width does not move (KLV Thm. 1, Eq. (17)).
         const double actual_df = ctx.f_old - ctx.f_new; // delta_f, Eq. (7a)
-        return actual_df >= kFunnelSigma * ctx.pred_df ? StepVerdict::kAcceptObjectiveStep
-                                                       : StepVerdict::kReject;
+        if (actual_df >= kFunnelSigma * ctx.pred_df) {
+            return StepVerdict::kAcceptObjectiveStep;
+        }
+        last_cause_ = RejectCause::kArmijo;
+        return StepVerdict::kReject;
     }
 
     // h-TYPE. Eq. (12): the funnel sufficient decrease condition.
@@ -102,6 +110,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
         return StepVerdict::kAcceptFeasibilityStep;
     }
 
+    last_cause_ = RejectCause::kFunnelDecrease;
     return StepVerdict::kReject;
 }
 
