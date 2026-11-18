@@ -41,7 +41,7 @@
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/trace/trace.h>
 
-#include "support/disproved_entry_vehicle.h"
+#include "qp/support/disproved_entry_vehicle.h"
 
 namespace hven {
 namespace {

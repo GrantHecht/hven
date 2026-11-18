@@ -34,9 +34,9 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/qp/qp_types.h>
 
-#include "support/hs_problems.h"
-#include "support/qp_as_nlp_model.h"
-#include "support/ssn_fixtures.h"
+#include "model/support/hs_problems.h"
+#include "qp/support/qp_as_nlp_model.h"
+#include "qp/support/ssn_fixtures.h"
 
 namespace hven {
 namespace {

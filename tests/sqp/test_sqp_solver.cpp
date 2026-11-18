@@ -99,7 +99,7 @@
 // a fixture IS sensitive to the trust-region radius, the sensitivity is
 // measured and stated rather than hidden behind a lucky default.
 
-#include "../common_support/console_capture.h"
+#include "support/console_capture.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -123,11 +123,11 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "../common_support/route_reference.h"
-#include "support/hs_problems.h"
-#include "support/hs_sweeps.h"
-#include "support/ipqp_test_support.h"
-#include "support/nlp_kkt_check.h"
+#include "support/route_reference.h"
+#include "model/support/hs_problems.h"
+#include "model/support/hs_sweeps.h"
+#include "qp/support/ipqp_test_support.h"
+#include "sqp/support/nlp_kkt_check.h"
 
 #include "hven/core/compiler.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

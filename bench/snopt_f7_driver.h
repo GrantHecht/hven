@@ -271,7 +271,7 @@
 
 #include "snoptProblem.hpp"
 
-#include "support/scale_problems.h"
+#include "model/support/scale_problems.h"
 
 namespace hven::snopt_bridge {
 

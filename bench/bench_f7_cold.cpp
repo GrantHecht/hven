@@ -164,7 +164,7 @@
 
 #include "bench_cli.h"
 
-#include "support/scale_problems.h"
+#include "model/support/scale_problems.h"
 
 namespace {
 

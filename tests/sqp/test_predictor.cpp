@@ -103,9 +103,9 @@
 #include <hven/detail/warmstart/crossover.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "support/derivative_check.h"
-#include "support/parametric_families.h"
-#include "support/scale_problems.h"
+#include "model/support/derivative_check.h"
+#include "model/support/parametric_families.h"
+#include "model/support/scale_problems.h"
 
 #include "hven/core/compiler.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

@@ -17,13 +17,13 @@
 
 #include <gtest/gtest.h>
 
-#include "../common_support/route_reference.h"
+#include "support/route_reference.h"
 
 #if !defined(USE_ACCELERATE_SPARSE) && !defined(_WIN32)
 #include <mkl.h>
 #endif
 #if defined(__linux__) && defined(__x86_64__) && !defined(USE_ACCELERATE_SPARSE)
-#include "../common_support/mkl_dispatch_signature.h"
+#include "support/mkl_dispatch_signature.h"
 #define HVEN_TEST_HAS_MKL_DISPATCH_SIGNATURE 1
 #endif
 

@@ -28,7 +28,7 @@
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/model/structure_identity.h"
 
-#include "support/claim_corpus.h"
+#include "model/support/claim_corpus.h"
 
 using hven::ClaimBlock;
 using hven::IpmFixedVariableTreatment;

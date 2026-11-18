@@ -121,7 +121,7 @@
 #include "corpus_cells.h"
 #include "counting_trace_sink.h"
 #include "ipm_corpus_leg.h"
-#include "support/hs_problems.h"
+#include "model/support/hs_problems.h"
 
 #ifndef HVEN_SQP_CORPUS_GIT_DESCRIBE
 #define HVEN_SQP_CORPUS_GIT_DESCRIBE "unknown"

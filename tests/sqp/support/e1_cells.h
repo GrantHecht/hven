@@ -24,7 +24,7 @@
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/qp/qp_problem.h>
 
-#include "scale_problems.h"
+#include "model/support/scale_problems.h"
 
 using namespace hven::detail;
 

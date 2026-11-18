@@ -65,10 +65,10 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "../common_support/route_reference.h"
-#include "support/derivative_check.h"
-#include "support/hs_problems.h"
-#include "support/nlp_kkt_check.h"
+#include "support/route_reference.h"
+#include "model/support/derivative_check.h"
+#include "model/support/hs_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
 
 #include "hven/core/compiler.h"
 

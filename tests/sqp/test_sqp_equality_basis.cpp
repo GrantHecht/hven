@@ -37,11 +37,11 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "../common_support/route_reference.h"
+#include "support/route_reference.h"
 #include "hven/detail/warmstart/warm_start_access.h"
-#include "support/e1b_off_golden.h"
-#include "support/e1b_off_golden_data.h"
-#include "support/qp_as_nlp_model.h"
+#include "sqp/support/e1b_off_golden.h"
+#include "sqp/support/e1b_off_golden_data.h"
+#include "qp/support/qp_as_nlp_model.h"
 
 namespace {
 using hven::detail::WarmStartAccess;

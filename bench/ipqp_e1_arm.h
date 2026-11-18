@@ -29,8 +29,8 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 
-#include "support/e1_cells.h"
-#include "support/scale_problems.h"
+#include "sqp/support/e1_cells.h"
+#include "model/support/scale_problems.h"
 
 using namespace hven::detail;
 

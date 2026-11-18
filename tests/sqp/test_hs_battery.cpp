@@ -79,8 +79,8 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "support/hs_problems.h"
-#include "support/nlp_kkt_check.h"
+#include "model/support/hs_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
 
 using namespace hven;
 using hven::Index;

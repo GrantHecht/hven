@@ -42,7 +42,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/trace/json_lines_trace_sink.h>
 
-#include "support/hs_problems.h"
+#include "model/support/hs_problems.h"
 
 #ifndef HVEN_SQP_SOLVER_SOURCE
 #error "HVEN_SQP_SOLVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"

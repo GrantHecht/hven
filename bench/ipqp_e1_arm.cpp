@@ -22,8 +22,8 @@
 #include "bench_cli.h"
 #include "corpus_cells.h"
 #include "ipqp_e1_arm.h"
-#include "support/hs_problems.h"
-#include "support/indefinite_fixtures.h"
+#include "model/support/hs_problems.h"
+#include "qp/support/indefinite_fixtures.h"
 
 namespace {
 

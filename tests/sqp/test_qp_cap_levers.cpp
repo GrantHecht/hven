@@ -41,7 +41,7 @@
 #include <hven/trace/json_lines_trace_sink.h>
 #include <hven/qp/qp_types.h>
 
-#include "support/qp_as_nlp_model.h"
+#include "qp/support/qp_as_nlp_model.h"
 
 namespace hven {
 namespace {

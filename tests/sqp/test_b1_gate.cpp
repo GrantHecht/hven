@@ -128,9 +128,9 @@
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
-#include "support/hs_problems.h"
-#include "support/nlp_kkt_check.h"
-#include "support/parametric_families.h"
+#include "model/support/hs_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
+#include "model/support/parametric_families.h"
 
 #include "hven/core/compiler.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

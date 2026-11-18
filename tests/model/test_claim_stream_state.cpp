@@ -37,7 +37,7 @@
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 
-#include "support/claim_corpus.h"
+#include "model/support/claim_corpus.h"
 
 using hven::AssemblyDeclaration;
 using hven::ClaimBlock;

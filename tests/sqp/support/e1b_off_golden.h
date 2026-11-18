@@ -28,7 +28,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "qp_as_nlp_model.h"
+#include "qp/support/qp_as_nlp_model.h"
 
 namespace hven::e1b_golden {
 

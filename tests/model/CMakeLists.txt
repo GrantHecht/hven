@@ -31,7 +31,7 @@ set(HVEN_MODEL_TEST_SOURCES
     test_identity_probe.cpp
     test_local_block_include.cpp
     test_model_structure_key.cpp
-    test_model_surface_kkt.cpp
+    ../bench/test_model_surface_kkt.cpp
     test_nlp_model_assembly.cpp
     test_pieces.cpp
     test_structure_epoch.cpp
@@ -46,10 +46,7 @@ add_executable(hven_model_tests ${HVEN_MODEL_TEST_SOURCES})
 # rather than reached by a ../ traversal from a source file. This directory
 # itself stays first, so a quoted include of this suite's own support/ headers
 # resolves here.
-target_include_directories(hven_model_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/..
-)
+target_include_directories(hven_model_tests PRIVATE ${HVEN_TESTS_INCLUDE_ROOT})
 target_link_libraries(hven_model_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_model_tests PRIVATE ${COMPILE_FLAGS})
 

@@ -25,7 +25,7 @@ target_link_libraries(hven_sqp_bench PRIVATE hven::hven)
 target_compile_options(hven_sqp_bench PRIVATE ${COMPILE_FLAGS})
 # tests/sqp/support/{parametric_families,scale_problems}.h are
 # test-support-only headers (no gtest dependency), included by relative path.
-target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_f7_cold — the single-solve F7 cold-start probe behind the archived
 # cold-scale study. Committed so those sections stay reproducible; NOT
@@ -33,7 +33,7 @@ target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.
 add_executable(hven_sqp_f7_cold bench_f7_cold.cpp)
 target_link_libraries(hven_sqp_f7_cold PRIVATE hven::hven)
 target_compile_options(hven_sqp_f7_cold PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_tau_bar_sweep_probe — the hs_sweeps.h cold-arm reproduction vehicle
 # for the archived elastic-tau tuning note's §4.4 sweep. The shipped build
@@ -44,7 +44,7 @@ add_executable(hven_sqp_tau_bar_sweep_probe tau_bar_sweep_probe.cpp)
 target_link_libraries(hven_sqp_tau_bar_sweep_probe PRIVATE hven::hven)
 target_compile_options(hven_sqp_tau_bar_sweep_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_tau_bar_sweep_probe
-                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_snopt_f7 — the SNOPT measurement binary. GUARDED: exists only when
 # the root-level SNOPT detection succeeded — a machine without SNOPT keeps
@@ -56,7 +56,7 @@ if(HVEN_SQP_HAVE_SNOPT)
     add_executable(hven_sqp_snopt_f7 bench_snopt_f7.cpp)
     target_link_libraries(hven_sqp_snopt_f7 PRIVATE hven::hven hven_sqp_snopt)
     target_compile_options(hven_sqp_snopt_f7 PRIVATE ${COMPILE_FLAGS})
-    target_include_directories(hven_sqp_snopt_f7 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+    target_include_directories(hven_sqp_snopt_f7 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 endif()
 
 # hven_sqp_corpus — the replay corpus runner: cell specs, tags, the engine
@@ -76,7 +76,7 @@ endif()
 add_executable(hven_sqp_corpus bench_corpus.cpp ipm_corpus_leg.cpp)
 target_link_libraries(hven_sqp_corpus PRIVATE hven::hven)
 target_compile_options(hven_sqp_corpus PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # Every CSV this runner writes carries a provenance header, and the first line
 # of it is WHICH BINARY produced the rows. Resolved at CONFIGURE time (not
@@ -180,7 +180,7 @@ add_executable(hven_sqp_ssn_safeguard_probe ssn_safeguard_probe.cpp)
 target_link_libraries(hven_sqp_ssn_safeguard_probe PRIVATE hven::hven)
 target_compile_options(hven_sqp_ssn_safeguard_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_ssn_safeguard_probe
-                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_crossover — the M5 W5 crossover-leg runner: the dual-bind adapter,
 # the four legs and the margin arithmetic all live in bench/crossover_legs.h (a
@@ -193,7 +193,7 @@ target_include_directories(hven_sqp_ssn_safeguard_probe
 add_executable(hven_sqp_crossover bench_crossover.cpp)
 target_link_libraries(hven_sqp_crossover PRIVATE hven::hven)
 target_compile_options(hven_sqp_crossover PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 # Same configure-time git description hven_sqp_corpus stamps, and for the same
 # reason: every CSV this runner writes says which binary produced its rows.
 target_compile_definitions(hven_sqp_crossover PRIVATE
@@ -209,7 +209,7 @@ target_compile_definitions(hven_sqp_crossover PRIVATE
 add_executable(hven_sqp_ipqp_e1_arm ipqp_e1_arm.cpp)
 target_link_libraries(hven_sqp_ipqp_e1_arm PRIVATE hven::hven)
 target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
     HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
 

@@ -39,7 +39,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include "../common_support/route_reference.h"
+#include "support/route_reference.h"
 #include <hven/detail/sqp/globalization/elastic.h>
 #include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 #include <hven/detail/sqp/quasi_newton/mixed_lift.h>

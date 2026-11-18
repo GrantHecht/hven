@@ -34,7 +34,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "support/hs_problems.h"
+#include "model/support/hs_problems.h"
 
 #include "hven/core/compiler.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

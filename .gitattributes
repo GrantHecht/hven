@@ -4,4 +4,4 @@ docs/notes/data/**/gates*/*.txt -whitespace
 docs/notes/data/**/logs/*.txt -whitespace
 
 # Trace v1 reader fixtures: LF bytes are the contract (copied into hven-bench with sha256).
-tests/drivers/golden/trace_v1/*.jsonl text eol=lf
+tests/trace/golden/trace_v1/*.jsonl text eol=lf

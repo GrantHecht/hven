@@ -39,7 +39,7 @@
 #include "hven/model/nlp_assembly.h"
 #include "hven/model/structure_identity.h"
 
-#include "sqp/support/hs_problems.h"
+#include "model/support/hs_problems.h"
 
 #include "hven/core/compiler.h"
 

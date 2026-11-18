@@ -242,8 +242,8 @@
 
 #include "bench_cli.h"
 
-#include "support/parametric_families.h"
-#include "support/scale_problems.h"
+#include "model/support/parametric_families.h"
+#include "model/support/scale_problems.h"
 
 namespace {
 

@@ -21,77 +21,77 @@
 # carried gave a new entry no defined home, and the last one was appended for
 # want of one.
 set(HVEN_SQP_TEST_SOURCES
-    test_accelerate_probes.cpp
+    ../linear/test_accelerate_probes.cpp
     test_activity_telemetry.cpp
     test_assembly_eval_seam.cpp
     test_b1_gate.cpp
-    test_bench_dump.cpp
-    test_border_ops.cpp
+    ../bench/test_bench_dump.cpp
+    ../kkt/test_border_ops.cpp
     test_column_scaling.cpp
     test_continuation.cpp
-    test_corpus_cells.cpp
-    test_crossover_legs.cpp
-    test_dense_oracle.cpp
+    ../bench/test_corpus_cells.cpp
+    ../bench/test_crossover_legs.cpp
+    ../qp/test_dense_oracle.cpp
     test_disproved_entry.cpp
     test_elastic_rung_vehicle.cpp
     test_elastic_witness_start.cpp
-    test_eqp_refine_ab.cpp
+    ../qp/test_eqp_refine_ab.cpp
     test_equality_basis.cpp
-    test_eqp_solve.cpp
+    ../qp/test_eqp_solve.cpp
     test_funnel.cpp
     test_hs_battery.cpp
     test_hs_sweeps.cpp
     test_lbfgs_damped.cpp
-    test_ipqp_acceptance.cpp
-    test_ipqp_certification.cpp
-    test_ipqp_counters.cpp
+    ../qp/test_ipqp_acceptance.cpp
+    ../qp/test_ipqp_certification.cpp
+    ../qp/test_ipqp_counters.cpp
     test_ipqp_dispatch.cpp
-    test_ipqp_engine.cpp
-    test_ipqp_kkt_layout.cpp
-    test_ipqp_ladder_skip.cpp
-    test_ipqp_math.cpp
-    test_ipqp_mu0_rule.cpp
-    test_ipqp_options.cpp
-    test_ipqp_trace.cpp
-    test_ipqp_warm_restart.cpp
-    test_kkt_assembly.cpp
-    test_kkt_calls.cpp
-    test_kkt_inertia_probe.cpp
-    test_kkt_partial_solve.cpp
-    test_ledger.cpp
-    test_mesh_transfer.cpp
+    ../qp/test_ipqp_engine.cpp
+    ../qp/test_ipqp_kkt_layout.cpp
+    ../qp/test_ipqp_ladder_skip.cpp
+    ../qp/test_ipqp_math.cpp
+    ../qp/test_ipqp_mu0_rule.cpp
+    ../qp/test_ipqp_options.cpp
+    ../qp/test_ipqp_trace.cpp
+    ../qp/test_ipqp_warm_restart.cpp
+    ../kkt/test_kkt_assembly.cpp
+    ../kkt/test_kkt_calls.cpp
+    ../kkt/test_kkt_inertia_probe.cpp
+    ../kkt/test_kkt_partial_solve.cpp
+    ../core/test_ledger.cpp
+    ../warmstart/test_mesh_transfer.cpp
     test_nlp_kkt_check.cpp
-    test_nlp_model.cpp
-    test_parametric_families.cpp
+    ../model/test_nlp_model.cpp
+    ../model/test_parametric_families.cpp
     test_predictor.cpp
     test_problem_scaling.cpp
     test_qn_models.cpp
-    test_qp_engine.cpp
-    test_qp_ws_independence.cpp
+    ../qp/test_qp_engine.cpp
+    ../qp/test_qp_ws_independence.cpp
     test_qp_cap_levers.cpp
-    test_qp_engine_border.cpp
-    test_qp_engine_indefinite.cpp
-    test_qp_engine_tr.cpp
+    ../qp/test_qp_engine_border.cpp
+    ../qp/test_qp_engine_indefinite.cpp
+    ../qp/test_qp_engine_tr.cpp
     test_qp_lift_oracle.cpp
     test_qp_mode_sites.cpp
     test_trace_messages_sqp.cpp
-    test_qp_row_contract.cpp
-    test_qp_warm_start.cpp
-    test_scaffold.cpp
-    test_scale_problems.cpp
+    ../qp/test_qp_row_contract.cpp
+    ../qp/test_qp_warm_start.cpp
+    ../linear/test_backend_scaffold.cpp
+    ../model/test_scale_problems.cpp
     test_scale_smoke.cpp
-    test_schur.cpp
+    ../kkt/test_schur.cpp
     test_sqp_equality_basis.cpp
     test_sqp_qn_mode.cpp
     test_sqp_solver.cpp
     test_sqp_restoration.cpp
-    test_sqp_warm_currency.cpp
-    test_ssn_engine.cpp
+    ../warmstart/test_sqp_warm_currency.cpp
+    ../qp/test_ssn_engine.cpp
     test_start_point_projection.cpp
-    test_trace_writer.cpp
-    test_types.cpp
-    test_warm_start.cpp
-    test_warm_start_battery.cpp
+    ../trace/test_trace_writer.cpp
+    ../qp/test_qp_types.cpp
+    ../warmstart/test_warm_start.cpp
+    ../warmstart/test_warm_start_battery.cpp
 )
 
 add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})
@@ -116,7 +116,7 @@ target_sources(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../bench/i
 # itself then quote-includes "support/scale_problems.h" relative to ITS OWN
 # directory (bench/), which has no support/ subdirectory — so this target
 # needs tests/sqp/ itself on the include path, and ONLY that.
-target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(hven_sqp_tests PRIVATE "${HVEN_TESTS_INCLUDE_ROOT}")
 
 # The driver TU test_qp_mode_sites.cpp SCANS (M6 W4 T5). It reads the source
 # text -- it does not parse C++ -- and requires every kernel invocation in it to
@@ -205,7 +205,7 @@ target_compile_definitions(hven_sqp_tests PRIVATE
 # header's own "support/scale_problems.h" quoted include resolves through
 # this target's tests/sqp include path above.
 if(HVEN_SQP_HAVE_SNOPT)
-    target_sources(hven_sqp_tests PRIVATE test_snopt_bridge_gate.cpp)
+    target_sources(hven_sqp_tests PRIVATE ../bench/test_snopt_bridge_gate.cpp)
     target_link_libraries(hven_sqp_tests PRIVATE hven_sqp_snopt)
 endif()
 

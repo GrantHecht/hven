@@ -58,9 +58,9 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 
-#include "support/claim_stream_double.h"
-#include "support/hs_problems.h"
-#include "support/parametric_families.h"
+#include "model/support/claim_stream_double.h"
+#include "model/support/hs_problems.h"
+#include "model/support/parametric_families.h"
 
 #include "hven/core/compiler.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"

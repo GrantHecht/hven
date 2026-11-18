@@ -42,7 +42,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "support/nlp_kkt_check.h"
+#include "sqp/support/nlp_kkt_check.h"
 
 namespace {
 

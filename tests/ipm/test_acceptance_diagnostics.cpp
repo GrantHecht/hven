@@ -1,0 +1,224 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+///////////////////////////////////////////////////////////////////////////////
+// Unit tests for AcceptanceStrategy::append_diagnostics() — the solver-level
+// observability hook added alongside the funnel/filter acceptance strategies.
+//
+// Covers:
+//   - the default (base-class) body is a no-op: a strategy that does not
+//     override it leaves the hven::IpmPhaseReport untouched;
+//   - a fake strategy's override IS invoked through the virtual dispatch, the
+//     same call shape run_phase_sequence() uses (see ipm_solver.cpp);
+//   - the two real overrides (FunnelAcceptance, FilterAcceptance) report their
+//     documented fields (funnel_acceptance.h / filter_acceptance.h);
+//   - a default-constructed hven::IpmPhaseReport carries the three sentinel
+//     values (-1.0 / -1 / -1) documented on the fields in ipm_solver.h.
+//
+// UNITY RULE: anonymous namespace does not protect names against the unity
+// build — every helper/class here is prefixed Diag* to stay globally unique
+// across tests/cpp/ (grep-confirmed no other "Diag"-prefixed symbol exists).
+///////////////////////////////////////////////////////////////////////////////
+
+#include "ipm/support/progress_measures_test_utils.h"
+
+#include "hven/detail/solver/result_access.h"
+#include "hven/detail/ipm/globalization/acceptance_mode.h"
+#include "hven/detail/ipm/globalization/filter_acceptance.h"
+#include "hven/detail/ipm/globalization/funnel_acceptance.h"
+#include "hven/ipm/ipm_solver.h"
+
+#include <gtest/gtest.h>
+
+#include <cmath>
+
+namespace {
+
+using hven::IpmSolver;
+using hven::detail::AcceptanceStrategy;
+using hven::detail::FilterAcceptance;
+using hven::detail::FunnelAcceptance;
+using hven::detail::kFunnelInfeasibilityFactor;
+using hven::detail::ProgressMeasures;
+using TychoTest::pm;
+
+// Bare AcceptanceStrategy: implements only the pure-virtual surface and does
+// NOT override append_diagnostics(), so it exercises the base class's default
+// no-op body. drives_classic_path() is arbitrary here (never read by these
+// tests); is_iterate_acceptable()/is_infeasibility_sufficiently_reduced()
+// return fixed values since neither is exercised by these tests either.
+class DiagBareAcceptance : public AcceptanceStrategy {
+  public:
+    bool drives_classic_path() const override { return false; }
+    bool is_iterate_acceptable(const ProgressMeasures &, const ProgressMeasures &,
+                               const ProgressMeasures &, double, double) override {
+        return true;
+    }
+    bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &,
+                                               const ProgressMeasures &) const override {
+        return true;
+    }
+    void reset() override {}
+};
+
+// Fake AcceptanceStrategy whose append_diagnostics() override is invoked as a
+// unit: increments a call counter and stamps a recognizable value into
+// funnel_width so the test can tell the OVERRIDE ran (as opposed to the
+// base's no-op).
+class DiagFakeAcceptance : public AcceptanceStrategy {
+  public:
+    bool drives_classic_path() const override { return false; }
+    bool is_iterate_acceptable(const ProgressMeasures &, const ProgressMeasures &,
+                               const ProgressMeasures &, double, double) override {
+        return true;
+    }
+    bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &,
+                                               const ProgressMeasures &) const override {
+        return true;
+    }
+    void reset() override {}
+
+    void append_diagnostics(hven::IpmPhaseReport &result) const override {
+        ++calls_;
+        result.funnel_width = 42.0;
+    }
+
+    mutable int calls_ = 0;
+};
+
+// The default body is a no-op: a freshly default-constructed hven::IpmResult at its
+// sentinel values is untouched by a strategy that doesn't override append_diagnostics.
+TEST(AcceptanceDiagnostics, DefaultIsNoop) {
+    DiagBareAcceptance strategy;
+    // A default hven::IpmPhaseReport IS the reset state (M6 W5 T8.4): every diagnostic is
+    // unreported (nullopt) by default.
+    hven::IpmPhaseReport result;
+    ASSERT_FALSE(result.funnel_width.has_value());
+    ASSERT_FALSE(result.filter_size.has_value());
+    ASSERT_FALSE(result.filter_resets.has_value());
+
+    // Call it through a base-class reference, exactly like run_phase_sequence()
+    // does through the acceptance_ unique_ptr<AcceptanceStrategy>.
+    AcceptanceStrategy &base = strategy;
+    base.append_diagnostics(result);
+
+    EXPECT_FALSE(result.funnel_width.has_value());
+    EXPECT_FALSE(result.filter_size.has_value());
+    EXPECT_FALSE(result.filter_resets.has_value());
+}
+
+// A strategy's override IS invoked through virtual dispatch off a base-class
+// reference (the exact call shape run_phase_sequence() uses:
+// this->acceptance_->append_diagnostics(this->result_)).
+TEST(AcceptanceDiagnostics, FakeStrategyOverrideIsInvoked) {
+    DiagFakeAcceptance strategy;
+    // A default hven::IpmPhaseReport IS the reset state (M6 W5 T8.4): every diagnostic is
+    // unreported (nullopt) by default.
+    hven::IpmPhaseReport result;
+
+    AcceptanceStrategy &base = strategy;
+    base.append_diagnostics(result);
+
+    EXPECT_EQ(strategy.calls_, 1);
+    ASSERT_TRUE(result.funnel_width.has_value());
+    EXPECT_DOUBLE_EQ(*result.funnel_width, 42.0);
+
+    base.append_diagnostics(result);
+    EXPECT_EQ(strategy.calls_, 2);
+}
+
+// FunnelAcceptance::append_diagnostics() reports the current width_ verbatim.
+// θ₀ = 4.0 ⇒ κ̄·θ₀ = 1.5·4 = 6.0 > τ̄ = 1.0 ⇒ τ = 6.0 (init rule, see
+// funnel_acceptance.h). Priming trial well outside the funnel so the base's
+// membership test rejects it before any width update runs.
+TEST(AcceptanceDiagnostics, FunnelReportsWidth) {
+    FunnelAcceptance funnel;
+    const bool primed = funnel.is_iterate_acceptable(pm(4.0, 0.0, 0.0), pm(100.0, 0.0, 0.0),
+                                                     pm(0.0, 0.0, 0.0), 1.0, 1.0);
+    ASSERT_FALSE(primed);
+    ASSERT_DOUBLE_EQ(funnel.funnel_width(), kFunnelInfeasibilityFactor * 4.0);
+    // A default hven::IpmPhaseReport IS the reset state (M6 W5 T8.4): every diagnostic is
+    // unreported (nullopt) by default.
+    hven::IpmPhaseReport result;
+    static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
+
+    ASSERT_TRUE(result.funnel_width.has_value());
+    EXPECT_DOUBLE_EQ(*result.funnel_width, funnel.funnel_width());
+    ASSERT_TRUE(result.funnel_width.has_value());
+    EXPECT_DOUBLE_EQ(*result.funnel_width, kFunnelInfeasibilityFactor * 4.0);
+    // Untouched by FunnelAcceptance's override (funnel doesn't report filter
+    // fields).
+    EXPECT_FALSE(result.filter_size.has_value());
+    EXPECT_FALSE(result.filter_resets.has_value());
+}
+
+// FunnelAcceptance::append_diagnostics() reports the -1.0 sentinel when the
+// acceptance test never ran (e.g. phase converged at initial iterate). The
+// width_ stays at its +∞ uninitialized sentinel if is_iterate_acceptable was
+// never called; append_diagnostics converts +∞ to -1.0.
+TEST(AcceptanceDiagnostics, DiagFunnelUninitializedWidthSentinel) {
+    FunnelAcceptance funnel;
+    // Do NOT call is_iterate_acceptable — width_ remains at +∞.
+    ASSERT_FALSE(std::isfinite(funnel.funnel_width()));
+    // A default hven::IpmPhaseReport IS the reset state (M6 W5 T8.4): every diagnostic is
+    // unreported (nullopt) by default.
+    hven::IpmPhaseReport result;
+    static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
+
+    EXPECT_FALSE(result.funnel_width.has_value());
+    // Untouched by FunnelAcceptance's override.
+    EXPECT_FALSE(result.filter_size.has_value());
+    EXPECT_FALSE(result.filter_resets.has_value());
+}
+
+// FilterAcceptance::append_diagnostics() reports filter_size() and
+// filter_resets(). One accepted H-type step (m_f = 0 routes every call to the
+// H-type delegate) augments the filter to size 1 and leaves the reset counter
+// at 0 (nowhere near the kFilterResetTrigger streak).
+TEST(AcceptanceDiagnostics, FilterReportsSizeAndResets) {
+    FilterAcceptance filter;
+    const bool accepted = filter.is_iterate_acceptable(pm(/*theta=*/4.0, /*phi=*/20.0, 0.0),
+                                                       pm(/*theta=*/1.0, /*phi=*/20.0, 0.0),
+                                                       pm(0.0, 0.0, 0.0), 1.0, 1.0);
+    ASSERT_TRUE(accepted);
+    ASSERT_EQ(filter.filter_size(), 1u);
+    ASSERT_EQ(filter.filter_resets(), 0);
+    // A default hven::IpmPhaseReport IS the reset state (M6 W5 T8.4): every diagnostic is
+    // unreported (nullopt) by default.
+    hven::IpmPhaseReport result;
+    static_cast<AcceptanceStrategy &>(filter).append_diagnostics(result);
+
+    EXPECT_EQ(result.filter_size, 1);
+    EXPECT_EQ(result.filter_resets, 0);
+    // Untouched by FilterAcceptance's override (filter doesn't report the
+    // funnel field).
+    EXPECT_FALSE(result.funnel_width.has_value());
+}
+
+// A DEFAULT hven::IpmPhaseReport IS the reset state (M6 W5 T8.4). reset_accumulators()
+// was retired because a solve builds a fresh result rather than clearing a
+// carried one, so what used to be "reset restores the sentinels" is now "the
+// sentinels are the defaults" -- the same promise, made by the type instead of
+// by a call. A field written on one value cannot reach the next.
+TEST(AcceptanceDiagnostics, ADefaultResultCarriesTheSentinels) {
+    hven::IpmPhaseReport written;
+    written.funnel_width = 6.0;
+    written.filter_size = 3;
+    written.filter_resets = 2;
+
+    const hven::IpmPhaseReport fresh_report;
+    EXPECT_FALSE(fresh_report.funnel_width.has_value());
+    EXPECT_FALSE(fresh_report.filter_size.has_value());
+    EXPECT_FALSE(fresh_report.filter_resets.has_value());
+    const hven::IpmResult fresh;
+    EXPECT_EQ(hven::last_ran_phase(fresh), nullptr);
+    // And the base's own discipline, which the same default carries: every
+    // shared diagnostic UNMEASURED rather than zero.
+    EXPECT_TRUE(std::isnan(fresh.stationarity));
+    EXPECT_TRUE(std::isnan(fresh.feasibility));
+    EXPECT_TRUE(std::isnan(fresh.complementarity));
+    EXPECT_EQ(hven::detail::engine_rows(fresh).ce.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(fresh).ci.size(), 0);
+}
+
+} // namespace

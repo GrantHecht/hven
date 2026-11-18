@@ -129,8 +129,8 @@
 #include <hven/detail/warmstart/crossover.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "support/parametric_families.h"
-#include "support/scale_problems.h"
+#include "model/support/parametric_families.h"
+#include "model/support/scale_problems.h"
 
 namespace hven {
 namespace {

@@ -130,8 +130,8 @@
 #include <hven/qp/qp_types.h>
 
 #include "model_surface_kkt.h"
-#include "support/nlp_kkt_check.h"
-#include "support/scale_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
+#include "model/support/scale_problems.h"
 
 using namespace hven::detail;
 

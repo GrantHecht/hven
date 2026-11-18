@@ -34,8 +34,8 @@
 
 #include <hven/detail/qp/walk/walk_engine.h>
 
-#include "../common_support/route_reference.h"
-#include "support/qp_dump.h"
+#include "support/route_reference.h"
+#include "qp/support/qp_dump.h"
 
 using namespace hven;
 using namespace hven::detail;

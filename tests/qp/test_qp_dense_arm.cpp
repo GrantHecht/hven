@@ -37,8 +37,8 @@
 #include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 
-#include "../common_support/route_reference.h"
-#include "support/qp_dump.h"
+#include "support/route_reference.h"
+#include "qp/support/qp_dump.h"
 
 namespace hven::detail {
 // QpEngine's named friend, DEFINED here for this executable (test_qp_engine_indefinite.cpp

@@ -18,7 +18,7 @@
 #include <gtest/gtest.h>
 
 #include "hven/model/structure_identity.h"
-#include "support/fake_aggregate.h"
+#include "model/support/fake_aggregate.h"
 
 using hven::StructureEpoch;
 using hven::StructureEpochCounter;

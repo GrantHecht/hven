@@ -24,7 +24,7 @@
 
 #include <hven/detail/qp/walk/walk_engine.h>
 
-#include "support/qp_dump.h"
+#include "qp/support/qp_dump.h"
 
 using namespace hven;
 using namespace hven::detail;

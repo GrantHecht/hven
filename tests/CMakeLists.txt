@@ -133,7 +133,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(
     unset(_hven_dispatch_compile CACHE)
     try_run(_hven_dispatch_run _hven_dispatch_compile
         "${CMAKE_CURRENT_BINARY_DIR}/mkl_dispatch_probe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/common_support/mkl_dispatch_probe.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/support/mkl_dispatch_probe.cpp"
         CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${INCLUDE_DIRS}"
         LINK_LIBRARIES ${LINK_LIBS}
         CXX_STANDARD 20
@@ -161,6 +161,29 @@ endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt"
     "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n")
 add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch})
+
+# The include root of every test and bench target that spells a local include from the tests
+# root ("qp/support/ssn_fixtures.h", "support/console_capture.h"). A target opts in with
+# target_include_directories(<t> PRIVATE ${HVEN_TESTS_INCLUDE_ROOT}); the variable is visible in
+# every tests/ subdirectory (bench/ spells the same directory as ../tests).
+set(HVEN_TESTS_INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# Because fixtures are spelled from that root, a fixture's basename must be unique across all
+# support/ directories: two same-named fixtures would let a quoted include resolve to the wrong
+# one. The configure fails on a repeat (S7 of the restructure design).
+file(GLOB_RECURSE _hven_support_files CONFIGURE_DEPENDS LIST_DIRECTORIES false
+    "${CMAKE_CURRENT_SOURCE_DIR}/support/*"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*/support/*")
+set(_hven_support_basenames "")
+foreach(_f IN LISTS _hven_support_files)
+    get_filename_component(_name "${_f}" NAME)
+    if(_name IN_LIST _hven_support_basenames)
+        message(FATAL_ERROR "tests: the fixture basename '${_name}' appears in more than one "
+            "support/ directory (second one: ${_f}); fixtures are included from the tests "
+            "root, so each basename must be unique across all support/ directories.")
+    endif()
+    list(APPEND _hven_support_basenames "${_name}")
+endforeach()
 
 set(HVEN_TEST_SOURCES
     core/test_version.cpp
@@ -303,7 +326,7 @@ add_executable(hven_fault_injection_tests
     # compiles here as cheaply as it does into the library.
     ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
     linear/test_fault_injection.cpp
-    interior/test_kkt_factorization_faults.cpp
+    kkt/test_kkt_factorization_faults.cpp
 )
 
 # The dense arm's session TU, which the adapter below dispatches to.
@@ -390,7 +413,7 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/kkt/kkt_factor.cpp
     ${HVEN_SRC_DIR}/qp/ipqp/ipqp_engine.cpp
     ${HVEN_SRC_DIR}/qp/ipqp/ipqp_kkt_layout.cpp
-    sqp/test_ipqp_seams.cpp
+    qp/test_ipqp_seams.cpp
 )
 
 # The dense arm's session TU, which the adapter below dispatches to.
@@ -424,6 +447,7 @@ target_link_libraries(hven_ipqp_seam_tests PRIVATE
     Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
 )
 target_include_directories(hven_ipqp_seam_tests PRIVATE ${INCLUDE_DIRS})
+target_include_directories(hven_ipqp_seam_tests PRIVATE ${HVEN_TESTS_INCLUDE_ROOT})
 target_link_libraries(hven_ipqp_seam_tests PRIVATE ${LINK_LIBS})
 if(APPLE)
     target_link_libraries(hven_ipqp_seam_tests PRIVATE AccelerateSparse::AccelerateSparse)
@@ -528,6 +552,7 @@ target_link_libraries(hven_qp_walk_seam_tests PRIVATE
     Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
 )
 target_include_directories(hven_qp_walk_seam_tests PRIVATE ${INCLUDE_DIRS})
+target_include_directories(hven_qp_walk_seam_tests PRIVATE ${HVEN_TESTS_INCLUDE_ROOT})
 target_link_libraries(hven_qp_walk_seam_tests PRIVATE ${LINK_LIBS})
 if(APPLE)
     target_link_libraries(hven_qp_walk_seam_tests PRIVATE AccelerateSparse::AccelerateSparse)
@@ -559,19 +584,19 @@ add_executable(hven_sqp_seam_tests
     sqp/test_sqp_ladder_seams.cpp
     # M8 B5 riders: the backend-failure half of the exception contract through
     # the public handles, on the linear layer's analyze/factorize injectors.
-    sqp/test_backend_error_seams.cpp
+    solver/test_backend_error_seams.cpp
     # M8 DN-1d: the IPM dense guard's failed re-run (DN-1b review F8), on the dense-attempt
     # and platform-factorize injectors.
-    sqp/test_ipm_dense_guard_seams.cpp
+    ipm/test_ipm_dense_guard_seams.cpp
     # C341: the SSN tier's dense solve gates under a wounded factor (DenseSolveFaultInjector).
-    sqp/test_dense_solve_wound_seams.cpp
+    qp/test_dense_solve_wound_seams.cpp
     # M8 AP-5 G4: the intra-iteration stop polls (StopPollSeam, core/detail/stop_poll.h).
-    sqp/test_stop_poll_seams.cpp
+    solver/test_stop_poll_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)
 target_include_directories(hven_sqp_seam_tests PRIVATE
-    $<TARGET_PROPERTY:hven,INCLUDE_DIRECTORIES>)
+    $<TARGET_PROPERTY:hven,INCLUDE_DIRECTORIES> ${HVEN_TESTS_INCLUDE_ROOT})
 target_link_libraries(hven_sqp_seam_tests PRIVATE
     Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main ${LINK_LIBS})
 if(APPLE)
@@ -597,14 +622,14 @@ add_subdirectory(golden_rig)
 # tests/interior/CMakeLists.txt.
 ################################################################################
 
-add_subdirectory(interior)
+add_subdirectory(ipm)
 
 ################################################################################
 # The shared driver surface's test suite: the include/hven/drivers/ types that
 # belong to neither engine. See tests/drivers/CMakeLists.txt.
 ################################################################################
 
-add_subdirectory(drivers)
+add_subdirectory(solver)
 
 ################################################################################
 # The model contract surface's test suite: what the provider-side contract in

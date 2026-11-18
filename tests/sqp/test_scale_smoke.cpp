@@ -78,8 +78,8 @@
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "hven/detail/warmstart/sqp_warm_access.h"
-#include "support/nlp_kkt_check.h"
-#include "support/scale_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
+#include "model/support/scale_problems.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

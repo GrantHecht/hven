@@ -38,8 +38,8 @@
 #include <hven/detail/model/problem_access.h>
 
 #include "hven/detail/warmstart/sqp_warm_access.h"
-#include "support/claim_stream_double.h"
-#include "support/hs_problems.h"
+#include "model/support/claim_stream_double.h"
+#include "model/support/hs_problems.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

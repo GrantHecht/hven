@@ -24,8 +24,8 @@
 #include <hven/detail/model/problem_access.h>
 
 #include "hven/detail/warmstart/sqp_warm_access.h"
-#include "support/hs_problems.h"
-#include "support/ipqp_test_support.h"
+#include "model/support/hs_problems.h"
+#include "qp/support/ipqp_test_support.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;

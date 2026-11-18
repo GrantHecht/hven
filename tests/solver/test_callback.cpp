@@ -1,0 +1,4336 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// tests/drivers/test_callback.cpp -- ONE PER-ITERATION CALLBACK, BOTH ENGINES
+// (M6 W5 T8.6).
+//
+// `set_iteration_callback(IterationCallback)` / `clear_iteration_callback()`
+// exist on the interior-point solver and on the SQP driver, over ONE event type
+// in DECLARED space and CALLER units, and `CallbackAction::kStop` is honoured on
+// both -- which is what makes `SolveStatus::kInterrupted` reachable at all
+// (design section 2.3: "neither reports kInterrupted today" was true until this
+// task). That is a statement about the SHARED surface, so it is pinned here
+// rather than in either engine's suite.
+//
+// WHAT EACH ENGINE PROMISES, and what the nine tests below hold it to:
+//
+//   SQP -- one event per HISTORY ROW, fired at the single site that emits them,
+//   in the caller's units even on a scaled solve (design section 2.7 behaviour
+//   change: design section 2.5's "multipliers and z have the scaling map
+//   applied" -- the SQP's caller-unit rule is not one of section 2.7's numbered
+//   items); `depth` counts restoration nesting and a stop taken inside a
+//   restoration sub-solve LATCHES on the parent; a stop is honoured before the
+//   next subproblem is built, so `history.size() == major_iters + 1` survives
+//   it; converged beats stop.
+//
+//   INTERIOR-POINT -- one event per `ipm.iter` row, fired at the TOP of the
+//   iteration that row belongs to, so the event describes the COMMITTED point
+//   of the previous step with the diagnostics of THAT point (behaviour change
+//   (3); (2) of that list is kInterrupted on both engines -- corrected at fix1);
+//   a stop is honoured pre-factorization and ends the PHASE SEQUENCE.
+//
+//   BOTH -- an exception from the callback propagates out of solve(), the
+//   abandoned solve writes no end event and (on the SQP, which is the engine
+//   that has a ledger today) no ledger record of its own, and the solver is
+//   reusable.
+
+#include "ipm/support/ipm_row_view.h"
+#include "solver/support/iteration_record_eq.h"
+#include <gtest/gtest.h>
+
+#include <bit>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+
+#include <hven/core/ledger.h>
+#include <hven/core/stop.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/solver/solve_result.h>
+#include <hven/sqp/sqp_solver_types.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
+
+#include "model/support/hs071_problem.h"
+
+namespace {
+
+using hven::CallbackAction;
+using hven::CallbackScope;
+using hven::Index;
+using hven::IterationEvent;
+using hven::IterationPayload;
+using hven::Ledger;
+using hven::SolveStatus;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::detail::NlpModel;
+using hven::detail::NlpProblemModel;
+using Vec = Eigen::VectorXd;
+using SpMatRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+
+constexpr double kInfBound = std::numeric_limits<double>::infinity();
+
+// ---------------------------------------------------------------------------
+// THE RECORDER. An IterationEvent's four vector views are borrowed and valid
+// for the call only, so an oracle that wants them afterwards COPIES them --
+// which is exactly what this does, and what a caller would have to do.
+// ---------------------------------------------------------------------------
+using Seen = hven::IterationSnapshot;
+
+// set_iteration_callback's default mask (Q9): today's payload, not kAll.
+constexpr IterationPayload kDefaultMask = hven::kDefaultIterationPayload;
+
+Seen copy_of(const IterationEvent &e) { return hven::snapshot(e); }
+
+bool same_bits(double u, double v) {
+    return std::bit_cast<std::uint64_t>(u) == std::bit_cast<std::uint64_t>(v);
+}
+
+// The engine blocks, field for field, doubles bitwise.
+void expect_same_info(const std::optional<hven::IpmIterationInfo> &a,
+                      const std::optional<hven::IpmIterationInfo> &b) {
+    ASSERT_EQ(a.has_value(), b.has_value());
+    if (!a) {
+        return;
+    }
+    EXPECT_EQ(a->phase, b->phase);
+    EXPECT_TRUE(same_bits(a->mu, b->mu));
+    EXPECT_TRUE(same_bits(a->alpha_primal, b->alpha_primal));
+    EXPECT_TRUE(same_bits(a->alpha_dual, b->alpha_dual));
+    EXPECT_TRUE(same_bits(a->regularization_primal, b->regularization_primal));
+    EXPECT_TRUE(same_bits(a->regularization_dual, b->regularization_dual));
+    EXPECT_EQ(a->inertia_corrections, b->inertia_corrections);
+    EXPECT_EQ(a->line_search_trials, b->line_search_trials);
+}
+
+void expect_same_info(const std::optional<hven::SqpIterationInfo> &a,
+                      const std::optional<hven::SqpIterationInfo> &b) {
+    ASSERT_EQ(a.has_value(), b.has_value());
+    if (!a) {
+        return;
+    }
+    EXPECT_EQ(a->depth, b->depth);
+    EXPECT_TRUE(same_bits(a->trust_radius, b->trust_radius));
+    EXPECT_TRUE(same_bits(a->violation_l1, b->violation_l1));
+    EXPECT_TRUE(same_bits(a->regularization_dual, b->regularization_dual));
+    EXPECT_EQ(a->qp_solved, b->qp_solved);
+    EXPECT_EQ(a->qp_status, b->qp_status);
+    EXPECT_EQ(a->qp_minor_iterations, b->qp_minor_iterations);
+    EXPECT_EQ(a->active_set_size, b->active_set_size);
+    EXPECT_EQ(a->verdict, b->verdict);
+    EXPECT_EQ(a->elastic, b->elastic);
+}
+
+/// @brief Records every event and never stops.
+struct Recorder {
+    std::vector<Seen> seen;
+    hven::IterationCallback hook() {
+        return [this](const IterationEvent &e) {
+            this->seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        };
+    }
+};
+
+Vec hs071_start() {
+    Vec x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    return x0;
+}
+
+SqpOptions quiet_sqp() {
+    SqpOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    return o;
+}
+
+hven::IpmOptions quiet_ipm(const hven::IpmSolver &solver) {
+    hven::IpmOptions o = solver.options();
+    o.common.verbosity = hven::Verbosity::kSilent;
+    return o;
+}
+
+// ---------------------------------------------------------------------------
+// FIXTURE: THE FUNNEL-STALLING VALLEY, which is the tree's documented route
+// into the restoration phase and back out of it.
+//
+//     min  -10 x1 + 5 x1^2 - 0.01 x0 + 0.0005 x0^2
+//     s.t. cE(x) = x1 + 1000 x0^2 = 0,      x_start = (0, 0.5)
+//
+// VERBATIM from tests/sqp/test_sqp_restoration.cpp's StalledValleyModel, whose
+// own comment carries the hand-derived stall schedule, the restoration entry
+// and the optimum. It is copied rather than shared because that model is a
+// local of a .cpp in the SQP suite; nothing about it is edited here, and the
+// only property this file uses is that a solve of it ENTERS RESTORATION and
+// then RESUMES -- which is what gives depth-1 events to stop at.
+// ---------------------------------------------------------------------------
+class StalledValleyModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override {
+        return -10.0 * x(1) + 5.0 * x(1) * x(1) - 0.01 * x(0) + 0.0005 * x(0) * x(0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << -0.01 + 0.001 * x(0), -10.0 + 10.0 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(1) + 1000.0 * x(0) * x(0);
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_factor, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_factor * 0.001 + 2000.0 * lambda_e(0);
+        h.insert(1, 1) = obj_factor * 10.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 2000.0 * x(0);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 0.0, 0.5;
+        return x;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// FIXTURE: THE CLASSIC MARATOS CIRCLE (VERBATIM from tests/sqp/test_sqp_solver.cpp's
+// MaratosModel; min 2(x0^2 + x1^2 - 1) - x0 s.t. x0^2 + x1^2 = 1, start on the
+// circle at angle theta). At theta = 0.1 the solve's SECOND major is a Maratos
+// rejection rescued by a second-order correction that is PROMOTED
+// (soc_applied == 1 on history[1]) -- the one stopping row on which G1's
+// post-push stop undo of `soc_applied` is observable.
+// ---------------------------------------------------------------------------
+class MaratosModel : public NlpModel {
+  public:
+    explicit MaratosModel(double theta) : theta_(theta) {}
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return 2.0 * (x(0) * x(0) + x(1) * x(1) - 1.0) - x(0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 4.0 * x(0) - 1.0, 4.0 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 4.0 + le(0) * 2.0;
+        h.insert(1, 1) = obj_scale * 4.0 + le(0) * 2.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << std::cos(theta_), std::sin(theta_);
+        return x;
+    }
+
+  private:
+    double theta_;
+};
+
+// ---------------------------------------------------------------------------
+// FIXTURE: AN INFEASIBLE NLP, whose restoration phase runs to a certificate
+// rather than resuming.
+//
+//     min  x0 + x1   s.t.  x0^2 + x1^2 = 1,  x0 + x1 = 2      x_start = (2, 2)
+//
+// VERBATIM from tests/sqp/test_sqp_restoration.cpp's InfeasibleCircleLineModel
+// (see that file for the derivation of the elastic-then-restoration
+// trajectory), copied for the same reason StalledValleyModel is. What this file
+// uses it for is the OTHER restoration route: the sub-solve here exits at a
+// still-infeasible point, so a stop taken inside it arrives at the parent as
+// `rs.status == kInterrupted` through enter_restoration's status switch --
+// where the resuming fixture above exercises only the forwarder's latch.
+// ---------------------------------------------------------------------------
+class InfeasibleCircleLineModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0, x(0) + x(1) - 2.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * lambda_e(0);
+        h.insert(1, 1) = 2.0 * lambda_e(0);
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(2, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.insert(1, 0) = 1.0;
+        j.insert(1, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 2.0, 2.0;
+        return x;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// FIXTURE: A MODEL THE CALLER'S OWN START POINT CANNOT BE EVALUATED AT.
+//
+// x0 itself is finite -- the driver validates that -- but f, its gradient and
+// the constraint row are all NaN there, so the driver's very first KKT
+// measurement is non-finite and it takes the ZERO-MAJOR exit: one history row,
+// no subproblem, kNumericalError.
+// ---------------------------------------------------------------------------
+class NonFiniteStartModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    static double nan() { return std::numeric_limits<double>::quiet_NaN(); }
+
+    double eval_f(const Vec &) const override { return nan(); }
+    Vec eval_grad(const Vec &) const override { return Vec::Constant(2, nan()); }
+    Vec eval_ce(const Vec &) const override { return Vec::Constant(1, nan()); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 1.0;
+        h.insert(1, 1) = 1.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = nan();
+        j.insert(0, 1) = nan();
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 1.0); }
+};
+
+// An SQP-side view of HS071, kept alive with its bridge.
+struct Hs071View {
+    std::shared_ptr<hven::Nlp> problem;
+    std::shared_ptr<NlpProblemModel> model;
+    std::shared_ptr<hven::detail::NlpModelAssembly> bridge;
+
+    Hs071View()
+        : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
+          model(std::make_shared<NlpProblemModel>(problem)),
+          bridge(std::make_shared<hven::detail::NlpModelAssembly>(model)) {}
+};
+
+// A FIXED-VARIABLE PROBLEM, for the MakeConstraint arm of the interior-point
+// twin pin (M6 W5 T8.6 fix1, the SQP lane's M3): under that treatment the fixed
+// coordinate is NOT eliminated, it becomes an internal fixing ROW, and the
+// declared bound price there is -lambda_fix. That fold, and the `excluded` set
+// the reduced gradient needs, are the two pieces of the declared-space seam a
+// plain HS071 solve never exercises.
+//
+//   min (x0-1)^2 + (x1-1)^2,   x1 fixed at 3 by equal bounds.
+//
+// Shaped after tests/interior/test_ipm_solver_entry.cpp's FixedVarProblem, which the
+// treatment pins already use; copied rather than shared because that fixture is
+// a local of a .cpp in another suite.
+struct FixedVarProblem final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
+    int num_vars() const { return 2; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(Eigen::Ref<Vec> xl, Eigen::Ref<Vec> xu, Eigen::Ref<Vec>,
+                Eigen::Ref<Vec>) const override {
+        xl << -kInfBound, 3.0;
+        xu << kInfBound, 3.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        const double a = x[0] - 1.0, b = x[1] - 1.0;
+        return a * a + b * b;
+    }
+    void eval_grad_f(hven::detail::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override {
+        g[0] = 2.0 * (x[0] - 1.0);
+        g[1] = 2.0 * (x[1] - 1.0);
+    }
+    void eval_g(hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec>) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec>) const override {}
+    void eval_hessian(hven::detail::ConstEigenRef<Vec>, double obj_factor,
+                      hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override {
+        v[0] = 2.0 * obj_factor;
+        v[1] = 2.0 * obj_factor;
+    }
+    std::string name() const override { return "FixedVarProblem"; }
+};
+
+bool bit_equal(const Vec &a, const Vec &b) {
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (Eigen::Index i = 0; i < a.size(); ++i) {
+        if (std::bit_cast<std::uint64_t>(a[i]) != std::bit_cast<std::uint64_t>(b[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Bitwise equality that treats NaN as a VALUE: "unmeasured" is one of the
+// answers the four diagnostics give, and two unmeasured answers agree.
+bool same_scalar(double a, double b) {
+    if (std::isnan(a) && std::isnan(b)) {
+        return true;
+    }
+    return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b);
+}
+
+} // namespace
+
+// ===========================================================================
+// (1) THE SQP'S EVENTS ARE ITS HISTORY ROWS, IN THE CALLER'S UNITS
+// ===========================================================================
+
+// row_scaling ON, deliberately: an event built from the engine's own vectors
+// without the engine->caller map would agree with the history on an UNSCALED
+// solve and disagree on this one, so only this arm proves the caller-unit rule.
+// The test asserts the scaling really engaged before it reads anything.
+TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
+    Hs071View view;
+    SqpOptions opts = quiet_sqp();
+    opts.row_scaling = true;
+
+    SqpSolver driver(opts);
+    Recorder rec;
+    driver.set_iteration_callback(rec.hook());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_TRUE(sol.scaling.active) << "fixture premise: the scaling must engage, or the "
+                                       "engine->caller map below is the identity and this "
+                                       "test proves nothing about the caller-unit rule";
+    ASSERT_NE(sol.scaling.objective, 1.0) << "fixture premise: a non-unit objective factor";
+
+    // ONE EVENT PER ROW, IN ORDER.
+    ASSERT_EQ(rec.seen.size(), sol.history.size());
+    ASSERT_GT(rec.seen.size(), 1u) << "non-vacuous: the solve really iterates";
+    for (std::size_t k = 0; k < rec.seen.size(); ++k) {
+        SCOPED_TRACE("row " + std::to_string(k));
+        const Seen &e = rec.seen[k];
+        EXPECT_EQ(e.iteration, static_cast<Index>(k));
+        ASSERT_TRUE(e.sqp.has_value());
+        EXPECT_EQ(e.sqp->depth, 0) << "a top-level major is nesting depth 0";
+        // The row's own caller-unit columns, bit for bit: the event is built
+        // from the SAME `exported` row the push and the trace line carry.
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(e.f),
+                  std::bit_cast<std::uint64_t>(sol.history[k].f.value()));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(e.step_norm),
+                  std::bit_cast<std::uint64_t>(sol.history[k].step_norm.value_or(0.0)));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(e.sqp->trust_radius),
+                  std::bit_cast<std::uint64_t>(sol.history[k].sqp->trust_radius));
+        // The SQP block is the row's own columns (G5).
+        EXPECT_TRUE(same_bits(e.sqp->violation_l1, sol.history[k].sqp->violation_l1));
+        EXPECT_TRUE(same_bits(e.sqp->regularization_dual,
+                              sol.history[k].sqp->regularization_dual.value_or(0.0)));
+        EXPECT_EQ(e.sqp->qp_solved, sol.history[k].sqp->qp_solved);
+        EXPECT_EQ(e.sqp->qp_status,
+                  sol.history[k].sqp->qp_status.value_or(hven::QpStatus::kOptimal));
+        EXPECT_EQ(e.sqp->qp_minor_iterations, sol.history[k].sqp->qp_minor_iterations.value_or(0));
+        EXPECT_EQ(e.sqp->active_set_size, sol.history[k].sqp->active_rows +
+                                              sol.history[k].sqp->active_lower_sides +
+                                              sol.history[k].sqp->active_upper_sides);
+        EXPECT_EQ(e.sqp->verdict, sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject));
+        EXPECT_EQ(e.sqp->elastic, sol.history[k].sqp->elastic);
+        EXPECT_FALSE(e.ipm.has_value()) << "ipm is the interior-point engine's block";
+        EXPECT_EQ(e.x.size(), sol.x.size());
+        // EVERY EVENT'S PRICES, ITS BOUND BLOCK AND ITS FOUR DIAGNOSTICS, not
+        // only the terminal event's (M6 W5 T8.6 fix1, astra item 6). The
+        // comparison is INDEPENDENT: the CALLER's own model is evaluated at the
+        // event's own `x`, and the four shared diagnostics are recomputed from
+        // that evaluation and the event's own three price blocks through the
+        // public compute_declared_diagnostics -- the same definition, from the
+        // outside. A block still carrying a factor of the engine's would fail
+        // it, which is the whole of the caller-unit rule checked per row rather
+        // than per solve. The tolerance is the round-off of a scaled solve's
+        // own arithmetic (the engine divides mapped quantities where the
+        // recomputation multiplies raw ones); nothing here is bitwise, and the
+        // UNSCALED control below is what pins the bitwise claim.
+        const Eigen::Index me = hven::detail::engine_rows(sol).lambda_e.size();
+        const Eigen::Index mi = hven::detail::engine_rows(sol).lambda_i.size();
+        ASSERT_EQ(e.lambda.size(), me + mi);
+        ASSERT_EQ(e.z.size(), sol.z.size());
+        ASSERT_TRUE(e.x.allFinite());
+        ASSERT_TRUE(e.lambda.allFinite());
+        ASSERT_TRUE(e.z.allFinite());
+        {
+            const NlpModel &m = *view.model;
+            const hven::detail::DeclaredDiagnostics d = hven::detail::compute_declared_diagnostics(
+                e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+                m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+            EXPECT_NEAR(e.f, m.eval_f(e.x), 1e-9 * (1.0 + std::abs(e.f)))
+                << "the event's objective is the caller's objective at the event's point";
+            EXPECT_NEAR(e.stationarity, d.stationarity, 1e-7 * (1.0 + d.stationarity));
+            const double feas = hven::detail::combine_feasibility(d.feasibility_e, d.feasibility_i);
+            EXPECT_NEAR(e.feasibility, feas, 1e-9 * (1.0 + feas));
+            EXPECT_NEAR(e.complementarity, d.complementarity, 1e-7 * (1.0 + d.complementarity));
+        }
+    }
+
+    // AND THE VECTORS ARE THE CALLER'S TOO. The terminal row is pushed at the
+    // exit conjunction, from the very (x, lambda) `finish` then exports, so the
+    // point matches bit for bit and the prices match to the sign sweep and the
+    // re-measurement `finish` takes on a scaled solve.
+    const Seen &last = rec.seen.back();
+    EXPECT_TRUE(bit_equal(last.x, sol.x)) << "the terminal event's point IS the returned point";
+    ASSERT_EQ(last.lambda.size(), sol.lambda.size());
+    for (Eigen::Index i = 0; i < last.lambda.size(); ++i) {
+        EXPECT_NEAR(last.lambda[i], sol.lambda[i], 1e-9 * (1.0 + std::abs(sol.lambda[i])));
+    }
+
+    // FALSIFIABILITY: the engine-unit multipliers this solve ran at are NOT the
+    // caller-unit ones, so a map that had been skipped would be caught. The
+    // objective factor is what separates them.
+    EXPECT_NE(sol.scaling.objective, 1.0);
+
+    // NON-VACUITY of the block comparison above: on this solve the fields that
+    // are compared are not all their defaults (a block that dropped one would
+    // otherwise read 0 == 0).
+    bool any_minor_iterations = false;
+    bool any_regularization = false;
+    bool any_active_set = false;
+    for (const Seen &e : rec.seen) {
+        any_minor_iterations = any_minor_iterations || e.sqp->qp_minor_iterations > 0;
+        any_regularization = any_regularization || e.sqp->regularization_dual > 0.0;
+        any_active_set = any_active_set || e.sqp->active_set_size > 0;
+    }
+    EXPECT_TRUE(any_minor_iterations);
+    EXPECT_TRUE(any_regularization);
+    EXPECT_TRUE(any_active_set);
+}
+
+// THE UNSCALED CONTROL, and the stronger half of the same claim: with no map to
+// apply, the terminal event's four SHARED diagnostics are the very numbers the
+// result reports -- one arithmetic, computed once, not two that happen to agree.
+TEST(Callback, SqpTerminalEventDiagnosticsAreTheResultsOwn) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    Recorder rec;
+    driver.set_iteration_callback(rec.hook());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_FALSE(sol.scaling.active) << "this arm is the UNSCALED control";
+    ASSERT_FALSE(rec.seen.empty());
+    const Seen &last = rec.seen.back();
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.stationarity),
+              std::bit_cast<std::uint64_t>(sol.stationarity));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility),
+              std::bit_cast<std::uint64_t>(sol.feasibility));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.complementarity),
+              std::bit_cast<std::uint64_t>(sol.complementarity));
+}
+
+// ===========================================================================
+// (2) kStop ON THE SQP
+// ===========================================================================
+
+TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
+    // THE STOP INDEX. The callback stops on the event of history row 1, an
+    // ACCEPTED step on this fixture. RE-DERIVED at M8 AP-5 G1 (ruling Q15, the
+    // declared behaviour change for callback-stopped SQP solves): the stop is
+    // honoured right after that row is recorded, so the accepted step is never
+    // committed and no further major runs. It was read at the NEXT major's exit
+    // conjunction, one step later, which pushed a terminal row of its own.
+    constexpr Index kStopAtRow = 1;
+
+    for (const bool budget_mode : {false, true}) {
+        SCOPED_TRACE(budget_mode ? "budget_mode" : "ordinary");
+        Hs071View view;
+        SqpOptions opts = quiet_sqp();
+        opts.common.return_best =
+            budget_mode ? hven::ReturnBest::kOnLimit : hven::ReturnBest::kNever;
+
+        SqpSolver driver(opts);
+        std::vector<Seen> seen;
+        driver.set_iteration_callback([&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return e.iteration == kStopAtRow ? CallbackAction::kStop : CallbackAction::kContinue;
+        });
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+        // THE VERDICT. Under return_best_on_max_iterations too: an interrupt takes the ORDINARY
+        // exit at the current point, never the budget-best substitution --
+        // handing back a different iterate than the one the caller stopped on
+        // would make the event a lie.
+        EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+        EXPECT_FALSE(sol.returned_best_iterate);
+
+        // THE SHAPE. The history ENDS ON THE STOPPED ROW, whose subproblem was
+        // solved (the "stopped on a subproblem" family of SqpCounters' note):
+        // as many rows as majors, and no terminal row of its own.
+        EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(kStopAtRow) + 1u);
+        EXPECT_EQ(sol.counters.major_iters, kStopAtRow + 1);
+        EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
+        ASSERT_FALSE(sol.history.empty());
+        EXPECT_TRUE(sol.history.back().sqp->qp_solved);
+        EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+        // THE STEP WAS NOT TAKEN: no accepted step was committed after the stop.
+        EXPECT_EQ(sol.counters.steps_accepted, kStopAtRow);
+
+        // ONE EVENT PER ROW STILL, the stop's own row included, and the LAST
+        // event describes the point that is returned.
+        ASSERT_EQ(seen.size(), sol.history.size());
+        EXPECT_TRUE(bit_equal(seen.back().x, sol.x));
+
+        // NON-VACUOUS: an uninterrupted solve of this problem takes strictly
+        // more majors, so the stop really stopped something.
+        SqpSolver full(opts);
+        const SqpResult ref = full.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_EQ(ref.status, SolveStatus::kOptimal);
+        EXPECT_GT(ref.counters.major_iters, sol.counters.major_iters);
+    }
+}
+
+TEST(Callback, SqpConvergedBeatsStop) {
+    Hs071View view;
+    const SqpOptions opts = quiet_sqp();
+
+    // The converged solve's terminal row index, taken first so the stop below
+    // can be aimed at exactly that row and at no other.
+    SqpSolver pilot(opts);
+    const SqpResult reference = pilot.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_GT(reference.history.size(), 1u);
+    const Index terminal_row = static_cast<Index>(reference.history.size()) - 1;
+
+    SqpSolver driver(opts);
+    driver.set_iteration_callback([&](const IterationEvent &e) {
+        return e.iteration == terminal_row ? CallbackAction::kStop : CallbackAction::kContinue;
+    });
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+    // CONVERGED BEATS STOP: the row the callback stopped on is the row the
+    // convergence test had already passed, and the verdict was settled before
+    // the callback ever saw it. The stop is a no-op there.
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_EQ(sol.history.size(), reference.history.size());
+    EXPECT_EQ(sol.counters.major_iters, reference.counters.major_iters);
+    EXPECT_TRUE(bit_equal(sol.x, reference.x))
+        << "a stop that cannot demote the verdict must not move the answer either";
+}
+
+TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0; // the fixture's own radius schedule
+    opts.common.max_iterations = 60;
+
+    // The reference solve: restoration runs, the solve resumes and converges.
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_GE(reference.counters.restoration_iters, 1)
+        << "fixture premise: the solve must actually enter restoration";
+
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    bool stopped = false;
+    std::size_t stop_index = 0;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                stopped = true;
+                stop_index = seen.size() - 1;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    ASSERT_TRUE(stopped) << "no depth-1 event ever fired, so nothing inside restoration was seen";
+
+    // (a) THE NESTING IS REPORTED. Depth-0 events came first -- the majors that
+    //     stalled the funnel -- and the sub-solve's own rows arrive at depth 1
+    //     through the forwarder the parent installs.
+    EXPECT_EQ((seen[stop_index].sqp ? seen[stop_index].sqp->depth : Index{-1}), 1);
+    ASSERT_GT(stop_index, 0u);
+    EXPECT_EQ((seen[0].sqp ? seen[0].sqp->depth : Index{-1}), 0);
+
+    // (b) THE LATCH REACHES THE PARENT: the outer solve reports kInterrupted,
+    //     not the kOptimal the same fixture reaches when nothing stops it.
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+
+    // (c) THE SUB-SOLVE ITSELF IS UNMOVED HERE, and that is the point of using
+    //     the RESUMING fixture for this arm: its restoration phase converges on
+    //     the very next row, so converged beats stop INSIDE the sub-solve too
+    //     and the phase returns its own kOptimal at a feasible point. The stop
+    //     reaches the parent through the FORWARDER's latch and through nothing
+    //     else -- route (b). Route (a), where the sub-solve's own kInterrupted
+    //     arrives at enter_restoration's status switch, is the circle fixture
+    //     below.
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+
+    // (d) AND NO FURTHER TOP-LEVEL MAJOR: the parent's own subproblem count
+    //     stops where the restoration request left it.
+    //
+    //     RE-DERIVED at M8 AP-5 G1 (ruling Q15, declared): the forwarder hands the
+    //     kStop to the SUB-SOLVE too, and the sub-solve now honours it right after
+    //     the stopped row (an accepted step there) instead of one row later, where
+    //     its convergence used to outrank it. The sub-solve therefore returns its
+    //     own kInterrupted -- route (a) -- and the parent leaves through the
+    //     restoration-return exit of the major that requested restoration, with no
+    //     terminal row of its own: history.size() == major_iters. Before Q15 the
+    //     sub-solve converged, the parent resumed, and the next major's exit
+    //     conjunction pushed a terminal row (major_iters + 1). (c) above still
+    //     holds: the restoration iterations are the reference's.
+    EXPECT_LT(sol.counters.major_iters, reference.counters.major_iters);
+    EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
+
+    // (e) RE-DERIVED at M8 AP-5 G2 (declared, stop path only): THE POINT RETURNED
+    //     IS THE ONE RESTORATION WAS ENTERED FROM, not the restored point the
+    //     sub-solve walked to. The requesting row's own event fires after the
+    //     phase returns, at the entry point, so it is the LAST depth-0 event
+    //     delivered -- and the result is that event's point, bit for bit. Before
+    //     G2 the result was the restored point.
+    const Seen *requesting = nullptr;
+    for (const Seen &e : seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 0) {
+            requesting = &e;
+        }
+    }
+    ASSERT_NE(requesting, nullptr);
+    EXPECT_FALSE(requesting->recovering);
+    EXPECT_TRUE(bit_equal(sol.x, requesting->x))
+        << "a stop inside restoration returns the restoration-entry point";
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_TRUE(sol.returned_pre_restoration_point) << sol.message;
+    EXPECT_NE(sol.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << sol.message;
+    // And the flag says which events are the sub-problem's: exactly depth >= 1.
+    for (const Seen &e : seen) {
+        EXPECT_EQ(e.recovering, (e.sqp ? e.sqp->depth : Index{0}) >= 1);
+    }
+}
+
+// M8 AP-5 G3: kStopReturnBest on a depth-1 event. The parent's tracker is a
+// caller-space iterate from before restoration; the exit returns it, not the
+// restoration-entry point a kStop gets.
+TEST(Callback, SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                stopped = true;
+                return CallbackAction::kStopReturnBest;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    ASSERT_TRUE(stopped) << "no depth-1 event ever fired";
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.message.find("before feasibility restoration"), std::string::npos) << sol.message;
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    const hven::IterationSnapshot &best = *sol.best_iterate;
+    EXPECT_FALSE(best.recovering);
+    EXPECT_EQ((best.sqp ? best.sqp->depth : Index{-1}), 0);
+    EXPECT_TRUE(bit_equal(sol.x, best.x));
+    EXPECT_TRUE(bit_equal(sol.lambda, best.lambda));
+    EXPECT_TRUE(bit_equal(sol.z, best.z));
+    // The best is the point of a delivered depth-0 event.
+    bool delivered = false;
+    for (const Seen &e : seen) {
+        delivered = delivered || ((e.sqp ? e.sqp->depth : Index{0}) == 0 && bit_equal(e.x, best.x));
+    }
+    EXPECT_TRUE(delivered);
+}
+
+// M8 AP-5 G3: kStopReturnBest on a row that records no accepted step is honoured at the next exit
+// test (the ordinary terminal exit), not by the post-push poll; the best comes back all the same.
+TEST(Callback, SqpStopReturnBestOnARowThatIsNotAnAcceptedStepReturnsTheBest) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+
+    SqpSolver reference(opts);
+    const SqpResult full = reference.solve(hven::detail::problem_ref(model), (model).start_point());
+    std::optional<Index> row;
+    for (std::size_t k = 0; k + 1 < full.history.size() && !row; ++k) {
+        const hven::StepVerdict v =
+            full.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject);
+        if (v != hven::StepVerdict::kAcceptObjectiveStep &&
+            v != hven::StepVerdict::kAcceptFeasibilityStep) {
+            row = static_cast<Index>(k);
+        }
+    }
+    ASSERT_TRUE(row.has_value()) << "fixture premise: a non-accepted, non-terminal row exists";
+
+    SqpSolver driver(opts);
+    driver.set_iteration_callback([&](const IterationEvent &e) {
+        return e.iteration == *row ? CallbackAction::kStopReturnBest : CallbackAction::kContinue;
+    });
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    EXPECT_TRUE(bit_equal(sol.x, sol.best_iterate->x));
+    EXPECT_TRUE(bit_equal(sol.lambda, sol.best_iterate->lambda));
+}
+
+// M8 AP-5 G3: kStopReturnBest on a depth-1 event of the certifying fixture: the parent's best,
+// no certificate, no restoration-entry flag.
+TEST(Callback, SqpStopReturnBestOnTheCertifyingRestorationReturnsTheBestAndNoCertificate) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver driver(opts);
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (!stopped && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                stopped = true;
+                return CallbackAction::kStopReturnBest;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped);
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    EXPECT_TRUE(bit_equal(sol.x, sol.best_iterate->x));
+    EXPECT_TRUE(bit_equal(sol.lambda, sol.best_iterate->lambda));
+}
+
+TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+
+    // The reference: restoration runs to a CERTIFICATE of local infeasibility.
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(reference.infeasibility_certified)
+        << "fixture premise: the restoration phase must reach the certificate, or the pin "
+           "below cannot show a stop withholding it";
+    ASSERT_GE(reference.counters.restoration_iters, 2);
+
+    SqpSolver driver(opts);
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (!stopped && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                stopped = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped);
+
+    // THE SUB-SOLVE'S OWN VERDICT REACHES THE PARENT. Its point is still
+    // infeasible, so the phase takes the "not feasible enough" exit and hands
+    // back kInterrupted -- the case enter_restoration's status switch gained in
+    // M6 W5 T8.6. Without that case the switch (which has no `default`) would
+    // fall through and the parent would report whatever the previous
+    // restoration left in st.resto.status.
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_LT(sol.counters.restoration_iters, reference.counters.restoration_iters);
+
+    // AND NO CERTIFICATE IS CLAIMED. Only a restoration phase that ran to its
+    // OWN kOptimal certifies; a phase the caller stopped has proved nothing
+    // about the model, and must not be allowed to say otherwise.
+    EXPECT_FALSE(sol.infeasibility_certified);
+    EXPECT_TRUE(reference.infeasibility_certified);
+
+    // RE-DERIVED at M8 AP-5 G2 (declared, stop path only): the result is the
+    // restoration-ENTRY point -- the last depth-0 event's, which the requesting
+    // row fires after the phase returns -- not the restored point. Recorded by a
+    // second, identical run (the first installs no recorder).
+    SqpSolver again(opts);
+    std::vector<Seen> seen;
+    bool stopped_again = false;
+    again.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped_again && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                stopped_again = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol2 = again.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped_again);
+    const Seen *requesting = nullptr;
+    for (const Seen &e : seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 0) {
+            requesting = &e;
+        }
+    }
+    ASSERT_NE(requesting, nullptr);
+    EXPECT_EQ(sol2.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(bit_equal(sol2.x, requesting->x))
+        << "a stop inside restoration returns the restoration-entry point";
+    EXPECT_TRUE(sol2.returned_pre_restoration_point) << sol2.message;
+    EXPECT_NE(sol2.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << sol2.message;
+    EXPECT_FALSE(sol2.infeasibility_certified);
+}
+
+// ===========================================================================
+// (2b) THE EVENT'S POINT IS THE ROW'S OWN POINT, ACROSS A RESTORATION
+// ===========================================================================
+
+// M6 W5 T8.6 fix1 -- the SQP lane's I1, measured on both restoration routes.
+//
+// Four of the ten push sites sit AFTER an `enter_restoration` call, and that
+// call REPLACES the driver's point before it returns (`st.x = x_r` on both
+// routes, and `st.ev` too on the resumed one). An event that read `st.x`,
+// `st.ev.ce` and `st.ev.ci` LIVE at the push therefore reported the RESTORED
+// point's coordinates and constraint residuals beside the stalled row's `f`,
+// `step_norm`, `radius`, `stationarity` and prices -- one event describing two
+// points, and exactly on the row a caller most wants to understand.
+//
+// THE FALSIFIER IS THE MODEL ITSELF. On an UNSCALED solve the row's `f` IS
+// `eval_f` at the point the row was measured at, and its `feasibility_e` IS
+// the inf-norm of `eval_ce` there, so an event whose `x` belongs to a different
+// point disagrees with its own numbers. Both fixtures are checked on every
+// depth-0 event: the RESUMING one (the restoration returns kResumed and the
+// solve carries on) and the EXITING one (the restoration returns at a
+// still-infeasible point). Before the fix each failed on exactly one row --
+// its restoration-requesting row -- and passed on every other.
+template <class Model>
+void expect_every_depth0_event_is_its_own_point(Model &model, const SqpOptions &opts) {
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_FALSE(sol.scaling.active) << "this pin is stated on an UNSCALED solve, where the "
+                                        "row's f IS eval_f at the row's point";
+
+    std::size_t depth0 = 0;
+    std::size_t depth1 = 0;
+    for (std::size_t k = 0; k < seen.size(); ++k) {
+        const Seen &e = seen[k];
+        if ((e.sqp ? e.sqp->depth : Index{0}) != 0) {
+            ++depth1;
+            continue;
+        }
+        ++depth0;
+        SCOPED_TRACE("depth-0 event " + std::to_string(k) + " (iteration " +
+                     std::to_string(e.iteration) + ")");
+        if (std::isnan(e.f)) {
+            continue; // the non-finite-start row measures nothing
+        }
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(e.f),
+                  std::bit_cast<std::uint64_t>(model.eval_f(e.x)))
+            << "the event's objective is not the caller's objective at the event's point";
+        const Vec ce = model.eval_ce(e.x);
+        if (ce.size() > 0 && !std::isnan(e.feasibility)) {
+            const double ce_norm = ce.lpNorm<Eigen::Infinity>();
+            if (model.eval_ci(e.x).size() == 0) {
+                EXPECT_EQ(std::bit_cast<std::uint64_t>(e.feasibility),
+                          std::bit_cast<std::uint64_t>(ce_norm))
+                    << "the event's equality residual is not the residual at the event's point";
+            } else {
+                EXPECT_GE(e.feasibility, ce_norm)
+                    << "the event's feasibility is below the equality residual at its point";
+            }
+        }
+    }
+    EXPECT_EQ(depth0, sol.history.size()) << "one depth-0 event per history row";
+    EXPECT_GT(depth1, 0u) << "fixture premise: the solve must actually enter restoration, or "
+                             "the post-restoration push sites are never reached";
+}
+
+TEST(Callback, SqpEventXIsTheRowsOwnPointAcrossRestoration) {
+    {
+        SCOPED_TRACE("the RESUMING route");
+        StalledValleyModel model;
+        SqpOptions opts = quiet_sqp();
+        opts.trust_region_initial = 8.0;
+        opts.common.max_iterations = 60;
+        expect_every_depth0_event_is_its_own_point(model, opts);
+    }
+    {
+        SCOPED_TRACE("the EXITING route");
+        InfeasibleCircleLineModel model;
+        expect_every_depth0_event_is_its_own_point(model, quiet_sqp());
+    }
+}
+
+// AND NOTHING IS SNAPSHOTTED WITHOUT A CALLBACK. The snapshot above is taken
+// under `if (iteration_callback_)`, and `push_history` refuses -- by throwing
+// std::logic_error, beside its two other identity guards -- to push a row whose
+// snapshot vectors are non-empty on a solve with no callback installed. So the
+// claim "a solve without a callback copies nothing" is checked on EVERY
+// no-callback push in the whole suite; this test is its named exerciser, on the
+// fixture that reaches all four post-restoration push sites.
+TEST(Callback, ASolveWithNoCallbackSnapshotsNothing) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    EXPECT_GE(sol.counters.restoration_iters, 1);
+}
+
+// R1's SIBLING (M6 W5 T8.6 fix1). `SqpConvergedBeatsStop` pins the top of the
+// precedence order; this pins the bottom of it. A kStop returned on the PUBLIC
+// call's terminal row is a NO-OP whatever that row's verdict is, because the
+// exit and the verdict were both decided before the callback was shown the row:
+// the latch is read as it stood BEFORE this row's own event fired. On a
+// NON-CONVERGED cap terminal row that means the solve still reports kIterationLimit,
+// not kInterrupted. Declared behaviour -- design section 2.5's "read only on a
+// CONTINUING dispatch" -- and not an omission.
+TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
+    Hs071View view;
+    SqpOptions opts = quiet_sqp();
+    opts.common.max_iterations = 3; // well short of this fixture's convergence
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    driver.set_iteration_callback([&](const IterationEvent &e) {
+        seen.push_back(copy_of(e));
+        // Stop on the LAST row this capped solve will push -- the one the cap
+        // itself makes terminal.
+        return e.iteration == opts.common.max_iterations ? CallbackAction::kStop
+                                                         : CallbackAction::kContinue;
+    });
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+    ASSERT_EQ(static_cast<Index>(seen.size()), static_cast<Index>(opts.common.max_iterations) + 1)
+        << "fixture premise: the cap really is what ends this solve, and the stop was aimed "
+           "at its terminal row";
+    EXPECT_EQ(sol.status, SolveStatus::kIterationLimit);
+    EXPECT_NE(sol.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(sol.counters.major_iters, opts.common.max_iterations);
+
+    // NON-VACUOUS: the same stop aimed one row EARLIER does interrupt, so the
+    // no-op above is about WHICH row, not about the stop being ignored.
+    SqpSolver earlier(opts);
+    earlier.set_iteration_callback([&](const IterationEvent &e) {
+        return e.iteration == opts.common.max_iterations - 1 ? CallbackAction::kStop
+                                                             : CallbackAction::kContinue;
+    });
+    const SqpResult interrupted =
+        earlier.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    EXPECT_EQ(interrupted.status, SolveStatus::kInterrupted);
+}
+
+// RULING R4 (M6 W5 T8.6 fix1), the arm astra's review named, RE-DERIVED at M8
+// AP-5 G2 (C346 R1, declared, stop path only): a stop returned on the restoration
+// sub-solve's own CONVERGED terminal row. Converged beats stop inside the
+// sub-solve, so its stop is a no-op for that solve: the certified exit stays
+// kInfeasible at the restored point, with the certificate (x, lambda, z) the
+// phase earned, exactly as the unstopped run. (Before G2 the PARENT latched the
+// stop and reported kInterrupted around the same certificate.)
+TEST(Callback, SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+
+    // The reference, so the sub-solve's own terminal depth-1 row is known.
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(reference.infeasibility_certified)
+        << "fixture premise: the restoration phase reaches its own kOptimal certificate";
+
+    // The LAST depth-1 event of the reference run is the sub-solve's converged
+    // terminal row; aim the stop at exactly that one.
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    ASSERT_GE(last_depth1, 0);
+
+    SqpSolver driver(opts);
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if ((e.sqp ? e.sqp->depth : Index{0}) == 1 && e.iteration == last_depth1) {
+                stopped = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped);
+
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << sol.message;
+    EXPECT_NE(sol.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(sol.stop_reason, reference.stop_reason);
+    EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+    // THE POINT AND THE CERTIFICATE ARE THE UNSTOPPED RUN'S, bit for bit.
+    EXPECT_TRUE(bit_equal(sol.x, reference.x));
+    EXPECT_TRUE(bit_equal(sol.z, reference.z));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_e,
+                          hven::detail::engine_rows(reference).lambda_e));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_i,
+                          hven::detail::engine_rows(reference).lambda_i));
+}
+
+// M8 AP-5 G2 -- T5, the TOKEN half. A requested stop token is forwarded into the
+// restoration sub-solve; the sub-solve honours it at its own boundary, and the
+// parent exits kInterrupted/kStopRequested at the point restoration was entered
+// from. Both restoration fixtures: the resuming one (whose sub-solve would
+// otherwise hand a feasible restored point back and carry on) and the one that
+// runs to a certificate.
+namespace {
+
+struct TokenStopInRestoration {
+    SqpResult sol;
+    std::vector<Seen> seen;
+    bool fired = false;
+};
+
+template <class Model>
+TokenStopInRestoration solve_with_token_on_first_depth1_row(const Model &model,
+                                                            const SqpOptions &opts) {
+    TokenStopInRestoration out;
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            out.seen.push_back(copy_of(e));
+            if (!out.fired && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+                out.fired = true;
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    out.sol = driver.solve(hven::detail::problem_ref(model), model.start_point(), hven::WarmStart{},
+                           budget);
+    return out;
+}
+
+const Seen *last_depth0(const std::vector<Seen> &seen) {
+    const Seen *last = nullptr;
+    for (const Seen &e : seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 0) {
+            last = &e;
+        }
+    }
+    return last;
+}
+
+} // namespace
+
+TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_GE(reference.counters.restoration_iters, 1);
+
+    const TokenStopInRestoration r = solve_with_token_on_first_depth1_row(model, opts);
+    ASSERT_TRUE(r.fired) << "no depth-1 event ever fired";
+    EXPECT_EQ(r.sol.status, SolveStatus::kInterrupted) << r.sol.message;
+    EXPECT_EQ(r.sol.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_TRUE(r.sol.returned_pre_restoration_point) << r.sol.message;
+    const Seen *entry = last_depth0(r.seen);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_TRUE(bit_equal(r.sol.x, entry->x))
+        << "the restoration-entry point, not the restored one";
+    EXPECT_LT(r.sol.counters.restoration_iters, reference.counters.restoration_iters + 1);
+    EXPECT_LT(r.sol.counters.major_iters, reference.counters.major_iters)
+        << "the solve did not resume and run on";
+    EXPECT_EQ(static_cast<Index>(r.sol.history.size()), r.sol.counters.major_iters);
+    for (const Seen &e : r.seen) {
+        EXPECT_EQ(e.recovering, (e.sqp ? e.sqp->depth : Index{0}) >= 1);
+    }
+}
+
+TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(reference.infeasibility_certified);
+    ASSERT_GE(reference.counters.restoration_iters, 2);
+
+    const TokenStopInRestoration r = solve_with_token_on_first_depth1_row(model, opts);
+    ASSERT_TRUE(r.fired);
+    EXPECT_EQ(r.sol.status, SolveStatus::kInterrupted) << r.sol.message;
+    EXPECT_EQ(r.sol.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_FALSE(r.sol.infeasibility_certified)
+        << "a phase the caller stopped has proved nothing about the model";
+    EXPECT_LT(r.sol.counters.restoration_iters, reference.counters.restoration_iters);
+    const Seen *entry = last_depth0(r.seen);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_TRUE(bit_equal(r.sol.x, entry->x));
+    EXPECT_TRUE(r.sol.returned_pre_restoration_point) << r.sol.message;
+    EXPECT_NE(r.sol.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << r.sol.message;
+}
+
+// T5, the converged-beats-stop corner, RE-DERIVED at M8 AP-5 G2 (C346 R1 and R3):
+// a token requested on the sub-solve's own converged terminal row. The phase had
+// already converged, so the request cuts nothing short: the solve ends exactly as
+// the unstopped run, kInfeasible at the restored point with the certificate, and
+// the callback twin above agrees on that row.
+TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(reference.infeasibility_certified);
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    ASSERT_GE(last_depth1, 0);
+
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    bool requested = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if ((e.sqp ? e.sqp->depth : Index{0}) == 1 && e.iteration == last_depth1) {
+                requested = true;
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point(),
+                                       hven::WarmStart{}, budget);
+    ASSERT_TRUE(requested);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << sol.message;
+    EXPECT_EQ(sol.stop_reason, reference.stop_reason);
+    EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+    EXPECT_TRUE(bit_equal(sol.x, reference.x));
+    EXPECT_TRUE(bit_equal(sol.z, reference.z));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_e,
+                          hven::detail::engine_rows(reference).lambda_e));
+}
+
+// C346 R1, the resuming half: a stop returned on the restoration sub-solve's
+// converged terminal row when that phase hands back a FEASIBLE point. The phase
+// completed, so the solve resumes from the restored point and the latched stop
+// ends it there at its next boundary: the returned point is the restored one, not
+// the entry point, and it is not flagged as the pre-restoration point.
+TEST(Callback, SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    ASSERT_GE(last_depth1, 1) << "premise: the phase has a converged terminal row after its first";
+
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return (e.sqp ? e.sqp->depth : Index{0}) == 1 && e.iteration == last_depth1
+                       ? CallbackAction::kStop
+                       : CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.message.find("before feasibility restoration"), std::string::npos) << sol.message;
+    EXPECT_FALSE(sol.infeasibility_certified);
+    // The restored point is feasible, and it is the point of the last depth-0 event
+    // (the resumed solve's terminal row), which is not the entry point.
+    const Seen *last = last_depth0(seen);
+    ASSERT_NE(last, nullptr);
+    EXPECT_TRUE(bit_equal(sol.x, last->x));
+    EXPECT_LE(sol.feasibility, opts.common.feasibility_tol);
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+}
+
+// C346 R2: THE NEVER-RESUME GATE. A stop that cuts the restoration sub-solve short
+// on a mid-phase row whose point already passes the resume test (feasible within
+// feasibility_tol, the phase not yet converged) must still end the solve at the
+// point restoration was entered from: the phase was stopped, so it hands nothing
+// back, however feasible its point looks. With the proximal term on, the phase
+// reaches feasibility a row before its own convergence on this fixture. Both stop
+// routes: a callback kStop, and a requested token.
+TEST(Callback, SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    opts.advanced.restoration_proximity = 1.0;
+    Vec x0 = model.start_point();
+    x0(0) = 0.01;
+
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference = reference_driver.solve(hven::detail::problem_ref(model), x0);
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+
+    // The mid-phase row: a depth-1 row after the first, before the last, at which the
+    // original variables are already feasible.
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    Index mid = -1;
+    for (const Seen &e : ref_seen) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 1 && e.iteration > 0 &&
+            e.iteration < last_depth1 &&
+            model.eval_ce(Vec(e.x.head(2))).lpNorm<Eigen::Infinity>() <=
+                opts.common.feasibility_tol) {
+            mid = e.iteration;
+            break;
+        }
+    }
+    ASSERT_GE(mid, 0) << "premise: a mid-phase row is feasible before the phase converges";
+
+    for (int route = 0; route < 2; ++route) {
+        SCOPED_TRACE(route == 0 ? "callback kStop" : "requested token");
+        hven::StopSource source;
+        hven::SolveBudget budget;
+        budget.stop = source.token();
+        SqpSolver driver(opts);
+        std::vector<Seen> seen;
+        bool fired = false;
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                seen.push_back(copy_of(e));
+                if ((e.sqp ? e.sqp->depth : Index{0}) == 1 && e.iteration == mid) {
+                    fired = true;
+                    if (route == 1) {
+                        source.request_stop();
+                    } else {
+                        return CallbackAction::kStop;
+                    }
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(model), x0, hven::WarmStart{}, budget);
+        ASSERT_TRUE(fired);
+        EXPECT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+        EXPECT_EQ(sol.stop_reason,
+                  route == 0 ? hven::StopReason::kCallbackStop : hven::StopReason::kStopRequested);
+        EXPECT_TRUE(sol.returned_pre_restoration_point) << sol.message;
+        const Seen *entry = last_depth0(seen);
+        ASSERT_NE(entry, nullptr);
+        EXPECT_TRUE(bit_equal(sol.x, entry->x)) << "the entry point, not the feasible restored one";
+        EXPECT_GT(sol.feasibility, opts.common.feasibility_tol)
+            << "the returned point is the infeasible entry point";
+        EXPECT_LT(sol.counters.major_iters, reference.counters.major_iters)
+            << "the solve did not resume and run on";
+    }
+}
+
+// T9, the SQP half: an armed-and-unfired solve through a restoration episode is
+// the unarmed solve, counter for counter (a read-only callback at
+// kIncludeRestoration, so the forwarder runs, plus a token that never fires).
+TEST(Callback, SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
+    for (int which = 0; which < 2; ++which) {
+        SCOPED_TRACE(which == 0 ? "resuming fixture" : "certificate fixture");
+        StalledValleyModel valley;
+        InfeasibleCircleLineModel circle;
+        const NlpModel &model = which == 0 ? static_cast<const NlpModel &>(valley)
+                                           : static_cast<const NlpModel &>(circle);
+        SqpOptions opts = quiet_sqp();
+        if (which == 0) {
+            opts.trust_region_initial = 8.0;
+            opts.common.max_iterations = 60;
+        }
+        SqpSolver plain_driver(opts);
+        const SqpResult plain =
+            plain_driver.solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_GE(plain.counters.restoration_iters, 1) << "premise: restoration runs";
+
+        hven::StopSource source;
+        hven::SolveBudget budget;
+        budget.stop = source.token();
+        SqpSolver armed_driver(opts);
+        Recorder rec;
+        armed_driver.set_iteration_callback(rec.hook(), IterationPayload::kAll,
+                                            CallbackScope::kIncludeRestoration);
+        const SqpResult armed = armed_driver.solve(hven::detail::problem_ref(model),
+                                                   model.start_point(), hven::WarmStart{}, budget);
+        EXPECT_EQ(armed.status, plain.status);
+        EXPECT_EQ(armed.stop_reason, plain.stop_reason);
+        EXPECT_EQ(armed.message, plain.message);
+        EXPECT_EQ(armed.infeasibility_certified, plain.infeasibility_certified);
+        EXPECT_EQ(armed.counters.major_iters, plain.counters.major_iters);
+        EXPECT_EQ(armed.counters.restoration_iters, plain.counters.restoration_iters);
+        EXPECT_EQ(armed.counters.qp_minor_iters, plain.counters.qp_minor_iters);
+        EXPECT_EQ(armed.counters.factorizations, plain.counters.factorizations);
+        EXPECT_EQ(armed.counters.evals_full, plain.counters.evals_full);
+        EXPECT_EQ(armed.counters.evals_values, plain.counters.evals_values);
+        EXPECT_EQ(armed.history.size(), plain.history.size());
+        EXPECT_TRUE(bit_equal(armed.x, plain.x));
+        EXPECT_TRUE(bit_equal(armed.z, plain.z));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(armed).lambda_e,
+                              hven::detail::engine_rows(plain).lambda_e));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(armed).lambda_i,
+                              hven::detail::engine_rows(plain).lambda_i));
+    }
+}
+
+// T12 (M8 AP-5 G5): a depth-1 SQP event under kAll carries the sub-problem's
+// own rows and bound sides (in its variables, elastic ones included), the SQP
+// block stamped depth 1, and nothing of the caller's row space.
+TEST(Callback, SqpRestorationEventsCarryTheSubProblemsRowsAndADepthOneBlock) {
+    for (int which = 0; which < 2; ++which) {
+        SCOPED_TRACE(which == 0 ? "resuming fixture" : "certificate fixture");
+        StalledValleyModel valley;
+        InfeasibleCircleLineModel circle;
+        const NlpModel &model = which == 0 ? static_cast<const NlpModel &>(valley)
+                                           : static_cast<const NlpModel &>(circle);
+        SqpOptions opts = quiet_sqp();
+        if (which == 0) {
+            opts.trust_region_initial = 8.0;
+            opts.common.max_iterations = 60;
+        }
+        SqpSolver driver(opts);
+        Recorder rec;
+        driver.set_iteration_callback(rec.hook(), IterationPayload::kAll,
+                                      CallbackScope::kIncludeRestoration);
+        (void)driver.solve(hven::detail::problem_ref(model), model.start_point());
+        Index depth1 = 0;
+        for (const Seen &e : rec.seen) {
+            ASSERT_TRUE(e.sqp.has_value());
+            ASSERT_FALSE(e.ipm.has_value());
+            EXPECT_EQ(e.recovering, e.sqp->depth == 1);
+            if (e.sqp->depth == 0) {
+                EXPECT_EQ(e.g.size(), model.me() + model.mi());
+                EXPECT_EQ(e.z_lower.size(), model.n());
+                continue;
+            }
+            ++depth1;
+            EXPECT_EQ(e.sqp->depth, 1);
+            EXPECT_GT(e.x.size(), model.n()) << "the feasibility problem adds elastic variables";
+            EXPECT_EQ(e.z_lower.size(), e.x.size());
+            EXPECT_EQ(e.z_upper.size(), e.x.size());
+            EXPECT_EQ(e.violation.size(), e.g.size());
+            EXPECT_EQ(e.g.size(), e.lambda.size()) << "the sub-problem's own rows";
+            for (Eigen::Index k = 0; k < e.violation.size(); ++k) {
+                EXPECT_FALSE(e.violation[k] < 0.0);
+            }
+        }
+        EXPECT_GE(depth1, 1) << "premise: restoration rows are delivered";
+    }
+}
+
+// G1's post-push stop undoes the acceptance counters of the step it does not take
+// (`soc_applied`, and `qp_failure_steps_accepted` for a failure step). HS071 fires
+// neither on a stopping row, so G1's pin of the undo was weak. The Maratos circle
+// at theta = 0.1 promotes a second-order correction on its second major
+// (history[1]): a stop on THAT row must leave `soc_applied` at 0 (the untaken
+// step's promotion is undone) while `soc_steps` still counts the attempt.
+// (A failure-step acceptance is not reachable from a small public fixture; its
+// undo is the sibling line in the same arm and is pinned by mutation, disclosed
+// in the G2 evidence.)
+TEST(Callback, ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied) {
+    MaratosModel model(0.1);
+    SqpOptions opts = quiet_sqp();
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_EQ(reference.counters.soc_applied, 1) << "fixture premise: the rescue is promoted";
+    ASSERT_GE(reference.history.size(), 2u);
+    ASSERT_TRUE(reference.history[1].soc);
+
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (e.iteration == 1) {
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kScalars);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       hven::WarmStart{}, budget);
+    ASSERT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kStopRequested);
+    ASSERT_EQ(sol.history.size(), 2u) << "the history ends on the stopped row";
+    EXPECT_TRUE(sol.history[1].soc) << "the row records that its step was a SOC step";
+    EXPECT_EQ(sol.counters.soc_steps, 1);
+    EXPECT_EQ(sol.counters.soc_applied, 0) << "the untaken step's promotion is undone";
+    EXPECT_EQ(sol.counters.steps_accepted, 1) << "only the first step was committed";
+}
+
+// M1 (M6 W5 T8.6 fix1, the SQP lane's): a callback that CLEARS ITSELF from
+// inside its own invocation, and then touches a capture.
+//
+// `clear_iteration_callback()` assigns nullptr to the std::function, which
+// destroys the running callable's storage -- and every capture in it -- during
+// its own invocation. The capture here is a std::string long enough to be
+// heap-allocated, so a destroyed callable frees the buffer the very next line
+// reads; the assertions below are the read. Under the Debug suite (Eigen
+// asserts live, and the allocator's own poisoning where it has any) that is the
+// falsifier available without ASan, which is not in this task's gate list.
+TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
+    // ---- the SQP ----
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        std::string witness(256, 'w');
+        int calls = 0;
+        driver.set_iteration_callback([&driver, witness, &calls](const IterationEvent &) mutable {
+            ++calls;
+            driver.clear_iteration_callback();
+            // THE POST-CLEAR READ. If the clear had taken effect immediately,
+            // `witness` -- a member of this very callable -- would have been
+            // destroyed one statement ago.
+            EXPECT_EQ(witness.size(), 256u);
+            EXPECT_EQ(witness[255], 'w');
+            witness[0] = 'x';
+            EXPECT_EQ(witness[0], 'x');
+            return CallbackAction::kContinue;
+        });
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        // ONCE, AND THE CLEAR REALLY TOOK: the deferral is applied at the
+        // statement after the invocation returns, so the second row fires
+        // nothing.
+        EXPECT_EQ(calls, 1);
+        EXPECT_GT(sol.history.size(), 1u) << "non-vacuous: there was a second row to fire";
+    }
+
+    // ---- the interior-point engine ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        std::string witness(256, 'w');
+        int calls = 0;
+        hven::IpmSolver *ipm = &solver;
+        ipm->set_iteration_callback([ipm, witness, &calls](const IterationEvent &) mutable {
+            ++calls;
+            ipm->clear_iteration_callback();
+            EXPECT_EQ(witness.size(), 256u);
+            EXPECT_EQ(witness[255], 'w');
+            witness[0] = 'x';
+            EXPECT_EQ(witness[0], 'x');
+            return CallbackAction::kContinue;
+        });
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1);
+        EXPECT_GT(r.iterations, 1);
+    }
+
+    // ---- the interior-point-only KKT hook, the same rule ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        std::string witness(256, 'w');
+        int calls = 0;
+        hven::IpmSolver *ipm = &solver;
+        ipm->set_kkt_hook([ipm, witness, &calls](
+                              int, double, hven::detail::ConstEigenRef<Vec>, double,
+                              hven::detail::ConstEigenRef<Vec>, hven::detail::ConstEigenRef<Vec>,
+                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) mutable {
+            ++calls;
+            ipm->clear_kkt_hook();
+            EXPECT_EQ(witness.size(), 256u);
+            EXPECT_EQ(witness[255], 'w');
+            witness[0] = 'x';
+            EXPECT_EQ(witness[0], 'x');
+            return 0;
+        });
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1);
+    }
+}
+
+// M6 W5 T8.7's RIDER (the SQP lane's M9, raised at the T8.6 fix1 re-check).
+//
+// THE RULE: a DIRECT set/clear -- one made while no callable is in flight --
+// SUPERSEDES any pending deferral.
+//
+// THE DEFECT IT CLOSES. A callback that parks a deferral and then THROWS never
+// reaches the apply point at the end of its own invocation, so the pending
+// optional is still engaged when the exception leaves `solve()`. A caller who
+// then installs a NEW callback directly used to have it silently replaced at
+// the next solve entry by the stale deferred clear -- the next solve fired
+// nothing, with no error and no way to see why.
+//
+// PINNED BOTH DIRECTIONS, on both engines and on the KKT hook: with a direct
+// call after the throw the NEW callable fires; with no direct call the deferred
+// clear still applies, which is the behaviour T8.6 fix1 installed and which
+// must not be lost to the fix.
+TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
+    // ---- the SQP ----
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        driver.set_iteration_callback([&driver](const IterationEvent &) -> CallbackAction {
+            driver.clear_iteration_callback();
+            throw std::runtime_error("callback bailed after parking a deferred clear");
+        });
+        EXPECT_THROW(driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start()),
+                     std::runtime_error);
+
+        int fresh_calls = 0;
+        driver.set_iteration_callback([&fresh_calls](const IterationEvent &) {
+            ++fresh_calls;
+            return CallbackAction::kContinue;
+        });
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
+        EXPECT_EQ(static_cast<std::size_t>(fresh_calls), sol.history.size());
+    }
+
+    // ---- the SQP, THE OTHER DIRECTION: no direct call, so the deferral holds
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        int calls = 0;
+        driver.set_iteration_callback([&driver, &calls](const IterationEvent &) -> CallbackAction {
+            ++calls;
+            driver.clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start()),
+                     std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+
+    // ---- the interior-point engine ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::IpmSolver *ipm = &solver;
+        ipm->set_iteration_callback([ipm](const IterationEvent &) -> CallbackAction {
+            ipm->clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(hven::detail::problem_ref(*program), hs071_start()),
+                     std::runtime_error);
+
+        int fresh_calls = 0;
+        ipm->set_iteration_callback([&fresh_calls](const IterationEvent &) {
+            ++fresh_calls;
+            return CallbackAction::kContinue;
+        });
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
+    }
+
+    // ---- the interior-point engine, the other direction ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::IpmSolver *ipm = &solver;
+        int calls = 0;
+        ipm->set_iteration_callback([ipm, &calls](const IterationEvent &) -> CallbackAction {
+            ++calls;
+            ipm->clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(hven::detail::problem_ref(*program), hs071_start()),
+                     std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+
+    // ---- the interior-point-only KKT hook, both directions ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::IpmSolver *ipm = &solver;
+        ipm->set_kkt_hook([ipm](int, double, hven::detail::ConstEigenRef<Vec>, double,
+                                hven::detail::ConstEigenRef<Vec>, hven::detail::ConstEigenRef<Vec>,
+                                Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            ipm->clear_kkt_hook();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(hven::detail::problem_ref(*program), hs071_start()),
+                     std::runtime_error);
+
+        int fresh_calls = 0;
+        ipm->set_kkt_hook([&fresh_calls](int, double, hven::detail::ConstEigenRef<Vec>, double,
+                                         hven::detail::ConstEigenRef<Vec>,
+                                         hven::detail::ConstEigenRef<Vec>,
+                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+            ++fresh_calls;
+            return 0;
+        });
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new hook";
+    }
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::IpmSolver *ipm = &solver;
+        int calls = 0;
+        ipm->set_kkt_hook([ipm, &calls](int, double, hven::detail::ConstEigenRef<Vec>, double,
+                                        hven::detail::ConstEigenRef<Vec>,
+                                        hven::detail::ConstEigenRef<Vec>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            ++calls;
+            ipm->clear_kkt_hook();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(hven::detail::problem_ref(*program), hs071_start()),
+                     std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const hven::IpmResult r = ipm->solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+}
+
+TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
+    NonFiniteStartModel model;
+    SqpSolver driver(quiet_sqp());
+    std::vector<Seen> seen;
+    driver.set_iteration_callback([&](const IterationEvent &e) {
+        seen.push_back(copy_of(e));
+        return CallbackAction::kContinue;
+    });
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    // ONCE. The non-finite-start exit pushes exactly one history row and solves
+    // no subproblem, and the callback fires for that row like any other -- the
+    // rule is "once", not "never".
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.history.size(), 1u);
+    EXPECT_EQ(sol.counters.major_iters, 0);
+    ASSERT_EQ(seen.size(), 1u);
+
+    // NaN IN ALL FOUR: nothing was measured at that point, and a zero would
+    // read as a converged residual.
+    EXPECT_TRUE(std::isnan(seen[0].stationarity));
+    EXPECT_TRUE(std::isnan(seen[0].feasibility));
+    EXPECT_TRUE(std::isnan(seen[0].complementarity));
+    EXPECT_EQ(seen[0].iteration, 0);
+    EXPECT_EQ((seen[0].sqp ? seen[0].sqp->depth : Index{-1}), 0);
+}
+
+// ===========================================================================
+// (3) THE INTERIOR-POINT ENGINE
+// ===========================================================================
+
+TEST(Callback, IpmContinuingEventObservesTheCommittedPoint) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_GT(rec.seen.size(), 2u) << "non-vacuous: the solve really iterates";
+
+    // THE FIRST EVENT IS THE START POINT, which nothing stepped to.
+    EXPECT_EQ(rec.seen[0].step_norm, 0.0);
+    ASSERT_EQ(rec.seen[0].x.size(), hs071_start().size());
+    // THE POINT IT DESCRIBES IS THE SOLVE'S OWN START, which is x0 after the
+    // interior initialization has pushed it off its bounds -- a displacement of
+    // the order of that push (5e-3 on this fixture's widest coordinate) and not
+    // a step, which is why `step_norm` above is exactly 0 while these are NEAR.
+    EXPECT_LT((rec.seen[0].x - hs071_start()).lpNorm<Eigen::Infinity>(), 1e-2)
+        << "the first event describes the point the solve started at";
+    EXPECT_GT((rec.seen[0].x - hs071_start()).lpNorm<Eigen::Infinity>(), 0.0)
+        << "and it is the PUSHED start, not the caller's raw x0 -- if this fires the "
+           "initialization stopped moving the point and the bound above is vacuous";
+
+    // EVERY LATER EVENT DESCRIBES THE COMMITTED POINT OF THE STEP BEFORE IT, so
+    // the distance between consecutive events' points IS that event's
+    // step_norm. This is the whole of behaviour change (3) (design section 2.7;
+    // (2) of that list is kInterrupted on both engines -- corrected at fix1): the old late
+    // callback fired below the factorization of the iterate it described, and
+    // the diagnostics it carried were of the point before the commit.
+    for (std::size_t k = 1; k < rec.seen.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        const double moved = (rec.seen[k].x - rec.seen[k - 1].x).lpNorm<Eigen::Infinity>();
+        EXPECT_NEAR(moved, rec.seen[k].step_norm, 1e-9 * (1.0 + rec.seen[k].step_norm));
+    }
+
+    // AND THE LAST EVENT DESCRIBES THE RETURNED POINT: every in-loop exit
+    // breaks above the commit, so the terminal event's iterate is the result's.
+    ASSERT_EQ(rec.seen.back().x.size(), r.x.size());
+    for (Eigen::Index i = 0; i < r.x.size(); ++i) {
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(rec.seen.back().x[i]),
+                  std::bit_cast<std::uint64_t>(r.x[i]));
+    }
+}
+
+namespace {
+// A sink that counts `ipm.iter` lines and nothing else.
+class IterCountingSink : public hven::TraceSink {
+  public:
+    Index rows = 0;
+    void on_iter(const hven::IterTraceEvent &e) override {
+        if (e.record.ipm) {
+            ++rows;
+        }
+    }
+    void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const hven::IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const hven::IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const hven::IpqpEscapeTraceEvent &) override {}
+    void on_qp_mode(const hven::QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {}
+};
+} // namespace
+
+TEST(Callback, IpmTerminalRowStillFires) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+
+    IterCountingSink sink;
+    solver.attach_trace(&sink);
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_GT(sink.rows, 1);
+    // EXACTLY the trace's own row count -- the terminal row's event included,
+    // which is the claim: moving the continuing dispatch to the top of the next
+    // iteration loses no event and invents none.
+    EXPECT_EQ(static_cast<Index>(rec.seen.size()), sink.rows);
+    EXPECT_EQ(static_cast<Index>(rec.seen.size()), r.iterations);
+}
+
+TEST(Callback, IpmStopEndsThePhaseSequence) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+        solver.set_options(std::move(o));
+    }
+
+    std::vector<Seen> seen;
+    solver.set_iteration_callback([&](const IterationEvent &e) {
+        seen.push_back(copy_of(e));
+        // The second event of phase 0: the first describes the start point, so
+        // stopping there would prove nothing about a committed iterate.
+        return seen.size() == 2 ? CallbackAction::kStop : CallbackAction::kContinue;
+    });
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+
+    EXPECT_EQ(r.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(r.stop_reason, hven::StopReason::kCallbackStop);
+    ASSERT_EQ(r.phases.size(), 2u);
+    EXPECT_TRUE(r.phases[0].ran);
+    EXPECT_EQ(r.phases[0].status, SolveStatus::kInterrupted);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_FALSE(r.phases[1].ran) << "a stop ends the phase SEQUENCE, not only the phase";
+
+    // NO WORK WAS SPENT ON THE STOPPED ITERATION. The stop is honoured
+    // pre-factorization, so the factorization count stands where the callback
+    // observed it -- the whole reason the interrupt is not folded into the
+    // terminal conjunction.
+    EXPECT_EQ(seen.size(), 2u) << "the solve stopped at the event that returned kStop";
+    // AND THE COUNTER SAYS SO (M6 W5 T8.6 fix1, astra item 3 -- the comment
+    // above claimed this proof and the test did not assert it). A second solve
+    // of the same fixture, stopped one event LATER, must have spent exactly one
+    // more factorization: that difference is what makes "the stopped iteration
+    // was never factorized" a measurement rather than a description.
+    const auto later_program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver later;
+    {
+        hven::IpmOptions o = quiet_ipm(later);
+        o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+        later.set_options(std::move(o));
+    }
+    std::size_t later_events = 0;
+    later.set_iteration_callback([&](const IterationEvent &) {
+        ++later_events;
+        return later_events == 3 ? CallbackAction::kStop : CallbackAction::kContinue;
+    });
+    const hven::IpmResult r3 =
+        later.solve(hven::detail::problem_ref(*later_program), hs071_start());
+    ASSERT_EQ(r3.status, SolveStatus::kInterrupted);
+    ASSERT_EQ(later_events, 3u);
+    EXPECT_EQ(r3.kkt_factor_counters.factorize_count, r.kkt_factor_counters.factorize_count + 1)
+        << "one more observed iterate costs exactly one more factorization, so the stop "
+           "really is honoured above the factorization and not below it";
+
+    // AND THE CALLER'S OWN PHASE COUNT: every event carries the phase index it
+    // belongs to, and both of these are phase 0's.
+    for (const Seen &e : seen) {
+        ASSERT_TRUE(e.ipm.has_value());
+        EXPECT_EQ(e.ipm->phase, 0);
+        EXPECT_FALSE(e.sqp.has_value()) << "sqp is the SQP's block";
+    }
+}
+
+// ===========================================================================
+// (3b) THE INTERIOR-POINT EVENT AND THE RESULT ARE ONE ARITHMETIC
+// ===========================================================================
+
+// M6 W5 T8.6 fix1 -- astra item 2's twin pin and the SQP lane's M3.
+//
+// The declared-space conversion the event builder applies and the one
+// `run_phase_sequence`'s result seam applies are now ONE function, called
+// twice. This is what holds them together from the outside: on a CONVERGED
+// solve the terminal event describes the point the phase returns, so its four
+// diagnostics and its `x`/`z` must be the RESULT's own, bit for bit.
+//
+// TWO ARMS, because the seam has two pieces a plain solve never reaches: the
+// MakeConstraint arm has an internal fixing row, so the `-lambda_fix` fold into
+// `z` and the `excluded` set the eliminated-coordinate rule builds are both
+// exercised there.
+namespace {
+void expect_terminal_event_is_the_ipm_result(hven::IpmSolver &solver,
+                                             hven::detail::NonLinearProgram &program, const Vec &x0,
+                                             hven::IpmResult *out = nullptr) {
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(program), x0);
+    if (out != nullptr) {
+        *out = r;
+    }
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_FALSE(rec.seen.empty());
+    const Seen &last = rec.seen.back();
+
+    EXPECT_TRUE(bit_equal(last.x, r.x)) << "the terminal event's point IS the returned point";
+    EXPECT_TRUE(bit_equal(last.z, r.z)) << "and its bound prices are the returned ones";
+    EXPECT_TRUE(bit_equal(last.lambda, r.lambda));
+    EXPECT_TRUE(same_scalar(last.stationarity, r.stationarity));
+    EXPECT_TRUE(same_scalar(last.feasibility, r.feasibility));
+    EXPECT_TRUE(same_scalar(last.complementarity, r.complementarity));
+    // The objective too: on a converged OPT-phase exit the result reports
+    // `iters.back().prim_obj_ / scale`, which is what the event reports.
+    EXPECT_TRUE(same_scalar(last.f, r.f));
+}
+} // namespace
+
+TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
+    {
+        SCOPED_TRACE("HS071");
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        expect_terminal_event_is_the_ipm_result(solver, *program, hs071_start());
+    }
+    {
+        SCOPED_TRACE("the fixed-variable MakeConstraint arm");
+        const auto program = hven::detail::make_nlp_program(std::make_shared<FixedVarProblem>());
+        hven::IpmSolver solver;
+        {
+            hven::IpmOptions o = quiet_ipm(solver);
+            o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
+            solver.set_options(std::move(o));
+        }
+        Vec x0(2);
+        x0 << 0.0, 3.0;
+        hven::IpmResult r;
+        expect_terminal_event_is_the_ipm_result(solver, *program, x0, &r);
+        // FIXTURE PREMISE: the treatment really installed its internal fixing
+        // row, so the -lambda_fix fold and the excluded set were exercised.
+        EXPECT_EQ(r.fixed_variable_treatment, hven::IpmFixedVariableTreatment::kMakeConstraint);
+        EXPECT_EQ(r.internal_fixed_lambda_e.size(), 1);
+    }
+}
+
+// THE EVENT'S OBJECTIVE OBEYS THE RESULT'S OWN PROVENANCE RULE (M6 W5 T8.6
+// fix1, astra item 1). `IpmIterate::prim_obj` is NOT the caller's objective on
+// a phase that never evaluates one: the FEASIBILITY phase (kSolve) leaves the
+// field at its initialised zero, and a zero objective reads as a measured one.
+// The result reports the true objective there only because it EVALUATES for it
+// at the exit; an event evaluates nothing, so what it can honestly report is
+// NaN -- solve_result.h's "unmeasured is NaN, never zero", applied to `f`.
+TEST(Callback, IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+        solver.set_options(std::move(o));
+    }
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.phases.size(), 2u);
+    ASSERT_TRUE(r.phases[0].ran);
+    ASSERT_TRUE(r.phases[1].ran);
+
+    std::size_t phase0 = 0;
+    std::size_t phase1 = 0;
+    for (const Seen &e : rec.seen) {
+        ASSERT_TRUE(e.ipm.has_value());
+        if (e.ipm->phase == 0) {
+            ++phase0;
+            EXPECT_TRUE(std::isnan(e.f))
+                << "phase 0 is the FEASIBILITY phase: it evaluates no declared objective, so "
+                   "the event cannot report one";
+            EXPECT_TRUE(std::isnan(e.stationarity))
+                << "and stationarity alone of the four is unmeasured there, as the result's "
+                   "own provenance rule says";
+        } else {
+            ++phase1;
+            EXPECT_FALSE(std::isnan(e.f)) << "the optimality phase does evaluate the objective";
+        }
+    }
+    EXPECT_GT(phase0, 0u);
+    EXPECT_GT(phase1, 0u);
+    // AND THE RESULT STILL REPORTS A NUMBER, because it evaluates for one: the
+    // event's NaN is a statement about what an event may claim without
+    // evaluating, not about the solve.
+    EXPECT_FALSE(std::isnan(r.f));
+}
+
+// THE TERMINAL EVENT DESCRIBES THE POINT THE PHASE RETURNS, `return_best`
+// INCLUDED (M6 W5 T8.6 fix1, astra item 3).
+//
+// The convergence-check early exit fires its terminal event; until fix1 it
+// fired ABOVE the `XSL = BestXSL` substitution, so on an acceptable or
+// diverging exit with `return_best` on the caller was shown a point the solve
+// then replaced. The dispatch is below the substitution now.
+//
+// THE FIXTURE IS SEARCHED FOR, NOT ASSUMED, exactly as
+// SolveResult.ReturnBestReportsTheBestIterateSObjective searches for its cap:
+// which settings make (i) the exit leave through the convergence-check site and
+// (ii) the substitution actually fire is a fact about a trajectory, not
+// something a test may assert by construction. The search states both premises;
+// the pin then runs at the configuration it found.
+TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
+    // The converge-check early exit is told apart from the bottom-of-loop one
+    // by the record it hands out: it is reached BEFORE this iterate is
+    // factorized, so the row carries IpmIterate's fresh per-iteration defaults
+    // for everything a factorization would have written. That is
+    // test_ipm_trace.cpp's own `looks_like_the_early_exit_site` discriminator,
+    // read here off the record rather than off the serialized line.
+    struct LastRowSink : public hven::TraceSink {
+        hven::test::IpmRowView last;
+        Index rows = 0;
+        double scale = 1.0;
+        void on_solve_begin(const hven::SolveBeginTraceEvent &e) override {
+            if (e.ipm) {
+                scale = e.ipm->obj_scale;
+            }
+        }
+        void on_iter(const hven::IterTraceEvent &e) override {
+            if (e.record.ipm) {
+                last = hven::test::make_ipm_row_view(e.record, scale);
+                ++rows;
+            }
+        }
+        void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
+        void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
+        void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override {}
+        void on_ipqp_route(const hven::IpqpRouteTraceEvent &) override {}
+        void on_ipqp_certify(const hven::IpqpCertifyTraceEvent &) override {}
+        void on_ipqp_escape(const hven::IpqpEscapeTraceEvent &) override {}
+        void on_qp_mode(const hven::QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {}
+    };
+    const auto looks_like_the_early_exit_site = [](const hven::test::IpmRowView &it) {
+        return it.barr_obj == 0.0 && it.merit_val == 0.0 && it.ls_iters == 0 && it.alpha_p == 1.0 &&
+               it.alpha_d == 1.0 && it.alpha_t == 1.0;
+    };
+
+    // THE SEARCH. `acc_*` loosened (with `max_acc_iters` at 1) is what makes
+    // converge_check answer kAcceptable at the TOP of an iteration, which is
+    // the convergence-check early exit; the shared ordering on a fixture
+    // whose objective RISES is what makes the best iterate an early one, so the
+    // substitution has something to substitute.
+    bool ran = false;
+    for (const double acc : {1.0e-1, 1.0e-2, 1.0e-3}) {
+        if (ran) {
+            break;
+        }
+        const auto with_program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver with;
+        const auto without_program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver without;
+        for (hven::IpmSolver *s : {&with, &without}) {
+            hven::IpmOptions o = quiet_ipm(*s);
+            o.termination.acceptable_iterations = 1;
+            o.termination.acceptable_stationarity_tol = acc;
+            // The shared best ordering is feasibility-first, so here the late, most-feasible
+            // iterates win. A feasibility_tol band wider than every iterate's violation (the
+            // validator wants it <= acceptable_equality_tol, so both are 30) ties them all and
+            // lets the objective decide: HS071's rises from 16 at the start to 17.01 at the
+            // solution, which puts the best at the start, not at the exit point.
+            o.common.feasibility_tol = 30.0;
+            o.termination.acceptable_equality_tol = 30.0;
+            o.termination.acceptable_inequality_tol = 30.0;
+            o.termination.acceptable_complementarity_tol = acc;
+            s->set_options(std::move(o));
+        }
+        {
+            hven::IpmOptions o = with.options();
+            o.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
+            with.set_options(std::move(o));
+        }
+
+        LastRowSink sink;
+        with.attach_trace(&sink);
+        Recorder rec;
+        with.set_iteration_callback(rec.hook());
+        const Vec x0 = hs071_start();
+        const hven::IpmResult b = with.solve(hven::detail::problem_ref(*with_program), x0);
+        Recorder plain;
+        without.set_iteration_callback(plain.hook());
+        const hven::IpmResult l = without.solve(hven::detail::problem_ref(*without_program), x0);
+
+        const bool early_exit = sink.rows > 0 && looks_like_the_early_exit_site(sink.last);
+        const bool substituted = b.x.size() == l.x.size() && b.x.allFinite() &&
+                                 (b.x - l.x).lpNorm<Eigen::Infinity>() > 0.0;
+        if (!early_exit || !substituted || b.status == SolveStatus::kOptimal) {
+            continue;
+        }
+        ran = true;
+        ::testing::Test::RecordProperty("acc_tol", acc);
+        ::testing::Test::RecordProperty("exit_status", static_cast<int>(b.status));
+
+        ASSERT_FALSE(rec.seen.empty());
+        const Seen &last = rec.seen.back();
+        // THE PIN: the terminal event's point IS the returned point, and its
+        // diagnostics are the result's -- NaN-aware, because the substituted
+        // pair carries its own provenance and may be unmeasured.
+        EXPECT_TRUE(bit_equal(last.x, b.x));
+        EXPECT_TRUE(same_scalar(last.stationarity, b.stationarity));
+        EXPECT_TRUE(same_scalar(last.feasibility, b.feasibility));
+        EXPECT_TRUE(same_scalar(last.complementarity, b.complementarity));
+        // AND NO EVENT WAS GAINED OR LOST: moving the dispatch below the
+        // substitution changes WHAT the terminal event says, never how many
+        // there are.
+        EXPECT_EQ(rec.seen.size(), plain.seen.size());
+        EXPECT_EQ(static_cast<Index>(rec.seen.size()), sink.rows);
+    }
+    ASSERT_TRUE(ran) << "no acceptable tolerance in the searched set produced a "
+                        "convergence-check exit whose return_best substitution fired -- the "
+                        "pin above would not discriminate";
+}
+
+// ===========================================================================
+// (4) A THROWING CALLBACK, ON BOTH ENGINES
+// ===========================================================================
+
+TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
+    // ---- the SQP ----
+    {
+        Hs071View view;
+        Ledger ledger;
+        SqpSolver driver(quiet_sqp());
+        driver.attach_ledger(&ledger, "cb");
+
+        std::ostringstream os;
+        hven::JsonLinesTraceSink sink(os);
+        driver.attach_trace(&sink);
+
+        // THE SECOND ROW, so at least one subproblem has already been solved
+        // and its QP-engine record already written when the throw happens.
+        driver.set_iteration_callback([](const IterationEvent &e) -> CallbackAction {
+            if (e.iteration == 1) {
+                throw std::runtime_error("a callback that leaves the solve by throwing");
+            }
+            return CallbackAction::kContinue;
+        });
+        EXPECT_THROW((void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start()),
+                     std::runtime_error);
+
+        // NO RECORD OF THE ABANDONED SOLVE. The solve-begin/solve-end trace pair
+        // and the ledger record are deliberately NON-RAII (W2's fix-round ruling
+        // R1), so a throw out of the loop leaves a begin and no end.
+        const std::string text = os.str();
+        EXPECT_NE(text.find("\"solve.begin\""), std::string::npos);
+        EXPECT_EQ(text.find("\"solve.end\""), std::string::npos);
+        EXPECT_TRUE(ledger.sqp_records().empty());
+
+        // BUT THE SUBPROBLEM RECORDS ALREADY EMITTED STAY, which is today's
+        // behaviour for ANY throw out of the loop and is stated here so that a
+        // later change does not "tidy" them away: they record work that was
+        // really done.
+        EXPECT_FALSE(ledger.records().empty())
+            << "the QP engine's own records of the subproblems this solve DID run are not "
+               "rolled back by the throw";
+        const std::size_t qp_records_at_throw = ledger.records().size();
+
+        // AND THE DRIVER IS REUSABLE: the in-flight guard cleared on the unwind
+        // and the borrowed model went with the frame that borrowed it, so the
+        // next solve is bit-for-bit a fresh driver's.
+        //
+        // EVERY DETERMINISTIC FIELD, NOT A SELECTION (M6 W5 T8.6 fix1, astra
+        // item 5: the report claimed this comparison and the test made a
+        // narrower one). The enumeration below is SqpResult's deterministic
+        // surface -- status, the point, the three price blocks, the objective,
+        // the four shared diagnostics, the four work counters and the history
+        // length. Timing is excluded, and only timing: `wall_seconds` and
+        // `timing.engine_seconds` are informational (CLAUDE.md section 7).
+        driver.clear_iteration_callback();
+        const SqpResult again =
+            driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        SqpSolver fresh(quiet_sqp());
+        const SqpResult baseline =
+            fresh.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_EQ(again.status, SolveStatus::kOptimal);
+        EXPECT_EQ(again.status, baseline.status);
+        EXPECT_TRUE(bit_equal(again.x, baseline.x));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(again).lambda_e,
+                              hven::detail::engine_rows(baseline).lambda_e));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(again).lambda_i,
+                              hven::detail::engine_rows(baseline).lambda_i));
+        EXPECT_TRUE(bit_equal(again.z, baseline.z));
+        EXPECT_TRUE(same_scalar(again.f, baseline.f));
+        EXPECT_TRUE(same_scalar(again.stationarity, baseline.stationarity));
+        EXPECT_TRUE(same_scalar(hven::detail::engine_rows(again).feasibility_e,
+                                hven::detail::engine_rows(baseline).feasibility_e));
+        EXPECT_TRUE(same_scalar(hven::detail::engine_rows(again).feasibility_i,
+                                hven::detail::engine_rows(baseline).feasibility_i));
+        EXPECT_TRUE(same_scalar(again.complementarity, baseline.complementarity));
+        EXPECT_EQ(again.counters.major_iters, baseline.counters.major_iters);
+        EXPECT_EQ(again.counters.qp_minor_iters, baseline.counters.qp_minor_iters);
+        EXPECT_EQ(again.counters.factorizations, baseline.counters.factorizations);
+        EXPECT_EQ(again.counters.rejected_steps, baseline.counters.rejected_steps);
+        EXPECT_EQ(again.counters.evals_full, baseline.counters.evals_full);
+        EXPECT_EQ(again.history.size(), baseline.history.size());
+        EXPECT_GT(ledger.records().size(), qp_records_at_throw)
+            << "the reused driver's own subproblems are recorded too";
+    }
+
+    // ---- the interior-point engine ----
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+
+        std::ostringstream os;
+        hven::JsonLinesTraceSink sink(os);
+        solver.attach_trace(&sink);
+        solver.set_iteration_callback([](const IterationEvent &e) -> CallbackAction {
+            if (e.iteration == 1) {
+                throw std::runtime_error("a callback that leaves the solve by throwing");
+            }
+            return CallbackAction::kContinue;
+        });
+        EXPECT_THROW((void)solver.solve(hven::detail::problem_ref(*program), hs071_start()),
+                     std::runtime_error);
+        const std::string text = os.str();
+        EXPECT_NE(text.find("\"solve.begin\""), std::string::npos);
+        EXPECT_EQ(text.find("\"solve.end\""), std::string::npos);
+
+        // AND THE REUSED SOLVER'S NEXT SOLVE IS A FRESH ONE'S, FIELD FOR FIELD
+        // (M6 W5 T8.6 fix1, astra item 5: this arm asserted only kOptimal and
+        // constructed no reference solver at all). The enumeration is T8.5
+        // fix1's own, in test_warm_protocol.cpp's expect_same_reported_numbers
+        // -- status, iterations, the point, the three price blocks, the two
+        // constraint blocks, the objective, the four shared diagnostics and the
+        // engine's own four residual columns.
+        //
+        // WHAT IT DEDUCTS, AND WHY, is exactly what that enumeration deducts:
+        // the two PER-SOLVER quantities. `kkt_factor_counters` is a lifetime
+        // total (the reused solver carries the abandoned solve's own
+        // factorizations, and must), and `kkt_analyses_this_call` is 0 on a
+        // solver that has already analysed and 1 on one that has not -- both are
+        // facts about the OBJECT's history, which is precisely what "reused"
+        // means. Timing is excluded on top of those, and only timing.
+        solver.clear_iteration_callback();
+        solver.attach_trace(nullptr);
+        const hven::IpmResult again =
+            solver.solve(hven::detail::problem_ref(*program), hs071_start());
+
+        const auto fresh_program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver fresh;
+        fresh.set_options(quiet_ipm(fresh));
+        const hven::IpmResult baseline =
+            fresh.solve(hven::detail::problem_ref(*fresh_program), hs071_start());
+
+        EXPECT_EQ(again.status, SolveStatus::kOptimal);
+        EXPECT_EQ(again.status, baseline.status);
+        EXPECT_EQ(again.iterations, baseline.iterations);
+        EXPECT_TRUE(bit_equal(again.x, baseline.x));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(again).lambda_e,
+                              hven::detail::engine_rows(baseline).lambda_e));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(again).lambda_i,
+                              hven::detail::engine_rows(baseline).lambda_i));
+        EXPECT_TRUE(bit_equal(again.z, baseline.z));
+        EXPECT_TRUE(
+            bit_equal(hven::detail::engine_rows(again).ce, hven::detail::engine_rows(baseline).ce));
+        EXPECT_TRUE(
+            bit_equal(hven::detail::engine_rows(again).ci, hven::detail::engine_rows(baseline).ci));
+        EXPECT_TRUE(same_scalar(again.f, baseline.f));
+        EXPECT_TRUE(same_scalar(again.stationarity, baseline.stationarity));
+        EXPECT_TRUE(same_scalar(hven::detail::engine_rows(again).feasibility_e,
+                                hven::detail::engine_rows(baseline).feasibility_e));
+        EXPECT_TRUE(same_scalar(hven::detail::engine_rows(again).feasibility_i,
+                                hven::detail::engine_rows(baseline).feasibility_i));
+        EXPECT_TRUE(same_scalar(again.complementarity, baseline.complementarity));
+        EXPECT_TRUE(same_scalar(again.convergence.stationarity, baseline.convergence.stationarity));
+        EXPECT_TRUE(
+            same_scalar(again.convergence.complementarity, baseline.convergence.complementarity));
+        EXPECT_TRUE(same_scalar(again.convergence.equality, baseline.convergence.equality));
+        EXPECT_TRUE(same_scalar(again.convergence.inequality, baseline.convergence.inequality));
+        EXPECT_EQ(again.counters.soc_steps, baseline.counters.soc_steps);
+        EXPECT_EQ(again.counters.watchdog_activations, baseline.counters.watchdog_activations);
+        EXPECT_EQ(again.fixed_variable_treatment, baseline.fixed_variable_treatment);
+    }
+}
+
+// ===========================================================================
+// (5) THE SURFACE ITSELF
+// ===========================================================================
+
+// A callback that only READS cannot move a solve. This is the pin the interior
+// corpus leg's second run is the large-scale version of.
+TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
+    // ---- the SQP ----
+    {
+        Hs071View view;
+        SqpSolver with(quiet_sqp());
+        Recorder rec;
+        with.set_iteration_callback(rec.hook());
+        const SqpResult attached =
+            with.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+        SqpSolver without(quiet_sqp());
+        const SqpResult absent =
+            without.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+
+        EXPECT_EQ(attached.status, absent.status);
+        EXPECT_TRUE(bit_equal(attached.x, absent.x));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(attached).lambda_e,
+                              hven::detail::engine_rows(absent).lambda_e));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(attached).lambda_i,
+                              hven::detail::engine_rows(absent).lambda_i));
+        EXPECT_TRUE(bit_equal(attached.z, absent.z));
+        EXPECT_EQ(attached.counters.major_iters, absent.counters.major_iters);
+        EXPECT_EQ(attached.counters.qp_minor_iters, absent.counters.qp_minor_iters);
+        EXPECT_EQ(attached.counters.factorizations, absent.counters.factorizations);
+        EXPECT_EQ(attached.counters.evals_full, absent.counters.evals_full)
+            << "an event evaluates nothing, so the evaluation bill cannot move";
+        EXPECT_EQ(attached.counters.evals_values, absent.counters.evals_values);
+    }
+
+    // ---- the interior-point engine ----
+    {
+        const auto with_program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver with;
+        with.set_options(quiet_ipm(with));
+        Recorder rec;
+        with.set_iteration_callback(rec.hook());
+        const hven::IpmResult attached =
+            with.solve(hven::detail::problem_ref(*with_program), hs071_start());
+
+        const auto without_program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver without;
+        without.set_options(quiet_ipm(without));
+        const hven::IpmResult absent =
+            without.solve(hven::detail::problem_ref(*without_program), hs071_start());
+
+        EXPECT_EQ(attached.status, absent.status);
+        EXPECT_EQ(attached.iterations, absent.iterations);
+        EXPECT_TRUE(bit_equal(attached.x, absent.x));
+        EXPECT_TRUE(bit_equal(attached.z, absent.z));
+        EXPECT_EQ(attached.kkt_factor_counters.factorize_count,
+                  absent.kkt_factor_counters.factorize_count);
+        EXPECT_EQ(attached.counters.symbolic_analyses, absent.counters.symbolic_analyses);
+    }
+}
+
+// clear_iteration_callback() really removes it, on both engines.
+TEST(Callback, ClearingTheCallbackStopsTheEvents) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    Recorder rec;
+    driver.set_iteration_callback(rec.hook());
+    (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    const std::size_t first = rec.seen.size();
+    ASSERT_GT(first, 0u);
+
+    driver.clear_iteration_callback();
+    (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    EXPECT_EQ(rec.seen.size(), first);
+
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+    Recorder ipm_rec;
+    solver.set_iteration_callback(ipm_rec.hook());
+    (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    const std::size_t ipm_first = ipm_rec.seen.size();
+    ASSERT_GT(ipm_first, 0u);
+    solver.clear_iteration_callback();
+    (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    EXPECT_EQ(ipm_rec.seen.size(), ipm_first);
+}
+
+// ===========================================================================
+// THE PAYLOAD MASK (M7 W0 T2). `IterationPayload` lets a consumer DECLARE what
+// its callback reads, and the engine prepares nothing else.
+//
+// WHY IT EXISTS: the attached-only payload each engine prepares behind its
+// callback guard is O(n) PER EVENT, and W6 T6 measured it at +1.46 %/+1.71 %
+// instructions over the whole top-level interior-point corpus leg with the
+// cheapest possible callback attached
+// (docs/notes/data/2026-09-m6-w6-attached-cost/reading.md sections 3-4). The
+// mask is ADDITIVE: the one-argument set_iteration_callback() means kAll, so
+// every consumer written before it keeps the shape it had, which the first two
+// tests below hold both engines to.
+//
+// WHAT "EMPTY" AND "NaN" MEAN HERE. Under a mask that omits kVectors the four
+// views arrive at SIZE 0 -- not a zero vector, which would read as a measured
+// point at the origin. Under a mask that omits kDiagnostics the four
+// diagnostics arrive NaN, which is drivers/solve_result.h's own "unmeasured is
+// NaN, never zero" rule carrying one more meaning: NOT REQUESTED.
+// ===========================================================================
+namespace {
+
+using hven::IterationPayload;
+
+/// Every field of an event that a mask may take away, plus the scalars a mask
+/// may not: `Seen` already carries both, so a mask comparison is a comparison
+/// of two `Seen` vectors -- AND the whole result, kept so the comparison can be
+/// over COMPLETE counter and trajectory state rather than a chosen few fields
+/// (M7 W0 T2 fix1, the sol review's second Important).
+struct MaskRun {
+    std::vector<Seen> seen;
+    std::optional<hven::IpmResult> ipm;
+    std::optional<SqpResult> sqp;
+};
+
+MaskRun ipm_run_under(std::optional<IterationPayload> mask) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+    Recorder rec;
+    if (mask.has_value()) {
+        solver.set_iteration_callback(rec.hook(), *mask);
+    } else {
+        solver.set_iteration_callback(rec.hook());
+    }
+    MaskRun out;
+    out.ipm = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    out.seen = std::move(rec.seen);
+    return out;
+}
+
+MaskRun sqp_run_under(std::optional<IterationPayload> mask) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    Recorder rec;
+    if (mask.has_value()) {
+        driver.set_iteration_callback(rec.hook(), *mask);
+    } else {
+        driver.set_iteration_callback(rec.hook());
+    }
+    MaskRun out;
+    out.sqp = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    out.seen = std::move(rec.seen);
+    return out;
+}
+
+bool all_nan(const Seen &s) {
+    return std::isnan(s.stationarity) && std::isnan(s.feasibility) && std::isnan(s.complementarity);
+}
+
+bool all_views_empty(const Seen &s) {
+    return s.x.size() == 0 && s.lambda.size() == 0 && s.z.size() == 0;
+}
+
+/// The SCALARS, compared BITWISE. `elapsed_seconds` is excluded and only it:
+/// it is a wall reading, informational and never asserted (CLAUDE.md
+/// section 7), and two runs of the same solve cannot agree on it.
+void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b) {
+    ASSERT_EQ(a.size(), b.size()) << "the mask moved the EVENT COUNT, which it may not";
+    for (std::size_t k = 0; k < a.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ(a[k].iteration, b[k].iteration);
+        EXPECT_EQ(a[k].recovering, b[k].recovering);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a[k].f), std::bit_cast<std::uint64_t>(b[k].f));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a[k].step_norm),
+                  std::bit_cast<std::uint64_t>(b[k].step_norm));
+        expect_same_info(a[k].ipm, b[k].ipm);
+        expect_same_info(a[k].sqp, b[k].sqp);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WHATEVER THE MASK IS, THE SOLVE IS THE SAME SOLVE -- ASSERTED OVER COMPLETE
+// STATE (M7 W0 T2 fix1, the sol review's second Important).
+//
+// Round 1 compared the status, the row count, the final `x` and `z`, and ONE
+// factorization counter, which is not the brief's "counters, statuses and the
+// trajectory identical across masks". These two comparators enumerate EVERY
+// counter field of each engine's result and every trajectory-relevant field,
+// and each carries a `sizeof` drift pin beside its list so that adding a field
+// without extending the list fails to compile rather than silently escaping
+// the comparison.
+//
+// THE EXCLUSIONS, EVERY ONE NAMED (M7 W0 T2 fix1 re-check: an earlier draft of
+// this comment said "only wall readings", which was false). (1) Wall readings,
+// informational and never asserted (CLAUDE.md section 7): SolveResult's
+// `wall_seconds`, SqpResult's `timing.engine_seconds`, IpmResult's six `*_time`
+// fields and IpmPhaseReport's `phase_seconds`. (2) NOT compared and carrying
+// no sizeof pin here: eight non-wall `IterationRecord` columns beyond the
+// trajectory-relevant set the history comparator enumerates,
+// `IpmResult::eval_error_log`, `SqpResult::scaling`, `SqpResult::warm_start`
+// and `SolveResult::export_snapshot_` -- structured payloads whose
+// mask-invariance is implied by the counters, status, final iterate and
+// diagnostics being identical, not asserted field by field. A comparator over
+// them is the next test round's if a mask-dependent path into any of them is
+// ever found.
+// ---------------------------------------------------------------------------
+#define HVEN_T2_EXPECT_BITS(field)                                                                 \
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
+        << #field
+
+// The direct fields of SqpCounters, in declaration order.
+#define HVEN_T2_SQP_COUNTER_FIELDS(X)                                                              \
+    X(major_iters)                                                                                 \
+    X(qp_minor_iters)                                                                              \
+    X(factorizations)                                                                              \
+    X(steps_accepted)                                                                              \
+    X(rejected_steps)                                                                              \
+    X(soc_steps)                                                                                   \
+    X(soc_applied)                                                                                 \
+    X(soc_qp_infeasible)                                                                           \
+    X(soc_rejected)                                                                                \
+    X(elastic_activations)                                                                         \
+    X(elastic_escalations)                                                                         \
+    X(restoration_iters)                                                                           \
+    X(elastic_from_ipqp_escape)                                                                    \
+    X(ipqp_suspicion_disproved)                                                                    \
+    X(ipqp_fallback_rung_b)                                                                        \
+    X(elastic_rho0_ceiling_hits)                                                                   \
+    X(elastic_floor_retries)                                                                       \
+    X(eqp_refine_steps)                                                                            \
+    X(border_refine_steps)                                                                         \
+    X(verdict_refine_steps)                                                                        \
+    X(suspect_escalations)                                                                         \
+    X(symbolic_analyses)                                                                           \
+    X(start_level_used)                                                                            \
+    X(full_step_majors)                                                                            \
+    X(watchdog_restores)                                                                           \
+    X(evals_full)                                                                                  \
+    X(evals_values)                                                                                \
+    X(probe_budget_stops)                                                                          \
+    X(crash_seeded_rows)                                                                           \
+    X(crash_seeded_bounds)                                                                         \
+    X(n_seeded)                                                                                    \
+    X(seeded_clamped)                                                                              \
+    X(ip_activity_inferred)                                                                        \
+    X(active_set_delta_total)                                                                      \
+    X(active_set_delta_peak)                                                                       \
+    X(weak_active_peak)                                                                            \
+    X(near_active_peak)                                                                            \
+    X(polish_ignored)                                                                              \
+    X(start_point_clamps)                                                                          \
+    X(qp_maxiter_exits)                                                                            \
+    X(qp_numerical_exits)                                                                          \
+    X(qp_failures_routed)                                                                          \
+    X(qp_failures_in_a_row_peak)                                                                   \
+    X(qp_cap_retries)                                                                              \
+    X(restoration_entries)                                                                         \
+    X(restoration_h_in)                                                                            \
+    X(restoration_h_out)                                                                           \
+    X(restoration_f_in)                                                                            \
+    X(restoration_f_out)                                                                           \
+    X(restoration_sub_status)                                                                      \
+    X(eqp_refine_iters)                                                                            \
+    X(eqp_residual_refusals)                                                                       \
+    X(eqp_row_drift_refusals)                                                                      \
+    X(eqp_polish_steps)                                                                            \
+    X(terminal_polish_solves)                                                                      \
+    X(terminal_polish_rejected)                                                                    \
+    X(terminal_polish_adopted)                                                                     \
+    X(qp_failure_steps_judged)                                                                     \
+    X(qp_failure_steps_accepted)                                                                   \
+    X(nonfinite_subproblems)                                                                       \
+    X(nonfinite_box_projections)                                                                   \
+    X(elastic_last_rung_fallbacks)                                                                 \
+    X(restoration_reduction_resumes)                                                               \
+    X(eval_hess_calls)                                                                             \
+    X(qn_updates)                                                                                  \
+    X(qn_damped)                                                                                   \
+    X(qn_skipped_nonfinite)                                                                        \
+    X(qn_skipped_zero_step)                                                                        \
+    X(qn_skipped_curvature)                                                                        \
+    X(qn_skipped_conditioning)                                                                     \
+    X(qn_rank_dropped)                                                                             \
+    X(qn_resets_consecutive_skips)                                                                 \
+    X(qn_resets_radius_floor)                                                                      \
+    X(qn_resets_restoration_resume)                                                                \
+    X(qn_pairs_peak)                                                                               \
+    X(qn_lift_rank_peak)                                                                           \
+    X(qn_kwrong_seen)                                                                              \
+    X(qn_nonpd_seen)                                                                               \
+    X(qn_dimension)                                                                                \
+    X(nonfinite_step_rollbacks)                                                                    \
+    X(restoration_feas_out)                                                                        \
+    X(scaled_convergence_refusals)                                                                 \
+    X(restoration_curvature_switches)                                                              \
+    X(inertia_suspect_verdicts)                                                                    \
+    X(inertia_wrong_verdicts)                                                                      \
+    X(dense_platform_retakes)                                                                      \
+    X(dense_flagged_factorizations)                                                                \
+    X(dense_singular_refactors)                                                                    \
+    X(dense_shifted_solve_refusals)                                                                \
+    X(dense_shifted_k0_fallbacks)                                                                  \
+    X(dense_shifted_terminations)                                                                  \
+    X(dense_solve_residual_refusals)                                                               \
+    X(dense_factorizations)                                                                        \
+    X(optimal_row_gray_exits)                                                                      \
+    X(payload_ignored)
+
+// The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
+// groups SqpCounters carries.
+#define HVEN_T2_SSN_COUNTER_FIELDS(X)                                                              \
+    X(ssn_iters)                                                                                   \
+    X(ssn_bulk_flips)                                                                              \
+    X(ssn_backtracks)                                                                              \
+    X(ssn_prox_updates)                                                                            \
+    X(ssn_escapes)                                                                                 \
+    X(ssn_uncertain_peak)                                                                          \
+    X(ssn_refinements)                                                                             \
+    X(ssn_refine_refused)                                                                          \
+    X(ssn_refine_factorizations)                                                                   \
+    X(ssn_refine_neg_duals)                                                                        \
+    X(ssn_sign_swept)                                                                              \
+    X(ssn_sign_sweep_max)                                                                          \
+    X(ssn_escape_budget)                                                                           \
+    X(ssn_escape_singular)                                                                         \
+    X(ssn_escape_no_contraction)                                                                   \
+    X(ssn_escape_infeasible_suspect)                                                               \
+    X(ssn_escape_indefinite)                                                                       \
+    X(ssn_escape_gate_refused)
+
+#define HVEN_T2_IPQP_COUNTER_FIELDS(X)                                                             \
+    X(ipqp_iters)                                                                                  \
+    X(ipqp_factorizations)                                                                         \
+    X(ipqp_symbolic_analyses)                                                                      \
+    X(ipqp_solves)                                                                                 \
+    X(ipqp_pattern_verifies)                                                                       \
+    X(ipqp_rho_demanded_max)                                                                       \
+    X(ipqp_rho_demanded_last)                                                                      \
+    X(ipqp_inertia_retries)                                                                        \
+    X(ipqp_iters_at_elevated_rho)                                                                  \
+    X(ipqp_ladder_reclimbs)                                                                        \
+    X(ipqp_pivot_reroute_primal)                                                                   \
+    X(ipqp_pivot_reroute_dual_fallback)                                                            \
+    X(ipqp_iters_ladder_armed_no_advance)                                                          \
+    X(ipqp_final_inertia_read)                                                                     \
+    X(ipqp_reg_decreases)                                                                          \
+    X(ipqp_reg_increases)                                                                          \
+    X(ipqp_prox_center_updates)                                                                    \
+    X(ipqp_restart_repairs)                                                                        \
+    X(ipqp_restart_shift_max)                                                                      \
+    X(ipqp_mu_adopted)                                                                             \
+    X(ipqp_warm_restart_abandoned)                                                                 \
+    X(ipqp_declined_pinned)                                                                        \
+    X(ipqp_tier_retired_after)                                                                     \
+    X(ipqp_face_uncertain)                                                                         \
+    X(ipqp_refine_accepted)                                                                        \
+    X(ipqp_refine_refused)                                                                         \
+    X(ipqp_to_refine)                                                                              \
+    X(ipqp_to_ssn)                                                                                 \
+    X(ipqp_to_walk)                                                                                \
+    X(ipqp_escapes)                                                                                \
+    X(ipqp_escape_budget)                                                                          \
+    X(ipqp_escape_stall)                                                                           \
+    X(ipqp_escape_indefinite)                                                                      \
+    X(ipqp_escape_numerical)                                                                       \
+    X(ipqp_escape_infeasible_suspect)                                                              \
+    X(ipqp_alpha_p_min)                                                                            \
+    X(ipqp_alpha_d_min)                                                                            \
+    X(ipqp_read_kept_tight_sides)                                                                  \
+    X(ipqp_read_barrier_noise_sides)                                                               \
+    X(ipqp_mu0_derived)                                                                            \
+    X(ipqp_mu0_fallbacks)                                                                          \
+    X(ipqp_mu_floor_binds)                                                                         \
+    X(ipqp_ladder_zero_trial_skips)
+
+void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b) {
+    // The drift pin: Linux x86-64 clang. A new counter field moves this and the
+    // list above must grow with it.
+#if defined(__linux__) && defined(__x86_64__)
+    // 760 -> 768 at M7 W2 M4, which appended `start_point_clamps`; 768 -> 808
+    // at M7 W2 M1, which appended the five-field subproblem-exit group; 808 ->
+    // 848 at M7 W2 M2, which appended the five-field restoration excursion
+    // record (one Index and four doubles, 8 bytes each); 848 -> 856 at M7 W2
+    // M3a, which appended `restoration_sub_status` to that record -- a 4-byte
+    // enum (`RestorationSubStatus` as of M3a fix1, `SolveStatus` before it, the
+    // SAME width) last in the struct, padded to a full slot by its alignment;
+    // 856 -> 904 at M7 W2 E4 fix round 1, which appended the QP engine's
+    // six-field E4 group (six `Index`, 8 bytes each) after it -- the 4-byte enum's
+    // padding is what the first of them lands in, so the growth is 6 * 8 with no
+    // new padding; 904 -> 912 at M7 W2 E4 fix round 2, which made that group
+    // SEVEN by inserting `eqp_row_drift_refusals` beside its residual twin (one
+    // more `Index`, and the padding was already spent, so plainly + 8); 912 ->
+    // 936 at M7 W2 R2, which appended three `Index` (the failed-subproblem step
+    // pair and `nonfinite_subproblems`); 936 -> 944 at M7 W2 W1
+    // (`nonfinite_box_projections`); 944 -> 960 at M7 W2 P1E
+    // (`elastic_last_rung_fallbacks`, `restoration_reduction_resumes`); 960 -> 1072 at
+    // M7 QN stage 3 (`eval_hess_calls` and the thirteen `qn_*` Index); 1072 -> 1080 at
+    // the QN stages 1-3 review (`qn_nonpd_seen`); 1080 -> 1088 at the QN-quality riders
+    // (`qn_dimension`); 1088 -> 1096 at M7 W2 R2-1 (`nonfinite_step_rollbacks`); 1096 ->
+    // 1104 at M7 W2 SNR (`restoration_feas_out`); 1104 -> 1112 at M7 W2 SCL
+    // (`scaled_convergence_refusals`); 1112 -> 1120 at M7 W2 RST
+    // (`restoration_curvature_switches`); 1120 -> 1144 at M7 W2 A2 (the three nested
+    // `ipqp_mu*` Index in IpqpCounters, 312 -> 336); 1144 -> 1152 at M7 W2 A3
+    // (`ipqp_ladder_zero_trial_skips`, IpqpCounters 336 -> 344); 1152 -> 1168 at M8 DN-1
+    // (`inertia_suspect_verdicts`, `inertia_wrong_verdicts`); 1168 -> 1176 at M8 DN-1c
+    // (`dense_platform_retakes`); 1176 -> 1192 at M8 DN-1d (`dense_flagged_factorizations`,
+    // `dense_singular_refactors`); 1192 -> 1200 at M8 DN-1d final (`dense_shifted_solve_refusals`);
+    // 1200 -> 1208 at M8 DN-1d r2 (`dense_shifted_k0_fallbacks`); 1208 -> 1216 at M8 DN-1d r3
+    // (`dense_shifted_terminations`); 1216 -> 1224 at M8 DN-3a (`dense_solve_residual_refusals`);
+    // 1224 -> 1232 at M8 DN-3 (`dense_factorizations`); 1232 -> 1240 at M8 kopt-1x
+    // (`optimal_row_gray_exits`); 1240 -> 1248 at M8 AP-5 G7 (`payload_ignored`).
+    static_assert(sizeof(hven::SqpCounters) == 1248,
+                  "SqpCounters gained or lost a field -- extend "
+                  "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
+                  "covers every counter");
+    static_assert(sizeof(hven::SsnCounters) == 144,
+                  "SsnCounters moved -- extend HVEN_T2_SSN_COUNTER_FIELDS");
+    static_assert(sizeof(hven::IpqpCounters) == 344,
+                  "IpqpCounters moved -- extend HVEN_T2_IPQP_COUNTER_FIELDS");
+#endif
+#define X(field) EXPECT_EQ(a.field, b.field) << #field;
+    HVEN_T2_SQP_COUNTER_FIELDS(X)
+#undef X
+    // The two NESTED groups SqpCounters carries; a mask that moved an SSN or
+    // IPQP counter would be a mask that changed a subproblem solve.
+#define X(field) EXPECT_EQ(a.ssn.field, b.ssn.field) << "ssn." #field;
+    HVEN_T2_SSN_COUNTER_FIELDS(X)
+#undef X
+#define X(field) EXPECT_EQ(a.ipqp.field, b.ipqp.field) << "ipqp." #field;
+    HVEN_T2_IPQP_COUNTER_FIELDS(X)
+#undef X
+}
+
+/// Every SolveResult field but `wall_seconds`, bitwise where it is a double.
+void expect_same_result_core(const hven::SolveResult &a, const hven::SolveResult &b) {
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_EQ(a.iterations, b.iterations);
+    EXPECT_TRUE(bit_equal(a.x, b.x)) << "x";
+    EXPECT_TRUE(
+        bit_equal(hven::detail::engine_rows(a).lambda_e, hven::detail::engine_rows(b).lambda_e))
+        << "lambda_e";
+    EXPECT_TRUE(
+        bit_equal(hven::detail::engine_rows(a).lambda_i, hven::detail::engine_rows(b).lambda_i))
+        << "lambda_i";
+    EXPECT_TRUE(bit_equal(a.z, b.z)) << "z";
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(a).ce, hven::detail::engine_rows(b).ce))
+        << "ce";
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(a).ci, hven::detail::engine_rows(b).ci))
+        << "ci";
+    HVEN_T2_EXPECT_BITS(f);
+    HVEN_T2_EXPECT_BITS(stationarity);
+    HVEN_T2_EXPECT_BITS(feasibility);
+    HVEN_T2_EXPECT_BITS(complementarity);
+}
+
+void expect_same_sqp_solve(const SqpResult &a, const SqpResult &b) {
+    expect_same_result_core(a, b);
+    expect_same_counters(a.counters, b.counters);
+    HVEN_T2_EXPECT_BITS(convergence.stationarity);
+    HVEN_T2_EXPECT_BITS(convergence.feasibility);
+    HVEN_T2_EXPECT_BITS(convergence.complementarity);
+    HVEN_T2_EXPECT_BITS(convergence.kkt_residual);
+    EXPECT_EQ(a.infeasibility_certified, b.infeasibility_certified);
+    // THE WHOLE TRAJECTORY, ROW BY ROW -- not only its length. Every column of
+    // IterationRecord that a mask could conceivably reach is a scalar this engine
+    // measured at the row, and `measure_iterate` is exactly where the mask
+    // acts, so the history is the strongest statement available that it acts
+    // on the snapshot and on nothing else.
+    ASSERT_EQ(a.history.size(), b.history.size()) << "history length";
+    for (std::size_t k = 0; k < a.history.size(); ++k) {
+        SCOPED_TRACE("history row " + std::to_string(k));
+        const hven::IterationRecord &ra = a.history[k];
+        const hven::IterationRecord &rb = b.history[k];
+        EXPECT_TRUE(hven::test::same_record(ra, rb));
+    }
+}
+
+void expect_same_ipm_solve(const hven::IpmResult &a, const hven::IpmResult &b) {
+    expect_same_result_core(a, b);
+    // IpmResult's own fields, in declaration order, EXCEPT the six `*_time`
+    // wall readings (total_/pre_/func_/kkt_/print_/solver_init_) which are
+    // informational and never asserted.
+    EXPECT_EQ(a.counters.payload_ignored, b.counters.payload_ignored);
+    EXPECT_EQ(a.counters.polish_ignored, b.counters.polish_ignored);
+    EXPECT_EQ(a.fixed_variable_treatment, b.fixed_variable_treatment);
+    EXPECT_TRUE(bit_equal(a.internal_fixed_ce, b.internal_fixed_ce)) << "internal_fixed_ce";
+    EXPECT_TRUE(bit_equal(a.internal_fixed_lambda_e, b.internal_fixed_lambda_e))
+        << "internal_fixed_lambda_e";
+    HVEN_T2_EXPECT_BITS(convergence.stationarity);
+    HVEN_T2_EXPECT_BITS(convergence.complementarity);
+    HVEN_T2_EXPECT_BITS(convergence.equality);
+    HVEN_T2_EXPECT_BITS(convergence.inequality);
+    EXPECT_EQ(a.factor_memory, b.factor_memory);
+    EXPECT_EQ(a.factor_flops, b.factor_flops);
+    EXPECT_EQ(a.counters.soc_steps, b.counters.soc_steps);
+    EXPECT_EQ(a.counters.watchdog_activations, b.counters.watchdog_activations);
+    EXPECT_EQ(last_ran_phase(a)->funnel_width, last_ran_phase(b)->funnel_width);
+    EXPECT_EQ(last_ran_phase(a)->filter_size, last_ran_phase(b)->filter_size);
+    EXPECT_EQ(last_ran_phase(a)->filter_resets, last_ran_phase(b)->filter_resets);
+    EXPECT_EQ(last_ran_phase(a)->monotone_switches, last_ran_phase(b)->monotone_switches);
+    EXPECT_EQ(last_ran_phase(a)->monotone_iterations, last_ran_phase(b)->monotone_iterations);
+    EXPECT_EQ(last_ran_phase(a)->restoration_entries, last_ran_phase(b)->restoration_entries);
+    EXPECT_EQ(last_ran_phase(a)->restoration_iters, last_ran_phase(b)->restoration_iters);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_primal,
+              last_ran_phase(b)->proximal_regularization_primal);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_dual,
+              last_ran_phase(b)->proximal_regularization_dual);
+    EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
+    EXPECT_EQ(last_ran_phase(a)->kkt_factor_status, last_ran_phase(b)->kkt_factor_status);
+    EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
+    EXPECT_EQ(a.counters.symbolic_analyses, b.counters.symbolic_analyses);
+    EXPECT_EQ(a.kkt_factor_counters.analyze_count, b.kkt_factor_counters.analyze_count);
+    EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
+    EXPECT_EQ(a.kkt_factor_counters.solve_count, b.kkt_factor_counters.solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.partial_solve_count, b.kkt_factor_counters.partial_solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.pattern_verify_count,
+              b.kkt_factor_counters.pattern_verify_count);
+    // The phase trajectory, row by row, minus `phase_seconds`.
+    ASSERT_EQ(a.phases.size(), b.phases.size()) << "phase count";
+    for (std::size_t k = 0; k < a.phases.size(); ++k) {
+        SCOPED_TRACE("phase " + std::to_string(k));
+        EXPECT_EQ(a.phases[k].phase, b.phases[k].phase);
+        EXPECT_EQ(a.phases[k].status, b.phases[k].status);
+        EXPECT_EQ(a.phases[k].iterations, b.phases[k].iterations);
+        EXPECT_EQ(a.phases[k].stop_reason, b.phases[k].stop_reason);
+        EXPECT_EQ(a.phases[k].ran, b.phases[k].ran);
+    }
+}
+
+void expect_same_solve(const MaskRun &a, const MaskRun &b) {
+    ASSERT_EQ(a.ipm.has_value(), b.ipm.has_value());
+    ASSERT_EQ(a.sqp.has_value(), b.sqp.has_value());
+    if (a.ipm.has_value()) {
+        expect_same_ipm_solve(*a.ipm, *b.ipm);
+    }
+    if (a.sqp.has_value()) {
+        expect_same_sqp_solve(*a.sqp, *b.sqp);
+    }
+}
+
+// HS071's declared shape, which every full-payload event must carry: n = 4
+// variables, ONE equality row (the sum of squares) and ONE inequality row (the
+// product), so the four views are 4 / 1 / 1 / 4.
+constexpr Eigen::Index kHs071N = 4;
+constexpr Eigen::Index kHs071Me = 1;
+constexpr Eigen::Index kHs071Mi = 1;
+
+void expect_full_views(const Seen &s) {
+    EXPECT_EQ(s.x.size(), kHs071N);
+    EXPECT_EQ(s.lambda.size(), kHs071Me + kHs071Mi);
+    EXPECT_EQ(s.z.size(), kHs071N);
+}
+
+} // namespace
+
+namespace {
+void expect_same_event(const Seen &a, const Seen &b);
+} // namespace
+
+// The ONE-ARGUMENT overload is kVectors | kDiagnostics (Q9), on both engines:
+// the payload every consumer got before G5 widened kAll, and none of the new
+// views, so no existing default callback pays for them.
+TEST(CallbackPayload, TheOneArgumentOverloadDeliversTheVectorsAndTheDiagnostics) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun implicit =
+            interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun explicit_default =
+            interior ? ipm_run_under(kDefaultMask) : sqp_run_under(kDefaultMask);
+        ASSERT_GT(implicit.seen.size(), 2u) << "non-vacuous: the solve really iterates";
+        for (const Seen &s : implicit.seen) {
+            expect_full_views(s);
+            EXPECT_EQ(s.g.size(), 0);
+            EXPECT_EQ(s.violation.size(), 0);
+            EXPECT_EQ(s.z_lower.size(), 0);
+            EXPECT_EQ(s.z_upper.size(), 0);
+        }
+        // A MEASURED iterate has finite diagnostics. The terminal event is one
+        // on both engines -- every in-loop exit measures the point it returns.
+        const Seen &last = implicit.seen.back();
+        EXPECT_TRUE(std::isfinite(last.stationarity));
+        EXPECT_TRUE(std::isfinite(last.feasibility));
+        EXPECT_TRUE(std::isfinite(last.complementarity));
+        // And the explicit mask is the same run, event for event.
+        ASSERT_EQ(implicit.seen.size(), explicit_default.seen.size());
+        for (std::size_t k = 0; k < implicit.seen.size(); ++k) {
+            expect_same_event(implicit.seen[k], explicit_default.seen[k]);
+        }
+        expect_same_solve(implicit, explicit_default);
+    }
+}
+
+// kScalars: empty views, NaN diagnostics, and the SCALARS bit-identical to the
+// full-payload run's -- event for event. This is the remedy's contract.
+TEST(CallbackPayload, ScalarsDeliversTheScalarsAndNothingElse) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun scalars = interior ? ipm_run_under(IterationPayload::kScalars)
+                                         : sqp_run_under(IterationPayload::kScalars);
+        ASSERT_GT(scalars.seen.size(), 2u);
+        for (const Seen &s : scalars.seen) {
+            EXPECT_TRUE(all_views_empty(s)) << "a kScalars event carries SIZE-0 views";
+            EXPECT_TRUE(all_nan(s)) << "and NaN diagnostics -- not requested, not zero";
+        }
+        expect_same_scalars(full.seen, scalars.seen);
+        expect_same_solve(full, scalars);
+    }
+}
+
+// kVectors alone: the four views, NaN diagnostics.
+TEST(CallbackPayload, VectorsAloneDeliversTheViewsAndNaNDiagnostics) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun vectors = interior ? ipm_run_under(IterationPayload::kVectors)
+                                         : sqp_run_under(IterationPayload::kVectors);
+        ASSERT_GT(vectors.seen.size(), 2u);
+        for (const Seen &s : vectors.seen) {
+            expect_full_views(s);
+            EXPECT_TRUE(all_nan(s));
+        }
+        // THE VIEWS ARE THE SAME VIEWS, bitwise: narrowing the mask changes
+        // what is prepared, never what a prepared field holds.
+        ASSERT_EQ(full.seen.size(), vectors.seen.size());
+        for (std::size_t k = 0; k < full.seen.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_TRUE(bit_equal(full.seen[k].x, vectors.seen[k].x));
+            EXPECT_TRUE(bit_equal(full.seen[k].lambda, vectors.seen[k].lambda));
+            EXPECT_TRUE(bit_equal(full.seen[k].z, vectors.seen[k].z));
+        }
+        expect_same_scalars(full.seen, vectors.seen);
+        expect_same_solve(full, vectors);
+    }
+}
+
+// kDiagnostics alone: the reverse -- empty views, and the diagnostics the full
+// payload reports, bitwise. The expansion still runs (the diagnostics are
+// computed FROM it); only the views are withheld.
+TEST(CallbackPayload, DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun diag = interior ? ipm_run_under(IterationPayload::kDiagnostics)
+                                      : sqp_run_under(IterationPayload::kDiagnostics);
+        ASSERT_GT(diag.seen.size(), 2u);
+        ASSERT_EQ(full.seen.size(), diag.seen.size());
+        for (std::size_t k = 0; k < diag.seen.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_TRUE(all_views_empty(diag.seen[k]));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].stationarity),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].stationarity));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].complementarity),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].complementarity));
+        }
+        expect_same_scalars(full.seen, diag.seen);
+        expect_same_solve(full, diag);
+    }
+}
+
+// clear_iteration_callback() RESETS THE MASK: a re-attach through the
+// one-argument overload is kAll again, so a narrowing cannot outlive the
+// consumer that asked for it.
+TEST(CallbackPayload, ClearingResetsTheMask) {
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        Recorder narrow;
+        solver.set_iteration_callback(narrow.hook(), IterationPayload::kScalars);
+        (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        ASSERT_GT(narrow.seen.size(), 0u);
+        EXPECT_TRUE(all_views_empty(narrow.seen.back()));
+
+        solver.clear_iteration_callback();
+        Recorder wide;
+        solver.set_iteration_callback(wide.hook());
+        (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        ASSERT_GT(wide.seen.size(), 0u);
+        expect_full_views(wide.seen.back());
+    }
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        Recorder narrow;
+        driver.set_iteration_callback(narrow.hook(), IterationPayload::kScalars);
+        (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        ASSERT_GT(narrow.seen.size(), 0u);
+        EXPECT_TRUE(all_views_empty(narrow.seen.back()));
+
+        driver.clear_iteration_callback();
+        Recorder wide;
+        driver.set_iteration_callback(wide.hook());
+        (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        ASSERT_GT(wide.seen.size(), 0u);
+        expect_full_views(wide.seen.back());
+    }
+}
+
+// A MASK SET FROM INSIDE THE CALLBACK IS PARKED AND TAKES EFFECT AT THE NEXT
+// EVENT -- the T8.6 fix1 in-flight guard, which the mask rides. The event the
+// widening call was made from still carries the OLD mask's payload; the one
+// after it carries the new mask's.
+TEST(CallbackPayload, AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent) {
+    {
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        std::vector<Eigen::Index> widths;
+        hven::IterationCallback widen = [&](const IterationEvent &e) {
+            widths.push_back(e.x.size());
+            if (widths.size() == 1) {
+                // From INSIDE: parked, applied the statement after this
+                // invocation returns, so event 0 is still scalars-only.
+                solver.set_iteration_callback(
+                    [&](const IterationEvent &later) {
+                        widths.push_back(later.x.size());
+                        return CallbackAction::kContinue;
+                    },
+                    IterationPayload::kAll);
+            }
+            return CallbackAction::kContinue;
+        };
+        solver.set_iteration_callback(widen, IterationPayload::kScalars);
+        (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        ASSERT_GT(widths.size(), 2u);
+        EXPECT_EQ(widths[0], 0) << "the event the call was made from keeps the OLD mask";
+        for (std::size_t k = 1; k < widths.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_EQ(widths[k], kHs071N) << "and every later event carries the new one";
+        }
+    }
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        std::vector<Eigen::Index> widths;
+        hven::IterationCallback widen = [&](const IterationEvent &e) {
+            widths.push_back(e.x.size());
+            if (widths.size() == 1) {
+                driver.set_iteration_callback(
+                    [&](const IterationEvent &later) {
+                        widths.push_back(later.x.size());
+                        return CallbackAction::kContinue;
+                    },
+                    IterationPayload::kAll);
+            }
+            return CallbackAction::kContinue;
+        };
+        driver.set_iteration_callback(widen, IterationPayload::kScalars);
+        (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        ASSERT_GT(widths.size(), 2u);
+        EXPECT_EQ(widths[0], 0);
+        for (std::size_t k = 1; k < widths.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_EQ(widths[k], kHs071N);
+        }
+    }
+}
+
+// AND THE NARROWING DIRECTION, which is the one a stale snapshot could survive:
+// a solve that starts at kAll and narrows to kScalars from inside the callback
+// must not keep handing out the wider mask's vectors.
+TEST(CallbackPayload, ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    std::vector<Eigen::Index> widths;
+    hven::IterationCallback narrow = [&](const IterationEvent &e) {
+        widths.push_back(e.x.size());
+        if (widths.size() == 1) {
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    widths.push_back(later.x.size());
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kScalars);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(narrow);
+    (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+    ASSERT_GT(widths.size(), 2u);
+    EXPECT_EQ(widths[0], kHs071N);
+    for (std::size_t k = 1; k < widths.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ(widths[k], 0) << "the narrowed mask leaves no stale snapshot standing";
+    }
+}
+
+// ===========================================================================
+// THE MASK AT DEPTH 1 (M7 W0 T2 fix1, the sol review's first Important).
+//
+// `enter_restoration` hands the sub-driver ONE copy of the parent's mask. A
+// consumer that changes the mask from inside a DEPTH-1 event would otherwise
+// go on being handed the old payload for the rest of the phase, while the new
+// CALLABLE took effect immediately (the forwarder dispatches through the
+// parent) -- so the engine would advertise one next-event rule and honour it
+// only at depth 0.
+//
+// The fixture is InfeasibleCircleLineModel, whose restoration phase runs to a
+// CERTIFICATE rather than resuming -- chosen over StalledValleyModel because a
+// next-event rule needs at least TWO depth-1 events to be observable at all,
+// and the resuming fixture's restoration phase converges on the row after the
+// one it entered on (this file's own note at
+// `SqpStopInsideRestorationLatchesAndReachesTheParent` (c)). Its own pin
+// already asserts `restoration_iters >= 2`, and both tests below re-assert the
+// premise rather than assuming it.
+// ===========================================================================
+namespace {
+
+/// One depth-1 event's widths, enough to say what payload it carried.
+struct DepthOneWidth {
+    Index depth = 0;
+    Eigen::Index x_size = 0;
+    bool diagnostics_finite = false;
+};
+
+std::vector<DepthOneWidth> depth_one_widths(const std::vector<DepthOneWidth> &all) {
+    std::vector<DepthOneWidth> out;
+    for (const DepthOneWidth &w : all) {
+        if (w.depth == 1) {
+            out.push_back(w);
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+// WIDENING at depth 1: the solve starts at kScalars, the FIRST depth-1 event
+// widens to kAll, and every depth-1 event after it carries the vectors.
+TEST(CallbackPayload, AMaskWidenedFromInsideARestorationEventReachesTheSubDriver) {
+    InfeasibleCircleLineModel model;
+    SqpSolver driver(quiet_sqp());
+    std::vector<DepthOneWidth> seen;
+    bool widened = false;
+
+    hven::IterationCallback cb = [&](const IterationEvent &e) {
+        seen.push_back({(e.sqp ? e.sqp->depth : Index{0}), e.x.size(),
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility)});
+        if (!widened && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            widened = true;
+            // From INSIDE a depth-1 event. The park goes through the PARENT's
+            // in-flight guard (the forwarder runs inside it), and the parent's
+            // apply point must push the new mask into the RUNNING sub-driver.
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    seen.push_back(
+                        {(later.sqp ? later.sqp->depth : Index{0}), later.x.size(),
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility)});
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(cb, IterationPayload::kScalars,
+                                  CallbackScope::kIncludeRestoration);
+    (void)driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
+    ASSERT_GE(d1.size(), 2u) << "fixture premise: at least two depth-1 events, or a next-event "
+                                "rule is not observable at depth 1 at all";
+    EXPECT_EQ(d1.front().x_size, 0) << "the event the widening was made FROM keeps the old mask";
+    EXPECT_FALSE(d1.front().diagnostics_finite);
+    // A DEPTH-1 EVENT IS IN THE SUB-PROBLEM'S SPACE, not the caller's -- the
+    // feasibility problem carries its own elastic variables, so `x.size()` is
+    // wider than `model.n()` there (IterationEvent's own `depth` note). What is
+    // asserted is therefore NON-EMPTY and CONSTANT across the later events,
+    // which is what "the payload was prepared" means at depth 1.
+    for (std::size_t k = 1; k < d1.size(); ++k) {
+        SCOPED_TRACE("depth-1 event " + std::to_string(k));
+        EXPECT_GT(d1[k].x_size, 0)
+            << "the sub-driver prepared the OLD mask's payload -- the widening did not reach it";
+        EXPECT_EQ(d1[k].x_size, d1[1].x_size);
+        EXPECT_TRUE(d1[k].diagnostics_finite);
+    }
+}
+
+// NARROWING at depth 1, the other direction: the solve starts at kAll and the
+// first depth-1 event narrows to kScalars.
+TEST(CallbackPayload, AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver) {
+    InfeasibleCircleLineModel model;
+    SqpSolver driver(quiet_sqp());
+    std::vector<DepthOneWidth> seen;
+    bool narrowed = false;
+
+    hven::IterationCallback cb = [&](const IterationEvent &e) {
+        seen.push_back({(e.sqp ? e.sqp->depth : Index{0}), e.x.size(),
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility)});
+        if (!narrowed && (e.sqp ? e.sqp->depth : Index{0}) == 1) {
+            narrowed = true;
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    seen.push_back(
+                        {(later.sqp ? later.sqp->depth : Index{0}), later.x.size(),
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility)});
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kScalars, CallbackScope::kIncludeRestoration);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(cb, IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    (void)driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
+    ASSERT_GE(d1.size(), 2u);
+    EXPECT_GT(d1.front().x_size, 0) << "the event the narrowing was made FROM keeps kAll";
+    for (std::size_t k = 1; k < d1.size(); ++k) {
+        SCOPED_TRACE("depth-1 event " + std::to_string(k));
+        EXPECT_EQ(d1[k].x_size, 0)
+            << "the sub-driver kept preparing the WIDE payload after the narrowing";
+        EXPECT_FALSE(d1[k].diagnostics_finite);
+    }
+}
+
+// AN EMPTY CALLABLE NORMALISES THE MASK TO THE DEFAULT on both engines. An empty
+// std::function is a clear, and a clear resets the mask, so the two-argument
+// overload may not leave a narrow mask standing beside one.
+TEST(CallbackPayload, AnEmptyCallableNormalisesTheMaskToAll) {
+    {
+        hven::IpmSolver solver;
+        EXPECT_EQ(solver.iteration_payload(), kDefaultMask) << "the default";
+        Recorder rec;
+        solver.set_iteration_callback(rec.hook(), IterationPayload::kScalars);
+        EXPECT_EQ(solver.iteration_payload(), IterationPayload::kScalars);
+        solver.set_iteration_callback(hven::IterationCallback{}, IterationPayload::kDiagnostics);
+        EXPECT_EQ(solver.iteration_payload(), kDefaultMask)
+            << "an empty callable is a clear, and a clear resets the mask";
+        // And the clear really happened: no events on the next solve.
+        const auto program =
+            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.set_options(quiet_ipm(solver));
+        (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        EXPECT_TRUE(rec.seen.empty());
+    }
+    {
+        SqpSolver driver(quiet_sqp());
+        EXPECT_EQ(driver.iteration_payload(), kDefaultMask);
+        Recorder rec;
+        driver.set_iteration_callback(rec.hook(), IterationPayload::kVectors);
+        EXPECT_EQ(driver.iteration_payload(), IterationPayload::kVectors);
+        driver.set_iteration_callback(hven::IterationCallback{}, IterationPayload::kScalars);
+        EXPECT_EQ(driver.iteration_payload(), kDefaultMask);
+        Hs071View view;
+        (void)driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        EXPECT_TRUE(rec.seen.empty());
+    }
+}
+
+// And clear_iteration_callback() agrees with it, read through the same
+// observation point.
+TEST(CallbackPayload, TheObservationPointReadsTheActiveMask) {
+    hven::IpmSolver solver;
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kVectors);
+    EXPECT_EQ(solver.iteration_payload(), IterationPayload::kVectors);
+    solver.clear_iteration_callback();
+    EXPECT_EQ(solver.iteration_payload(), kDefaultMask);
+    solver.set_iteration_callback(rec.hook());
+    EXPECT_EQ(solver.iteration_payload(), kDefaultMask)
+        << "the one-argument overload means kVectors | kDiagnostics (Q9)";
+
+    SqpSolver driver(quiet_sqp());
+    driver.set_iteration_callback(rec.hook(), IterationPayload::kDiagnostics);
+    EXPECT_EQ(driver.iteration_payload(), IterationPayload::kDiagnostics);
+    driver.clear_iteration_callback();
+    EXPECT_EQ(driver.iteration_payload(), kDefaultMask);
+}
+
+// ===========================================================================
+// CALLBACK SCOPE, THE ROW-SPACE LAMBDA, AND THE EVENT COUNTS
+// ===========================================================================
+
+namespace {
+
+// Every field of two events but the clock, bitwise.
+void expect_same_event(const Seen &a, const Seen &b) {
+    EXPECT_EQ(a.iteration, b.iteration);
+    EXPECT_EQ(a.recovering, b.recovering);
+    expect_same_info(a.ipm, b.ipm);
+    expect_same_info(a.sqp, b.sqp);
+    auto same = [](double u, double v) {
+        return std::bit_cast<std::uint64_t>(u) == std::bit_cast<std::uint64_t>(v);
+    };
+    EXPECT_TRUE(same(a.f, b.f));
+    EXPECT_TRUE(same(a.stationarity, b.stationarity));
+    EXPECT_TRUE(same(a.feasibility, b.feasibility));
+    EXPECT_TRUE(same(a.complementarity, b.complementarity));
+    EXPECT_TRUE(same(a.step_norm, b.step_norm));
+    EXPECT_TRUE(bit_equal(a.x, b.x));
+    EXPECT_TRUE(bit_equal(a.lambda, b.lambda));
+    EXPECT_TRUE(bit_equal(a.z, b.z));
+    EXPECT_TRUE(bit_equal(a.g, b.g));
+    EXPECT_TRUE(bit_equal(a.violation, b.violation));
+    EXPECT_TRUE(bit_equal(a.z_lower, b.z_lower));
+    EXPECT_TRUE(bit_equal(a.z_upper, b.z_upper));
+}
+
+template <class Model>
+void expect_top_level_scope_is_the_filtered_full_stream(Model &model, const SqpOptions &opts) {
+    std::vector<Seen> top, full;
+    SqpResult r_top, r_full;
+    {
+        SqpSolver driver(opts);
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                top.push_back(copy_of(e));
+                return CallbackAction::kContinue;
+            },
+            hven::IterationPayload::kAll, CallbackScope::kTopLevel);
+        EXPECT_EQ(driver.iteration_scope(), CallbackScope::kTopLevel);
+        r_top = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    }
+    {
+        SqpSolver driver(opts);
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                full.push_back(copy_of(e));
+                return CallbackAction::kContinue;
+            },
+            hven::IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        EXPECT_EQ(driver.iteration_scope(), CallbackScope::kIncludeRestoration);
+        r_full = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    }
+    std::vector<Seen> filtered;
+    std::size_t deeper = 0;
+    for (const Seen &e : full) {
+        if ((e.sqp ? e.sqp->depth : Index{0}) == 0) {
+            filtered.push_back(e);
+        } else {
+            ++deeper;
+        }
+    }
+    ASSERT_GT(deeper, 0u) << "fixture premise: the solve really restores";
+    ASSERT_EQ(top.size(), filtered.size());
+    for (std::size_t k = 0; k < top.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ((top[k].sqp ? top[k].sqp->depth : Index{-1}), 0);
+        expect_same_event(top[k], filtered[k]);
+    }
+    // THE SOLVE ITSELF is the same solve.
+    EXPECT_EQ(r_top.status, r_full.status);
+    EXPECT_TRUE(bit_equal(r_top.x, r_full.x));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(r_top.f), std::bit_cast<std::uint64_t>(r_full.f));
+    EXPECT_EQ(r_top.iterations, r_full.iterations);
+    EXPECT_EQ(r_top.counters.major_iters, r_full.counters.major_iters);
+    EXPECT_EQ(r_top.counters.restoration_iters, r_full.counters.restoration_iters);
+    EXPECT_EQ(r_top.counters.steps_accepted, r_full.counters.steps_accepted);
+    EXPECT_EQ(r_top.counters.rejected_steps, r_full.counters.rejected_steps);
+    EXPECT_EQ(r_top.counters.qp_minor_iters, r_full.counters.qp_minor_iters);
+    EXPECT_EQ(r_top.counters.factorizations, r_full.counters.factorizations);
+    EXPECT_EQ(r_top.history.size(), r_full.history.size());
+}
+
+} // namespace
+
+TEST(CallbackScope, TheDefaultStreamIsTheFullStreamFilteredToDepthZero) {
+    {
+        SCOPED_TRACE("the RESUMING route");
+        StalledValleyModel model;
+        SqpOptions opts = quiet_sqp();
+        opts.trust_region_initial = 8.0;
+        opts.common.max_iterations = 60;
+        expect_top_level_scope_is_the_filtered_full_stream(model, opts);
+    }
+    {
+        SCOPED_TRACE("the EXITING route");
+        InfeasibleCircleLineModel model;
+        expect_top_level_scope_is_the_filtered_full_stream(model, quiet_sqp());
+    }
+}
+
+TEST(CallbackScope, TheScopeIsStoredWithTheCallableAndResetByAClear) {
+    SqpSolver sqp(quiet_sqp());
+    hven::IpmSolver ipm;
+    Recorder rec;
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kTopLevel);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kTopLevel);
+    sqp.set_iteration_callback(rec.hook(), hven::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    ipm.set_iteration_callback(rec.hook(), hven::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kIncludeRestoration);
+    sqp.clear_iteration_callback();
+    ipm.set_iteration_callback(hven::IterationCallback{}, hven::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kTopLevel);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kTopLevel);
+}
+
+namespace {
+
+// A public Nlp whose three rows are, in this order, a RANGE row, an EQUALITY
+// row and a LOWER-bounded row, so that the row space interleaves the engines'
+// equality / inequality split.
+//     min (x0-1)^2 + (x1-2)^2 + (x2-3)^2
+//     -1 <= x0 + x1 <= 2.5      (row 0, range)
+//     x0 + x1 + x2 = 4          (row 1, equality)
+//     x1 + x2 >= 3.5            (row 2, lower-bounded)
+struct MixedRowsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {3, 3, 7, 3}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << -1.0, 4.0, 3.5;
+        gu << 2.5, 4.0, inf;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1) * (x[0] - 1) + (x[1] - 2) * (x[1] - 2) + (x[2] - 3) * (x[2] - 3);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2 * (x[0] - 1), 2 * (x[1] - 2), 2 * (x[2] - 3);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0] + x[1] + x[2], x[1] + x[2];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1, 1, 2, 2;
+        c << 0, 1, 0, 1, 2, 1, 2;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setOnes(); }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 2;
+        c << 0, 1, 2;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v.setConstant(2.0 * obj_factor);
+    }
+    std::string name() const override { return "MixedRowsNlp"; }
+};
+
+Vec mixed_start() { return Vec::Zero(3); }
+
+} // namespace
+
+TEST(CallbackRowSpace, TheFinalDepthZeroEventsLambdaIsTheResultsLambdaOnBothEngines) {
+    {
+        SCOPED_TRACE("SQP");
+        hven::Problem problem(std::make_shared<MixedRowsNlp>());
+        SqpSolver solver(quiet_sqp());
+        std::vector<Seen> seen;
+        solver.set_iteration_callback([&](const IterationEvent &e) {
+            if ((e.sqp ? e.sqp->depth : Index{0}) == 0) {
+                seen.push_back(copy_of(e));
+            }
+            return CallbackAction::kContinue;
+        });
+        const SqpResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_FALSE(seen.empty());
+        ASSERT_EQ(r.lambda.size(), 3);
+        ASSERT_EQ(seen.back().lambda.size(), 3);
+        EXPECT_TRUE(bit_equal(seen.back().lambda, r.lambda));
+        EXPECT_NE(r.lambda[1], 0.0) << "the equality row is active";
+        for (const Seen &s : seen) {
+            ASSERT_EQ(s.lambda.size(), 3) << "every event carries the row-space multipliers";
+        }
+    }
+    {
+        SCOPED_TRACE("interior-point");
+        hven::Problem problem(std::make_shared<MixedRowsNlp>());
+        hven::IpmOptions o;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        hven::IpmSolver solver(o);
+        std::vector<Seen> seen;
+        solver.set_iteration_callback([&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        });
+        const hven::IpmResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_FALSE(seen.empty());
+        ASSERT_EQ(r.lambda.size(), 3);
+        ASSERT_EQ(seen.back().lambda.size(), 3);
+        EXPECT_TRUE(bit_equal(seen.back().lambda, r.lambda));
+        EXPECT_NE(r.lambda[1], 0.0) << "the equality row is active";
+        for (const Seen &s : seen) {
+            ASSERT_EQ(s.lambda.size(), 3);
+        }
+    }
+}
+
+TEST(CallbackRowSpace, TheEventCountsOnBothEngines) {
+    {
+        SCOPED_TRACE("SQP: row 0 is the start point");
+        hven::Problem problem(std::make_shared<MixedRowsNlp>());
+        SqpSolver solver(quiet_sqp());
+        Index events = 0;
+        solver.set_iteration_callback([&](const IterationEvent &) {
+            ++events;
+            return CallbackAction::kContinue;
+        });
+        const SqpResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(events, r.iterations + 1);
+        EXPECT_EQ(events, static_cast<Index>(r.history.size()));
+    }
+    {
+        SCOPED_TRACE("interior-point: the rows are the iterations");
+        hven::Problem problem(std::make_shared<MixedRowsNlp>());
+        hven::IpmOptions o;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        hven::IpmSolver solver(o);
+        Index events = 0;
+        solver.set_iteration_callback([&](const IterationEvent &) {
+            ++events;
+            return CallbackAction::kContinue;
+        });
+        const hven::IpmResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(events, r.iterations);
+    }
+}
+
+// ===========================================================================
+// M8 AP-5 G5 -- THE WIDENED PAYLOAD (design section 3.1, T12)
+// ===========================================================================
+
+namespace {
+
+// MixedRowsNlp with a FREE row and three one-sided/two-sided boxes, so every
+// row kind and both bound sides reach the G5 views:
+//     min (x0-1)^2 + (x1-2)^2 + (x2-3)^2
+//     -1 <= x0 + x1 <= 2.5      (row 0, range)
+//     x0 + x1 + x2 = 4          (row 1, equality)
+//     x1 + x2 >= 3.5            (row 2, lower-bounded)
+//     x0 - x2                   (row 3, free)
+//     -10 <= x0 <= 10, x1 >= 0, x2 <= 2.2 (active at the solution (0.4, 1.4, 2.2))
+struct AllRowKindsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {3, 4, 9, 3}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl << -10.0, 0.0, -inf;
+        xu << 10.0, inf, 2.2;
+        gl << -1.0, 4.0, 3.5, -inf;
+        gu << 2.5, 4.0, inf, inf;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1) * (x[0] - 1) + (x[1] - 2) * (x[1] - 2) + (x[2] - 3) * (x[2] - 3);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2 * (x[0] - 1), 2 * (x[1] - 2), 2 * (x[2] - 3);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0] + x[1] + x[2], x[1] + x[2], x[0] - x[2];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1, 1, 2, 2, 3, 3;
+        c << 0, 1, 0, 1, 2, 1, 2, 0, 2;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
+        v << 1, 1, 1, 1, 1, 1, 1, 1, -1;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 2;
+        c << 0, 1, 2;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v.setConstant(2.0 * obj_factor);
+    }
+    std::string name() const override { return "AllRowKindsNlp"; }
+};
+
+Vec all_rows_start() {
+    Vec x0(3);
+    x0 << 0.5, 1.0, 1.0;
+    return x0;
+}
+
+bool near_rel(double a, double b) { return std::abs(a - b) <= 1e-12 * (1.0 + std::abs(b)); }
+
+// The G5 views of one caller-space event against AllRowKindsNlp's declaration.
+void expect_all_rows_views(const Seen &s, bool exact_sides) {
+    const double inf = std::numeric_limits<double>::infinity();
+    const double gl[4] = {-1.0, 4.0, 3.5, -inf};
+    const double gu[4] = {2.5, 4.0, inf, inf};
+    ASSERT_EQ(s.g.size(), 4);
+    ASSERT_EQ(s.violation.size(), 4);
+    for (int r = 0; r < 3; ++r) {
+        SCOPED_TRACE("row " + std::to_string(r));
+        const double want = std::max({gl[r] - s.g[r], s.g[r] - gu[r], 0.0});
+        EXPECT_GE(s.violation[r], 0.0);
+        EXPECT_TRUE(near_rel(s.violation[r], want)) << s.violation[r] << " vs " << want;
+    }
+    EXPECT_TRUE(std::isnan(s.g[3])) << "a free row is unmeasured, as in SolveResult::g";
+    EXPECT_EQ(s.violation[3], 0.0) << "a free row cannot be violated";
+    ASSERT_EQ(s.z.size(), 3);
+    ASSERT_EQ(s.z_lower.size(), 3);
+    ASSERT_EQ(s.z_upper.size(), 3);
+    for (int j = 0; j < 3; ++j) {
+        SCOPED_TRACE("variable " + std::to_string(j));
+        EXPECT_GE(s.z_lower[j], 0.0);
+        EXPECT_GE(s.z_upper[j], 0.0);
+        if (exact_sides) {
+            EXPECT_TRUE(same_bits(s.z_lower[j] - s.z_upper[j], s.z[j]));
+        } else {
+            EXPECT_TRUE(near_rel(s.z_lower[j] - s.z_upper[j], s.z[j]));
+        }
+    }
+    EXPECT_EQ(s.z_upper[1], 0.0) << "x1 has no upper bound";
+    EXPECT_EQ(s.z_lower[2], 0.0) << "x2 has no lower bound";
+}
+
+void expect_kall_shape(const std::vector<Seen> &seen, bool exact_sides) {
+    for (std::size_t k = 0; k < seen.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        expect_all_rows_views(seen[k], exact_sides);
+    }
+}
+
+} // namespace
+
+// kAll delivers g and violation in the row space (every row kind, the free row
+// NaN/0) and the two bound sides (both >= 0, z_lower - z_upper = z); the final
+// event's g is the result's. Interior-point sides are the engine's per-side
+// multipliers (equal to z to rounding); SQP's are the sign split (exact).
+TEST(CallbackPayload, AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines) {
+    {
+        SCOPED_TRACE("SQP");
+        hven::Problem problem(std::make_shared<AllRowKindsNlp>());
+        SqpSolver solver(quiet_sqp());
+        Recorder rec;
+        solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+        const SqpResult r = solver.solve(problem, all_rows_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_GT(rec.seen.size(), 1u);
+        expect_kall_shape(rec.seen, true);
+        EXPECT_TRUE(bit_equal(rec.seen.back().g, r.g)) << "the final event's rows are the result's";
+        EXPECT_GT(rec.seen.back().z_upper[2], 0.0) << "x2 <= 2.2 is active at the solution";
+    }
+    {
+        SCOPED_TRACE("interior-point");
+        hven::Problem problem(std::make_shared<AllRowKindsNlp>());
+        hven::IpmOptions o;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        hven::IpmSolver solver(o);
+        Recorder rec;
+        solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+        const hven::IpmResult r = solver.solve(problem, all_rows_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_GT(rec.seen.size(), 1u);
+        expect_kall_shape(rec.seen, false);
+        EXPECT_TRUE(bit_equal(rec.seen.back().g, r.g)) << "the final event's rows are the result's";
+        EXPECT_GT(rec.seen.back().z_upper[2], 0.0) << "x2 <= 2.2 is active at the solution";
+    }
+}
+
+// Each new bit delivers exactly its fields, bitwise those of the kAll run, and
+// moves nothing else: kConstraints alone, kBoundMultipliers alone, and kAll
+// against the default mask (same x, lambda, z and diagnostics).
+TEST(CallbackPayload, EachNewBitDeliversExactlyItsFields) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        auto run = [interior](IterationPayload m) {
+            return interior ? ipm_run_under(m) : sqp_run_under(m);
+        };
+        const MaskRun all = run(IterationPayload::kAll);
+        const MaskRun rows = run(IterationPayload::kConstraints);
+        const MaskRun sides = run(IterationPayload::kBoundMultipliers);
+        const MaskRun dflt = run(kDefaultMask);
+        ASSERT_GT(all.seen.size(), 2u);
+        ASSERT_EQ(all.seen.size(), rows.seen.size());
+        ASSERT_EQ(all.seen.size(), sides.seen.size());
+        ASSERT_EQ(all.seen.size(), dflt.seen.size());
+        for (std::size_t k = 0; k < all.seen.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            const Seen &a = all.seen[k];
+            expect_full_views(a);
+            EXPECT_EQ(a.g.size(), kHs071Me + kHs071Mi);
+            EXPECT_EQ(a.violation.size(), kHs071Me + kHs071Mi);
+            EXPECT_EQ(a.z_lower.size(), kHs071N);
+            EXPECT_EQ(a.z_upper.size(), kHs071N);
+
+            const Seen &c = rows.seen[k];
+            EXPECT_TRUE(all_views_empty(c));
+            EXPECT_TRUE(all_nan(c));
+            EXPECT_TRUE(bit_equal(c.g, a.g));
+            EXPECT_TRUE(bit_equal(c.violation, a.violation));
+            EXPECT_EQ(c.z_lower.size(), 0);
+            EXPECT_EQ(c.z_upper.size(), 0);
+
+            const Seen &b = sides.seen[k];
+            EXPECT_TRUE(all_views_empty(b));
+            EXPECT_TRUE(all_nan(b));
+            EXPECT_EQ(b.g.size(), 0);
+            EXPECT_EQ(b.violation.size(), 0);
+            EXPECT_TRUE(bit_equal(b.z_lower, a.z_lower));
+            EXPECT_TRUE(bit_equal(b.z_upper, a.z_upper));
+
+            const Seen &d = dflt.seen[k];
+            EXPECT_TRUE(bit_equal(d.x, a.x));
+            EXPECT_TRUE(bit_equal(d.lambda, a.lambda));
+            EXPECT_TRUE(bit_equal(d.z, a.z));
+            EXPECT_TRUE(same_bits(d.stationarity, a.stationarity));
+            EXPECT_TRUE(same_bits(d.feasibility, a.feasibility));
+            EXPECT_TRUE(same_bits(d.complementarity, a.complementarity));
+        }
+        expect_same_scalars(all.seen, rows.seen);
+        expect_same_scalars(all.seen, sides.seen);
+        expect_same_scalars(all.seen, dflt.seen);
+        expect_same_solve(all, rows);
+        expect_same_solve(all, sides);
+        expect_same_solve(all, dflt);
+    }
+}
+
+// snapshot() is a deep copy of every view and both engine blocks: the copies
+// outlive the solve (whose storage the views borrowed), and exactly one engine
+// block is engaged.
+TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        std::vector<hven::IterationSnapshot> snaps;
+        std::vector<Eigen::Index> sizes;
+        auto hook = [&](const IterationEvent &e) {
+            snaps.push_back(hven::snapshot(e));
+            sizes.push_back(e.x.size() + e.lambda.size() + e.z.size() + e.g.size() +
+                            e.violation.size() + e.z_lower.size() + e.z_upper.size());
+            return CallbackAction::kContinue;
+        };
+        hven::SolveResult r;
+        if (interior) {
+            const auto program = hven::detail::make_nlp_program(
+                std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::IpmSolver solver;
+            solver.set_options(quiet_ipm(solver));
+            solver.set_iteration_callback(hook, IterationPayload::kAll);
+            r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        } else {
+            Hs071View view;
+            SqpSolver driver(quiet_sqp());
+            driver.set_iteration_callback(hook, IterationPayload::kAll);
+            r = driver.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
+        }
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_GT(snaps.size(), 1u);
+        for (std::size_t k = 0; k < snaps.size(); ++k) {
+            const hven::IterationSnapshot &s = snaps[k];
+            EXPECT_EQ(s.x.size() + s.lambda.size() + s.z.size() + s.g.size() + s.violation.size() +
+                          s.z_lower.size() + s.z_upper.size(),
+                      sizes[k]);
+            EXPECT_NE(s.ipm.has_value(), s.sqp.has_value()) << "exactly one engine block";
+            EXPECT_EQ(s.ipm.has_value(), interior);
+        }
+        // Read after the solve returned: the final snapshot is the returned point.
+        EXPECT_TRUE(bit_equal(snaps.back().x, r.x));
+        EXPECT_TRUE(bit_equal(snaps.back().lambda, r.lambda));
+        EXPECT_TRUE(bit_equal(snaps.back().g, r.g));
+        EXPECT_TRUE(bit_equal(snaps.back().z_lower - snaps.back().z_upper, r.z) ||
+                    (snaps.back().z_lower - snaps.back().z_upper - r.z).lpNorm<Eigen::Infinity>() <
+                        1e-12);
+    }
+}
+
+namespace {
+
+using IpmRowSink = hven::test::IpmRowSink;
+
+} // namespace
+
+// IterationEvent::ipm describes the step that REACHED the point: at a phase's
+// first iterate the step fields are NaN/0 (as step_norm is 0), and at iterate
+// k they are the `ipm.iter` row of iterate k - 1, whose step reached it.
+TEST(CallbackPayload, IpmBlockDescribesTheStepThatReachedThePoint) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+    IpmRowSink sink;
+    solver.attach_trace(&sink);
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kScalars);
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_GT(rec.seen.size(), 3u);
+    ASSERT_EQ(rec.seen.size(), sink.rows.size()) << "one event per ipm.iter row";
+    const hven::IpmIterationInfo &first = *rec.seen.front().ipm;
+    EXPECT_EQ(rec.seen.front().step_norm, 0.0);
+    EXPECT_TRUE(std::isnan(first.alpha_primal));
+    EXPECT_TRUE(std::isnan(first.alpha_dual));
+    EXPECT_EQ(first.inertia_corrections, 0);
+    EXPECT_EQ(first.line_search_trials, 0);
+    bool any_backtrack_or_short_step = false;
+    for (std::size_t k = 1; k < rec.seen.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        ASSERT_TRUE(rec.seen[k].ipm.has_value());
+        const hven::IpmIterationInfo &info = *rec.seen[k].ipm;
+        const hven::test::IpmRowView &prev = sink.rows[k - 1];
+        EXPECT_EQ(info.phase, 0);
+        EXPECT_NEAR(info.alpha_primal, prev.alpha_p, 1e-15);
+        EXPECT_NEAR(info.alpha_dual, prev.alpha_d, 1e-15);
+        EXPECT_TRUE(same_bits(info.regularization_primal, prev.h_pert));
+        EXPECT_EQ(info.inertia_corrections, prev.h_facs);
+        EXPECT_EQ(info.line_search_trials, prev.ls_iters);
+        EXPECT_GT(rec.seen[k].step_norm, 0.0);
+        any_backtrack_or_short_step = any_backtrack_or_short_step || info.alpha_primal < 1.0;
+    }
+    EXPECT_TRUE(any_backtrack_or_short_step)
+        << "non-vacuous: some step was cut by the fraction-to-boundary rule or a backtrack";
+    // A second solve on the same solver starts its phase afresh: nothing reached
+    // its first iterate, whatever the first solve's last step was.
+    Recorder again;
+    solver.set_iteration_callback(again.hook(), IterationPayload::kScalars);
+    (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_FALSE(again.seen.empty());
+    EXPECT_TRUE(std::isnan(again.seen.front().ipm->alpha_primal));
+    EXPECT_EQ(again.seen.front().ipm->line_search_trials, 0);
+}
+
+namespace {
+
+// Two constraint rows that are BOTH free (-inf <= row <= inf), so the engines see
+// me = mi = 0 while the problem has m = 2:
+//     min (x0-1)^4 + (x1-2)^2     g0 = x0 + x1,  g1 = x0 - x1   (both free)
+struct AllFreeRowsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 2, 4, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl.setConstant(-inf);
+        gu.setConstant(inf);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return std::pow(x[0] - 1.0, 4) + (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 4.0 * std::pow(x[0] - 1.0, 3), 2.0 * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0] - x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v << 1, 1, 1, -1; }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << obj_factor * 12.0 * (x[0] - 1.0) * (x[0] - 1.0), obj_factor * 2.0;
+    }
+    std::string name() const override { return "AllFreeRowsNlp"; }
+};
+
+void expect_all_free_rows_views(const Seen &s) {
+    ASSERT_EQ(s.g.size(), 2) << "a problem whose rows are all free still has row views";
+    ASSERT_EQ(s.violation.size(), 2);
+    for (int r = 0; r < 2; ++r) {
+        EXPECT_TRUE(std::isnan(s.g[r])) << "a free row is unmeasured";
+        EXPECT_EQ(s.violation[r], 0.0);
+    }
+}
+
+Vec all_free_start() {
+    Vec x0(2);
+    x0 << 3.0, 0.0;
+    return x0;
+}
+
+} // namespace
+
+// A problem whose every row is free has me = mi = 0 inside the engines; the event's
+// g/violation, the result's and best_iterate's are still m wide and agree.
+TEST(CallbackPayload, AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        hven::Problem problem(std::make_shared<AllFreeRowsNlp>());
+        Recorder rec;
+        Vec result_g;
+        std::optional<Seen> best;
+        if (interior) {
+            hven::IpmOptions o;
+            o.common.verbosity = hven::Verbosity::kSilent;
+            hven::IpmSolver solver(o);
+            solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+            const hven::IpmResult r = solver.solve(problem, all_free_start());
+            ASSERT_EQ(r.status, SolveStatus::kOptimal);
+            result_g = r.g;
+            // A capped solve publishes its best iterate (kOptimal does not).
+            o.common.max_iterations = 1;
+            hven::IpmSolver capped(o);
+            Recorder rec2;
+            capped.set_iteration_callback(rec2.hook(), IterationPayload::kAll);
+            const hven::IpmResult c = capped.solve(problem, all_free_start());
+            ASSERT_NE(c.status, SolveStatus::kOptimal);
+            ASSERT_TRUE(c.best_iterate.has_value());
+            best = c.best_iterate;
+            const Seen *ev = nullptr;
+            for (const Seen &e : rec2.seen) {
+                if (e.iteration == best->iteration) {
+                    ev = &e;
+                }
+            }
+            ASSERT_NE(ev, nullptr);
+            expect_all_free_rows_views(*ev);
+            EXPECT_TRUE(bit_equal(best->g, ev->g));
+            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+        } else {
+            SqpSolver solver(quiet_sqp());
+            solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+            const SqpResult r = solver.solve(problem, all_free_start());
+            ASSERT_EQ(r.status, SolveStatus::kOptimal);
+            result_g = r.g;
+            SqpOptions o = quiet_sqp();
+            o.common.max_iterations = 1;
+            SqpSolver capped(o);
+            Recorder rec2;
+            capped.set_iteration_callback(rec2.hook(), IterationPayload::kAll);
+            const SqpResult c = capped.solve(problem, all_free_start());
+            ASSERT_NE(c.status, SolveStatus::kOptimal);
+            ASSERT_TRUE(c.best_iterate.has_value());
+            best = c.best_iterate;
+            const Seen *ev = nullptr;
+            for (const Seen &e : rec2.seen) {
+                if (e.iteration == best->iteration) {
+                    ev = &e;
+                }
+            }
+            ASSERT_NE(ev, nullptr);
+            expect_all_free_rows_views(*ev);
+            EXPECT_TRUE(bit_equal(best->g, ev->g));
+            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+        }
+        ASSERT_FALSE(rec.seen.empty());
+        for (const Seen &e : rec.seen) {
+            expect_all_free_rows_views(e);
+        }
+        ASSERT_EQ(result_g.size(), 2);
+        EXPECT_TRUE(bit_equal(rec.seen.back().g, result_g));
+        expect_all_free_rows_views(*best);
+    }
+}
+
+namespace {
+
+// Unconstrained Rosenbrock: from the classic start the filter line search
+// backtracks.
+struct RosenbrockNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 0, 0, 3}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        const double a = 1.0 - x[0];
+        const double b = x[1] - x[0] * x[0];
+        return a * a + 100.0 * b * b;
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        const double b = x[1] - x[0] * x[0];
+        g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * b;
+        g[1] = 200.0 * b;
+    }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 1;
+        c << 0, 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        const double b = x[1] - x[0] * x[0];
+        v[0] = obj_factor * (2.0 - 400.0 * b + 800.0 * x[0] * x[0]);
+        v[1] = obj_factor * (-400.0 * x[0]);
+        v[2] = obj_factor * 200.0;
+    }
+    std::string name() const override { return "RosenbrockNlp"; }
+};
+
+// Two rows identical up to scale: every KKT matrix is exactly singular, so the
+// inertia ladder runs on the first factorization.
+//     min (x0-1)^2 + (x1-2)^2   s.t.  x0 + x1 = 1,  2 x0 + 2 x1 = 2
+struct DuplicateRowsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 2, 4, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << 1.0, 2.0;
+        gu << 1.0, 2.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1.0) * (x[0] - 1.0) + (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], 2.0 * x[0] + 2.0 * x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
+        v << 1.0, 1.0, 2.0, 2.0;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << 2.0 * obj_factor, 2.0 * obj_factor;
+    }
+    std::string name() const override { return "DuplicateRowsNlp"; }
+};
+
+// Event k's ipm block against the `ipm.iter` row k - 1, whose step reached it.
+// Returns the largest line_search_trials, inertia_corrections and regularization_dual seen.
+struct IpmBlockMax {
+    Index trials = 0;
+    Index corrections = 0;
+    double dual = 0.0;
+    Index counted = 0; // IpmCounters::inertia_corrections
+};
+
+IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const Vec &x0,
+                                           bool proximal = false) {
+    const auto program = hven::detail::make_nlp_program(std::move(nlp));
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        if (proximal) {
+            o.advanced.inertia_mode = hven::IpmInertiaMode::kProximalRegularization;
+        }
+        solver.set_options(std::move(o));
+    }
+    IpmRowSink sink;
+    solver.attach_trace(&sink);
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kScalars);
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
+    EXPECT_TRUE(r.status == SolveStatus::kOptimal || r.status == SolveStatus::kAcceptable);
+    EXPECT_EQ(rec.seen.size(), sink.rows.size());
+    Index max_trials = 0;
+    Index max_corrections = 0;
+    double max_dual = 0.0;
+    for (std::size_t k = 1; k < rec.seen.size() && k <= sink.rows.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        const hven::IpmIterationInfo &info = *rec.seen[k].ipm;
+        const hven::test::IpmRowView &prev = sink.rows[k - 1];
+        EXPECT_EQ(info.line_search_trials, prev.ls_iters);
+        EXPECT_EQ(info.inertia_corrections, prev.h_facs);
+        EXPECT_TRUE(same_bits(info.regularization_primal, prev.h_pert));
+        EXPECT_GE(info.regularization_dual, 0.0);
+        if (proximal) {
+            // The proximal mode reports its own dual shift, which the trace row carries.
+            EXPECT_TRUE(same_bits(info.regularization_dual, prev.prox_reg_dual));
+        }
+        max_dual = std::max(max_dual, info.regularization_dual);
+        max_trials = std::max<Index>(max_trials, info.line_search_trials);
+        max_corrections = std::max<Index>(max_corrections, info.inertia_corrections);
+    }
+    // M8 AP-5 G7: the counter is the rows' ladder counts summed (no row here is a
+    // -1 sentinel, and no iteration is abandoned).
+    Index row_sum = 0;
+    for (const hven::test::IpmRowView &row : sink.rows) {
+        EXPECT_GE(row.h_facs, 0);
+        row_sum += std::max(row.h_facs, 0);
+    }
+    EXPECT_EQ(r.counters.inertia_corrections, row_sum);
+    return {max_trials, max_corrections, max_dual, r.counters.inertia_corrections};
+}
+
+} // namespace
+
+// The ipm block's line_search_trials and inertia_corrections are the trace row's
+// own, on solves that really backtrack and really correct the inertia (the
+// Hs071 fixture above does neither, so a dropped field would read 0 == 0 there).
+TEST(CallbackPayload, IpmBlockCarriesBacktracksAndInertiaCorrections) {
+    Vec rosenbrock_start(2);
+    rosenbrock_start << -1.2, 1.0;
+    const auto rosenbrock =
+        expect_ipm_block_matches_trace(std::make_shared<RosenbrockNlp>(), rosenbrock_start);
+    EXPECT_GT(rosenbrock.trials, 0) << "non-vacuous: the filter line search backtracked";
+    Vec duplicate_start(2);
+    duplicate_start << 3.0, -1.0;
+    const auto duplicate =
+        expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start);
+    EXPECT_GT(duplicate.corrections, 0) << "non-vacuous: the inertia ladder ran";
+    EXPECT_GT(duplicate.counted, 0) << "IpmCounters::inertia_corrections counted the ladder";
+    const auto proximal =
+        expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start, true);
+    EXPECT_GT(proximal.dual, 0.0) << "non-vacuous: the proximal mode shifted the constraint rows";
+}
+
+// kBoundMultipliers on the fixed-variable MakeConstraint arm: the fixed coordinate's
+// price lives in an internal fixing row, and its sign split reaches z_lower/z_upper
+// there (z_lower - z_upper == z, both >= 0, nothing NaN).
+TEST(CallbackPayload, TheFixedVariableMakeConstraintArmSplitsItsPriceIntoTheBoundSides) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<FixedVarProblem>());
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
+        solver.set_options(std::move(o));
+    }
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+    Vec x0(2);
+    x0 << 0.0, 3.0;
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.internal_fixed_lambda_e.size(), 1) << "premise: the internal fixing row exists";
+    ASSERT_FALSE(rec.seen.empty());
+    const Seen &last = rec.seen.back();
+    ASSERT_EQ(last.z.size(), 2);
+    ASSERT_EQ(last.z_lower.size(), 2);
+    ASSERT_EQ(last.z_upper.size(), 2);
+    EXPECT_GT(std::abs(last.z[1]), 1.0) << "premise: the fixed coordinate carries a price";
+    for (const Seen &e : rec.seen) {
+        ASSERT_EQ(e.z_lower.size(), 2);
+        for (int j = 0; j < 2; ++j) {
+            EXPECT_FALSE(std::isnan(e.z_lower[j]) || std::isnan(e.z_upper[j]));
+            EXPECT_GE(e.z_lower[j], 0.0);
+            EXPECT_GE(e.z_upper[j], 0.0);
+        }
+        EXPECT_TRUE(near_rel(e.z_lower[1] - e.z_upper[1], e.z[1]));
+    }
+    EXPECT_TRUE(last.z[1] > 0.0 ? last.z_lower[1] > 0.0 && last.z_upper[1] == 0.0
+                                : last.z_upper[1] > 0.0 && last.z_lower[1] == 0.0);
+}
