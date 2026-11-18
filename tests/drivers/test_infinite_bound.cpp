@@ -31,7 +31,7 @@
 #include <Eigen/Core>
 
 #include "hven/core/compiler.h"
-#include "hven/detail/drivers/result_access.h"
+#include "hven/detail/solver/result_access.h"
 #include "hven/detail/sqp/sqp_solver_impl.h"
 #include "hven/detail/sqp/globalization/restoration.h"
 #include "hven/detail/barrier/barrier_math.h"
@@ -46,7 +46,7 @@
 #include "hven/detail/sqp/predictor.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "hven/ipm/ipm_solver.h"
-#include "hven/drivers/json_lines_trace_sink.h"
+#include "hven/trace/json_lines_trace_sink.h"
 #include "hven/sqp/sqp_solver.h"
 #include "hven/hven.h"
 #include "hven/model/nlp.h"

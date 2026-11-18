@@ -18,7 +18,7 @@
 // IT IS A BENCH INSTRUMENT AND NOTHING ELSE. Nothing in the library, the tests
 // or the install surface includes it.
 
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 namespace hven::corpus {
 

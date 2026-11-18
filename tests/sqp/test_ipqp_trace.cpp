@@ -17,7 +17,7 @@
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 #include "support/hs_problems.h"
 

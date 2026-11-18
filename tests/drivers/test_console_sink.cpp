@@ -35,10 +35,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/version.h>
-#include <hven/drivers/console_trace_sink.h>
+#include <hven/trace/console_trace_sink.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/sqp/sqp_solver.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 #include <hven/model/problem.h>
 
 #include "support/hs071_problem.h"

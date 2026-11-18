@@ -28,7 +28,7 @@
 #include <vector>
 
 #include <hven/core/types.h>
-#include <hven/drivers/common_options.h>
+#include <hven/solver/common_options.h>
 #include <hven/ipm/ipm_enums.h>
 #include <hven/linear/dense_policy.h>
 

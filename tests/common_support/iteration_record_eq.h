@@ -13,7 +13,7 @@
 #include <optional>
 #include <type_traits>
 
-#include <hven/drivers/iteration_record.h>
+#include <hven/solver/iteration_record.h>
 
 namespace hven::test {
 

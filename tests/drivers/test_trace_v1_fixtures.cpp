@@ -25,7 +25,7 @@
 #include <string>
 
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/json_lines_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #ifndef HVEN_TRACE_FIXTURE_DIR
 #error "HVEN_TRACE_FIXTURE_DIR must be defined by tests/drivers/CMakeLists.txt"

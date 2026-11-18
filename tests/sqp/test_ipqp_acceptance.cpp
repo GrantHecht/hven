@@ -16,13 +16,13 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"

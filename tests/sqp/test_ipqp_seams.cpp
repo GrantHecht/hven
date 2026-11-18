@@ -21,7 +21,7 @@
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp/ipqp_fault_injection.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 #include "support/indefinite_fixtures.h"
 

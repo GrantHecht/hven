@@ -48,8 +48,8 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
-#include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/json_lines_trace_sink.h>
+#include <hven/trace/console_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 // The portable stdout capture both console suites share (M6 W5 T8.7 fix1,
 // astra's I2): this file used to carry its own copy, which included <unistd.h>

@@ -383,9 +383,9 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/core/enum_names.cpp
     ${HVEN_SRC_DIR}/core/ledger.cpp
     ${HVEN_SRC_DIR}/core/pattern_hash.cpp
-    ${HVEN_SRC_DIR}/drivers/common_options.cpp
+    ${HVEN_SRC_DIR}/solver/common_options.cpp
     ${HVEN_SRC_DIR}/sqp/sqp_options.cpp
-    ${HVEN_SRC_DIR}/drivers/trace.cpp
+    ${HVEN_SRC_DIR}/trace/trace.cpp
     ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
     ${HVEN_SRC_DIR}/kkt/kkt_factor.cpp
     ${HVEN_SRC_DIR}/qp/ipqp/ipqp_engine.cpp

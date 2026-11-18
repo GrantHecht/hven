@@ -27,7 +27,7 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/drivers/json_lines_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>

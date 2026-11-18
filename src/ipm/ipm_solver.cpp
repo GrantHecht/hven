@@ -19,7 +19,7 @@
 
 #include "hven/core/errors.h"
 #include "hven/detail/core/finite_screen.h"
-#include "hven/detail/drivers/callback_rows.h"
+#include "hven/detail/solver/callback_rows.h"
 #include "hven/detail/ipm/ipm_solver_impl.h"
 #include "hven/detail/ipm/ipm_dense_testing.h"
 #include "hven/detail/kkt/dense_selection.h"
@@ -36,8 +36,8 @@
 
 #include "hven/detail/ipm/aggregate_views.h"
 #include "hven/core/ledger.h"
-#include "hven/drivers/console_trace_sink.h"
-#include "hven/drivers/trace.h"
+#include "hven/trace/console_trace_sink.h"
+#include "hven/trace/trace.h"
 #include "hven/detail/barrier/barrier_math.h"
 #include "hven/detail/ipm/solver_init.h"
 #include "hven/detail/util/get_core_count.h"
@@ -59,7 +59,7 @@
 #include "hven/detail/ipm/solver_context.h"
 #include "hven/detail/ipm/globalization/acceptance_mode.h"
 #include "hven/detail/ipm/globalization/globalization_mechanism.h"
-#include "hven/detail/drivers/return_best.h"
+#include "hven/detail/solver/return_best.h"
 #include "hven/detail/ipm/globalization/backtracking_line_search.h"
 #include "hven/detail/ipm/barrier_governor.h"
 #include "hven/detail/ipm/classic_adaptive_governor.h"

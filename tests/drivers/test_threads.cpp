@@ -100,7 +100,7 @@
 #include <mkl_service.h>
 #endif
 
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/model/nlp_model.h>

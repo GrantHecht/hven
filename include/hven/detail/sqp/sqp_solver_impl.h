@@ -23,8 +23,8 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/drivers/declared_diagnostics.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_major_row.h>
 #include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/detail/sqp/quasi_newton/qn_lift_bridge.h>
@@ -38,10 +38,10 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
-#include <hven/detail/warmstart/warm_start.h>
+#include <hven/detail/warmstart/crossover.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>

@@ -52,7 +52,7 @@
 #include <hven/detail/qp/ipqp/ipqp_math.h>
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/detail/qp/ssn/ssn_engine.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 using namespace hven::detail;
 

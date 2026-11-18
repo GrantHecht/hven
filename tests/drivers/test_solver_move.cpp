@@ -25,7 +25,7 @@
 #include <Eigen/Core>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/model/make_nlp_program.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/non_linear_program.h>

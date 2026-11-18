@@ -8,7 +8,7 @@
 // from this row when it is pushed.
 
 #include <hven/core/types.h>
-#include <hven/drivers/step_verdict.h>
+#include <hven/solver/step_verdict.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven {

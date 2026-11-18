@@ -40,7 +40,7 @@
 
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/json_lines_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 
 #include "support/hs_problems.h"
 

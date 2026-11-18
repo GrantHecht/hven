@@ -10,7 +10,7 @@
 
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 #include "support/hs_problems.h"
 

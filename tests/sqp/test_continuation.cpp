@@ -126,7 +126,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/sqp/continuation.h>
 #include <hven/detail/sqp/predictor.h>
-#include <hven/detail/warmstart/warm_start.h>
+#include <hven/detail/warmstart/crossover.h>
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "support/parametric_families.h"

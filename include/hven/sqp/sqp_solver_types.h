@@ -19,11 +19,11 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
-#include <hven/drivers/common_options.h>
-#include <hven/drivers/iteration_record.h>
-#include <hven/drivers/solve_result.h>
+#include <hven/solver/common_options.h>
+#include <hven/solver/iteration_record.h>
+#include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_options.h>
-#include <hven/drivers/step_verdict.h>
+#include <hven/solver/step_verdict.h>
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/sqp_warm_start.h>
 

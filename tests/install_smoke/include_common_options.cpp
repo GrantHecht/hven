@@ -8,7 +8,7 @@
 // W5 T8.3 added this header; it is the options both engines share and must
 // stand alone for a consumer that includes nothing else.
 
-#include "hven/drivers/common_options.h"
+#include "hven/solver/common_options.h"
 
 namespace hven_install_smoke {
 int standalone_include_common_options() { return 1; }

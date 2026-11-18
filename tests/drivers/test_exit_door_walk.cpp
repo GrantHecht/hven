@@ -20,7 +20,7 @@
 #include <vector>
 
 #include <hven/core/stop.h>
-#include <hven/detail/drivers/return_best.h>
+#include <hven/detail/solver/return_best.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/model/nlp.h>

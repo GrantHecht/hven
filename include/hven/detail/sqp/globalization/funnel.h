@@ -41,7 +41,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/drivers/step_verdict.h>
+#include <hven/solver/step_verdict.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::detail {

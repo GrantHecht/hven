@@ -46,7 +46,7 @@
 #include "hven/detail/ipm/ipm_solver_presets.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/problem_access.h"
-#include "hven/drivers/common_options.h"
+#include "hven/solver/common_options.h"
 #include "hven/ipm/ipm_solver.h"
 #include "hven/ipm/ipm_solver_types.h"
 #include "hven/sqp/sqp_solver.h"

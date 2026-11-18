@@ -195,7 +195,7 @@ std::string read(const std::filesystem::path &p) {
 TEST(TraceOffPath, EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder) {
     const std::filesystem::path root(HVEN_SRC_ROOT);
     std::vector<std::filesystem::path> files;
-    for (const char *dir : {"drivers", "ipm", "sqp", "qp"}) {
+    for (const char *dir : {"ipm", "sqp", "solver", "qp", "warmstart"}) {
         for (const auto &e : std::filesystem::recursive_directory_iterator(root / dir)) {
             if (e.is_regular_file() && e.path().extension() == ".cpp") {
                 files.push_back(e.path());

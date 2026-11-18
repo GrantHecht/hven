@@ -59,8 +59,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/drivers/declared_diagnostics.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>

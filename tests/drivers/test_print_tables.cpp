@@ -29,7 +29,7 @@
 
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/sqp/predictor.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 using hven::census_variable_bounds;
 using hven::Index;

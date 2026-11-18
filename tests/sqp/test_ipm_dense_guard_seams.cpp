@@ -74,7 +74,7 @@
 #include <hven/ipm/ipm_iterate.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 

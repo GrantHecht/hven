@@ -23,7 +23,7 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/sqp/sqp_solver_types.h>

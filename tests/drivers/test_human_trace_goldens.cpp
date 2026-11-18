@@ -28,7 +28,7 @@
 #include <sstream>
 #include <string>
 
-#include <hven/drivers/console_trace_sink.h>
+#include <hven/trace/console_trace_sink.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/model/problem.h>

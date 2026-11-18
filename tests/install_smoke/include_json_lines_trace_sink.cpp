@@ -7,7 +7,7 @@
 
 // W5 T4 moves the sink type into a public drivers/ header; this is the consumer view of it.
 
-#include "hven/drivers/json_lines_trace_sink.h"
+#include "hven/trace/json_lines_trace_sink.h"
 
 namespace hven_install_smoke {
 int standalone_include_json_lines_trace_sink() { return 1; }

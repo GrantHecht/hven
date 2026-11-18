@@ -32,7 +32,7 @@
 #include <Eigen/Core>
 
 #include "drivers/support/hs071_problem.h"
-#include "hven/detail/drivers/result_access.h"
+#include "hven/detail/solver/result_access.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_problem_model.h"
 #include "hven/detail/model/non_linear_program.h"

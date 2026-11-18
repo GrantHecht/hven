@@ -80,10 +80,10 @@ target_sources(hven PRIVATE
 
 target_sources(hven PRIVATE
     ipm/ipm_phase_status.cpp
-    drivers/solve_result.cpp
-    drivers/result_message.cpp
-    drivers/callback_rows.cpp
-    drivers/counters_dump.cpp
+    solver/solve_result.cpp
+    solver/result_message.cpp
+    solver/callback_rows.cpp
+    solver/counters_dump.cpp
 )
 
 ################################################################################
@@ -98,7 +98,7 @@ target_sources(hven PRIVATE
     ipm/ipm_solver.cpp
     ipm/ipm_solver_handle.cpp
     ipm/ipm_solver_globalization.cpp
-    drivers/common_options.cpp
+    solver/common_options.cpp
     ipm/ipm_options.cpp
     ipm/solver_init.cpp
     model/non_linear_program.cpp
@@ -204,15 +204,15 @@ target_sources(hven PRIVATE
 
 target_sources(hven PRIVATE
     sqp/assembly_eval_seam.cpp
-    drivers/console_trace_sink.cpp
+    trace/console_trace_sink.cpp
     sqp/equality_basis.cpp
     sqp/problem_scaling.cpp
     sqp/sqp_solver.cpp
     sqp/sqp_solver_handle.cpp
     sqp/sqp_options.cpp
     sqp/sqp_print.cpp
-    drivers/trace.cpp
-    drivers/trace_writer.cpp
+    trace/trace.cpp
+    trace/trace_writer.cpp
     sqp/globalization/funnel.cpp
     sqp/quasi_newton/lbfgs_damped.cpp
     sqp/quasi_newton/mixed_lift.cpp
@@ -225,7 +225,7 @@ target_sources(hven PRIVATE
     qp/ssn/ssn_engine.cpp
     qp/walk/ws_independence.cpp
     sqp/continuation.cpp
-    warmstart/warm_start.cpp
+    warmstart/crossover.cpp
 )
 
 ################################################################################

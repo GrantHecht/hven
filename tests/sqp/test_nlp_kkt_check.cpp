@@ -38,7 +38,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/sqp/sqp_solver_types.h>
 

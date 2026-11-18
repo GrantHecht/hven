@@ -38,7 +38,7 @@
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/json_lines_trace_sink.h>
+#include <hven/trace/json_lines_trace_sink.h>
 #include <hven/qp/qp_types.h>
 
 #include "support/qp_as_nlp_model.h"

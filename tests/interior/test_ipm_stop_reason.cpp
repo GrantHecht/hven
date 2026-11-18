@@ -25,9 +25,9 @@
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
-#include <hven/drivers/json_lines_trace_sink.h>
-#include <hven/drivers/solve_result.h>
-#include <hven/drivers/trace.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/solver/solve_result.h>
+#include <hven/trace/trace.h>
 #include <hven/model/nlp.h>
 
 #include "../common_support/console_capture.h" // NOLINT(build/include_subdir)

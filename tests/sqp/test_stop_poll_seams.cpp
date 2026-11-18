@@ -46,15 +46,15 @@
 
 #include <hven/detail/core/stop_poll.h>
 #include <hven/core/stop.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/json_lines_trace_sink.h>
-#include <hven/drivers/solve_result.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>

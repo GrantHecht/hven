@@ -11,7 +11,7 @@
 #include <cmath>
 #include <vector>
 
-#include <hven/drivers/trace.h>
+#include <hven/trace/trace.h>
 
 namespace hven::test {
 

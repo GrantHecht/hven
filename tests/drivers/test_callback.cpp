@@ -54,8 +54,8 @@
 
 #include <hven/core/ledger.h>
 #include <hven/core/stop.h>
-#include <hven/detail/drivers/declared_diagnostics.h>
-#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/nlp_model.h>
@@ -64,8 +64,8 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
-#include <hven/drivers/json_lines_trace_sink.h>
-#include <hven/drivers/solve_result.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
