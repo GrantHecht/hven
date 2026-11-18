@@ -51,7 +51,7 @@ M = {
     'n1': (SQP, 'detail::switching_ratio_value(\n        mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);',
            'mj.ctx.pred_df / (detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);'),
     # n1b (r4): the helper's zero-denominator branch removed (plain division inside the helper).
-    'n1b': (HDR, '    if (denominator == 0.0) {\n        if (pred_df == 0.0 || std::isnan(pred_df)) {\n            return std::numeric_limits<double>::quiet_NaN();\n        }\n        return std::copysign(std::numeric_limits<double>::infinity(), pred_df);\n    }\n', ''),
+    'n1b': (HDR, '    const double quotient = pred_df / (zero_denominator ? 1.0 : denominator);', '    const double quotient = pred_df / denominator;'),
     # n2 (r4): the non-finite rollback advances the histogram's run (the pre-r4 behaviour of the shared counter).
     'n2': (SQP, '        st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;\n',
            '        st.counted_run_at_iterate = st.rollback.counted_run_at_iterate + 1;\n'),
