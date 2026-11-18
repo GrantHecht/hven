@@ -556,7 +556,7 @@ What it is *for*: it is where `RecordProperty` observations land durably
 instead of being formatted to a console and discarded. Tests that record
 rather than assert — the `iparm[18]` `pardisoinit` default in
 `tests/linear/test_fault_injection.cpp`, and the observed task-6b residual
-columns in `tests/sqp/test_corpus_cells.cpp`, the ones the divergence register
+columns in `tests/bench/test_corpus_cells.cpp`, the ones the divergence register
 reports rather than asserts on Accelerate — put their values in these files,
 which is what makes a reported value re-readable from a named run rather than
 lost. (The Test step's own comment also names `test_ssn_engine.cpp` here; that

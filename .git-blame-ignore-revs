@@ -1,0 +1,18 @@
+# Commits that only move files (git mv) and re-spell include lines, CMake path
+# strings and comments: the RS restructure (docs/migration-0.2.md, "Include
+# paths (RS)"). Skip them in `git blame` with
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub's blame view reads this file by itself).
+
+# RS-1a: foundations -- detail/core, detail/util, src/util
+a6bcaf94ed3275726b0d22eff3a1f288bd786e4f
+# RS-1b: shared numerics and the qp split -- detail/barrier, detail/kkt, detail/qp/{walk,ssn,ipqp}
+26d7480908944d77ca91e7af6f392041595be91f
+# RS-1c: the interior-point engine -- hven/ipm, detail/ipm, src/ipm
+f9727bf2813ba7f43eef9a017e9abd206f9b02c9
+# RS-1d: the SQP engine -- hven/sqp, detail/sqp, src/sqp
+543589f2d03996bac28b1cc57a92b3ca6eb8cbff
+# RS-1e: shared surface and trace -- hven/solver, hven/trace, detail/solver, src/solver, src/trace
+48a4ecd5bf58fc4473fbe2676017c85e1c0f3add
+# RS-2: test re-layout -- tests/{core,linear,model,kkt,qp,warmstart,solver,trace,ipm,bench}
+43f5573f9967ae78fa61aefa8f28fc5dc07cb123

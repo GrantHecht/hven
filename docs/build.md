@@ -24,7 +24,7 @@ ccache disabled):
 
 - Parsing the header set in `src/hven_pch.h` costs **3.01 s**, and that
   cost is paid once per TU that includes it.
-- `src/drivers/ipm_solver.cpp` is the largest TU at 3722
+- `src/ipm/ipm_solver.cpp` is the largest TU at 3722
   lines and 7.02 s. **3.01 s of that is the headers**; only 4.01 s is
   its own body. (The per-TU table in `src/CMakeLists.txt` records 6.99 s
   for the same file. The two figures are separate measurements — this
@@ -63,13 +63,13 @@ presumed for anything touching engine code, and a byte-identical object
 is the strongest available proof: identical bytes cannot move a
 golden-rig row or a counter. With the current list, every object file the
 Linux build produces (28 of them: 21 after M3 phase-C T1/T2 added
-`drivers/sqp_print.cpp` and `core/ledger.cpp` and brought the
-previously-unmeasured `kkt/kkt_calls.cpp` into the measurement table,
-then T3's `drivers/sqp_options.cpp` and `core/enum_names.cpp`, then
-T4's `globalization/sqp/funnel.cpp`, then T5's `drivers/sqp_solver.cpp`,
-then T6's `globalization/sqp/soc_elastic_restoration.cpp`, then
-T7's `warmstart/warm_start.cpp`, then T8's
-`warmstart/continuation.cpp`)
+`sqp/sqp_print.cpp` and `core/ledger.cpp` and brought the
+previously-unmeasured `kkt/kkt_factor.cpp` into the measurement table,
+then T3's `sqp/sqp_options.cpp` and `core/enum_names.cpp`, then
+T4's `sqp/globalization/funnel.cpp`, then T5's `sqp/sqp_solver.cpp`,
+then T6's `sqp/globalization/soc_elastic_restoration.cpp`, then
+T7's `warmstart/crossover.cpp`, then T8's
+`sqp/continuation.cpp`)
 *and* `libhven.a` itself
 are byte-identical with and without the PCH — which is what
 `scripts/check_pch_neutrality.sh` re-proves on demand and in CI.
@@ -89,7 +89,7 @@ decision, not a build decision.
 ### If you edit `src/hven_pch.h`
 
 The header's include list is the include block of
-`src/drivers/ipm_solver.cpp`, verbatim and in the same order.
+`src/ipm/ipm_solver.cpp`, verbatim and in the same order.
 That ordering is load-bearing — it is what makes the byte-identity
 property hold, which is why both lists carry a `// clang-format off`
 guard (clang-format would otherwise alphabetize them). After any edit,

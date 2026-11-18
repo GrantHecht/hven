@@ -3,7 +3,7 @@
 include/ src/ tests/ bench/ examples/ scripts/ cmake/ CMakeLists.txt .github.  A token inside a string literal, or in code, is never edited:
 it is listed (--report) for manual disposition.  A token is rewritten only if it is NOT a suffix of a file that exists in the tree today
 and IS a suffix of exactly one pre-RS path in the map.
-usage: rs3_comments.py <worktree> <map> [--apply] [--report FILE] [--literal-ok f1,f2,...]
+usage: rs3_comments.py <worktree> <map> [--basename] [--apply] [--report FILE] [--literal-ok f1,f2,...]
 --literal-ok: files in which a token in a string/diagnostic text (never an artifact-reaching literal) may also be rewritten"""
 import re, subprocess, sys, os
 wt, mp = sys.argv[1], sys.argv[2]
@@ -26,10 +26,23 @@ old_by_suf = {}
 for o in old2new:
     for s in suffixes(o):
         old_by_suf.setdefault(s, []).append(o)
-TOK = re.compile(r'(?<![\w/.\-])((?:[\w.\-]+/)+[\w.\-]+\.(?:h|cpp|cmake|txt|py|sh|json|jsonl|csv|in|yml))(?![\w/])')
+TOK = re.compile(r'(?<![\w/.\-])((?:[\w.\-]+/)+[\w.\-]+\.(?:h|cpp|cmake|txt|py|sh|json|jsonl|csv|in|yml|md))(?![\w/])')
 ROOTS = ('include/hven/', 'src/', 'tests/')
+by_base = {}
+for c in cur: by_base.setdefault(os.path.basename(c), []).append(c)
+BASENAME = '--basename' in sys.argv
+DOCS = '--docs' in sys.argv   # prose mode: top-level docs/*.md and README.md; every line is prose
 def resolve(tok):
     t = tok
+    if BASENAME:
+        # second pass: a rooted token (tests/ src/ include/hven/) that names no file today (stale before RS too: flat-layout spellings)
+        # is resolved by its basename when exactly one tracked file under the same root carries it
+        for r in ('include/hven/', 'src/', 'tests/'):
+            if t.startswith(r):
+                if any(c == t for c in cur): return None
+                cands = [c for c in by_base.get(os.path.basename(t), []) if c.startswith(r)]
+                return ('OK', cands[0]) if len(cands) == 1 else None
+        return None
     pre = ''
     for p in ('include/hven/', 'hven/', 'src/', 'tests/'):
         if t.startswith(p):
@@ -39,12 +52,14 @@ def resolve(tok):
     if not c: return None
     if len(c) > 1: return ('AMBIG', c)
     old = c[0]; new = old2new[old]
+    if new.startswith('DELETE'): return ('AMBIG', [new])   # a deleted file has no new path: the token stays (historical)
     if pre in ('include/hven/', 'src/', 'tests/'): return ('OK', new)
     if pre == 'hven/': return ('OK', new[len('include/'):]) if new.startswith('include/hven/') else ('AMBIG', [new])
     for r in ROOTS:
         if new.startswith(r): return ('OK', new[len(r):])
     return ('AMBIG', [new])
 def comment_start(path, line):
+    if DOCS: return 0
     ext = os.path.splitext(path)[1]
     if ext in ('.h', '.cpp', '.hpp', '.cc'):
         s = line.lstrip()
@@ -58,9 +73,12 @@ def comment_start(path, line):
 def in_literal(line, pos, cstart):
     # a token before the comment start, or inside a "..." that opens after the comment marker is fine for // comments only if marker is outside quotes
     return cstart is None or pos < cstart
-files = [f for f in cur if f.startswith(('include/', 'src/', 'tests/', 'bench/', 'examples/', 'scripts/', 'cmake/', '.github/', 'bindings/')) or f in ('CMakeLists.txt',)]
-files = [f for f in files if not re.search(r'\.(csv|jsonl|json|txt|md|in)$', f) or f.endswith(('CMakeLists.txt', '.cmake', '.in'))]
-files = [f for f in files if '/golden/' not in f and '/golden_rig/data' not in f]
+if DOCS:
+    files = [f for f in cur if re.fullmatch(r'docs/[^/]+\.md', f) or f == 'README.md']
+else:
+  files = [f for f in cur if f.startswith(('include/', 'src/', 'tests/', 'bench/', 'examples/', 'scripts/', 'cmake/', '.github/', 'bindings/')) or f in ('CMakeLists.txt',)]
+if not DOCS: files = [f for f in files if not re.search(r'\.(csv|jsonl|json|txt|md|in)$', f) or f.endswith(('CMakeLists.txt', '.cmake', '.in'))]
+if not DOCS: files = [f for f in files if '/golden/' not in f and '/golden_rig/data' not in f]
 out = []; nedit = 0; nfile = 0
 for f in files:
     p = os.path.join(wt, f)
@@ -69,6 +87,7 @@ for f in files:
     changed = False
     for i, line in enumerate(lines):
         if '#include' in line: continue
+        if re.match(r'^#   \S+\.cpp\s+[\d.]+ -> [\d.]+', line): continue   # the measured historical PCH table keeps its old paths
         cs = comment_start(f, line)
         new_line = line; off = 0
         for m in TOK.finditer(line):

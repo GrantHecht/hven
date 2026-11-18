@@ -41,7 +41,7 @@
 > 3. **`DenseSymmetricFactor` cannot host the Schur border as-is (gap
 >    found here, not in the plan).** The border factors `C` with
 >    `LAPACKE_dsytrf(..., 'L', ...)` — the LOWER triangle
->    (`include/hven/detail/sqp/schur_complement.h:307`; the solve side's
+>    (`include/hven/detail/kkt/schur_complement.h:307`; the solve side's
 >    `dsytrs` uses `'L'` likewise, `schur_complement.h:174`) — while
 >    `DenseSymmetricFactor` is upper-triangle-only
 >    (`include/hven/linear/dense_symmetric_factor.h:24-35`); Bunch-Kaufman
@@ -422,7 +422,7 @@ hven instead RETURNS a backend failure in `FactorizeOutcome`
 `"pardiso phase 22 failed: error {}"` names a phase that no longer
 exists at this layer); no test or census pins that text (verified: the
 suite's `escape_detail` assertions match engine-authored substrings
-only, e.g. `tests/sqp/test_ssn_engine.cpp:224,2065,2840`), and §11
+only, e.g. `tests/qp/test_ssn_engine.cpp:224,2065,2840`), and §11
 records the residual exposure for the gate.
 
 `analyze()` failures already throw on both sides
@@ -544,7 +544,7 @@ handled as its own branch.
 | `qp_engine.h:4093-4094` (`border_inertia_verdict` tail) | reads `border.kkt` after `needs_refactorization()` screening | assert-observed (same guarantee as `qp_engine.h:3970`) |
 | `ssn_engine.h:2222-2223` (in-loop gate), `2525` (deferred certification) | immediately after a successful `factorize` | assert-observed |
 | `ssn_engine.h:2250-2251,2266,2536-2537` | diagnostic `escape_detail` prints of the counts | assert-observed; print `e.n_pos`/`e.n_neg` from the same evidence object the verdict consumed, so message and verdict can never describe different factorizations |
-| `tests/sqp/test_kkt_inertia_probe.cpp` (20 reads), `test_kkt_system.cpp:14-27`, `test_qp_engine_indefinite.cpp` (13 reads), `test_qp_engine_border.cpp`, `test_ssn_engine.cpp`, `test_qp_engine.cpp` | fixture-level reads | retargeted mechanically onto `FactorizeOutcome`/`inertia()`; the inertia-probe pins keep pinning the findings-doc behavior (fabricated-looking counts under perturbation) through the evidence type |
+| `tests/kkt/test_kkt_inertia_probe.cpp` (20 reads), `test_kkt_system.cpp:14-27`, `test_qp_engine_indefinite.cpp` (13 reads), `test_qp_engine_border.cpp`, `test_ssn_engine.cpp`, `test_qp_engine.cpp` | fixture-level reads | retargeted mechanically onto `FactorizeOutcome`/`inertia()`; the inertia-probe pins keep pinning the findings-doc behavior (fabricated-looking counts under perturbation) through the evidence type |
 | `tests/golden_rig/seam_sqp.cpp:225-229` | the OLD-SEAM adapter's unguarded reads | UNTOUCHED — it compiles against the pinned sibling tag, not this tree, and its refusal to smooth is load-bearing (docket, "the rig's adapter is deliberately not protecting anyone from this") |
 
 ### 4.3 Accelerate deltas are licensed, docket-named, Mac-proven
@@ -632,7 +632,7 @@ on hven's internals.
 calls the partial solves or the gate — `SchurComplement` deliberately
 uses the two-full-solve variant and the partial-solve fast path was
 never implemented (`schur_complement.h:52-64`); the callers are the
-test suite (`tests/sqp/test_kkt_partial_solve.cpp`,
+test suite (`tests/kkt/test_kkt_partial_solve.cpp`,
 `test_accelerate_probes.cpp:118,146`) and the golden rig's old-seam
 adapter. M2 recorded hven's partial-solve path as untested by the IPM
 migration (vacuous mapping); the migrated SQP SUITE is its first real
@@ -745,10 +745,10 @@ With this, `schur_complement.h` drops both LAPACKE includes
 (`schur_complement.h:81-85` — the `#ifdef USE_ACCELERATE_SPARSE` switch
 and the MKL header) and the SQP `lapacke_shim.h` loses its last
 in-tree engine consumer. Its OTHER includer is
-`tests/sqp/test_accelerate_probes.cpp:29` (the phase-A carry's second
+`tests/linear/test_accelerate_probes.cpp:29` (the phase-A carry's second
 inventory item): the shim-consuming probes retarget onto
 `hven::linear::detail`'s shim or retire with the twin they probe (§10),
-and `include/hven/detail/sqp/lapacke_shim.h` is deleted. The global-scope
+and `include/hven/detail/linear/lapacke_shim.h` is deleted. The global-scope
 duplication with `include/hven/detail/linear/lapacke_shim.h` (which is
 namespaced under `hven::linear::detail` and guard-hardened —
 `lapacke_shim.h:41-43,59-64,66`) ends with it.
@@ -836,7 +836,7 @@ consumer holds a second `SymmetricFactor` on the same pattern — which
 is exactly why the conjunct is cheap now and expensive after a second
 session exists (plan §4.3). The forged-handle tests (the R3 probe
 family around `hot_state()`, `qp_engine.h:2307-2341`;
-`tests/sqp/test_qp_warm_start.cpp`) re-derive against the triple:
+`tests/qp/test_qp_warm_start.cpp`) re-derive against the triple:
 emission captures committed values, adoption copies them
 (`qp_engine.h:2760-2766`), the live-vs-committed discrimination
 argument transfers with epoch playing generation's role. **Declared
@@ -858,9 +858,9 @@ line named. "H" = the §3.2 helper (`KktFactor` /
 | `schur_complement.h:87` | same |
 | `schur_complement.h:81-85` (`lapacke_shim.h` / `mkl_lapacke.h` switch) | `hven/linear/dense_symmetric_factor.h`, unconditional — the platform `#if` dissolves |
 | `kkt_system.h:5-7` (platform dispatch to the Accelerate twin) | file deleted |
-| `tests/sqp/test_accelerate_probes.cpp:28-29` | see §10 (probe disposition) |
+| `tests/linear/test_accelerate_probes.cpp:28-29` | see §10 (probe disposition) |
 | `tests/sqp/test_kkt_system.cpp:2`, `test_kkt_partial_solve.cpp:2`, `test_kkt_inertia_probe.cpp:2`, `test_border_ops.cpp:9`, `test_qp_engine_border.cpp:9`, `test_qp_engine_indefinite.cpp:36` | `hven/linear/symmetric_factor.h` (+ helper) per §10 |
-| `tests/sqp/test_schur.cpp:2` (via `schur_complement.h`), `test_eqp_solve.cpp:3` and `test_eqp_refine_ab.cpp:50` (via `eqp_solve.h`) | no direct include of a dissolving file — these reach `KktSystem` TRANSITIVELY, which is why an includes-only sweep misses them; their live constructions are inventoried at §8.6 |
+| `tests/kkt/test_schur.cpp:2` (via `schur_complement.h`), `test_eqp_solve.cpp:3` and `test_eqp_refine_ab.cpp:50` (via `eqp_solve.h`) | no direct include of a dissolving file — these reach `KktSystem` TRANSITIVELY, which is why an includes-only sweep misses them; their live constructions are inventoried at §8.6 |
 
 ### 8.2 `KktSystem` lifecycle and solve touches
 
@@ -903,7 +903,7 @@ retarget to `SymmetricFactor`/the helper; none carries code.)
 | `schur_complement.h:330-359` | Bunch-Kaufman block walk over `factored_`/`ipiv_` | consume the factor's block evidence (§6.3), arithmetic migrated verbatim |
 | `schur_complement.h:172-179` | in-place `LAPACKE_dsytrs` on `y` | `DenseSymmetricFactor::solve` (pre-sized destination; same factors, same `dsytrs`, float-identical) |
 | `schur_complement.h:362-375` | members `factored_`, `ipiv_`, `singular_`, `block_abs_eigs_`, `neg_count_` | `DenseSymmetricFactor` member + `singular_` + the evidence copy; `block_abs_eigs_`/`neg_count_` read from evidence |
-| `include/hven/detail/sqp/lapacke_shim.h` (whole file: shim at 44-83) | Apple-only LAPACKE source for the above | DELETED; `hven/detail/linear/lapacke_shim.h` serves the dense factor internally (`dense_symmetric_factor.h:10-14`) |
+| `include/hven/detail/linear/lapacke_shim.h` (whole file: shim at 44-83) | Apple-only LAPACKE source for the above | DELETED; `hven/detail/linear/lapacke_shim.h` serves the dense factor internally (`dense_symmetric_factor.h:10-14`) |
 
 ### 8.5 Hot-handle sites (§7)
 
@@ -923,10 +923,10 @@ rows do not surface them. Every construction line, named:
 
 | Site | Current touch | Replacement |
 | --- | --- | --- |
-| `tests/sqp/test_schur.cpp:20,46,70,101,122,177,225,247,270` | `KktSystem kkt(opts)` locals backing the `SchurComplement` unit suite | `KktFactor` locals; factorization through `factorize_checked` where the fixture factorizes K0 |
-| `tests/sqp/test_schur.cpp:22,48,72,103,124,187,232,249,277,281` | `SchurComplement schur(kkt, opts)` constructions (including the `healthy`/`sick` pair at 277/281) | the ctor's retargeted reference (§8.2). Assertions unchanged — this suite becomes the FLOAT-PARITY WITNESS for §6.3's dense-factor growth: `cond_estimate()`, `expected_neg_eigs_delta()`, `nearly_singular()` and the exact-singular behavior must come back bit-identical through `DenseSymmetricFactor` |
-| `tests/sqp/test_eqp_solve.cpp:73,84,119` | `KktSystem kkt{QpOptions{}}` locals fed to `solve_eqp` | `KktFactor` locals matching `eqp_solve.h:167`'s retargeted signature |
-| `tests/sqp/test_eqp_refine_ab.cpp:540` | `KktSystem kkt{on}` inside the A/B probe lambda, fed to `solve_eqp` | same |
+| `tests/kkt/test_schur.cpp:20,46,70,101,122,177,225,247,270` | `KktSystem kkt(opts)` locals backing the `SchurComplement` unit suite | `KktFactor` locals; factorization through `factorize_checked` where the fixture factorizes K0 |
+| `tests/kkt/test_schur.cpp:22,48,72,103,124,187,232,249,277,281` | `SchurComplement schur(kkt, opts)` constructions (including the `healthy`/`sick` pair at 277/281) | the ctor's retargeted reference (§8.2). Assertions unchanged — this suite becomes the FLOAT-PARITY WITNESS for §6.3's dense-factor growth: `cond_estimate()`, `expected_neg_eigs_delta()`, `nearly_singular()` and the exact-singular behavior must come back bit-identical through `DenseSymmetricFactor` |
+| `tests/qp/test_eqp_solve.cpp:73,84,119` | `KktSystem kkt{QpOptions{}}` locals fed to `solve_eqp` | `KktFactor` locals matching `eqp_solve.h:167`'s retargeted signature |
+| `tests/qp/test_eqp_refine_ab.cpp:540` | `KktSystem kkt{on}` inside the A/B probe lambda, fed to `solve_eqp` | same |
 
 ## 9. Migration hazards
 
@@ -1002,15 +1002,15 @@ enumerated in the gate report):
    `ConstraintUnsupported<T>`, with a compile-fail probe asserting the
    AUTHORED constraint-route message fires and the raw member-lookup
    diagnostic does not — modeled on the existing probe family
-   (`tests/interior/CMakeLists.txt:64-131`,
-   `tests/interior/compile_fail/`). ONE fixture, not a matrix:
+   (`tests/ipm/CMakeLists.txt:64-131`,
+   `tests/model/compile_fail/`). ONE fixture, not a matrix:
    compile-fail probes cost ~90 s serial per ctest run and nested
    builds are unthrottled under `ctest -j` (the M2 t55f2-m1 cost note,
    carried by the plan). **DISCHARGED 2026-08-15 (phase-C C0.4):**
    `adapter_fixture::StubMixinObjectiveOnly` in
-   `tests/interior/adapter_fixture_functions.h`, registered through
+   `tests/model/support/adapter_fixture_functions.h`, registered through
    `ConstraintUnsupported<T>`, with the sixth family probe
-   `tests/interior/compile_fail/constraint_unsupported_mixin.cpp`
+   `tests/model/compile_fail/constraint_unsupported_mixin.cpp`
    inheriting the family's `FORBIDDEN_REGEX`, `EXPECT_SINGLE_ERROR` and
    shared `RESOURCE_LOCK` unchanged. It landed with the family rather
    than under `tests/sqp/` because forking the family would fork the

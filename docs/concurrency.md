@@ -5,7 +5,7 @@ facility, and it will not grow one: handing N problems to N worker threads and
 collecting the results is orchestration, and orchestration belongs to the
 consumer. That is the owner's ruling of 2026-09-11
 (`docs/notes/2026-08-m6-ledger.md:4421-4431`), which also deleted
-`detail/interior/jet.h` — the header that used to carry a map of that shape —
+`jet.h` (since deleted) — the header that used to carry a map of that shape —
 and registered this page and its one pin as the W6 item that states the terms (a
 SECOND pin, for the fan-out shape exception 1 describes, landed at M7 W0 T1).
 `jet.h` stays deleted.
@@ -53,12 +53,12 @@ applies a **thread-local** MKL override at backend-call scope and undoes it on
 every exit, so an instance pinned to one backend thread does not reach out and
 re-point any other MKL user in the process — see "`MklThreadScope`" below. For
 the interior-point engine, `hven::worker_options(base)`
-(`include/hven/drivers/ipm_options.h`) is the named preset that
+(`include/hven/ipm/ipm_options.h`) is the named preset that
 writes exactly `common.threads = 1` and `common.verbosity = Verbosity::kSilent`
 and nothing else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
 
 **The evidence** is `Concurrency.NInstancesOnNThreadsMatchSerial`
-(`tests/drivers/test_concurrency.cpp`): four instances on four `std::thread`s —
+(`tests/solver/test_concurrency.cpp`): four instances on four `std::thread`s —
 two `SqpSolver` cells, two `IpmSolver` cells, each over its own problem, every
 options value at `common.threads = 1` — against the same four solves run
 serially first in the same process.
@@ -77,7 +77,7 @@ engines (the SQP forwards the token into its restoration sub-solve). The
 evidence is
 `StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint` and
 `StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial`
-(`tests/drivers/test_stop_token.cpp`), with a local ThreadSanitizer run of the
+(`tests/solver/test_stop_token.cpp`), with a local ThreadSanitizer run of the
 cross-thread case recorded in `docs/notes/data/2026-11-m8-ap5-g1/`.
 
 ## What a consumer may NOT do
@@ -90,7 +90,7 @@ cross-thread case recorded in `docs/notes/data/2026-11-m8-ap5-g1/`.
   including re-entering it from an iteration callback. The per-component notes
   say the same thing one layer down: `include/hven/linear/symmetric_factor.h:238-240`
   ("solves are not internally synchronized … concurrent solves across co-owners
-  must be serialized by the caller"), `include/hven/detail/qp/qp_engine.h:122-128`
+  must be serialized by the caller"), `include/hven/detail/qp/walk/walk_engine.h:122-128`
   (two different engines sharing one `BorderState` is undefined **concurrently**
   and safe **sequentially**), `include/hven/detail/model/nlp_model_assembly.h:76-78`.
 - **Share one `Ledger` or one `TraceSink` between concurrently-solving
@@ -99,7 +99,7 @@ cross-thread case recorded in `docs/notes/data/2026-11-m8-ap5-g1/`.
   neither is synchronized: `Ledger::record` is a bare `push_back`
   (`include/hven/core/ledger.h:212-218`) and `JsonLinesTraceSink` says so itself
   — "one sink serves one solve at a time on one thread"
-  (`include/hven/drivers/trace_writer.h:57-59`). One ledger and one sink per
+  (`include/hven/trace/json_lines_trace_sink.h`, the class comment). One ledger and one sink per
   instance; merge afterwards.
 - **Expect a parallel-solve facility.** There is none, by ruling. No API here
   starts a thread, takes a thread count for solves-in-flight, or collects
@@ -114,7 +114,7 @@ two are not the same claim:
 - **Counters and statuses: EXACT.** No floating-point arithmetic produces them,
   so a single-bit move in one is a real regression and is refused.
 - **Floating-point measures: the 1e-5 relative gate with a 1e-13 absolute
-  floor**, the rule `tests/sqp/test_corpus_cells.cpp:908-944` states and `:3618`
+  floor**, the rule `tests/bench/test_corpus_cells.cpp:908-944` states and `:3618`
   floors. MKL's kernels are address-sensitive — the property CNR mode exists for
   — and a heap touched by four threads hands the same solve different addresses,
   so a measure may differ in its last digits with no counter moving. CLAUDE.md §7
@@ -138,7 +138,7 @@ pointer are its own.
 ### 1. The interior-point engine's evaluation pool — process-global, confirmed
 
 `hven::detail::thread_pool()` is a function-local `static ThreadPool`
-(`src/interior/utils/thread_pool.cpp:29`) and its width is a namespace-scope
+(`src/util/thread_pool.cpp:29`) and its width is a namespace-scope
 `std::atomic<int> g_num_threads` (`:10`) that **defaults to
 `std::thread::hardware_concurrency()`, not to 1**. `hven::detail::set_num_threads`
 (`:33-68`) resizes the one pool for the whole process, and the model layer says
@@ -146,7 +146,7 @@ so at the setter a consumer actually sees:
 `NonLinearProgram::set_evaluation_threads` routes straight to it and its comment
 names the consequence — "Setting it through one aggregate sets it for every
 aggregate in the process" (`include/hven/detail/model/non_linear_program.h:1002-1008`).
-`ThreadPool::requested_thread_count()` (`include/hven/detail/interior/utils/thread_pool.h:486-487`)
+`ThreadPool::requested_thread_count()` (`include/hven/detail/util/thread_pool.h:486-487`)
 is a second process-global atomic in the same mechanism: the size stash the
 pool's constructor reads.
 
@@ -162,7 +162,7 @@ rests on the pool's own design statement alone (per-dispatch latches make
 concurrent dispatches from separate threads inherently safe; `thread_pool.h`, the
 "Per-dispatch latches" paragraph). The pin is
 `Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`
-(`tests/drivers/test_concurrency.cpp`), beside the N×1 pin above and running the
+(`tests/solver/test_concurrency.cpp`), beside the N×1 pin above and running the
 same two steps over the same helpers: it builds TWO different programs through
 the internal `make_nlp_program(problem, num_partitions)` (a public `Problem(Nlp)` lays one partition; a pieces problem's request is `AssemblyDeclaration::set_partitions`) at counts the layout
 ACTUALLY ADOPTS — 2 partitions over 3000 user KKT elements and 3 over 4200,
@@ -217,7 +217,7 @@ capped down further on small problems
 (`src/model/non_linear_program.cpp:423-425`, threshold
 `kMinKktElementsPerPartition` = 1000 KKT elements per partition), and
 `parallel_sequence` runs **inline** whenever `nparts <= 1`
-(`include/hven/detail/interior/utils/thread_pool.h:698-707`) — so at one
+(`include/hven/detail/util/thread_pool.h:698-707`) — so at one
 partition the pool is never dispatched to (and, before the fan-out pin runs in the
 same process, not yet constructed — a test-order fact, not a promise). The pin's
 interior-point cells stay clear of this exception exactly that way, and they
@@ -252,10 +252,10 @@ neither sets it nor depends on it, and the gate above is what stands in for it.
 
 On Apple only (`USE_ACCELERATE_SPARSE`), the interior-point driver calls
 `accelerate_set_num_threads(opts_.common.threads)` at two sites
-(`src/drivers/ipm_solver.cpp:950` and `:5281`), and startup calls
+(`src/ipm/ipm_solver.cpp:950` and `:5281`), and startup calls
 `ensure_accelerate_initialized()` once per process
-(`src/drivers/solver_init.cpp:25`). Read at source
-(`include/hven/detail/interior/utils/accelerate_threads.h:99-127`):
+(`src/ipm/solver_init.cpp:25`). Read at source
+(`include/hven/detail/ipm/accelerate_threads.h:99-127`):
 
 - On macOS 15+ the call is `BLASSetThreading`, which is **per calling thread**
   and a binary toggle, not a count — and it is **never restored**, on that
@@ -267,7 +267,7 @@ On Apple only (`USE_ACCELERATE_SPARSE`), the interior-point driver calls
 Either way the promise `MklThreadScope` keeps on MKL — apply for this call, put
 back what was there — is **not kept on Apple**, which is why the SQP engine
 deliberately does not mirror the driver-level call
-(`include/hven/drivers/common_options.h:47-54`) and why
+(`include/hven/solver/common_options.h:47-54`) and why
 `SymmetricFactor::set_threads` on Accelerate stores a count and applies it to
 nothing.
 
@@ -288,16 +288,15 @@ recorded so a later reader does not have to re-derive them:
 | Site | What it is | Why it is not a fourth exception |
 | --- | --- | --- |
 | `include/hven/detail/linear/session_id.h:42-45` | `next_session_id()`, a function-local `static std::atomic<uint64_t>` | Process-global by design and stated so in its own comment: an identity, unique within one process run, never persisted. Which id a session draws depends on process-wide creation order, so it is **not** stable under concurrency and is not a result column. Nothing keyed on it crosses instances. |
-| `src/drivers/ipm_solver.cpp:2113-2116` | `IpmSolver::next_owner_id()`, the same shape | The same reading, for the analysis owner id. |
-| `src/drivers/solver_init.cpp:18-37` | `ensure_solver_initialized()`, a `std::call_once` over a function-local flag | One-time backend initialization, thread-safe by construction. It has one observable consequence worth naming: it returns a non-zero duration **only to the first caller in the process**, so `IpmResult::solver_init_time` and the `kSolverInitialized` trace message are a once-per-process event, not a per-solve one (the tree already records this at `tests/interior/test_ipm_trace.cpp:1789-1801`). Both are timings, which CLAUDE.md §7 keeps informational and never asserted; the pin therefore compares no timing column. Its Apple branch is part of exception 3. |
-| `src/interior/utils/memory_management.cpp:13-16` | `BumpAllocator`'s two `thread_local` arenas | Per thread, not shared. No library call site: nothing in `src/` or `include/hven/` outside its own header uses `BumpAllocator` today. |
+| `src/ipm/ipm_solver.cpp:2113-2116` | `IpmSolver::next_owner_id()`, the same shape | The same reading, for the analysis owner id. |
+| `src/ipm/solver_init.cpp:18-37` | `ensure_solver_initialized()`, a `std::call_once` over a function-local flag | One-time backend initialization, thread-safe by construction. It has one observable consequence worth naming: it returns a non-zero duration **only to the first caller in the process**, so `IpmResult::solver_init_time` and the `kSolverInitialized` trace message are a once-per-process event, not a per-solve one (the tree already records this at `tests/ipm/test_ipm_trace.cpp:1789-1801`). Both are timings, which CLAUDE.md §7 keeps informational and never asserted; the pin therefore compares no timing column. Its Apple branch is part of exception 3. |
+| `src/util/memory_management.cpp:13-16` | `BumpAllocator`'s two `thread_local` arenas | Per thread, not shared. No library call site: nothing in `src/` or `include/hven/` outside its own header uses `BumpAllocator` today. |
 | `src/linear/accelerate_session.cpp:43` | `thread_local std::string g_last_error` | Per thread. Apple only. |
-| `include/hven/detail/interior/utils/thread_pool.h:36`, `:351` | `g_is_pool_worker`, `tl_enqueue_index` | Per thread; part of the pool mechanism (exception 1). |
+| `include/hven/detail/util/thread_pool.h:36`, `:351` | `g_is_pool_worker`, `tl_enqueue_index` | Per thread; part of the pool mechanism (exception 1). |
 | `include/hven/model/structure_identity.h:326` | `StructureEpochCounter::value_`, an `std::atomic` | A **member**, so per instance. Atomic so a reader on another thread is well-defined. |
-| `src/interior/utils/color_text.cpp:32` | `enable_color_console()`, a Windows console-mode change | Process-global in principle; **no caller anywhere in the library**. |
-| `include/hven/detail/linear/fault_injection.h`, `include/hven/detail/qp/ipqp_fault_injection.h` | `static inline` injector and observer state | Compiles to nothing without `HVEN_TESTING`, which exactly two standalone test executables define and the production library never does (`docs/testing.md`). Not in a shipped build at all. |
+| `include/hven/detail/linear/fault_injection.h`, `include/hven/detail/qp/ipqp/ipqp_fault_injection.h` | `static inline` injector and observer state | Compiles to nothing without `HVEN_TESTING`, which exactly two standalone test executables define and the production library never does (`docs/testing.md`). Not in a shipped build at all. |
 | `src/core/ledger.cpp` | — | Contains **no** global sink. An earlier draft of this contract claimed one; there is no such referent. The ledger is an ordinary object whose records are its own members; the hazard is sharing one between threads, which is stated above as a consumer rule. |
-| `src/interior/utils/get_core_count.cpp:57` | reads `/proc/cpuinfo` | A read, no state. |
+| `src/util/get_core_count.cpp:57` | reads `/proc/cpuinfo` | A read, no state. |
 
 There are **no** `getenv` reads anywhere in `src/` or `include/hven/`, and the
 only `setenv` writes are the two Apple ones in exception 3.

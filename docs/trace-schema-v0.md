@@ -6,7 +6,7 @@
 > evaluation abort.
 
 The JSON-lines event stream `hven::JsonLinesTraceSink` writes
-(`include/hven/drivers/trace_writer.h`, `src/drivers/trace_writer.cpp`). **This
+(`include/hven/trace/json_lines_trace_sink.h`, `src/trace/trace_writer.cpp`). **This
 document is the schema.** M7's heuristics and M8's human trace read it, and
 `docs/notes/2026-08-m6-w1-ipqp-spec.md` §7's block is superseded by reference.
 
@@ -68,7 +68,7 @@ enumerator is added without a spelling — but this tree carries no `-Werror`
 (CLAUDE.md §7's uniform flag regime), so the `"unknown"` fallthrough remains
 REACHABLE from a library-only build that ignores the warning. The net is
 test-side: `-Wswitch` is an ERROR over one exhaustive switch per enum in
-`tests/sqp/test_trace_writer.cpp`, plus a no-`"unknown"`-line assertion over
+`tests/trace/test_trace_writer.cpp`, plus a no-`"unknown"`-line assertion over
 every whole-solve stream. `"unknown"` in an artifact means the producing build
 ignored a compiler warning.
 
@@ -164,9 +164,9 @@ re-derived with them.
 settled by the time the solve closes and because the console's `Scaling:`
 trailer has no other source: no event carried them before that task, so a
 console pinned against `format_iteration_table` could not have reproduced its
-last line. The emitter is `src/drivers/trace_writer.cpp:892–896`, filled at
-`src/drivers/sqp_solver.cpp:2487–2489` off the solution the caller is about to
-receive. The golden lines are `tests/sqp/test_trace_writer.cpp:3023`
+last line. The emitter is `src/trace/trace_writer.cpp:892–896`, filled at
+`src/sqp/sqp_solver.cpp:2487–2489` off the solution the caller is about to
+receive. The golden lines are `tests/trace/test_trace_writer.cpp:3023`
 (`GoldenLineSqpSolveEndWithEveryCounterDistinct`, re-derivation comment at
 `:3029`) and `:3087` (`GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`),
 whose default block — `active` false with all three factors at 1.0 — is the
@@ -416,9 +416,9 @@ Statistics block and its iteration table need and what nothing else carried:
 acceptable tolerances sit on this line rather than on `ipm.iter` for the reason
 the four convergence tolerances above do — they are the RUN's settings, fixed
 for the call, not a per-iteration measurement. The emitter is
-`src/drivers/trace_writer.cpp:983–990`, filled at
-`src/drivers/ipm_solver.cpp:5515–5522`; the golden line is
-`tests/sqp/test_trace_writer.cpp:3624` (`GoldenLineIpmSolveBegin`,
+`src/trace/trace_writer.cpp:983–990`, filled at
+`src/ipm/ipm_solver.cpp:5515–5522`; the golden line is
+`tests/trace/test_trace_writer.cpp:3624` (`GoldenLineIpmSolveBegin`,
 re-derivation comment at `:3598`).
 
 ### 4.13 `ipm.solve.end`
@@ -678,7 +678,7 @@ counters object gains exactly one key, between `near_active_peak` and the `ssn`
 object, and nothing else moves. Its absence reading is simply 0: it carries no
 sentinel and is not in the `null` table above. The table entry is
 `include/hven/core/solver_counters.h:1443` (the field at `:1369`); the two
-golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
+golden lines re-derived for it are `tests/trace/test_trace_writer.cpp:3063` and
 `:3119`, marked "RE-DERIVED AT M6 W5 T8.5" at `:3029` and `:3095`. (Those five
 line numbers moved at M7 W2 M4, which added the field below and re-derived the
 same two lines. **M4 fix1 corrected the three into `test_trace_writer.cpp`,
@@ -687,7 +687,7 @@ edits to that file and not re-read after. All line numbers in this block and the
 next are as of `003b5d89`, where each cited file last changed.)
 
 **THE VALUE ON THE LINE IS THE DRIVER'S, ASSIGNED IMMEDIATELY BEFORE THE
-EMISSION** (`src/drivers/sqp_solver.cpp:2654`, T8.5 fix1; the line moved at
+EMISSION** (`src/sqp/sqp_solver.cpp:2654`, T8.5 fix1; the line moved at
 M7 W2 M4). Before that fix the
 key read `0` on exactly the solves the returned result and the ledger both read
 `1`; `docs/notes/2026-09-m6-w5-migration-guide.md` `## T8.5` §5's correction
@@ -705,9 +705,9 @@ exactly one key, between `polish_ignored` and the `ssn` object, and nothing
 else moves. Its absence reading is simply 0: it carries no sentinel and is not
 in the `null` table above. The table entry is
 `include/hven/core/solver_counters.h:1444` (the field at `:1402`); the value on
-the line is assigned at `src/drivers/sqp_solver.cpp:2666`, on the same frame and
+the line is assigned at `src/sqp/sqp_solver.cpp:2666`, on the same frame and
 immediately above the emission, for the reason the line above it is. The two
-golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
+golden lines re-derived for it are `tests/trace/test_trace_writer.cpp:3063` and
 `:3119`, marked "RE-DERIVED AT M7 W2 M4" at `:3041` and `:3097`.
 
 **THE DIRECT COUNTERS M7 W2 M1 APPENDED — FIVE, APPENDED TOGETHER.**
@@ -804,7 +804,7 @@ the review called it a consumer hazard and the settler withdrew it. The value on
 such a line is now `"not_run"`. **This is the only byte that moves**: the key's
 name, position and type (string) are unchanged, every other key is untouched,
 and on a solve that DID restore the spelling is what it always was. Both golden
-lines in `tests/sqp/test_trace_writer.cpp` were re-derived: the all-distinct one
+lines in `tests/trace/test_trace_writer.cpp` were re-derived: the all-distinct one
 is UNCHANGED (its `assign_distinct` picks a non-default value under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
 one key. Section 8's additive-key rule governs the original append; this
 correction is a VALUE change on one key of one line, declared here.
@@ -1118,7 +1118,7 @@ of a pinned value; what was missing was this record, on the same footing as
 `ipm.restoration_exit_row`'s row above. No key, type or order changes here: the
 writer is unchanged and the document now says what it already emitted.
 
-Each event's byte-exact golden line lives in `tests/sqp/test_trace_writer.cpp`,
+Each event's byte-exact golden line lives in `tests/trace/test_trace_writer.cpp`,
 built from a hand-filled struct with distinct values per field. An
 aggregate-arity `static_assert` per event struct fails the build when a field is
 added without a key, so the freeze is enforced at compile time rather than by

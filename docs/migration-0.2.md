@@ -114,7 +114,7 @@ Behaviour changes (stop path only; a solve nobody stops is bitwise unchanged):
 Observational: nothing here moves a trajectory, a counter or a status. Everything is
 new, so there is no rewrite.
 
-- `IterationSnapshot` (`<hven/drivers/solve_result.h>`): an owning copy of an
+- `IterationSnapshot` (`<hven/solver/solve_result.h>`): an owning copy of an
   `IterationEvent`, with the event's field names (`iteration`, `recovering`, `phase`,
   `depth`, `f`, the three diagnostics, `step_norm`, `radius`, `mu`, `x`, `lambda`, `z`,
   `elapsed_seconds`) plus `g`, the row values in `lambda`'s row space. `snapshot(event)`
@@ -250,7 +250,7 @@ rounding, so the terminal polish's entry test stayed closed). YORKNET qp5 on an 
 6.88x. A flat-normal synthetic (n = 2, H a projector onto null(a), seed k floor units off the row) reproduces it
 for k = 1.5, 3, 6.9, 9.5.
 
-What changed (`src/qp/qp_engine.cpp`):
+What changed (`src/qp/walk/walk_engine.cpp`):
 
 - `polish_footprint_open` gained a third disjunct, any equality or working row past `row_tolerance`
   (`worst_row_ratio > 1`). A row-triggered entry floors the acceptance test's stationarity comparison at
@@ -575,7 +575,7 @@ equal. Console output at `kWarnings` and above gains the warning lines; at `kIte
 ## TR-D -- one iteration history for both engines
 
 `IpmResult::history` is new and `SqpResult::history` changes its element type: both are
-`std::vector<IterationRecord>` (`hven/drivers/iteration_record.h`), the rows the trace writes, always built (no
+`std::vector<IterationRecord>` (`hven/solver/iteration_record.h`), the rows the trace writes, always built (no
 sink needed; one copy per solve plus a handful of scalar stores per iteration). `SqpIterate` is retired (the driver
 keeps an internal working row; it is not in the public headers). The SQP row gains `factorizations`. Identity:
 `history.size()` == depth-0 `iter` lines == callback events (`docs/trace-schema-v1.md` section 4).
@@ -615,7 +615,7 @@ Consumer catch-up: `docs/notes/data/2026-11-m8-tr-d/CATCH-UP.txt`.
 Two additions, no break.
 
 `hven::dump_counters(const IpmResult &, std::ostream &)` and `dump_counters(const SqpResult &, std::ostream &)`
-(declared beside the results, `hven/drivers/ipm_solver_types.h`, `sqp_solver_types.h`) write every counter the
+(declared beside the results, `hven/ipm/ipm_solver_types.h`, `sqp_solver_types.h`) write every counter the
 result holds as `name = value` lines, the twin of `dump_options`. They are written from the X-macro tables
 `solve.end.counters` is written from, so a key the trace carries the dump carries, with the same value. IPM:
 the `IpmCounters` fields in declaration order, `kkt_analyses_total`, then the 13 fields of
@@ -624,9 +624,171 @@ An integer prints as itself, a double at its shortest round-trip form, an enum b
 histogram as `[a, b, c, d, e]`, and a counter its table declares absent prints `null`. Counters only: a sum over
 a `Ledger` and the residuals are not here.
 
-The v1 reader fixtures are three byte-exact streams under `tests/drivers/golden/trace_v1/`
+The v1 reader fixtures are three byte-exact streams under `tests/trace/golden/trace_v1/`
 (`ipm_complete.jsonl`, `sqp_complete.jsonl`, `ipm_aborted.jsonl`), written from hand-filled records and held by
 `TraceV1Fixtures.*`, for readers outside the tree. Regenerate: `HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests
 --gtest_filter='TraceV1Fixtures.*'` (a declared event for every reader).
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-tr-e/CATCH-UP.txt`.
+
+## Include paths (RS) -- the source and test restructure (M8 RS-1, RS-2)
+
+The source tree was reorganised by engine: public headers that lived in the
+`drivers/` catch-all now live with the component that owns them, the interior
+engine's `interior/` and the `globalization/` directories became `ipm/` and
+per-engine `globalization/` subdirectories, and the tests were re-laid to mirror
+the components. Nothing changed but paths: no symbol, namespace, option or
+behaviour moved (the proof is the P-SYM and counter-identity gates recorded
+under `docs/notes/data/2026-11-m8-rs/gates/`). `docs/notes/data/2026-11-m8-rs/RS-move-map-v2-amended.txt`
+is the complete file-by-file map; the commits are listed in `.git-blame-ignore-revs`.
+
+### Public headers (`<hven/...>`): before, after
+
+A consumer that includes `<hven/hven.h>` needs no change. Any other consumer
+rewrites the include line:
+
+| before | after |
+|---|---|
+| `<hven/drivers/common_options.h>` | `<hven/solver/common_options.h>` |
+| `<hven/drivers/console_trace_sink.h>` | `<hven/trace/console_trace_sink.h>` |
+| `<hven/drivers/ipm_enums.h>` | `<hven/ipm/ipm_enums.h>` |
+| `<hven/drivers/ipm_iterate.h>` | `<hven/ipm/ipm_iterate.h>` |
+| `<hven/drivers/ipm_options.h>` | `<hven/ipm/ipm_options.h>` |
+| `<hven/drivers/ipm_phase_report.h>` | `<hven/ipm/ipm_phase_report.h>` |
+| `<hven/drivers/ipm_solver.h>` | `<hven/ipm/ipm_solver.h>` |
+| `<hven/drivers/ipm_solver_types.h>` | `<hven/ipm/ipm_solver_types.h>` |
+| `<hven/drivers/iteration_record.h>` | `<hven/solver/iteration_record.h>` |
+| `<hven/drivers/json_lines_trace_sink.h>` | `<hven/trace/json_lines_trace_sink.h>` |
+| `<hven/drivers/solve_result.h>` | `<hven/solver/solve_result.h>` |
+| `<hven/drivers/sqp_options.h>` | `<hven/sqp/sqp_options.h>` |
+| `<hven/drivers/sqp_solver.h>` | `<hven/sqp/sqp_solver.h>` |
+| `<hven/drivers/sqp_solver_types.h>` | `<hven/sqp/sqp_solver_types.h>` |
+| `<hven/drivers/step_verdict.h>` | `<hven/solver/step_verdict.h>` |
+| `<hven/drivers/trace.h>` | `<hven/trace/trace.h>` |
+
+Rewrite: a `sed` over the consumer's tree is enough, because every row is a
+one-to-one file move with an unchanged basename:
+
+```
+sed -i -E \
+  -e 's#hven/drivers/common_options.h#hven/solver/common_options.h#' \
+  -e 's#hven/drivers/console_trace_sink.h#hven/trace/console_trace_sink.h#' \
+  -e 's#hven/drivers/ipm_enums.h#hven/ipm/ipm_enums.h#' \
+  -e 's#hven/drivers/ipm_iterate.h#hven/ipm/ipm_iterate.h#' \
+  -e 's#hven/drivers/ipm_options.h#hven/ipm/ipm_options.h#' \
+  -e 's#hven/drivers/ipm_phase_report.h#hven/ipm/ipm_phase_report.h#' \
+  -e 's#hven/drivers/ipm_solver.h#hven/ipm/ipm_solver.h#' \
+  -e 's#hven/drivers/ipm_solver_types.h#hven/ipm/ipm_solver_types.h#' \
+  -e 's#hven/drivers/iteration_record.h#hven/solver/iteration_record.h#' \
+  -e 's#hven/drivers/json_lines_trace_sink.h#hven/trace/json_lines_trace_sink.h#' \
+  -e 's#hven/drivers/solve_result.h#hven/solver/solve_result.h#' \
+  -e 's#hven/drivers/sqp_options.h#hven/sqp/sqp_options.h#' \
+  -e 's#hven/drivers/sqp_solver.h#hven/sqp/sqp_solver.h#' \
+  -e 's#hven/drivers/sqp_solver_types.h#hven/sqp/sqp_solver_types.h#' \
+  -e 's#hven/drivers/step_verdict.h#hven/solver/step_verdict.h#' \
+  -e 's#hven/drivers/trace.h#hven/trace/trace.h#' \
+  $(git ls-files '*.cpp' '*.h' '*.hpp')
+```
+
+The seven `.gitkeep` placeholders under `include/hven/` were deleted, and the directories
+`drivers/`, `globalization/` and `interior/` no longer exist (an installed tree has no
+`include/hven/drivers/`). The `hvenConfig.cmake` sentinel is now `hven/hven.h`.
+
+### Internal headers (`<hven/detail/...>`): directory-level map
+
+`detail/` is installed but carries no compatibility promise; the full map is
+the move map above. By directory (file counts in parentheses):
+
+| before | after |
+|---|---|
+| `core/detail/` | `detail/core/` (3) |
+| `detail/drivers/` | `detail/sqp/` (8) |
+| `detail/drivers/` | `detail/solver/` (6) |
+| `detail/drivers/` | `detail/core/` (1) |
+| `detail/drivers/` | `detail/ipm/` (5) |
+| `detail/globalization/` | `detail/ipm/globalization/` (18) |
+| `detail/globalization/` | `detail/ipm/` (4) |
+| `detail/globalization/` | `detail/kkt/` (1) |
+| `detail/globalization/sqp/` | `detail/sqp/globalization/` (5) |
+| `detail/globalization/sqp/` | `detail/sqp/quasi_newton/` (4) |
+| `detail/interior/` | `detail/ipm/` (3) |
+| `detail/interior/` | `detail/barrier/` (2) |
+| `detail/interior/` | `detail/model/` (1) |
+| `detail/interior/` | `detail/kkt/` (1) |
+| `detail/interior/typedefs/` | `detail/core/` (2) |
+| `detail/interior/utils/` | `detail/ipm/` (1) |
+| `detail/interior/utils/` | `detail/util/` (5) |
+| `detail/kkt/` | `detail/qp/walk/` (1) |
+| `detail/kkt/` | `detail/kkt/` (1) |
+| `detail/qp/` | `detail/qp/walk/` (7) |
+| `detail/qp/` | `detail/qp/ipqp/` (4) |
+| `detail/qp/` | `detail/qp/ssn/` (1) |
+| `detail/warmstart/` | `detail/sqp/` (2) |
+| `detail/warmstart/` | `detail/warmstart/` (1) |
+
+### Renamed headers (the basename changed too)
+
+| before | after |
+|---|---|
+| `detail/globalization/sqp/globalization.h` | `detail/sqp/globalization/funnel.h` |
+| `detail/kkt/kkt_calls.h` | `detail/kkt/kkt_factor.h` |
+| `detail/qp/qp_anti_cycling_arm.h` | `detail/qp/walk/anti_cycling_arm.h` |
+| `detail/qp/qp_certificate_seam.h` | `detail/qp/walk/certificate_seam.h` |
+| `detail/qp/qp_degeneracy_arm.h` | `detail/qp/walk/degeneracy_arm.h` |
+| `detail/qp/qp_engine.h` | `detail/qp/walk/walk_engine.h` |
+| `detail/qp/qp_walk_trace.h` | `detail/qp/walk/walk_trace.h` |
+| `detail/warmstart/warm_start.h` | `detail/warmstart/crossover.h` |
+
+`detail/ipm/globalization/` and `detail/sqp/globalization/` both carry a `soc.h`
+and a `restoration.h`: always spell the full path.
+
+### Removed headers
+
+Deleted, with no replacement (nothing in the tree included them):
+`detail/interior/utils/{flat_map,function_return_type,math_functions,sizing_helpers,std_extensions}.h`,
+and the private `src/interior/utils/{fmtlib,color_text}.{h,cpp}` (`enable_color_console`
+had no caller). The private include directory `src/interior/utils` is gone with them.
+
+### Tests and sources
+
+`src/{drivers,interior,globalization}/` became `src/{ipm,sqp,solver,trace,kkt,util,warmstart}/`;
+`tests/{interior,drivers,common_support}/` became `tests/{ipm,solver,support}/`, and
+the fixtures, goldens (`tests/trace/golden/`) and compile-fail probes
+(`tests/model/compile_fail/`) moved with their components. Executable and target
+names did not change in RS-1/RS-2 (`hven_interior_tests`, `hven_drivers_tests`,
+`hven_sqp_tests`, ...); a documented command line such as
+`./hven_drivers_tests --gtest_filter=...` still works.
+
+### Stale path literals deliberately left in place
+
+A string literal that can reach an artifact (a CSV provenance row, bench output,
+golden bytes) is never rewritten by a prose pass, because rewriting it would
+change what the artifact says it ran. These still carry the pre-RS paths:
+
+| where | literal | what it is |
+|---|---|---|
+| `bench/bench_corpus.cpp:2333` | `# cells: tests/sqp/support/hs_problems.h hs_numbers()` | provenance row written into every corpus CSV |
+| `bench/bench_corpus.cpp:2133` | `tests/sqp/support/hs_problems.h` | a provenance argument (now `tests/model/support/hs_problems.h`) |
+| `bench/bench_corpus.cpp:326`, `:392`, `:394` | `tests/sqp/support/hs_problems.h`, `src/drivers/sqp_solver.cpp:4562`, `include/hven/drivers/solve_result.h:228` | `--help`/usage text of the corpus runner |
+| `bench/bench_scale.cpp:280` | `tests/sqp/support/{parametric_families,` ... | `--help` text of the scale bench (now `tests/model/support/`) |
+| `bench/baselines/**/*.csv` provenance headers | origin and pre-RS paths | frozen evidence; CLAUDE.md section 1 |
+| `tests/core/test_core_layering.cpp` (the `EXPECT_TRUE(violations.empty())` message), `tests/solver/test_options_dump.cpp` (two drift-pin messages), `tests/sqp/test_disproved_entry.cpp` (one failure message), `tests/qp/test_ipqp_acceptance.cpp` (`kA2Usage`) | tier names and `src/drivers/...` / `tests/sqp/...` | diagnostic and usage text compiled into test objects: left so a comments-only stage changes no test object |
+| `scripts/rs_object_map_selftest.sh` | `src/drivers/...`, `tests/interior/...` | the self-test's fixture map (pre-RS names are its input) |
+| `src/CMakeLists.txt` | `drivers/...`, `interior/...` in the measured PCH table | a recorded measurement, "left as it ran" |
+
+### For hven-bench
+
+hven-bench (checked read-only at its HEAD 6d1a8a0) needs the following to build
+against an RS head; none is a behaviour change:
+
+- **Must re-point (live code):** `lanes/external/declared_point.h:87`,
+  `detail/drivers/declared_diagnostics.h` becomes `detail/solver/declared_diagnostics.h`.
+- Archived probe, only if rebuilt: `runs/2026-09-m7-w2-c1-sqp-cost-census/probe/c1_probe.cpp:114-116`
+  (`drivers/solve_result.h`, `drivers/sqp_solver.h`, `drivers/sqp_solver_types.h`, per the table above).
+- Historical retake chains name hven paths in diffs (`scripts/w2_retake{9,12,13}_prechain.sh`,
+  `w2_retake9_compare.py`): they break only if re-run against a new head.
+- Prose and provenance strings (`schema/v1.md`, `schema/fixtures/trace_v1/PROVENANCE.txt`, `sets/*.json`,
+  `sets/hs/*.cpp`, `cmake/hven_pin.cmake` comments) name stale paths with no behaviour effect;
+  `tests/drivers/golden/trace_v1/` is now `tests/trace/golden/trace_v1/`, with the bytes unchanged
+  (the recorded sha256 copies still match).
+- A hven pin bump is needed to consume the RS head.

@@ -23,9 +23,9 @@ that determinism" because MKL's kernels are address-sensitive, and cross-process
 on them "is asserted by a calibrated near-ulp gate rather than by byte equality — counters
 and statuses remain exact." The gate's two numbers, derived at source, with byte equality
 checked FIRST and the gate engaging only on digits that provably vary
-(`tests/sqp/test_corpus_cells.cpp:932-934`):
+(`tests/bench/test_corpus_cells.cpp:932-934`):
 
-- **1e-5 relative** — `tests/sqp/test_corpus_cells.cpp:935`, derived at `:908-934` as "~5.6x
+- **1e-5 relative** — `tests/bench/test_corpus_cells.cpp:935`, derived at `:908-934` as "~5.6x
   the largest spread on record, taken from the worst regime rather than the quietest because
   this pin runs wherever the suite runs, threaded and CI included" (readings 1.0e-7 serial /
   8.6e-7 CI cross-runner / 1.63e-6 CI / 1.79e-6 MKL-threaded).
@@ -40,7 +40,7 @@ is `compare_replay.py`'s, at M6 W6 T6b — `scripts/census_compare.py:35-43` sta
 the census comparator the gate reaches "EXACTLY ONE COLUMN -- index 12, `kkt_residual`",
 while `scripts/compare_replay.py`, "which compares the whole 76-column schema, gates ALL
 TWELVE of its floating measure columns". The twelve are enumerated by index at
-`tests/sqp/test_corpus_cells.cpp:938-951`. `wall_s` is a thirteenth float, excluded for a
+`tests/bench/test_corpus_cells.cpp:938-951`. `wall_s` is a thirteenth float, excluded for a
 different reason — "timing noise, never a regression contract".
 
 **Both comparators are byte-exact by default; the gate is opt-in.** `census_compare.py`

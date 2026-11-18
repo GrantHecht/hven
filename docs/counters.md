@@ -102,7 +102,7 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:34-583` | 100 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:849-1300` | 43 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `sqp/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
 131 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
@@ -130,7 +130,7 @@ a `RestorationSubStatus`). A CATEGORICAL reading is a legitimate counter here
 when it is per-solve and overwritten rather than accumulated --
 `ipqp_rho_demanded_last` and `ipqp_final_inertia_read` are the precedent -- and
 each one's serializer overload lives beside the others in
-`src/drivers/trace_writer.cpp`.
+`src/trace/trace_writer.cpp`.
 
 **`restoration_sub_status` carries an EXPLICIT not-run value**, and is the first
 counter here that can say "absent" in its own vocabulary. `SolveStatus` has no
@@ -156,7 +156,7 @@ THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
 serialize them, and an aggregate-arity `static_assert` beside it fails to
 compile if a field is added without an entry in its declaration position
-(`core/detail/aggregate_arity.h`; the asserts are at `solver_counters.h:429`,
+(`detail/core/aggregate_arity.h`; the asserts are at `solver_counters.h:429`,
 `:942` and `:1423`, with the offset-order asserts beside them). A field added to
 one of those three therefore cannot silently miss the trace.
 
@@ -179,16 +179,16 @@ one of those three therefore cannot silently miss the trace.
 - **`kkt/`** — produces none of its own. The interior-point engine's KKT factor
   re-exports the linear layer's group unchanged: `KktFactorization::Counters` is
   an ALIAS for `SymmetricFactor::Counters`
-  (`detail/interior/kkt_factorization.h:32`), not a fifth group.
-- **`interior/`** — produces none of its own.
+  (`detail/kkt/kkt_factorization.h:32`), not a fifth group.
+- **`ipm/`** — produces none of its own.
 - **`qp/`** — produces `QpCounters`, `SsnCounters` and `IpqpCounters`, one tier
   each. A tier's counters reach a caller through the SQP driver's aggregate:
   `SqpCounters::ssn` and `SqpCounters::ipqp` carry the latter two whole, and
   `QpCounters` reaches a `Ledger` record per QP subproblem solve.
-- **`globalization/`** — produces none.
+- **`globalization/`** (`detail/ipm/`, `detail/sqp/`) — produces none.
 - **`warmstart/`** — produces none.
-- **`drivers/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
-  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:1056`) and on
+- **`sqp/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
+  reachable as `SqpResult::counters` (`sqp/sqp_solver_types.h:1056`) and on
   every `Ledger` driver record.
 
   **`SqpCounters::start_point_clamps` IS STATED AGAINST THE `x0` ARGUMENT, AND
@@ -363,7 +363,7 @@ one of those three therefore cannot silently miss the trace.
   and `SqpResult::infeasibility_certified` is what reports it). The certificate
   also requires the restoration point's inf-norm violation to exceed
   `kCertificateViolationMargin * feas_tol` (= 2 * feas_tol,
-  `detail/globalization/sqp/restoration.h`): a `kOptimal` sub-solve at inf-norm
+  `detail/sqp/globalization/restoration.h`): a `kOptimal` sub-solve at inf-norm
   <= 2 * feas_tol takes the no-claim exit, or the reduction resume below when
   `restoration_resume_reduction > 0`.
 
@@ -418,10 +418,10 @@ one of those three therefore cannot silently miss the trace.
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
   quantities are loose fields on `IpmResult`. The KKT-analysis count this
   section used to name as `IpmSolver::kkt_analysis_count()` is among them: that
-  ACCESSOR WAS RETIRED at M6 W5 T8.4 (`drivers/ipm_solver.h:344` records the
+  ACCESSOR WAS RETIRED at M6 W5 T8.4 (`ipm/ipm_solver.h:344` records the
   retirement) and the quantity is now two snapshot fields on the returned
   result, `IpmResult::kkt_analyses_total` and `IpmResult::counters.symbolic_analyses`
-  (`drivers/ipm_solver_types.h`), beside
+  (`ipm/ipm_solver_types.h`), beside
   `IpmResult::kkt_factor_counters`, which is the linear layer's group
   as of that solve. `kkt_analyses_total` is the LIFETIME count for the producing
   solver -- it moves once when the structure is first laid and once more at any

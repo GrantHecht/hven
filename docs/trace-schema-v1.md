@@ -1,7 +1,7 @@
 # hven machine-trace schema v1
 
 The JSON-lines event stream `hven::JsonLinesTraceSink` writes
-(`include/hven/drivers/json_lines_trace_sink.h`, `src/drivers/trace_writer.cpp`). **This document is the
+(`include/hven/trace/json_lines_trace_sink.h`, `src/trace/trace_writer.cpp`). **This document is the
 schema.** It replaces `docs/trace-schema-v0.md` for every stream written from M8 TR-A on; v0 stays as the
 schema of the frozen artifacts under `docs/notes/data/**` (v0 §8's pointer to this page is its only
 change). The design is `docs/notes/2026-11-m8-tr1-trace-spec.md`; where this page and the code disagree,
@@ -199,7 +199,7 @@ A reader rejects an unknown `v`; ignores unknown keys and unknown `ev`; does not
 tolerates one malformed line at a truncation point; keeps a default arm on any enum switch.
 
 Golden streams for a reader's self-test (byte-exact, held by `TraceV1Fixtures.*`):
-`tests/drivers/golden/trace_v1/{ipm_complete,sqp_complete,ipm_aborted}.jsonl`. `dump_counters` (the text twin of
+`tests/trace/golden/trace_v1/{ipm_complete,sqp_complete,ipm_aborted}.jsonl`. `dump_counters` (the text twin of
 the `solve.end` `counters` object) is documented in `docs/migration-0.2.md`, section TR-E.
 
 ## 6. Freeze table
@@ -232,7 +232,7 @@ meaning) is v2.
 
 `ConsoleTraceSink` renders the same events as text: header, legend, fixed-width `iter` lines, message lines,
 footer. The formats, the tier/verdict/code letters and the verbosity ladder are in spec section 3 and are
-pinned by `tests/drivers/test_console_sink.cpp`. One-solve/one-thread contract: a sink serves one solve at a time on one thread (a restoration sub-solve shares it sequentially); nothing is synchronized. Rulings (TR-A): the legend and phase-line shapes follow spec 3.4's examples; the message folds `restoration_exited{s}` and `stop_at_iteration{s}` stand; the `Max iter` wording stands; the QP-tier `.` lines print at every depth at `kDetail`. Rungs: `kWarnings` warnings and the footer's `exit` line;
+pinned by `tests/trace/test_console_sink.cpp`. One-solve/one-thread contract: a sink serves one solve at a time on one thread (a restoration sub-solve shares it sequentially); nothing is synchronized. Rulings (TR-A): the legend and phase-line shapes follow spec 3.4's examples; the message folds `restoration_exited{s}` and `stop_at_iteration{s}` stand; the `Max iter` wording stands; the QP-tier `.` lines print at every depth at `kDetail`. Rungs: `kWarnings` warnings and the footer's `exit` line;
 `kSummary` header, IPM phase lines (only on multi-phase solves) and the full footer; `kIterations` legend,
 column headers, rows (restoration rows included) and notices; `kDetail` one condensed `.` line per QP-tier
 event plus the IPM KKT-analysis and phase-exit lines. `Format{color, legend, timing}`: colour applies only
