@@ -40,10 +40,14 @@
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/solver/result_access.h>
-#include <hven/detail/sqp/globalization/restoration.h>
 #include <hven/detail/sqp/predictor.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
+// A comment line ends a clang-format include block, which keeps this include BELOW
+// sqp_solver_impl.h: the restoration header is not self-contained (it names NlpEval, which
+// sqp_solver_impl.h defines), and sorting its block together with sqp_solver_impl.h would hoist it
+// above that definition.
+#include <hven/detail/sqp/globalization/restoration.h>
 #include <hven/hven.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>

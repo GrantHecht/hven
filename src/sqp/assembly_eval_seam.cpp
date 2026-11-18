@@ -16,8 +16,12 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/assembly_eval_seam.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
+// A comment line ends a clang-format include block, which keeps this include BELOW
+// sqp_solver_impl.h: the seam header is not self-contained (NlpEval, see its NOT SELF-CONTAINED
+// note), and sorting its block together with sqp_solver_impl.h would hoist it above the definition
+// it needs.
+#include <hven/detail/sqp/assembly_eval_seam.h>
 
 using namespace hven::detail;
 
