@@ -24,7 +24,7 @@
 
 #include <Eigen/SparseCore>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven {
 

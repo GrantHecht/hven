@@ -41,8 +41,8 @@
 #include <optional>
 #include <type_traits>
 
-#include "hven/core/types.h"
-#include "hven/linear/dense_policy.h"
+#include <hven/core/types.h>
+#include <hven/linear/dense_policy.h>
 
 namespace hven::linear {
 

@@ -8,7 +8,7 @@
 
 #include <hven/detail/sqp/sqp_solver_impl.h>
 
-#include "hven/detail/sqp/assembly_eval_seam.h"
+#include <hven/detail/sqp/assembly_eval_seam.h>
 
 #include <algorithm>
 #include <array>

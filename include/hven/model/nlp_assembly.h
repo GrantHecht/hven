@@ -47,11 +47,11 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include "hven/core/types.h"
-#include "hven/model/assembly_declaration.h"
-#include "hven/model/candidate_point.h"
-#include "hven/model/claim_space.h"
-#include "hven/model/structure_identity.h"
+#include <hven/core/types.h>
+#include <hven/model/assembly_declaration.h>
+#include <hven/model/candidate_point.h>
+#include <hven/model/claim_space.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven {
 

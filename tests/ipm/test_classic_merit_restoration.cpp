@@ -21,7 +21,7 @@
 #include "ipm/support/progress_measures_test_utils.h"
 #include "ipm/support/solver_test_utils.h"
 
-#include "hven/detail/ipm/globalization/merit_acceptance.h"
+#include <hven/detail/ipm/globalization/merit_acceptance.h>
 
 #include <gtest/gtest.h>
 

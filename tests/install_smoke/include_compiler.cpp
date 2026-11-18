@@ -10,7 +10,7 @@
 // macros and nothing else, so it must compile with no include of its own -- and
 // the bracket has to WORK from an install tree, which is what the pair below is.
 
-#include "hven/core/compiler.h"
+#include <hven/core/compiler.h>
 
 namespace hven_install_smoke {
 HVEN_SUPPRESS_DEPRECATED_BEGIN

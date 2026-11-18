@@ -151,7 +151,7 @@
 
 #include "hs_problems.h"
 
-#include "hven/core/compiler.h"
+#include <hven/core/compiler.h>
 
 using namespace hven::detail;
 

@@ -32,7 +32,7 @@
 
 #include "support/console_capture.h"    // NOLINT(build/include_subdir)
 #include "ipm/support/declared_route.h" // NOLINT(build/include_subdir)
-#include "hven/core/errors.h"
+#include <hven/core/errors.h>
 
 namespace stop_reason_test {
 namespace {

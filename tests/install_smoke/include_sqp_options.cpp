@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why: this directory's
 // CMakeLists.txt. Added at M8 AP-2 B3 (the options headers).
 
-#include "hven/sqp/sqp_options.h"
+#include <hven/sqp/sqp_options.h>
 
 namespace hven_install_smoke {
 int standalone_include_sqp_options() { return 1; }

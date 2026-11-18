@@ -11,7 +11,7 @@
 // tolerance against one of them (a test oracle, a caller building a payload)
 // includes this and nothing else, which is what this TU compiles.
 
-#include "hven/warmstart/seeding.h"
+#include <hven/warmstart/seeding.h>
 
 namespace hven_install_smoke {
 int standalone_include_seeding() {

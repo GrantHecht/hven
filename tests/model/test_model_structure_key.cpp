@@ -18,9 +18,9 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/pattern_hash.h"
-#include "hven/model/assembly_declaration.h"
-#include "hven/model/structure_identity.h"
+#include <hven/core/pattern_hash.h>
+#include <hven/model/assembly_declaration.h>
+#include <hven/model/structure_identity.h>
 
 using hven::AssemblyDeclaration;
 using hven::claim_stream_digest;

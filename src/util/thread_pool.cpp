@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/util/thread_pool.h"
+#include <hven/detail/util/thread_pool.h>
 #include <atomic>
 #include <mutex>
 #include <thread>

@@ -74,8 +74,8 @@
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start.h>
 
-#include "hven/detail/warmstart/sqp_warm_access.h"
-#include "hven/detail/warmstart/warm_start_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include "model/support/hs071_problem.h"
 
 namespace {

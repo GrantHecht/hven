@@ -8,7 +8,7 @@
 // the expected diagnostic is the one authored "hven local block:" message naming
 // the kOutputs.
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct ObjectiveWithOutputs {

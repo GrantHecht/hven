@@ -107,8 +107,8 @@
 #include "model/support/parametric_families.h"
 #include "model/support/scale_problems.h"
 
-#include "hven/core/compiler.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/core/compiler.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;

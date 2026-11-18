@@ -33,7 +33,7 @@
 #include <array>
 #include <string_view>
 
-#include "hven/ipm/ipm_options.h"
+#include <hven/ipm/ipm_options.h>
 
 namespace hven::detail {
 

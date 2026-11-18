@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-#include "hven/model/parsed_io_flags.h"
+#include <hven/model/parsed_io_flags.h>
 
 namespace hven_install_smoke {
 int standalone_include_parsed_io_flags() { return 1; }

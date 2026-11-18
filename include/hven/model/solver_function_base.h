@@ -19,9 +19,9 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/piece_interfaces.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/threading_flags.h"
+#include <hven/model/piece_interfaces.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/threading_flags.h>
 
 namespace hven {
 

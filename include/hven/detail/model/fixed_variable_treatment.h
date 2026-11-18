@@ -7,7 +7,7 @@
 // interior-point options validation reads, and the treatments' snake-case names
 // for diagnostics. The enum itself is public (ipm/ipm_options.h).
 
-#include "hven/ipm/ipm_enums.h"
+#include <hven/ipm/ipm_enums.h>
 
 namespace hven::detail {
 

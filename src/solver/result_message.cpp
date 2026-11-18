@@ -1,16 +1,16 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/solver/result_message.h"
+#include <hven/detail/solver/result_message.h>
 
 #include <algorithm>
 #include <string>
 
 #include <fmt/format.h>
 
-#include "hven/ipm/ipm_options.h"
-#include "hven/sqp/sqp_options.h"
-#include "hven/sqp/sqp_solver_types.h"
+#include <hven/ipm/ipm_options.h>
+#include <hven/sqp/sqp_options.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 namespace hven::detail {
 

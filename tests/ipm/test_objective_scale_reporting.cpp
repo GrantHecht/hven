@@ -23,10 +23,10 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/solver/result_access.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/ipm/ipm_solver.h"
-#include "hven/model/nlp.h"
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/model/nlp.h>
 
 #include "ipm/support/declared_route.h" // NOLINT(build/include_subdir)
 

@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "hven/detail/ipm/solver_context.h"
-#include "hven/ipm/ipm_solver_types.h"
+#include <hven/detail/ipm/solver_context.h>
+#include <hven/ipm/ipm_solver_types.h>
 
 namespace TychoTest {
 

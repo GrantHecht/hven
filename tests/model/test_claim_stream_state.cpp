@@ -31,11 +31,11 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/model/claim_restatement.h"
-#include "hven/detail/model/non_linear_program.h"
-#include "hven/model/assembly_declaration.h"
-#include "hven/model/candidate_point.h"
-#include "hven/model/claim_space.h"
+#include <hven/detail/model/claim_restatement.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/model/assembly_declaration.h>
+#include <hven/model/candidate_point.h>
+#include <hven/model/claim_space.h>
 
 #include "model/support/claim_corpus.h"
 

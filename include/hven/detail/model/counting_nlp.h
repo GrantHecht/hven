@@ -16,7 +16,7 @@
 #include <string>
 #include <utility>
 
-#include "hven/model/nlp.h"
+#include <hven/model/nlp.h>
 
 namespace hven::detail {
 

@@ -18,7 +18,7 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "hven/model/solver_function_base.h"
+#include <hven/model/solver_function_base.h>
 
 namespace hven {
 

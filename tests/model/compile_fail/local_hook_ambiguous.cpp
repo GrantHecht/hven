@@ -7,7 +7,7 @@
 // hook: two meanings for one type. Refused as ambiguous (C236 R10); the expected
 // diagnostic is the one authored "hven local block:" message.
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct HookedLocal {

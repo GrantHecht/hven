@@ -16,9 +16,9 @@
 // directly to check hven's call-scoped thread handling.
 #include <mkl_service.h>
 
-#include "hven/core/pattern_hash.h"
-#include "hven/core/types.h"
-#include "hven/linear/symmetric_factor.h"
+#include <hven/core/pattern_hash.h>
+#include <hven/core/types.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace {
 

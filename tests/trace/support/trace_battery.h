@@ -21,8 +21,8 @@
 #include <Eigen/Core>
 
 #include "model/support/hs071_problem.h"
-#include "hven/trace/trace.h"
-#include "hven/model/nlp.h"
+#include <hven/trace/trace.h>
+#include <hven/model/nlp.h>
 
 namespace hven_drivers_tests {
 

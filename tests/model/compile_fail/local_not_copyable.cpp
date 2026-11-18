@@ -10,7 +10,7 @@
 
 #include <memory>
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct MoveOnly {

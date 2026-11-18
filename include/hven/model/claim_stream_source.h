@@ -23,7 +23,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/nlp_assembly.h"
+#include <hven/model/nlp_assembly.h>
 
 namespace hven {
 

@@ -13,7 +13,7 @@
 // position) includes this, and it is this that has to stand up on its own.
 // Added in T8.4 fix1 (astra Minor 8).
 
-#include "hven/core/solver_status.h"
+#include <hven/core/solver_status.h>
 
 namespace hven_install_smoke {
 int standalone_include_core_solver_status() {

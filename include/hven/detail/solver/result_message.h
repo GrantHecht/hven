@@ -10,8 +10,8 @@
 #include <exception>
 #include <string>
 
-#include "hven/core/solver_status.h"
-#include "hven/solver/solve_result.h"
+#include <hven/core/solver_status.h>
+#include <hven/solver/solve_result.h>
 
 namespace hven {
 struct IpmOptions;

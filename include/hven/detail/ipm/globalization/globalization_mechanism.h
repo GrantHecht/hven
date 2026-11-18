@@ -8,12 +8,12 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/ipm/globalization/acceptance_mode.h"
-#include "hven/detail/ipm/solver_context.h"
-#include "hven/ipm/ipm_iterate.h"
+#include <hven/detail/ipm/globalization/acceptance_mode.h>
+#include <hven/detail/ipm/solver_context.h>
+#include <hven/ipm/ipm_iterate.h>
 // IpmLineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
 // requires the complete IpmSolver class; see acceptance_mode.h's include note.
-#include "hven/ipm/ipm_solver.h"
+#include <hven/ipm/ipm_solver.h>
 
 namespace hven::detail {
 

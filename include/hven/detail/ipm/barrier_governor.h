@@ -5,12 +5,12 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/ipm/solver_context.h"
-#include "hven/ipm/ipm_iterate.h"
+#include <hven/detail/ipm/solver_context.h>
+#include <hven/ipm/ipm_iterate.h>
 // IpmBarrierMode requires the complete IpmSolver class; see
 // acceptance_mode.h's include note for why this is a plain,
 // non-circular include (ipm_solver.h does not include this directory back).
-#include "hven/ipm/ipm_solver.h"
+#include <hven/ipm/ipm_solver.h>
 
 namespace hven::detail {
 

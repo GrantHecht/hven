@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why: this directory's
 // CMakeLists.txt. Added at M8 AP-2 B3 (the options headers).
 
-#include "hven/solver/step_verdict.h"
+#include <hven/solver/step_verdict.h>
 
 namespace hven_install_smoke {
 int standalone_include_step_verdict() { return 1; }

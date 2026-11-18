@@ -33,15 +33,15 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/detail/model/nlp_model.h"
-#include "hven/detail/model/nlp_model_assembly.h"
-#include "hven/model/claim_space.h"
-#include "hven/model/nlp_assembly.h"
-#include "hven/model/structure_identity.h"
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/model/claim_space.h>
+#include <hven/model/nlp_assembly.h>
+#include <hven/model/structure_identity.h>
 
 #include "model/support/hs_problems.h"
 
-#include "hven/core/compiler.h"
+#include <hven/core/compiler.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

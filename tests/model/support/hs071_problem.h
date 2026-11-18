@@ -21,7 +21,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/nlp.h"
+#include <hven/model/nlp.h>
 
 namespace hven_drivers_tests {
 

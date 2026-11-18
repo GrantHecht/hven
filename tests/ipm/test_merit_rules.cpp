@@ -30,8 +30,8 @@
 
 #include "ipm/support/progress_measures_test_utils.h"
 
-#include "hven/detail/ipm/globalization/modern_merit.h"
-#include "hven/ipm/ipm_options.h"
+#include <hven/detail/ipm/globalization/modern_merit.h>
+#include <hven/ipm/ipm_options.h>
 
 #include <gtest/gtest.h>
 

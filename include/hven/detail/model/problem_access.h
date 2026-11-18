@@ -14,9 +14,9 @@
 #include <memory>
 #include <utility>
 
-#include "hven/detail/model/absent_bound.h"
-#include "hven/model/problem.h"
-#include "hven/model/structure_identity.h"
+#include <hven/detail/model/absent_bound.h>
+#include <hven/model/problem.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven {
 struct SolveResult;

@@ -29,11 +29,11 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/model/non_linear_program.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/objective_function.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/solver_interface_adapter.h"
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/model/constraint_function.h>
+#include <hven/model/objective_function.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/solver_interface_adapter.h>
 
 namespace hven::model_tests {
 

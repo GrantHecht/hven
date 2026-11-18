@@ -41,7 +41,7 @@
 
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipm_corpus_leg.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;

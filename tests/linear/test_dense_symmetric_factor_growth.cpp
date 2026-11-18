@@ -25,8 +25,8 @@
 #include <Eigen/Eigenvalues>
 #include <gtest/gtest.h>
 
-#include "hven/core/types.h"
-#include "hven/linear/dense_symmetric_factor.h"
+#include <hven/core/types.h>
+#include <hven/linear/dense_symmetric_factor.h>
 
 namespace {
 

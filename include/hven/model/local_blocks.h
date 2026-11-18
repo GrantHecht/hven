@@ -91,9 +91,9 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "hven/core/types.h"
-#include "hven/model/piece_interfaces.h"
-#include "hven/model/solver_indexing_data.h"
+#include <hven/core/types.h>
+#include <hven/model/piece_interfaces.h>
+#include <hven/model/solver_indexing_data.h>
 
 namespace hven {
 

@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-#include "hven/model/objective_function.h"
+#include <hven/model/objective_function.h>
 
 namespace hven_install_smoke {
 int standalone_include_objective_function() { return 1; }

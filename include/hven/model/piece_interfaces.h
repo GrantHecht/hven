@@ -23,10 +23,10 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "hven/core/type_storage.h"
-#include "hven/model/sizable_spec.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/solver_interface_adapter.h"
+#include <hven/core/type_storage.h>
+#include <hven/model/sizable_spec.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/solver_interface_adapter.h>
 
 namespace hven {
 
@@ -529,4 +529,4 @@ void DirectFunctionModel<T>::install_objective(const T &t, ObjectiveInterface &o
 // and no two translation units can disagree about which adapter a type takes.
 // local_blocks.h includes this header first; #pragma once makes the pair
 // order-independent.
-#include "hven/model/local_blocks.h"
+#include <hven/model/local_blocks.h>

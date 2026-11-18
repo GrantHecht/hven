@@ -16,7 +16,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven::detail {
 

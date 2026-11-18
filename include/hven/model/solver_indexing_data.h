@@ -16,7 +16,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/parsed_io_flags.h"
+#include <hven/model/parsed_io_flags.h>
 
 namespace hven {
 

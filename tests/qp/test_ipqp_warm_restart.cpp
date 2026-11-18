@@ -14,7 +14,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp/ipqp_engine.h>
 
-#include "hven/detail/warmstart/warm_start_access.h"
+#include <hven/detail/warmstart/warm_start_access.h>
 #include "model/support/parametric_families.h"
 
 namespace {

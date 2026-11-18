@@ -47,16 +47,16 @@
 // cannot be compiled on Windows, where this target is also built.
 #include "support/console_capture.h"
 #include "ipm/support/ipm_row_view.h"
-#include "hven/core/ledger.h"
-#include "hven/detail/solver/result_access.h"
-#include "hven/detail/sqp/sqp_solver_impl.h"
-#include "hven/detail/model/nlp_model.h"
-#include "hven/detail/model/non_linear_program.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/trace/console_trace_sink.h"
-#include "hven/ipm/ipm_solver.h"
-#include "hven/trace/json_lines_trace_sink.h"
-#include "hven/model/nlp.h"
+#include <hven/core/ledger.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/trace/console_trace_sink.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/trace/json_lines_trace_sink.h>
+#include <hven/model/nlp.h>
 
 #include "ipm/support/declared_route.h" // NOLINT(build/include_subdir)
 

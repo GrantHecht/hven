@@ -6,9 +6,9 @@
 #include <limits>
 #include <memory>
 
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/model/nlp_problem_model.h"
-#include "hven/detail/model/non_linear_program.h"
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/non_linear_program.h>
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();

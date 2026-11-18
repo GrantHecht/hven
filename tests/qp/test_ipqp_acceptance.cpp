@@ -27,7 +27,7 @@
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipqp_e1_arm.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include "sqp/support/e1_cells.h"
 #include "model/support/hs_problems.h"
 #include "qp/support/indefinite_fixtures.h"

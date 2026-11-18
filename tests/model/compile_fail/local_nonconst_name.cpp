@@ -9,7 +9,7 @@
 
 #include <string>
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct NonConstName {

@@ -1,14 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/ipm/solver_init.h"
+#include <hven/detail/ipm/solver_init.h>
 
 #include <mutex>
 
-#include "hven/detail/util/timer.h"
+#include <hven/detail/util/timer.h>
 
 #ifdef USE_ACCELERATE_SPARSE
-#include "hven/detail/ipm/accelerate_threads.h"
+#include <hven/detail/ipm/accelerate_threads.h>
 #else
 #include <mkl.h>
 #endif

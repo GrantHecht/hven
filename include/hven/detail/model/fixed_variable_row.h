@@ -19,11 +19,11 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/core/eigen_types.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/solver_interface_adapter.h"
-#include "hven/model/threading_flags.h"
+#include <hven/detail/core/eigen_types.h>
+#include <hven/model/constraint_function.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/solver_interface_adapter.h>
+#include <hven/model/threading_flags.h>
 
 namespace hven::detail {
 

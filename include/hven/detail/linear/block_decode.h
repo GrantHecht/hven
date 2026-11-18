@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven::linear::detail {
 

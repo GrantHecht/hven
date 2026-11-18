@@ -8,14 +8,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/ipm/globalization/progress_measures.h"
-#include "hven/ipm/ipm_iterate.h"
+#include <hven/detail/ipm/globalization/progress_measures.h>
+#include <hven/ipm/ipm_iterate.h>
 // The complete IpmSolver class is required here (classic_line_search
 // takes its nested IpmLineSearchMode by value, and a nested enum cannot be
 // forward-declared independently of its enclosing class). This include is
 // deliberately one-directional: ipm_solver.h does not include back
 // into this directory.
-#include "hven/ipm/ipm_solver.h"
+#include <hven/ipm/ipm_solver.h>
 
 namespace hven::detail {
 

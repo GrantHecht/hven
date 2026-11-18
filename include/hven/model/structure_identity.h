@@ -51,8 +51,8 @@
 
 #include <Eigen/Core>
 
-#include "hven/core/pattern_hash.h"
-#include "hven/model/assembly_declaration.h"
+#include <hven/core/pattern_hash.h>
+#include <hven/model/assembly_declaration.h>
 
 namespace hven {
 

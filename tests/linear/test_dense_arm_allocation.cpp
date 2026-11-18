@@ -27,8 +27,8 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/types.h"
-#include "hven/linear/symmetric_factor.h"
+#include <hven/core/types.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace {
 std::atomic<bool> g_armed{false};

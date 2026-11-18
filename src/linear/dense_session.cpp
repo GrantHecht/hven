@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/linear/dense_session.h"
+#include <hven/detail/linear/dense_session.h>
 
 #include <algorithm>
 #include <cmath>
@@ -12,15 +12,15 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/errors.h"
-#include "hven/detail/linear/block_decode.h"
-#include "hven/detail/linear/session_id.h"
-#include "hven/detail/linear/thread_scope.h"
+#include <hven/core/errors.h>
+#include <hven/detail/linear/block_decode.h>
+#include <hven/detail/linear/session_id.h>
+#include <hven/detail/linear/thread_scope.h>
 
 // The same platform routing as dense_symmetric_factor.cpp: MKL's LAPACKE, or
 // the Accelerate shim's identically named caller-workspace entry points.
 #ifdef HVEN_USE_ACCELERATE_LAPACK
-#include "hven/detail/linear/lapacke_shim.h"
+#include <hven/detail/linear/lapacke_shim.h>
 using hven::linear::detail::lapack_int;
 using hven::linear::detail::LAPACKE_dsycon_rook_work;
 using hven::linear::detail::LAPACKE_dsytrf_rook_work;

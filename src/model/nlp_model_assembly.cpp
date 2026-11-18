@@ -4,7 +4,7 @@
 // The NlpModel bridge: its claim pass, its evaluation hooks, and the boundary
 // checks a bridge owes on a model implementation it did not write.
 
-#include "hven/detail/model/nlp_model_assembly.h"
+#include <hven/detail/model/nlp_model_assembly.h>
 
 #include <cmath>
 #include <limits>
@@ -13,8 +13,8 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/claim_space.h"
-#include "hven/model/structure_identity.h"
+#include <hven/model/claim_space.h>
+#include <hven/model/structure_identity.h>
 
 using namespace hven::detail;
 

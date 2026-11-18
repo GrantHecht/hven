@@ -22,11 +22,11 @@
 
 #include "ipm/support/progress_measures_test_utils.h"
 
-#include "hven/detail/solver/result_access.h"
-#include "hven/detail/ipm/globalization/acceptance_mode.h"
-#include "hven/detail/ipm/globalization/filter_acceptance.h"
-#include "hven/detail/ipm/globalization/funnel_acceptance.h"
-#include "hven/ipm/ipm_solver.h"
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/ipm/globalization/acceptance_mode.h>
+#include <hven/detail/ipm/globalization/filter_acceptance.h>
+#include <hven/detail/ipm/globalization/funnel_acceptance.h>
+#include <hven/ipm/ipm_solver.h>
 
 #include <gtest/gtest.h>
 

@@ -14,11 +14,11 @@
 #include <string>
 #include <utility>
 
-#include "hven/detail/solver/callback_rows.h"
-#include "hven/detail/solver/result_message.h"
-#include "hven/detail/sqp/sqp_solver_impl.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/solver/callback_rows.h>
+#include <hven/detail/solver/result_message.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 using namespace hven::detail;
 

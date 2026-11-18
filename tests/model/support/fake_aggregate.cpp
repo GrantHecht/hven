@@ -3,8 +3,8 @@
 
 #include "model/support/fake_aggregate.h"
 
-#include "hven/core/pattern_hash.h"
-#include "hven/model/structure_identity.h"
+#include <hven/core/pattern_hash.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven::model_tests {
 

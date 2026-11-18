@@ -10,7 +10,7 @@
 
 #include <array>
 
-#include "hven/model/local_blocks.h"
+#include <hven/model/local_blocks.h>
 
 namespace {
 struct UpperEntry {

@@ -23,8 +23,8 @@
 #include <limits>
 #include <vector>
 
-#include "hven/core/types.h"
-#include "hven/linear/symmetric_factor.h"
+#include <hven/core/types.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::linear::detail {
 

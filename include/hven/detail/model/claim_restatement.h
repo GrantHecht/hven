@@ -29,7 +29,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/claim_stream_source.h"
+#include <hven/model/claim_stream_source.h>
 
 namespace hven::detail {
 

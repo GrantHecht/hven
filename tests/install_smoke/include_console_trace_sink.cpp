@@ -14,7 +14,7 @@
 // A consumer that includes only this header and constructs a console must
 // compile, and that is what this TU is.
 
-#include "hven/trace/console_trace_sink.h"
+#include <hven/trace/console_trace_sink.h>
 
 #include <cstdio>
 

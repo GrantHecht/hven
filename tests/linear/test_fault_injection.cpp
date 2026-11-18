@@ -22,21 +22,21 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/types.h"
-#include "hven/detail/linear/fault_injection.h"
-#include "hven/linear/symmetric_factor.h"
+#include <hven/core/types.h>
+#include <hven/detail/linear/fault_injection.h>
+#include <hven/linear/symmetric_factor.h>
 
 // MKL-only: needed for the ordering/weighted_matching don't-write-by-default
 // coverage below, which compares against a fresh, independent pardisoinit()
 // call (see PardisoinitReference). Not needed by anything Apple-gated in
 // this file, so scoped the same way the rest of the MKL half is.
 #if !defined(__APPLE__)
-#include "hven/detail/linear/pardiso_session.h"
+#include <hven/detail/linear/pardiso_session.h>
 // The call-scoped thread count's own class, constructed DIRECTLY by the
 // restore-on-unwind test below (M6 W6 T4). It is an ordinary Apache-2.0 header
 // and needs no seam; it is included here rather than in a file of its own so
 // the measurement sits beside the two ThreadScope tests it completes.
-#include "hven/detail/linear/thread_scope.h"
+#include <hven/detail/linear/thread_scope.h>
 // MKL's own thread state: the only way to read what a call-scoped thread count
 // left behind. Same platform scope as the rest of the MKL half.
 #include <mkl_service.h>

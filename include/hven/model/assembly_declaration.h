@@ -25,11 +25,11 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "hven/core/types.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/local_blocks.h"
-#include "hven/model/objective_function.h"
-#include "hven/model/piece_interfaces.h"
+#include <hven/core/types.h>
+#include <hven/model/constraint_function.h>
+#include <hven/model/local_blocks.h>
+#include <hven/model/objective_function.h>
+#include <hven/model/piece_interfaces.h>
 
 namespace hven {
 

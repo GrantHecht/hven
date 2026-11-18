@@ -77,7 +77,7 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 #include <hven/sqp/sqp_solver_types.h>
 
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include "sqp/support/nlp_kkt_check.h"
 #include "model/support/scale_problems.h"
 

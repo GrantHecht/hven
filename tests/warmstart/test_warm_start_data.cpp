@@ -28,9 +28,9 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/detail/warmstart/warm_start_access.h"
-#include "hven/model/structure_identity.h"
-#include "hven/warmstart/warm_start.h"
+#include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/model/structure_identity.h>
+#include <hven/warmstart/warm_start.h>
 
 namespace {
 using hven::detail::WarmStartAccess;

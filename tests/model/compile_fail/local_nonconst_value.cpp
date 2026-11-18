@@ -8,7 +8,7 @@
 // diagnostic is the one authored "hven local block:" message naming value(v, out)
 // as non-const (model/local_blocks.h), and nothing else.
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct NonConstValue {

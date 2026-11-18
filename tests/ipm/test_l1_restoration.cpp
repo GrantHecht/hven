@@ -27,7 +27,7 @@
 
 #include "ipm/support/solver_test_utils.h"
 
-#include "hven/detail/ipm/globalization/l1_restoration.h"
+#include <hven/detail/ipm/globalization/l1_restoration.h>
 
 #include <gtest/gtest.h>
 

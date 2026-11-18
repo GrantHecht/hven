@@ -28,7 +28,7 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven::detail {
 

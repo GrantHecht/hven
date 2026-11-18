@@ -4,7 +4,7 @@
 // AssemblyDeclaration's special members, its builder and its boundary
 // validation.
 
-#include "hven/model/assembly_declaration.h"
+#include <hven/model/assembly_declaration.h>
 
 #include <algorithm>
 #include <cmath>
@@ -16,9 +16,9 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/constraint_function.h"
-#include "hven/model/objective_function.h"
-#include "hven/model/structure_identity.h"
+#include <hven/model/constraint_function.h>
+#include <hven/model/objective_function.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven {
 

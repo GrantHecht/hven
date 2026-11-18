@@ -8,7 +8,7 @@
 // M8 AP-5 G1: the stop source and token a caller hands to one solve through
 // SolveBudget::stop. hven's own type, so no <stop_token> reaches a consumer.
 
-#include "hven/core/stop.h"
+#include <hven/core/stop.h>
 
 namespace hven_install_smoke {
 int standalone_include_core_stop() {

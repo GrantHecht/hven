@@ -7,7 +7,7 @@
 // inequality multipliers and residuals in the engine's internal split, beside the
 // public lambda and g in the problem's row space. For library internals and tests.
 
-#include "hven/solver/solve_result.h"
+#include <hven/solver/solve_result.h>
 
 namespace hven::detail {
 

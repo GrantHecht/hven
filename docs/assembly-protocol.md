@@ -2,7 +2,7 @@
 
 A problem built from pieces is an `AssemblyDeclaration` (`hven/model/assembly_declaration.h`)
 wrapped in a `Problem`. `IpmSolver` solves it; `SqpSolver` refuses it by name. Everything a
-consumer needs is in `#include "hven/model/pieces.h"`.
+consumer needs is in `#include <hven/model/pieces.h>`.
 
 There are two ways to write a piece:
 

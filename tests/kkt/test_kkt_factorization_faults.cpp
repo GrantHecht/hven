@@ -28,9 +28,9 @@
 
 #include <Eigen/Core>
 
-#include "hven/core/types.h"
-#include "hven/detail/kkt/kkt_factorization.h"
-#include "hven/detail/linear/fault_injection.h"
+#include <hven/core/types.h>
+#include <hven/detail/kkt/kkt_factorization.h>
+#include <hven/detail/linear/fault_injection.h>
 
 #if defined(USE_ACCELERATE_SPARSE)
 #include <Accelerate/Accelerate.h>

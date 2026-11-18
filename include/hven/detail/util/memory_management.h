@@ -23,8 +23,8 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/core/eigen_types.h"
-#include "hven/detail/util/tuple_iterator.h"
+#include <hven/detail/core/eigen_types.h>
+#include <hven/detail/util/tuple_iterator.h>
 
 namespace hven::detail {
 

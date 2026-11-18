@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why: this directory's
 // CMakeLists.txt. Added at M8 AP-2 B3 (the options headers).
 
-#include "hven/linear/dense_policy.h"
+#include <hven/linear/dense_policy.h>
 
 namespace hven_install_smoke {
 int standalone_include_dense_policy() { return 1; }

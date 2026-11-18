@@ -14,10 +14,10 @@
 #include <utility>
 #include <vector>
 
-#include "hven/core/type_storage.h"
-#include "hven/detail/model/fixed_variable_row.h"
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/piece_interfaces.h"
+#include <hven/core/type_storage.h>
+#include <hven/detail/model/fixed_variable_row.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/model/piece_interfaces.h>
 
 namespace type_storage_test {
 

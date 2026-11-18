@@ -28,10 +28,10 @@
 
 #include "ipm/support/solver_test_utils.h"
 
-#include "hven/detail/ipm/monitored_governor.h"
+#include <hven/detail/ipm/monitored_governor.h>
 
-#include "hven/detail/ipm/classic_adaptive_governor.h"
-#include "hven/detail/ipm/globalization/globalization_mechanism.h"
+#include <hven/detail/ipm/classic_adaptive_governor.h>
+#include <hven/detail/ipm/globalization/globalization_mechanism.h>
 
 #include <gtest/gtest.h>
 

@@ -14,7 +14,7 @@
 // names all three, so "it is installed" is a compiled fact and not an
 // inference from the glob.
 
-#include "hven/solver/solve_result.h"
+#include <hven/solver/solve_result.h>
 
 namespace hven_install_smoke {
 int standalone_include_solve_result() {

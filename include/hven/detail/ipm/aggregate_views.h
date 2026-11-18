@@ -16,9 +16,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/core/types.h"
-#include "hven/detail/core/eigen_types.h"
-#include "hven/detail/model/non_linear_program.h"
+#include <hven/core/types.h>
+#include <hven/detail/core/eigen_types.h>
+#include <hven/detail/model/non_linear_program.h>
 
 namespace hven::detail {
 

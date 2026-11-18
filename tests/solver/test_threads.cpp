@@ -112,7 +112,7 @@
 #include <hven/qp/qp_types.h>
 
 #include "solver/support/iteration_record_eq.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include "model/support/hs_problems.h"
 
 namespace {

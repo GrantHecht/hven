@@ -24,8 +24,8 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/model/piece_interfaces.h"
-#include "hven/model/solver_interface_adapter.h"
+#include <hven/model/piece_interfaces.h>
+#include <hven/model/solver_interface_adapter.h>
 
 namespace adapter_fixture {
 

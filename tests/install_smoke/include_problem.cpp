@@ -7,7 +7,7 @@
 //
 // M8 AP-2 B2: the Problem both engines solve.
 
-#include "hven/model/problem.h"
+#include <hven/model/problem.h>
 
 namespace hven_install_smoke {
 int standalone_include_problem() { return 1; }

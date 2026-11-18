@@ -8,7 +8,7 @@
 // W5 T4 moved this header out of `detail/qp/` and split the evidence structs
 // out of ipqp_engine.h; both headers must stand alone.
 
-#include "hven/trace/trace.h"
+#include <hven/trace/trace.h>
 
 namespace hven_install_smoke {
 int standalone_include_trace() { return 1; }

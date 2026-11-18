@@ -19,8 +19,8 @@
 
 #include <Eigen/Core>
 
-#include "hven/core/types.h"
-#include "hven/model/structure_identity.h"
+#include <hven/core/types.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven {
 

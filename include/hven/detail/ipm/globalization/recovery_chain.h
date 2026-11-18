@@ -7,10 +7,10 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/ipm/globalization/acceptance_mode.h"
-#include "hven/detail/ipm/globalization/globalization_mechanism.h"
-#include "hven/detail/ipm/solver_context.h"
-#include "hven/ipm/ipm_iterate.h"
+#include <hven/detail/ipm/globalization/acceptance_mode.h>
+#include <hven/detail/ipm/globalization/globalization_mechanism.h>
+#include <hven/detail/ipm/solver_context.h>
+#include <hven/ipm/ipm_iterate.h>
 // IpmLineSearchMode (forwarded to the acceptance re-test during a
 // second-order correction) requires the complete IpmSolver class; pulled in
 // transitively via the two globalization headers above. See solver_context.h's

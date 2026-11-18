@@ -14,7 +14,7 @@
 
 #include <memory>
 
-#include "hven/detail/model/absent_bound.h"
+#include <hven/detail/model/absent_bound.h>
 
 namespace hven {
 class Nlp;

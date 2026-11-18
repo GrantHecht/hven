@@ -29,7 +29,7 @@
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "support/route_reference.h"
-#include "hven/detail/warmstart/sqp_warm_access.h"
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include "qp/support/qp_as_nlp_model.h"
 
 using namespace hven::detail;

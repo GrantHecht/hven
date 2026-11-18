@@ -7,12 +7,12 @@
 
 #include <stdexcept>
 
-#include "hven/detail/ipm/globalization/progress_measures.h"
-#include "hven/detail/ipm/solver_context.h"
+#include <hven/detail/ipm/globalization/progress_measures.h>
+#include <hven/detail/ipm/solver_context.h>
 // IpmResult lives in ipm/ipm_solver_types.h; see
 // acceptance_mode.h's include note for why this is a plain, non-circular
 // include (ipm_solver.h does not include this directory back).
-#include "hven/ipm/ipm_solver.h"
+#include <hven/ipm/ipm_solver.h>
 
 namespace hven::detail {
 

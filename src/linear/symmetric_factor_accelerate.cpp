@@ -27,7 +27,7 @@
 // (scripts/check_accelerate_syntax_linux.sh) remains a narrower structural
 // check; docs/testing.md states exactly what that pass does and does not prove.
 
-#include "hven/linear/symmetric_factor.h"
+#include <hven/linear/symmetric_factor.h>
 
 #include <cmath>
 #include <stdexcept>
@@ -35,11 +35,11 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/errors.h"
-#include "hven/core/pattern_hash.h"
-#include "hven/detail/linear/accelerate_session.h"
-#include "hven/detail/linear/dense_session.h"
-#include "hven/detail/linear/fault_injection.h"
+#include <hven/core/errors.h>
+#include <hven/core/pattern_hash.h>
+#include <hven/detail/linear/accelerate_session.h>
+#include <hven/detail/linear/dense_session.h>
+#include <hven/detail/linear/fault_injection.h>
 
 namespace {
 

@@ -12,7 +12,7 @@
 
 #include <type_traits>
 
-#include "hven/warmstart/sqp_warm_start.h"
+#include <hven/warmstart/sqp_warm_start.h>
 
 namespace hven_install_smoke {
 int standalone_include_sqp_warm_start() {

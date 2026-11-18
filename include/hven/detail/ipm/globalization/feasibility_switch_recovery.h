@@ -8,7 +8,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/ipm/globalization/recovery_chain.h"
+#include <hven/detail/ipm/globalization/recovery_chain.h>
 
 namespace hven::detail {
 

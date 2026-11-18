@@ -32,12 +32,12 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-#include "hven/detail/solver/result_access.h"
-#include "hven/detail/ipm/kkt_vector.h"
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/ipm/ipm_solver.h"
-#include "hven/model/nlp.h"
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/ipm/kkt_vector.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/model/nlp.h>
 
 using hven::Nlp;
 using hven::detail::ConstEigenRef;

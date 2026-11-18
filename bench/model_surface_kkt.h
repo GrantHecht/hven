@@ -77,10 +77,10 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/types.h"
-#include "hven/model/assembly_declaration.h"
-#include "hven/model/candidate_point.h"
-#include "hven/model/nlp_assembly.h"
+#include <hven/core/types.h>
+#include <hven/model/assembly_declaration.h>
+#include <hven/model/candidate_point.h>
+#include <hven/model/nlp_assembly.h>
 
 namespace hven {
 

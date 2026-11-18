@@ -7,7 +7,7 @@
 // (v, H): a constraint piece's Hessian takes the multipliers. The expected
 // diagnostic is the one authored "hven local block:" message saying so.
 
-#include "hven/model/piece_interfaces.h"
+#include <hven/model/piece_interfaces.h>
 
 namespace {
 struct WrongHessian {

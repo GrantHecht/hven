@@ -17,11 +17,11 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/kkt/kkt_factorization.h"
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/ipm/ipm_solver.h"
-#include "hven/model/nlp.h"
+#include <hven/detail/kkt/kkt_factorization.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/model/nlp.h>
 
 namespace {
 

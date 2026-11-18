@@ -1,9 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/solver/callback_rows.h"
+#include <hven/detail/solver/callback_rows.h>
 
-#include "hven/detail/model/problem_access.h"
+#include <hven/detail/model/problem_access.h>
 
 namespace hven::detail {
 

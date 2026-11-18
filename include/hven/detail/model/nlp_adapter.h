@@ -35,15 +35,15 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/types.h"
-#include "hven/detail/core/eigen_types.h"
-#include "hven/detail/model/make_nlp_program.h"
-#include "hven/detail/model/nlp_model.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/objective_function.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/solver_interface_adapter.h"
-#include "hven/model/threading_flags.h"
+#include <hven/core/types.h>
+#include <hven/detail/core/eigen_types.h>
+#include <hven/detail/model/make_nlp_program.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/model/constraint_function.h>
+#include <hven/model/objective_function.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/solver_interface_adapter.h>
+#include <hven/model/threading_flags.h>
 
 namespace hven {
 class Nlp;

@@ -80,7 +80,7 @@
 
 #include "model/support/scale_problems.h"
 
-#include "hven/core/compiler.h"
+#include <hven/core/compiler.h>
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN

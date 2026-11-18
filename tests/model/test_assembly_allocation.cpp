@@ -9,9 +9,9 @@
 #include <limits>
 #include <memory>
 
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/model/nlp_problem_model.h"
-#include "hven/detail/model/non_linear_program.h"
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/non_linear_program.h>
 
 // UNITY-BUILD NOTE: this suite is compiled with UNITY_BUILD ON, so an anonymous
 // namespace does not isolate these helpers from the other test TUs merged into

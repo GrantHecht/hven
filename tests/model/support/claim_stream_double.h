@@ -23,15 +23,15 @@
 
 #include <Eigen/Core>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 // The declaration holds its piece lists BY VALUE, so a translation unit that
 // constructs or destroys one needs the piece definitions in scope. This double
 // has a declaration member, so it brings them itself rather than leaning on
 // whatever its includer happens to have pulled in.
-#include "hven/model/claim_stream_source.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/objective_function.h"
-#include "hven/model/structure_identity.h"
+#include <hven/model/claim_stream_source.h>
+#include <hven/model/constraint_function.h>
+#include <hven/model/objective_function.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven::sqp_tests {
 

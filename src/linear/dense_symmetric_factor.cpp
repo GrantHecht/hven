@@ -1,14 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/linear/dense_symmetric_factor.h"
+#include <hven/linear/dense_symmetric_factor.h>
 
-#include "hven/core/errors.h"
+#include <hven/core/errors.h>
 
 // The 2x2 block read, shared with the dense arm's block walk.
-#include "hven/detail/linear/block_decode.h"
+#include <hven/detail/linear/block_decode.h>
 // The per-call thread scope, shared with the sparse session (M6 W5 T8.8).
-#include "hven/detail/linear/thread_scope.h"
+#include <hven/detail/linear/thread_scope.h>
 
 #include <algorithm>
 #include <cmath>
@@ -25,7 +25,7 @@
 // hven_sparse_backend.cmake's doc comment for why the two are named
 // separately even though they are set together today.
 #ifdef HVEN_USE_ACCELERATE_LAPACK
-#include "hven/detail/linear/lapacke_shim.h"
+#include <hven/detail/linear/lapacke_shim.h>
 using hven::linear::detail::lapack_int;
 using hven::linear::detail::LAPACKE_dsytrf;
 using hven::linear::detail::LAPACKE_dsytrs;

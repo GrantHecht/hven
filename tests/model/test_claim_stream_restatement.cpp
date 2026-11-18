@@ -25,8 +25,8 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/model/non_linear_program.h"
-#include "hven/model/structure_identity.h"
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/model/structure_identity.h>
 
 #include "model/support/claim_corpus.h"
 

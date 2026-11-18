@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-#include "hven/detail/model/nlp_adapter.h"
+#include <hven/detail/model/nlp_adapter.h>
 
 #include <cmath>
 #include <limits>
@@ -10,9 +10,9 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/model/nlp_problem_model.h"
-#include "hven/detail/model/non_linear_program.h"
-#include "hven/model/nlp.h"
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 using namespace hven::detail;
 

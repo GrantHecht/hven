@@ -59,7 +59,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/compiler.h>
-#include <hven/qp/qp_types.h>
+#include <hven/core/types.h>
 
 namespace hven::detail {
 

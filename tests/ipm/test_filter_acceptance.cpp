@@ -43,7 +43,7 @@
 
 #include "ipm/support/progress_measures_test_utils.h"
 
-#include "hven/detail/ipm/globalization/filter_acceptance.h"
+#include <hven/detail/ipm/globalization/filter_acceptance.h>
 
 #include <gtest/gtest.h>
 

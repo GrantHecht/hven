@@ -19,9 +19,9 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/model/candidate_point.h"
-#include "hven/model/claim_space.h"
-#include "hven/model/nlp_assembly.h"
+#include <hven/model/candidate_point.h>
+#include <hven/model/claim_space.h>
+#include <hven/model/nlp_assembly.h>
 
 using hven::AssemblyCapability;
 using hven::ClaimDomain;

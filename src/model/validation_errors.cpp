@@ -16,13 +16,13 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/candidate_point.h"
-#include "hven/model/claim_space.h"
-#include "hven/model/local_blocks.h"
-#include "hven/model/nlp_assembly.h"
-#include "hven/model/solver_function_base.h"
-#include "hven/model/solver_indexing_data.h"
-#include "hven/model/structure_identity.h"
+#include <hven/model/candidate_point.h>
+#include <hven/model/claim_space.h>
+#include <hven/model/local_blocks.h>
+#include <hven/model/nlp_assembly.h>
+#include <hven/model/solver_function_base.h>
+#include <hven/model/solver_indexing_data.h>
+#include <hven/model/structure_identity.h>
 
 namespace hven::detail {
 

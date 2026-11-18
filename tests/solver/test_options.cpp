@@ -28,8 +28,8 @@
 // fingerprint lives in tests/warmstart/test_warm_start.cpp beside the kHot chain it
 // belongs to.
 
-#include "hven/detail/sqp/globalization/funnel.h"
-#include "hven/detail/model/fixed_variable_treatment.h"
+#include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/model/fixed_variable_treatment.h>
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
@@ -42,16 +42,16 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/ledger.h"
-#include "hven/detail/ipm/ipm_solver_presets.h"
-#include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/model/problem_access.h"
-#include "hven/solver/common_options.h"
-#include "hven/ipm/ipm_solver.h"
-#include "hven/ipm/ipm_solver_types.h"
-#include "hven/sqp/sqp_solver.h"
-#include "hven/sqp/sqp_solver_types.h"
-#include "hven/qp/qp_types.h"
+#include <hven/core/ledger.h>
+#include <hven/detail/ipm/ipm_solver_presets.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/solver/common_options.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
+#include <hven/qp/qp_types.h>
 
 #include "model/support/hs_problems.h"
 #include "model/support/hs071_problem.h"

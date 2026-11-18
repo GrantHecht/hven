@@ -9,8 +9,8 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/types.h"
-#include "hven/linear/dense_symmetric_factor.h"
+#include <hven/core/types.h>
+#include <hven/linear/dense_symmetric_factor.h>
 
 // MKL's own thread state, for the call-scoped-thread-count pin at the bottom of
 // this file. On Apple the dense path's LAPACK is Accelerate's, which exposes no

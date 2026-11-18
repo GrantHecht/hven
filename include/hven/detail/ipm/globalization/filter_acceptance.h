@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "hven/detail/ipm/globalization/progress_measures.h"
-#include "hven/detail/ipm/globalization/switching_acceptance.h"
+#include <hven/detail/ipm/globalization/progress_measures.h>
+#include <hven/detail/ipm/globalization/switching_acceptance.h>
 
 namespace hven::detail {
 

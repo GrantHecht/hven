@@ -22,8 +22,8 @@
 
 #include <fmt/format.h>
 
-#include "hven/core/types.h"
-#include "hven/model/nlp_assembly.h"
+#include <hven/core/types.h>
+#include <hven/model/nlp_assembly.h>
 
 namespace hven::model_tests {
 

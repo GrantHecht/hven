@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven::detail {
 

@@ -17,12 +17,12 @@
 // silently: nothing would fail to build. Keep the two lists in step, and see
 // scripts/check_pch_neutrality.sh for the check that proves they still are.
 
-#include "hven/core/errors.h"
-#include "hven/detail/core/finite_screen.h"
-#include "hven/detail/solver/callback_rows.h"
-#include "hven/detail/ipm/ipm_solver_impl.h"
-#include "hven/detail/ipm/ipm_dense_testing.h"
-#include "hven/detail/kkt/dense_selection.h"
+#include <hven/core/errors.h>
+#include <hven/detail/core/finite_screen.h>
+#include <hven/detail/solver/callback_rows.h>
+#include <hven/detail/ipm/ipm_solver_impl.h>
+#include <hven/detail/ipm/ipm_dense_testing.h>
+#include <hven/detail/kkt/dense_selection.h>
 
 #include <algorithm>
 #include <atomic>
@@ -34,19 +34,19 @@
 #include <stdexcept>
 #include <string>
 
-#include "hven/detail/ipm/aggregate_views.h"
-#include "hven/core/ledger.h"
-#include "hven/trace/console_trace_sink.h"
-#include "hven/trace/trace.h"
-#include "hven/detail/barrier/barrier_math.h"
-#include "hven/detail/ipm/solver_init.h"
-#include "hven/detail/util/get_core_count.h"
-#include "hven/detail/util/timer.h"
+#include <hven/detail/ipm/aggregate_views.h>
+#include <hven/core/ledger.h>
+#include <hven/trace/console_trace_sink.h>
+#include <hven/trace/trace.h>
+#include <hven/detail/barrier/barrier_math.h>
+#include <hven/detail/ipm/solver_init.h>
+#include <hven/detail/util/get_core_count.h>
+#include <hven/detail/util/timer.h>
 
 #ifdef USE_ACCELERATE_SPARSE
 // The engine's own Accelerate thread control, which the sparse linear surface
 // deliberately does not provide -- see that header for the ownership split.
-#include "hven/detail/ipm/accelerate_threads.h"
+#include <hven/detail/ipm/accelerate_threads.h>
 #endif
 
 // Globalization component interfaces. Included here (rather than from
@@ -55,35 +55,35 @@
 // themselves need the complete IpmSolver class (a circular-include arrangement that is
 // fragile for the "middle" headers below — see the include-discipline note in solver_context.h).
 // Dependency-ordered.
-#include "hven/detail/ipm/globalization/progress_measures.h"
-#include "hven/detail/ipm/solver_context.h"
-#include "hven/detail/ipm/globalization/acceptance_mode.h"
-#include "hven/detail/ipm/globalization/globalization_mechanism.h"
-#include "hven/detail/solver/return_best.h"
-#include "hven/detail/ipm/globalization/backtracking_line_search.h"
-#include "hven/detail/ipm/barrier_governor.h"
-#include "hven/detail/ipm/classic_adaptive_governor.h"
-#include "hven/detail/ipm/monitored_governor.h"
-#include "hven/detail/ipm/globalization/merit_acceptance.h"
-#include "hven/detail/ipm/globalization/modern_merit.h"
-#include "hven/detail/ipm/globalization/funnel_acceptance.h"
-#include "hven/detail/ipm/globalization/filter_acceptance.h"
-#include "hven/detail/kkt/inertia_regularization.h"
-#include "hven/detail/ipm/globalization/recovery_chain.h"
-#include "hven/detail/ipm/globalization/noop_recovery.h"
-#include "hven/detail/ipm/globalization/soc.h"
-#include "hven/detail/ipm/globalization/watchdog.h"
-#include "hven/detail/ipm/globalization/restoration.h"
-#include "hven/detail/ipm/globalization/proximal_restoration.h"
-#include "hven/detail/ipm/globalization/l1_restoration.h"
-#include "hven/detail/ipm/globalization/feasibility_stall.h"
-#include "hven/detail/ipm/globalization/feasibility_switch_recovery.h"
+#include <hven/detail/ipm/globalization/progress_measures.h>
+#include <hven/detail/ipm/solver_context.h>
+#include <hven/detail/ipm/globalization/acceptance_mode.h>
+#include <hven/detail/ipm/globalization/globalization_mechanism.h>
+#include <hven/detail/solver/return_best.h>
+#include <hven/detail/ipm/globalization/backtracking_line_search.h>
+#include <hven/detail/ipm/barrier_governor.h>
+#include <hven/detail/ipm/classic_adaptive_governor.h>
+#include <hven/detail/ipm/monitored_governor.h>
+#include <hven/detail/ipm/globalization/merit_acceptance.h>
+#include <hven/detail/ipm/globalization/modern_merit.h>
+#include <hven/detail/ipm/globalization/funnel_acceptance.h>
+#include <hven/detail/ipm/globalization/filter_acceptance.h>
+#include <hven/detail/kkt/inertia_regularization.h>
+#include <hven/detail/ipm/globalization/recovery_chain.h>
+#include <hven/detail/ipm/globalization/noop_recovery.h>
+#include <hven/detail/ipm/globalization/soc.h>
+#include <hven/detail/ipm/globalization/watchdog.h>
+#include <hven/detail/ipm/globalization/restoration.h>
+#include <hven/detail/ipm/globalization/proximal_restoration.h>
+#include <hven/detail/ipm/globalization/l1_restoration.h>
+#include <hven/detail/ipm/globalization/feasibility_stall.h>
+#include <hven/detail/ipm/globalization/feasibility_switch_recovery.h>
 
 // The polish extension's value type, byte form, and tag lookup. The driver's
 // public header only forward-declares IpmPolishData -- see its note there.
-#include "hven/detail/warmstart/warm_start_access.h"
-#include "hven/warmstart/ipm_polish_extension.h"
-#include "hven/detail/core/inf_norm.h"
+#include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/warmstart/ipm_polish_extension.h>
+#include <hven/detail/core/inf_norm.h>
 
 using namespace hven::detail;
 
