@@ -1,0 +1,22 @@
+M8 GL-0 -- consumer catch-up list (globalization diagnostics). Full text: docs/migration-0.2.md, section GL-0.
+Additions only; nothing a consumer built against origin/m8 reads changes meaning, and nothing stops compiling.
+
+Additions (no rewrite)
+  SqpCounters::reject_funnel_ceiling, reject_f_armijo, reject_h_funnel, reject_qp_failed, reject_other
+                                        rejected steps by cause; rejected_steps == their sum
+  SqpCounters::accepted_f_type, accepted_h_type
+                                        accepted steps by verdict; steps_accepted == their sum
+  SqpCounters::rejection_run_histogram  std::array<Index, 5>, a rejection's position in the run at one iterate (last bucket 5+)
+  SqpIterationRow::switching_ratio      std::optional<double>, pred_df / (0.999 h^2); trace key sqp.switching_ratio (trailing)
+  solve.end.counters (SQP), dump_counters(SqpResult)
+                                        eight trailing keys after payload_ignored, in the order above
+  detail::GlobalizationStrategy::last_reject_cause()
+                                        new virtual with a default; a decorator forwards it or counts as reject_other
+
+A reader that ignores unknown keys (trace schema section 5) needs nothing. A reader that checks the SQP counters key list
+or its count (95 + 2 nested tables before GL-0) re-points to 103.
+
+hven-bench: to read the new counters, add the eight names to the SQP counter columns of the corpus legs and the
+summary/replay column list (after payload_ignored); rejection_run_histogram is an array (one column per bucket, or
+joined), and sqp.switching_ratio is a per-iteration trace key (min/median/max per solve, "inf" at h == 0 to be treated
+as above-threshold). Nothing in hven-bench was edited.
