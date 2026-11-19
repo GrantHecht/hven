@@ -17,6 +17,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
+#include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/linear/fault_injection.h>
@@ -177,12 +178,22 @@ TEST(QpPlatformRetake, TheResponseIsTieredAndPerFactorization) {
     EXPECT_EQ(k.scaled_retakes, 1);
     EXPECT_EQ(kkt_inertia(k).positive, 3);
     EXPECT_EQ(kkt_inertia(k).negative, 2);
-    // THE SESSION READ (the counts above are K's on every session, Sylvester): the evidence
-    // is the scaled session's own perturbed-pivot report, not the platform's.
+    // THE SESSION READ: the evidence is the scaled session's own report, not the platform's.
+    // The counts above are K's on every session (Sylvester) and how many pivots each
+    // session perturbs is the backend's numerics, so neither tells the sessions apart; the
+    // platform session is put on -K0 (K0 = the s = 1 fixture's K: K's pattern, well
+    // conditioned, inertia 2 positive, 3 negative), which kkt_inertia must not see.
     EXPECT_EQ(kkt_inertia(k).perturbed_pivots, k.scaled_perturbed_pivots);
-#ifndef __APPLE__
-    EXPECT_NE(kkt_inertia(k).perturbed_pivots, k.factor.inertia().perturbed_pivots);
-#endif
+    const SpMatRM flipped = -assemble_kkt(coupled_f3(1.0).qp, WorkingSet(3, 0), o).K;
+    ASSERT_EQ(pattern_hash(flipped), pattern_hash(a.K));
+    const auto flip_platform = [&] {
+        ASSERT_EQ(k.factor.factorize(flipped).status, hven::linear::FactorizeOutcome::Status::kOk);
+        ASSERT_EQ(k.factor.inertia().positive, 2);
+        ASSERT_EQ(k.factor.inertia().negative, 3);
+    };
+    flip_platform();
+    EXPECT_EQ(kkt_inertia(k).positive, 3);
+    EXPECT_EQ(kkt_inertia(k).negative, 2);
     EXPECT_LE(worst_relerr(solve_vec(k, rhs), f.ystar), 1e-14);
 
 #ifndef __APPLE__
@@ -202,7 +213,9 @@ TEST(QpPlatformRetake, TheResponseIsTieredAndPerFactorization) {
     EXPECT_EQ(kkt_inertia(k).positive, 3);
     EXPECT_EQ(kkt_inertia(k).negative, 2);
     EXPECT_EQ(kkt_inertia(k).perturbed_pivots, k.matched_session->inertia().perturbed_pivots);
-    EXPECT_NE(kkt_inertia(k).perturbed_pivots, k.factor.inertia().perturbed_pivots);
+    flip_platform(); // the matched session's read, the same way
+    EXPECT_EQ(kkt_inertia(k).positive, 3);
+    EXPECT_EQ(kkt_inertia(k).negative, 2);
     EXPECT_LE(worst_relerr(solve_vec(k, rhs), f.ystar), 1e-14);
 #else
     // Accelerate: no perturbed-pivot report, so no escalation (and no matched tier).
