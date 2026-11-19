@@ -1,0 +1,247 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T21:55:37-05:00
+code paths == 16efab6248d81a28a033d520ca1b5909083f1ff7, clean; HEAD e647ef874f8e3c1ce5bc9483309d107748ff7380
+LEG P1-rel start 2026-11-18T21:55:38-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T21:55:38-05:00
+
+The following tests did not run:
+	851 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2536 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2537 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T21:56:55-05:00
+LEG P1-rel rc=0 2026-11-18T21:56:55-05:00
+LEG P1-rel-criterion start 2026-11-18T21:56:55-05:00
+LEG P1-rel-criterion rc=0 2026-11-18T21:56:55-05:00
+LEG P1-dbg start 2026-11-18T21:56:55-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T21:56:55-05:00
+	607 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	608 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	851 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2536 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2537 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-18T22:04:31-05:00
+LEG P1-dbg rc=0 2026-11-18T22:04:31-05:00
+LEG P1-dbg-criterion start 2026-11-18T22:04:31-05:00
+LEG P1-dbg-criterion rc=0 2026-11-18T22:04:31-05:00
+LEG P2 start 2026-11-18T22:04:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T22:04:31-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/bin/B/hven_sqp_corpus sha256 e5d6650214be3c673c9bdf14d1ff22ccfca4f9e6f8762bfac16a60f6f142ac62
+RUN B k=1 mode=walk 2026-11-18T22:04:31-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-18T22:09:20-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-18T22:09:40-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-18T22:10:06-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-18T22:14:55-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-18T22:15:15-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-18T22:15:41-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-18T22:20:30-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-18T22:20:50-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-18T22:21:16-05:00
+LEG P2 rc=0 2026-11-18T22:21:16-05:00
+LEG P2-criterion start 2026-11-18T22:21:16-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-18T22:21:17-05:00
+LEG P3 start 2026-11-18T22:21:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T22:21:17-05:00
+cells run: 238 2026-11-18T22:25:49-05:00
+FOREGROUND_END 2026-11-18T22:25:49-05:00
+LEG P3 rc=0 2026-11-18T22:25:49-05:00
+LEG P3-criterion start 2026-11-18T22:25:49-05:00
+MOVER BETTER   sd-hven-sqp-ALLINITC.K
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.K
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+SUMMARY rows 476; movers vs arm A 9 (better 1, worse 0, neutral 8); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-18T22:25:50-05:00
+LEG P4 start 2026-11-18T22:25:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T22:25:50-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126658e+06 B=7.126687e+06 B/A=1.000004
+  all samples                      A=7.126658e+06 B=7.126687e+06 B/A=1.000004
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850669e+12 B=2.850679e+12 B/A=1.000004
+per-round filtered B/A (informational):
+  round 1: B/A=1.000003
+  round 2: B/A=1.000004
+  round 3: B/A=1.000002
+MODE walk FILTERED B/A = 1.000004 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-18T22:59:26-05:00
+LEG P4 rc=0 2026-11-18T22:59:26-05:00
+LEG P5 start 2026-11-18T22:59:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T22:59:26-05:00
+MUT control unit_rc=0 seam_rc=0 killers=0
+APPLIED Mt1
+RESTORED
+MUT Mt1 unit_rc=0 seam_rc=1 killers=8
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (5424 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (654 ms)
+APPLIED Mt2
+RESTORED
+MUT Mt2 unit_rc=0 seam_rc=1 killers=8
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (5416 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (649 ms)
+APPLIED Mt3
+RESTORED
+MUT Mt3 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform
+   QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform (0 ms)
+APPLIED Me1
+RESTORED
+MUT Me1 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+APPLIED Me2
+RESTORED
+MUT Me2 unit_rc=0 seam_rc=1 killers=4
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (653 ms)
+APPLIED Mm1
+RESTORED
+MUT Mm1 unit_rc=1 seam_rc=1 killers=12
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices (27 ms)
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices (16 ms)
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (4662 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (323 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (25 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+APPLIED Mm2
+RESTORED
+MUT Mm2 unit_rc=1 seam_rc=1 killers=12
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (651 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (57 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+   SymmetricMatchingScaling.ScalesAStructurallySingularIndexByItsMatchedNeighbours
+   SymmetricMatchingScaling.ScalesAStructurallySingularIndexByItsMatchedNeighbours (0 ms)
+APPLIED Mm3
+RESTORED
+MUT Mm3 unit_rc=1 seam_rc=1 killers=10
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices (0 ms)
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices (16 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (323 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (4 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+APPLIED Mm4
+RESTORED
+MUT Mm4 unit_rc=0 seam_rc=1 killers=4
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-18T23:04:37-05:00
+LEG P5 rc=0 2026-11-18T23:04:37-05:00
+LEG P6 start 2026-11-18T23:04:37-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T23:04:37-05:00
+SMOKE_START default 2026-11-18T23:04:37-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-18T23:05:42-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-18T23:06:25-05:00
+LEG P6 rc=0 2026-11-18T23:06:25-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-18T23:06:25-05:00
