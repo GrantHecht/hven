@@ -1,0 +1,11 @@
+cell moves chains chain_ends_in_ascending_ordinary_step chain_ends_in_ride chain_ends_other max_chain code1_declines code1_steps_rose
+sd-hven-sqp-CRESC100.K 4 3 3 0 0 2 4 4
+sd-hven-sqp-HS101.D 1 1 1 0 0 1 0 0
+sd-hven-sqp-HS101.K 2 2 2 0 0 1 1 1
+sd-hven-sqp-HS56.D 0 0 0 0 0 0 1 1
+sd-hven-sqp-MESH.D 817 69 69 0 0 12 68 68
+sd-hven-sqp-MSS1.D 371 371 371 0 0 1 371 371
+sd-hven-sqp-MSS1.K 277 278 276 1 1 1 340 285
+sd-hven-sqp-SPANHYD.D 0 0 0 0 0 0 6 0
+sd-hven-sqp-SPANHYD.K 0 0 0 0 0 0 2 0
+TOTAL cells=9 moves=1472 chains=724 chain_end_ascent=722 chain_end_ride=1 chain_end_other=1 declines=793 decline_rose=730

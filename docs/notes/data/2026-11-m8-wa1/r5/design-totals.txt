@@ -1,0 +1,3 @@
+.scratch/meas/train-M: rows 476; qp minors 209264 -> 214576 (+2.54%); factorizations 249651 -> 253477 (+1.53%); status changes 0: 
+.scratch/meas/train-N-rung: rows 476; qp minors 209264 -> 209591 (+0.16%); factorizations 249651 -> 251535 (+0.75%); status changes 1: sd-hven-sqp-CRESC100.K:infeasible->optimal
+.scratch/meas/train-N-norung: rows 476; qp minors 209264 -> 219297 (+4.79%); factorizations 249651 -> 256697 (+2.82%); status changes 1: sd-hven-sqp-CRESC100.K:infeasible->optimal

@@ -1,0 +1,20 @@
+== variant rung (scratch 0233d36df, HVEN_WA1_MEAS)
+sd-hven-sqp-CRESC100.K: rides=0 regularized=1 rungs=0 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-HS101.D: rides=0 regularized=0 rungs=1 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-HS101.K: rides=0 regularized=0 rungs=1 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-HS56.D: rides=0 regularized=1 rungs=0 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-MESH.D: rides=0 regularized=4 rungs=1 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-MSS1.K: rides=7 regularized=16 rungs=4 declines=3 declines_rose=2 regularized_rose=2
+sd-hven-sqp-MSS1.D: rides=2 regularized=33 rungs=22 declines=289 declines_rose=286 regularized_rose=3
+sd-hven-sqp-SPANHYD.D: rides=0 regularized=0 rungs=2 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-SPANHYD.K: rides=0 regularized=0 rungs=1 declines=0 declines_rose=0 regularized_rose=0
+== variant norung (scratch 0233d36df, HVEN_WA1_MEAS + HVEN_WA1_NORUNG)
+sd-hven-sqp-CRESC100.K: rides=0 regularized=1 rungs=0 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-HS101.D: rides=0 regularized=0 rungs=0 declines=1 declines_rose=1 regularized_rose=0
+sd-hven-sqp-HS56.D: rides=0 regularized=1 rungs=0 declines=0 declines_rose=0 regularized_rose=0
+sd-hven-sqp-MESH.D: rides=0 regularized=3 rungs=0 declines=204 declines_rose=204 regularized_rose=0
+sd-hven-sqp-MSS1.D: rides=3 regularized=140 rungs=0 declines=688 declines_rose=613 regularized_rose=0
+sd-hven-sqp-SPANHYD.K: rides=0 regularized=0 rungs=0 declines=6 declines_rose=3 regularized_rose=0
+sd-hven-sqp-MSS1.K: rides=265 regularized=46 rungs=0 declines=309 declines_rose=297 regularized_rose=2
+sd-hven-sqp-SPANHYD.D: rides=0 regularized=0 rungs=0 declines=3 declines_rose=3 regularized_rose=0
+sd-hven-sqp-HS101.K: rides=0 regularized=1 rungs=0 declines=1 declines_rose=1 regularized_rose=0
