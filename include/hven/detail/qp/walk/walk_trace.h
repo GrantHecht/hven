@@ -210,9 +210,10 @@ enum class QpWalkAction : int {
     /// THE STAGNATION READING with nothing to drop re-solved the face mu-free and adopted the
     /// point (once per solve); nothing released: the next pass starts from it.
     kStagnationRefine,
-    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT (4c) took a dual_mu rung instead of a ride whose
-    /// landing point would leave the row budget, or reverted one whose face read kSuspect: the pass
-    /// is solved again, nothing moved.
+    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT (4c) took a dual_mu rung, reverted one whose
+    /// face
+    /// read kSuspect, or refused a ride whose add site landed outside the row budget: the pass is
+    /// solved again, nothing moved.
     kFootprintRung,
 };
 
@@ -224,17 +225,18 @@ enum class QpWalkFootprint : int {
     kMeritFalls = 0,
     /// kWrong face: `-p` ridden to its blocker inside the row budget.
     kRide = 1,
-    /// kOk face: the ordinary step taken along the regularized answer.
-    kRegularizedStep = 2,
     /// kWrong face: a dual_mu rung instead of the ride (`QpWalkAction::kFootprintRung`).
     kRung = 3,
-    /// Nothing to take (no ride inside the budget and the rungs spent, or the regularized answer
-    /// does not descend the merit): the ordinary step along p stands.
+    /// Nothing to take (kWrong: no ride inside the budget and no rung left; kOk: the penalty merit
+    /// rises along p): the ordinary step along p stands.
     kDeclined = 4,
     /// kWrong face where neither the ride nor the ordinary step moves: the ordinary add.
     kDegenerate = 5,
     /// The pass after a footprint rung read kSuspect: the rung reverted (`kFootprintRung`).
     kRungReverted = 6,
+    /// kWrong face: the ride's add site passed its blocker over to a landing point outside the row
+    /// budget; the pass is solved again without the ride (`kFootprintRung`).
+    kRideRefused = 7,
 };
 
 /// Which block a constraint identity refers to.

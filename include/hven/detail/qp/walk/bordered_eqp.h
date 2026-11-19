@@ -718,7 +718,6 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const detail::KktFactor &k0_factor = schur.k0_factor();
     const bool platform_check = detail::platform_solve_check_applies(k0_factor);
     const Vec sol_refined = platform_check ? sol : Vec();
-    Vec x_regularized = sol.head(n); // EqpResult::x_regularized; pins snapped below
 
     Index refine_steps = 0;
     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
@@ -771,10 +770,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         const BoundState st = bound_state[static_cast<std::size_t>(i)];
         if (st != BoundState::kFree) {
             res.x(i) = pinned_value(qp, st, i); // see the header note on pins
-            x_regularized(i) = res.x(i);
         }
     }
-    res.x_regularized = std::move(x_regularized);
     res.lambda_e = sol.segment(n, me);
 
     const std::vector<Index> &aw = ws.active_ineq();
