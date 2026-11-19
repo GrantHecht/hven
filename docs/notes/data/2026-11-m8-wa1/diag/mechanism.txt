@@ -1,0 +1,48 @@
+WA-1: the qp26 matched-cycle ascent, diagnosed (dev runs, not legs; raw data in MANIFEST-scratch.txt)
+==========================================================================================
+
+Source of the defect report: ../../2026-11-m8-sparse-equil-v2/diag/qp26-cycle.txt (branch sparse-equil-v2). Arm M sticky trigger on
+YORKNET restoration qp26: a period-5 cycle from minor 44 to the 7680-minor cap, signatures 1ec823fa -> b05a3457 -> 54cd5e43 -> c33b4de6.
+
+Reproduction: a detached worktree at a5798ad32 (WIP) + seq2's devdbg-v3.patch (copied, not modified) + a WA1 dev print at the ascent
+guard (slope, p'Hp, |p|^2, curvature_tol, delta, mu, ride_stays_in_working_set(p), iterate_meets_working_face) and state dumps.
+HVEN_SEQ_ARM=M, walk seam SeqTrace.Qp26, Release, MKL_NUM_THREADS=1, under the box lock.
+
+1. Minor 44 (kAdd bound 10, alpha 0.428, f -1456.814 -> -1443.195):
+     slope (Hx+g)'p = +50.35  (tol 2.2e-7)      p'Hp = -86.56   |p|^2 = 2.25e4   p'Hp/|p|^2 = -3.85e-3 (curvature_tol 5.9e-11)
+     delta = mu = 1e-8   iterate_meets_working_face = 1   ride_stays_in_working_set(p) = 0
+   The ascent guard (4c) has every precondition but one: p is not in the working set's null space. Which rows (tools/face44.py on
+   the minor-44 state): equality row 191, Ae p = -4.50e-4 (relative 2.1e-6), row 221, -5.2e-5 (2.5e-7); no pinned column moves.
+   That is the dual_mu footprint A_W p = mu lambda_W of a nearly dependent working set (|lambda_191| ~ 4.5e4): after the step the
+   iterate sits 0.428 * 4.5e-4 = 1.93e-4 off row 191 -- the trace's active_res 1.926e-4 at minor 45.
+   Descent invariant violated: an ordinary step from an iterate on its rows with g'p > 0 and p'Hp < 0, i.e. toward the stationary
+   point (a saddle) of a face not convex along p: f(alpha) - f(0) = 50.35 alpha - 43.3 alpha^2 > 0 on (0, 1].
+2. The inertia: 271/257 vs expected 272/256 with 0 perturbed pivots is TRUE, not a misread. The face W(44) = W(42) - bound 10 +
+   bound 503 is what minor 43's negative-curvature ride (4c, p'Hp -2.05, alpha 2.78) added; adding a row to an indefinite face can
+   leave it indefinite (the interlacing note under THE ASCENT GUARD), and the measured p'Hp = -86.6 along a direction that leaves
+   the rows only by the footprint confirms negative curvature on the face. "Trusted" is detail::inertia_verdict's rule: kObserved
+   evidence, perturbed_pivots == 0, counts summing to the dimension; a trusted count that differs from (n_free, me + |W_I|) is kWrong.
+   Mid-walk a kWrong does not gate the ordinary step: only the certification branch and the start repair read it; the ascent guard
+   reads curvature directly.
+3. Minor 46 (move-only, alpha 1, f +1.95e-4): the post-drop pass (503 released at 45). The curvature gate fires (p'Hp 4.1e-14,
+   flat), the ride is VETOED by 4c's null-space test (p restores the 1.93e-4 drift minor 44 left on row 191: meets_face 0), and
+   THE DECLINED RIDE (i) takes the ordinary step because p leaves the released constraint. slope +1.95e-4 with zero curvature: the
+   rise is the row restoration's own cost -- legitimate for an iterate off its rows, and a consequence of minor 44's drift.
+4. The mu-free step is no remedy: the minor-44 face factored at dual_mu = 0 (eliminated_candidate, as the saddle exit does) returns
+   residual ratios 5.6e44, 3.2e26, 1.1e45 (kSuspect, perturbed pivots) on every cycle visit (dbg1.log). The regularization is
+   what makes this working set solvable; the guard must read the step in the regularized problem's own currency.
+
+The fixture (tests/qp/fixtures/e2-d4/YRK_YORKNET_qp26_m42.txt): qp26 warm-started from the walk state at the top of pass 42 of the
+matched run (armM.state.top42; trust region baked into the bounds, tools/make_fixture.py). On origin/m8 WITHOUT matching (red.log):
+kIterationLimit at 8240 minors, 1644 ordinary steps from an iterate on its rows rising by up to 13.62 -- the defect is walk-intrinsic.
+
+Fix (code commit; walk_engine.h 4c THE REGULARIZATION FOOTPRINT): for a p that holds its pins but not its rows, from an iterate on
+them, read the penalty merit M = f + |A_W x - b_W|^2 / (2 mu) (the regularized KKT is its Newton system). At minor 44 the rows'
+part is +5.7e-5 on the slope and +20.5 on the curvature: M's curvature along p is -66.0 < 0, so -p descends f and M for every
+alpha: ridden to the blocker. A later pass (verdict kOk) had slope +0.102, p'Hp -3.5e-4 and rows' curvature +6.4e-3: M convex
+along p, so -p is followed to the first of its blocker and M's minimiser (the move); before the fix that pass rose f by 0.10 and
+left the iterate 8e-6 off its rows, after which every drop's ride was null-space-vetoed to a zero-motion kNumericalError.
+With the fix (green3.out): kOptimal in 38 minors, f = -1458.316029 (the cycle's floor was -1456.814), KKT battery clean.
+
+Residual (registered, not fixed): one start-phase pass on a kSuspect factor (perturbed pivots) takes an in-face step with slope +0.06
+and p'Hp +1.7e-6 (alpha 3.9e-8, f +2.4e-9): an inexact solve, outside this rule (the test excludes kSuspect passes).
