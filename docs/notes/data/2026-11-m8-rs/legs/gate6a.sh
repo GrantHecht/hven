@@ -24,7 +24,7 @@ if has psym; then
   rec psym-arms $?; tail -3 "$GD/psym-arms-run.txt"
   cp "$SC/arms/base-build.log" "$SC/arms/after-build.log" "$SC/arms.flags.txt" "$GD/" 2>/dev/null
   DECL="$GD/declared-object-map.txt"; [ -f "$GD/declared-object-map-r2.txt" ] && DECL="$DECL $GD/declared-object-map-r2.txt"
-  python3 $E/tools/rs6a_objmap_check.py "$SC/arms/psym-base/.psym-manifest" "$SC/arms/psym-after/.psym-manifest" $DECL --out "$GD/object-map-generated.txt" --unity-before "$GD/unity-before.txt" --unity-after "$GD/unity-after.txt" > "$GD/objmap-check.txt" 2>&1
+  python3 $E/tools/rs6a_objmap_check.py "$SC/arms/psym-base/.psym-manifest" "$SC/arms/psym-after/.psym-manifest" $DECL --out "$GD/object-map-generated.txt" --unity-before "$GD/unity-before.txt" --unity-after "$GD/unity-after.txt" --unity-class-source tests/core/test_type_storage.cpp --unity-class-source tests/kkt/test_kkt_factorization.cpp > "$GD/objmap-check.txt" 2>&1
   rec objmap-equals-declared $?; tail -3 "$GD/objmap-check.txt"
   for ARM in base after; do   # the unity class is compared by psym_union, never paired: take it out of the compared snapshots
     rm -rf "$SC/arms/psym-$ARM-nu"; cp -al "$SC/arms/psym-$ARM" "$SC/arms/psym-$ARM-nu"
@@ -40,7 +40,7 @@ if has psym; then
   rec psym-union $?; tail -6 "$GD/psym-union.txt"
 fi
 if has flags; then
-  python3 $E/tools/flags_diff6a.py "$SC/arms/cc-base.json" "$SC/arms/cc-after.json" --root-before "$WT" --root-after "$WT" > "$GD/flags.txt" 2>&1
+  python3 $E/tools/flags_diff6a.py "$SC/arms/cc-base.json" "$SC/arms/cc-after.json" --root-before "$WT" --root-after "$WT" --allow-only-after '^tests/core/test_type_storage\.cpp$' --allow-only-after '^tests/kkt/test_kkt_factorization\.cpp$' --allow-vanished '^tests/qp/test_dense_solve_wound_seams\.cpp$' > "$GD/flags.txt" 2>&1
   rec flags-diff $?; tail -14 "$GD/flags.txt"
 fi
 if has lists; then

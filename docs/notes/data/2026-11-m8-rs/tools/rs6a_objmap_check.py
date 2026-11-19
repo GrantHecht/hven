@@ -3,6 +3,7 @@
 usage: rs6a_objmap_check.py BEFORE-MANIFEST AFTER-MANIFEST DECLARED-MAP [EXTRA-DECLARED-MAP ...] --out GENERATED-MAP [--unity-before OUT] [--unity-after OUT]
 Source paths do not change in RS-6a, only the CMake target, so a before object is paired with the after object that has the SAME source path (key (source), target ignored).
 Writes the generated `old => new` map (only objects whose build-relative path changed), the lists of unity-class objects (before/after, never paired), and requires:
+  * (--unity-class-source: a source unity-batched before and plain after joins the AFTER unity class)
   * every non-unity before object has exactly one after object with its source path, and vice versa (no new, no removed object);
   * the generated map equals the union of the declared maps, as a set of lines (both directions)."""
 import importlib.util, sys, os, argparse
@@ -12,6 +13,7 @@ rom = importlib.util.module_from_spec(spec); spec.loader.exec_module(rom)
 ap = argparse.ArgumentParser()
 ap.add_argument('before'); ap.add_argument('after'); ap.add_argument('declared', nargs='+')
 ap.add_argument('--out', required=True); ap.add_argument('--unity-before'); ap.add_argument('--unity-after')
+ap.add_argument('--unity-class-source', action='append', default=[], help='a repo-relative source that was unity-batched before and is a plain object after: its AFTER object joins the unity class (compared by psym_union, not paired)')
 a = ap.parse_args()
 def load(p):
     plain, unity, other = {}, [], []
@@ -26,6 +28,10 @@ def load(p):
         plain[src] = (tgt, rel)
     return plain, sorted(unity), other
 b, ub, ob = load(a.before); af, ua, oa = load(a.after)
+for src in a.unity_class_source:
+    if src not in af: sys.exit('--unity-class-source %s has no after object' % src)
+    ua.append(af.pop(src)[1])
+ua.sort()
 err = []
 for s in sorted(b):
     if s not in af: err.append('REMOVED (before object with no after object): ' + b[s][1])
