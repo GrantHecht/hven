@@ -1,0 +1,19 @@
+A-1 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20309 
+A-2 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20309 
+A-3 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20309 
+A-4 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20309 
+A-5 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20309 
+B-1 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20306 
+B-2 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20306 
+B-3 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20306 
+B-4 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20306 
+B-5 status=numerical_error iterations=23 factorizations=40039 side.qp_minor_iters=20306 
+../../../../.scratch/r5/dev-train-B/cells/sd-hven-sqp-SPANHYD.K.out:iterations=29
+../../../../.scratch/r5/dev-train-B/cells/sd-hven-sqp-SPANHYD.K.out:factorizations=42085
+../../../../.scratch/r5/dev-train-B/cells/sd-hven-sqp-SPANHYD.K.out:side.qp_minor_iters=21410
+../../../../.scratch/meas/train-N-rung/cells/sd-hven-sqp-SPANHYD.K.out:iterations=29
+../../../../.scratch/meas/train-N-rung/cells/sd-hven-sqp-SPANHYD.K.out:factorizations=42085
+../../../../.scratch/meas/train-N-rung/cells/sd-hven-sqp-SPANHYD.K.out:side.qp_minor_iters=21410
+../../../../.scratch/meas/train-N-norung/cells/sd-hven-sqp-SPANHYD.K.out:iterations=23
+../../../../.scratch/meas/train-N-norung/cells/sd-hven-sqp-SPANHYD.K.out:factorizations=40039
+../../../../.scratch/meas/train-N-norung/cells/sd-hven-sqp-SPANHYD.K.out:side.qp_minor_iters=20309
