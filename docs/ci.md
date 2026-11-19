@@ -139,7 +139,7 @@ estimated):
 
 | Suite | Linux | macOS | Why the difference |
 | --- | --- | --- | --- |
-| `SymmetricFactor` (MKL-specific: perturbed-pivot evidence, phase-split partial solves) | 26 | 0 | `tests/CMakeLists.txt`: `if(NOT APPLE)` |
+| `SymmetricFactor` (MKL-specific: perturbed-pivot evidence, phase-split partial solves) | 26 | 0 | `tests/linear/CMakeLists.txt`: `if(NOT APPLE)` |
 | `PardisoIparmObservation` | 4 | 0 | same file, same gate |
 | `MklFactorizeFaultInjection` | 2 | 0 | MKL-only fault-injection seam |
 | `AuditRuntimeShim` (the consumed-surface audit's runtime half) | 3 | 0 | `tests/golden_rig/CMakeLists.txt`: `if(UNIX AND NOT APPLE)` — Linux-only, not Windows either (see `docs/testing.md`'s audit section) |
@@ -555,7 +555,7 @@ Three mechanics worth knowing before reading one:
 What it is *for*: it is where `RecordProperty` observations land durably
 instead of being formatted to a console and discarded. Tests that record
 rather than assert — the `iparm[18]` `pardisoinit` default in
-`tests/linear/test_fault_injection.cpp`, and the observed task-6b residual
+`tests/linear/seam/test_fault_injection.cpp`, and the observed task-6b residual
 columns in `tests/bench/test_corpus_cells.cpp`, the ones the divergence register
 reports rather than asserts on Accelerate — put their values in these files,
 which is what makes a reported value re-readable from a named run rather than

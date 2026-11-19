@@ -1,6 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// kkt_factor.cpp -- IMPLEMENTS hven/detail/kkt/kkt_factor.h (`KktFactor`, the QP-side factor).
+// Not kkt_factorization.cpp, which implements the IPM/IPQP `KktFactorization`.
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

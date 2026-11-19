@@ -9,7 +9,7 @@
 // =============================================================================
 // The interior-point engine's option validation and presets.
 //
-// This file was src/drivers/interior_point_solver_settings.cpp until M6 W5
+// This file was (retired path) src/drivers/interior_point_solver_settings.cpp until M6 W5
 // T8.3, when the options became a value: the ~50 validated set_*() methods, the
 // four strto_*() string-to-enum parsers and the six string-taking setter
 // overloads were DELETED, IpmSolver::Settings::validate() became the

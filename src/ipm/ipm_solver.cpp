@@ -5793,7 +5793,7 @@ void hven::detail::IpmSolverImpl::capture_completed_warm_start() {
     // As of this solve: read here rather than at export, so a re-lay between
     // the two cannot stamp these blocks with a key they were never taken
     // under. The declaration key and not the layout key -- warmstart/
-    // warm_start.h's stamp note carries the argument.
+    // warmstart/warm_start.h's stamp note carries the argument.
     //
     // Guarded like every check below because it is the one statement here that
     // calls out, and both halves can refuse (declaration_key over its

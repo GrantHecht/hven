@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// qp_engine.cpp — QpEngine's primal active-set walk, and everything the walk
+// walk_engine.cpp — QpEngine's primal active-set walk, and everything the walk
 // orchestrates.
 //
 // This TU holds the DEFINITIONS of every QpEngine member function except the
@@ -205,7 +205,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // --- One exact solve on that face ---------------------------------
     // THE EQP-REFINE TEMPORARY, at this engine's thread count (M6 W5 T8.8).
     // It dies inside this call, so no boundary observation can read its count;
-    // what covers it is the CONSTRUCTION RULE (kkt_calls.h) plus this line.
+    // what covers it is the CONSTRUCTION RULE (kkt_factor.h) plus this line.
     detail::KktFactor kkt(threads_, dense_policy_);
     ++out.counters.factorizations;
     // THE PROXIMAL CENTRE for a re-solve OF THE CALLER'S OWN FACE is the point
@@ -725,9 +725,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // THE STANDSTILL RETREAT's run of qualifying full steps; every pass that does not
     // extend it, by whatever exit, leaves it at zero.
     Index standstill_steps = 0;
-    // THE DEAD-END RANK REPAIR's remaining analyses this solve (qp_engine.h, Degeneracy).
+    // THE DEAD-END RANK REPAIR's remaining analyses this solve (walk_engine.h, Degeneracy).
     Index rank_repairs_left = detail::kRankRepairBudget;
-    // THE STAGNATION READING's run (qp_engine.h): idle full steps since the run's last progress,
+    // THE STAGNATION READING's run (walk_engine.h): idle full steps since the run's last progress,
     // -1 when no full-step run is open; the run's best objective and working-row residual (and
     // whether that residual sits above the rows' floor); the reading taken, for the next pass's
     // drop rule; the drops it may still make this solve; and whether its one resume from a mu-free
@@ -751,7 +751,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kIterationLimit;
 #ifdef HVEN_TESTING
-    // M7 W2 M5's DEGENERACY ARMS (qp_degeneracy_arm.h). Clears the published
+    // M7 W2 M5's DEGENERACY ARMS (degeneracy_arm.h). Clears the published
     // stationarity scale so this solve's first drop can never be judged
     // against the PREVIOUS solve's scale, re-arms an arm a previous solve
     // disarmed, and stamps the solve so no cached decomposition can be reused
@@ -774,11 +774,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         detail::testing::b1_entry_repair(qp, ws);
     }
     // THE WALK'S READ-ONLY TEST SEAM (docs/testing.md; declarations in
-    // qp_walk_trace.h, which compiles to nothing without HVEN_TESTING).
+    // walk_trace.h, which compiles to nothing without HVEN_TESTING).
     // `ws` here is the set the first pass starts from: the seed ingest, the
     // seeding refresh_shifts and arm B1's entry repair are all above.
     detail::testing::QpWalkObserver::begin_solve(warm, n, me, mi, eff_max_iter, ws);
-    // M7 W2 M4's ANTI-CYCLING ARMS (qp_anti_cycling_arm.h). With no arm armed
+    // M7 W2 M4's ANTI-CYCLING ARMS (anti_cycling_arm.h). With no arm armed
     // this starts nothing and every hook below runs production's statements.
     // Armed, it begins EXPAND's first expanding sequence (§4.2) for this solve.
     detail::testing::QpAntiCycleArmState::begin_solve();
@@ -790,7 +790,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // live border stack are untouched, and the pass's counters are saved and
     // restored around the call. Created LAZILY, so a run that never arms the
     // diagnostic constructs no backend factor at all -- and `make_unique` here
-    // rather than a member or a new `#include`, because `qp_engine.h` already
+    // rather than a member or a new `#include`, because `walk_engine.h` already
     // brings in <memory> (`border_` is a shared_ptr) and an include added at
     // the top of THIS file would move the `__LINE__` immediate of the
     // `assert()` above, which is exactly the instruction-stream move the seam's
@@ -827,7 +827,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // stop recording.
         detail::testing::QpWalkMinorScope walk_obs(ws, x, counters, iter);
 #ifdef HVEN_TESTING
-        // THE OBJECTIVE AT THIS PASS'S INCOMING ITERATE (qp_walk_trace.h's obj_in),
+        // THE OBJECTIVE AT THIS PASS'S INCOMING ITERATE (walk_trace.h's obj_in),
         // so the ordinary step's DESCENT INVARIANT is decidable from the trace. One
         // mat-vec into storage the loop never reads; nothing here is a decision.
         walk_obs.record().obj_in =
@@ -1241,7 +1241,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // and not a recomputation of it. The one approximation (this is
             // the scale at the pass's STARTING iterate, while `drop_worst`
             // runs after the KKT-point branch snaps `x = eqp.x`) is bounded
-            // and declared in qp_degeneracy_arm.h.
+            // and declared in degeneracy_arm.h.
             detail::testing::QpDegeneracyArmState::publish_scale(stat_scale);
 
             // How far the iterate sits off the constraints the EQP holds at
@@ -1312,7 +1312,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // which is why no refresh is needed (or taken) on that path.
         // ==================================================================
         const bool zero_motion = p_inf <= step_tol;
-        // THE STANDSTILL RETREAT (qp_engine.h): a border-stack pass whose inertia reads kWrong
+        // THE STANDSTILL RETREAT (walk_engine.h): a border-stack pass whose inertia reads kWrong
         // while the iterate carries a structural equality violation qualifies; zero motion on
         // it, or a second consecutive full step (end of pass), retreats.
         const bool standstill_face =
@@ -1332,7 +1332,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
             worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                        eff_opts) == 0.0;
-        // THE STAGNATION READING (qp_engine.h): this pass is a KKT point of the working set for
+        // THE STAGNATION READING (walk_engine.h): this pass is a KKT point of the working set for
         // the drop rule alone, never for the classification.
         const bool stagnation_only = stagnation_read_in && !zero_motion && !stationary_proper;
         const bool stationary_on_ws = stationary_proper || stagnation_only;
@@ -1371,7 +1371,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 --stagnation_drops_left;
             }
             if (stagnation_only && !dropped_one) {
-                // THE STAGNATION READING with nothing to drop (qp_engine.h). A residual the
+                // THE STAGNATION READING with nothing to drop (walk_engine.h). A residual the
                 // dual_mu footprint explains is re-solved mu-free first, as at the terminal
                 // classification below; the refined multipliers may release a member, and an
                 // adopted point with nothing to release is, once per solve, the next pass's
@@ -2265,7 +2265,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                  /*cap_at_unit=*/true, counters);
         // =================================================================
         // ARM B1 -- THE INDEPENDENCE-PRESERVING RATIO TEST
-        // (`qp_degeneracy_arm.h`'s ARM B1 block, settler ruling R3).
+        // (`degeneracy_arm.h`'s ARM B1 block, settler ruling R3).
         //
         // IT RUNS HERE AND NOT INSIDE `ratio_test`, deliberately. The
         // dependency test needs the pass's EFFECTIVE options (the `delta`/`mu`
@@ -2613,7 +2613,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
             if ((add_exit == AddExit::kTerminate || add_exit == AddExit::kRejected) &&
                 !ride_blocked && rank_repairs_left > 0) {
-                // THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): a working set that is
+                // THE DEAD-END RANK REPAIR (walk_engine.h, Degeneracy): a working set that is
                 // itself rank-deficient is restored to full rank -- the members on its null
                 // directions released, an inconsistent direction's by the orientation that
                 // leaves the released constraint satisfied on the new face -- and the walk
@@ -2657,7 +2657,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
             if (add_exit == AddExit::kTerminate && first_refused.has_value() &&
                 pass_view.eliminated != nullptr) {
-                // THE REFUSED-BLOCKER EXCHANGE (qp_engine.h, Degeneracy): the sequence's first
+                // THE REFUSED-BLOCKER EXCHANGE (walk_engine.h, Degeneracy): the sequence's first
                 // blocker was refused by D3(b) -- known dependent at this point, its regularized
                 // test undecided, so it carried no coefficients. They are derived mu-free on this
                 // pass's factor and the ordinary exchange (then the R-B unlock) is offered for it,
@@ -2952,7 +2952,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // order delta in the constraints and, at a degenerate vertex,
             // exactly what makes the drop/re-add pair move the iterate by
             // nothing at all. THE QUESTION IS ASKED OF THE ONE SHARED
-            // PREDICATE (`qp_anti_cycling_arm.h`) that the RIDE's add path
+            // PREDICATE (`anti_cycling_arm.h`) that the RIDE's add path
             // below asks too, so the two cannot answer it differently. The
             // guard is written so that the statement below is PRODUCTION'S,
             // unchanged, token for token.
@@ -3006,8 +3006,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         const bool released_row_out = eff_opts.independent_working_set && dropped.active &&
                                       dropped.is_ineq && !in_working(ws, dropped.idx);
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
-        // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
-        // the previous pass released, so the residual the row was released with was dual_mu's
+        // THE RELEASE RE-ADMISSION (walk_engine.h, Degeneracy): the refresh just re-admitted the
+        // row the previous pass released, so the residual the row was released with was dual_mu's
         // footprint. One rung down, and the factor state discarded so the next pass factorizes with
         // it.
         if (released_row_out && in_working(ws, dropped.idx) &&
@@ -3034,7 +3034,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 recheck_pending = true;
             }
         }
-        // THE STAGNATION READING (qp_engine.h): an idle run of full steps on a fixed working set
+        // THE STAGNATION READING (walk_engine.h): an idle run of full steps on a fixed working set
         // hands the next pass to the drop rule, or, with the drops spent, ends the walk
         // kIterationLimit here, at the iterate the step just reached. A ride never reaches this
         // line (every ride branch above ends its pass), so "no ride" holds by construction. f_now
@@ -4320,7 +4320,7 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, 
         // if the restoration really did leave the set dependent, the next add
         // site reads it and A9 disarms the solve.
         //
-        // It is also declared UNCOVERED-BY-FIXTURE in `qp_degeneracy_arm.h`:
+        // It is also declared UNCOVERED-BY-FIXTURE in `degeneracy_arm.h`:
         // reaching it deliberately needs a probe that removes a member and
         // then rejects the reduced set, which a constructed QP does not
         // produce reliably.
@@ -4373,7 +4373,7 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
     // because `false` here already means "nothing to pin against" and the
     // caller's own loop moves on to the next variable in its order.
     //
-    // Declared UNCOVERED-BY-FIXTURE in `qp_degeneracy_arm.h`: the repair fires
+    // Declared UNCOVERED-BY-FIXTURE in `degeneracy_arm.h`: the repair fires
     // on a trustworthy WRONG inertia verdict at iteration 0, which a
     // constructed QP does not produce on demand.
     if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
@@ -4594,7 +4594,7 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // AND THE CANDIDATE MUST PASS THE WALK'S OWN KKT-POINT TEST (fix round 3): its
     // relative stationarity within opt_tol, which IS free_block_is_stationary on
     // the candidate -- terminal_kkt has already divided that residual by the same
-    // scale (qp_engine.h's TerminalKkt), so the test needs no second stationarity
+    // scale (walk_engine.h's TerminalKkt), so the test needs no second stationarity
     // and keeps the NaN convention above. WHY: the rounding margin below is for ulp
     // ties and may not be spent as HEADROOM ABOVE THE TOLERANCE. Without this test
     // a walk that certified at 0.9 * opt_tol could export a candidate at
@@ -4842,7 +4842,7 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
     const Vec saved_x = x;
 
     // THE REPAIR'S BUDGET (E2 fix8; the measured distribution and the constant are in
-    // qp_engine.h). The integer screen used to bound this loop by accident and at the wrong
+    // walk_engine.h). The integer screen used to bound this loop by accident and at the wrong
     // place; this bounds it on purpose. It is a ceiling, not a cost: the pins a SUCCESSFUL
     // repair tries are p50 1, p90 1, p95 2 over the 838 measured repairs. It bounds the probe
     // factorizations too, by construction: one probe per pin below, and at most one per pin
@@ -5014,7 +5014,7 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     detail::DepTest t = detail::dependency_test(qp, ws, view, a, opts);
     ++counters.dep_tests;
     // R-A (E2 fix3): an exact structural dependency overrules a numerical
-    // "independent" at every growth site (qp_engine.h, Degeneracy).
+    // "independent" at every growth site (walk_engine.h, Degeneracy).
     if (t.verdict == detail::DepVerdict::kIndependent) {
         const detail::StructuralDependency sd = detail::structural_dependency(qp, ws, is_ineq, idx);
         if (sd.found) {
@@ -5026,7 +5026,7 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     }
     // R-E (E2 fix6): a CONVERGED "independent" in the grey band is re-read with
     // the refinement run to its end on the same factor; a certified rho' makes it
-    // dependent with the re-read's coefficients (qp_engine.h, Degeneracy).
+    // dependent with the re-read's coefficients (walk_engine.h, Degeneracy).
     if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
         t.rho < detail::kDepUndecidable) {
         ++counters.dep_grey_rereads;
@@ -5345,7 +5345,7 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
     // Each member's absorbency is its OWN footprint, min(dual_mu * |lambda_k|,
     // kInfeasibilityMarginFactor * kInfeasibilityAbsorbTol * scale_k), floored at
     // feas_tol * scale_k: the regularization leak, capped at the exit's structural band
-    // (qp_engine.h, THE LEAK BUDGET). row_tolerance()'s own cap is the absorb tolerance
+    // (walk_engine.h, THE LEAK BUDGET). row_tolerance()'s own cap is the absorb tolerance
     // alone; the band is the margin factor above it.
     const double xmag = x.lpNorm<Eigen::Infinity>();
     const auto footprint = [&](double scale, double lambda) {
@@ -5880,7 +5880,7 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     // the factorize, which is the only way to know whether THIS call is
     // about to pay the backend's symbolic analysis. TAKEN here and HANDED
     // to factorize_checked() rather than taken twice, so one factorization
-    // costs one pattern hash at this layer (kkt_calls.h's
+    // costs one pattern hash at this layer (kkt_factor.h's
     // AnalysisDecision).
     const detail::AnalysisDecision analysis = detail::analysis_decision(border.kkt, k0.K);
     if (analysis.needed) {
@@ -6214,7 +6214,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
     // simplex BASIS moving by a single pivot -- does NOT cover this walk, which
     // has a working set over two index spaces, an EQP re-solve and a snap every
     // minor, a negative-curvature ride and recovery branches. The gap is
-    // declared in qp_anti_cycling_arm.h and in the round's README; nothing here
+    // declared in anti_cycling_arm.h and in the round's README; nothing here
     // is reported as a finiteness guarantee.
     if (detail::testing::QpAntiCycleArmState::lex_on()) {
         using Ac = detail::testing::QpAntiCycleArmState;
@@ -6478,7 +6478,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     if (d.size() > 0 && ride_stays_in_working_set(qp, ws, d)) {
         return d;
     }
-    // THE SHIFTED SEARCH (qp_engine.h, kSaddleShiftFactor): once, on a local factor of the
+    // THE SHIFTED SEARCH (walk_engine.h, kSaddleShiftFactor): once, on a local factor of the
     // same face with H + sigma I; `view` keeps naming the unshifted factor the add site reads.
     ++counters.saddle_shifted_searches;
     QpOptions os = o;
@@ -6706,9 +6706,9 @@ using AcKey = detail::testing::QpAntiCycleArmState::LexKey;
 /// (FIX ROUND 1, review Important 5). `QpAntiCycleParams::negligible_pivot` is
 /// now READ by `arm_candidates` below, so it has to be true, and not merely
 /// documented, that a default-parameter arm considers exactly the constraints
-/// production considers. `qp_anti_cycling_arm.h` cannot name
-/// `detail::kEngineDenomTol` in its initializer -- `qp_engine.h` includes that
-/// header, through `qp_walk_trace.h`, ABOVE its own declaration of the constant
+/// production considers. `anti_cycling_arm.h` cannot name
+/// `detail::kEngineDenomTol` in its initializer -- `walk_engine.h` includes that
+/// header, through `walk_trace.h`, ABOVE its own declaration of the constant
 /// -- so the two literals are tied together HERE instead, where both are
 /// visible, and a future edit to either one fails the build.
 static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::kEngineDenomTol,
@@ -6716,8 +6716,8 @@ static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::k
               "at the default the arms' candidate set is production's candidate set");
 
 /// AND THE SAME TIE FOR M7 W2 M5's ARM B1, for the same reason and in the same
-/// place. `qp_degeneracy_arm.h` cannot name these two constants either --
-/// `qp_engine.h` includes that file, through `qp_walk_trace.h`, ABOVE its own
+/// place. `degeneracy_arm.h` cannot name these two constants either --
+/// `walk_engine.h` includes that file, through `walk_trace.h`, ABOVE its own
 /// declarations of them -- so the literals are tied together HERE, where both
 /// are visible. b1 re-enumerates the ratio test's candidates; if its
 /// eligibility constants ever drifted from the engine's, it would be scanning
@@ -6734,7 +6734,7 @@ static_assert(detail::testing::QpDegeneracyParams{}.step_tie_tol == detail::kEng
 /// `QpEngine::BlockKind`'s three values, re-declared here because that enum is
 /// a PRIVATE nested type of `QpEngine` and these helpers are free functions.
 /// Declaring a friend, or moving the helpers into the class, would mean
-/// editing `qp_engine.h` -- which would move the DWARF line programme of every
+/// editing `walk_engine.h` -- which would move the DWARF line programme of every
 /// inline function below the edit in the three production objects that include
 /// it, for no gain. The two call sites translate, and the translation is
 /// exhaustive.

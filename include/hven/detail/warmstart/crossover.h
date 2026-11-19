@@ -3,7 +3,7 @@
 
 #pragma once
 
-// warm_start.h -- the interior-point CROSSOVER (`from_interior_point`).
+// crossover.h -- the interior-point CROSSOVER (`from_interior_point`).
 //
 // The SQP's native warm-start state lives in detail/warmstart/sqp_warm_state.h as
 // `SqpWarmState`, behind the opaque public handle `SqpWarmStart`

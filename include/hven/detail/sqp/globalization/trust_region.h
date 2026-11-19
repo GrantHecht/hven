@@ -19,7 +19,7 @@ inline constexpr double kTrGrowThreshold = 0.75;
 /// and capped at SqpOptions::trust_region_max.
 inline constexpr double kTrGrowFactor = 2.0;
 /// The contraction factor, applied on every kReject verdict. COUPLED to
-/// globalization.h's kRestoreMinRejections -- see RADIUS MANAGEMENT.
+/// funnel.h's kRestoreMinRejections -- see RADIUS MANAGEMENT.
 inline constexpr double kTrShrinkFactor = 0.5;
 
 /// Relative size below which an L-BFGS pair's step counts as zero, ||s||inf <= kZeroStepScale *

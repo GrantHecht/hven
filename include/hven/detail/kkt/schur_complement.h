@@ -4,7 +4,7 @@
 #pragma once
 
 // schur_complement.h -- dense Schur-complement border over a fixed KKT
-// factorization, letting working-set changes (qp_engine.h's border mode)
+// factorization, letting working-set changes (walk_engine.h's border mode)
 // add/drop constraint rows without a full Pardiso refactorization.
 //
 // Given a factorized K0 (owned by `kkt`, held fixed across add_border/
@@ -39,7 +39,7 @@
 // NOTE dim() <= schur_cap is NOT an invariant this class enforces --
 // add_border always succeeds and this class never refuses one. schur_cap is
 // advisory: exceeding it makes needs_refactorization() true, and it is the
-// CALLER's job to stop bordering at that point (qp_engine.h rebuilds K0 when
+// CALLER's job to stop bordering at that point (walk_engine.h rebuilds K0 when
 // the offending borders can be folded into it, and latches onto the
 // elimination path when they cannot). Either way dim() peaks at
 // schur_cap + 1: the cap is detected by the add that crosses it, so one
@@ -134,7 +134,7 @@ class SchurComplement {
     // ALL-OR-NOTHING ON THE BORDER STACK. If anything below throws -- the K0
     // solve, an allocation, or the dense factorization -- this call leaves
     // v_/k0inv_v_/d_ EXACTLY as it found them, so dim() never counts a border
-    // the call did not finish adding. The caller (qp_engine.h sync_borders)
+    // the call did not finish adding. The caller (walk_engine.h sync_borders)
     // records each successful add in a parallel ledger AFTER this returns, and
     // drop_border() indexes by add-order position; a border left behind by a
     // throwing add would be invisible to that ledger forever and would shift
@@ -329,7 +329,7 @@ class SchurComplement {
     // the direction cannot be read: dim() == 0, a step that is not finite or
     // vanishes, and -- for the near-null one -- no usable factorization (an
     // exactly singular C, or a rebuild that threw). Read by the walk's
-    // conditioning latch (qp_engine.h, section 4) for the borders that made C
+    // conditioning latch (walk_engine.h, section 4) for the borders that made C
     // ill-conditioned; they change nothing here.
     Vec near_null_direction() const {
         if (dim() == 0 || !evidence_usable()) {

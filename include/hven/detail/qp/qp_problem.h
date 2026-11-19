@@ -136,7 +136,7 @@ struct QpProblem {
 /// `residual`: the norm of the box_part entries DROPPED because their
 /// coordinate is unbounded on the needed side, each <= kDepTol * ||c||.
 /// `exact_tol`: the rounding floor kCertExactKappa * (n + m) * eps * ||y||_1 *
-/// max_k ||a_k|| (standard model; derived at kCertExactKappa, qp_engine.h).
+/// max_k ||a_k|| (standard model; derived at kCertExactKappa, walk_engine.h).
 ///   - residual <= exact_tol: an exact Farkas certificate for the QP up to
 ///     rounding -- every x in the box with Ae x = be, Ai x <= bi has
 ///     s * c^T x >= implied > limit -- behind a kInfeasible.
@@ -168,7 +168,7 @@ struct QpSolution {
     std::vector<bool> ineq_active;       ///< Size mi.
     QpCounters counters;
 
-    /// Trust-region activity set (qp_engine.h's "Section 6"), size n. True at
+    /// Trust-region activity set (walk_engine.h's "Section 6"), size n. True at
     /// index i iff variable i is held by a TR-tight effective bound rather
     /// than a real one: bound_state[i] reports kFree for such a variable (TR
     /// pins are deliberately EXCLUDED from bound_state, a real-bound-only

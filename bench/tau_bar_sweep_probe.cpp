@@ -17,7 +17,7 @@
 // gtest_discover_tests) -- it is a measurement instrument for this note, not
 // a per-commit correctness assertion.
 //
-// WHAT THIS IS. `kFunnelTauBar` (globalization.h) is an `inline constexpr`,
+// WHAT THIS IS. `kFunnelTauBar` (funnel.h) is an `inline constexpr`,
 // not a runtime option, so the shipped, CMake-built form of this program only
 // ever reads the ONE value the library ships (100.0) -- running it via
 // `cmake --build build && ./build/bench/hven_sqp_tau_bar_sweep_probe`
@@ -30,7 +30,7 @@
 // the patched copy's directory placed BEFORE the real `include/` on the
 // search path -- there is no way to inject a different value into an
 // `inline constexpr` at runtime, and the ruling this note reaches is "do not
-// change globalization.h", so the patch is external to the shipped build, not
+// change funnel.h", so the patch is external to the shipped build, not
 // a CMake option on it. EXACT INVOCATION (from the repo root; matches this
 // project's own compiler/backend banner -- clang++, MKL LP64,
 // MKL_NUM_THREADS=1):

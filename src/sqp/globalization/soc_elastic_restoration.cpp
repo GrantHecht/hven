@@ -158,7 +158,7 @@ ElasticQp detail::build_elastic_subproblem(const QpProblem &qp, double tr_radius
     // leave the linearization MORE violated in total than it already is at
     // p_ref, and it cannot cut off the witness point, whose actual violation
     // |r_j| is at most sum_k |r_k| = violation_l1 by construction. A slack
-    // that saturates it reports kAtUpper, which qp_engine.h's is_runaway skips
+    // that saturates it reports kAtUpper, which walk_engine.h's is_runaway skips
     // outright ("pinned at a bound: it did not run away").
     for (Index k = 0; k < ns; ++k) {
         e.qp.upper(n + k) = e.violation_l1 / e.slack_scale(k);

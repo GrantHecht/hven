@@ -3,7 +3,7 @@
 
 #pragma once
 
-// qp_anti_cycling_arm.h — M7 W2 M4's ANTI-CYCLING EXPERIMENT: two arms over the
+// anti_cycling_arm.h — M7 W2 M4's ANTI-CYCLING EXPERIMENT: two arms over the
 // primal active-set walk's pivot rules, on the `HVEN_TESTING` test-seam
 // convention docs/testing.md describes and CLAUDE.md §8 mandates ("use this
 // convention for any new need rather than inventing another").
@@ -13,18 +13,18 @@
 // a build that defines `HVEN_TESTING` and never arms an arm is the production
 // walk. Every declaration in this file is inside `#ifdef HVEN_TESTING`, so a
 // production TU sees no line, no byte and no symbol of it, exactly as for
-// `qp_walk_trace.h`. `HVEN_TESTING` is defined ONLY target-wide on the
+// `walk_trace.h`. `HVEN_TESTING` is defined ONLY target-wide on the
 // standalone test executables that recompile the instrumented sources a second
 // time and do NOT link `hven::hven`.
 //
-// WHY IT IS A SEPARATE FILE FROM `qp_walk_trace.h`, AND INCLUDED FROM INSIDE
-// IT. `qp_walk_trace.h` carries a RECORD-ONLY contract ("nothing here mutates
+// WHY IT IS A SEPARATE FILE FROM `walk_trace.h`, AND INCLUDED FROM INSIDE
+// IT. `walk_trace.h` carries a RECORD-ONLY contract ("nothing here mutates
 // the walk"), proved as a test. An arm is the opposite thing: armed, it is
 // meant to change a decision. Keeping the two in separate files keeps that
 // contract readable and keeps the observer's proof about the observer. The
-// include sits inside `qp_walk_trace.h`'s own `#ifdef HVEN_TESTING` block
-// rather than in `qp_engine.h`, so no production translation unit gains a
-// LINE: adding one to `qp_engine.h` would move the DWARF line programme of
+// include sits inside `walk_trace.h`'s own `#ifdef HVEN_TESTING` block
+// rather than in `walk_engine.h`, so no production translation unit gains a
+// LINE: adding one to `walk_engine.h` would move the DWARF line programme of
 // every inline function below it in the three production objects that include
 // it, and there is no reason to pay that.
 //
@@ -124,7 +124,7 @@
 //
 // ---------------------------------------------------------------------------
 // AND IT IS PER-THREAD, for the same reason `QpWalkObserver` is: an engine is
-// used sequentially by one thread (`qp_engine.h`'s own contract), two
+// used sequentially by one thread (`walk_engine.h`'s own contract), two
 // instrumented solves on two threads must not share a switch, a tolerance or a
 // counter, and process-global mutable state with no synchronization is a data
 // race rather than an experiment. Arming, `reset()` and reading the counters
@@ -180,8 +180,8 @@ struct QpAntiCycleParams {
     /// carries a `static_assert` that the two are equal, so at the default the
     /// set of constraints an arm can block on is production's set exactly and
     /// no landed row is touched by the field becoming live. The literal is
-    /// repeated here rather than referenced because `qp_engine.h` includes this
-    /// file (through `qp_walk_trace.h`) ABOVE its own declaration of that
+    /// repeated here rather than referenced because `walk_engine.h` includes this
+    /// file (through `walk_trace.h`) ABOVE its own declaration of that
     /// constant; the `static_assert` is what makes the repetition safe.
     double negligible_pivot = 1e-12;
     /// §4.3 step (1)'s "nontrivial" adjustment threshold, eps^(2/3) ~ 3.7e-11,

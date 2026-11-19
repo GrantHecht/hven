@@ -319,11 +319,11 @@ constexpr const char *kUsage =
     "                    kCorrupted readings, per corpus-design.md section 5.1's\n"
     "                    requirement on Task 6. Still PRINTED ONLY: the exit code\n"
     "                    never reflects pass/fail -- the asserted verdicts live in\n"
-    "                    tests/test_scale_problems.cpp.\n"
+    "                    tests/model/test_scale_problems.cpp.\n"
     "\n"
     "  --hs              THE HS SUITE (M6 W5 T6.d leg 2). Solve the 27\n"
     "                    Hock-Schittkowski problems of\n"
-    "                    tests/sqp/support/hs_problems.h through SqpSolver in\n"
+    "                    tests/model/support/hs_problems.h through SqpSolver in\n"
     "                    the --engine mode, IN PROCESS, and write one timed row\n"
     "                    per cell. Small, major-dense cells -- the corpus's own\n"
     "                    are F7 at n >= 800, where the QP dominates and a\n"
@@ -389,9 +389,9 @@ constexpr const char *kUsage =
     "                    PREPARATION the attachment turns on, not a callback's\n"
     "                    own work. That payload is O(n) per event, not an O(1)\n"
     "                    dispatch: fire_iteration_event itself computes nothing\n"
-    "                    (src/drivers/sqp_solver.cpp:4562) and its\n"
+    "                    (src/sqp/sqp_solver.cpp) and its\n"
     "                    IterationEvent borrows views rather than copying\n"
-    "                    (include/hven/drivers/solve_result.h:228); the work is\n"
+    "                    (include/hven/solver/solve_result.h); the work is\n"
     "                    the snapshot/mapping/declared-diagnostics preparation\n"
     "                    guarded on the callback at sqp_solver.cpp:4695, and on\n"
     "                    the interior side the expansion and mapping behind the\n"
@@ -2130,7 +2130,7 @@ std::vector<int> resolve_hs_cells(const std::string &spec) {
         const int n = parse_int_field("--hs-cells", tok);
         if (std::find(shipped.begin(), shipped.end(), n) == shipped.end()) {
             throw_usage(fmt::format("--hs-cells: problem {} is not shipped by "
-                                    "tests/sqp/support/hs_problems.h",
+                                    "tests/model/support/hs_problems.h",
                                     n));
         }
         out.push_back(n);
@@ -2330,7 +2330,7 @@ void write_hs_provenance(std::ostream &os, int argc, char **argv, const std::str
     os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
     os << fmt::format("# host: {}\n", hs_host());
     os << fmt::format("# generated: {}\n", hs_utc_stamp());
-    os << "# cells: tests/sqp/support/hs_problems.h hs_numbers()\n";
+    os << "# cells: tests/model/support/hs_problems.h hs_numbers()\n";
     write_ssn_lever_lines(os, levers);
     os << "# aggregation: wall_median_s is the MEDIAN of `repeat` in-process solves; the corpus\n";
     os << "#              figure is the SUM of per-cell medians, never a mean of ratios.\n";

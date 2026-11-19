@@ -3,9 +3,9 @@
 
 // counters_dump.cpp -- dump_counters(IpmResult), dump_counters(SqpResult): the twins of
 // dump_options, written from the X-macro tables in core/solver_counters.h that
-// trace_writer.cpp writes `solve.end.counters` from. A field added to a table appears in both
-// the trace and this dump; a field with no table entry is refused at compile time by the tables'
-// own arity asserts, so the dump cannot drift from the struct.
+// json_lines_trace_sink.cpp writes `solve.end.counters` from. A field added to a table appears in
+// both the trace and this dump; a field with no table entry is refused at compile time by the
+// tables' own arity asserts, so the dump cannot drift from the struct.
 
 #include <array>
 #include <cstddef>

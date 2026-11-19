@@ -4,7 +4,8 @@
 
 hven is a high-performance sparse NLP solver library: an interior-point
 engine and an SQP engine sharing common infrastructure (sparse linear
-algebra, KKT assembly, warm-start currency, globalization primitives).
+algebra, KKT assembly, the QP engines, warm-start currency). Globalization is
+engine-private (`detail/ipm/globalization/`, `detail/sqp/globalization/`), not shared.
 Written in C++20, licensed Apache-2.0, under active development.
 
 Built so far: both engines — the interior-point solver (`ipm`) and the SQP
@@ -109,9 +110,11 @@ src/               translation units, mirroring the components. A TU sits in
 tests/             tests/X pins component X's contract, whatever drives it
                     (tests/bench/ = gates for the bench instruments).
                     Fixtures live in X/support/; support/ = fixtures owned by
-                    no component; golden_rig/; install_smoke/. The executables
-                    are not yet one per directory (the per-component split is
-                    planned): see tests/CMakeLists.txt for what builds what
+                    no component; golden_rig/; install_smoke/. Executables: one
+                    hven_<dir>_tests per directory, at most one
+                    hven_<dir>_seam_tests (sources in tests/<dir>/seam/), plus
+                    hven_linear_alloc_tests; tests/CMakeLists.txt is the
+                    authority and docs/testing.md the how-to
 bench/             benchmark harness and tracked baselines
 examples/          one-problem-per-program examples, built and run in CI
 bindings/          reserved for the optional Python module (nothing builds yet)

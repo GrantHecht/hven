@@ -13,7 +13,7 @@
 /// regularized bound-eliminated KKT assembly, the sparse factorization and the
 /// equality-QP solve with iterative refinement. This file is the loop that walks
 /// between working sets.
-/// @see docs/notes/2026-09-header-prose-archive.md §qp_engine.h
+/// @see docs/notes/2026-09-header-prose-archive.md §walk_engine.h
 //
 // --- Loop contract ---
 //
@@ -510,7 +510,7 @@
 //    gate (no verified step exists; dense_shifted_terminations), is TERMINAL
 //    (kNumericalError at the finite iterate the walk stands on). A correct
 //    shifted factorization's answer passes that gate (eta <= sigma / ||D K D||,
-//    kkt_calls.h), so on an inconsistent row set the shifted answer is refused
+//    kkt_factor.h), so on an inconsistent row set the shifted answer is refused
 //    by the residual check only, and after the exhausted ladder the walk steps on
 //    it and the terminal site classifies -- as on the platform arm;
 //    dense_shifted_terminations counts broken shifted factors.
@@ -865,7 +865,7 @@
 // The walk's READ-ONLY test seam (docs/testing.md; CLAUDE.md §8). It compiles
 // to NOTHING without HVEN_TESTING, and it is included HERE rather than in
 // src/qp/walk/walk_engine.cpp so that that TU gains no line and its one `assert`'s
-// __LINE__ immediate cannot move -- see qp_walk_trace.h's own note.
+// __LINE__ immediate cannot move -- see walk_trace.h's own note.
 #include <hven/detail/qp/walk/walk_trace.h>
 #include <hven/detail/qp/walk/ws_independence.h>
 #include <hven/detail/qp/working_set.h>
@@ -1191,7 +1191,7 @@ constexpr Index kMaxDualRegDecreases = 2;
 // consequence a failed start repair has -- on a truly indefinite face the walk has no way
 // off it and ends kNumericalError, which is what the screen produced whenever it aborted a
 // repair. THE COST WHEN IT BINDS is therefore real, and pinned
-// (QpE2Fix8Budget in tests/qp/test_qp_unrun_dependency_test.cpp): a fraction of n cannot see
+// (QpE2Fix8Budget in tests/qp/seam/test_qp_unrun_dependency_test.cpp): a fraction of n cannot see
 // the INERTIA DEFICIT, so a QP needing more pins than the budget -- H = -I on n = 12 needs
 // all twelve, its budget is 8 -- is cut where the unbounded repair would have succeeded. None of
 // the measured repairs is; a deficit-aware budget is registered. THE BUDGET IS
@@ -1682,7 +1682,7 @@ struct EliminatedFace {
     }
 };
 
-// Hot-start level. The opaque handle behind warm_start.h's SqpWarmState::hot,
+// Hot-start level. The opaque handle behind sqp_warm_state.h's SqpWarmState::hot,
 // forward-declared there and DEFINED here: a frozen copy of the
 // fingerprint/exit-state members QpEngine::run() tracks per instance, plus
 // shared ownership of the BorderState those fingerprints describe.
@@ -1831,7 +1831,7 @@ class QpEngine {
 
     // Cold start with a per-solve override of tr_radius/primal_delta/
     // dual_mu (see qp_types.h's QpSolveOverrides). Resolved once, at the top of
-    // run(), into the effective values every read site in qp_engine.cpp actually
+    // run(), into the effective values every read site in walk_engine.cpp actually
     // consults.
     QpSolution solve(const QpProblem &qp, const QpSolveOverrides &overrides) const;
 
@@ -1852,7 +1852,7 @@ class QpEngine {
                      const std::shared_ptr<const HotState> &hot) const;
 
     // A shared, opaque snapshot of this engine's CURRENTLY valid border-mode
-    // cache -- what warm_start.h's make_warm_start attaches to
+    // cache -- what sqp_warm_state.h's make_warm_start attaches to
     // SqpWarmState::hot on every exit. Returns nullptr whenever border_valid_ is
     // false: no solve() on this instance has yet ended kOptimal, or
     // ws_algebra == kRefactorize.
@@ -1914,7 +1914,7 @@ class QpEngine {
 
     /// @brief Resolve one call's QpSolveOverrides against `opts` into the
     ///     effective tr_radius/primal_delta/dual_mu values every read site in
-    ///     qp_engine.cpp consults from that point on. Shared with run() so
+    ///     walk_engine.cpp consults from that point on. Shared with run() so
     ///     refine_on_face() cannot resolve them differently.
     /// @param opts the engine's QpOptions; every other field (feas_tol,
     ///     opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra) is

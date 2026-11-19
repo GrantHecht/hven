@@ -8,9 +8,9 @@
 //
 // THE ATTRIBUTION TRAVELS WITH THE CODE. The KKT-analysis block of the interior-point
 // rendering (`on_ipm_kkt_analysis`) keeps functional fragments of ASSET-derived code that
-// reached this file from src/drivers/interior_point_solver_print.cpp, which carries exactly
-// this header; the rest of the file was rewritten for trace schema v1 (M8 TR-A) and is hven's
-// own. Rewriting a file around surviving derived fragments does not make it new code, and
+// reached this file from the retired src/drivers/interior_point_solver_print.cpp, which carries
+// exactly this header; the rest of the file was rewritten for trace schema v1 (M8 TR-A) and is
+// hven's own. Rewriting a file around surviving derived fragments does not make it new code, and
 // notices/asset-apache2.txt's own terms are that "per-file headers on ASSET-derived source
 // files identify the original source and summarise the changes made".
 

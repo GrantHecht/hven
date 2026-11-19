@@ -59,7 +59,7 @@ namespace hven {
 ///   (sqp_solver.h's THE SEEDED DUAL CLAMP). Every other route into the
 ///   ingest is hash-gated and the producers that clear a hash gate are
 ///   non-negative by construction; kSeeded admits objects a FOREIGN solver
-///   or a caller's own hand assembled -- the input class warm_start.h's SIGN
+///   or a caller's own hand assembled -- the input class sqp_warm_state.h's SIGN
 ///   CONVENTIONS paragraph states as a PRECONDITION and sqp_solver.h's THE
 ///   INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note itemizes as ungated.
 ///   At the seeded level a small negative price is CLAMPED to zero and

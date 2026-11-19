@@ -80,7 +80,7 @@ enum class BoundState {
 /// border twin re-forms its system through the Schur complement it already
 /// holds, while the eliminated twin reuses the incumbent factorization only
 /// while the working set has not moved since the candidate solve, and buys a
-/// factorization plus a symbolic analysis when it has (qp_engine.h section 5,
+/// factorization plus a symbolic analysis when it has (walk_engine.h section 5,
 /// and both refine_*_for_verdict declarations).
 enum class QpWorkingSetAlgebra {
     kRefactorize,
@@ -96,7 +96,7 @@ struct QpOptions {
     ///
     /// Not free: its price is a footprint on what the solve can claim
     /// (~|g|/primal_regularization bounds how far a free variable can run in ONE STEP
-    /// before it reads as an unbounded artifact — see qp_engine.h's
+    /// before it reads as an unbounded artifact — see walk_engine.h's
     /// unbounded_artifact_threshold, written in terms of this field).
     ///
     /// THE TERM IS CENTRED AT THE ITERATE, not at the origin: the EQP
@@ -104,7 +104,7 @@ struct QpOptions {
     /// (primal_regularization/2)||x_F||^2 (eqp_solve.h states the system and
     /// why). So the bound above is on the STEP, and the engine's runaway guard
     /// is asked on the ITERATE and on the ridge scale, not on the step, on every
-    /// moving pass (qp_engine.h section 5). Centring at 0 would bound the
+    /// moving pass (walk_engine.h section 5). Centring at 0 would bound the
     /// absolute size of a free variable on a flat face, but would make the
     /// ordinary step ASCEND the objective there.
     ///
@@ -117,7 +117,7 @@ struct QpOptions {
     /// Dual regularization magnitude, baked onto the regularized (2,2) block so
     /// an over-determined working set stays solvable. Same domain, same
     /// validation, same 0-is-real caveat as primal_regularization; its footprint is
-    /// dual_regularization*|lambda| on a row residual (qp_engine.h's row_tolerance).
+    /// dual_regularization*|lambda| on a row residual (walk_engine.h's row_tolerance).
     double dual_regularization = 1e-8;
     double feasibility_tol = 1e-9;
     double optimality_tol = 1e-9;
@@ -125,7 +125,7 @@ struct QpOptions {
     /// Minor-iteration cap for ONE QP solve. Empty (the default) derives the cap
     /// from the subproblem's own size,
     ///     max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)),
-    /// see qp_engine.h's detail::effective_qp_max_iter; an engaged value is an
+    /// see walk_engine.h's detail::effective_qp_max_iter; an engaged value is an
     /// explicit, absolute cap that wins at any size and must be >= 1.
     ///
     /// The derived default exists because the minors one subproblem needs grow
@@ -140,12 +140,12 @@ struct QpOptions {
 
     /// l-infinity trust-region radius Delta, applied about the SOLVE'S OWN
     /// start point x0 (there is no separate configurable center — see
-    /// qp_engine.h's "Section 6"): effective bounds lo_eff = max(lower, x0 -
+    /// walk_engine.h's "Section 6"): effective bounds lo_eff = max(lower, x0 -
     /// Delta), up_eff = min(upper, x0 + Delta) are computed once at the top of
     /// solve() and used in place of lower/upper for the rest of that solve.
     /// Default +inf disables the feature exactly (lo_eff == lower, up_eff ==
     /// upper; the engine takes a path materializing nothing new — see
-    /// qp_engine.h for the bit-identical claim this default is load-bearing
+    /// walk_engine.h for the bit-identical claim this default is load-bearing
     /// for).
     ///
     /// PER-INSTANCE, CONST: fixed for the lifetime of the owning QpEngine and
@@ -169,7 +169,7 @@ struct QpOptions {
     /// CALLER-ASSERTED CONVEXITY. True says "H is positive semidefinite on all
     /// of R^n", asserted by a caller that built H that way (the quasi-Newton mixed lift, whose
     /// Hessian is PD by construction but not diagonal). The walk's convex certificate
-    /// (qp_engine.h section 4c) accepts it in place of its own structural test
+    /// (walk_engine.h section 4c) accepts it in place of its own structural test
     /// (detail::hessian_is_nonneg_diagonal); that is the ONE read of this field, and only with
     /// independent_working_set on. Never verified: a false assertion on an indefinite H lets a
     /// first-order point stand where the saddle exit would have searched. The default keeps the
@@ -235,7 +235,7 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
 /// override, the same single-sentinel tradeoff QpOptions::trust_region_radius itself
 /// makes.
 ///
-/// REUSE-KEY CONSEQUENCE (see qp_engine.h's HOT-START REUSE note): the
+/// REUSE-KEY CONSEQUENCE (see walk_engine.h's HOT-START REUSE note): the
 /// EFFECTIVE (primal_regularization, dual_regularization) pair enters K0's values
 /// (assemble_kkt_core bakes both onto the regularized diagonal), so it joins the hot-start reuse
 /// key — a warm re-solve whose effective pair differs forces a K0 rebuild. The

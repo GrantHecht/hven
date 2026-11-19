@@ -368,7 +368,7 @@ void record_scaling_report(SqpResult &out, const detail::ProblemScaling &sc, con
 }
 
 // THE SCALED-SPACE STATE A SCALED SOLVE MAY NOT EXPORT, dropped to the
-// sentinels warm_start.h already defines for "not carried".
+// sentinels sqp_warm_state.h already defines for "not carried".
 //
 // The export side of the refusal `solve_impl`'s `warm_state_ingest` makes, and
 // for the same reason: a funnel width bounds max_j |s_j c_j|, which no scalar
@@ -1543,7 +1543,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         has_prev_rung = true;
         // CHAIN THE SEED. Only g changes between rungs, so
         // H/Ae/Ai's hashes and the effective (primal_delta,
-        // dual_mu) pair are already unchanged -- but qp_engine.h's
+        // dual_mu) pair are already unchanged -- but walk_engine.h's
         // HOT-START REUSE condition (b) needs the seed working set
         // to equal the IMMEDIATELY PRECEDING solve's exit working
         // set, and re-seeding every rung from the original
@@ -2811,12 +2811,12 @@ SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
     // runs, `ssn_prox_sigma_out_` is still 0.0, and the emitted SqpWarmState
     // is byte-for-byte the one this driver has always emitted -- the two
     // centre vectors stay empty and `has_prox_center` stays false. See
-    // warm_start.h's THE COST GATE.
+    // sqp_warm_state.h's THE COST GATE.
     //
     // THE GATE IS THE SIGMA, NOT THE CENTRE, and those are two different
     // high-water marks (see the members): a solve whose ladder armed only
     // on subproblems that ESCAPED exports a real sigma with BOTH centre
-    // vectors empty. That is the honest reading, and warm_start.h's own
+    // vectors empty. That is the honest reading, and sqp_warm_state.h's own
     // field note already admits the shape ("n, or empty").
     if (ssn_prox_sigma_out_ > 0.0) {
         detail::SqpWarmState &native = detail::SqpWarmAccess::mutable_state(out.sqp_warm_start);
@@ -4723,11 +4723,11 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     //                                         throw, because a `warm`
     //                                         object is documented as safe
     //                                         to feed back even when stale
-    //                                         (warm_start.h).
+    //                                         (start_level.h).
     //   valid, sized, finite, HASH USELESS  -> kSeeded
     //     (0 sentinel, or a mismatch)         ("trusts values,
     //                                         not provenance") --
-    //                                         warm_start.h's StartLevel
+    //                                         start_level.h's StartLevel
     //                                         note has the exact take/
     //                                         refuse list, and THE SEEDED
     //                                         LEVEL below has this
@@ -4770,7 +4770,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     // another problem's matrix, because it cannot say which problem it
     // came from. Its VALUES, by contrast, are exactly as good as whoever
     // produced them -- and the two producers this level exists for
-    // (mesh_transfer.h, warm_start.h's from_interior_point) produce good
+    // (mesh_transfer.h, crossover.h's from_interior_point) produce good
     // ones.
     //
     // THE HASH IS CHECKED AGAINST A PROBE, NOT AGAINST warm.x ITSELF.
@@ -4779,7 +4779,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     // is deciding -- so the probe is built at the CALLER'S OWN x0
     // (already validated finite and n-sized above) with zero duals,
     // never at warm.x. This is sound because detail::structural_hash
-    // (qp_engine.h) hashes H/Ae/Ai's SPARSITY PATTERN ONLY, never
+    // (walk_engine.h) hashes H/Ae/Ai's SPARSITY PATTERN ONLY, never
     // values: which entries a Jacobian/Hessian structurally has does
     // not depend on x or on the multiplier values eval_hess is called
     // with, only on the model's own construction -- which is a BINDING
@@ -4802,7 +4802,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     // comparison cannot rule out on dimensions alone.
     //
     // kHot IS TENTATIVE HERE, and corrected after the FIRST subproblem
-    // actually runs. This function does not re-derive qp_engine.h's own
+    // actually runs. This function does not re-derive walk_engine.h's own
     // reuse-eligibility conditions (a)-(e) -- the engine remains the SOLE
     // gate on whether an offered `warm.hot` is actually usable
     // (structural/values hashes, the effective (primal_delta, dual_mu)
@@ -4983,10 +4983,10 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     // SEEDING note gives for every other seed: the trust region
     // centers on p = 0, not on a remembered primal point. A seeded
     // bound/row that no longer fits the FIRST subproblem's own window
-    // is silently dropped by qp_engine.h's WINDOW-CONSISTENCY RULE --
+    // is silently dropped by walk_engine.h's WINDOW-CONSISTENCY RULE --
     // this ingest leans on that rule rather than duplicating it.
     //
-    // AT kSeeded AN EMPTY HINT IS NO HINT, BY RULE. warm_start.h's own field notes
+    // AT kSeeded AN EMPTY HINT IS NO HINT, BY RULE. sqp_warm_state.h's own field notes
     // say an ALL-ZERO ineq_active/bound_active means "no activity was
     // attributed", NOT "nothing is active" -- a solve that built no
     // subproblem has no QpSolution to read activity off, and a mesh
@@ -5039,10 +5039,10 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
 
     // THE RADIUS, and the two pieces of loop state that go with it: the
     // consecutive-rejection count at the CURRENT iterate (the funnel's
-    // kRestore gate reads it -- globalization.h conjunct (e)) and the
+    // kRestore gate reads it -- funnel.h conjunct (e)) and the
     // subproblem itself, which is rebuilt only when the iterate MOVES.
     // kWarm INGEST: warm.tr_radius clamped to [opts_.trust_region_min, opts_.trust_region_initial]
-    // -- warm.tr_radius < 0 is warm_start.h's own "never populated"
+    // -- warm.tr_radius < 0 is sqp_warm_state.h's own "never populated"
     // sentinel and is treated as absent (opts_.trust_region_initial stands, exactly as
     // on a cold solve). `warm_state_ingest`, NOT `warm_ingest`: a radius is
     // a step scale on a SPECIFIC problem's variables, so a seeded object --
@@ -5059,7 +5059,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     // proximal level is a statement about how hard ONE model's subproblems
     // were, so an object that cannot say which model it came from may not
     // set it. That puts this behind the same hash gate as every other state
-    // field -- warm_start.h's `prox_sigma` note states the rule from the
+    // field -- sqp_warm_state.h's `prox_sigma` note states the rule from the
     // other side.
     //
     // SPENT ONCE, at the first SSN subproblem (see its consumption site).
@@ -5296,7 +5296,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // could not previously see.
     ssn_budget_charge += sres.factorizations;
     // THE EXPORT SIDE OF THE PROXIMAL CARRY: the MAX over this
-    // solve's SSN subproblems. warm_start.h's `prox_sigma` note
+    // solve's SSN subproblems. sqp_warm_state.h's `prox_sigma` note
     // says why the max rather than the last. THE LEVEL IS
     // PROVENANCE-FREE and is taken over EVERY subproblem, escaped
     // ones included -- an exhausted ladder is exactly the evidence
@@ -6306,7 +6306,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // machinery only, unconditionally" rule the note above enforces for the kernel.
     //
     // NO PINNED NUMBER MOVES: at the shipped default both sides are kWalk, so this line is
-    // inert there. `SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn` pins the line ABOVE
+    // inert there. `SqpSolverSsnMode.RestorationStaysOnTheWalkUnderKSsn` pins the line ABOVE
     // and is untouched by this one.
     ropts.advanced.elastic_rung_engine = SqpElasticRungEngine::kWalk;
     // `ipqp_reseed_after_disproval` needs no such line (M7 W0 T4): `ropts.qp_mode = kWalk`
@@ -6866,7 +6866,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.lambda_e.setZero();
         st.lambda_i.setZero();
         // KLV Algorithm 2's re-basing, NOT reset() -- see
-        // globalization.h::resume_from_restoration. It also CLEARS
+        // funnel.h::resume_from_restoration. It also CLEARS
         // the full-step mode on the strategy, so the driver's own
         // mirror of that flag is cleared with it: a restoration is
         // definitive evidence against the mode's premise, and the
@@ -7679,7 +7679,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     //
     // THIS IS A START-POINT CONDITION, not something the iteration can
     // walk into: a trial point at which the model is non-finite
-    // produces a non-finite StepContext, which globalization.h rejects
+    // produces a non-finite StepContext, which funnel.h rejects
     // up front, so the driver shrinks the radius and stays where it is
     // instead of moving onto the NaN. Only an x0 the model cannot
     // evaluate (x0 itself is validated finite by the caller check
@@ -7759,7 +7759,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
 
     // THE FUNNEL IS SEEDED FROM THE FIRST MEASURABLE ITERATE, i.e.
     // here rather than before the loop: reset() rejects a non-finite
-    // h0 (globalization.h), and whether h(x0) is finite is exactly
+    // h0 (funnel.h), and whether h(x0) is finite is exactly
     // what the check above has just decided.
     if (!st.funnel_started) {
         st.strategy->reset(mj.row.violation_l1);
@@ -7767,7 +7767,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // width rather than leaving it at Eq. (9)'s absolute floor,
         // reusing the SAME Eq.-13-style blend resume_from_restoration
         // already implements for the restoration-resume case
-        // (globalization.h) -- warm. funnel_width stands in for "the
+        // (funnel.h) -- warm. funnel_width stands in for "the
         // funnel's own remembered width" and this row's own h0
         // (violation_l1) stands in for "the point being re-entered at",
         // both being simultaneously the FIRST reading this solve ever
@@ -7775,7 +7775,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // first -- Eq. (9)'s own floor term, applied to the CURRENT
         // problem's own h0 -- so a stale or optimistic prior width can
         // never leave the funnel tighter than fresh evidence at this x
-        // would justify. warm.funnel_width < 0 is warm_start.h's own
+        // would justify. warm.funnel_width < 0 is sqp_warm_state.h's own
         // "never populated" sentinel and is skipped, exactly like an
         // absent qp_working_set is above. `warm_state_ingest`: a funnel
         // width is measured in the units of h(x) on the problem it was
@@ -7813,7 +7813,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // test so that a restored iterate is the one this pass records,
     // tests and steps from -- and placed AFTER the non-finite exit so
     // `kkt` is known measurable (the mode never steps onto a
-    // non-finite point: globalization.h's judge() still rejects such a
+    // non-finite point: funnel.h's judge() still rejects such a
     // trial while the mode is armed). It runs on the ENGAGING pass
     // too, which is how the warm start point itself becomes the first
     // "best iterate".
@@ -7859,7 +7859,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
             measure_iterate();
             // KLV Eq. (13) re-basing, which ALSO clears the strategy's
-            // own mode flag (globalization.h). Both flags fall
+            // own mode flag (funnel.h). Both flags fall
             // together; nothing re-enters the mode.
             //
             // CLAMPED FROM ABOVE BY THE CURRENT WIDTH. Eq. (13) gives
@@ -7881,7 +7881,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // by residual and still carry h above the width.
             //
             // THE CLAMP LIVES HERE AND NOT IN THE HOOK, deliberately:
-            // globalization.h states that Eq. (13) is transcribed
+            // funnel.h states that Eq. (13) is transcribed
             // UNCONDITIONALLY there so that a caller resuming from
             // outside its own funnel is reported rather than hidden.
             // This is that caller taking responsibility for its own
@@ -7915,7 +7915,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // carries an ACTIVE-SET GUESS and nothing else -- seed.x
             // is always zeroed (WARM SEEDING) -- so a guess taken at
             // the abandoned iterate is exactly as admissible as the
-            // guess every accepted step passes forward. qp_engine.h's
+            // guess every accepted step passes forward. walk_engine.h's
             // WINDOW-CONSISTENCY RULE drops whatever no longer fits.
             //
             // `delta` IS ALSO KEPT, and this is the second deliberate
@@ -8355,7 +8355,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // The hot handle is offered ONLY on this solve's very FIRST
     // subproblem (iter == 0) -- every later major on this same
     // engine_ already benefits from its OWN instance-level border_
-    // persistence (qp_engine.h's HOT-START REUSE note), so
+    // persistence (walk_engine.h's HOT-START REUSE note), so
     // re-offering `warm.hot` there would be a no-op at best. Whether
     // the engine actually reuses anything is entirely its own call
     // (conditions (a)-(e)); this driver never inspects the handle's
@@ -8417,7 +8417,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     if (offer_hot) {
         // start_level_used RECORDS WHAT WAS OBSERVED, not merely what was
         // offered (see the WARM-START INGEST note above). This reads
-        // qs.counters.k0_reused -- qp_engine.h's OWN report of whether its
+        // qs.counters.k0_reused -- walk_engine.h's OWN report of whether its
         // reuse gate (conditions (a)-(e)) actually judged the cache
         // trustworthy -- rather than inferring reuse from
         // `qp_factorizations == 0`, which can be zero for reasons that
@@ -8509,13 +8509,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     //   - `qp_failure_is_retryable`, the SAME test the routing gate below uses,
     //     so a capped solve whose iterate is unusable takes the ordinary exit it
     //     takes today rather than seeding a retry with it;
-    //   - no stagnation stop: a walk the STAGNATION READING ended (qp_engine.h)
+    //   - no stagnation stop: a walk the STAGNATION READING ended (walk_engine.h)
     //     stopped on a fixed point, not on its budget, and a doubled cap would
     //     only reach the same stop again.
     //
     // THE SEED IS THE WORKING SET, NOT THE POINT: `seed.x` is zeroed for the
     // reason every other seeding site in this driver zeroes it (see WARM
-    // SEEDING, and qp_engine.h's own note that the window is centred on the
+    // SEEDING, and walk_engine.h's own note that the window is centred on the
     // clamped seed primal) -- carrying the capped solve's step would re-centre
     // the trust region on it and hand the retry a larger feasible set than this
     // major was granted. What the retry inherits is the working set the capped
@@ -9026,7 +9026,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.delta = shrunk_radius(st.delta);
             // Seeded from the FAILED solve's ACTIVE SET. On
             // kNumericalError the engine clears the multipliers
-            // (qp_engine.h's exit semantics), so the seed carries
+            // (walk_engine.h's exit semantics), so the seed carries
             // activity only -- which is all warm seeding uses, and
             // which on this path is the point: the engine's own
             // start-of-solve inertia repair sees a working set the
@@ -9056,9 +9056,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.qp_failures_in_a_row = 0;
 
     // THE TRIAL POINT, VALUES ONLY FIRST (the eval-economics
-    // rule). globalization.h's judge() reads StepContext, and every
+    // rule). funnel.h's judge() reads StepContext, and every
     // field of it (f_old/f_new/h_old/h_new/pred_df/tr_active/
-    // rejections_at_iterate -- confirmed against globalization.h's
+    // rejections_at_iterate -- confirmed against funnel.h's
     // own struct) comes from f/cE/cI or from the QP already solved,
     // NEVER from a gradient or a Jacobian; build_soc_subproblem below
     // reads only ev.ce/ev.ci and ev_trial.ce/ev_trial.ci for the same
@@ -9366,7 +9366,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     }
 
     if (verdict == StepVerdict::kRestore) {
-        // The funnel's own restoration signature (globalization.h's
+        // The funnel's own restoration signature (funnel.h's
         // five conjuncts). Same offer as the floor site above, and SOC is
         // equally out of the picture here (it is gated on kReject). The
         // zero-step elastic exhaustion offers nothing: its trial IS x.
@@ -10050,7 +10050,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
                                                  double delta, double &ssn_prox_ingested,
                                                  Index &ssn_budget_charge, SqpCounters &counters,
                                                  QpSolution &qs, detail::QnLiftBridge *qn) {
-    // THE PROXIMAL CARRY PARTICIPATES (settler ruling, fix round 1): `warm_start.h`'s
+    // THE PROXIMAL CARRY PARTICIPATES (settler ruling, fix round 1): `sqp_warm_state.h`'s
     // `prox_sigma` is the maximum over ANY SSN subproblem of the solve, and one reached
     // through the kIpqp chain is one. Spent ONE-SHOT, exactly as the kSsn arm spends it.
     SsnOptions sopts = ssn_options(ssn_prox_ingested);
@@ -10200,7 +10200,7 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
                                                     std::shared_ptr<const HotState> hot) {
     detail::SqpWarmState w;
     // TRUE ON EVERY EXIT BUT ONE -- see THE UNEVALUABLE EXIT above, and
-    // warm_start.h's `valid` note, which documents that exception as the
+    // sqp_warm_state.h's `valid` note, which documents that exception as the
     // boundary of its "a failed solve's point is still safe evidence"
     // contract. A null `probe_ev` IS that exit.
     w.valid = probe_ev != nullptr;
@@ -10225,7 +10225,7 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
                 w.bound_active[i] = -1;
                 break;
             case BoundState::kAtUpper:
-            case BoundState::kFixed: // see warm_start.h's bound_active note
+            case BoundState::kFixed: // see sqp_warm_state.h's bound_active note
                 w.bound_active[i] = 1;
                 break;
             case BoundState::kFree:
@@ -10235,7 +10235,7 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
         }
     }
 
-    // Only a FunnelStrategy exposes a width to read (globalization.h's
+    // Only a FunnelStrategy exposes a width to read (funnel.h's
     // GlobalizationStrategy has no such virtual); a caller-supplied
     // strategy of another type, or one not yet reset(), leaves the
     // "unset" sentinel.
@@ -10250,7 +10250,7 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
     // THE ZERO-MAJOR PROBE -- see this function's own note above for why
     // the middle branch is sound, what it costs, and which exits pay it.
     // The last branch is THE UNEVALUABLE EXIT: no probe, and the hash
-    // stays at warm_start.h's sentinel on an object already marked cold.
+    // stays at sqp_warm_state.h's sentinel on an object already marked cold.
     if (qp_built) {
         w.structure_hash = detail::structural_hash(qp);
     } else if (probe_ev != nullptr) {
@@ -10366,7 +10366,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     // multipliers") true with three producers rather than two: there is no
     // second export boundary for a third producer to have missed. The
     // executable guard is tests/sqp/test_sqp_solver.cpp's
-    // SqpDriverSignSweep.ACorrectlySignedSolveSweepsNothingUnderEveryKernel,
+    // SqpSolverSignSweep.ACorrectlySignedSolveSweepsNothingUnderEveryKernel,
     // which now runs all three modes, and the kIpqp arm of
     // test_ipqp_dispatch.cpp's export pins.
     //

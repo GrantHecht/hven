@@ -3,7 +3,7 @@
 
 #pragma once
 
-// globalization.h — the acceptance decision that turns the full-step driver of
+// funnel.h — the acceptance decision that turns the full-step driver of
 // sqp_solver.h into a globally convergent method: given the OLD and NEW values
 // of the objective f and the infeasibility measure h, plus what the QP model
 // PREDICTED, decide whether the trial iterate may be kept.

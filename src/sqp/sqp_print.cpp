@@ -1,6 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// IMPLEMENTS the display-string helpers declared in hven/sqp/sqp_solver.h and
+// hven/detail/sqp/predictor.h, and the SQP iteration-table renderer.
+//
 // sqp_print.cpp -- the SQP engine's display-string helpers and its iteration
 // -table renderer, carved out of the headers that declare them.
 //

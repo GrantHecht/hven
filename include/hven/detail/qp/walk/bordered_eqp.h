@@ -28,7 +28,7 @@
 // same rhs solve_eqp builds, minus the rhs_shift terms -- which are
 // identically zero in full mode, since nothing is substituted out.
 //
-// TRUE rhs, not the shifted one: a homotopy-shifted working row (qp_engine.h,
+// TRUE rhs, not the shifted one: a homotopy-shifted working row (walk_engine.h,
 // step 1) enters the EQP at qp.bi(j), never at bi(j) + shift(j). That is what
 // pulls a shifted row toward feasibility, and it is exactly what solve_eqp
 // does, so the two paths must agree here or the homotopy walks differently in
@@ -107,7 +107,7 @@ namespace hven::detail {
 // solve deliberately leaves, and delta is no longer such an error. Leaving delta in
 // it would stop the loop at ||delta*sol||inf, and under the proximal centring what
 // is left there is the walk's OWN stationarity residual, which its KKT-point test
-// (qp_engine.h section 5) reads.
+// (walk_engine.h section 5) reads.
 //
 // WHAT THAT DOES AND DOES NOT EXPLAIN, measured both ways on the 51-dump corpus:
 // the two forms give the SAME 51 rows on both algebras, so the four certified
@@ -221,10 +221,10 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 //
 // Refining past the footprint where border and refactorize already agree
 // would make border mode strictly more accurate than its own equivalence
-// oracle (qp_engine.h's cross-mode batteries), so the rule stops at it.
+// oracle (walk_engine.h's cross-mode batteries), so the rule stops at it.
 // ONE EXCEPTION, M6 W2 T6b: at a DEAD END the classifier is about to certify
 // kInfeasible from, the engine refines the closed face past this footprint to
-// the classifier's own row-unit tolerance (qp_engine.h section 5's
+// the classifier's own row-unit tolerance (walk_engine.h section 5's
 // VERDICT-SITE FACE REFINEMENT) -- confined there because a wrong verdict
 // costs more than out-refining the oracle on that one point.
 //
@@ -400,7 +400,7 @@ inline double pinned_value(const QpProblem &qp, BoundState state, Index i) {
 // ledger -- the single source of truth for what `schur` currently holds.
 //
 // Split out of solve_bordered_eqp so the VERDICT-SITE face refinement
-// (qp_engine.h section 5) can re-form the SAME system from the same live
+// (walk_engine.h section 5) can re-form the SAME system from the same live
 // border stack without duplicating the ledger's conventions. It is a pure
 // function of its arguments and its result depends on `ws` only through
 // bound_state(), which nothing between an EQP solve and that verdict moves.
@@ -592,7 +592,7 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // D (D K0 D + sigma S)^-1 D b, so a bordered answer through it is verified
 // against the UNSHIFTED bordered system K_b -- K0 plus the live borders, the
 // regularized system the stack was handed -- by the normwise backward error
-// (kkt_calls.h) of the whole bordered system in the shift's metric
+// (kkt_factor.h) of the whole bordered system in the shift's metric
 // D' = diag(D, 1) (D = K0's equilibration scale; the borders keep their own
 // coordinates, where the Schur complement is formed and factored):
 //   eta = ||D' (rhs - K_b sol)||inf / (||D' K_b D'||inf ||D'^-1 sol||inf

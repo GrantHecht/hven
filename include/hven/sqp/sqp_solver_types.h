@@ -8,7 +8,7 @@
 // (the loop, the subproblem construction and the KKT measure) lives in
 // sqp_solver.h; nothing in this file does any work.
 //
-// This file is to sqp_solver.h what qp_types.h is to qp_engine.h.
+// This file is to sqp_solver.h what qp_types.h is to walk_engine.h.
 
 #include <functional>
 #include <iosfwd>
@@ -31,7 +31,7 @@ namespace hven {
 
 // The full-step-first warm rule's two constants. Both are watchdog thresholds:
 // they bound how long the driver may keep taking undamped steps under
-// globalization.h's full-step mode before restoring the best iterate it saw and
+// funnel.h's full-step mode before restoring the best iterate it saw and
 // handing the solve back to the funnel.
 //
 // kWarmResidualGrowthMax = 2 consecutive majors with a growing max(stationarity, feasibility,

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// mesh_transfer.h — MeshTransfer: mapping a SqpWarmState (warm_start.h) from one
+// mesh_transfer.h — MeshTransfer: mapping a SqpWarmState (sqp_warm_state.h) from one
 // DISCRETIZATION MESH onto another, which is the operation a mesh-refinement
 // loop needs between its solves.
 //
@@ -122,7 +122,7 @@
 // entries and every vector of the result has to.nodes.size(). AN EMPTY VECTOR
 // IS ABSENT, NOT MALFORMED (a model with me == 0 emits an empty lambda_e; a
 // solve that could attribute no activity emits empty activity vectors --
-// warm_start.h) and transfers to an empty vector of the same kind. Any other
+// sqp_warm_state.h) and transfers to an empty vector of the same kind. Any other
 // size is a caller error and throws.
 //
 // THIS IS THE ONLY PART OF THE MATHEMATICS A TRANSCRIPTION-AWARE REPLACEMENT
@@ -201,7 +201,7 @@
 // THE OUTPUT DESCRIBES A DIFFERENT PROBLEM SIZE THAN THE INPUT, and every
 // field below is decided from that single fact.
 //
-// structure_hash == 0, ALWAYS. That is warm_start.h's own "no model was seen"
+// structure_hash == 0, ALWAYS. That is sqp_warm_state.h's own "no model was seen"
 // sentinel, and sqp_solver.h's warm-start ingest treats it EXACTLY like a
 // mismatch -- so a transferred object can never reach kWarm or kHot. That is
 // correct and intended: the destination is a different model with a different
@@ -232,7 +232,7 @@
 // story for a refinement loop that keeps the transferred object and discards
 // the source one.
 //
-// funnel_width IS NOT TRANSFERRED (left at warm_start.h's -1 "unset"), and
+// funnel_width IS NOT TRANSFERRED (left at sqp_warm_state.h's -1 "unset"), and
 // this is the one judgement call in the list. The funnel width tau is measured
 // in the units of the violation measure h(x) = ||cE||_1 + sum_j max(0, cI_j)
 // -- an l1 SUM OVER A MESH-DEPENDENT SET OF ROWS. Refining a mesh changes both
@@ -262,11 +262,11 @@
 //
 // valid IS TRUE, and a cold input THROWS rather than producing a cold output: a
 // SqpWarmState with valid == false carries nothing that may be trusted or fed
-// forward (warm_start.h), so asking to transfer one is a caller error, not a
+// forward (sqp_warm_state.h), so asking to transfer one is a caller error, not a
 // request for an empty answer.
 //
 // qp_working_set IS RE-DERIVED FROM THE TRANSFERRED ACTIVITY VECTORS rather
-// than transferred separately: warm_start.h states that it carries exactly
+// than transferred separately: sqp_warm_state.h states that it carries exactly
 // the same information as ineq_active/bound_active in the form the hot-start
 // seeding consumes, so re-deriving it is free and makes it impossible for the
 // two representations to disagree on the destination mesh.
@@ -489,7 +489,7 @@ class MeshTransfer {
 
         if (!from_ws.valid) {
             throw std::invalid_argument(
-                "MeshTransfer::transfer: `from_ws` is not valid (warm_start.h's cold state); a "
+                "MeshTransfer::transfer: `from_ws` is not valid (sqp_warm_state.h's cold state); a "
                 "cold SqpWarmStart carries nothing that may be trusted or fed forward, so there is "
                 "nothing to transfer");
         }
@@ -576,7 +576,7 @@ class MeshTransfer {
         // GLOBALIZATION / REGULARIZATION STATE, per section 4: the radius and
         // the regularization constants are in mesh-independent units and carry
         // over; the funnel width is in h's mesh-dependent units and is left at
-        // warm_start.h's "unset" sentinel so the destination solve seeds its
+        // sqp_warm_state.h's "unset" sentinel so the destination solve seeds its
         // own funnel from its own first measurement.
         out.funnel_width = -1.0;
         out.tr_radius = from_ws.tr_radius;

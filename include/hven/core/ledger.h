@@ -90,10 +90,10 @@ struct SqpSolveRecord {
     /// READING, not a missing measurement: a cold solve pays its
     /// factorization by construction, and a kWarm resolution -- whether no
     /// hot handle was offered or one was offered and the engine's own reuse
-    /// gate (qp_engine.h's conditions (a)-(e)) refused it -- always paid a
+    /// gate (walk_engine.h's conditions (a)-(e)) refused it -- always paid a
     /// real refactorization on its first subproblem. Bounded by 1 today
     /// because a hot-start reuse is only ever OFFERED for a solve's FIRST
-    /// subproblem (warm_start.h's `hot` handle is consumed once, at ingest);
+    /// subproblem (sqp_warm_state.h's `hot` handle is consumed once, at ingest);
     /// every later major builds its subproblem fresh from a new
     /// linearization and was never a reuse candidate.
     Index factorizations_saved = 0;
@@ -257,7 +257,7 @@ class Ledger {
     // ipm/, sqp/, trace/, qp/, model/, kkt/, linear/, warmstart/ OR
     // detail/ TO THIS OR ANY OTHER core/ HEADER: core/ is the bottom tier of
     // the project's layer map and depends on nothing above it. ENFORCED, not
-    // merely asked for: tests/core/test_core_layering.cpp scans every header
+    // merely asked for: tests/core/test_layering.cpp scans every header
     // in include/hven/core/ and fails the suite on any such include, naming
     // the file and the line.
 

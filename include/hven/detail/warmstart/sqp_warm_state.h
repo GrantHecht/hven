@@ -27,7 +27,7 @@
 // SHAPE. Everything but `hot` below is plain copyable data (Vec/vector/
 // WorkingSet members, no pointers, no owned resources). `hot` is a
 // std::shared_ptr<const HotState>, opaque to this header on purpose --
-// HotState is only FORWARD-declared here and fully defined in qp_engine.h,
+// HotState is only FORWARD-declared here and fully defined in walk_engine.h,
 // next to the engine-instance reuse machinery it is a frozen snapshot of.
 // SqpWarmState stays COPYABLE (a shared_ptr copies cheaply, sharing ownership),
 // but it is no longer lifetime-free in the way the rest of this struct is:
@@ -129,11 +129,11 @@
 
 namespace hven::detail {
 
-// Opaque hot-start handle; fully defined in qp_engine.h, right next to
+// Opaque hot-start handle; fully defined in walk_engine.h, right next to
 // QpEngine's own border-mode reuse state. Forward-declared here only so
 // SqpWarmState can hold a std::shared_ptr<const HotState> without this header
-// depending on qp_engine.h (or on Eigen's sparse types / MKL Pardiso, which
-// qp_engine.h ultimately pulls in) -- a shared_ptr to an incomplete type is
+// depending on walk_engine.h (or on Eigen's sparse types / MKL Pardiso, which
+// walk_engine.h ultimately pulls in) -- a shared_ptr to an incomplete type is
 // fine to store, copy and destroy; only CONSTRUCTING or DEREFERENCING one
 // needs the full definition, and nothing in this header does either.
 struct HotState;
@@ -177,7 +177,7 @@ struct SqpWarmState {
     // resizes it to the model's own (n, mi) first.
     WorkingSet qp_working_set = WorkingSet(0, 0);
 
-    // globalization.h's FunnelStrategy::width() at exit. -1 = unset: either
+    // funnel.h's FunnelStrategy::width() at exit. -1 = unset: either
     // the funnel was never reset (an exit before the first measurable
     // iterate) or the driver's strategy is a caller-supplied one that is not
     // a FunnelStrategy and so has no width this header can read. Note this
@@ -197,7 +197,7 @@ struct SqpWarmState {
     double primal_delta = -1.0, dual_mu = -1.0;
 
     // FNV-1a fingerprint over H/Ae/Ai's SPARSITY PATTERNS ONLY, never their
-    // values -- qp_engine.h's detail::structural_hash, reused as-is. Two
+    // values -- walk_engine.h's detail::structural_hash, reused as-is. Two
     // solves of the SAME model produce the same hash; two structurally
     // different models are not expected to collide. This is the warm-vs-hot
     // discriminator: a cached factorization is only trusted when a new
@@ -227,7 +227,7 @@ struct SqpWarmState {
     std::uint64_t structure_hash = 0;
 
     // The hot-start handle -- see this header's SHAPE note for what it is
-    // and is not, and qp_engine.h's HotState/BorderState for the full
+    // and is not, and walk_engine.h's HotState/BorderState for the full
     // ownership argument. nullptr means exactly what it does everywhere else
     // in this project: no cached factorization is available to offer, which
     // is always safe to feed forward (sqp_solver.h's level resolution

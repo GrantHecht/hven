@@ -1,6 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// IMPLEMENTS hven/warmstart/warm_start.h -- the byte form of `WarmStart` (this file's name
+// says what it holds; the header holds the currency).
+//
 // The warm-start currency's byte form: what the layout is, and why it is this
 // one. The caller-facing contract is in hven/warmstart/warm_start.h.
 //

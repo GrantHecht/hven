@@ -70,12 +70,12 @@ struct QpCounters {
     /// the suspect-stall ladder -- no step toward the answer WHILE THE LADDER HAS
     /// RUNGS, and an EXHAUSTED ladder is ADVISORY: the walk steps and the terminal
     /// site classifies the point it stops at, only a NON-FINITE answer being
-    /// terminal (qp_engine.h section 5 states the rule). So a solve can read many
+    /// terminal (walk_engine.h section 5 states the rule). So a solve can read many
     /// refusals and still kOptimal. A NaN residual is a refusal.
     Index eqp_residual_refusals = 0;
 
     /// EQP answers refused by THE STEP'S ROW-DRIFT CHECK
-    /// (qp_engine.h's eqp_answer_drifts_off_met_rows) -- the answer solved its own
+    /// (walk_engine.h's eqp_answer_drifts_off_met_rows) -- the answer solved its own
     /// REGULARIZED system, so `eqp_residual_refusals` has nothing to say about
     /// it, and it nonetheless leaves a working row the INCOMING iterate was
     /// already on, by exactly the dual regularization's own dual_regularization*|lambda|
@@ -89,7 +89,7 @@ struct QpCounters {
     /// closed, which is the overwhelming majority.
     ///
     /// ADVISORY ONCE THE LADDER IS EXHAUSTED -- as the residual refusal is, on
-    /// the same rule (qp_engine.h section 5): the walk takes the step it would
+    /// the same rule (walk_engine.h section 5): the walk takes the step it would
     /// have taken without the check and the terminal site classifies the
     /// point it stops at. This is its OWN field because the CAUSE differs, not
     /// the response: the answer counted here DOES solve its system and the
@@ -112,7 +112,7 @@ struct QpCounters {
     /// steps run on the factor the solve already paid for.
     Index eqp_polish_steps = 0;
 
-    /// Refinement steps kept by the verdict-site face refinement (qp_engine.h
+    /// Refinement steps kept by the verdict-site face refinement (walk_engine.h
     /// section 5) across this solve -- a third, disjoint quantity, deliberately
     /// not folded into the two fields above.
     ///
@@ -131,7 +131,7 @@ struct QpCounters {
     Index verdict_refine_steps = 0;
 
     /// Rungs of the suspect-stall escalation ladder this solve spent (see
-    /// qp_engine.h's section 4b). Each rung multiplies the effective
+    /// walk_engine.h's section 4b). Each rung multiplies the effective
     /// primal_regularization by detail::kSuspectDeltaFactor after a would-be-kOptimal
     /// exit off a kSuspect factorization failed the free-block stationarity
     /// check. Zero on every solve whose linear algebra was trustworthy, which
@@ -140,7 +140,7 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
-    /// Rungs of the release re-admission rule this solve spent (qp_engine.h,
+    /// Rungs of the release re-admission rule this solve spent (walk_engine.h,
     /// THE RELEASE RE-ADMISSION): each multiplies the effective
     /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
     /// refresh re-admitted the row the previous pass released, at most
@@ -148,7 +148,7 @@ struct QpCounters {
     /// released row; independent_working_set walks only.
     Index dual_regularization_decreases = 0;
 
-    /// True iff qp_engine.h's border-mode reuse gate (`reuse_eligible` in
+    /// True iff walk_engine.h's border-mode reuse gate (`reuse_eligible` in
     /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border cache
     /// trustworthy for THIS solve() call -- whether the engine actually skipped
     /// rebuilding K0, not merely whether `factorizations` reads 0. The two are
@@ -159,7 +159,7 @@ struct QpCounters {
     bool k0_reused = false;
 
     /// Number of backend SYMBOLIC-ANALYSIS calls this solve() call paid for --
-    /// the number of times qp_engine.h's rebuild_k0() found the analysis decision
+    /// the number of times walk_engine.h's rebuild_k0() found the analysis decision
     /// `needed` before calling `factorize_checked()`. Counted at the call site
     /// rather than inside the factor, so it stays a QP-engine-level observable.
     ///
@@ -172,7 +172,7 @@ struct QpCounters {
     // The working-set walk counters (eleven: the five below and the six after).
     //
     // PURELY OBSERVATIONAL. None of the eleven is read by any decision in
-    // qp_engine.h, so the walk's trajectory is what it was before they existed.
+    // walk_engine.h, so the walk's trajectory is what it was before they existed.
     //
     // The arithmetic a reader should do with them, for a solve ending at a
     // working set of W members having started from a seed of S:
@@ -184,7 +184,7 @@ struct QpCounters {
     // independent.
     //
     // The identity holds on the convex path, with one named exception:
-    // qp_engine.h's temporary-vertex start repair writes `ws.bound_state()`
+    // walk_engine.h's temporary-vertex start repair writes `ws.bound_state()`
     // directly, without touching QpCounters and without marking the variable in
     // the seen-set. On a solve that ran it, the net identity is off by the pins
     // the repair left standing, `ws_adds_bound`/`ws_drops_bound` exclude its pins
@@ -225,7 +225,7 @@ struct QpCounters {
     /// while moving the iterate by no more than the loop's own step tolerance
     /// (alpha * ||p||inf <= feasibility_tol * max(1, ||x||inf) -- the same threshold the
     /// loop's KKT-point test uses, so the two are consistent by construction).
-    /// qp_engine.h implements no anti-cycling rule and this field changes no
+    /// walk_engine.h implements no anti-cycling rule and this field changes no
     /// decision.
     Index degenerate_steps = 0;
 
@@ -300,7 +300,7 @@ struct QpCounters {
     // optional pin creates removes that pin.
     Index dep_recheck_removals = 0;
     // Negative-curvature ride blockers that tested dependent, resolved by the
-    // add site's rule along the ride (qp_engine.h 4c, THE DECLINED RIDE).
+    // add site's rule along the ride (walk_engine.h 4c, THE DECLINED RIDE).
     Index dep_ride_blockers = 0;
     Index ride_exchanges = 0; // ... of which exchanged; the ride is re-armed
     // A vetoed ride (ride_sign, or the null-space veto with a p that does not
@@ -309,18 +309,18 @@ struct QpCounters {
     Index ride_declines_fallthrough_blocked = 0;
     // ride_sign's veto (flat slope or sign disagreement) on the independent
     // working set; at a KKT point of an independent set only a noise-level
-    // multiplier can produce one (qp_engine.h 4c).
+    // multiplier can produce one (walk_engine.h 4c).
     Index ride_sign_vetoes = 0;
-    // THE FLAT FACE (qp_engine.h 4c): rides whose sign the drop's own
+    // THE FLAT FACE (walk_engine.h 4c): rides whose sign the drop's own
     // multiplier decided, the measured g'p being below its own resolution.
     Index ride_predicted_signs = 0;
-    // THE EQUALITY DRIFT's checked invariant (qp_engine.h 4c): passes at which the
+    // THE EQUALITY DRIFT's checked invariant (walk_engine.h 4c): passes at which the
     // iterate carried a STRUCTURAL equality violation after having met the rows.
     // The "has met them" flag never clears, so a walk that leaves the rows counts
     // EVERY later pass: this is a count of PASSES off the rows, not of drift
     // EVENTS. Nothing re-projects the iterate; the count is the observation.
     Index eq_drift_violations = 0;
-    // THE SADDLE EXIT (qp_engine.h 4c): trusted-kWrong dead ends that took a
+    // THE SADDLE EXIT (walk_engine.h 4c): trusted-kWrong dead ends that took a
     // VERIFIED negative-curvature direction of the face; dead ends where none was found and
     // the kNumericalError exit stood; and the triangular solves the search cost (its one
     // factorization per dead end is counted in `factorizations`). The search's face solves
@@ -329,11 +329,11 @@ struct QpCounters {
     Index saddle_exits = 0;
     Index saddle_exit_misses = 0;
     Index saddle_direction_solves = 0;
-    // THE CONVEX CERTIFICATE (qp_engine.h 4c): trusted-kWrong dead ends whose
+    // THE CONVEX CERTIFICATE (walk_engine.h 4c): trusted-kWrong dead ends whose
     // kWrong was overruled because H is structurally convex (nonnegative diagonal, LP
     // included); the point then faces the ordinary walk's first-order tests.
     Index convex_certificates = 0;
-    // THE ASCENT GUARD (qp_engine.h 4c): passes whose EQP direction held the
+    // THE ASCENT GUARD (walk_engine.h 4c): passes whose EQP direction held the
     // working set and ascended with nonpositive curvature (an indefinite face's saddle),
     // ridden along -p instead of stepped along p.
     Index ascent_rides = 0;
@@ -374,7 +374,7 @@ struct QpCounters {
     // blocker's test there was undecidable: the solve continued on
     // the bound-eliminated path instead (once per solve).
     Index dep_border_retreats = 0;
-    // THE STANDSTILL RETREAT (qp_engine.h): border-stack passes that stood still (zero
+    // THE STANDSTILL RETREAT (walk_engine.h): border-stack passes that stood still (zero
     // motion, or a second consecutive full step) off a structurally violated equality row
     // with the inertia reading kWrong, and moved the rest of the solve to the
     // bound-eliminated path with a re-check armed. Not counted in dep_border_retreats.
@@ -412,7 +412,7 @@ struct QpCounters {
     // the growth this walk could not test numerically; the screen-positive
     // half is also counted dep_dependent as any other dependent verdict is.
     Index dep_unrun_tests = 0;
-    // THE BOUNDED REPAIR (qp_engine.h, the repair's BUDGET). Candidate pins
+    // THE BOUNDED REPAIR (walk_engine.h, the repair's BUDGET). Candidate pins
     // `repair_temporary_vertex` TRIED although the integer screen had fired. The screen
     // proves {A_W, e_i} dependent as a family, not e_i in span(A_W): equal only for an
     // independent A_W, which a rank-deficient equality Jacobian denies. Skipping such a
@@ -421,7 +421,7 @@ struct QpCounters {
     // -- so only a test that decided THIS candidate skips; this counts the pins a
     // count-only screen would have skipped.
     Index dep_repair_screen_pins = 0;
-    // Repairs that stopped on the pin budget (qp_engine.h, repair_pin_budget) rather than
+    // Repairs that stopped on the pin budget (walk_engine.h, repair_pin_budget) rather than
     // on a verdict or on running out of candidates. Such a repair FAILS (it undoes itself),
     // which is the safe outcome.
     Index dep_repair_budget_stops = 0;
@@ -435,7 +435,7 @@ struct QpCounters {
     // a stale `face` costs a DEPENDENCY TEST with nothing to test against, and only that
     // walk takes one.
     Index dep_repair_restarts = 0;
-    // THE IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face): pass-overs
+    // THE IMPLIED BLOCKER (walk_engine.h, blocker_implied_by_face): pass-overs
     // that SURVIVE their sequence -- of a blocker of an ordinary step proved dependent on the
     // working set whose face satisfies it (g + rho ||a|| ||x_face,free|| <= feasibility_tol *
     // row_scale), its rate along p the step's leak, not motion -- each within its members'
@@ -444,7 +444,7 @@ struct QpCounters {
     // Appended at the end of the add-site group (the layout tests derive their ranges with
     // offsetof).
     Index dep_implied_passovers = 0;
-    // THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy; ws_independence.h,
+    // THE DEAD-END RANK REPAIR (walk_engine.h, Degeneracy; ws_independence.h,
     // rank_repair): add-site dead ends (no admissible member, no verified certificate, no
     // pass-over) at which the working set itself was numerically rank-deficient and the members
     // on its null directions were released (rank_repairs), the members so released, counted
@@ -455,7 +455,7 @@ struct QpCounters {
     Index rank_repairs = 0;
     Index rank_repair_releases = 0;
     Index rank_repair_misses = 0;
-    // THE REFUSED-BLOCKER EXCHANGE (qp_engine.h, Degeneracy): exchanges taken where
+    // THE REFUSED-BLOCKER EXCHANGE (walk_engine.h, Degeneracy): exchanges taken where
     // the add-site rule would end the solve (after the rank repair) for the pass-over
     // sequence's first blocker, on coefficients derived mu-free for it.
     // Appended at the end of the add-site group.
@@ -466,7 +466,7 @@ struct QpCounters {
     Index zero_motion_exhausted = 0; // an exempt member's multiplier is real
     Index zero_motion_cap_hits = 0;  // > 2(n + mi) releases/re-entries at one point
 
-    // (qp_engine.h, Degeneracy.)
+    // (walk_engine.h, Degeneracy.)
     // A numerical "independent" candidate test overturned by an exact
     // structural dependency, at any growth site (add, repair pin, ride add).
     Index dep_structural_first = 0;
@@ -488,7 +488,7 @@ struct QpCounters {
     Index dep_grey_rereads = 0;
     Index dep_grey_reread_dependent = 0;
 
-    // (qp_engine.h, refine_terminal_mu_free) Terminal points that
+    // (walk_engine.h, refine_terminal_mu_free) Terminal points that
     // would read kInfeasible by a structural violation while a working row's
     // dual_regularization * |lambda| footprint exceeds its tolerance, re-solved mu-free on
     // the face (one factorization each, also in `factorizations`), and how many
@@ -501,7 +501,7 @@ struct QpCounters {
     Index terminal_mu_refines = 0;
     Index terminal_mu_refine_rescues = 0;
 
-    /// THE TERMINAL POLISH (qp_engine.h's section 5 and QpEngine::polish_terminal_point).
+    /// THE TERMINAL POLISH (walk_engine.h's section 5 and QpEngine::polish_terminal_point).
     ///
     /// `terminal_polish_solves`: would-be kOptimal exits at which the final point
     /// was RE-SOLVED on its FINAL WORKING SET with the dual regularization out of
@@ -535,7 +535,7 @@ struct QpCounters {
     Index terminal_polish_rejected = 0;
     Index terminal_polish_adopted = 0;
 
-    // (qp_engine.h, section 5 and THE SADDLE EXIT.)
+    // (walk_engine.h, section 5 and THE SADDLE EXIT.)
     // `certificate_sign_refusals`: would-be kOptimal exits whose exported multipliers carried a
     // wrong sign past the KKT-point test's relative tolerance (the certificate's SIGN HALF);
     // each ends kNumericalError.
@@ -564,12 +564,12 @@ struct QpCounters {
     // kNumericalError without one (routing: see sqp_solver.cpp).
     Index terminal_farkas_certificates = 0;
     Index certificate_row_refusals = 0;
-    // THE STAGNATION READING (qp_engine.h, section 4): `stagnation_drops`
+    // THE STAGNATION READING (walk_engine.h, section 4): `stagnation_drops`
     // counts the drops it made; `stagnation_stops` the walks it ended kIterationLimit before the
     // minor cap.
     Index stagnation_drops = 0;
     Index stagnation_stops = 0;
-    // THE LATCH AND ITS REASON (qp_engine.h, section 4): border mode's
+    // THE LATCH AND ITS REASON (walk_engine.h, section 4): border mode's
     // latches onto the elimination path, by reason -- `border_latches_cap` with more pins than
     // max_schur_border_dimension, `border_latches_conditioning` with the pins under it and C
     // ill-conditioned or singular; `border_latch_releases` the latches released (each a K0 rebuild,
@@ -579,7 +579,7 @@ struct QpCounters {
     Index border_latches_conditioning = 0;
     Index border_latch_releases = 0;
     Index border_latch_holds = 0;
-    // THE PASS'S INERTIA VERDICT (qp_engine.h, section 4b): passes whose main
+    // THE PASS'S INERTIA VERDICT (walk_engine.h, section 4b): passes whose main
     // verdict (the EQP candidate's, before any zero-multiplier probe re-entry or
     // mu-free reread) read kSuspect or kWrong; kOk is the remainder.
     Index inertia_suspect_verdicts = 0;
@@ -805,7 +805,7 @@ struct SsnCounters {
 // struct without a table entry does not silently vanish from the stream.
 //
 // EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert (in
-// src/trace/trace_writer.cpp): the largest N for which the struct is
+// src/trace/json_lines_trace_sink.cpp): the largest N for which the struct is
 // brace-initializable with N arguments. Not sizeof, which is padding-dependent.
 //
 // TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE SAME
@@ -1619,7 +1619,7 @@ struct SqpCounters {
     /// carries the meaning unchanged, COUNTS and EXCLUDES included.
     Index verdict_refine_steps = 0;
 
-    /// Rungs of the QP engine's Suspect-stall escalation ladder (qp_engine.h
+    /// Rungs of the QP engine's Suspect-stall escalation ladder (walk_engine.h
     /// section 4b), summed over the same set of QP solves as the refinement
     /// counters above and named identically to QpCounters::suspect_escalations.
     ///
@@ -1665,7 +1665,7 @@ struct SqpCounters {
     /// factorization count is deliberate.
     StartLevel start_level_used = StartLevel::kCold;
 
-    /// Majors solved while globalization.h's FULL-STEP MODE was armed
+    /// Majors solved while funnel.h's FULL-STEP MODE was armed
     /// (SqpOptions::warm_full_step). It counts the same events major_iters does --
     /// subproblems solved -- so it is always <= major_iters, and 0 on every cold
     /// solve, every solve with the lever off and every solve whose `warm` did not
@@ -1740,7 +1740,7 @@ struct SqpCounters {
     /// folding them would hide the one that matters: a row seeded well can remove
     /// churn, while a bound seeded well can only remove a one-shot transit.
     ///
-    /// SEEDS OFFERED, Not seeds honoured: qp_engine.h's window-consistency rule may
+    /// SEEDS OFFERED, Not seeds honoured: walk_engine.h's window-consistency rule may
     /// silently drop a seeded bound outside the first trust-region window, and a
     /// dropped hint is still counted here.
     ///
@@ -2537,7 +2537,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // the struct takes `kSqpCountersFieldCount + 2` initializers.
 //
 // The three arity pins (SsnCounters, IpqpCounters, SqpCounters against their tables)
-// live in src/trace/trace_writer.cpp, which already includes this header: a
+// live in src/trace/json_lines_trace_sink.cpp, which already includes this header: a
 // struct-table mismatch still fails the library build.
 
 /// The SqpCounters table's field offsets, in table order. `offsetof` is only

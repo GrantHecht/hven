@@ -1651,7 +1651,7 @@ class SqpSolverImpl {
     // of the driver's own kkt_tol and feas_tol, through `ssn_fb_tol_for`; every
     // other field is ssn_engine.h's own default. `prox_sigma_init` is the one
     // field this driver sets, and only on the first subproblem of a solve that
-    // ingested a proximal carry (warm_start.h's `prox_sigma`).
+    // ingested a proximal carry (sqp_warm_state.h's `prox_sigma`).
     SsnOptions ssn_options(double prox_sigma_init) const;
 
     // The interior-point tier's engine, constructed on first use, on
@@ -1983,7 +1983,7 @@ class SqpSolverImpl {
     // next tier entry, whenever that is.
     std::optional<IpqpSeed> ipqp_staged_seed_;
     // The proximal level to EXPORT on this solve's SqpWarmState, and the point it was
-    // reached at (warm_start.h's `prox_sigma`/`prox_center_*` block). A member
+    // reached at (sqp_warm_state.h's `prox_sigma`/`prox_center_*` block). A member
     // rather than a local because solve_impl has a dozen exits and
     // make_warm_start is static; reset at the top of every solve_impl call.
     double ssn_prox_sigma_out_ = 0.0;

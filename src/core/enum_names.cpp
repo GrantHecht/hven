@@ -1,6 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// IMPLEMENTS the `to_string` / `severity` declarations of hven/core/solver_status.h and
+// hven/core/start_level.h (the enums' headers carry no .cpp of their own).
+//
 // Display-string switches, and the reporting order, for the solver enums whose
 // headers live in core/: SolveStatus and StopReason (core/solver_status.h)
 // and StartLevel (core/start_level.h). Defined here so a core/ TU never links
@@ -159,7 +162,7 @@ const char *to_string(StopReason reason) {
 }
 
 // The message kinds, lower snake: the display form and the schema spelling, so
-// trace_writer.cpp forwards here rather than keeping a second copy that could drift.
+// json_lines_trace_sink.cpp forwards here rather than keeping a second copy that could drift.
 const char *to_string(MessageKind kind) {
     switch (kind) {
     case MessageKind::kSolverInitialized:

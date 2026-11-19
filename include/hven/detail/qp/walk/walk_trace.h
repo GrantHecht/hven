@@ -3,7 +3,7 @@
 
 #pragma once
 
-// qp_walk_trace.h — the PRIMAL ACTIVE-SET WALK's test seam: a READ-ONLY
+// walk_trace.h — the PRIMAL ACTIVE-SET WALK's test seam: a READ-ONLY
 // per-minor observer, on the convention docs/testing.md describes and
 // CLAUDE.md §8 mandates ("use this convention for any new need rather than
 // inventing another"). It is the read-only VARIANT of that convention —
@@ -65,7 +65,7 @@
 // floating-point operation of the solver's own arithmetic, and no factorization
 // and no linear SOLVE. The norms, residuals and signatures it computes are
 // computed from state the loop already holds — or by a mat-vec into storage the
-// loop never reads. `tests/qp/test_qp_walk_seam.cpp` proves that as a TEST
+// loop never reads. `tests/qp/seam/test_qp_walk_seam.cpp` proves that as a TEST
 // rather than as a claim: with the observer attached, every `QpCounters` field
 // and the solution the engine returns are bit-identical to the unattached run
 // on six cases, two of them degenerate.
@@ -106,7 +106,7 @@
 // inside one iteration of one loop and leave no trace outside it, which is
 // exactly the case §6 says the boundary cannot see.
 //
-// WHY THE INCLUDE IS IN `qp_engine.h` AND NOT IN `qp_engine.cpp`. Stated
+// WHY THE INCLUDE IS IN `walk_engine.h` AND NOT IN `walk_engine.cpp`. Stated
 // plainly, because it is unusual: `src/qp/walk/walk_engine.cpp` carries an `assert()`
 // ABOVE the walk loop, and `assert` materializes `__LINE__` as an immediate
 // operand in a Debug object. An `#include` added at the top of that TU would
@@ -115,7 +115,7 @@
 // `__LINE__`-class noise, but a text difference all the same. Including from
 // the header this TU already includes adds no line to the TU at all, and every
 // `#ifdef HVEN_TESTING` block below is under the walk loop, so the instruction
-// stream cannot move. `qp_engine.h` itself contains no `assert`, no `throw` and
+// stream cannot move. `walk_engine.h` itself contains no `assert`, no `throw` and
 // no other `__LINE__`-bearing construct. The cost of the wider inclusion is
 // zero by construction: without `HVEN_TESTING` this file's entire body is
 // `#ifdef`-ed away.
@@ -140,7 +140,7 @@
 #include <hven/core/types.h>
 // M7 W2 M4's ANTI-CYCLING EXPERIMENT, whose per-thread switch lives beside
 // this observer's arming and on the same conventions. Included from INSIDE
-// this file's own `#ifdef HVEN_TESTING` rather than from `qp_engine.h`, so no
+// this file's own `#ifdef HVEN_TESTING` rather than from `walk_engine.h`, so no
 // production translation unit gains a line; see that file's own header note
 // for why it is a separate file and not more of this one.
 #include <hven/detail/qp/walk/anti_cycling_arm.h>
@@ -200,10 +200,11 @@ enum class QpWalkAction : int {
     /// §4c's DECLINED RIDE: a vetoed ride's drop undone, the released
     /// constraint re-entering (`block`, `block_index`).
     kRideUndone,
-    /// THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): an add-site dead end at a
+    /// THE DEAD-END RANK REPAIR (walk_engine.h, Degeneracy): an add-site dead end at a
     /// rank-deficient working set released the members on its null directions.
     kRankRepair,
-    /// THE STAGNATION READING (qp_engine.h, section 4) ended the walk kIterationLimit on this pass:
+    /// THE STAGNATION READING (walk_engine.h, section 4) ended the walk kIterationLimit on this
+    /// pass:
     /// nothing to drop at a point meeting its rows, or, after the pass's step, the drops spent.
     kStagnationStop,
     /// THE STAGNATION READING with nothing to drop re-solved the face mu-free and adopted the
@@ -593,7 +594,7 @@ struct QpWalkMinorRecord {
     /// with the multipliers `price` just produced: the UNREGULARIZED first-order
     /// residual `Hx + g + Aeᵀλe + Aiᵀλi` over the free block, and the largest
     /// term that went into it (its scale). Since M7 W2 E4 these are the walk's
-    /// OWN KKT-point test (qp_engine.h §5) rather than a seam-only reading, so
+    /// OWN KKT-point test (walk_engine.h §5) rather than a seam-only reading, so
     /// the columns report the quantity the loop branched on, not a recomputation.
     double stat_free_inf = kAbsent;
     double stat_scale = kAbsent;
@@ -601,7 +602,7 @@ struct QpWalkMinorRecord {
     /// accepted answer's own miss against the REGULARIZED system it came out of
     /// over the CONSTRAINT rows, the extra solves the check spent, and whether it
     /// REFUSED (1) the answer — a refusal that reaches the walk rides the
-    /// suspect-stall ladder, and an EXHAUSTED ladder is ADVISORY (qp_engine.h
+    /// suspect-stall ladder, and an EXHAUSTED ladder is ADVISORY (walk_engine.h
     /// section 5 states the rule; only a non-finite answer is terminal), so the
     /// column names a pass whose answer the check would not stand behind, not an
     /// exit.
@@ -663,7 +664,7 @@ struct QpWalkMinorRecord {
     // ---- THE POST-DROP INERTIA AND RANK EVIDENCE (gated, one extra
     //      factorization) ----------------------------------------------------
     //
-    // `qp_walk_trace.h`'s own FIX-ROUND 1 note says these "would each need an
+    // `walk_trace.h`'s own FIX-ROUND 1 note says these "would each need an
     // extra factorization, so they are deliberately NOT recorded and are marked
     // absent in the rule instead". M5 lifts that omission UNDER A SWITCH and
     // pays the declared cost, because M4c §6 item 2 is explicit that class (c)
@@ -719,7 +720,7 @@ struct QpWalkMinorRecord {
     ///
     /// THESE TWO STAY ABSENT ON EVERY TRACE. They belong to arm b2, the
     /// classical exchange, which settler ruling R3 made conditional and which
-    /// `qp_degeneracy_arm.h`'s ARM B2 block registers as a production design
+    /// `degeneracy_arm.h`'s ARM B2 block registers as a production design
     /// item rather than building. A column that reads absent is the honest
     /// record of a rule that did not run.
     Index add_exchanged_index = -1;

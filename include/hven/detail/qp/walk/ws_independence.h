@@ -21,7 +21,7 @@
 //   - a STALLED refinement (residual above target after the steps) with
 //     rho < kDepUndecidable is UNDECIDABLE: the border path retreats to the
 //     eliminated path, the eliminated path defers the add to the next pass's
-//     detector (qp_engine.h, Degeneracy);
+//     detector (walk_engine.h, Degeneracy);
 //   - WITH NO USABLE FACTOR the test does not run at all, and an un-run test is
 //     not a verdict of dependence (E2 fix7, settler E4-37(b)): the integer
 //     screen is the only statement available and it is exact, so a POSITIVE
@@ -32,7 +32,7 @@
 //     structural dependency, which needs no factor) still overrules it at
 //     every growth site. Before fix7 this case returned kUndecidable, which
 //     DepTest::dependent() reads as dependent: a blocker was then charged the
-//     deferred-add path (qp_engine.h, Degeneracy) on the strength of a rho
+//     deferred-add path (walk_engine.h, Degeneracy) on the strength of a rho
 //     that had never been computed;
 //   - a STALLED refinement with rho >= kDepUndecidable is ADMITTED as
 //     independent AND COUNTED (DepTest::stall_admit, QpCounters::
@@ -273,7 +273,7 @@ bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const De
 /// Lanczos budget of face_negative_curvature (steps, one face_solve each).
 constexpr Index kSaddleLanczosSteps = 24;
 
-/// THE SADDLE EXIT's direction (qp_engine.h 4c): Lanczos with full reorthogonalisation on
+/// THE SADDLE EXIT's direction (walk_engine.h 4c): Lanczos with full reorthogonalisation on
 /// face_solve's operator, from a fixed start, at most kSaddleLanczosSteps steps. Of the Ritz
 /// vectors of its NEGATIVE Ritz values, the one with the most negative Rayleigh quotient on H
 /// itself is returned (unit 2-norm) when it is VERIFIED: d'Hd <= -curvature_tol * d'd. Empty when
@@ -282,7 +282,7 @@ constexpr Index kSaddleLanczosSteps = 24;
 Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                             const QpOptions &opts, double curvature_tol, Index &solves);
 
-// THE DEAD-END RANK REPAIR (M7 W2 RDV; qp_engine.h, Degeneracy). The working set's rows -- the
+// THE DEAD-END RANK REPAIR (M7 W2 RDV; walk_engine.h, Degeneracy). The working set's rows -- the
 // equality rows and the working inequality rows, each divided by its 2-norm -- restricted to the
 // free columns, M_F, and their numerical LEFT NULL SPACE {y : ||M_F^T y|| <= kRankNullTol *
 // ||M_F||}, read WITHOUT the walk's regularized KKT factor (whose delta- and mu-sized pivots are

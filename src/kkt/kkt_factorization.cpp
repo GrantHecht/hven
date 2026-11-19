@@ -1,6 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// kkt_factorization.cpp -- IMPLEMENTS hven/detail/kkt/kkt_factorization.h (`KktFactorization`,
+// the IPM/IPQP assembly buffer plus factor). Not kkt_factor.cpp, which implements `KktFactor`.
+
 #include <stdexcept>
 
 #include <fmt/format.h>

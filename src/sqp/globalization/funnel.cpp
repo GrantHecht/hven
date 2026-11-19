@@ -3,7 +3,7 @@
 
 // FunnelStrategy's state machine -- KLV Algorithm 2, optimality phase. The
 // class contract, the KLV transcription and every "why" behind the constants
-// live in globalization.h.
+// live in funnel.h.
 
 #include <algorithm>
 #include <cmath>

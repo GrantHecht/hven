@@ -75,7 +75,7 @@
 // PHASE-6 TASK 3 ADDED THE SIXTH ARGUMENT, on the same terms as Task 3-P5's
 // own flags: it defaults to the library value, so an invocation that omits it
 // is byte-identical to the pre-Task-3 program. It exists because opt_tol is
-// the threshold the DROP RULE prices against (qp_engine.h's drop_worst: a
+// the threshold the DROP RULE prices against (walk_engine.h's drop_worst: a
 // working-set member is released once -lambda_j exceeds it), and the
 // wide-window walk's cost turned out to be dominated by drop/re-add churn --
 // so whether that churn is driven by genuine geometry or by
@@ -129,7 +129,7 @@
 //              cap is a multiple of (8N on this family: 5N variables, N path
 //              rows, 2N box-constrained controls).
 //     cap=     the cap this invocation actually ran at, resolved through
-//              qp_engine.h's own detail::effective_qp_max_iter, so a row
+//              walk_engine.h's own detail::effective_qp_max_iter, so a row
 //              records the policy it was measured under rather than leaving
 //              it to be inferred from the argv line.
 //
@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
         // pre-Task-3 column above reproduces byte-for-byte.
         // PHASE-6 TASK 4 (M6) added `qpmax` -- the LARGEST per-subproblem
         // minor count of this solve -- for one reason: the size-derived cap
-        // (qp_types.h's QpOptions::max_iterations, qp_engine.h's
+        // (qp_types.h's QpOptions::max_iterations, walk_engine.h's
         // detail::effective_qp_max_iter) applies PER SUBPROBLEM, so the
         // quantity a cap has to clear is this maximum and NOT the `minors`
         // total beside it. On this family the two are nearly equal (one

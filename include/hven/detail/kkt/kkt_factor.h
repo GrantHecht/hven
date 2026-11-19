@@ -3,6 +3,11 @@
 
 #pragma once
 
+// kkt_factor.h -- `KktFactor`, the QP-side KKT factor used by the walk, the SSN engine and the SQP
+// predictor: a wrapper over linear::SymmetricFactor with dense-arm selection and a pattern cache.
+// NOT kkt_factorization.h, which is the IPM/IPQP assembly buffer plus factor (`KktFactorization`).
+// The two families are distinct on purpose; their unification is registered (RS-7).
+
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -72,7 +77,7 @@ inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
 //   - Installing a `SymmetricFactor::adopt()`-built factor leaves
 //     `analyzed == false` even though the adopted factor may already carry a
 //     reusable symbolic, so the first `factorize_checked()` forks a new
-//     session, moving `session_id()` and breaking qp_engine.h's hot-start
+//     session, moving `session_id()` and breaking walk_engine.h's hot-start
 //     reuse condition (e) for every other holder of that handle.
 /// Which session holds a KktFactor's current numerics (THE PLATFORM-SOLVE
 /// RESPONSE, below).
@@ -94,7 +99,7 @@ struct KktFactor {
     ///                empty): `grep -rn 'KktFactor \w*;' src/` has no match, so
     ///                no local or temporary is default-constructed, and the two
     ///                matches the same grep makes over `include/` are MEMBER
-    ///                DECLARATIONS -- qp_engine.h's `BorderState::kkt` and
+    ///                DECLARATIONS -- walk_engine.h's `BorderState::kkt` and
     ///                ssn_engine.h's `SsnEngine::kkt_` -- each initialized with
     ///                its owner's count in that owner's mem-initializer. That
     ///                is what makes "every factor path" a checkable claim

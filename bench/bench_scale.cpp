@@ -722,7 +722,7 @@ bool run_self_check() {
                     elastic_activations == want.elastic_activations;
 
     fmt::print("self-check: F3 n=1000 arm=warm (full_step ON) vs "
-               "tests/test_warm_start_battery.cpp kPins[\"F3n1000\"].arm[kArmWarm]\n");
+               "tests/warmstart/test_warm_start_battery.cpp kPins[\"F3n1000\"].arm[kArmWarm]\n");
     fmt::print("  reached_p1={} (want true)\n", res.reached_p1);
     fmt::print("  steps={} (want {})  majors={} (want {})  minors={} (want {})\n", res.steps.size(),
                want.steps, majors, want.majors, minors, want.minors);

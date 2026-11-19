@@ -3,6 +3,9 @@
 
 #pragma once
 
+// kkt_factorization.h -- `KktFactorization`, the IPM/IPQP KKT assembly buffer plus factor. NOT
+// kkt_factor.h, which is the QP-side `KktFactor` (walk, SSN, SQP predictor); see that header.
+
 // The interior-point engine's KKT factorization: the assembly buffer
 // the engine writes its Newton system into, the SymmetricFactor consuming it,
 // and the small evidence cache read back after every numeric factorization.

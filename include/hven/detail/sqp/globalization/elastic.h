@@ -60,7 +60,7 @@ inline constexpr double kElasticRhoFactor = 10.0;
 /// at all. The measured law above is a BASE-era reading of border mode, where the misfire lived;
 /// `ws_algebra == kRefactorize` read this family kOptimal at every cell of the same grid.
 ///
-/// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT) —
+/// W2 T6b covers it at the verdict site (walk_engine.h section 5's VERDICT-SITE FACE REFINEMENT) —
 /// in border mode then, and in BOTH algebras since W2 T7 — and the margin remains what it always
 /// was: a cheap first-rung placement that keeps the walk away from the residue rather than
 /// removing it. Measured after T6b, border
@@ -173,7 +173,7 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
 /// statement about the subproblem's own multipliers at any constraint scale.
 ///
 /// WHAT THIS BUYS, STATED EXACTLY: H/Ae/Ai stay byte-identical across the
-/// ladder, so the STRUCTURAL half of qp_engine.h's HOT-START REUSE key
+/// ladder, so the STRUCTURAL half of walk_engine.h's HOT-START REUSE key
 /// survives -- g is not part of that key. Necessary, and NOT sufficient:
 /// reuse condition (b) (the seed working set equals the preceding solve's EXIT
 /// working set) is a property of how the caller SEEDS the next rung; a caller

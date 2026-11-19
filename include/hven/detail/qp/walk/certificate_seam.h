@@ -3,7 +3,7 @@
 
 #pragma once
 
-// qp_certificate_seam.h — a test seam on the kOptimal CERTIFICATE of the
+// certificate_seam.h — a test seam on the kOptimal CERTIFICATE of the
 // primal active-set walk, on the `HVEN_TESTING` convention docs/testing.md
 // describes ("A fourth seam, on the certificate").
 //
@@ -24,7 +24,7 @@
 // PER-THREAD, on `QpWalkObserver`'s conventions and for its reasons.
 //
 // It compiles to NOTHING without `HVEN_TESTING`, and it is included from
-// INSIDE `qp_walk_trace.h`'s own `#ifdef HVEN_TESTING` block, so no production
+// INSIDE `walk_trace.h`'s own `#ifdef HVEN_TESTING` block, so no production
 // translation unit opens it or gains a line.
 
 #ifdef HVEN_TESTING

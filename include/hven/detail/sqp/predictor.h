@@ -554,7 +554,7 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
 
         // The regularization the warm start's own last subproblem was solved with,
         // so the predictor's K0 is the same matrix the engine would have built.
-        // -1 is warm_start.h's "never populated" sentinel for both.
+        // -1 is sqp_warm_state.h's "never populated" sentinel for both.
         QpOptions qopts;
         if (warm.primal_delta > 0.0) {
             qopts.primal_regularization = warm.primal_delta;
@@ -1022,7 +1022,7 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
                 out.bound_active[k] = -1;
                 break;
             case BoundState::kAtUpper:
-            case BoundState::kFixed: // warm_start.h's bound_active note
+            case BoundState::kFixed: // sqp_warm_state.h's bound_active note
                 out.bound_active[k] = +1;
                 break;
             case BoundState::kFree:
@@ -1035,7 +1035,7 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
                 out.qp_working_set.add_ineq(j);
                 out.ineq_active[static_cast<std::size_t>(j)] = 1;
                 // THE EMITTED PRICE IS NEVER NEGATIVE. `lambda_i >= 0` is a
-                // SqpWarmState PRECONDITION (warm_start.h's SIGN CONVENTIONS),
+                // SqpWarmState PRECONDITION (sqp_warm_state.h's SIGN CONVENTIONS),
                 // gated in the driver at kSeeded only -- and this producer's
                 // output reaches solve() at kWarm/kHot (predict() carries
                 // structure_hash forward), where it is not gated at all. So

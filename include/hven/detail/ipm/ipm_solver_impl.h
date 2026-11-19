@@ -2252,7 +2252,7 @@ class IpmSolverImpl {
     //
     // NONE LEFT (M6 W5 T8.7b). `print_beginning`, `print_finished` and
     // `print_exit_stats` were the last three, and
-    // `src/drivers/interior_point_solver_print.cpp` -- the file that held them
+    // the retired `src/drivers/interior_point_solver_print.cpp` -- the file that held them
     // -- is deleted. What they wrote is written by `ConsoleTraceSink` from
     // `ipm.phase.begin` / `ipm.phase.end` / `ipm.kkt_analysis` /
     // `ipm.phase.exit`. There is no `fmt::print` anywhere in this engine's

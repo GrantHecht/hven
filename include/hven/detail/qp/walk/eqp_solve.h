@@ -72,7 +72,7 @@
 // so p carries a factor 1/delta and delta*||p|| -- not ||p|| -- is the reduced
 // gradient's size. Two of the WALK's tests therefore cannot be written on ||p||
 // and are not: its KKT-point test is the free-block stationarity residual and
-// its runaway guard is on the iterate and on the ridge scale (qp_engine.h
+// its runaway guard is on the iterate and on the ridge scale (walk_engine.h
 // section 5). This header's business is the system; that one's is the tests.
 //
 // --- Sign convention ---
@@ -90,7 +90,7 @@
 //     optimality (qp_problem.h's convention). A negative lambda_w entry
 //     signals that row should be DROPPED from the working set.
 //   - Bound multipliers z are NOT computed here (EqpResult has no z field).
-//     qp_engine.h's price() prices them from the stationarity residual at a
+//     walk_engine.h's price() prices them from the stationarity residual at a
 //     non-free variable instead, i.e. z(i) = (Hx + g + Ae^T lambda_e +
 //     Ai^T lambda_i)(i) for that i. Per qp_problem.h's convention, z >= 0 is
 //     required at an active LOWER bound and z <= 0 at an active UPPER
@@ -138,7 +138,7 @@
 // factor is supposed to solve exactly -- for at most kEqpResidualRefineIters
 // solves, each kept only while the row residual strictly falls; and if it still
 // fails, the answer is REFUSED (EqpResult::residual_refused) and the caller
-// routes the pass to a retreat instead of stepping (qp_engine.h section 5,
+// routes the pass to a retreat instead of stepping (walk_engine.h section 5,
 // QpCounters::eqp_residual_refusals). A NaN residual REFUSES: every test here is
 // written as !(value <= target) for that reason.
 //
@@ -242,7 +242,7 @@ constexpr double kEqpResidualRefuseTol = 1e-1;
 // order primal_delta / lambda_min(Z'HZ), so on a face with curvature two steps
 // take a 1e-08-sized bias past 1e-16; a flat face rejects the FIRST step and
 // costs one back-solve. Same number, same reasoning, as
-// qp_engine.h's kTerminalPolishSteps, which is the same rule at the terminal
+// walk_engine.h's kTerminalPolishSteps, which is the same rule at the terminal
 // point.
 constexpr Index kEqpPolishSteps = 2;
 
@@ -277,7 +277,7 @@ constexpr Index kEqpPolishSteps = 2;
 // certified at the base is lost on either algebra.
 constexpr double kEqpPolishStepCap = 1e-6;
 
-// Budget for the VERDICT-SITE face refinement (qp_engine.h's section 5), in
+// Budget for the VERDICT-SITE face refinement (walk_engine.h's section 5), in
 // the same class as kMaxBorderRefineSteps and counted the same way -- TOTAL
 // steps kept. It lives beside that constant because it is the same kind of
 // bound on the same kind of loop, not because the two loops share a rule:
@@ -486,7 +486,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // delta*||x_F|| on the free block, mu*||lambda|| on the rows. Those are the
     // sizes of terms that are IN the regularized equations, so a residual at or
     // beneath one of them is inside the regularization the engine already absorbs
-    // everywhere else (qp_engine.h's row_tolerance, violation_is_structural), not
+    // everywhere else (walk_engine.h's row_tolerance, violation_is_structural), not
     // evidence that the factor failed. Without them the check refuses answers the
     // walk has always used: measured, HS10 and HS27 leave a row residual of
     // 3.1e-05 and 7.8e-03 on 3-variable faces whose multipliers are the 1/mu-sized
@@ -501,7 +501,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // delta*I, so its stationarity rows are the ill-conditioned half by
     // construction and their residual is not evidence about the solve. The
     // non-finite answers the free block would have caught are caught where they
-    // belong, on the answer itself (qp_engine.h section 5).
+    // belong, on the answer itself (walk_engine.h section 5).
     const auto ratio_of = [&](const Vec &yy, const Vec &r) {
         if (nc == 0) {
             return 0.0;
@@ -546,7 +546,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     for (;;) {
         y = detail::solve_vec(kkt, rhs);
         const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
-        // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+        // A shifted factor's answer is used only if it solves K itself (kkt_factor.h).
         shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
 
         r_reg = regularized_residual(y);

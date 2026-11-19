@@ -1,6 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+// IMPLEMENTS the cold-path throw helpers declared in hven/model/claim_space.h,
+// structure_identity.h, candidate_point.h and nlp_assembly.h (the helpers have no header of their
+// own).
+//
 // The cold throw paths of the model contract's inline argument checks.
 //
 // Each check in model/claim_space.h, structure_identity.h, candidate_point.h and

@@ -28,7 +28,7 @@ namespace hven::detail {
 /// driver's loop and away from any engine.
 ///
 /// Returns a COPY of `qp` with only `be`/`bi` touched -- H, g, Ae, Ai, lower,
-/// upper are untouched, which is what lets the re-solve reuse qp_engine.h's
+/// upper are untouched, which is what lets the re-solve reuse walk_engine.h's
 /// hot-start K0.
 ///
 /// @param ev,ev_trial Model evaluations at the CURRENT iterate x and at the

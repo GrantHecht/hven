@@ -41,7 +41,7 @@
 //   3. Landing exactly on p1 ends the sweep with reached_p1 == true.
 //
 // WHY THE RETRY GOES BACK TO THE LAST GOOD WARM START rather than reusing the
-// failed solve's own exit state: warm_start.h guarantees the failed object is
+// failed solve's own exit state: sqp_warm_state.h guarantees the failed object is
 // SAFE to feed forward, not that it is BETTER than what preceded it. A solve
 // that ran out of trust region or stalled is, by construction, somewhere the
 // method could not make progress. The last CONVERGED point is a genuine KKT
@@ -345,7 +345,7 @@ struct ContinuationResult {
     // point, and the solution's own hand-off object when reached_p1. Its
     // parameter value is the last kOptimal step's `p`. If NO step converged
     // (the cold solve at p0 failed), this is that failed solve's own warm
-    // start, which warm_start.h guarantees is still safe to feed forward.
+    // start, which sqp_warm_state.h guarantees is still safe to feed forward.
     detail::SqpWarmState final_warm;
 
     // Aggregate accounting over `steps`. Sums rather than new measurements:

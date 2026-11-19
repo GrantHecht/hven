@@ -202,7 +202,7 @@ jobs:
         # three counter-/trajectory-pinned test flakes on this lane (all
         # Linux-only, never local, objects byte-identical across the flake): see
         # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md's R5
-        # report §7-8 (SqpDriverRadius, B1Gate, CorpusTask6bPhaseB,
+        # report §7-8 (SqpSolverRadius, B1Gate, CorpusTask6bPhaseB,
         # SsnEngineLocal on run 31893392460 attempt 1, with two earlier
         # occurrences noted in docs/notes/2026-08-14-m3-gate-b-review-request.md
         # and docs/notes/2026-08-15-m3-phase-c-plan.md's microarch-flake watch

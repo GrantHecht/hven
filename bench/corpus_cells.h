@@ -47,7 +47,7 @@
 // =============================================================================
 //
 // The taxonomy is about HOW THE START WAS BUILT, not about the StartLevel
-// (warm_start.h) a solve resolves to -- those are different axes, and a cell
+// (start_level.h) a solve resolves to -- those are different axes, and a cell
 // row's actual resolved level is exactly what a later task's gate reads to
 // judge whether a taxonomy earned the level its name promises.
 //
@@ -67,7 +67,7 @@
 //                     to a stale/inconsistent hand-off, which is exactly the
 //                     class of input Phase 7's escape-rate gate (G4) prices.
 //   kActivityOnly     the interior-point crossover
-//                     (warm_start.h's `from_interior_point`): kPhysics-
+//                     (crossover.h's `from_interior_point`): kPhysics-
 //                     Informed's OWN primal rollout carrying a SYNTHESIZED
 //                     central-path hand-off (duals/slacks at the family's
 //                     analytic surface, i.e. an EXACT activity hint), fed
@@ -86,7 +86,7 @@
 //                     whole project is built around. Resolves kWarm or kHot
 //                     depending on whether the second solve's first
 //                     subproblem actually reused the first's factorization
-//                     (qp_engine.h's own reuse-eligibility conditions).
+//                     (walk_engine.h's own reuse-eligibility conditions).
 //
 // A CorpusRow ONLY reports the counters of the cell's OWN designated solve
 // (the one at parameter `p`) -- for kCorrupted/kFullWarm the SETUP solve at
@@ -970,7 +970,7 @@ constexpr double kPathInterfaceP0 = 0.80;
 // cell in this corpus, healthy or not. This is a Task-1 TRACTABILITY choice,
 // stated plainly: at N ranges this note never measured (5000/10000/20000)
 // the true per-subproblem demand is unknown, and the alternative -- the
-// library's own size-derived default (qp_engine.h's derived_qp_max_iter,
+// library's own size-derived default (walk_engine.h's derived_qp_max_iter,
 // 5 * (n + mi + #bounded) = 40 * N on this family) -- was rejected because it
 // scales FASTER than this cap and would make an already-known-hard cell's
 // wall time scale with N^2 instead of failing at a bounded cost. A cell that
@@ -1502,7 +1502,7 @@ struct IpIterate {
 // kPhysicsInformed cell at the same (N, window) is its matched control.
 //
 // The duals stay at x*: `from_interior_point` infers activity from the
-// dual/slack pair ALONE (warm_start.h's ACTIVITY INFERENCE note -- it never
+// dual/slack pair ALONE (crossover.h's ACTIVITY INFERENCE note -- it never
 // re-evaluates the model at x), so displacing the primal leaves the hint
 // exact while making the solve real.
 inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double mu, const Vec &x) {
@@ -1524,7 +1524,7 @@ inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double
         it.lambda_i(j) = mu / s;
     }
     // F7's control box is inactive at the optimum for every p in the design
-    // range (Task 0's own reading, warm_start.h/test_warm_start.cpp), so both
+    // range (Task 0's own reading, crossover.h/test_warm_start.cpp), so both
     // IP bound multipliers vanish.
     it.z_lower = Vec::Zero(model.n());
     it.z_upper = Vec::Zero(model.n());
@@ -1823,7 +1823,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         // way (see the file banner). A budget-truncated seed is still a
         // valid (if less converged) SqpWarmState to feed forward -- every exit
         // of solve() is "safe to feed forward" by this project's own
-        // contract (warm_start.h). It is bounded by its OWN wall deadline
+        // contract (warmstart/warm_start.h). It is bounded by its OWN wall deadline
         // too, and a setup that exhausts it is reported as `dnf_setup`, not
         // as this taxonomy's own hand-off failing (I1).
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());

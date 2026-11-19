@@ -595,11 +595,11 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
                 // A step through shifted numerics is refined against k_ and used
-                // only if it passes the backward-error gate (kkt_calls.h).
+                // only if it passes the backward-error gate (kkt_factor.h).
                 (void)detail::refine_shifted_solve(k_, rhs, kkt_, dw);
                 dw_refused = detail::shifted_solve_refused(k_, rhs, kkt_, dw);
                 // A step through unshifted dense numerics is checked per solve
-                // (kkt_calls.h).
+                // (kkt_factor.h).
                 dw_dense_refused = detail::unshifted_dense_solve_refused(
                     k_, rhs, kkt_, fo.arm, dw, dense_check_r_, dense_check_c_, dense_check_d_);
             }
@@ -645,9 +645,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         // exactly one thing: the augmented block is not positive definite,
         // so the step is toward a KKT point that may be a saddle or a
         // maximizer -- what the walk's own inertia ladder exists to
-        // prevent (qp_engine.h section 4b), answered the same way.
+        // prevent (walk_engine.h section 4b), answered the same way.
         //
-        // **kSuspect DOES NOT ACT**, matching qp_engine.h exactly: a
+        // **kSuspect DOES NOT ACT**, matching walk_engine.h exactly: a
         // factorization whose pivots were perturbed reports counts that
         // carry no information, so acting on them would be acting on
         // fabrication.

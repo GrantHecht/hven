@@ -3,7 +3,7 @@
 
 #pragma once
 
-// qp_degeneracy_arm.h — M7 W2 M5's DEGENERACY EXPERIMENT: two arms over the
+// degeneracy_arm.h — M7 W2 M5's DEGENERACY EXPERIMENT: two arms over the
 // primal active-set walk's drop and add rules, plus a trace-only DIAGNOSTIC
 // half, on the `HVEN_TESTING` test-seam convention docs/testing.md describes
 // and CLAUDE.md §8 mandates ("use this convention for any new need rather than
@@ -14,17 +14,17 @@
 // code path VERBATIM, so a build that defines `HVEN_TESTING` and arms nothing
 // is the production walk. Every declaration in this file is inside
 // `#ifdef HVEN_TESTING`, so a production TU sees no line, no byte and no
-// symbol of it, exactly as for `qp_walk_trace.h` and `qp_anti_cycling_arm.h`.
+// symbol of it, exactly as for `walk_trace.h` and `anti_cycling_arm.h`.
 // `HVEN_TESTING` is defined ONLY target-wide on the standalone test
 // executables that recompile the instrumented sources a second time and do NOT
 // link `hven::hven`.
 //
-// WHY IT IS A SEPARATE FILE, AND INCLUDED FROM INSIDE `qp_walk_trace.h`. The
-// same two reasons M4's `qp_anti_cycling_arm.h` gives: `qp_walk_trace.h`
+// WHY IT IS A SEPARATE FILE, AND INCLUDED FROM INSIDE `walk_trace.h`. The
+// same two reasons M4's `anti_cycling_arm.h` gives: `walk_trace.h`
 // carries a RECORD-ONLY contract proved as a test, and an ARM is the opposite
 // thing (armed, it is meant to change a decision), so the two live apart; and
-// the include sits inside `qp_walk_trace.h`'s own `#ifdef HVEN_TESTING` block
-// rather than in `qp_engine.h`, so no production translation unit gains a
+// the include sits inside `walk_trace.h`'s own `#ifdef HVEN_TESTING` block
+// rather than in `walk_engine.h`, so no production translation unit gains a
 // LINE. It is separate from M4's arm file because it is a separate experiment
 // with a separate switch: M4's arms are pivot-RULE arms (which candidate, what
 // step); these are DEGENERACY arms (whether a decision is admissible at all),
@@ -42,7 +42,7 @@
 //     `me + |W| > n` after the drop, by up to +106 rows. On such a set the
 //     multipliers are NOT UNIQUE, so `z_i < 0` on one of infinitely many
 //     multiplier vectors carries no information about whether leaving bound
-//     `i` improves anything. `qp_engine.h`'s own Degeneracy note says this in
+//     `i` improves anything. `walk_engine.h`'s own Degeneracy note says this in
 //     advance (~:335) and so does its drop/direction note (~:1507).
 //   * 2.5 % — all of YORKNET — are a FALSE DROP: `|λ| = 2⁻²⁵` against a
 //     stationarity scale of 1.6e+11, i.e. 8.3e-04 ulps of the very gradient
@@ -51,7 +51,7 @@
 //     (`src/qp/walk/walk_engine.cpp`), while the same header's
 //     `free_block_stationarity` / `free_block_is_stationary` test the same
 //     class of residual RELATIVELY and say why in their own comment
-//     (`qp_engine.h` ~:516: "THE THRESHOLD IS SCALED, unlike this file's other
+//     (`walk_engine.h` ~:516: "THE THRESHOLD IS SCALED, unlike this file's other
 //     (absolute) opt_tol tests: this one reads a GRADIENT RESIDUAL, which
 //     scales with the objective").
 //
@@ -204,7 +204,7 @@
 // `kRideNullspaceTol = 1e-8` ("the EQP is solved through a dual_mu-regularized
 // KKT system, so even a consistent working row carries an irreducible
 // dual_mu*|lambda| residual, while the cases this must REJECT miss by orders
-// of magnitude more" — `qp_engine.h`). The proposal is the SAME number for the
+// of magnitude more" — `walk_engine.h`). The proposal is the SAME number for the
 // same reason, exposed as `dependency_tol` so a leg can move it, and the
 // distribution of `dep_residual` is RECORDED by the diagnostic on every add so
 // that the choice is checked against data instead of asserted: if the
@@ -384,7 +384,7 @@
 //     refused `|λ|/scale`; and the INTEGER dependency screen after the drop
 //     (`me + |W|` against `n`), which costs an addition.
 //   * PER DROP PASS, GATED — the POST-DROP inertia and rank evidence
-//     `qp_walk_trace.h` deliberately omits ("would each need an extra
+//     `walk_trace.h` deliberately omits ("would each need an extra
 //     factorization, so they are deliberately NOT recorded"). That omission is
 //     lifted here, under its own switch, at a DECLARED cost of ONE EXTRA
 //     ASSEMBLE+FACTORIZE PER DROP PASS on a traced run. It is taken through a
@@ -402,7 +402,7 @@
 // ===========================================================================
 // AND IT IS PER-THREAD, for the same reason `QpWalkObserver` and
 // `QpAntiCycleArmState` are: an engine is used sequentially by one thread
-// (`qp_engine.h`'s own contract), two instrumented solves on two threads must
+// (`walk_engine.h`'s own contract), two instrumented solves on two threads must
 // not share a switch, a scale or a counter, and process-global mutable state
 // with no synchronization is a data race rather than an experiment. Arming,
 // `reset()` and reading the counters are all per-thread.
@@ -447,8 +447,8 @@ struct QpDegeneracyParams {
     /// `kRideNullspaceTol`, whose derivation — an irreducible `dual_mu·|λ|`
     /// residual on a consistent working row, against rejected cases that miss
     /// by orders of magnitude more — is the same argument this test needs.
-    /// The literal is repeated rather than referenced because `qp_engine.h`
-    /// includes this file (through `qp_walk_trace.h`) ABOVE its own
+    /// The literal is repeated rather than referenced because `walk_engine.h`
+    /// includes this file (through `walk_trace.h`) ABOVE its own
     /// declaration of that constant.
     double dependency_tol = 1e-8;
 
@@ -462,8 +462,8 @@ struct QpDegeneracyParams {
     /// `kEngineStepTieTol` (the absent-bound cutoff is the subproblem's own
     /// `QpProblem::infinite_bound`, read by both), and the literals are
     /// repeated here rather than referenced for the same reason
-    /// `dependency_tol`'s is: `qp_engine.h` includes this file (through
-    /// `qp_walk_trace.h`) ABOVE its own declarations of them. They are TIED to
+    /// `dependency_tol`'s is: `walk_engine.h` includes this file (through
+    /// `walk_trace.h`) ABOVE its own declarations of them. They are TIED to
     /// the engine's own constants by `static_assert`s in `src/qp/walk/walk_engine.cpp`
     /// beside M4's, where both are visible, so an edit to either one fails the
     /// build rather than silently giving the arm a different candidate set.
@@ -841,16 +841,16 @@ struct QpDegeneracyArmState {
 // known feasible blocker whenever every candidate read dependent, took the
 // full step regardless, and broke both cells from `kOptimal` to
 // `kNumericalError` (188 and 3617 A10 leak-bound exceedances, largest
-// violations 6.24 and 4.41e+09; see `qp_degeneracy_arm.h:1629`, the
+// violations 6.24 and 4.41e+09; see `degeneracy_arm.h:1629`, the
 // `indep_no_blocker_passes` branch). Three further defects, named rather
 // than silently folded into that one: initial shift additions run through
 // `refresh_shifts` BEFORE the per-solve reset in `begin_solve()`
-// (`src/qp/walk/walk_engine.cpp:505` vs `:618`; `qp_degeneracy_arm.h:1190`'s
+// (`src/qp/walk/walk_engine.cpp:505` vs `:618`; `degeneracy_arm.h:1190`'s
 // `generation`/signature cache can therefore see a preceding QP's disarm
 // state or a stale QR); seed entry repair does not decide every seed member
 // through `admit_if_independent` as this file's own site-coverage table
 // claims -- it calls `b1_projection_residual` directly
-// (`qp_degeneracy_arm.h:337` vs `:1442`); and temporary pin restoration
+// (`degeneracy_arm.h:337` vs `:1442`); and temporary pin restoration
 // mutates the working set outside the shared predicate
 // (`src/qp/walk/walk_engine.cpp:2530`). No redesign of arm b1 ships in this round --
 // the production design item is an independent active working set with a
@@ -996,9 +996,9 @@ struct QpB1Outcome {
 };
 
 /// `me + |W|`: equality rows, working inequality rows, and one unit row per
-/// pinned variable. It is `qp_walk_trace.h`'s `qp_walk_ws_size` plus `qp.me()`
+/// pinned variable. It is `walk_trace.h`'s `qp_walk_ws_size` plus `qp.me()`
 /// and it is written out again HERE rather than called, because
-/// `qp_walk_trace.h` includes THIS file and not the other way round. The two
+/// `walk_trace.h` includes THIS file and not the other way round. The two
 /// must agree; a fixture asserts the arm's screen against the trace's.
 inline Index b1_dependency_rows(const QpProblem &qp, const WorkingSet &ws) {
     Index rows = qp.me() + static_cast<Index>(ws.active_ineq().size());
