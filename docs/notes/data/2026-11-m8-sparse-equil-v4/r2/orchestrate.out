@@ -1,0 +1,102 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:20:17-05:00
+code paths == 4d70afbd025889a0b845a2902863edd17a5ecc3f == the declared trees, clean; HEAD 0d74f105d3e02b11909ef774a0e086b7e909c95f
+LEG P1-rel start 2026-11-19T03:20:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:20:17-05:00
+
+The following tests did not run:
+	863 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2548 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2549 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T03:21:34-05:00
+LEG P1-rel rc=0 2026-11-19T03:21:34-05:00
+LEG P1-rel-criterion start 2026-11-19T03:21:34-05:00
+LEG P1-rel-criterion rc=0 2026-11-19T03:21:34-05:00
+LEG P1-dbg start 2026-11-19T03:21:34-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:21:34-05:00
+	611 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	612 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	863 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2548 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2549 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T03:29:10-05:00
+LEG P1-dbg rc=0 2026-11-19T03:29:10-05:00
+LEG P1-dbg-criterion start 2026-11-19T03:29:10-05:00
+LEG P1-dbg-criterion rc=0 2026-11-19T03:29:10-05:00
+LEG P2 start 2026-11-19T03:29:10-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:29:10-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/bin-r2/B/hven_sqp_corpus sha256 003806283cd4666bc915ea18ecf52d9005b92846c3309852f2653eb969c2d8ed
+RUN B k=1 mode=walk 2026-11-19T03:29:10-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-19T03:33:59-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-19T03:34:19-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-19T03:34:45-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-19T03:39:34-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-19T03:39:54-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-19T03:40:20-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-19T03:45:08-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-19T03:45:29-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T03:45:55-05:00
+LEG P2 rc=0 2026-11-19T03:45:55-05:00
+LEG P2-criterion start 2026-11-19T03:45:55-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-19T03:45:55-05:00
+LEG P3 start 2026-11-19T03:45:55-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:45:55-05:00
+cells run: 238 2026-11-19T03:50:28-05:00
+FOREGROUND_END 2026-11-19T03:50:28-05:00
+LEG P3 rc=0 2026-11-19T03:50:28-05:00
+LEG P3-criterion start 2026-11-19T03:50:28-05:00
+MOVER BETTER   sd-hven-sqp-ALLINITC.K
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.K
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+SUMMARY rows 476; movers vs arm A 9 (better 1, worse 0, neutral 8); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-19T03:50:28-05:00
+LEG P4 start 2026-11-19T03:50:28-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T03:50:28-05:00
+COMPARE_NOT_FOUND /home/ghecht/Projects/hven/.claude/worktrees/seq4/docs/scripts/compare_replay.py
+FIXTURE_PREFLIGHT_FAIL
+LEG P4 rc=7 2026-11-19T03:50:28-05:00
+STOP at P4
+FOREGROUND_END 2026-11-19T03:50:28-05:00
