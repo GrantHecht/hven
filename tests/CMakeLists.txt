@@ -275,19 +275,25 @@ gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 # directories, definitions, the project's COMPILE_FLAGS), not a syntax-only approximation: the
 # objects they produce are empty, so the build is incremental and the cost is the parse.
 #
-# EXCLUDED, by this explicit list and nothing else: the three headers that only exist for Apple
-# Accelerate. They name Apple frameworks (accelerate_session.h, lapacke_shim.h) or the Accelerate
-# thread control (accelerate_threads.h), and are not meant to be parsed anywhere else. On Apple
-# they are checked like every other header. Adding a header to this list needs a reason that says
-# why it cannot be parsed alone on the other platforms; "it is not self-contained" is not one.
+# EXCLUDED, by these two explicit lists and nothing else: the headers that belong to exactly one
+# sparse backend. The Apple-only ones name Apple frameworks (accelerate_session.h, lapacke_shim.h)
+# or the Accelerate thread control (accelerate_threads.h); the MKL-only one (pardiso_session.h)
+# includes mkl_pardiso.h, which an Apple build does not have. Each list is excluded only where its
+# backend is absent and is checked like every other header where it is present. Adding a header to
+# either list needs a reason that says why it cannot be parsed alone on the other platforms; "it is
+# not self-contained" is not one.
 set(HVEN_HEADER_CHECK_APPLE_ONLY
     hven/detail/ipm/accelerate_threads.h
     hven/detail/linear/accelerate_session.h
     hven/detail/linear/lapacke_shim.h)
+set(HVEN_HEADER_CHECK_MKL_ONLY
+    hven/detail/linear/pardiso_session.h)
 file(GLOB_RECURSE _hven_header_list CONFIGURE_DEPENDS
     RELATIVE "${_hven_repo_root}/include" "${_hven_repo_root}/include/hven/*.h")
 list(SORT _hven_header_list)
-if(NOT APPLE)
+if(APPLE)
+    list(REMOVE_ITEM _hven_header_list ${HVEN_HEADER_CHECK_MKL_ONLY})
+else()
     list(REMOVE_ITEM _hven_header_list ${HVEN_HEADER_CHECK_APPLE_ONLY})
 endif()
 set(_hven_header_check_sources "")
