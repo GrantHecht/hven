@@ -153,6 +153,51 @@ FOUND_PAIRS="$(
 ${FOUND_PAIRS}"
 echo "-- no public header includes a detail/ header"
 
+# The shape of the installed include root (RS-5, CLAUDE.md section 2).
+#
+#   - Nothing sits directly under include/hven except the umbrella hven.h and directories: a
+#     header at the root is a public header with no component, which the layer order has no place
+#     for.
+#   - Every directory directly under include/hven, and every directory directly under
+#     include/hven/detail, is a known component. A new component is added to the two lists below
+#     in the same commit that creates it (and to tests/core/test_layering.cpp's classify()), so
+#     the set of places a header can live is a decision, never a side effect.
+KNOWN_PUBLIC_DIRS="core detail ipm linear model qp solver sqp trace warmstart"
+KNOWN_DETAIL_DIRS="barrier core ipm kkt linear model qp solver sqp util warmstart"
+
+ROOT_STRAYS="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -mindepth 1 -maxdepth 1 -not -type d | sed 's|^\./||' | LC_ALL=C sort |
+        grep -vx 'hven.h' || true
+)"
+[ -z "${ROOT_STRAYS}" ] \
+    || fail "file(s) at the include/hven root other than hven.h:
+${ROOT_STRAYS}"
+echo "-- include/hven holds only hven.h and component directories"
+
+unknown_dirs() { # <directory> <known component names...>
+    local dir="$1" d known k
+    shift
+    known=" $* "
+    for d in $(cd "${dir}" && find . -mindepth 1 -maxdepth 1 -type d | sed 's|^\./||' | LC_ALL=C sort); do
+        k="${known}"
+        case "${k}" in *" ${d} "*) ;; *) echo "${d}" ;; esac
+    done
+}
+UNKNOWN_PUBLIC="$(unknown_dirs "${INCLUDE_ROOT}" ${KNOWN_PUBLIC_DIRS})"
+[ -z "${UNKNOWN_PUBLIC}" ] \
+    || fail "unknown directory under include/hven (not a known component: ${KNOWN_PUBLIC_DIRS}):
+${UNKNOWN_PUBLIC}"
+UNKNOWN_DETAIL="$(unknown_dirs "${INCLUDE_ROOT}/detail" ${KNOWN_DETAIL_DIRS})"
+[ -z "${UNKNOWN_DETAIL}" ] \
+    || fail "unknown directory under include/hven/detail (not a known component: ${KNOWN_DETAIL_DIRS}):
+${UNKNOWN_DETAIL}"
+DETAIL_STRAYS="$(cd "${INCLUDE_ROOT}/detail" && find . -mindepth 1 -maxdepth 1 -not -type d | sed 's|^\./||' | LC_ALL=C sort)"
+[ -z "${DETAIL_STRAYS}" ] \
+    || fail "file(s) directly under include/hven/detail (headers live in a component directory):
+${DETAIL_STRAYS}"
+echo "-- every include/hven and include/hven/detail directory is a known component"
+
 # The umbrella <hven/hven.h> includes every public header (M8 B8): a public header it
 # does not name is a header no "#include <hven/hven.h>" consumer can see.
 [ -f "${INCLUDE_ROOT}/hven.h" ] || fail "no umbrella header at ${INCLUDE_ROOT}/hven.h"
