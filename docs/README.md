@@ -3,6 +3,7 @@ measurement records carry provenance banners.
 
 | Page | What it is |
 | --- | --- |
+| [guides/snopt-like-configuration.md](guides/snopt-like-configuration.md) | Configuring the SQP engine (first-derivative L-BFGS mode) to behave like SNOPT: option table, result mapping, caveats for a SNOPT-compatible shim |
 | [testing.md](testing.md) | The test-seam convention, the fault-injection seam, and the golden-numerics rig — how to run it, how its tables work, what its audit proves |
 | [assembly-protocol.md](assembly-protocol.md) | The piece protocol: the local-block layer and the declaration builder, and the raw protocol a hand-written piece implements -- index maps, claim slots, the scatter, the lock protocol, threading |
 | [concurrency.md](concurrency.md) | The concurrency contract: thread-safe solves and no parallel-solve facility — what N instances on N threads may assume, what they may not share, and the process-global exceptions as audited |
