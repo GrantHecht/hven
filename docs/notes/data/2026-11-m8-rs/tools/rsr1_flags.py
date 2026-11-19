@@ -9,12 +9,17 @@ RENAMES = {'src/trace/trace_writer.cpp': 'src/trace/json_lines_trace_sink.cpp'}
 def load(p):
     out = {}
     for e in json.load(open(p)):
-        f = os.path.relpath(e['file'], root); cmd = e.get('command') or ' '.join(e['arguments'])
+        f = os.path.relpath(e['file'], root)
+        outp = e.get('output', '')
+        if outp.startswith('tests/') or '/tests/' in outp: f = 'tests/' + f   # a bench/ source compiled INTO a test executable (hven_bench_tests) is test class
+        if f.startswith('build') or '/tests/' in f: f = f[f.index('tests/'):] if 'tests/' in f else f   # generated unity files of the base build dir are test-class
+        cmd = e.get('command') or ' '.join(e['arguments'])
         toks = cmd.split(); norm = []; i = 0
         while i < len(toks):
             t = toks[i]
             if t in ('-o', '-MF', '-MT'): i += 2; continue
             if t == '-c': i += 2; continue
+            if t.startswith('-DHVEN_SQP_') and 'GIT_DESCRIBE' in t: norm.append('-DHVEN_SQP_GIT_DESCRIBE=<commit stamp>'); i += 1; continue   # the one define that follows the commit by construction (r3)
             norm.append(t); i += 1
         out.setdefault(f, []).append(norm)
     return out

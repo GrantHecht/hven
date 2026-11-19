@@ -20,7 +20,8 @@ def objs(root):
 ob, oa = objs(base), objs(after)
 def syms(p):
     r = subprocess.run(['nm', '-C', '--defined-only', p], capture_output=True, text=True).stdout.splitlines()
-    return sorted(set(' '.join(x.split()[2:]) for x in r if len(x.split()) >= 3))
+    # assembler-LOCAL labels (.L.str.N, .LCPI<f>_N, .Lanon...) are renumbered whenever a literal moves between TUs; they name no function or object (r3 criterion)
+    return sorted(set(' '.join(x.split()[2:]) for x in r if len(x.split()) >= 3 and not x.split()[2].startswith('.L')))
 bad = []; ident = 0; moved = []; paired = set()
 for o in sorted(ob):
     t = RENAMES.get(o, o)
