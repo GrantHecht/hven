@@ -64,6 +64,6 @@ v4's (HS101.K factorizations 542 -> 1075, still optimal; MESH.K 707 -> 782, infe
 
 ## CI
 
-@@CI@@
+All four lanes on 3c8e8907d (code identical to the code commit 4d70afbd0): run 44503904751 -- linux-clang-release, linux-clang-coverage, macos-clang-release (Accelerate: the response's every-factorization check and scaled retake ran in the suite; the new tests' Apple arms), windows-clang-release: all success.
 
 Raw outputs not committed: `r2/MANIFEST.txt` (sha256).
