@@ -27,3 +27,7 @@ tests/sqp/test_assembly_eval_seam.cpp: the dependent include moved to its own co
 Open items for RS-5/RS-7: extract NlpEval into its own header so assembly_eval_seam.h, restoration.h, soc.h become self-contained (then the comment-block workarounds go); a related-header-first rule is not expressible for <hven/...>
 includes (clang-format hoists only a QUOTED main include).
 Wall-clock informational. Co-run: none; every leg ran serially under the box lock.
+REBASE NOTE. The gate above ran on c5332867b over base ca3588735. m8 then moved to 66cc44ccc9ce (the Windows CI fix: .github/workflows/ci.yml, a CMakePresets.json description string, and the WIN32-only
+gmock warning-guard loop in tests/CMakeLists.txt); the branch was rebased onto it, which changes every RS-4 commit hash: 4db0cdb7b -> d18dfb455 (respell + exception 4), 59b20aff6 -> 6422c6213 (.clang-format),
+f8ff47818 -> 6d788afb0 (pure format; .git-blame-ignore-revs carries this one), c5332867b -> 392c0c301 (order fixes). The rebased tree differs from the tree the gate measured only in those three base files (none is C++, none
+reaches a Linux compile command), so the Linux legs were not re-run; the CI run in CI.txt is on the rebased head.

@@ -17,4 +17,4 @@ f9727bf2813ba7f43eef9a017e9abd206f9b02c9
 # RS-2: test re-layout -- tests/{core,linear,model,kkt,qp,warmstart,solver,trace,ipm,bench}
 43f5573f9967ae78fa61aefa8f28fc5dc07cb123
 # RS-4: clang-format over every C++ file in include/, src/, tests/, bench/, examples/ (include sorting on; pure formatter output)
-f8ff47818aa1062c4d5c9ae96839e9c021cab182
+6d788afb04f66aa36dfe94080ebbcc66dac115a8
