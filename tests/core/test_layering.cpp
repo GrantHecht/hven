@@ -754,7 +754,9 @@ TEST(Layering, PublicHeadersDoNotIncludeDetail) {
 // whose definition sits ABOVE the declaring file in the layer order is an upward dependency that
 // the include scan above cannot see. The known ones are listed here with the reason each is
 // tolerated; a new unlisted one fails NoForwardDeclarationGoesUpTheLayerOrder, and a listed one
-// that no longer occurs fails KnownForwardDeclarationsStillOccur.
+// that no longer occurs fails KnownForwardDeclarationsStillOccur. The scan reads a declaration that
+// stands on a line of its own (`struct X;`, `friend class X;`), which is how clang-format lays them
+// out in every file of this tree; it does not parse C++.
 // ---------------------------------------------------------------------------------------------
 namespace {
 

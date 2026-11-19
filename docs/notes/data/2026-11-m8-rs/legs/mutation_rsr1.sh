@@ -53,7 +53,7 @@ runcore 'Layering.*' "$MD/R3-planted.txt"; rc=$?
 if [ $rc -ne 0 ] && grep -q 'json_lines_trace_sink.cpp.*funnel.h' "$MD/R3-planted.txt"; then verdict "R3 funnel.h re-added to json_lines_trace_sink.cpp: Layering.NoIncludeGoesUpTheLayerOrder FAILED naming the include (rc=$rc) [KILLED]"; else verdict "R3 funnel.h re-added: rc=$rc, expected message absent [SURVIVED]"; fi
 git checkout -q -- src; runcore 'Layering.*' "$MD/R3-restored.txt"; verdict "R3 restored: Layering.* rc=$? (want 0)"
 # R4: a new unlisted forward declaration of an upward type (core/types.h forward-declares SqpOptions)
-printf '\nnamespace hven { struct SqpOptions; }\n' >> include/hven/core/types.h
+printf '\nnamespace hven {\nstruct SqpOptions;\n} // namespace hven\n' >> include/hven/core/types.h
 runcore 'Layering.*' "$MD/R4-planted.txt"; rc=$?
 if [ $rc -ne 0 ] && grep -q "types.h.*forward-declares 'SqpOptions'" "$MD/R4-planted.txt"; then verdict "R4 unlisted upward forward declaration in core/types.h: Layering.NoForwardDeclarationGoesUpTheLayerOrder FAILED naming it (rc=$rc) [KILLED]"; else verdict "R4 upward forward declaration: rc=$rc, expected message absent [SURVIVED]"; fi
 git checkout -q -- include; runcore 'Layering.*' "$MD/R4-restored.txt"; verdict "R4 restored: Layering.* rc=$? (want 0)"
