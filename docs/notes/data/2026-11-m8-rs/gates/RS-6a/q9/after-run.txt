@@ -1,0 +1,6 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T05:50:41-05:00 arm=after head=185586a41
+{"cmd": ["ninja", "-C", "/home/ghecht/Projects/hven/.claude/worktrees/rs6a/build-q9", "-j16", "hven_linear_seam_tests", "hven_kkt_seam_tests", "hven_qp_seam_tests", "hven_solver_seam_tests", "hven_ipm_seam_tests", "hven_sqp_seam_tests"], "rc": 0, "wall_s": 132.8, "peak_concurrent_rss_mib": 7703, "largest_process_rss_mib_sampled": 713, "largest_process_rss_mib_rusage": 716, "cpu_user_s": 1867.6, "cpu_sys_s": 85.5, "compile_commands": 229}
+{"cmd": ["ninja", "-C", "/home/ghecht/Projects/hven/.claude/worktrees/rs6a/build-q9", "-j16"], "rc": 0, "wall_s": 130.4, "peak_concurrent_rss_mib": 7830, "largest_process_rss_mib_sampled": 950, "largest_process_rss_mib_rusage": 952, "cpu_user_s": 1768.6, "cpu_sys_s": 97.5, "compile_commands": 168}
+seams rc=0 rest rc=0
+FOREGROUND_END 2026-11-19T05:55:45-05:00

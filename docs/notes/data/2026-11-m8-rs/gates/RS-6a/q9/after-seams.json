@@ -1,0 +1,22 @@
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a/build-q9",
+  "-j16",
+  "hven_linear_seam_tests",
+  "hven_kkt_seam_tests",
+  "hven_qp_seam_tests",
+  "hven_solver_seam_tests",
+  "hven_ipm_seam_tests",
+  "hven_sqp_seam_tests"
+ ],
+ "rc": 0,
+ "wall_s": 132.8,
+ "peak_concurrent_rss_mib": 7703,
+ "largest_process_rss_mib_sampled": 713,
+ "largest_process_rss_mib_rusage": 716,
+ "cpu_user_s": 1867.6,
+ "cpu_sys_s": 85.5,
+ "compile_commands": 229
+}

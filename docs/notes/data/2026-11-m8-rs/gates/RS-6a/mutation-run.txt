@@ -1,0 +1,13 @@
+clean tree: configure rc=0 (want 0)
+M1-orphan a tests/core source in no executable: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+M1-orphan restored -> configure passes (rc=0)
+M2-duplicate core/test_version.cpp also in hven_linear_tests: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+M2-duplicate restored -> configure passes (rc=0)
+M3-seam-links-hven hven_ipm_seam_tests linked to hven::hven: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+M3-seam-links-hven restored -> configure passes (rc=0)
+M3b-ordinary-defines-testing hven_ipm_tests defines HVEN_TESTING: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+M3b-ordinary-defines-testing restored -> configure passes (rc=0)
+M4-compile-fail-stale-path compile_fail probe source read from the stale ../ipm/compile_fail: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+M4-compile-fail-stale-path restored -> configure passes (rc=0)
+killed: 5
+survived: 0
