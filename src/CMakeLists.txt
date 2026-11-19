@@ -155,9 +155,7 @@ target_sources(hven PRIVATE
 #
 #   - sqp/globalization/soc_elastic_restoration.cpp: ONE TU for the three
 #     step-recovery tiers (second-order correction, elastic l1 exact-penalty
-#     tier, restoration phase's feasibility-model wrapper), because soc.h and
-#     restoration.h both declare themselves not self-contained (they need
-#     NlpEval, which only sqp/sqp_solver.h defines) and because the three
+#     tier, restoration phase's feasibility-model wrapper), because the three
 #     tiers are entered from one place in solve_impl.
 #
 #   - warmstart/crossover.cpp and sqp/continuation.cpp: the interior-

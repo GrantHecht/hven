@@ -12,11 +12,6 @@
 // elastic.h's definitions). One consequence worth stating where the class is:
 // `n()` is the class's KEY FUNCTION, so the vtable/typeinfo are emitted in that
 // TU alone rather than weakly in every TU touching the class.
-//
-// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in sqp/sqp_solver.h,
-// which includes this header after NlpEval's definition and before the driver
-// class, so no header cycle exists (this header never includes sqp_solver.h).
-// Any other includer must have NlpEval complete first.
 
 #include <algorithm>
 #include <cmath>
@@ -31,6 +26,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
+#include <hven/detail/sqp/nlp_eval.h>
 
 namespace hven::detail {
 

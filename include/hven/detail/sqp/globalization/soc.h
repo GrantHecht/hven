@@ -10,12 +10,6 @@
 // src/sqp/globalization/soc_elastic_restoration.cpp, together with elastic.h's
 // and restoration.h's definitions -- one TU for the three recovery tiers,
 // because all three are reached from one place in SqpSolver::solve_impl.
-//
-// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in sqp/sqp_solver.h,
-// which includes this header at the exact point the carved code stood -- after
-// NlpEval's definition, before the driver class -- so no header cycle exists
-// (this header never includes sqp_solver.h). Any other includer must have
-// NlpEval complete first.
 
 #include <stdexcept>
 #include <utility>
@@ -25,6 +19,7 @@
 
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/sqp/nlp_eval.h>
 
 namespace hven::detail {
 

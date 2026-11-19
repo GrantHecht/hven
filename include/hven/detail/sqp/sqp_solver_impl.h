@@ -33,8 +33,13 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/solver/declared_diagnostics.h>
 #include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/assembly_eval_seam.h>
+#include <hven/detail/sqp/globalization/elastic.h>
 #include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/sqp/globalization/restoration.h>
+#include <hven/detail/sqp/globalization/soc.h>
 #include <hven/detail/sqp/globalization/trust_region.h>
+#include <hven/detail/sqp/nlp_eval.h>
 #include <hven/detail/sqp/quasi_newton/qn_lift_bridge.h>
 #include <hven/detail/sqp/quasi_newton/qn_models.h>
 #include <hven/detail/sqp/sqp_major_row.h>
@@ -65,22 +70,6 @@ namespace hven::detail {
 /// `~SqpSolver` is declared below and DEFINED in src/sqp/sqp_solver.cpp; both sink classes are
 /// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
 class EqualityBasis;
-
-/// @brief One model evaluation at one point: the five quantities a major
-///        iteration reads, taken together so nothing is evaluated twice.
-struct NlpEval {
-    /// @brief Objective value at the evaluation point.
-    double f = 0.0;
-    /// @brief Objective gradient, equality- and inequality-constraint values;
-    ///        sizes n(), me() and mi().
-    Vec grad, ce, ci;
-    /// @brief Equality and inequality constraint Jacobians; me() x n() and mi() x n().
-    Eigen::SparseMatrix<double, Eigen::RowMajor> Je, Ji;
-
-    /// @brief False if any of f/grad/cE/cI is NaN or infinite. Checked
-    ///        explicitly: a running maximum would swallow a NaN silently.
-    bool all_finite = true;
-};
 
 /// @brief Evaluates the model once at `x`: f, grad f, cE, cI, Je and Ji.
 /// @param model The problem.
@@ -335,18 +324,6 @@ double predicted_decrease(const QpProblem &qp, const Vec &p);
 ///         not offered to the engine.
 bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, Index &rows,
                       Index &bounds);
-
-} // namespace hven::detail
-
-// Included HERE rather than in the top block: these headers consume NlpEval,
-// defined above, and must not include this one back. The position is load
-// bearing -- moving them into the top group changes the definition order.
-#include <hven/detail/sqp/assembly_eval_seam.h>
-#include <hven/detail/sqp/globalization/elastic.h>
-#include <hven/detail/sqp/globalization/restoration.h>
-#include <hven/detail/sqp/globalization/soc.h>
-
-namespace hven::detail {
 
 /// @brief evaluate_kkt over a SEAM's dimensions and materialized box -- the
 ///        entry the driver's major loop uses.

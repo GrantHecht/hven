@@ -43,12 +43,6 @@
 // ordinary Jacobian entry at, say, `-2.0 * x(1)` with x(1) == 0.0 — into a
 // positive one. Nothing downstream reads a sign bit off a zero, but the
 // preservation bar here is bit-identity, and this costs nothing to keep.
-//
-// NOT SELF-CONTAINED BY DESIGN, on the same footing as
-// detail/sqp/globalization/soc.h: `NlpEval` is defined in
-// sqp/sqp_solver.h and nowhere else, and this header never includes that
-// one (the driver includes this one). Any includer must have NlpEval complete
-// first.
 
 #include <vector>
 
@@ -57,6 +51,7 @@
 
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/sqp/nlp_eval.h>
 #include <hven/detail/sqp/problem_scaling.h>
 #include <hven/model/claim_space.h>
 #include <hven/model/claim_stream_source.h>
