@@ -1,4 +1,65 @@
-# The test-seam convention
+# Testing hven
+
+This page has two parts. **Run, add, find** is the current reference: how the tests are laid out
+and built, and what to edit to add one. **History and design record** (everything after it) is the
+test-seam convention's design page and the dated narrative of each seam, the guard tests, the
+golden rig and the pinned-artifact rules. It keeps the target names and numbers of its day wherever
+it says so; where the two disagree, Run, add, find is right.
+
+## Run, add, find
+
+**Layout.** `tests/<dir>/` pins component `<dir>`'s contract, whatever drives it (core, linear,
+model, kkt, qp, warmstart, solver, trace, ipm, sqp; `bench/` pins the bench instruments). Fixtures
+live in `tests/<dir>/support/` and are included from the tests root (`"qp/support/ssn_fixtures.h"`);
+`tests/support/` holds fixtures no component owns. Bench headers are included as `"bench/<h>.h"`
+(repository root, `INCLUDE_BENCH`). Fixture basenames are unique across all `support/`
+directories (the configure refuses a repeat). Also here: `golden_rig/` (below) and `install_smoke/`
+(a standalone consumer of an installed package, driven by `scripts/check_install_smoke.sh`).
+
+**Executables.** One `hven_<dir>_tests` per directory, at most one `hven_<dir>_seam_tests` (its
+sources are `tests/<dir>/seam/*.cpp`; the directories with one are linear, kkt, qp, solver, ipm and
+sqp), and `hven_linear_alloc_tests` (replaces global `operator new`, so it needs its own process).
+`tests/CMakeLists.txt` defines the helpers; `<build>/hven_test_membership.txt` lists which
+executable each source landed in.
+
+**Run one component.** `cmake --build build --target hven_qp_tests`, then
+`build/tests/qp/hven_qp_tests --gtest_filter='SsnEngine.*'`; or through ctest,
+`ctest --test-dir build -R '^SsnEngine\.' -j4` (ctest names are `Suite.Test`; `ctest -N` lists them).
+`ScaleF7Slow.*` suites are excluded from ctest registration and run directly with a gtest filter.
+
+**Add a test.** Put `tests/<dir>/test_<subject>.cpp` (named after what it pins) in the directory of
+the component whose contract it pins, and add the file name, sorted, to the source list in
+`tests/<dir>/CMakeLists.txt`. A source in no executable, in two, or claimed but missing fails the
+configure. A test file includes what it uses: there is no unity batching.
+
+**Add a seam test.** Only for a fault path no backend takes or state no boundary observation can
+reach; read "Where instrumentation goes" below first. Put the file in `tests/<dir>/seam/` and list it
+in that directory's `hven_add_seam_executable` (`WHOLE_LIBRARY` takes the library from
+`hven_testing_library`, compiled once with `HVEN_TESTING` and shared; a narrow seam names its few
+`LIBRARY_SOURCES`). The configure refuses a seam source outside `seam/`, an ordinary source inside
+it, a seam that links `hven::hven`, and an ordinary executable that defines `HVEN_TESTING`.
+
+**Which list to edit.** Ordinary test: the `_hven_<dir>_sources` list (or its
+`hven_sources_not_on_windows(...)` block while the suite is not built on Windows yet, RS-6b).
+Seam test: the `hven_add_seam_executable` call. Header self-containment needs no list: every header
+under `include/hven` gets a generated TU (`HeaderSelfContained`). Layering (`Layering.*`,
+`tests/core/test_layering.cpp`): a new directory is placed in `classify()`; an upward include is a
+named debt in `kAllowed`, an upward forward declaration one in `kKnownForward`.
+
+**Compile flags.** All test targets take the project's flags (CLAUDE.md section 7). One rule per
+directory: ipm, model, solver and trace build at `-O1` in Release (`RELEASE_O1`), the others at the
+project's level; no per-file overrides.
+
+**Gates that are not unit tests.** `scripts/check_install_smoke.sh` (install, consume, one TU per
+public header), `scripts/check_export_contract.sh`, `scripts/check_pch_neutrality.sh`, and the
+golden rig below.
+
+# History and design record
+
+Everything below is the design record. Paths of test sources that moved at RS-R1 are updated;
+target names are those of the day unless stated.
+
+## The test-seam convention (design record)
 
 hven has two sparse backends (MKL Pardiso, Apple Accelerate), and both
 have at least one fault path a real backend cannot be made to take from
@@ -140,7 +201,7 @@ that same proof once more against its own baseline, with the same result:
 (matching SHA-256) with and without the added line under production flags,
 and `libhven.a`'s `nm --defined-only` listing unchanged byte for byte.
 
-*What it buys.* `tests/linear/test_fault_injection.cpp`'s
+*What it buys.* `tests/linear/seam/test_fault_injection.cpp`'s
 `BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
 `pardisoinit`'s own `iparm[10]`/`iparm[33]` defaults on the linked MKL are
 exactly 0 — the premise `docs/retarget-design.md`'s effect-parity disposition
@@ -185,7 +246,7 @@ the MPL-derived session file**.
 
 *What measures it instead.*
 `ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` in
-`tests/linear/test_fault_injection.cpp`: a throw raised inside a live
+`tests/linear/seam/test_fault_injection.cpp`: a throw raised inside a live
 `MklThreadScope` and caught outside it, with MKL's thread state read **before**
 (the caller's own override), **inside** (the count the scope applied) and
 **after** (the caller's override, back), through both readings MKL offers —
@@ -202,42 +263,6 @@ which is the gap, in one line.
 `::pardiso` is a C entry point and no statement sits between the scope's
 construction and the call. That half remains true by construction, as the block
 comment above those tests says in as many words.
-
-### The test executables since RS-6a (read this first; the sections below keep the target names of their day)
-
-RS-6a (the code-organisation restructure) put **one ordinary executable in each `tests/` directory**:
-`hven_core_tests`, `hven_linear_tests`, `hven_model_tests`, `hven_kkt_tests`, `hven_qp_tests`,
-`hven_warmstart_tests`, `hven_solver_tests`, `hven_trace_tests`, `hven_ipm_tests`, `hven_sqp_tests` and
-`hven_bench_tests`, each defined in its own `tests/<dir>/CMakeLists.txt` through `hven_add_test_executable`
-(`tests/CMakeLists.txt`), which also keeps the membership registry: a `tests/<dir>/*.cpp` that is in no
-executable, or in two, fails the configure (`hven_check_test_source_membership`; the table is written to
-`<build>/tests/hven_test_membership.txt`). The old names map as follows: `hven_tests` is split into core, linear and
-warmstart (and `qp` for nothing: its sources were the SQP suite's); `hven_interior_tests` into ipm, model, kkt and core;
-`hven_drivers_tests` into solver, trace, ipm, model and warmstart; `hven_sqp_tests` into qp, kkt, model, warmstart,
-trace, core, linear, bench and what stays in sqp.
-
-Two kinds of process stay separate, as they must:
-
-| executable | what | sources |
-|---|---|---|
-| `hven_linear_seam_tests` | the backend fault seam (formerly `hven_fault_injection_tests`) | `linear/test_fault_injection.cpp` |
-| `hven_kkt_seam_tests` | the KKT factorization's failed-factorization and failed-analysis paths (same convention, formerly the second source of `hven_fault_injection_tests`) | `kkt/test_kkt_factorization_faults.cpp` |
-| `hven_qp_seam_tests` | the IPQP tier seam, the walk seam and the SSN dense-solve wound seam, one executable (formerly `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and one source of `hven_sqp_seam_tests`) | `qp/test_ipqp_seams.cpp`, the walk-seam sources, `qp/test_dense_solve_wound_seams.cpp` |
-| `hven_solver_seam_tests` | the shared-engine seams (backend errors, intra-iteration stop polls); whole library from `hven_testing_library` | `solver/test_backend_error_seams.cpp`, `solver/test_stop_poll_seams.cpp` |
-| `hven_ipm_seam_tests` | the IPM dense guard seam; whole library from `hven_testing_library` | `ipm/test_ipm_dense_guard_seams.cpp` |
-| `hven_sqp_seam_tests` | the equality-basis and ladder seams; whole library from `hven_testing_library` | `sqp/test_sqp_equality_basis_seams.cpp`, `sqp/test_sqp_ladder_seams.cpp` |
-| `hven_linear_alloc_tests` | the dense arm's allocation-free hot path; replaces the global `operator new` and wraps malloc at link time (formerly `hven_dense_alloc_tests`) | `linear/test_dense_arm_allocation.cpp` |
-
-At most one seam executable per directory; each is defined by `hven_add_seam_executable`, which defines `HVEN_TESTING`
-target-wide, never links `hven::hven`, and registers itself so that `hven_check_seam_targets()` fails the configure if
-one ever does (or if an ordinary executable defines `HVEN_TESTING`). Everything the sections below say about
-`hven_fault_injection_tests`, `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and the old `hven_sqp_seam_tests` holds of the
-executable that replaced it. The four whole-library seam executables (qp, solver, ipm, sqp) do not each recompile the
-library: the `HVEN_TESTING` build of every source of the `hven` target is compiled ONCE, as the OBJECT library
-`hven_testing_library` (defined on first use in `tests/CMakeLists.txt`), and each executable links those objects beside its
-own test sources (owner ruling Q9). `hven_check_seam_targets()` fails the configure if a whole-library seam compiles a
-library TU of its own or lacks the shared objects, or if a narrow seam (`LIBRARY_SOURCES`, linear and kkt) recompiles more than half
-the library. The cost is measured in `docs/notes/data/2026-11-m8-rs/gates/RS-6a/` (Q9; the -r6 declaration's re-measure).
 
 ### One target, two, or three (four since M7 W2 E1b: `hven_sqp_seam_tests`, below)
 
@@ -278,7 +303,7 @@ guarded by `#ifdef HVEN_TESTING`:
   now include the ORDERED failed-factorize evidence pin
   (`docs/retarget-design-sqp.md` §7.2):
   `FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize`
-  (`tests/linear/test_fault_injection.cpp`, one backend-neutral body compiled
+  (`tests/linear/seam/test_fault_injection.cpp`, one backend-neutral body compiled
   per platform) pins that `inertia()` reports non-`kObserved` after a FAILED
   factorize — the contract clause the SQP reuse gate's usable-numerics
   conjunct rests on — within exactly that faithful scope; the deeper
@@ -501,7 +526,7 @@ where it does:
   factorization to the platform session. It is read there and not on the dense
   attempt, which stays real. It is faithful there in the same one scenario: the
   fallback session is a fresh fork on its first factorization
-  (`tests/linear/test_fault_injection.cpp`'s `DenseArmFallbackFault`). A reused
+  (`tests/linear/seam/test_fault_injection.cpp`'s `DenseArmFallbackFault`). A reused
   fallback session that has succeeded before is outside that scope.
 
   The scope limit is not as narrow in practice as it first reads, because
@@ -532,7 +557,7 @@ returned right after a REAL, unmodified `analyze()` call — those two accessors
 unconditional, non-test-gated `FactorSession` API (like `num_pos_eigs()`
 and friends), so adding them is production surface, not a test hook; only
 the act of recording their result into `PardisoIparmObserver` is
-`HVEN_TESTING`-gated. `tests/linear/test_fault_injection.cpp`'s
+`HVEN_TESTING`-gated. `tests/linear/seam/test_fault_injection.cpp`'s
 `PardisoIparmObservation` suite then asserts:
 
 - at default `Options`, the recorded values equal a FRESH, independent
@@ -616,7 +641,7 @@ boundary carries everything else, so the boundary is where it stays.
    check pattern shown above. Keep the branch as small as the two existing
    ones — a local variable substitution, not a re-implementation of the
    surrounding logic.
-4. Add the test to `tests/linear/test_fault_injection.cpp` (or a sibling
+4. Add the test to `tests/linear/seam/test_fault_injection.cpp` (or a sibling
    file compiled into the same target), gated by whichever platform macro
    selects the right backend (`#if !defined(__APPLE__)` / `#if
    defined(__APPLE__)` — the same guard the two existing halves of that file
@@ -862,7 +887,7 @@ recompiles the tier's own sources plus the transitive closure they need
 (`ipqp_engine.cpp`, `ipqp_kkt_layout.cpp`, `kkt_factorization.cpp`,
 `sqp_options.cpp`, `ledger.cpp`, `pattern_hash.cpp`, `enum_names.cpp`, and the
 platform's session + adapter TUs) with `HVEN_TESTING` defined target-wide, and
-does **not** link `hven::hven`. Its tests live in `tests/qp/test_ipqp_seams.cpp`
+does **not** link `hven::hven`. Its tests live in `tests/qp/seam/test_ipqp_seams.cpp`
 and it is registered with `gtest_discover_tests` like every other ctest
 executable.
 
@@ -1009,7 +1034,7 @@ observation cannot reach is a reason to deviate from the boundary, not a reason
 to look away; here the "deviation" is only that the hook is deeper inside an
 Apache-2.0 file, which is not a deviation at all.
 
-**Why the `#include` is in `qp_engine.h` rather than in `qp_engine.cpp`.**
+**Why the `#include` is in `walk_engine.h` rather than in `walk_engine.cpp`.**
 Stated here because it is unusual and because a future reader will otherwise
 move it. `src/qp/walk/walk_engine.cpp` carries an `assert()` ABOVE the walk loop, and
 `assert` materializes `__LINE__` as an immediate operand in a Debug object. An
@@ -1018,14 +1043,14 @@ Debug object would differ in its INSTRUCTION STREAM — a difference P-SYM
 classifies correctly as `__LINE__`-class noise, but a text difference all the
 same. Including from the header the TU already includes adds no line to the TU,
 and every `#ifdef HVEN_TESTING` block in the `.cpp` sits BELOW that `assert`, so
-the instruction stream cannot move. `qp_engine.h` itself contains no `assert`,
+the instruction stream cannot move. `walk_engine.h` itself contains no `assert`,
 no `throw` and no other `__LINE__`-bearing construct. The cost of the wider
 inclusion is zero by construction: without `HVEN_TESTING` the header's entire
 body is `#ifdef`-ed away.
 
 **What the placement does NOT buy, measured rather than assumed.** It does not
 make the Debug object byte-identical, and an earlier draft of this section said
-it did. `qp_engine.h` gains a line, so the DWARF line programme of every inline
+it did. `walk_engine.h` gains a line, so the DWARF line programme of every inline
 function defined below the insertion point moves, and the three production
 objects that include that header differ in bytes for that reason alone. The
 measurement is in `docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates/psym-derivation.txt`
@@ -1033,11 +1058,11 @@ and the narrowed claim is the one below.
 
 **The target**: `hven_qp_seam_tests` (`tests/qp/CMakeLists.txt`; `hven_qp_walk_seam_tests` before RS-6a), a standalone
 executable on exactly the same terms as the two above — it recompiles the walk's
-own sources plus the transitive closure they need (`qp_engine.cpp`,
-`kkt_calls.cpp`, `kkt_factorization.cpp`, `dense_symmetric_factor.cpp`,
+own sources plus the transitive closure they need (`walk_engine.cpp`,
+`kkt_factor.cpp`, `kkt_factorization.cpp`, `dense_symmetric_factor.cpp`,
 `ledger.cpp`, `pattern_hash.cpp`, `enum_names.cpp`, and the platform's session +
 adapter TUs) with `HVEN_TESTING` defined target-wide, and does **not** link
-`hven::hven`. Its tests live in `tests/qp/test_qp_walk_seam.cpp` and it is
+`hven::hven`. Its tests live in `tests/qp/seam/test_qp_walk_seam.cpp` and it is
 registered with `gtest_discover_tests` like every other ctest executable.
 
 **What the tests have to prove, and it is not "the observer records
@@ -1093,19 +1118,19 @@ arms built in one build directory at one absolute path with `CCACHE_DISABLE=1`.
   relocation and symbol properties hold trivially. P-SYM reports 0 differing
   objects over its 146-object capture universe.
 * **Debug** — 39 of 42 are byte-identical. The three that are not are exactly
-  the production TUs that include `qp_engine.h` (`qp_engine.cpp`,
+  the production TUs that include `walk_engine.h` (`walk_engine.cpp`,
   `sqp_solver.cpp`, `ipqp_engine.cpp`), and for each of them, measured one
   property at a time: the **instruction stream is identical** (118072, 118293
   and 87238 disassembly lines), the **symbol table is identical** (3963, 4334
   and 3027 entries), and the **relocation records are identical** — on two of
-  them outright, and on `qp_engine.cpp.o` outside `.rela.debug_line`, where the
+  them outright, and on `walk_engine.cpp.o` outside `.rela.debug_line`, where the
   3033 differing records have the same symbol, the same type and the same
   addend and differ only in the offset they point at, because the `.debug_line`
   programme they index into grew. P-SYM likewise reports 0 differing objects.
   **The Debug byte difference is debug information and nothing else.**
 
 **FIX-ROUND 1 re-derives all of the above**, because it changes
-`src/qp/walk/walk_engine.cpp` and grows `qp_walk_trace.h` again. Its declaration and
+`src/qp/walk/walk_engine.cpp` and grows `walk_trace.h` again. Its declaration and
 its transcripts are in
 `docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates-fix1/`, and the form of the
 Debug claim changes: instead of "identical instructions, identical symbols and
@@ -1126,7 +1151,7 @@ expectations were transcribed from.
 
 `hven/detail/qp/walk/certificate_seam.h` (M7 W2 E4 fix round 1) is an INJECTOR on
 the same terms as the walk observer above: declared entirely under
-`#ifdef HVEN_TESTING`, included only from inside `qp_walk_trace.h`'s own
+`#ifdef HVEN_TESTING`, included only from inside `walk_trace.h`'s own
 `#ifdef HVEN_TESTING` block, per-thread, and exercised only by
 `hven_qp_seam_tests`. `QpCertificateSeam` holds an `armed` switch, the
 presented `x` and `z`, a `presentations` count and the effective `dual_regularization` /
@@ -1161,13 +1186,13 @@ sign half removed, every refusal case comes back `kOptimal` with the presented `
 so no `__LINE__` immediate moves; the header is never opened by a production
 compile. Measured in `docs/notes/data/2026-09-m7-w2-e4-certificate/gates-fix1/`:
 P-SYM 0 differing objects in both configurations, Release byte-identical, and in
-Debug only `qp_engine.cpp.o`'s debug sections move (its own `.cpp` lines below
+Debug only `walk_engine.cpp.o`'s debug sections move (its own `.cpp` lines below
 the hook shifted); `nm -C libhven.a` finds no seam symbol. No `notices/` entry:
 no session file is touched.
 
 ### The repair-path injector (M8 kopt-1x r2)
 
-`qp_certificate_seam.h` also holds `QpRepairSeam`, on the same terms (`HVEN_TESTING` only, per-thread, read
+`certificate_seam.h` also holds `QpRepairSeam`, on the same terms (`HVEN_TESTING` only, per-thread, read
 only by `hven_qp_seam_tests`, no deviation, no `notices/` entry). Two hooks in `src/qp/walk/walk_engine.cpp`:
 `qp_post_repair_perturb`, immediately before the successful rank-repair `continue`, moves the iterate along one
 equality row's normal to a chosen number of floor units of that row and can mark the pass as having issued the
@@ -1251,7 +1276,7 @@ the switch's second trigger -- the exhausted tier's nested restoration request, 
 inside a phase -- has a fixture too. The small models the suite does run unseamed do not
 reach the switch: `SecondOrderInfeasibleModel` under kSsn at the shipped levers is a
 SECOND-ENTRY fixture, not a switch one -- its phase QPs all solve on the exact model, and
-`SqpDriverSsnMode.AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch` pins that
+`SqpSolverSsnMode.AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch` pins that
 (two entries, zero switches). Two knobs added at the M8 walk cap, read in
 `run_elastic_ladder` (any caller, either rung engine): `off_rows_rungs` replaces that
 many ladders' final kOptimal rung by the shape the walk's uncapped footprint excuse
@@ -1290,7 +1315,7 @@ READING6's E2 terminations), which no model small enough for a unit test
 reproduces. It says nothing about the engine itself: a real N3 exit's iterate is
 wherever the walk stopped, the injected one is the solved optimum, so a fixture
 reading the iterate after a forced failure reads a better point than the engine
-would hand back. Fixtures: `tests/sqp/test_sqp_ladder_seams.cpp`
+would hand back. Fixtures: `tests/sqp/seam/test_sqp_ladder_seams.cpp`
 (`SqpLadderSeam.*`), compiled into `hven_sqp_seam_tests` beside the fifth seam's (the two sources of that executable since RS-6a).
 No new target, no `notices/` entry.
 
@@ -1311,7 +1336,7 @@ session that never factorized -- its faithful scope; the sparse arm's own
 initial factorization succeeds, so it cannot carry the route), and the routes
 the DN-1b/DN-1d fixtures pinned through the platform session. While `active`
 the IPM keeps `kSparseFallback`, the policy those fixtures were written
-against. `tests/ipm/test_ipm_dense_guard_seams.cpp`'s `record_solve` sets it
+against. `tests/ipm/seam/test_ipm_dense_guard_seams.cpp`'s `record_solve` sets it
 for every pre-DN-3b fixture (`IpmDenseGuardSeam.*`, `IpmNoNumericsSeam.*`,
 `BothStrategies/IpmNoNumericsRestorationSeam.*`) and clears it for the
 production-policy fixtures (`IpmDenseReportSeam.*`,
@@ -1342,7 +1367,7 @@ construction -- the request is the public `StopSource::request_stop()`, made fro
 the solving thread at a moment a second thread could have chosen. It also records
 every site's count at the request, so a test can assert that no kernel polled
 again after the stop. Compiled into `hven_solver_seam_tests`
-(`tests/solver/test_stop_poll_seams.cpp`, `StopPollSeam.*`). Unarmed, `poll_stop` is
+(`tests/solver/seam/test_stop_poll_seams.cpp`, `StopPollSeam.*`). Unarmed, `poll_stop` is
 one null test and the seam is not reached.
 
 Two G4 facts need no seam. The SQP check between a major's subproblem build and its
@@ -1354,7 +1379,7 @@ the implementation, after each solve the file runs.
 
 ## The linear injectors through the public handles (M8 B5 riders)
 
-No new seam: `tests/solver/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),
+No new seam: `tests/solver/seam/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),
 compiled into `hven_solver_seam_tests`, arms the two existing linear injectors around
 a whole `IpmSolver::solve` / `SqpSolver::solve`, to pin the backend half of the
 exception contract (`core/errors.h`) end to end: a failure the engine can report
@@ -1503,7 +1528,7 @@ request) is written UNCONDITIONALLY, every `analyze()` call, with no
 Options field and therefore no flag to observe: see
 `FactorSession::factor_nonzeros()`'s own doc comment
 (`pardiso_session.h`) for why that entry needs no gate at all.
-`tests/linear/test_fault_injection.cpp`'s `PardisoIparmObservation` suite
+`tests/linear/seam/test_fault_injection.cpp`'s `PardisoIparmObservation` suite
 asserts, for each guarded knob: the default-Options case leaves its
 `*_was_written` flag `false`, and each non-default value sets it `true`
 with `*_written_value` equal to the knob's own fixed contract code
@@ -2416,3 +2441,333 @@ diff. If a future CI run flags one of the 20 kept sites, the same
 machine-observed-value / structural-classification treatment in this section
 applies: re-derive the class from the failing expression's shape (sum of
 independently-rounded terms vs. single operation), not a reflexive widening.
+
+
+## History: the RS-6a executables table
+
+Moved verbatim from the section that stood above "One target, two, or three"; the current table is
+"Run, add, find". Seam sources moved into `tests/<dir>/seam/` at RS-R1.
+
+**The test executables since RS-6a**
+
+RS-6a (the code-organisation restructure) put **one ordinary executable in each `tests/` directory**:
+`hven_core_tests`, `hven_linear_tests`, `hven_model_tests`, `hven_kkt_tests`, `hven_qp_tests`,
+`hven_warmstart_tests`, `hven_solver_tests`, `hven_trace_tests`, `hven_ipm_tests`, `hven_sqp_tests` and
+`hven_bench_tests`, each defined in its own `tests/<dir>/CMakeLists.txt` through `hven_add_test_executable`
+(`tests/CMakeLists.txt`), which also keeps the membership registry: a `tests/<dir>/*.cpp` that is in no
+executable, or in two, fails the configure (`hven_check_test_source_membership`; the table is written to
+`<build>/hven_test_membership.txt`). The old names map as follows: `hven_tests` is split into core, linear and
+warmstart (and `qp` for nothing: its sources were the SQP suite's); `hven_interior_tests` into ipm, model, kkt and core;
+`hven_drivers_tests` into solver, trace, ipm, model and warmstart; `hven_sqp_tests` into qp, kkt, model, warmstart,
+trace, core, linear, bench and what stays in sqp.
+
+Two kinds of process stay separate, as they must:
+
+| executable | what | sources |
+|---|---|---|
+| `hven_linear_seam_tests` | the backend fault seam (formerly `hven_fault_injection_tests`) | `linear/seam/test_fault_injection.cpp` |
+| `hven_kkt_seam_tests` | the KKT factorization's failed-factorization and failed-analysis paths (same convention, formerly the second source of `hven_fault_injection_tests`) | `kkt/seam/test_kkt_factorization_faults.cpp` |
+| `hven_qp_seam_tests` | the IPQP tier seam, the walk seam and the SSN dense-solve wound seam, one executable (formerly `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and one source of `hven_sqp_seam_tests`) | `qp/seam/test_ipqp_seams.cpp`, the walk-seam sources, `qp/seam/test_dense_solve_wound_seams.cpp` |
+| `hven_solver_seam_tests` | the shared-engine seams (backend errors, intra-iteration stop polls); whole library from `hven_testing_library` | `solver/seam/test_backend_error_seams.cpp`, `solver/seam/test_stop_poll_seams.cpp` |
+| `hven_ipm_seam_tests` | the IPM dense guard seam; whole library from `hven_testing_library` | `ipm/seam/test_ipm_dense_guard_seams.cpp` |
+| `hven_sqp_seam_tests` | the equality-basis and ladder seams; whole library from `hven_testing_library` | `sqp/seam/test_sqp_equality_basis_seams.cpp`, `sqp/seam/test_sqp_ladder_seams.cpp` |
+| `hven_linear_alloc_tests` | the dense arm's allocation-free hot path; replaces the global `operator new` and wraps malloc at link time (formerly `hven_dense_alloc_tests`) | `linear/test_dense_arm_allocation.cpp` |
+
+At most one seam executable per directory; each is defined by `hven_add_seam_executable`, which defines `HVEN_TESTING`
+target-wide, never links `hven::hven`, and registers itself so that `hven_check_seam_targets()` fails the configure if
+one ever does (or if an ordinary executable defines `HVEN_TESTING`). Everything the sections below say about
+`hven_fault_injection_tests`, `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and the old `hven_sqp_seam_tests` holds of the
+executable that replaced it. The four whole-library seam executables (qp, solver, ipm, sqp) do not each recompile the
+library: the `HVEN_TESTING` build of every source of the `hven` target is compiled ONCE, as the OBJECT library
+`hven_testing_library` (defined on first use in `tests/CMakeLists.txt`), and each executable links those objects beside its
+own test sources (owner ruling Q9). `hven_check_seam_targets()` fails the configure if a whole-library seam compiles a
+library TU of its own or lacks the shared objects, or if a narrow seam (`LIBRARY_SOURCES`, linear and kkt) recompiles more than half
+the library. The cost is measured in `docs/notes/data/2026-11-m8-rs/gates/RS-6a/` (Q9; the -r6 declaration's re-measure).
+
+
+## History: per-directory CMakeLists banners as of RS-6a
+
+The comment text of `tests/<dir>/CMakeLists.txt` before RS-R1 (dated narration of the retired
+targets, the per-file `-O1`/unity lists and the UNIX-only gate), moved here verbatim when the lists
+became one rule per directory.
+
+#### tests/core/CMakeLists.txt (RS-6a)
+
+```
+# core/ tests: the executable hven_core_tests (RS-6a), the sources of this directory.
+# It links hven::hven and nothing engine-specific. core/test_layering.cpp reads source text rather than linking anything, so it belongs to no backend and is not platform-gated;
+# it is given the two trees it scans. Rooted at the repository, not at CMAKE_SOURCE_DIR (under add_subdirectory(hven) from a parent project that is the PARENT's root).
+# Passed as absolute paths so the test is independent of the working directory ctest launches it from; the test asserts the directories exist and contain the files it expects,
+# so a wrong path fails loudly instead of scanning nothing and passing.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+# test_type_storage was unity-batched in the retired interior target; alone in this executable it is the
+# plain translation unit (a unity batch of one), so the executable is built non-unity.
+# HVEN_VERSION_STRING is the same single source of truth as the hven target itself (root
+# CMakeLists.txt) -- see src/core/version.cpp and core/test_version.cpp.
+```
+
+#### tests/linear/CMakeLists.txt (RS-6a)
+
+```
+# linear/ tests: hven_linear_tests (RS-6a), plus the directory's seam executable and its allocation executable.
+# linear/test_symmetric_factor.cpp follows the platform split of its implementation (src/CMakeLists.txt): it exercises MKL Pardiso semantics -- perturbed-pivot evidence, phase-split partial solves --
+# that the Accelerate backend answers differently, so it is compiled where that backend is. The DN-0 KKT dumps the dense-arm suite reads (linear/fixtures/dn1/) are named by an absolute path so ctest's working directory is irrelevant.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# The dense arm's allocation-free hot path (M8 DN-1, T9): its own executable, because the test replaces the global operator new for the binary it links into.
+# On Linux it also wraps the C allocator at link time (--wrap: every object in this static link, hven and MKL included), counting in the test's wrappers; see the test's header for what that does not reach.
+# Fault-injection tests (docs/testing.md: the test-seam convention this repository uses for backend fault paths no real fixture can provoke, and for internal state no boundary observation can reach).
+# A SEPARATE, standalone executable that recompiles the platform's own backend session TU (pardiso_session.cpp / accelerate_session.cpp) plus the platform's own adapter TU
+# (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp) a SECOND time, with HVEN_TESTING defined ONLY on that second copy's compile.
+# The MKL session TU carries TWO HVEN_TESTING-gated records -- the guarded parameter-array writes in analyze() (recording whether each write executed, which nothing outside that function can observe),
+# and a separate post-pardisoinit snapshot of iparm[10]/iparm[33]/iparm[18] taken before those same entries can be touched by that function's own phase-11 call. Both are sanctioned deviations from this repo's
+# boundary-first instrumentation preference and are argued in docs/testing.md; they compile to nothing in a build without HVEN_TESTING, which the not-linking-hven::hven arrangement makes checkable.
+# This target does NOT link hven::hven (hven_add_seam_executable): it keeps the production library's compiled adapter object (and every ordinary executable) untouched by HVEN_TESTING, and the link would
+# fail anyway (libhven.a and this target's freshly-compiled adapter both define SymmetricFactor's and Factorization's methods).
+```
+
+#### tests/model/CMakeLists.txt (RS-6a)
+
+```
+# The model contract surface's test suite, hven_model_tests: the provider-side contract types in include/hven/model/ that a consumer meets before any engine is in the picture -- the claim arenas
+# and their published tables, the declaration and its boundary validation, the structural key, the structure epoch's ordering and failure-restore rules, the identity probe, and the request flags that
+# select what one evaluation call produces. It also carries the NlpModel bridge, the contract's second provider, which is engine-free in the same sense, and the function-entry seam's adapters.
+# The bridge's equivalence pins consume the HS transcriptions in model/support/ (header-only test support), named rooted from the tests root.
+# UNITY only for the six sources the retired interior target batched (test_assembly_allocation, test_nlp_adapter, test_nlp_assembly_contract, test_nlp_problem_model, test_solver_interface_adapter,
+# test_string_piece): the model suite's own files each carry fixtures with deliberately parallel roles, and merging them would couple files meant to be readable one at a time.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+# Unity batches, the retired hven_interior_tests pattern (batch size 8): the six former-interior sources only; see the block comment above and tests/ipm/CMakeLists.txt.
+# Compile-fail probes for the function-entry seam
+# (include/hven/model/solver_interface_adapter.h).
+#
+# The seam's whole point is that the wrong type entering an interface is a
+# LOUD compile error rather than a silent second virtual dispatch, so the
+# refusals are only actually tested by trying to compile them. Each probe is
+# a TU that MUST FAIL; ctest passes iff `cmake --build` returns non-zero AND
+# the build log carries that probe's expected diagnostic.
+#
+# The regexes are the authored static_assert message prefixes, which is why
+# those prefixes are distinct per route ("hven constraint adapter:" vs "hven
+# objective adapter:"): an unrelated build break, or the RIGHT probe failing
+# for the WRONG reason, then does not pass as a fake success.
+#
+# Every probe ALSO forbids the raw member-lookup diagnostic. Presence-only
+# checking cannot tell "the seam refused this cleanly" from "the seam refused
+# this AND then instantiated the machinery anyway, so the compiler piled raw
+# errors on top" -- and the second is what the seam's authored-diagnostics
+# promise actually rules out. The forbidden pattern is what makes each probe
+# test the promise rather than a substring of it.
+#
+# Built on every platform: these targets compile hven's headers only, and
+# what they prove -- including that a constrained partial specialization of
+# the adapter is accepted, which the positive test above covers -- has to
+# hold on all three CI frontends, not just the one that happens to be
+# convenient.
+# The raw diagnostic every probe must NOT produce: an ERROR-severity member
+# lookup failure. That is what instantiating a Model (or an adapter member)
+# behind a failed check produces -- before the install bodies guarded their
+# emplacements, the constraint-only probe emitted three of these, one per
+# objective member the type was missing, right beside the authored message,
+# and a presence-only check passed anyway.
+#
+# The severity anchor is load-bearing, not decoration. Clang also prints
+# "no member named" inside NOTES when it explains which requirement of a
+# concept was not satisfied ("because 'f.objective_gradient(...)' would be
+# invalid: no member named ..."). Those notes are attached to the authored
+# assert and explain it; they are the diagnostic working, not leaking. Only
+# an `error:` carrying the phrase means something got instantiated that
+# should not have.
+#
+# All three CI frontends are clang-family, so the phrasing holds across them.
+# A frontend that worded it differently would make this check a no-op on that
+# lane rather than a false failure.
+# probe name -> which authored prefix pins it
+# DEPRECATION PROBES (M6 W5 T3).
+#
+# The six by-value NlpModel evaluations carry [[deprecated]]. That attribute is
+# the whole migration notice, and a warning nobody looks at is not a pin -- so
+# each one gets a probe TU that calls it under -Werror=deprecated-declarations
+# and must fail to build. The flag is per-target: the shared COMPILE_FLAGS must
+# not carry it, because the tree still calls the by-value forms on purpose in
+# nlp_model.h's own defaults and in every test that keeps a by-value oracle.
+#
+# Each probe TU also calls the IN-PLACE replacement, so the forbidden pattern
+# below ("<name>_in_place' is deprecated") makes "the replacement is not itself
+# deprecated" a tested claim rather than an assumption, and EXPECT_SINGLE_ERROR
+# makes "the by-value call is the ONLY error" one too -- which is also how the
+# scoped suppression inside nlp_model.h's defaults is proven to work: those
+# bodies call the deprecated forms in the same TU and must stay silent.
+```
+
+#### tests/kkt/CMakeLists.txt (RS-6a)
+
+```
+# kkt/ tests: hven_kkt_tests (RS-6a), plus the directory's seam executable.
+# test_kkt_factorization was unity-batched in the retired interior target; alone in this executable it is the plain translation unit (a unity batch of one), so the executable is built non-unity.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+# The interior-point engine's KKT factorization rides the backend fault seam (linear/): its evidence projection on a failed factorization, and its record-the-status-and-continue behavior on a failed
+# symbolic analysis, are both backend-specific and both unreachable from any fixture. The TU depends on nothing but the linear surface's public header, so it compiles here as cheaply as it does into the library.
+# A standalone HVEN_TESTING executable on the same terms as hven_linear_seam_tests; it does not link hven::hven.
+```
+
+#### tests/qp/CMakeLists.txt (RS-6a)
+
+```
+# qp/ tests: hven_qp_tests (RS-6a) -- the QP tiers' ordinary suites (walk, SSN, IPQP, the dense oracle, the EQP solve) -- plus the directory's seam executable.
+# test_ipqp_acceptance pins the A4 gate artifacts: the committed gate CSVs are named by absolute path (the artifact and the evaluator hold each other in place); the SHIPPED-defaults CSV is the
+# placeholder's record and is never regenerated (CLAUDE.md section 7), the second is the same 29 cells at the measured ipqp_init_mu.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# QP-tier seam tests (docs/testing.md: the HVEN_TESTING convention, applied to the QP tiers). ONE standalone executable (RS-6a merged the former hven_ipqp_seam_tests and hven_qp_walk_seam_tests and one
+# source of the whole-library hven_sqp_seam_tests) that takes the library from hven_testing_library, the HVEN_TESTING build of the whole library compiled once and shared with the solver, ipm and sqp seam executables (RS-6a, Q9: the former narrow closure of fourteen TUs is cheaper as a link against objects that exist anyway, and it retires the narrow-seam flag class); it does not link hven::hven.
+# WHAT IT COVERS AND WHY NOTHING ELSE CAN. IPQP: the specification's evidence-failure policy (an InertiaEvidence state other than kObserved permits a step only at a conservative rho floor and downgrades the
+# certificate for the whole solve) and the two terminal inertia states the certification read can report (PERTURBED, UNREADABLE) are unreachable from any legal subproblem on this backend; the kUnavailable case is an
+# Accelerate path, which under CLAUDE.md section 6's never-fabricate rule stays UNOBSERVED until real Mac hardware runs it. The hook is one function in src/qp/ipqp/ipqp_engine.cpp, at the single line where the tier
+# reads KktFactorization::inertia_evidence(): section 6's boundary preference is satisfied with NO deviation (no session file is touched, nothing MPL-derived, the production object is byte-identical with the seam removed).
+# WALK: QpEngine has no trace sink; its finest public instrument is one QpCounters per SOLVE. Which BRANCH of the walk a minor took, which constraint and which SIDE, by which drop ROUTE, and what the working SET was
+# live inside one iteration of one loop and leave no trace outside it. The hooks are in src/qp/walk/walk_engine.cpp (Apache-2.0, this repository's; no deviation, no notices/ entry).
+# SSN: test_dense_solve_wound_seams drives the SSN tier's dense solve gates under a wounded factor (DenseSolveFaultInjector; C341).
+# The E2-D4 dump fixtures (qp/support/qp_dump.h loads them) are read in place, absolute so ctest's working directory is irrelevant.
+```
+
+#### tests/warmstart/CMakeLists.txt (RS-6a)
+
+```
+# warmstart/ tests: hven_warmstart_tests (RS-6a): the warm-start currency (value types, byte form, round trip and refusals), the IPM polish extension, the mesh transfer, the crossover
+# protocol and the SQP warm currency. ScaleF7Slow suites are excluded from ctest REGISTRATION (test_warm_start_battery.cpp carries one); they are ordinary gtests, run directly with
+# ./tests/warmstart/hven_warmstart_tests --gtest_filter='ScaleF7Slow.*' in the phase-gate Debug sweep and in Release CI runs of the M3 gate -- see the banner in test_warm_start_battery.cpp.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+```
+
+#### tests/solver/CMakeLists.txt (RS-6a)
+
+```
+# The shared solver surface's test suite, hven_solver_tests (RS-6a): the types in include/hven/solver/ that belong to neither engine -- the status vocabulary, the result core, the shared
+# diagnostics -- and the behaviours both engines share (stop token, limits, evaluation failure, threads, dense policy). It links hven::hven and nothing engine-specific.
+# NO unity build: anonymous namespaces do not isolate across unity-merged translation units, and this suite's files each carry their own fixtures. The suite is small and its TUs are cheap.
+# HVEN_SRC_ROOT is absolute (not CMAKE_SOURCE_DIR: see tests/CMakeLists.txt's HVEN_SRC_DIR note); test_message_sites scans ipm_solver.cpp and sqp_solver.cpp under it.
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+# Shared-engine seam tests (docs/testing.md; HVEN_TESTING). Both sources drive BOTH engines through the public handles, so this executable takes every source of the hven target from hven_testing_library (compiled once with HVEN_TESTING, shared by all whole-library seam executables)
+# with HVEN_TESTING defined (taken from the target itself) and does not link hven::hven. test_backend_error_seams: the backend-failure half of the exception contract (M8 B5 riders), on the linear
+# layer's analyze/factorize injectors. test_stop_poll_seams: the intra-iteration stop polls (M8 AP-5 G4; StopPollSeam, detail/core/stop_poll.h).
+```
+
+#### tests/trace/CMakeLists.txt (RS-6a)
+
+```
+# trace/ tests: hven_trace_tests (RS-6a): the trace schema, the sinks and the serializer; the human trace rendered from real solves (golden/human_trace/), the v1 reader fixtures
+# (golden/trace_v1/, held byte-exact for outside readers), the cost contract's structural proof. The golden directories and the source root are absolute, so ctest's working directory is irrelevant.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+```
+
+#### tests/ipm/CMakeLists.txt (RS-6a)
+
+```
+# The interior-point engine test suite, hven_ipm_tests (RS-6a): the engine's own contract (acceptance, restoration, SOC, watchdog, the entry points, the trace, the warm start, the counters
+# and the stop paths). Same test names, same GoogleTest fixtures. A target of its own, separately buildable; googletest is already fetched by the parent tests/CMakeLists.txt.
+# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
+# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
+# Unity build -- merge test TUs in batches of 8, the retired hven_interior_tests' pattern. This is load-bearing, not just a compile-time optimization: test_nlp_adapter.cpp (and others) only
+# #include nlp_adapter.h, which forward-declares NonLinearProgram, and rely on another test TU in the same unity batch to have already pulled in the complete definition (non_linear_program.h) --
+# exactly as they did before the migration. Splitting this into separate TUs is a source-level fix (adding the missing include) that AS-IS migration does not make. Only the sources the retired
+# interior target unity-batched are batched; every other source of the executable is compiled alone.
+# The IPM dense guard's failed re-run (DN-1b review F8), on the dense-attempt and platform-factorize injectors (docs/testing.md; HVEN_TESTING). The seam is in the IPM solver TU, whose transitive
+# closure is the whole library, so this executable takes the library from hven_testing_library (every source of the hven target compiled once with HVEN_TESTING, shared by the qp, solver, ipm and sqp seam executables) and does not link hven::hven.
+```
+
+#### tests/sqp/CMakeLists.txt (RS-6a)
+
+```
+# The SQP engine's own test suite, hven_sqp_tests -- migrated whole at M3 (phase A), laid out by component at RS-2 and reduced at RS-6a to the sources of this directory: the SQP engine's own contract
+# (the QP dispatch, the lift oracle, the continuation, the predictor, the quasi-Newton models, the hs battery). Same test names, same GoogleTest fixtures. UNIX-only (see the gate below).
+# COMPILE FLAGS: ${COMPILE_FLAGS}, like every other target in this repository (the owner's uniform-flags ruling, CLAUDE.md section 7, executed at phase-C U0).
+# Sorted, like every other source list in this tree.
+# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
+# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
+# been built or derived on Windows; RS-6b is the stage that lifts the gate).
+# The driver TU test_qp_mode_sites.cpp SCANS (M6 W4 T5). It reads the source text -- it does not parse C++ -- and requires every kernel invocation in it to be covered by a nearby `qp.mode` emit or to
+# carry an explicit `// trace:` marker, so the schema's per-site list cannot go stale as the driver grows call sites. Absolute, so the test does not depend on ctest's working directory; the test asserts the
+# file exists and contains the invocations it expects, so a wrong path fails loudly rather than scanning nothing.
+# test_elastic_witness_start.cpp reads the E2-D4 dump fixtures (qp/support/qp_dump.h loads them) in place, absolute as for the QP seam executable.
+# TEST_FILTER excludes the ScaleF7Slow suite from CTest REGISTRATION, so the per-commit `ctest` run never executes it. The tests themselves are built and are ordinary gtests; run them directly with
+#     ./tests/sqp/hven_sqp_tests --gtest_filter='ScaleF7Slow.*'
+# WHEN THEY MUST RUN: in the phase-gate Debug sweep and in Release CI runs of the M3 gate -- the exclusion is from the per-commit cadence, not from the phase gate. See the banners in
+# test_scale_smoke.cpp and test_hs_sweeps.cpp for each member's measured cost.
+# Continuation.ProbeBudgetBoundsAFailingProposal drives F7CollocationChain(100, ...) through four arms with a cap-pinned QP (1002 minors on the failing proposal) and takes ~780 s in Debug (R6 report,
+# task-c-r6-report.md section 4). The default ctest timeout (600 s, the CI Release lane's value) is too small for this one Debug test and produces a spurious Timeout. gtest_discover_tests() tests do not
+# exist at CMake-configure time (they are added by a generated script included via the directory's TEST_INCLUDE_FILES property at ctest time), so a plain set_tests_properties() call here would fail to find
+# the test. Append a second include file, appended after gtest_discover_tests()'s own, that raises just this one test's TIMEOUT once it has been defined.
+# Not under Windows: hven_sqp_tests does not exist there, and the file names a test that would be absent.
+# SQP seam tests (docs/testing.md: the HVEN_TESTING convention; M7 W2 E1b), and since the M7 W2 ladder round the SQP ladder seam's (hven/detail/sqp/ladder_testing.h, the sixth seam). Both seams
+# (the first is hven/detail/sqp/equality_basis_testing.h) sit in sqp_solver.cpp, whose transitive closure is the whole library, so this target takes EVERY source of the hven target from hven_testing_library (compiled once, shared by all whole-library seam executables) with
+# HVEN_TESTING defined, taking hven's own sources, include directories and compile definitions from the target itself (derived, not carried), and does not link hven::hven: libhven.a's objects and these
+# define the same symbols.
+```
+
+#### tests/bench/CMakeLists.txt (RS-6a)
+
+```
+# bench/ tests: hven_bench_tests (RS-6a) -- the tests that pin a bench/*.h instrument or drive the
+# measurement binary: the corpus cells and runner (test_corpus_cells), the bench dump CLI
+# (test_bench_dump), the crossover legs (test_crossover_legs), the SNOPT bridge gate (only when
+# the root-level SNOPT detection succeeded) and the model-surface KKT instrument
+# (test_model_surface_kkt, built on every platform).
+#
+# bench/ipm_corpus_leg.cpp is COMPILED INTO this binary, on the same reasoning corpus_cells.h is
+# quote-included into test_corpus_cells.cpp -- one implementation shared by the measurement binary
+# and the assertion that guards it, never a second copy. The single-row mode's pin is a statement
+# about two of the leg's OWN FUNCTIONS agreeing (the routing and the row builder), which only an
+# in-process call can make. It is an EXTRA source: a path out of the tree has no place in the list
+# of this directory's own files.
+#
+# The wall-deadline tests in test_corpus_cells.cpp (CorpusRunnerProcess.WallDeadline*) are SUBPROCESS
+# tests that invoke the compiled hven_sqp_corpus binary; the dependency and the
+# HVEN_SQP_CORPUS_BINARY path macro are wired in bench/CMakeLists.txt, where hven_sqp_corpus exists.
+#
+# The committed baselines the cells test re-scores through the offline --from-csv path are named by
+# path, not copied: the artifact and the evaluator hold each other in place -- if either moves, the
+# pins fail and whoever moved it has to re-sweep rather than re-label. History of the pointers:
+#   * REPOINTED AT U0 (phase-C flag unification, 2026-08-16, declared): the baseline of record is the
+#     U0 re-derivation; the pre-U0 baseline stays frozen at its old path, still read by the
+#     frozen-vs-frozen continuity tests through the PRE_U0 define.
+#   * The gate battery's two artifacts (the kSsn arm IS the phase-7 verdict) and the post-D0-repair
+#     re-sweep of BOTH arms (CSV schema 37; the three above are schema 14/31 and deliberately NOT
+#     regenerated, which the reader's optional-tail contract exists for).
+#   * M6 W1 T9 fix round 1: the DECLARED schema-76 kIpqp baseline over the 27-cell U0 replay set,
+#     re-pointed by T10b at the measured ipqp_init_mu's own dated dir.
+#   * M6 W5 T8.1: the TOP-LEVEL interior-point leg's baseline (--engine interior, 19 columns); M8 B7
+#     (C238 (1)) re-pointed it at the file re-derived at the absent-bound threshold's default; M8
+#     AP-5 G1 re-pointed it at the file re-derived through the declared stop-reason column map; the
+#     B7 and flip files are frozen.
+# The SNOPT bridge's referee gate adds FOUR tests ONLY when SNOPT was detected, so the suite size is a
+# function of the machine, deliberately; the gate includes ../../bench/snopt_f7_driver.h by relative
+# path (one implementation of the bridge, shared by the measurement binary and the assertion).
+# test_model_surface_kkt was a hven_model_tests source (built everywhere, -O1). The rest were
+# hven_sqp_tests sources: UNIX-only.
+# The SNOPT bridge's referee gate: the source and the hven_sqp_snopt link only when the root-level
+# detection succeeded (hven_sqp_snopt carries both the include path and the HVEN_SQP_HAVE_SNOPT
+# definition the source additionally guards itself with). Gated by NOT WIN32 like its siblings.
+```
