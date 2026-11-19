@@ -302,8 +302,9 @@ struct EqpResult {
     /// check accepted -- the answer's own miss against the REGULARIZED system it
     /// came out of, in the constraint rows, BEFORE the model's mu-free step;
     /// `residual_refine_iters` the extra solves spent driving it down (a shifted
-    /// factor's refine_shifted_solve() solves included; 0 on a
-    /// healthy pass); `residual_refused` true iff it is still above
+    /// factor's refine_shifted_solve() solves included; from solve_eqp, summed
+    /// over every solve round a platform retake added; 0 on a healthy pass);
+    /// `residual_refused` true iff it is still above
     /// kEqpResidualRefuseTol*(1 + ||rhs_rows||inf) -- or NaN -- after the budget,
     /// which means the answer does not solve its own system and the caller must
     /// not step toward it.
@@ -338,8 +339,8 @@ struct EqpResult {
     /// THE PLATFORM-SOLVE RESPONSE (detail/kkt/kkt_factor.h). On the border path:
     /// K0's numerics failed the platform solve check and `platform_retake` is the
     /// retake it calls for; the caller requests it on K0's factor and takes the
-    /// eliminated twin for the pass. Always kNone from solve_eqp, which requests
-    /// and re-solves in place.
+    /// eliminated twin for the pass. Always kNone from solve_eqp, which retakes
+    /// its own factorization in place and solves again.
     detail::PlatformRetake platform_retake = detail::PlatformRetake::kNone;
     /// The answer came through retake numerics (kScaled or kMatched) and the
     /// residual check above refused it (QpCounters::sparse_retake_refusals).
@@ -459,10 +460,6 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // A dense factorization the detector flags is refactored shifted;
     // kkt.dense_shifted then gates the one unconditional step below.
     detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
-    Vec y = detail::solve_vec(kkt, rhs);
-    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
-    // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
-    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -514,36 +511,6 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
                                           detail::nan_sticky_inf_norm(yy.segment(n_free, nc)));
         return detail::nan_sticky_inf_norm(r.segment(n_free, nc)) / scale;
     };
-    Vec r_reg = regularized_residual(y);
-    double ratio = ratio_of(y, r_reg);
-    Index res_iters = 0;
-    Index res_spent = shift_iters;
-    while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
-        // COUNTED BEFORE THE SAFEGUARD: the solve below is spent whether or not
-        // its candidate is kept (solver_counters.h's eqp_refine_iters).
-        ++res_iters;
-        ++res_spent;
-        const Vec candidate = y + detail::solve_vec(kkt, r_reg);
-        Vec candidate_r = regularized_residual(candidate);
-        const double candidate_ratio = ratio_of(candidate, candidate_r);
-        if (!(candidate_ratio < ratio)) {
-            break; // stagnated, diverging, or NaN -- keep the better answer
-        }
-        y = candidate;
-        r_reg = std::move(candidate_r);
-        ratio = candidate_ratio;
-    }
-    const bool refused = !(ratio <= 1.0) || shifted_refused;
-    const double row_residual =
-        nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
-    // The answer refined against K, for the platform solve check below (copied
-    // only where the check applies).
-    const bool platform_check = detail::platform_solve_check_applies(kkt);
-    const Vec y_refined = platform_check ? y : Vec();
-
-    if (unrefined_out != nullptr) {
-        *unrefined_out = scatter(y);
-    }
 
     // One step of iterative refinement against the PROXIMAL system, whose only
     // regularization is the DUAL one: r = rhs - K0*y = (rhs - K*y) + diag(reg)*y,
@@ -558,32 +525,80 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
 
-    if (!kkt.dense_shifted) {
-        y = y + detail::solve_vec(kkt, residual_of(y));
-    } else {
-        // A shifted factor answers a different system: the step is kept only
-        // if it reduces the proximal residual (a NaN keeps nothing).
-        const Vec candidate = y + detail::solve_vec(kkt, residual_of(y));
-        if (detail::nan_sticky_inf_norm(residual_of(candidate)) <
-            detail::nan_sticky_inf_norm(residual_of(y))) {
-            y = candidate;
-        }
-    }
+    // THE SOLVE ROUNDS. One round on the factorization above, and one more each
+    // time THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h) retakes it IN
+    // PLACE: the answer the engine has refined against K -- the residual loop's,
+    // or at dual_mu = 0 (where the proximal system IS K) the proximal step's --
+    // is judged with the residual check's verdict for the escalation, and a
+    // failure retakes the factorization of this same K (no re-assembly, no
+    // platform refactorization) and solves again. Bounded: a retake that fails
+    // disarms the check, and kMatched numerics are never judged, so there are
+    // at most three rounds. Every round's residual-check solves are SPENT and
+    // counted (residual_refine_iters); the last round's answer is the one
+    // returned.
+    Vec y;
+    Vec r_reg;
+    bool shifted_refused = false;
+    double ratio = 0.0;
+    bool refused = false;
+    double row_residual = 0.0;
+    Index res_spent_rounds = 0;
+    for (;;) {
+        y = detail::solve_vec(kkt, rhs);
+        const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
+        // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+        shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
 
-    // ---- THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h) ----
-    // The answer the engine has refined against K -- the residual loop's, or at
-    // dual_mu = 0 (where the proximal system IS K) the proximal step's -- judged
-    // for a FAILED factorization, with the residual check's verdict for the
-    // escalation. A failure requests the retake it calls for and the EQP is
-    // solved again from the start on it; that answer is returned. The recursion
-    // is bounded: kMatched numerics, and platform numerics a retake fell back
-    // to, are never judged.
-    if (platform_check) {
+        r_reg = regularized_residual(y);
+        ratio = ratio_of(y, r_reg);
+        Index res_iters = 0;
+        Index res_spent = shift_iters;
+        while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
+            // COUNTED BEFORE THE SAFEGUARD: the solve below is spent whether or not
+            // its candidate is kept (solver_counters.h's eqp_refine_iters).
+            ++res_iters;
+            ++res_spent;
+            const Vec candidate = y + detail::solve_vec(kkt, r_reg);
+            Vec candidate_r = regularized_residual(candidate);
+            const double candidate_ratio = ratio_of(candidate, candidate_r);
+            if (!(candidate_ratio < ratio)) {
+                break; // stagnated, diverging, or NaN -- keep the better answer
+            }
+            y = candidate;
+            r_reg = std::move(candidate_r);
+            ratio = candidate_ratio;
+        }
+        res_spent_rounds += res_spent;
+        refused = !(ratio <= 1.0) || shifted_refused;
+        row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
+        // The answer refined against K, for the platform solve check below (copied
+        // only where the check applies).
+        const bool platform_check = detail::platform_solve_check_applies(kkt);
+        const Vec y_refined = platform_check ? y : Vec();
+
+        if (unrefined_out != nullptr) {
+            *unrefined_out = scatter(y);
+        }
+
+        if (!kkt.dense_shifted) {
+            y = y + detail::solve_vec(kkt, residual_of(y));
+        } else {
+            // A shifted factor answers a different system: the step is kept only
+            // if it reduces the proximal residual (a NaN keeps nothing).
+            const Vec candidate = y + detail::solve_vec(kkt, residual_of(y));
+            if (detail::nan_sticky_inf_norm(residual_of(candidate)) <
+                detail::nan_sticky_inf_norm(residual_of(y))) {
+                y = candidate;
+            }
+        }
+
+        if (!platform_check) {
+            break;
+        }
         const detail::PlatformRetake retake = detail::platform_solve_response(
             kkt, asm_.K, rhs, opts.dual_regularization == 0.0 ? y : y_refined, refused);
-        if (retake != detail::PlatformRetake::kNone) {
-            detail::request_platform_retake(kkt, retake);
-            return solve_eqp(qp, ws, x_k, kkt, opts, unrefined_out);
+        if (!detail::retake_in_place(kkt, asm_.K, retake)) {
+            break;
         }
     }
 
@@ -610,7 +625,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     out.refine_steps = 0; // no iterated loop on this path -- see the header note
     out.row_residual = row_residual;
     out.residual_ratio = ratio;
-    out.residual_refine_iters = res_spent;
+    out.residual_refine_iters = res_spent_rounds;
     out.residual_refused = refused;
     out.shifted_refused = shifted_refused;
     out.retake_refused = refused && kkt.numerics != detail::PlatformRetake::kNone;

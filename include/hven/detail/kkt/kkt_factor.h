@@ -125,26 +125,44 @@ struct KktFactor {
     /// read it.
     PlatformRetake numerics = PlatformRetake::kNone;
     /// The retake the NEXT factorization takes if the platform's own outcome
-    /// warrants it; consumed (reset to kNone) by that factorization either way.
+    /// warrants it; consumed (reset to kNone) when that factorization starts,
+    /// whether it then succeeds, fails or throws. Set only on a Schur stack's
+    /// K0 factor (the bordered path cannot retake in place: C was formed through
+    /// K0's numerics), and it applies to the NEXT K0, whatever working rows that
+    /// rebuild carries -- see THE PLATFORM-SOLVE RESPONSE, THE BORDER PATH.
     PlatformRetake requested = PlatformRetake::kNone;
-    /// True iff the current numerics are the platform session's own sparse
-    /// numerics and the platform solve check applies to them: the backend
-    /// reported perturbed pivots, or reports no perturbed-pivot count at all.
+    /// True iff the platform solve check applies to the current numerics: the
+    /// platform session's own sparse numerics where the backend reported
+    /// perturbed pivots (or reports no count at all), and kScaled numerics a
+    /// retake left armed. A failed retake disarms it, which is what bounds the
+    /// response.
     bool check_armed = false;
     /// The perturbed-pivot report of the current kScaled numerics (absent on
     /// a backend that reports none): the escalation to kMatched applies only
     /// where it is present and positive.
     std::optional<Index> scaled_perturbed_pivots;
-    /// True from a request_platform_retake() until the next factorization: a
-    /// holder of numerics taken before the request (a Schur stack's K0)
-    /// refactors.
+    /// True from a request_platform_retake() until the next factorization
+    /// starts (or clear_platform_retake_request()): a holder of numerics taken
+    /// before the request (a Schur stack's K0) refactors.
     bool rebuild_pending = false;
     /// D for kScaled numerics (empty otherwise): the solve is D (D K D)^-1 D.
     Vec retake_scale;
+    /// The retake sessions, built on first use. release_idle_retake_sessions()
+    /// frees the ones the current numerics do not live in (the walk calls it at
+    /// the end of every QP solve).
     std::unique_ptr<hven::linear::SymmetricFactor> scaled_session;
     std::unique_ptr<hven::linear::SymmetricFactor> matched_session;
-    /// Retakes that took (cumulative): factorizations whose numerics are kScaled
-    /// resp. kMatched.
+    /// The pattern the scaled session was last analyzed on: D K D has K's
+    /// pattern and the plain session's analysis is value-independent (no
+    /// matching, no scaling), so a scaled retake re-analyzes only when K's
+    /// pattern moves. The matched session's analysis IS value-dependent (the
+    /// weighted matching) and is retaken with every matched retake.
+    std::uint64_t scaled_analyzed_pattern = 0;
+    bool scaled_analyzed = false;
+    /// Cumulative retake FACTORIZATIONS run on each session, taken or not (a
+    /// throw before the factorization runs is not one): none of them is in any
+    /// engine's `factorizations`. QpCounters::sparse_scaled_retakes /
+    /// sparse_matched_retakes are their deltas.
     Index scaled_retakes = 0;
     Index matched_retakes = 0;
 };
@@ -530,8 +548,8 @@ inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, cons
 // perturbed-pivot count (Accelerate) -- and measures the answer's normwise
 // backward error in the equilibrated metric (dense_backward_error with
 // D = equilibration_scale(K); the raw metric is vacuous on a badly scaled K). A
-// miss of kPlatformSolveFailureTol requests the kScaled retake and the caller
-// re-solves on it.
+// miss of kPlatformSolveFailureTol calls for the kScaled retake and the answer
+// is solved again on it.
 //
 // THE ESCALATION. kScaled numerics that STILL report perturbed pivots are
 // judged again, and fail on a backward-error miss OR on the engine's own
@@ -539,28 +557,52 @@ inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, cons
 // near-null direction of size ~1/(1e-8 ||K||) in the answer, and the normwise
 // backward error, whose denominator carries ||K|| ||y||, is blind to exactly
 // that (measured on YORKNET restoration qp26: eta 1.1e-7 while the constraint
-// rows miss by 3.7e7 times the engine's tolerance). A failure requests the
+// rows miss by 3.7e7 times the engine's tolerance). A failure calls for the
 // kMatched retake. That tier is Pardiso-only, and is never judged again.
 //
-// THE RESPONSE IS PER FACTORIZATION, never sticky: a request is consumed by the
-// next factorization (the re-solve's), and the one after it is the platform's
-// again. A retake that does not return kOk leaves the platform's numerics in
-// place with the check disarmed, so the response is bounded at two retakes.
+// THE RESPONSE IS PER FACTORIZATION, never sticky. On the eliminated path
+// (solve_eqp) the factor holding K is in hand, so a failed answer is retaken IN
+// PLACE on that same K (retake_in_place) and re-solved; the next factorization
+// is the platform's own again. A retake that does not return kOk, or throws
+// (a BackendError from the retake session's analysis, an invalid_argument from
+// the scaling), leaves the platform's numerics in place with the check
+// disarmed, so the response is bounded at two retakes per factorization.
+//
+// THE BORDER PATH cannot retake in place: the Schur complement C was formed
+// through K0's numerics, so a failed bordered answer (solve_bordered_eqp's
+// EqpResult::platform_retake) is REQUESTED on K0's factor
+// (request_platform_retake) and the pass takes the eliminated twin. The request
+// is taken by the NEXT K0 factorization -- the rebuild it forces
+// (SchurComplement::needs_refactorization() reads rebuild_pending) -- whatever
+// working rows that K0 then carries: it is K0's block family (the same H, the
+// same constraint scales), not one matrix, that the failure diagnosed, and the
+// rebuilt K0 is retaken only if its OWN platform factorization perturbs pivots
+// (a clean K0 is left on the platform bit for bit). A request never outlives the
+// QP solve that made it: the walk clears it wherever the border stack is reset
+// and at the entry and the exit of every solve (clear_platform_retake_request).
+//
+// COST AND MEMORY. Retake factorizations are counted in their own fields
+// (QpCounters::sparse_scaled_retakes / sparse_matched_retakes), never in
+// `factorizations`, whose accounting contract is the active-set search's; their
+// analyses are not in `symbolic_analyses` (KktFactor::scaled_analyzed_pattern
+// says when one is paid). A retake session lives from its first use to the end
+// of the QP solve (release_idle_retake_sessions), except the one the factor's
+// current numerics live in, which a reused K0 may still solve through.
 
 /// The failed-solve threshold: IPOPT's documented residual_ratio_singular
 /// default; the measured post-refinement distribution is bimodal around it.
 inline constexpr double kPlatformSolveFailureTol = 1e-5;
 
-/// @brief True iff platform_solve_response() judges answers through `k`'s
-/// current numerics: armed platform numerics, or kScaled numerics that still
-/// report perturbed pivots.
+/// @brief True iff the platform solve check judges answers through `k`'s
+/// current numerics: armed platform numerics, or armed kScaled numerics that
+/// still report perturbed pivots.
 inline bool platform_solve_check_applies(const KktFactor &k) {
-    if (k.dense_shifted) {
+    if (k.dense_shifted || !k.check_armed) {
         return false;
     }
     switch (k.numerics) {
     case PlatformRetake::kNone:
-        return k.check_armed;
+        return true;
     case PlatformRetake::kScaled:
         return k.scaled_perturbed_pivots.value_or(0) > 0;
     case PlatformRetake::kMatched:
@@ -569,16 +611,46 @@ inline bool platform_solve_check_applies(const KktFactor &k) {
     return false;
 }
 
-/// @brief The retake an answer `y` to K y = rhs (K the matrix `k` factored,
-/// upper-stored) calls for, kNone when it passes or the check does not apply.
-/// `engine_refused` is the engine's own residual verdict on the same answer;
-/// it counts only on kScaled numerics (THE ESCALATION above). A NaN fails.
+/// @brief THE VERDICT, the one place the trigger and the escalation are
+/// decided (solve_eqp and solve_bordered_eqp both call it): kNone when the
+/// check does not apply to `k`'s numerics; on platform numerics kScaled iff
+/// `missed` (the answer's backward error missed kPlatformSolveFailureTol, or
+/// was NaN); on kScaled numerics kMatched iff `missed` or `engine_refused` (the
+/// engine's own residual check refused the same answer -- THE ESCALATION).
+PlatformRetake platform_retake_verdict(const KktFactor &k, bool missed, bool engine_refused);
+
+/// @brief The verdict on an answer `y` to K y = rhs (K the matrix `k` factored,
+/// upper-stored): `missed` is y's normwise backward error in K's equilibrated
+/// metric against kPlatformSolveFailureTol (a NaN misses). kNone when the check
+/// does not apply (nothing is computed then).
 PlatformRetake platform_solve_response(const KktFactor &k, const SpMatRM &K, const Vec &rhs,
                                        const Vec &y, bool engine_refused);
 
+/// @brief Retakes `k`'s current numerics of K -- the matrix its last
+/// factorization took, upper-stored and compressed -- on `tier`'s session NOW
+/// (the eliminated path's response; nothing is requested). On success the
+/// numerics are the tier's. On failure (not kOk, or a throw from the retake
+/// session or the scaling) the platform's numerics are restored and the check
+/// disarmed. Returns true iff `k`'s numerics changed (the retake took, or a
+/// failed escalation fell back to the platform's), so the caller must solve
+/// again. A no-op returning false for tier kNone.
+/// @throws std::invalid_argument If K is not compressed.
+bool retake_in_place(KktFactor &k, const SpMatRM &K, PlatformRetake tier);
+
 /// @brief Requests `tier` (kScaled or kMatched) for the next factorization of
-/// `k` and marks holders of earlier numerics for a refactor; builds the tier's
-/// session on first use.
+/// `k` and marks holders of earlier numerics for a refactor (THE BORDER PATH).
+/// A no-op for kNone.
 void request_platform_retake(KktFactor &k, PlatformRetake tier);
+
+/// @brief Drops a pending request and its rebuild mark (the numerics are
+/// untouched).
+inline void clear_platform_retake_request(KktFactor &k) {
+    k.requested = PlatformRetake::kNone;
+    k.rebuild_pending = false;
+}
+
+/// @brief Frees the retake sessions `k`'s current numerics do not live in (and
+/// the scaled session's analysis record with it).
+void release_idle_retake_sessions(KktFactor &k);
 
 } // namespace hven::detail

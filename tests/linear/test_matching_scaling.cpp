@@ -161,8 +161,11 @@ double hungarian_cost(const Dense &a) {
 }
 
 // Every structural nonzero: u_i + v_j <= -log|a_ij| (+ tol); every matched
-// pair: equality (to tol). The LP optimality certificate.
-void expect_certificate(const Dense &a, const MaxProductMatching &m, double tol) {
+// pair: equality (to tol) when `matched_equality`. The LP optimality certificate;
+// its first half alone (dual feasibility) is what a structurally singular matrix
+// keeps once a pruned search's tree is frozen (matching_scaling.cpp, PRUNING).
+void expect_certificate(const Dense &a, const MaxProductMatching &m, double tol,
+                        bool matched_equality = true) {
     const auto n = a.size();
     for (std::size_t i = 0; i < n; ++i) {
         for (std::size_t j = 0; j < n; ++j) {
@@ -173,7 +176,7 @@ void expect_certificate(const Dense &a, const MaxProductMatching &m, double tol)
             const double scale = 1.0 + std::abs(c);
             EXPECT_LE(m.u(static_cast<Index>(i)) + m.v(static_cast<Index>(j)), c + tol * scale)
                 << "dual infeasible at (" << i << ", " << j << ")";
-            if (m.col_of_row[i] == static_cast<Index>(j)) {
+            if (matched_equality && m.col_of_row[i] == static_cast<Index>(j)) {
                 EXPECT_NEAR(m.u(static_cast<Index>(i)) + m.v(static_cast<Index>(j)), c, tol * scale)
                     << "slack on matched (" << i << ", " << j << ")";
             }
@@ -235,6 +238,8 @@ TEST(MaxProductMatching, MatchesBruteForceOnSmallMatrices) {
             expect_certificate(a, m, 1e-10);
         } else {
             ++singular;
+            // The pruned searches' dead columns: dual feasible on every edge.
+            expect_certificate(a, m, 1e-10, /*matched_equality=*/false);
         }
     }
     // Both regimes were exercised.

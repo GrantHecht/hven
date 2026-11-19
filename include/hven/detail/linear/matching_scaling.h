@@ -46,7 +46,8 @@ struct MaxProductMatching {
     /// unmatched (A structurally singular).
     std::vector<Index> col_of_row;
     /// Dual variables in the cost c_ij = -log|a_ij|: u_i + v_j <= c_ij on every
-    /// structural nonzero, with equality on matched pairs.
+    /// structural nonzero, with equality on matched pairs (on a structurally
+    /// singular matrix, every matched pair outside a pruned search's tree).
     Vec u;
     Vec v;
     /// The number of matched rows (== A.rows() iff A is structurally nonsingular).
@@ -55,19 +56,29 @@ struct MaxProductMatching {
 
 /// @brief The maximum-product matching of the square matrix `a` (FULL storage:
 /// every structural nonzero present; explicit zeros are not edges), by
-/// Dijkstra shortest augmenting paths on reduced costs (Duff & Koster 2001).
-/// Throws std::invalid_argument when `a` is not square or holds a non-finite
-/// entry. O(n (nnz + n) log n) worst case.
+/// Dijkstra shortest augmenting paths on reduced costs (Duff & Koster 2001),
+/// failed searches pruned. Throws std::invalid_argument when `a` is not square
+/// or holds a non-finite entry. O(n (nnz + n) log n) worst case; no deadline
+/// is checked inside (matching_scaling.cpp states why none is needed).
 MaxProductMatching max_product_matching(const SpMatRM &a);
 
 /// @brief The symmetric maximum-product-matching scaling d (Duff & Pralet
 /// 2005) of the symmetric matrix whose UPPER triangle (diagonal included) is
-/// `upper`: |d_i a_ij d_j| <= 1 for every entry of a matched row and column,
-/// = 1 on the matching. An index the matching leaves unmatched takes
-/// d_i = 1 / max_j |a_ij d_j| over its matched neighbours j (1 when it has
-/// none). Every d_i is finite and positive. Throws std::invalid_argument when
-/// `upper` is not square, holds a non-finite entry, or holds an entry below
-/// the diagonal.
+/// `upper`. Call an index GOOD when its row and its column are both matched and
+/// d_i = exp((u_i + v_i)/2) is finite and positive; every other index is
+/// scaled by the fallback d_i = 1 / max_j |a_ij d_j| over its GOOD neighbours
+/// j (1 when it has none, or when that is not finite and positive).
+///
+/// THE BOUND, exactly where it holds: |d_i a_ij d_j| <= 1 for every entry
+/// between two good indices, with equality on the matched entries of a
+/// structurally nonsingular matrix; and for every entry between a fallback
+/// index and a good one, by the fallback's construction. It does NOT hold
+/// between two fallback indices (an unmatched index's, or one whose dual
+/// exponential overflowed): nothing bounds that entry. On a structurally
+/// singular matrix a matched entry of a pruned search's tree may sit strictly
+/// below 1 (max_product_matching's PRUNING). Every d_i is finite and positive.
+/// Throws std::invalid_argument when `upper` is not square, holds a non-finite
+/// entry, or holds an entry below the diagonal.
 Vec symmetric_matching_scaling(const SpMatRM &upper);
 
 } // namespace hven::linear::detail

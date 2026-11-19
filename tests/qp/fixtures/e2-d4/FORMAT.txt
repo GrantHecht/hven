@@ -29,3 +29,8 @@ and `solve=` the engine solve number within the cell run.
 PF1_f7_n1000_path_corrupted_qp1.txt (M8 PF-1, scratch diagnostic build at m8 bdd797e3): the census cell's designated hop's
 first QP (engine solve 4 of the cell run), every solve dumped. Its result line reads `status=1 minors=20000 facts=19871 hkc=0`
 (hkc = QpOptions::hessian_known_convex); the opts line's max_iter is the derived cap the solve ran at, recorded as such.
+SEQ4_LAKES_qp0.txt (M8 sparse-equil-v4 r2, scratch diagnostic build docs/notes/data/2026-11-m8-sparse-equil-v4/r2/diag/
+dump_patch.py on local commit 03393384b): the first walk solve of the TRAIN cell LAKES (hven-sqp lane, both labels dump the
+same file) during which a REFUSAL-ONLY escalation of the platform-solve response was taken. Its result line reads
+`status=0 minors=131 facts=162 scaled=3 matched=2 retake_refusals=0 hkc=0 maxiter=1360` (scaled / matched: the solve's
+sparse_scaled_retakes / sparse_matched_retakes; hkc = QpOptions::hessian_known_convex).

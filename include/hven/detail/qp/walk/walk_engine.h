@@ -2301,8 +2301,11 @@ class QpEngine {
     /// A working-set change between the candidate solve and this call, and a
     /// re-factorization of `kkt` by any other path in between, each break that
     /// and each is caught. On a miss the twin assembles and factorizes its own
-    /// KktFactor, charging one `factorizations` and one `symbolic_analyses`; a
-    /// hit charges neither.
+    /// KktFactor THROUGH solve_eqp, so it holds the numerics the incumbent's own
+    /// procedure leaves (the platform-solve response's in-place retake included,
+    /// detail/kkt/kkt_factor.h), charging one `factorizations` and one
+    /// `symbolic_analyses` (and any retake to the sparse_*_retakes counters); a
+    /// hit charges none of them.
     ///
     /// `face` guards the working set and the factor, not the options: the
     /// effective (primal_delta, dual_mu) are fixed across one iteration, and a
@@ -2341,9 +2344,9 @@ class QpEngine {
     /// @param opts          The effective options; `(primal_delta, dual_mu)` are
     ///                      fixed across one iteration.
     /// @return True iff the refined point was adopted.
-    /// @throws hven::BackendError propagated from `factorize_checked` on a miss,
-    ///         and from the hit branch's `solve_vec`; the attempted
-    ///         factorization stays charged.
+    /// @throws hven::BackendError propagated from the miss branch's
+    ///         factorization, and from the hit branch's `solve_vec`; the
+    ///         attempted factorization stays charged.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &lambda_i, const Vec &ae_row_norm1,

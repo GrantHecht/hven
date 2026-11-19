@@ -421,6 +421,12 @@ where it does:
   ordinary one. Nothing about an existing session is touched, because nothing
   about an existing session has been replaced yet at that point.
 
+  The SQP's platform-solve retake sessions (M8 sparse-equil-v4 r2, `detail/kkt/kkt_factor.h`) are ordinary
+  `SymmetricFactor`s, so arming it while K's own pattern is already analyzed fails exactly the retake session's
+  analysis -- the scenario I1 of the r2 review names (a BackendError out of a retake must be a failed retake, not an
+  escaped exception): `QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed` (in place and by request, both
+  tiers). Faithful for the same reason: the retake session is left as it was.
+
   It is read at a second site in each adapter (M8 DN-1, review C270 finding 3):
   the dense arm's fallback FORK, in place of the fork's symbolic phase and before
   the fork replaces anything. Faithful there for the same reason; it is the only

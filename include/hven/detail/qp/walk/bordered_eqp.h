@@ -745,12 +745,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
             !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
                                               opts.dual_regularization == 0.0 ? sol : sol_refined,
                                               d0) <= detail::kPlatformSolveFailureTol);
-        if (k0_factor.numerics == detail::PlatformRetake::kNone) {
-            platform_retake =
-                missed ? detail::PlatformRetake::kScaled : detail::PlatformRetake::kNone;
-        } else if (missed || !(ratio <= 1.0)) {
-            platform_retake = detail::PlatformRetake::kMatched;
-        }
+        platform_retake = detail::platform_retake_verdict(k0_factor, missed, !(ratio <= 1.0));
     }
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.

@@ -853,9 +853,16 @@ saddle-point K whose pivots must pair into 2x2 blocks -- and the walk now answer
   2005), and the EQP is solved again. If those numerics still perturb pivots and the answer fails again -- on the backward
   error or on the EQP-site residual check, which sees the near-null blow-up the backward error is blind to -- K is
   retaken on a weighted-matching session (Pardiso only). The next factorization is the platform's own again.
+- Where it runs (r2): the eliminated path retakes its own factorization of the same K in place and solves again (at most
+  three solve rounds); a Schur stack's K0 cannot (its C was formed through K0), so a failed bordered answer requests the
+  retake for the NEXT K0 factorization, a request that never outlives the QP solve. A retake that fails or throws leaves the
+  platform numerics, check disarmed. Retake sessions are freed at the end of every walk solve except the one live numerics
+  use.
 - Unaffected: unperturbed factorizations (bit-identical), the dense arm (its own check), the SSN and IPQP tiers' factors.
 - New counters `sparse_scaled_retakes`, `sparse_matched_retakes`, `sparse_retake_refusals` (`QpCounters`, `SqpCounters`,
-  trace keys after `rejection_run_histogram`).
+  trace keys after `rejection_run_histogram`). The first two count the retake factorizations run, none of which is in
+  `factorizations` (the active-set search's accounting); their analyses are in no counter (`solver_counters.h` says when
+  one is paid). `eqp_refine_iters` counts every solve round's residual-check solves.
 - IPARM-SURFACE: the SQP now configures `iparm[12] = 1` (without `iparm[10]`) on the on-demand matched session.
   Evidence: `docs/notes/data/2026-11-m8-sparse-equil-v4/`.
 

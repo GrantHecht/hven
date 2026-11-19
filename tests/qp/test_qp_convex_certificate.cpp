@@ -239,8 +239,9 @@ TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp4) {
     // the scaled retake answers it (kkt_factor.h), and the walk reaches the same optimum by
     // a route that reads 3 kWrong re-reads and takes the convex certificate once (Release,
     // both algebras: 1148 minors; was 0 certificates / 1 re-read). MEASURED: Debug's route
-    // (985 minors) is unchanged -- no failed platform answer on it.
-#ifdef NDEBUG
+    // (985 minors) is unchanged -- no failed platform answer on it. Keyed on the build type
+    // (route_reference.h), not NDEBUG.
+#if HVEN_TEST_RELEASE_BUILD
     constexpr Index kQp4Certificates = 1;
     constexpr Index kQp4Rereads = 3;
 #else

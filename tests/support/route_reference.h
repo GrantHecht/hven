@@ -37,6 +37,12 @@
 #error "HVEN_TEST_REFERENCE_DISPATCH is set by tests/CMakeLists.txt's MKL dispatch probe"
 #endif
 
+// A pin measured under Release's rounding only is written `#if HVEN_TEST_RELEASE_BUILD` (the build
+// type, never NDEBUG, which RelWithDebInfo and MinSizeRel also define).
+#if !defined(HVEN_TEST_RELEASE_BUILD)
+#error "HVEN_TEST_RELEASE_BUILD is set by tests/CMakeLists.txt from the build type"
+#endif
+
 #if defined(__linux__) && defined(__x86_64__) && defined(__clang__) &&                             \
     !defined(USE_ACCELERATE_SPARSE) && HVEN_TEST_REFERENCE_DISPATCH
 #define HVEN_TEST_ROUTE_REFERENCE 1

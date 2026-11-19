@@ -164,6 +164,13 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt"
     "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n")
 add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch})
 
+# Release-only route pins (a route measured under Release's rounding and asserted only there) are
+# keyed on the BUILD TYPE, not on NDEBUG: RelWithDebInfo and MinSizeRel define NDEBUG too, and
+# their -O2 / -Os code is not the build the pin was measured on. HVEN_TEST_RELEASE_BUILD is 1
+# exactly in a Release build (single- or multi-config), 0 otherwise; route_reference.h refuses to
+# compile without it.
+add_compile_definitions(HVEN_TEST_RELEASE_BUILD=$<IF:$<CONFIG:Release>,1,0>)
+
 # The include root of every test and bench target that spells a local include from the tests
 # root ("qp/support/ssn_fixtures.h", "support/console_capture.h"). A target opts in with
 # target_include_directories(<t> PRIVATE ${HVEN_TESTS_INCLUDE_ROOT}); the variable is visible in

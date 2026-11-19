@@ -435,6 +435,29 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     const std::uint64_t prev_border_kkt_epoch = border_kkt_epoch_;
     border_valid_ = false;
 
+    // THE PLATFORM-SOLVE RESPONSE'S LIFETIME ON K0 (detail/kkt/kkt_factor.h, THE
+    // BORDER PATH). A retake request never crosses a QP solve: one a previous
+    // solve -- or the producer of an adopted handle -- left pending is dropped
+    // here, before the reuse gate below can read it, and one this solve leaves
+    // pending is dropped at its exit, where the retake sessions K0's numerics do
+    // not live in are freed (the bounded memory policy). Neither touches K0's
+    // numerics, so both are safe on a shared `border_`.
+    if (border_ != nullptr) {
+        detail::clear_platform_retake_request(border_->kkt);
+    }
+    struct BorderRetakeExit {
+        std::shared_ptr<BorderState> &border;
+        explicit BorderRetakeExit(std::shared_ptr<BorderState> &b) : border(b) {}
+        BorderRetakeExit(const BorderRetakeExit &) = delete;
+        BorderRetakeExit &operator=(const BorderRetakeExit &) = delete;
+        ~BorderRetakeExit() {
+            if (border != nullptr) {
+                detail::clear_platform_retake_request(border->kkt);
+                detail::release_idle_retake_sessions(border->kkt);
+            }
+        }
+    } border_retake_exit(border_);
+
     // Resolve this solve's QpSolveOverrides against opts_ ONCE, into the
     // effective values every tr_radius/primal_delta/dual_mu read site
     // below consults from here on. `eff_opts` is opts_ verbatim except
@@ -639,6 +662,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 border_->latched = false;
                 border_->k0_rows.clear();
                 border_->ledger.clear();
+                detail::clear_platform_retake_request(border_->kkt);
             }
         }
     }
@@ -945,6 +969,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     border_->latched = false;
                     border_->k0_rows.clear();
                     border_->ledger.clear();
+                    detail::clear_platform_retake_request(border_->kkt);
                 }
                 continue;
             }
@@ -1719,6 +1744,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 border_->latched = false;
                                 border_->k0_rows.clear();
                                 border_->ledger.clear();
+                                detail::clear_platform_retake_request(border_->kkt);
                             }
                             continue;
                         }
@@ -2996,6 +3022,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 border_->latched = false;
                 border_->k0_rows.clear();
                 border_->ledger.clear();
+                detail::clear_platform_retake_request(border_->kkt);
             }
             face.factorized = false;
         }
@@ -3682,13 +3709,10 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     const bool reuse = face.holds(ws, kkt);
     const detail::KktFactor &fac = reuse ? kkt : fresh;
     if (!reuse) {
-        // rebuild_k0's accounting rule: the decision is taken BEFORE the
-        // factorize and handed to it, so one factorization costs one pattern
-        // hash. `fresh` has never been analyzed, so the analysis is needed.
-        const detail::AnalysisDecision analysis = detail::analysis_decision(fresh, assembly.K);
-        if (analysis.needed) {
-            ++counters.symbolic_analyses;
-        }
+        // `fresh` has never been analyzed, so its factorization below pays an
+        // analysis (analysis_decision()'s short-circuit: no pattern is hashed to
+        // decide that).
+        ++counters.symbolic_analyses;
         // Charged for the ATTEMPT, eliminated_candidate's convention.
         ++counters.factorizations;
         const detail::DenseTallyScope tally(
@@ -3696,7 +3720,15 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
             counters.dense_singular_refactors, counters.dense_platform_retakes);
         const detail::RetakeTallyScope retakes(fresh, counters.sparse_scaled_retakes,
                                                counters.sparse_matched_retakes);
-        detail::factorize_checked(fresh, assembly.K, analysis, detail::DenseShiftSite{n_free});
+        // THROUGH solve_eqp, not a bare factorize_checked(): the incumbent's
+        // factor went through solve_eqp, whose platform solve check may have
+        // retaken it in place (kkt_factor.h), so `fresh` must hold the numerics
+        // that same procedure leaves -- the platform's, bit for bit, wherever the
+        // check passes -- or the replay below would refine through a factorization
+        // the walk itself refused. Its answer is discarded (the replay re-derives
+        // the incumbent); its factorization is the one charged above, its retakes
+        // the scope's.
+        (void)solve_eqp(qp, ws, x, fresh, opts);
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
     // reports a singular K as a status, so a throw from here is a genuine
@@ -5721,6 +5753,11 @@ double QpEngine::PassOverScan::next(const Vec &p, BlockKind &kind, Index &block_
 }
 
 bool QpEngine::rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border) {
+    // A rebuild that takes a pending platform retake (kkt_factor.h, THE BORDER
+    // PATH) refactors K0 on another session: never the no-op the latch is for.
+    if (border.kkt.rebuild_pending) {
+        return false;
+    }
     if (ws.active_ineq() != border.k0_rows) {
         return false;
     }

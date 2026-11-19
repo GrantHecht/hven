@@ -628,11 +628,19 @@ struct QpCounters {
     // row_tolerance after the polish (gray-zone exits; 0 is the contract).
     Index optimal_row_gray_exits = 0;
     // THE PLATFORM-SOLVE RESPONSE (M8 sparse-equil-v4; detail/kkt/kkt_factor.h).
-    // Retakes of a sparse platform KKT factorization whose refined answer failed
-    // the platform solve check: on the maximum-product-matching scaled D K D
-    // (scaled), and, where that still perturbed pivots and failed again, on the
-    // weighted-matching session (matched; Pardiso only). Each is one factorization
-    // beyond `factorizations`. 0 wherever no refined answer failed.
+    // Retake factorizations of a sparse platform KKT factorization whose refined
+    // answer failed the platform solve check: on the maximum-product-matching
+    // scaled D K D (scaled), and, where that still perturbed pivots and failed
+    // again, on the weighted-matching session (matched; Pardiso only). EXACTLY
+    // the retake factorizations run, taken or not (a retake that throws before
+    // its factorization runs is none); each is a factorization BEYOND
+    // `factorizations`, which stays the active-set search's own accounting (the
+    // budgets and the hot-handle contract read it; a factorization that searches
+    // nothing belongs in its own field). Their symbolic analyses are in neither
+    // `symbolic_analyses` nor here: every matched retake pays one (the weighted
+    // matching is value-dependent); a scaled retake pays one only when K's pattern
+    // differs from the one its session last analyzed (D K D has K's pattern), so
+    // at most one per scaled retake. 0 wherever no refined answer failed.
     Index sparse_scaled_retakes = 0;
     Index sparse_matched_retakes = 0;
     // Answers through such a retake that the EQP-site residual check still refused
