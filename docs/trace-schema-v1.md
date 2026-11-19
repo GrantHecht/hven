@@ -1,7 +1,7 @@
 # hven machine-trace schema v1
 
 The JSON-lines event stream `hven::JsonLinesTraceSink` writes
-(`include/hven/trace/json_lines_trace_sink.h`, `src/trace/trace_writer.cpp`). **This document is the
+(`include/hven/trace/json_lines_trace_sink.h`, `src/trace/json_lines_trace_sink.cpp`). **This document is the
 schema.** It replaces `docs/trace-schema-v0.md` for every stream written from M8 TR-A on; v0 stays as the
 schema of the frozen artifacts under `docs/notes/data/**` (v0 §8's pointer to this page is its only
 change). The design is `docs/notes/2026-11-m8-tr1-trace-spec.md`; where this page and the code disagree,

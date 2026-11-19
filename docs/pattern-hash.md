@@ -237,6 +237,6 @@ against other computations of themselves in the same process -- nothing
 pins either digest's value, and `0` remains the warm-start currency's
 "no claim made" sentinel rather than any computed digest.
 
-`values_hash` (`qp_engine.h`) is not a pattern hash at all -- it
+`values_hash` (`walk_engine.h`) is not a pattern hash at all -- it
 fingerprints stored numeric values and answers a different reuse question
 -- and is unrelated to everything above; the re-key did not touch it.

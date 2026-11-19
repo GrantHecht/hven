@@ -130,7 +130,7 @@ a `RestorationSubStatus`). A CATEGORICAL reading is a legitimate counter here
 when it is per-solve and overwritten rather than accumulated --
 `ipqp_rho_demanded_last` and `ipqp_final_inertia_read` are the precedent -- and
 each one's serializer overload lives beside the others in
-`src/trace/trace_writer.cpp`.
+`src/trace/json_lines_trace_sink.cpp`.
 
 **`restoration_sub_status` carries an EXPLICIT not-run value**, and is the first
 counter here that can say "absent" in its own vocabulary. `SolveStatus` has no

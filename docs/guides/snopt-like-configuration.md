@@ -30,7 +30,7 @@ was consulted.
 | Infinite bound | `common.infinite_bound` (default 1e20) | `hven/solver/common_options.h` |
 | Derivative checking | none (see section 4) | |
 
-Why `kWalk`. The walk (`qp_engine.h`) is a primal active-set method: one
+Why `kWalk`. The walk (`walk_engine.h`) is a primal active-set method: one
 working-set change per minor iteration, warm-started from the previous
 subproblem's working set. SNOPT's QP solver (SQOPT) is also an active-set
 method that changes the working set one constraint at a time, so minor-iteration
