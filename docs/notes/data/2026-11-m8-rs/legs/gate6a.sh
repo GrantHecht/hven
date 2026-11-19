@@ -7,25 +7,25 @@
 set -o pipefail
 source "$(dirname "$0")/env.sh"
 export HVEN_PCH_NEUTRALITY_JOBS=12
-STEPS=${*:-build psym flags lists ctest smoke replay pch debug sweep mutation q9}
+STEPS=${*:-build psym litproof psymexc flags lists ctest smoke replay pch debug sweep mutation q9}
 E=$WT/docs/notes/data/2026-11-m8-rs; L=$(dirname "$0")
 BASEWT=${BASEWT:-/home/ghecht/Projects/hven/.claude/worktrees/rs6a-base}
-GD=$E/gates/RS-6a; SC=$WT/.scratch/g6
+GD=$E/gates/RS-6a-r6; SC=$WT/.scratch/g6
 mkdir -p "$GD" "$SC"
 V=$GD/VERDICTS.txt
 cd "$WT" || exit 1
 rec() { echo "$1 rc=$2 $(date -Is)" | tee -a "$V"; }
 has() { case " $STEPS " in *" $1 "*) return 0;; esac; return 1; }
-echo "== gate RS-6a head $(git rev-parse --short HEAD) base ${PSYM_BASE:-2f43fee5e} steps: $STEPS $(date -Is)" | tee -a "$V"
+echo "== gate RS-6a head $(git rev-parse --short HEAD) base ${PSYM_BASE:-720d30e8b} steps: $STEPS $(date -Is)" | tee -a "$V"
 if has build; then bash $L/build.sh Release build clean > "$GD/build-release.txt" 2>&1; rec build-release $?; tail -2 "$GD/build-release.txt"; fi
 if has psym; then
-  export PSYM_BASE=${PSYM_BASE:-$(git rev-parse 2f43fee5e)}
+  export PSYM_BASE=${PSYM_BASE:-$(git rev-parse 720d30e8b)}
   rm -rf "$SC/arms"; WT=$WT bash $L/psym_arms.sh "$SC/arms" > "$GD/psym-arms-run.txt" 2>&1
   rec psym-arms $?; tail -3 "$GD/psym-arms-run.txt"
   cp "$SC/arms/base-build.log" "$SC/arms/after-build.log" "$SC/arms.flags.txt" "$GD/" 2>/dev/null
 fi
 if has psym || has psymcmp; then
-  DECL="$GD/declared-object-map.txt"; [ -f "$GD/declared-object-map-r2.txt" ] && DECL="$DECL $GD/declared-object-map-r2.txt"
+  DECL="$E/gates/RS-6a/declared-object-map.txt $E/gates/RS-6a/declared-object-map-r2.txt $GD/declared-object-map-r6.txt"   # r1 + r2 (frozen, in gates/RS-6a) + the r6 line
   python3 $E/tools/rs6a_objmap_check.py "$SC/arms/psym-base/.psym-manifest" "$SC/arms/psym-after/.psym-manifest" $DECL --out "$GD/object-map-generated.txt" --unity-before "$GD/unity-before.txt" --unity-after "$GD/unity-after.txt" --unity-class-source tests/core/test_type_storage.cpp --unity-class-source tests/kkt/test_kkt_factorization.cpp > "$GD/objmap-check.txt" 2>&1
   rec objmap-equals-declared $?; tail -3 "$GD/objmap-check.txt"
   for ARM in base after; do   # the unity class is compared by psym_union, never paired: take it out of the compared snapshots
@@ -46,7 +46,7 @@ if has psymexc; then
   # DECLARATION-RS6a-r5.md: the exceptions name ONLY the five objects whose difference litproof proved to be a path-literal length effect
   B=tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o
   S=tests/solver/CMakeFiles/hven_drivers_tests.dir
-  python3 $E/tools/gen_exceptions.py "$GD/psym.txt" "$GD/exceptions.txt" "RS-6a r5: a moved or re-spelled -D path define changes the LENGTH of a string literal in this object (std::filesystem::path<char [N]> instantiation, inline copy displacements); proved by gates/RS-6a/litproof (the object recompiled with the base value of the define is byte-identical to the base object)" \
+  python3 $E/tools/gen_exceptions.py "$GD/psym.txt" "$GD/exceptions.txt" "RS-6a r6 (the r5 mechanism, re-derived): a moved or re-spelled -D path define changes the LENGTH of a string literal in this object (std::filesystem::path<char [N]> instantiation, inline copy displacements); proved by gates/RS-6a-r6/litproof (the object recompiled with the base value of the define is byte-identical to the base object)" \
     "$B" "$S/__/trace/test_human_trace_goldens.cpp.o" "$S/__/trace/test_trace_off_path.cpp.o" "$S/__/trace/test_trace_v1_fixtures.cpp.o" "$S/test_message_sites.cpp.o" > "$GD/exceptions-gen.txt" 2>&1
   rec exceptions-gen $?; cat "$GD/exceptions-gen.txt"
   scripts/psym_compare.sh compare --object-map "$GD/object-map-generated.txt" --exceptions "$GD/exceptions.txt" "$SC/arms/psym-base-nu" "$SC/arms/psym-after-nu" > "$GD/psym-r5.txt" 2>&1
@@ -64,7 +64,7 @@ if has lists; then
 fi
 if has lists || has membership; then
   cp "$WT/build/hven_test_membership.txt" "$GD/membership-after.txt"
-  python3 - "$GD/declared-membership.txt" "$GD/membership-after.txt" <<'PY' > "$GD/membership-verdict.txt"; rec membership-equals-declared $?
+  python3 - "$GD/declared-membership-r6.txt" "$GD/membership-after.txt" <<'PY' > "$GD/membership-verdict.txt"; rec membership-equals-declared $?
 import re, sys
 decl = {}; cur = None
 for ln in open(sys.argv[1]):

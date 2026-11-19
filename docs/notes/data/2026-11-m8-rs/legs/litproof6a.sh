@@ -5,7 +5,7 @@
 set -o pipefail
 source "$(dirname "$0")/env.sh"
 box_check
-E=$WT/docs/notes/data/2026-11-m8-rs; GD=$E/gates/RS-6a; A=$WT/.scratch/g6/arms; OUT=$GD/litproof; mkdir -p "$OUT"
+E=$WT/docs/notes/data/2026-11-m8-rs; GD=$E/gates/RS-6a-r6; A=$WT/.scratch/g6/arms; OUT=$GD/litproof; mkdir -p "$OUT"
 python3 - "$A/cc-base.json" "$A/cc-after.json" "$OUT" "$WT" "$@" <<'PY' > "$OUT/commands.txt"
 import json, shlex, sys, re
 cb, ca, out, wt = sys.argv[1:5]

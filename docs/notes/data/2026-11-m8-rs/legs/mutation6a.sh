@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # usage: WT=<worktree> bash mutation6a.sh      (configure-only proofs; no compile; run under the box lock by gate6a.sh)
 # RS-6a mutation proofs (DECLARATION-RS6a.md G8): plant a defect in the build description, the configure (or generate) must FAIL with the expected message; restore it, the configure must PASS.
-# Every plant is restored by `git checkout`/rm even on error. Output: gates/RS-6a/mutation/*.txt and MUTATION-VERDICTS.txt.
+# Every plant is restored by `git checkout`/rm even on error. Output: gates/RS-6a-r6/mutation/*.txt and MUTATION-VERDICTS.txt.
 set -o pipefail
 source "$(dirname "$0")/env.sh"
 export GIT_DIR=$(git -C "$WT" rev-parse --absolute-git-dir) GIT_WORK_TREE=$WT
-E=$WT/docs/notes/data/2026-11-m8-rs; MD=$E/gates/RS-6a/mutation; mkdir -p "$MD"; V=$MD/MUTATION-VERDICTS.txt; : > "$V"
+E=$WT/docs/notes/data/2026-11-m8-rs; MD=$E/gates/RS-6a-r6/mutation; mkdir -p "$MD"; V=$MD/MUTATION-VERDICTS.txt; : > "$V"
 cd "$WT" || exit 1
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "tracked tree not clean"; exit 2; }
 D=$WT/.scratch/mut-build
@@ -53,6 +53,19 @@ open(p, 'w').write(s.replace(o, '        ../ipm/compile_fail/${_probe}.cpp)', 1)
 PY
 expect_fail M4-compile-fail-stale-path "compile_fail probe source read from the stale ../ipm/compile_fail" 'Cannot find source file|No SOURCES given|CMake Generate step failed'
 git checkout -q -- tests; expect_pass M4-compile-fail-stale-path
+# (e) Q9 / DECLARATION-RS6a-r6: a whole-library seam executable that compiles a library TU of its own instead of using the shared hven_testing_library
+printf '\ntarget_sources(hven_ipm_seam_tests PRIVATE ${HVEN_SRC_DIR}/core/ledger.cpp)\n' >> tests/ipm/CMakeLists.txt
+expect_fail M5a-whole-seam-own-library-tu "hven_ipm_seam_tests also compiles src/core/ledger.cpp itself" 'whole-library seam executable and compiles the library TU'
+git checkout -q -- tests; expect_pass M5a-whole-seam-own-library-tu
+# (e2) the same defect in its other form: the executable declares the whole library as its own LIBRARY_SOURCES (a private recompile of every hven source)
+python3 - <<'PY'
+p = 'tests/ipm/CMakeLists.txt'; s = open(p).read()
+o = 'hven_add_seam_executable(hven_ipm_seam_tests\n    WHOLE_LIBRARY\n'
+assert o in s
+open(p, 'w').write(s.replace(o, 'get_target_property(_hven_all_lib hven SOURCES)\nhven_add_seam_executable(hven_ipm_seam_tests\n    LIBRARY_SOURCES ${_hven_all_lib}\n', 1))
+PY
+expect_fail M5b-seam-recompiles-whole-library "hven_ipm_seam_tests declared with every hven source as LIBRARY_SOURCES" 'narrow seam executable but recompiles'
+git checkout -q -- tests; expect_pass M5b-seam-recompiles-whole-library
 rm -rf "$D"
 grep -c KILLED "$V" | xargs echo "killed:"; grep -c SURVIVED "$V" | xargs echo "survived:"
 ! grep -q 'SURVIVED\|BAD RESTORE' "$V"

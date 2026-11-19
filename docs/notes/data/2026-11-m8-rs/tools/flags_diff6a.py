@@ -47,24 +47,30 @@ def load(p, root):
     return out
 B, A = load(a.before, a.root_before), load(a.after, a.root_after)
 viol, tally, nboth = [], Counter(), 0
-def classify(removed, added, kind='ord'):
+def classify(removed, added, kind='ord', libseam=False):
     bad, cls = [], []
     for t in removed + added:
         side = '-' if t in removed else '+'
         if t == '-I@/tests': cls.append('inc' + side)
         elif t == '-DHVEN_SQP_HAVE_SNOPT' or t == '-isystem' or re.search(r'/snopt7/include$', t): cls.append('snopt' + side)
         elif kind == 'seam' and re.fullmatch(r'-DHVEN_DEFAULT_(ARENA_SIZE|IPM_THREADS)=\d+', t): cls.append('seamdef' + side)
+        # DECLARATION-RS6a-r6: a library TU of the shared hven_testing_library OBJECT target (Q9) is compiled as an object-library TU, not as a member of an executable:
+        # position-independent (-fPIC, not the executable's -fPIE) and without the usage requirements of GTest (the googletest include directories), which a library TU never reads.
+        elif libseam and t == '-fPIE' and side == '-': cls.append('seamlib-pie-')
+        elif libseam and t == '-fPIC' and side == '+': cls.append('seamlib-pic+')
+        elif libseam and side == '-' and re.search(r'/googletest-src/googletest(/include)?$', t): cls.append('seamlib-gtest-')
         elif DECLARED_DEFS.match(t): cls.append('def' + side)
         else: bad.append(side + t)
     return bad, cls
 def cmp_lists(key, lb, la, opt_b, opt_a):
     kind = key[1]
+    libseam = kind == 'seam' and key[0].startswith('src/') or key[0].endswith('cmake_pch.hxx.cxx') and kind == 'seam'
     rb, ra = list(lb), list(la)
     removed = [t for t in rb if t not in ra]; added = [t for t in ra if t not in rb]
     # multiset (a token repeated) handled by Counter difference
     cb, ca = Counter(lb), Counter(la)
     removed = list((cb - ca).elements()); added = list((ca - cb).elements())
-    bad, cls = classify(removed, added, kind)
+    bad, cls = classify(removed, added, kind, libseam)
     if opt_b != opt_a: bad.append('effective optimisation level %s -> %s' % (opt_b, opt_a))
     return bad, cls
 for key in sorted(set(B) | set(A)):
@@ -102,7 +108,15 @@ for key in sorted(set(B) | set(A)):
             if not ok: viol.append('FLAGS(%s) %s: after list not explained by any before list: %s' % (kind, key[0] if kind != 'unity' else rel, keepbad))
         for fb, ob_, rel in eb:
             ok = any(not cmp_lists(key, fb, fa, ob_, oa_)[0] for fa, oa_, _ in ea)
-            if not ok and not any(re.search(r, key[0]) for r in a.allow_vanished): viol.append('FLAGS(%s) %s: before list vanished: %s' % (kind, key[0] if kind != 'unity' else rel, 'no after list matches'))
+            libvan = kind == 'seam' and (key[0].startswith('src/') or key[0].endswith('cmake_pch.hxx.cxx'))   # r6: the per-executable library recompiles became ONE shared one; the single-list assertion is below
+            if not ok and not libvan and not any(re.search(r, key[0]) for r in a.allow_vanished): viol.append('FLAGS(%s) %s: before list vanished: %s' % (kind, key[0] if kind != 'unity' else rel, 'no after list matches'))
+nlib = 0
+for key in sorted(A):
+    if key[1] == 'seam' and key[0].startswith('src/'):
+        shared = [x for x in A[key] if '-fPIC' in x[0]]   # the shared object library's compile (the narrow linear/kkt seams' executable TUs carry -fPIE)
+        nlib += 1
+        if len(shared) != 1: viol.append('SHARED-LIBRARY %s: %d compiles in hven_testing_library after (want exactly 1)' % (key[0], len(shared)))
+print('library TUs compiled with HVEN_TESTING in the shared object library after: %d (each exactly once)' % nlib)
 print('keys in both: %d (before %d, after %d)' % (nboth, len(B), len(A)))
 print('declared token classes applied (per TU or per distinct list):')
 for c, n in sorted(tally.items()): print('  %-14s %5d' % (c, n))

@@ -1,0 +1,226 @@
+# new executable <- sources, with origin attributes: O1 = compiled -O1 in Release (former interior/drivers/model target); U = unity-batched (former interior);
+# W = former hven_sqp_tests source (kept under if(NOT WIN32)); first column the former executable. SEAM/ALLOC executables are marked [seam]/[alloc].
+
+hven_bench_tests  (5 sources)
+  bench/test_bench_dump.cpp                        ---W  was hven_sqp_tests
+  bench/test_corpus_cells.cpp                      ---W  was hven_sqp_tests
+  bench/test_crossover_legs.cpp                    ---W  was hven_sqp_tests
+  bench/test_model_surface_kkt.cpp                 O1--  was hven_model_tests
+  bench/test_snopt_bridge_gate.cpp                 ---W  was hven_sqp_tests
+
+hven_core_tests  (7 sources)
+  core/test_inf_norm.cpp                           ----  was hven_tests
+  core/test_layering.cpp                           ----  was hven_tests
+  core/test_ledger.cpp                             ---W  was hven_sqp_tests
+  core/test_pattern_hash.cpp                       ----  was hven_tests
+  core/test_sparse_backend_link.cpp                ----  was hven_tests
+  core/test_type_storage.cpp                       O1U-  was hven_interior_tests
+  core/test_version.cpp                            ----  was hven_tests
+
+hven_ipm_seam_tests [seam]  (1 sources)
+  ipm/test_ipm_dense_guard_seams.cpp               ----  was hven_sqp_seam_tests
+
+hven_ipm_tests  (24 sources)
+  ipm/test_acceptance_diagnostics.cpp              O1U-  was hven_interior_tests
+  ipm/test_acceptance_retraction.cpp               O1U-  was hven_interior_tests
+  ipm/test_classic_merit_restoration.cpp           O1U-  was hven_interior_tests
+  ipm/test_filter_acceptance.cpp                   O1U-  was hven_interior_tests
+  ipm/test_funnel_acceptance.cpp                   O1U-  was hven_interior_tests
+  ipm/test_ipm_counters.cpp                        O1--  was hven_drivers_tests
+  ipm/test_ipm_phase_status.cpp                    O1--  was hven_drivers_tests
+  ipm/test_ipm_solver_entry.cpp                    O1U-  was hven_interior_tests
+  ipm/test_ipm_solver_presets.cpp                  O1U-  was hven_interior_tests
+  ipm/test_ipm_stop_reason.cpp                     O1U-  was hven_interior_tests
+  ipm/test_ipm_trace.cpp                           O1U-  was hven_interior_tests
+  ipm/test_ipm_warm_start.cpp                      O1U-  was hven_interior_tests
+  ipm/test_l1_restoration.cpp                      O1U-  was hven_interior_tests
+  ipm/test_merit_rules.cpp                         O1U-  was hven_interior_tests
+  ipm/test_monitored_governor.cpp                  O1U-  was hven_interior_tests
+  ipm/test_nlp_multiplier_seeding.cpp              O1U-  was hven_interior_tests
+  ipm/test_objective_scale_reporting.cpp           O1U-  was hven_interior_tests
+  ipm/test_proximal_restoration.cpp                O1U-  was hven_interior_tests
+  ipm/test_recovery_dispatch_gate.cpp              O1U-  was hven_interior_tests
+  ipm/test_soc.cpp                                 O1U-  was hven_interior_tests
+  ipm/test_stop_recovery.cpp                       O1--  was hven_drivers_tests
+  ipm/test_structure_epoch_gating.cpp              O1U-  was hven_interior_tests
+  ipm/test_switching_acceptance.cpp                O1U-  was hven_interior_tests
+  ipm/test_watchdog.cpp                            O1U-  was hven_interior_tests
+
+hven_kkt_seam_tests [seam]  (1 sources)
+  kkt/test_kkt_factorization_faults.cpp            ----  was hven_fault_injection_tests
+
+hven_kkt_tests  (7 sources)
+  kkt/test_border_ops.cpp                          ---W  was hven_sqp_tests
+  kkt/test_kkt_assembly.cpp                        ---W  was hven_sqp_tests
+  kkt/test_kkt_calls.cpp                           ---W  was hven_sqp_tests
+  kkt/test_kkt_factorization.cpp                   O1U-  was hven_interior_tests
+  kkt/test_kkt_inertia_probe.cpp                   ---W  was hven_sqp_tests
+  kkt/test_kkt_partial_solve.cpp                   ---W  was hven_sqp_tests
+  kkt/test_schur.cpp                               ---W  was hven_sqp_tests
+
+hven_linear_alloc_tests [alloc]  (1 sources)
+  linear/test_dense_arm_allocation.cpp             ----  was hven_dense_alloc_tests
+
+hven_linear_seam_tests [seam]  (1 sources)
+  linear/test_fault_injection.cpp                  ----  was hven_fault_injection_tests
+
+hven_linear_tests  (9 sources)
+  linear/test_accelerate_probes.cpp                ---W  was hven_sqp_tests
+  linear/test_backend_scaffold.cpp                 ---W  was hven_sqp_tests
+  linear/test_dense_symmetric_factor.cpp           ----  was hven_tests
+  linear/test_dense_symmetric_factor_growth.cpp    ----  was hven_tests
+  linear/test_matching_scaling.cpp                 ----  was hven_tests
+  linear/test_symmetric_factor.cpp                 ----  was hven_tests
+  linear/test_symmetric_factor_dense_arm.cpp       ----  was hven_tests
+  linear/test_symmetric_factor_evidence_invariants.cpp ----  was hven_tests
+  linear/test_symmetric_factor_pardiso_only_options.cpp ----  was hven_tests
+
+hven_model_tests  (21 sources)
+  model/support/fake_aggregate.cpp                 O1--  was hven_model_tests
+  model/test_aggregate_contract.cpp                O1--  was hven_model_tests
+  model/test_assembly_allocation.cpp               O1U-  was hven_interior_tests
+  model/test_claim_stream_restatement.cpp          O1--  was hven_model_tests
+  model/test_claim_stream_state.cpp                O1--  was hven_model_tests
+  model/test_contract_flags.cpp                    O1--  was hven_model_tests
+  model/test_identity_probe.cpp                    O1--  was hven_model_tests
+  model/test_local_block_include.cpp               O1--  was hven_model_tests
+  model/test_model_structure_key.cpp               O1--  was hven_model_tests
+  model/test_nlp_adapter.cpp                       O1U-  was hven_interior_tests
+  model/test_nlp_assembly_contract.cpp             O1U-  was hven_interior_tests
+  model/test_nlp_model.cpp                         ---W  was hven_sqp_tests
+  model/test_nlp_model_assembly.cpp                O1--  was hven_model_tests
+  model/test_nlp_problem_model.cpp                 O1U-  was hven_interior_tests
+  model/test_parametric_families.cpp               ---W  was hven_sqp_tests
+  model/test_pieces.cpp                            O1--  was hven_model_tests
+  model/test_problem.cpp                           O1--  was hven_drivers_tests
+  model/test_scale_problems.cpp                    ---W  was hven_sqp_tests
+  model/test_solver_interface_adapter.cpp          O1U-  was hven_interior_tests
+  model/test_string_piece.cpp                      O1U-  was hven_interior_tests
+  model/test_structure_epoch.cpp                   O1--  was hven_model_tests
+
+hven_qp_seam_tests [seam]  (23 sources)
+  qp/test_dense_solve_wound_seams.cpp              ----  was hven_sqp_seam_tests
+  qp/test_ipqp_seams.cpp                           ----  was hven_ipqp_seam_tests
+  qp/test_qp_anti_cycling_arm.cpp                  ----  was hven_qp_walk_seam_tests
+  qp/test_qp_ascent_guard.cpp                      ----  was hven_qp_walk_seam_tests
+  qp/test_qp_border_certificate.cpp                ----  was hven_qp_walk_seam_tests
+  qp/test_qp_certificate_sign.cpp                  ----  was hven_qp_walk_seam_tests
+  qp/test_qp_convex_certificate.cpp                ----  was hven_qp_walk_seam_tests
+  qp/test_qp_degeneracy_arm.cpp                    ----  was hven_qp_walk_seam_tests
+  qp/test_qp_dense_arm.cpp                         ----  was hven_qp_walk_seam_tests
+  qp/test_qp_flat_face_saddle.cpp                  ----  was hven_qp_walk_seam_tests
+  qp/test_qp_implied_blocker.cpp                   ----  was hven_qp_walk_seam_tests
+  qp/test_qp_latch_reason.cpp                      ----  was hven_qp_walk_seam_tests
+  qp/test_qp_platform_retake.cpp                   ----  was hven_qp_walk_seam_tests
+  qp/test_qp_rank_repair.cpp                       ----  was hven_qp_walk_seam_tests
+  qp/test_qp_refused_exchange.cpp                  ----  was hven_qp_walk_seam_tests
+  qp/test_qp_release_readmission.cpp               ----  was hven_qp_walk_seam_tests
+  qp/test_qp_saddle_exit.cpp                       ----  was hven_qp_walk_seam_tests
+  qp/test_qp_saddle_shift.cpp                      ----  was hven_qp_walk_seam_tests
+  qp/test_qp_stagnation_stop.cpp                   ----  was hven_qp_walk_seam_tests
+  qp/test_qp_standstill_retreat.cpp                ----  was hven_qp_walk_seam_tests
+  qp/test_qp_unrun_dependency_test.cpp             ----  was hven_qp_walk_seam_tests
+  qp/test_qp_walk_seam.cpp                         ----  was hven_qp_walk_seam_tests
+  qp/test_route_reference.cpp                      ----  was hven_qp_walk_seam_tests
+
+hven_qp_tests  (23 sources)
+  qp/test_dense_oracle.cpp                         ---W  was hven_sqp_tests
+  qp/test_eqp_refine_ab.cpp                        ---W  was hven_sqp_tests
+  qp/test_eqp_solve.cpp                            ---W  was hven_sqp_tests
+  qp/test_ipqp_acceptance.cpp                      ---W  was hven_sqp_tests
+  qp/test_ipqp_certification.cpp                   ---W  was hven_sqp_tests
+  qp/test_ipqp_counters.cpp                        ---W  was hven_sqp_tests
+  qp/test_ipqp_engine.cpp                          ---W  was hven_sqp_tests
+  qp/test_ipqp_kkt_layout.cpp                      ---W  was hven_sqp_tests
+  qp/test_ipqp_ladder_skip.cpp                     ---W  was hven_sqp_tests
+  qp/test_ipqp_math.cpp                            ---W  was hven_sqp_tests
+  qp/test_ipqp_mu0_rule.cpp                        ---W  was hven_sqp_tests
+  qp/test_ipqp_options.cpp                         ---W  was hven_sqp_tests
+  qp/test_ipqp_trace.cpp                           ---W  was hven_sqp_tests
+  qp/test_ipqp_warm_restart.cpp                    ---W  was hven_sqp_tests
+  qp/test_qp_engine.cpp                            ---W  was hven_sqp_tests
+  qp/test_qp_engine_border.cpp                     ---W  was hven_sqp_tests
+  qp/test_qp_engine_indefinite.cpp                 ---W  was hven_sqp_tests
+  qp/test_qp_engine_tr.cpp                         ---W  was hven_sqp_tests
+  qp/test_qp_row_contract.cpp                      ---W  was hven_sqp_tests
+  qp/test_qp_types.cpp                             ---W  was hven_sqp_tests
+  qp/test_qp_warm_start.cpp                        ---W  was hven_sqp_tests
+  qp/test_qp_ws_independence.cpp                   ---W  was hven_sqp_tests
+  qp/test_ssn_engine.cpp                           ---W  was hven_sqp_tests
+
+hven_solver_seam_tests [seam]  (2 sources)
+  solver/test_backend_error_seams.cpp              ----  was hven_sqp_seam_tests
+  solver/test_stop_poll_seams.cpp                  ----  was hven_sqp_seam_tests
+
+hven_solver_tests  (18 sources)
+  solver/test_best_iterate.cpp                     O1--  was hven_drivers_tests
+  solver/test_callback.cpp                         O1--  was hven_drivers_tests
+  solver/test_concurrency.cpp                      O1--  was hven_drivers_tests
+  solver/test_counters_dump.cpp                    O1--  was hven_drivers_tests
+  solver/test_dense_arm_engines.cpp                O1--  was hven_drivers_tests
+  solver/test_dense_auto.cpp                       O1--  was hven_drivers_tests
+  solver/test_evaluation_failure.cpp               O1--  was hven_drivers_tests
+  solver/test_exit_door_walk.cpp                   O1--  was hven_drivers_tests
+  solver/test_infinite_bound.cpp                   O1--  was hven_drivers_tests
+  solver/test_iteration_history.cpp                O1--  was hven_drivers_tests
+  solver/test_limits.cpp                           O1--  was hven_drivers_tests
+  solver/test_message_sites.cpp                    O1--  was hven_drivers_tests
+  solver/test_options.cpp                          O1--  was hven_drivers_tests
+  solver/test_options_dump.cpp                     O1--  was hven_drivers_tests
+  solver/test_solve_result.cpp                     O1--  was hven_drivers_tests
+  solver/test_solver_move.cpp                      O1--  was hven_drivers_tests
+  solver/test_stop_token.cpp                       O1--  was hven_drivers_tests
+  solver/test_threads.cpp                          O1--  was hven_drivers_tests
+
+hven_sqp_seam_tests [seam]  (2 sources)
+  sqp/test_sqp_equality_basis_seams.cpp            ----  was hven_sqp_seam_tests
+  sqp/test_sqp_ladder_seams.cpp                    ----  was hven_sqp_seam_tests
+
+hven_sqp_tests  (28 sources)
+  sqp/test_activity_telemetry.cpp                  ---W  was hven_sqp_tests
+  sqp/test_assembly_eval_seam.cpp                  ---W  was hven_sqp_tests
+  sqp/test_b1_gate.cpp                             ---W  was hven_sqp_tests
+  sqp/test_column_scaling.cpp                      ---W  was hven_sqp_tests
+  sqp/test_continuation.cpp                        ---W  was hven_sqp_tests
+  sqp/test_disproved_entry.cpp                     ---W  was hven_sqp_tests
+  sqp/test_elastic_rung_vehicle.cpp                ---W  was hven_sqp_tests
+  sqp/test_elastic_witness_start.cpp               ---W  was hven_sqp_tests
+  sqp/test_equality_basis.cpp                      ---W  was hven_sqp_tests
+  sqp/test_funnel.cpp                              ---W  was hven_sqp_tests
+  sqp/test_hs_battery.cpp                          ---W  was hven_sqp_tests
+  sqp/test_hs_sweeps.cpp                           ---W  was hven_sqp_tests
+  sqp/test_ipqp_dispatch.cpp                       ---W  was hven_sqp_tests
+  sqp/test_lbfgs_damped.cpp                        ---W  was hven_sqp_tests
+  sqp/test_nlp_kkt_check.cpp                       ---W  was hven_sqp_tests
+  sqp/test_predictor.cpp                           ---W  was hven_sqp_tests
+  sqp/test_problem_scaling.cpp                     ---W  was hven_sqp_tests
+  sqp/test_qn_models.cpp                           ---W  was hven_sqp_tests
+  sqp/test_qp_cap_levers.cpp                       ---W  was hven_sqp_tests
+  sqp/test_qp_lift_oracle.cpp                      ---W  was hven_sqp_tests
+  sqp/test_qp_mode_sites.cpp                       ---W  was hven_sqp_tests
+  sqp/test_scale_smoke.cpp                         ---W  was hven_sqp_tests
+  sqp/test_sqp_equality_basis.cpp                  ---W  was hven_sqp_tests
+  sqp/test_sqp_qn_mode.cpp                         ---W  was hven_sqp_tests
+  sqp/test_sqp_restoration.cpp                     ---W  was hven_sqp_tests
+  sqp/test_sqp_solver.cpp                          ---W  was hven_sqp_tests
+  sqp/test_start_point_projection.cpp              ---W  was hven_sqp_tests
+  sqp/test_trace_messages_sqp.cpp                  ---W  was hven_sqp_tests
+
+hven_trace_tests  (8 sources)
+  trace/test_console_sink.cpp                      O1--  was hven_drivers_tests
+  trace/test_human_trace_goldens.cpp               O1--  was hven_drivers_tests
+  trace/test_print_tables.cpp                      O1--  was hven_drivers_tests
+  trace/test_trace_messages.cpp                    O1--  was hven_drivers_tests
+  trace/test_trace_off_path.cpp                    O1--  was hven_drivers_tests
+  trace/test_trace_v1_contract.cpp                 O1--  was hven_drivers_tests
+  trace/test_trace_v1_fixtures.cpp                 O1--  was hven_drivers_tests
+  trace/test_trace_writer.cpp                      ---W  was hven_sqp_tests
+
+hven_warmstart_tests  (7 sources)
+  warmstart/test_ipm_polish_extension.cpp          ----  was hven_tests
+  warmstart/test_mesh_transfer.cpp                 ---W  was hven_sqp_tests
+  warmstart/test_sqp_warm_currency.cpp             ---W  was hven_sqp_tests
+  warmstart/test_warm_protocol.cpp                 O1--  was hven_drivers_tests
+  warmstart/test_warm_start.cpp                    ---W  was hven_sqp_tests
+  warmstart/test_warm_start_battery.cpp            ---W  was hven_sqp_tests
+  warmstart/test_warm_start_data.cpp               ----  was hven_tests
