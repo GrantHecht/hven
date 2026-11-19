@@ -127,9 +127,12 @@ Layering, for every header and TU: core < util < barrier < linear < model <
 qp data < kkt < qp engines < warmstart < solver < {ipm, sqp} public types <
 trace < engine implementations. A file includes only its own level or lower
 ones; ipm and sqp never include each other. Public headers never include
-detail/. Today only the core tier is enforced by a test
-(tests/core/test_core_layering.cpp); a layering test for the whole order is
-planned, and until it lands the order is a rule reviewers apply by hand.
+detail/. The whole order is enforced by tests/core/test_layering.cpp over
+include/hven and src/, with an explicit allow-list of known upward pairs (each
+a named debt; a stale entry fails the test, a new pair is a design decision).
+Public directories and the include root are enforced by
+scripts/check_export_contract.sh; every header compiling alone is enforced by
+the HeaderSelfContained ctest.
 
 ## 3. Build
 

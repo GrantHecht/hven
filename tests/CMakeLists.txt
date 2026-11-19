@@ -192,12 +192,12 @@ set(HVEN_TEST_SOURCES
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
     core/test_inf_norm.cpp
-    # The include-graph regression net for CLAUDE.md section 2's tier order:
-    # scans include/hven/core/'s own headers and fails if any of them includes a
-    # header from a tier ABOVE core/. It reads source text rather than linking
-    # anything, so it belongs to no backend and is not platform-gated. See
-    # HVEN_CORE_INCLUDE_DIR below for the path it is given.
-    core/test_core_layering.cpp
+    # The include-graph regression net for CLAUDE.md section 2's layer order: the core-only
+    # checks plus the whole order over include/hven (public and detail/) and src/, with an
+    # explicit allow-list of known upward pairs. It reads source text rather than linking
+    # anything, so it belongs to no backend and is not platform-gated. See HVEN_INCLUDE_ROOT
+    # and HVEN_SRC_ROOT below for the paths it is given.
+    core/test_layering.cpp
     linear/test_dense_symmetric_factor.cpp
     # The dense factor's phase-B growth (Triangle, try_factorize, block
     # evidence), in its own file rather than appended to the suite above:
@@ -248,16 +248,17 @@ target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
 # — see src/core/version.cpp and core/test_version.cpp.
 target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
 
-# The directory core/test_core_layering.cpp scans. Rooted at THIS directory
-# rather than at ${CMAKE_SOURCE_DIR}, for the same reason HVEN_SRC_DIR below is:
-# under add_subdirectory(hven) from a parent project, CMAKE_SOURCE_DIR is the
-# PARENT's top-level source directory and would point the scan somewhere that
-# does not exist. Passed as an absolute path so the test is independent of the
-# working directory ctest launches it from; the test asserts the directory exists
-# and contains the headers it expects, so a wrong path fails loudly instead of
-# scanning nothing and passing.
+# The two trees core/test_layering.cpp scans. Rooted at THIS directory rather than at
+# ${CMAKE_SOURCE_DIR}, for the same reason HVEN_SRC_DIR below is: under add_subdirectory(hven)
+# from a parent project, CMAKE_SOURCE_DIR is the PARENT's top-level source directory and would
+# point the scan somewhere that does not exist. Passed as absolute paths so the test is
+# independent of the working directory ctest launches it from; the test asserts the directories
+# exist and contain the files it expects, so a wrong path fails loudly instead of scanning nothing
+# and passing.
+get_filename_component(_hven_repo_root "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 target_compile_definitions(hven_tests
-    PRIVATE HVEN_CORE_INCLUDE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../include/hven/core")
+    PRIVATE HVEN_INCLUDE_ROOT="${_hven_repo_root}/include/hven"
+            HVEN_SRC_ROOT="${_hven_repo_root}/src")
 
 # The DN-0 KKT dumps the dense-arm suite reads (linear/fixtures/dn1/), absolute so ctest's
 # working directory is irrelevant.
@@ -265,6 +266,44 @@ target_compile_definitions(hven_tests
     PRIVATE HVEN_DN1_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/linear/fixtures/dn1")
 
 gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+# Header self-containment (RS-5): every header under include/hven compiles ALONE. One generated
+# translation unit per header, `#include <hven/...>` as its only line, in an OBJECT library that is
+# EXCLUDE_FROM_ALL (an ordinary build never compiles it) and is built by the ctest test below. A
+# header that only compiled because an earlier include had already pulled in what it needs fails
+# here, by name. The TUs are real compiles under the library's own interface (include
+# directories, definitions, the project's COMPILE_FLAGS), not a syntax-only approximation: the
+# objects they produce are empty, so the build is incremental and the cost is the parse.
+#
+# EXCLUDED, by this explicit list and nothing else: the three headers that only exist for Apple
+# Accelerate. They name Apple frameworks (accelerate_session.h, lapacke_shim.h) or the Accelerate
+# thread control (accelerate_threads.h), and are not meant to be parsed anywhere else. On Apple
+# they are checked like every other header. Adding a header to this list needs a reason that says
+# why it cannot be parsed alone on the other platforms; "it is not self-contained" is not one.
+set(HVEN_HEADER_CHECK_APPLE_ONLY
+    hven/detail/ipm/accelerate_threads.h
+    hven/detail/linear/accelerate_session.h
+    hven/detail/linear/lapacke_shim.h)
+file(GLOB_RECURSE _hven_header_list CONFIGURE_DEPENDS
+    RELATIVE "${_hven_repo_root}/include" "${_hven_repo_root}/include/hven/*.h")
+list(SORT _hven_header_list)
+if(NOT APPLE)
+    list(REMOVE_ITEM _hven_header_list ${HVEN_HEADER_CHECK_APPLE_ONLY})
+endif()
+set(_hven_header_check_sources "")
+foreach(_h IN LISTS _hven_header_list)
+    string(REPLACE "/" "_" _stem "${_h}")
+    set(_tu "${CMAKE_CURRENT_BINARY_DIR}/header_selfcheck/${_stem}.cpp")
+    file(CONFIGURE OUTPUT "${_tu}" CONTENT "#include <${_h}>\n" @ONLY)
+    list(APPEND _hven_header_check_sources "${_tu}")
+endforeach()
+add_library(hven_header_selfcheck OBJECT EXCLUDE_FROM_ALL ${_hven_header_check_sources})
+target_link_libraries(hven_header_selfcheck PRIVATE hven::hven)
+target_compile_options(hven_header_selfcheck PRIVATE ${COMPILE_FLAGS})
+add_test(NAME HeaderSelfContained
+    COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --config $<CONFIG>
+            --target hven_header_selfcheck)
+set_tests_properties(HeaderSelfContained PROPERTIES TIMEOUT 1800)
 
 # The dense arm's allocation-free hot path (M8 DN-1, T9): its own executable, because the test
 # replaces the global operator new for the binary it links into. On Linux it also wraps the C
