@@ -40,8 +40,8 @@
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/linear/symmetric_factor.h>
+#include <hven/qp/qp_options.h>
 #include <hven/qp/qp_types.h>
-#include <hven/sqp/sqp_solver_types.h>
 
 namespace hven::detail {
 
@@ -274,7 +274,7 @@ struct SsnNorms {
 
 // What one factorization's reported inertia says about the system factorized.
 //
-// This is qp_engine.h's detail::InertiaVerdict, RESTATED rather than included,
+// This is walk_engine.h's detail::InertiaVerdict, RESTATED rather than included,
 // so that this header depends on the QP data types
 // and the KKT factor helper, never on the walk's internals. The rules are that
 // header's exactly -- non-kObserved evidence routes to kSuspect, then perturbed

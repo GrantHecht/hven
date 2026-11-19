@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// trace_writer.cpp -- JsonLinesTraceSink, schema v0's serializer. Printing and
+// json_lines_trace_sink.cpp -- JsonLinesTraceSink, schema v0's serializer. Printing and
 // orchestration code, so CLAUDE.md section 5 puts it in a TU rather than the
 // header.
 //
@@ -16,9 +16,12 @@
 //     default mask the sink never throws and never ends a solve, under an armed
 //     mask the caller's choice propagates by design. Stated in json_lines_trace_sink.h.
 
+#include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <limits>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -27,7 +30,6 @@
 
 #include <hven/core/version.h>
 #include <hven/detail/core/aggregate_arity.h>
-#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/trace/json_lines_trace_sink.h>
 

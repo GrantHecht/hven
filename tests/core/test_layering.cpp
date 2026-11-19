@@ -55,7 +55,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <optional>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -293,8 +295,8 @@ TEST(CoreLayering, NoCoreHeaderDependsUpwardOnAnotherTier) {
     }
     EXPECT_TRUE(violations.empty())
         << "core/ is the bottom tier of CLAUDE.md section 2's map and must depend on no tier "
-           "above it. A core/ header including a drivers/, qp/, model/, kkt/, interior/, "
-           "linear/, globalization/, warmstart/ or detail/ header reopens the include-graph "
+           "above it. A core/ header including a linear/, model/, qp/, "
+           "warmstart/, solver/, ipm/, sqp/, trace/ or detail/ header reopens the include-graph "
            "inversion M3 phase-C S2 eliminated.\n"
            "Offending include directive(s):"
         << report
@@ -530,8 +532,9 @@ std::vector<FileScan> scan_tree(std::vector<std::string> &unplaced) {
 }
 
 // One allow-listed upward pair, file to file, with the debt that explains it. Every entry is
-// RE-DERIVED from the tree (RS-5), and an entry that no longer occurs fails
-// EveryAllowListedPairStillOccurs, so the list can only shrink by paying the debt.
+// re-derived from the tree, and an entry that no longer occurs fails
+// EveryAllowListedPairStillOccurs, so the list can only shrink by paying the debt. The numbers
+// are stable names, not a count: a paid debt leaves a gap.
 struct AllowedPair {
     const char *file;     // repo-relative
     const char *included; // as written in the #include, hven/...
@@ -544,12 +547,8 @@ constexpr AllowedPair kAllowed[] = {
      "DEBT 1: the fixed-variable treatment enum is declared with IpmOptions. Removed by the "
      "model-contract unification (T8 section 6 group), which moves the enum below the model "
      "layer."},
-    // 2-3 -- IpqpOptions/SsnOptions/QpMode are declared inside SqpOptions' header.
-    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "hven/sqp/sqp_solver_types.h",
-     "DEBT 2: IpqpOptions/SsnOptions/QpMode are declared in the sqp public types. Removed by the "
-     "AP-4 options registry, which moves them to qp/."},
-    {"include/hven/detail/qp/ssn/ssn_engine.h", "hven/sqp/sqp_solver_types.h",
-     "DEBT 3: as debt 2 (the SSN engine reads the same option types)."},
+    // (2 and 3, the IPQP/SSN engines' include of the sqp public types, were paid by moving
+    // IpqpOptions, QpMode and the Ssn*Rule enums to qp/qp_options.h; the numbers are not reused.)
     // 4-5 -- Problem's warm hand-off from a result.
     {"src/model/problem.cpp", "hven/solver/solve_result.h",
      "DEBT 4: Problem's warm hand-off reads a SolveResult. Removed when the hand-off moves to the "
@@ -570,11 +569,7 @@ constexpr AllowedPair kAllowed[] = {
      "result_message (RS-7)."},
     {"src/solver/result_message.cpp", "hven/sqp/sqp_options.h", "DEBT 10: as debt 9."},
     {"src/solver/result_message.cpp", "hven/sqp/sqp_solver_types.h", "DEBT 11: as debt 9."},
-    // 12 -- the trace serializer names the funnel's verdict types.
-    {"src/trace/trace_writer.cpp", "hven/detail/sqp/globalization/funnel.h",
-     "DEBT 12: the JSON-lines serializer names the funnel's verdict types, which live in an engine "
-     "implementation header. Removed by moving the verdict enums to a header at or below trace/ "
-     "(trace upgrade)."},
+    // (12, the JSON-lines serializer's include of the funnel header, was unused and deleted.)
 };
 
 bool allowed(const std::string &file, const std::string &included) {
@@ -643,7 +638,7 @@ TEST(Layering, TheScanReadsTheWholeTree) {
         {"src/solver/result_message.cpp", Layer::kSolver, ""},
         {"include/hven/ipm/ipm_solver.h", Layer::kEnginePublic, "ipm"},
         {"include/hven/sqp/sqp_options.h", Layer::kEnginePublic, "sqp"},
-        {"src/trace/trace_writer.cpp", Layer::kTrace, ""},
+        {"src/trace/json_lines_trace_sink.cpp", Layer::kTrace, ""},
         {"include/hven/detail/sqp/sqp_solver_impl.h", Layer::kEngineImpl, "sqp"},
         {"src/ipm/ipm_solver.cpp", Layer::kEngineImpl, "ipm"},
         {"include/hven/hven.h", Layer::kUmbrella, ""},
@@ -752,4 +747,168 @@ TEST(Layering, PublicHeadersDoNotIncludeDetail) {
     }
     EXPECT_GE(public_headers, 40U) << "the public headers were not scanned";
     EXPECT_TRUE(report.empty()) << "public header(s) include a detail/ header:" << report;
+}
+
+// ---------------------------------------------------------------------------------------------
+// FORWARD DECLARATIONS ARE INCLUDES IN DISGUISE. A `struct X;` (or `friend struct X;`) of a type
+// whose definition sits ABOVE the declaring file in the layer order is an upward dependency that
+// the include scan above cannot see. The known ones are listed here with the reason each is
+// tolerated; a new unlisted one fails NoForwardDeclarationGoesUpTheLayerOrder, and a listed one
+// that no longer occurs fails KnownForwardDeclarationsStillOccur.
+// ---------------------------------------------------------------------------------------------
+namespace {
+
+struct KnownForward {
+    const char *file; // repo-relative
+    const char *name; // the forward-declared (or befriended) type, unqualified
+    const char *why;
+};
+
+constexpr KnownForward kKnownForward[] = {
+    {"include/hven/warmstart/sqp_warm_start.h", "SqpResult",
+     "SqpWarmStart befriends the SQP result that builds it; goes with the model-contract "
+     "unification of the warm hand-off."},
+    {"include/hven/solver/solve_result.h", "IpmSolverImpl",
+     "SolveResult befriends the engines that fill it (friend declarations, no definition needed)."},
+    {"include/hven/solver/solve_result.h", "SqpSolverImpl", "as IpmSolverImpl."},
+    {"include/hven/detail/solver/result_message.h", "IpmOptions",
+     "the shared message renderer takes both engines' options by reference (debt 9-11's header "
+     "half; removed with the per-engine split)."},
+    {"include/hven/detail/solver/result_message.h", "SqpOptions", "as IpmOptions."},
+    {"include/hven/detail/solver/result_message.h", "SqpResult", "as IpmOptions."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "TraceSink",
+     "the IPQP engine emits its own trace events (debt 6's header half; removed with it)."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "IpqpIterTraceEvent", "as TraceSink."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "IpqpRegTraceEvent", "as TraceSink."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "IpqpRestartTraceEvent", "as TraceSink."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "IpqpCertifyTraceEvent", "as TraceSink."},
+    {"include/hven/detail/qp/ipqp/ipqp_engine.h", "IpqpEscapeTraceEvent", "as TraceSink."},
+    // The public solver handles are opaque (pimpl): the header names the implementation class and
+    // its accessor, which are defined in the engine implementation layer, and the trace sink the
+    // handle attaches. By design; they go only with the handle design itself.
+    {"include/hven/ipm/ipm_solver.h", "TraceSink", "the handle attaches a sink (opaque handle)."},
+    {"include/hven/ipm/ipm_solver.h", "IpmSolverImpl", "the handle's pimpl (opaque handle)."},
+    {"include/hven/ipm/ipm_solver.h", "IpmSolverAccess", "the handle's befriended accessor."},
+    {"include/hven/sqp/sqp_solver.h", "TraceSink", "the handle attaches a sink (opaque handle)."},
+    {"include/hven/sqp/sqp_solver.h", "SqpSolverImpl", "the handle's pimpl (opaque handle)."},
+    {"include/hven/sqp/sqp_solver.h", "SqpSolverAccess", "the handle's befriended accessor."},
+    {"include/hven/sqp/sqp_options.h", "GlobalizationStrategy",
+     "SqpAdvancedOptions::make_strategy returns the strategy interface, whose definition is "
+     "internal (the header says so); a caller that implements one includes the internal header."},
+    {"include/hven/detail/model/problem_access.h", "SolveResult",
+     "the engines' door into Problem names the result type it hands a warm start from (debt 4-5's "
+     "header half)."},
+};
+
+struct ForwardDecl {
+    std::string file;
+    int line;
+    std::string name;
+};
+
+// type name -> the headers that DEFINE it (a class/struct head with no ';' on its line).
+using Definitions = std::vector<std::pair<std::string, std::string>>;
+
+void scan_forward_decls(std::vector<ForwardDecl> &decls, Definitions &defs) {
+    static const std::regex fwd(
+        R"(^\s*(?:friend\s+)?(?:class|struct)\s+(?:\w+::)*(\w+)\s*;\s*(?://.*)?$)");
+    static const std::regex def(
+        R"(^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+(\w+)\b[^;]*$)");
+    const std::filesystem::path include_root(HVEN_INCLUDE_ROOT);
+    const std::filesystem::path src_root(HVEN_SRC_ROOT);
+    struct Root {
+        std::filesystem::path dir;
+        std::string prefix;
+    };
+    for (const Root &r : {Root{include_root, "include/hven/"}, Root{src_root, "src/"}}) {
+        for (const auto &e : std::filesystem::recursive_directory_iterator(r.dir)) {
+            const auto ext = e.path().extension();
+            if (!e.is_regular_file() || (ext != ".h" && ext != ".cpp")) {
+                continue;
+            }
+            const std::string rel =
+                r.prefix + normalised(std::filesystem::relative(e.path(), r.dir).string());
+            std::ifstream in(e.path());
+            std::string line;
+            int lineno = 0;
+            std::smatch m;
+            while (std::getline(in, line)) {
+                ++lineno;
+                if (std::regex_match(line, m, fwd)) {
+                    decls.push_back({rel, lineno, m[1].str()});
+                } else if (ext == ".h" && std::regex_match(line, m, def)) {
+                    defs.emplace_back(m[1].str(), rel);
+                }
+            }
+        }
+    }
+}
+
+// The forward declarations whose every definition sits above the declaring file.
+std::vector<ForwardDecl> upward_forward_decls() {
+    std::vector<ForwardDecl> decls;
+    Definitions defs;
+    scan_forward_decls(decls, defs);
+    std::vector<ForwardDecl> up;
+    for (const ForwardDecl &d : decls) {
+        const auto from = classify(d.file);
+        if (!from) {
+            continue;
+        }
+        std::size_t n_defs = 0, n_up = 0;
+        for (const auto &[name, file] : defs) {
+            if (name != d.name || file == d.file) {
+                continue;
+            }
+            const auto to = classify(file);
+            if (!to) {
+                continue;
+            }
+            ++n_defs;
+            n_up += order_violation(*from, *to).empty() ? 0U : 1U;
+        }
+        if (n_defs > 0 && n_up == n_defs) {
+            up.push_back(d);
+        }
+    }
+    return up;
+}
+
+bool known_forward(const std::string &file, const std::string &name) {
+    for (const KnownForward &k : kKnownForward) {
+        if (file == k.file && name == k.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+TEST(Layering, NoForwardDeclarationGoesUpTheLayerOrder) {
+    const std::vector<ForwardDecl> up = upward_forward_decls();
+    std::string report;
+    for (const ForwardDecl &d : up) {
+        if (!known_forward(d.file, d.name)) {
+            report += "\n  " + d.file + ":" + std::to_string(d.line) + ": forward-declares '" +
+                      d.name + "', which is defined in a layer above this file";
+        }
+    }
+    EXPECT_TRUE(report.empty())
+        << "A forward declaration of a higher layer's type is an upward dependency. Move the "
+           "type down, or (a design decision with a named owner) list it in kKnownForward:"
+        << report;
+}
+
+TEST(Layering, KnownForwardDeclarationsStillOccur) {
+    const std::vector<ForwardDecl> up = upward_forward_decls();
+    // The check must have looked: a vacuous pass is its failure mode.
+    EXPECT_GE(up.size(), std::size(kKnownForward) / 2);
+    for (const KnownForward &k : kKnownForward) {
+        const bool found = std::any_of(up.begin(), up.end(), [&](const ForwardDecl &d) {
+            return d.file == k.file && d.name == k.name;
+        });
+        EXPECT_TRUE(found) << k.file << " no longer forward-declares '" << k.name
+                           << "' upward: remove its kKnownForward entry (" << k.why << ")";
+    }
 }

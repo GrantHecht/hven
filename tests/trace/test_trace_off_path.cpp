@@ -210,7 +210,7 @@ TEST(TraceOffPath, EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder
         // The sinks themselves (writer, console, defaults) are the consumers: policed by being
         // consumers.
         const std::string stem = f.stem().string();
-        if (stem == "trace_writer" || stem == "console_trace_sink" || stem == "trace") {
+        if (stem == "json_lines_trace_sink" || stem == "console_trace_sink" || stem == "trace") {
             continue;
         }
         sites += static_cast<std::size_t>(std::distance(

@@ -64,7 +64,7 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 
 /// The five-way inertia reading the tier acts on.
 ///
-/// REFINES `detail::inertia_verdict` (qp_engine.h), reused verbatim for the kOk/kWrong
+/// REFINES `detail::inertia_verdict` (walk_engine.h), reused verbatim for the kOk/kWrong
 /// decision: that helper collapses "perturbed pivots" and "no evidence state" into one
 /// `kSuspect`, and spec 2.2 gives them DIFFERENT remedies (raise `delta` vs downgrade).
 ///
@@ -460,7 +460,7 @@ IpqpBox detail::make_ipqp_box(const QpProblem &qp, double radius) {
             throw std::invalid_argument(
                 fmt::format("make_ipqp_box: bound {} is NaN (lower={}, upper={})", i, lo, up));
         }
-        // THE CENTRE RULE IS refine_on_face's OWN, character for character (qp_engine.cpp's
+        // THE CENTRE RULE IS refine_on_face's OWN, character for character (walk_engine.cpp's
         // gate: `c = min(max(0, lo), up)`). Why sharing it is load-bearing: IpqpBox's doc.
         const double c = std::min(std::max(0.0, lo), up);
         box.centre(i) = c;
@@ -798,12 +798,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     qp.validate();
     validate_overrides(overrides);
     {
-        // THE SAME CODE THE DRIVER RUNS, not a second copy of the rules: `validate`
-        // owns every IpqpOptions band (task 1), and this engine is reachable without a driver,
-        // so the check happens here by CALLING the owner with an otherwise default SqpOptions.
-        SqpOptions probe;
-        probe.advanced.ipqp = iopts;
-        validate(probe);
+        // THE SAME CODE THE DRIVER RUNS, not a second copy of the rules: `validate(IpqpOptions)`
+        // owns every IpqpOptions band, and this engine is reachable without a driver.
+        validate(iopts);
     }
 
     const Index n = qp.n();
@@ -1992,7 +1989,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //
     // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored by
     // its normwise backward error in an equilibrated metric -- the tier's own Ruiz D when it
-    // equilibrates, else the check's (kkt_calls.h) -- refined and refused above
+    // equilibrates, else the check's (kkt_factor.h) -- refined and refused above
     // kDenseSolveBackwardErrorTol. eta has no condition-number floor, so the late interior
     // systems pass and the check sees wrong factors only. Returns true iff refused.
     auto solve_system = [&]() -> bool {
@@ -3113,7 +3110,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         // ---- THE TWO EXPORT INVARIANTS THIS TIER MUST RE-DERIVE ----------
         //
-        // qp_engine.h's export contract states both against `QpSolution`, and says in as many
+        // walk_engine.h's export contract states both against `QpSolution`, and says in as many
         // words that a third producer must RE-DERIVE them. This tier is that third producer.
         //
         // (6b) `bound_state[i] == kFree ==> z(i) == 0.0`, ON EVERY STATUS. A barrier method carries

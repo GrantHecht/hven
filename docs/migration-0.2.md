@@ -874,3 +874,13 @@ saddle-point K whose pivots must pair into 2x2 blocks -- and the walk now answer
   Evidence: `docs/notes/data/2026-11-m8-sparse-equil-v4/`.
 
 Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.
+
+## `qp/qp_options.h` -- the QP-layer option types (M8 RS-R1)
+
+Additive. `IpqpOptions`, `IpqpBarrierInitialRule`, `QpMode`, `SsnSigmaRule`, `SsnHintRule` and
+`SsnInfeasibilityRule` moved verbatim from `hven/sqp/sqp_options.h` to the new public header
+`hven/qp/qp_options.h`, and `sqp_options.h` includes it, so every existing consumer compiles
+unchanged and `hven.h` still reaches all of them. The QP engines (`detail/qp/ipqp`, `detail/qp/ssn`)
+now include `qp_options.h` instead of the SQP types, and `validate(const IpqpOptions &)` is declared
+there: it is the code `validate(const SqpOptions &)` runs for `advanced.ipqp`, at the same position,
+with the same messages. No name, enumerator value or field changed.

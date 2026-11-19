@@ -6,7 +6,7 @@
 /// @file
 /// @brief The interior-point (IP-PMM) QP tier: declarations only.
 ///
-/// A third QP kernel beside the working-set walk (qp_engine.h) and SsnEngine:
+/// A third QP kernel beside the working-set walk (walk_engine.h) and SsnEngine:
 /// primal-dual barrier, Mehrotra predictor-corrector, a monotone (rho, delta)
 /// schedule, and the Wachter-Biegler inertia ladder.
 /// @see docs/notes/2026-09-header-prose-archive.md §ipqp_engine.h
@@ -34,8 +34,8 @@
 #include <hven/detail/qp/ipqp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/ipqp_evidence.h>
+#include <hven/qp/qp_options.h>
 #include <hven/qp/qp_types.h>
-#include <hven/sqp/sqp_solver_types.h>
 
 // Forward-declared, not included: `trace/trace.h` is the PUBLIC schema and
 // this header must not pull it in; a pointer/const-ref suffices.
@@ -542,7 +542,7 @@ class IpqpEngine {
     int num_threads() const;
 
     /// Attach a ledger for instrumentation. `QpEngine::attach_ledger`'s
-    /// contract verbatim (qp_engine.h): a THROWING `solve()` emits no record.
+    /// contract verbatim (walk_engine.h): a THROWING `solve()` emits no record.
     ///
     /// The emitted `SolveRecord` carries a QP-SHAPED PROJECTION of this tier's work
     /// (`minor_iters` <- `ipqp_iters`, and so on for factorizations and symbolic analyses) so
