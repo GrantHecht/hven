@@ -1,0 +1,54 @@
+== gate RS-4 head c5332867b base ca3588735 steps: build psym flags lists ctest smoke replay pch debug 2026-11-18T19:06:09-05:00
+build-release rc=0 2026-11-18T19:09:58-05:00
+build rc=0
+FOREGROUND_END 2026-11-18T19:09:58-05:00
+psym-arms rc=0 2026-11-18T19:17:29-05:00
+[376/377] Linking CXX executable tests/sqp/hven_sqp_tests
+capture after rc=0
+worst=0 2026-11-18T19:17:28-05:00
+psym-compare rc=0 2026-11-18T19:18:38-05:00
+NOISE-ONLY  tests/solver/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+            COUNTS 32336 insns; CHANGED 263; UNCLASSIFIED 0; DELTAS -1(x263)
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 89348 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 53544 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 104548 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+
+P-SYM: 198 objects — 141 byte-identical, 57 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 92669 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 56 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 795 matched by count, 0 differing (104110 before-arm and 104110 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+flags-diff rc=0 2026-11-18T19:18:38-05:00
+TUs before 363 (after 363 deleted sources removed: 0), after 363, in both 363
+deleted sources: none
+only before: none
+only after:  none
+TUs with an expected removal applied: 0 (tokens none)
+declared deltas applied, per CMake target (TUs, removed, added):
+TUs whose flag list differs beyond the expected: 0
+RESULT: IDENTICAL
+lists-identical rc=1 2026-11-18T19:19:23-05:00
+executables 20; gtest names with a raw byte dump: 0; gtest lists raw-identical: True; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_IDENTICAL
+executables 12; gtest names with a raw byte dump: 0; gtest lists raw-identical: False; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_DIFFER
+ctest-release rc=0 2026-11-18T19:20:56-05:00
+100% tests passed, 0 tests failed out of 3885
+install-smoke rc=0 2026-11-18T19:22:39-05:00
+listing-default rc=0 2026-11-18T19:22:39-05:00
+LISTING_EQUALS_BASELINE_WITH_MAP
+replay rc=0 2026-11-18T19:28:15-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-18T19:29:25-05:00
+
+PASS: PCH engaged on 4 translation units, and all 58
+      emitted artifacts are byte-identical with and without it.
+build-debug rc=0 2026-11-18T19:32:00-05:00
+ctest-debug rc=0 2026-11-18T19:40:16-05:00
+100% tests passed, 0 tests failed out of 3885
+== gate RS-4 done 2026-11-18T19:40:16-05:00
+PASS 165 FAIL 6
+PASS 165 FAIL 6

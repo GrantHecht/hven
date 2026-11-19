@@ -1,0 +1,19 @@
+== gate RS-4 head c5332867b base ca3588735 steps: build psym flags lists ctest smoke replay pch debug 2026-11-18T19:06:09-05:00
+build-release rc=0 2026-11-18T19:09:58-05:00
+psym-arms rc=0 2026-11-18T19:17:29-05:00
+psym-compare rc=0 2026-11-18T19:18:38-05:00
+flags-diff rc=0 2026-11-18T19:18:38-05:00
+lists-identical rc=1 2026-11-18T19:19:23-05:00
+ctest-release rc=0 2026-11-18T19:20:56-05:00
+100% tests passed, 0 tests failed out of 3885
+install-smoke rc=0 2026-11-18T19:22:39-05:00
+listing-default rc=0 2026-11-18T19:22:39-05:00
+replay rc=0 2026-11-18T19:28:15-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-18T19:29:25-05:00
+build-debug rc=0 2026-11-18T19:32:00-05:00
+ctest-debug rc=0 2026-11-18T19:40:16-05:00
+100% tests passed, 0 tests failed out of 3885
+== gate RS-4 done 2026-11-18T19:40:16-05:00

@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T17:33:01-05:00
+[275/377] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[276/377] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+ninja: build stopped: cannot make progress due to previous errors.
+build rc=1
+FOREGROUND_END 2026-11-18T17:35:29-05:00

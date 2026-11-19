@@ -1,0 +1,2 @@
+psym_compare: a capture without a .psym-version stamp cannot be compared -- it was
+              made by a script version whose object SET is unknown. Recapture both arms.
