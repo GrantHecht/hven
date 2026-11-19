@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T10:11:55-05:00
+[368/371] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[369/371] Linking CXX executable examples/hven_example_05_warm_continuation
+[370/371] Linking CXX executable examples/hven_example_08_results_trace_options
+build rc=0
+FOREGROUND_END 2026-11-19T10:14:25-05:00

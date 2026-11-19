@@ -1,0 +1,5 @@
+template/inline-function symbols in one class only (informational, composition-dependent inlining): 12
+symbols in both: 4136 identical, 0 identical modulo numeric operands (branch offsets, stack displacements, immediates), 169 differing beyond numbers; symbol-set differences: 0
+class: before 4 objects, 4311 symbols, 4323 (name,body) pairs, 1450 initialiser-entry calls; after 6 objects, 4311 symbols, 4327 pairs, 1450 initialiser-entry calls
+NOTE: 169 symbols differ beyond numeric operands (listed in --detail): codegen of the same source under a different unity composition
+PSYM_UNION_IDENTICAL

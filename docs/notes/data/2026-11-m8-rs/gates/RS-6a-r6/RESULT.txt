@@ -1,0 +1,24 @@
+RS-6a gate r6 (DECLARATION-RS6a-r6.md: Q9 shared HVEN_TESTING library + rebase onto origin/m8 720d30e8b). One run, every leg passed; VERDICTS.txt is its log. Supersedes gates/RS-6a (r1..r5), which stays as the record of the pre-Q9 state.
+Code under test: head 60f7c9963 = 03def4600 (the change set) + the r6 declaration commit (docs/instruments only). Base arm: origin/m8 720d30e8b (psym/flags arms by psym_arms.sh in the same build path; lists, replay, ctest by baseline2.sh in the detached worktree rs6a-base). Serial under /tmp/box-build.lock, MKL_NUM_THREADS=1, no co-run.
+SHARED TARGET: tests/CMakeLists.txt defines the OBJECT library hven_testing_library (the hven target's sources/definitions/include dirs + HVEN_TESTING=1) on first use; the four whole-library seam executables (qp, solver, ipm, sqp) link its objects; linear and kkt seams stay narrow; no seam links hven::hven.
+G1  clean Release configure+build, library+tests+bench+examples: rc 0.
+G2  P-SYM: generated object map == declared maps (90 lines = r1 88 + r2 1 + r6 1; objmap-check.txt). 196 objects: 187 byte-identical, 3 noise-only (bench_corpus, bench_crossover, ipqp_e1_arm), 0 missing, 0 unaccounted for, 90 matched through the map; every library and bench object byte-identical. The r5 path-literal mechanism re-derived: the differing test objects are the same five (test_corpus_cells, trace/{test_human_trace_goldens,test_trace_off_path,test_trace_v1_fixtures}, solver/test_message_sites); litproof BYTE_IDENTICAL for all five; psym-r5.txt PASS, 0 unclassified.
+    Unity class (psym_union.py): symbol sets equal (4311), registration multiset equal (1450), bodies 4136 identical / 169 differ beyond numbers (psym-union-detail.txt) / 12 inline symbols one-sided; PSYM_UNION_IDENTICAL. The class is not instruction-identical; G5 is its behavioural evidence.
+G3  flags diff (flags.txt): 0 violations modulo declared classes; new class seamlib (library TUs of the whole-library seams: -fPIE -> -fPIC, googletest include dirs dropped; 59 each) and every library TU compiled once with HVEN_TESTING in the shared library (58).
+G4  pch neutrality PASS.  G5 ctest Release 3909/3909 and Debug 3909/3909 (HeaderSelfContained, Layering.* pass); lists-as-declared: ordinary union 3412 == base 3412, seam+alloc 421 == base 421, no name in two executables, ctest -N 3911 == 3911 (added [], removed []).
+    Executables: core 44, linear 154, model 476, kkt 53, qp 450, warmstart 364, solver 363, trace 158, ipm 451, sqp 751, bench 148; seam: linear 29, kkt 7, qp 312, solver 21, ipm 19, sqp 31; hven_linear_alloc_tests 2. Membership == declared (188 sources, membership-verdict.txt).
+G6  install smoke default+clang++ and export contract PASS. The installed listing is 959 files, the RS-5 listing (958) plus exactly include/hven/detail/linear/matching_scaling.h, which the base itself adds (720d30e8b vs RS-5's base 44f74446f adds that header and src/linear/matching_scaling.cpp); verdict line listing-equals-rs5 rc=1 is that one EXTRA, nothing else (listing-default.txt, diff in smoke/).
+G7  27-cell replay x (walk, ssn, ipm) vs base replay: 0 differences x3, 75 columns each.
+G8  mutation proofs 7/7 killed, every restore passes: M1 orphan source, M2 source in two executables, M3 seam links hven::hven, M3b ordinary defines HVEN_TESTING, M4 stale compile_fail path, M5a whole-library seam also compiles src/core/ledger.cpp itself, M5b whole-library seam declared as LIBRARY_SOURCES of every hven source (mutation/MUTATION-VERDICTS.txt).
+G9  header sweep PASS 170, FAIL 3 (the Apple-only headers; 169 + the base's new header).  G10 CI: CI.txt.
+
+Q9 re-measure (q9/*.json; clean configure per arm, library + gtest prebuilt, `ninja -j16` of the seam targets alone, then the rest of the tree; 16-core box, otherwise idle, wall-clock informational):
+                                   base (4 seam targets, m8)   r5 (before the ruling)   r6 (6 seam targets, shared)
+  seam leg wall-clock                   75.7 s                    132.8 s                  63.7 s
+  compile commands                      120                        229                       98
+  CPU user+sys                        1070.6 s                   1953 s                    899.1 s
+  peak concurrent RSS (summed)         8014 MiB                   7703 MiB                  7242 MiB
+  largest process RSS                   716 MiB                    716 MiB                   716 MiB
+  rest of tree wall-clock              127.6 s                    130.4 s                   129.9 s
+  clean test+bench+example tree        203.3 s                    263.2 s                   193.6 s
+  The seam leg is now 12 s (16%) BELOW the base, not near it: the base compiled the library in each of hven_fault_injection_tests/hven_ipqp_seam_tests/hven_qp_walk_seam_tests/hven_sqp_seam_tests partially or wholly; one shared compile replaces all of them. (r5 figures are from gates/RS-6a/RESULT.txt, a different base commit.)
