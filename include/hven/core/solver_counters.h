@@ -627,6 +627,18 @@ struct QpCounters {
     // kOptimal exits whose worst equality or working row residual is still past 1x of
     // row_tolerance after the polish (gray-zone exits; 0 is the contract).
     Index optimal_row_gray_exits = 0;
+    // THE PLATFORM-SOLVE RESPONSE (M8 sparse-equil-v4; detail/kkt/kkt_factor.h).
+    // Retakes of a sparse platform KKT factorization whose refined answer failed
+    // the platform solve check: on the maximum-product-matching scaled D K D
+    // (scaled), and, where that still perturbed pivots and failed again, on the
+    // weighted-matching session (matched; Pardiso only). Each is one factorization
+    // beyond `factorizations`. 0 wherever no refined answer failed.
+    Index sparse_scaled_retakes = 0;
+    Index sparse_matched_retakes = 0;
+    // Answers through such a retake that the EQP-site residual check still refused
+    // and that did not escalate (on Accelerate, where there is no matched tier,
+    // every refused retake answer).
+    Index sparse_retake_refusals = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2391,6 +2403,12 @@ struct SqpCounters {
     /// rejected_steps increment lands in exactly one bucket, so the sum is rejected_steps.
     /// Entry 0 is the number of runs; entry k is the number that lasted past k.
     std::array<Index, 5> rejection_run_histogram{};
+
+    /// @brief QpCounters' three platform-solve response fields, summed the same
+    ///        way (M8 sparse-equil-v4). Appended last.
+    Index sparse_scaled_retakes = 0;
+    Index sparse_matched_retakes = 0;
+    Index sparse_retake_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2496,7 +2514,10 @@ struct SqpCounters {
     X(reject_other, counter_never_absent)                                                          \
     X(accepted_f_type, counter_never_absent)                                                       \
     X(accepted_h_type, counter_never_absent)                                                       \
-    X(rejection_run_histogram, counter_never_absent)
+    X(rejection_run_histogram, counter_never_absent)                                               \
+    X(sparse_scaled_retakes, counter_never_absent)                                                 \
+    X(sparse_matched_retakes, counter_never_absent)                                                \
+    X(sparse_retake_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

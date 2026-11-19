@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -73,6 +74,14 @@ inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
 //     reusable symbolic, so the first `factorize_checked()` forks a new
 //     session, moving `session_id()` and breaking qp_engine.h's hot-start
 //     reuse condition (e) for every other holder of that handle.
+/// Which session holds a KktFactor's current numerics (THE PLATFORM-SOLVE
+/// RESPONSE, below).
+enum class PlatformRetake : std::uint8_t {
+    kNone,    ///< the platform session's own (or the dense arm's)
+    kScaled,  ///< D K D on the scaled session, D = symmetric_matching_scaling(K)
+    kMatched, ///< K on the weighted-matching session (Pardiso iparm[12] = 1)
+};
+
 struct KktFactor {
     /// @param threads The owning engine's thread count; 0 (what every
     ///                pre-T8.8 construction site passed) leaves the
@@ -110,6 +119,34 @@ struct KktFactor {
     /// them in dense_singular_count); dense_response_tally() takes them back
     /// out, so its `flagged` counts unshifted factorizations only.
     Index shifted_exact_singular = 0;
+
+    // THE PLATFORM-SOLVE RESPONSE's state (see that section below).
+    /// The session holding the current numerics; solve_vec() and kkt_inertia()
+    /// read it.
+    PlatformRetake numerics = PlatformRetake::kNone;
+    /// The retake the NEXT factorization takes if the platform's own outcome
+    /// warrants it; consumed (reset to kNone) by that factorization either way.
+    PlatformRetake requested = PlatformRetake::kNone;
+    /// True iff the current numerics are the platform session's own sparse
+    /// numerics and the platform solve check applies to them: the backend
+    /// reported perturbed pivots, or reports no perturbed-pivot count at all.
+    bool check_armed = false;
+    /// The perturbed-pivot report of the current kScaled numerics (absent on
+    /// a backend that reports none): the escalation to kMatched applies only
+    /// where it is present and positive.
+    std::optional<Index> scaled_perturbed_pivots;
+    /// True from a request_platform_retake() until the next factorization: a
+    /// holder of numerics taken before the request (a Schur stack's K0)
+    /// refactors.
+    bool rebuild_pending = false;
+    /// D for kScaled numerics (empty otherwise): the solve is D (D K D)^-1 D.
+    Vec retake_scale;
+    std::unique_ptr<hven::linear::SymmetricFactor> scaled_session;
+    std::unique_ptr<hven::linear::SymmetricFactor> matched_session;
+    /// Retakes that took (cumulative): factorizations whose numerics are kScaled
+    /// resp. kMatched.
+    Index scaled_retakes = 0;
+    Index matched_retakes = 0;
 };
 
 // The analyze-or-not decision for K, carrying the pattern hash it was taken
@@ -234,8 +271,42 @@ class DenseTallyScope {
     DenseResponseTally before_;
 };
 
-/// @brief Allocate and solve, returning the solution by value.
+/// @brief Allocate and solve, returning the solution by value (through the
+/// session `k.numerics` names).
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
+
+/// @brief The inertia evidence of `k`'s current numerics (the session
+/// `k.numerics` names; D K D's inertia is K's, by Sylvester's law).
+hven::linear::InertiaEvidence kkt_inertia(const KktFactor &k);
+
+/// @brief The platform-solve retakes `k` has taken so far, and a scope that
+/// adds their delta to two counters when it leaves (a throw included) --
+/// DenseTallyScope's twin.
+struct RetakeTally {
+    Index scaled = 0;
+    Index matched = 0;
+};
+inline RetakeTally retake_tally(const KktFactor &k) {
+    return RetakeTally{k.scaled_retakes, k.matched_retakes};
+}
+class RetakeTallyScope {
+  public:
+    RetakeTallyScope(const KktFactor &k, Index &scaled, Index &matched)
+        : k_(k), scaled_(scaled), matched_(matched), before_(retake_tally(k)) {}
+    ~RetakeTallyScope() {
+        const RetakeTally after = retake_tally(k_);
+        scaled_ += after.scaled - before_.scaled;
+        matched_ += after.matched - before_.matched;
+    }
+    RetakeTallyScope(const RetakeTallyScope &) = delete;
+    RetakeTallyScope &operator=(const RetakeTallyScope &) = delete;
+
+  private:
+    const KktFactor &k_;
+    Index &scaled_;
+    Index &matched_;
+    RetakeTally before_;
+};
 
 // THE DENSE ARM'S SOLVE GATES judge an answer y to K y = b by its normwise
 // backward error (Rigal-Gaches; Higham, Accuracy and Stability of Numerical
@@ -435,5 +506,79 @@ inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, cons
         },
         y, r, c);
 }
+
+// THE PLATFORM-SOLVE RESPONSE (M8 sparse-equil-v4). The SQP runs its sparse
+// KKT factors on the platform session without matching or scaling. Pardiso then
+// replaces a pivot it cannot take inside a supernode by a static perturbation
+// of 1e-8 ||K|| and the solve leans on iterative refinement. Two failure
+// classes follow, both measured (docs/notes/data/2026-11-m8-sparse-equil-v2/):
+//   - THE SCALE CLASS: on a badly scaled K the perturbation threshold is taken
+//     against an unscaled norm. A symmetric scaling fixes it: D K D with D the
+//     maximum-product-matching scaling (linear/matching_scaling.h), every
+//     entry <= 1 and a unit entry in every row, factored on a plain session.
+//   - THE PAIRING CLASS: a saddle-point K whose diagonal pivots must pair into
+//     2x2 blocks. No symmetric diagonal scaling helps (the 1x1 pivot's growth
+//     delta_i mu_j / a_ij^2 is invariant under K -> D K D); a weighted-matching
+//     factorization (Duff & Pralet 2005) takes the pairs as 2x2 pivots
+//     (SymmetricFactor::Options::weighted_matching, Pardiso iparm[12] = 1,
+//     without iparm[10]'s scaling, which costs the measured STEENBRB
+//     regression).
+//
+// THE TRIGGER runs where the engine has finished refining its answer against K
+// (solve_eqp, solve_bordered_eqp) on platform numerics that reported perturbed
+// pivots -- on every platform factorization on a backend that reports no
+// perturbed-pivot count (Accelerate) -- and measures the answer's normwise
+// backward error in the equilibrated metric (dense_backward_error with
+// D = equilibration_scale(K); the raw metric is vacuous on a badly scaled K). A
+// miss of kPlatformSolveFailureTol requests the kScaled retake and the caller
+// re-solves on it.
+//
+// THE ESCALATION. kScaled numerics that STILL report perturbed pivots are
+// judged again, and fail on a backward-error miss OR on the engine's own
+// residual refusal: a perturbed pivot the scaling did not remove leaves a
+// near-null direction of size ~1/(1e-8 ||K||) in the answer, and the normwise
+// backward error, whose denominator carries ||K|| ||y||, is blind to exactly
+// that (measured on YORKNET restoration qp26: eta 1.1e-7 while the constraint
+// rows miss by 3.7e7 times the engine's tolerance). A failure requests the
+// kMatched retake. That tier is Pardiso-only, and is never judged again.
+//
+// THE RESPONSE IS PER FACTORIZATION, never sticky: a request is consumed by the
+// next factorization (the re-solve's), and the one after it is the platform's
+// again. A retake that does not return kOk leaves the platform's numerics in
+// place with the check disarmed, so the response is bounded at two retakes.
+
+/// The failed-solve threshold: IPOPT's documented residual_ratio_singular
+/// default; the measured post-refinement distribution is bimodal around it.
+inline constexpr double kPlatformSolveFailureTol = 1e-5;
+
+/// @brief True iff platform_solve_response() judges answers through `k`'s
+/// current numerics: armed platform numerics, or kScaled numerics that still
+/// report perturbed pivots.
+inline bool platform_solve_check_applies(const KktFactor &k) {
+    if (k.dense_shifted) {
+        return false;
+    }
+    switch (k.numerics) {
+    case PlatformRetake::kNone:
+        return k.check_armed;
+    case PlatformRetake::kScaled:
+        return k.scaled_perturbed_pivots.value_or(0) > 0;
+    case PlatformRetake::kMatched:
+        return false;
+    }
+    return false;
+}
+
+/// @brief The retake an answer `y` to K y = rhs (K the matrix `k` factored,
+/// upper-stored) calls for, kNone when it passes or the check does not apply.
+/// `engine_refused` is the engine's own residual verdict on the same answer;
+/// it counts only on kScaled numerics (THE ESCALATION above). A NaN fails.
+PlatformRetake platform_solve_response(const KktFactor &k, const SpMatRM &K, const Vec &rhs,
+                                       const Vec &y, bool engine_refused);
+
+/// @brief Requests `tier` (kScaled or kMatched) for the next factorization of
+/// `k` and marks holders of earlier numerics for a refactor; builds the tier's
+/// session on first use.
+void request_platform_retake(KktFactor &k, PlatformRetake tier);
 
 } // namespace hven::detail

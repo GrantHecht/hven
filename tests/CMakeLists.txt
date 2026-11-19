@@ -218,6 +218,9 @@ set(HVEN_TEST_SOURCES
     # The dense arm behind SymmetricFactor (M8 DN-1): written against the public surface
     # and two detail helpers, platform-neutral (the fallback is whichever backend this is).
     linear/test_symmetric_factor_dense_arm.cpp
+    # The maximum-product matching and its symmetric scaling, against brute force
+    # and a dense Hungarian reference: backend-independent, so not platform-gated.
+    linear/test_matching_scaling.cpp
     # The warm-start currency (M5 W1): the value types, their fieldwise
     # equality, and the versioned byte form's round trip and refusals. It
     # depends on nothing but the public warmstart/ and model/ headers, so it
@@ -418,8 +421,10 @@ add_executable(hven_ipqp_seam_tests
     qp/test_ipqp_seams.cpp
 )
 
-# The dense arm's session TU, which the adapter below dispatches to.
-target_sources(hven_ipqp_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp)
+# The dense arm's session TU, which the adapter below dispatches to; and the matching
+# scaling kkt/kkt_factor.cpp's platform-solve response calls (M8 sparse-equil-v4).
+target_sources(hven_ipqp_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp
+                                     ${HVEN_SRC_DIR}/linear/matching_scaling.cpp)
 if(NOT APPLE)
     target_sources(hven_ipqp_seam_tests PRIVATE
         ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
@@ -521,10 +526,14 @@ add_executable(hven_qp_walk_seam_tests
     # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
     # E2-D4 dump fixtures).
     qp/test_qp_dense_arm.cpp
+    # M8 sparse-equil-v4: the platform-solve response (the scaled and matched retakes).
+    qp/test_qp_platform_retake.cpp
 )
 
-# The dense arm's session TU, which the adapter below dispatches to.
-target_sources(hven_qp_walk_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp)
+# The dense arm's session TU, which the adapter below dispatches to; and the matching
+# scaling kkt/kkt_factor.cpp's platform-solve response calls (M8 sparse-equil-v4).
+target_sources(hven_qp_walk_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp
+                                     ${HVEN_SRC_DIR}/linear/matching_scaling.cpp)
 if(NOT APPLE)
     target_sources(hven_qp_walk_seam_tests PRIVATE
         ${HVEN_SRC_DIR}/linear/pardiso_session.cpp

@@ -1100,7 +1100,7 @@ enum class InertiaVerdict {
 // Gate one factorization's InertiaEvidence against an expected (positive,
 // negative) eigenvalue count. `expected_pos + expected_neg` must be the
 // factorized matrix's dimension -- an expectation of zero zero-eigenvalues is
-// part of what is being asserted. Call sites pass `kkt.factor.inertia()`.
+// part of what is being asserted. Call sites pass `detail::kkt_inertia(kkt)`.
 //
 // Rule order: non-kObserved evidence -> kSuspect; present-and-nonzero
 // perturbed pivots -> kSuspect (a perturbed factorization reports an inertia

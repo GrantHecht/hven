@@ -377,12 +377,17 @@ class SchurComplement {
     // blind to at dim 1), or C's last factorization hit an exact zero pivot
     // (DenseFactorizeOutcome::kExactlySingular) -- any of which means the
     // caller must stop
-    // bordering this factorization and take a different path.
+    // bordering this factorization and take a different path. Also true while
+    // K0's factor holds a platform-solve retake request (kkt_factor.h): the next
+    // factorization of K0 is the one that takes it.
     bool needs_refactorization() const {
-        return (dim() > 0 && !evidence_usable()) || nearly_singular() ||
+        return kkt_.rebuild_pending || (dim() > 0 && !evidence_usable()) || nearly_singular() ||
                dim() > opts_.max_schur_border_dimension ||
                cond_estimate() > opts_.schur_condition_max;
     }
+
+    /// K0's factor, read-only (the bordered EQP's platform solve check).
+    const detail::KktFactor &k0_factor() const { return kkt_; }
 
     // True iff C's smallest |block eigenvalue| has collapsed to a negligible
     // fraction of its largest (floored at 1.0). False when dim() == 0, and
