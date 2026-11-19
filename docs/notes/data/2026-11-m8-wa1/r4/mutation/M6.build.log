@@ -1,0 +1,42 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- Configuring done (2.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/rel
+[0/4] Re-checking globbed directories...
+[1/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+[2/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+[3/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+[4/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_footprint.cpp.o
+[5/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+[6/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+[7/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+[8/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+[9/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+[10/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+[11/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+[12/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+[13/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+[14/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+[15/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_release_readmission.cpp.o
+[16/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+[17/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+[18/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+[19/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/walk/walk_engine.cpp.o
+[20/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+[21/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_platform_retake.cpp.o
+[22/26] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_dense_arm.cpp.o
+[23/26] Linking CXX executable tests/hven_qp_walk_seam_tests

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 6355a8df2..6c4703116 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1477,7 +1477,7 @@ inline FootprintDecision footprint_decision(double slope, double php, double mer
+     const double a_merit =
+         merit_curv > 0.0 ? merit_slope / merit_curv : std::numeric_limits<double>::infinity();
+     const double a_stop = std::min(a_merit, a_rows);
+-    if ((blocked && a_block <= a_stop) || !std::isfinite(a_stop)) {
++    if (!std::isfinite(a_stop)) {
+         d.ride = true;
+     } else {
+         d.move = -a_stop;

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 6355a8df2..dcb05c30c 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1470,7 +1470,7 @@ inline FootprintDecision footprint_decision(double slope, double php, double mer
+                                             double a_block, double a_rows) {
+     FootprintDecision d;
+     const double merit_slope = slope + merit_slope_part;
+-    if (!(merit_slope > slope_tol)) {
++    if (false) {
+         return d;
+     }
+     const double merit_curv = php + merit_curv_part;

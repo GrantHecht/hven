@@ -1,0 +1,58 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpWa1AscentFootprint.*:QpW1AscentGuard.*:QpYrkRefusedExchange.*
+[==========] Running 14 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from QpW1AscentGuard
+[ RUN      ] QpW1AscentGuard.BritgasElasticQp1Border
+[ w1 ] C11_BRITGAS_qp1 border status=0 minors=1564 facts=1606 f=4665.05166676 redH_min=nan ascent_rides=4 in_face_ordinary=26 rose=0 worst_rise=0.000e+00 rides=4 rides_not_down=0 eq=4.44e-16 stat=7.11e-17 comp=7.55e-14
+[       OK ] QpW1AscentGuard.BritgasElasticQp1Border (3742 ms)
+[ RUN      ] QpW1AscentGuard.BritgasElasticQp1Refactorize
+[ w1 ] C11_BRITGAS_qp1 refactorize status=0 minors=1564 facts=1599 f=4665.05166676 redH_min=nan ascent_rides=4 in_face_ordinary=26 rose=0 worst_rise=0.000e+00 rides=4 rides_not_down=0 eq=4.44e-16 stat=7.11e-17 comp=7.55e-14
+[       OK ] QpW1AscentGuard.BritgasElasticQp1Refactorize (3621 ms)
+[ RUN      ] QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide
+[ w1 ] option-off border status=1 minors=6980
+[ w1 ] option-off refactorize status=1 minors=6980
+[       OK ] QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide (9191 ms)
+[----------] 3 tests from QpW1AscentGuard (16554 ms total)
+
+[----------] 7 tests from QpWa1AscentFootprint
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+[ wa1 ] YRK_YORKNET_qp26_m42 border status=0 minors=43 facts=83 f=-1458.31602912 ascent_rides=2 footprint_rides=2 on_rows_ordinary=6 rose=0 worst_rise=0.000e+00 eq_drift=0 eq=2.84e-14 stat=5.33e-19 comp=4.11e-18
+[       OK ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder (245 ms)
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+[ wa1 ] YRK_YORKNET_qp26_m42 refactorize status=0 minors=43 facts=82 f=-1458.31602912 ascent_rides=2 footprint_rides=2 on_rows_ordinary=6 rose=0 worst_rise=0.000e+00 eq_drift=0 eq=2.84e-14 stat=5.33e-19 comp=4.11e-18
+[       OK ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize (115 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise
+[       OK ] QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionRidesWhenTheMeritIsConcaveAlongP
+[       OK ] QpWa1AscentFootprint.DecisionRidesWhenTheMeritIsConcaveAlongP (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst
+[       OK ] QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+[       OK ] QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+[       OK ] QpWa1AscentFootprint.DecisionStopsAtTheRowBudget (0 ms)
+[----------] 7 tests from QpWa1AscentFootprint (361 ms total)
+
+[----------] 4 tests from QpYrkRefusedExchange
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp26Border
+[ yrk ] YRK_YORKNET_qp26.txt border status=0 minors=23 facts=61 f=0.133368173127 refused_exchanges=4 refusals=10 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=19 min_curvature=-1.543e-22
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp26Border (477 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp26Refactorize
+[ yrk ] YRK_YORKNET_qp26.txt refactorize status=0 minors=23 facts=60 f=0.133368173127 refused_exchanges=4 refusals=10 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=19 min_curvature=-1.543e-22
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp26Refactorize (336 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[ yrk ] YRK_YORKNET_qp25.txt border status=0 minors=85 facts=125 f=-1398.63412864 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-9.879e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Border (539 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+[ yrk ] YRK_YORKNET_qp25.txt refactorize status=0 minors=85 facts=124 f=-1398.63412864 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-9.879e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (415 ms)
+[----------] 4 tests from QpYrkRefusedExchange (1769 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 3 test suites ran. (18685 ms total)
+[  PASSED  ] 14 tests.
