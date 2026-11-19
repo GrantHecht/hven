@@ -17,9 +17,9 @@ cfg() { # <log> : configure (and generate) into $D; rc 0 = pass
     -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/home/ghecht/Projects/hven/build/_deps/googletest-src > "$1" 2>&1
 }
 verdict() { echo "$1" | tee -a "$V"; }
-expect_fail() { # <id> <what> <regex>
+expect_fail() { # <id> <what> <regex>   (CMake wraps its message text across lines: the regex is matched on the whitespace-joined log)
   cfg "$MD/$1-planted.txt"; rc=$?
-  if [ $rc -ne 0 ] && grep -Eq "$3" "$MD/$1-planted.txt"; then verdict "$1 $2: planted -> configure FAILED with the expected message (rc=$rc) [KILLED]"; else verdict "$1 $2: planted -> rc=$rc, expected message /$3/ absent [SURVIVED]"; fi
+  if [ $rc -ne 0 ] && tr -s ' \n' ' ' < "$MD/$1-planted.txt" | grep -Eq "$3"; then verdict "$1 $2: planted -> configure FAILED with the expected message (rc=$rc) [KILLED]"; else verdict "$1 $2: planted -> rc=$rc, expected message /$3/ absent [SURVIVED]"; fi
 }
 expect_pass() { cfg "$MD/$1-restored.txt"; rc=$?; if [ $rc -eq 0 ]; then verdict "$1 restored -> configure passes (rc=0)"; else verdict "$1 restored -> rc=$rc [BAD RESTORE]"; fi; }
 cfg "$MD/00-clean.txt"; verdict "clean tree: configure rc=$? (want 0)"

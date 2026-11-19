@@ -3,7 +3,7 @@
 #   mkdir -p .scratch/instr; cp legs/{gate6a,env,psym_arms,build,ctest,lists,replay,install_smoke,q9,mutation6a}.sh tools/neutral_flags.py .scratch/instr/
 #   WT=<worktree> flock /tmp/box-build.lock setsid -w bash .scratch/instr/gate6a.sh [steps]
 # The design 5.2 / 5.4 gate for RS-6a, DECLARATION-RS6a.md (+ -r2 when present). The base measurement (lists, replay, ctest) comes from legs/baseline2.sh run in the separate base worktree.
-# steps (default all): build psym flags lists ctest smoke replay pch debug sweep mutation q9; extra steps: q9base, q9after (one arm each), psymcmp (compare the captured arms only), membership (compare the build's membership table with the declared one)
+# steps (default all): build psym flags lists ctest smoke replay pch debug sweep mutation q9; extra steps: litproof, psymexc (r5), q9base, q9after (one arm each), psymcmp (compare the captured arms only), membership (compare the build's membership table with the declared one)
 set -o pipefail
 source "$(dirname "$0")/env.sh"
 export HVEN_PCH_NEUTRALITY_JOBS=12
@@ -40,6 +40,17 @@ if has psym || has psymcmp; then
   rec psym-compare $?; tail -12 "$GD/psym.txt"
   python3 $E/tools/psym_union.py --before "$GD/unity-before.txt" --root-before "$SC/arms/psym-base" --after "$GD/unity-after.txt" --root-after "$SC/arms/psym-after" --jobs 4 --detail "$GD/psym-union-detail.txt" > "$GD/psym-union.txt" 2>&1
   rec psym-union $?; tail -6 "$GD/psym-union.txt"
+fi
+if has litproof; then WT=$WT bash $L/litproof6a.sh > "$GD/litproof-run.txt" 2>&1; rec litproof $?; cat "$GD/litproof-run.txt" | tee -a "$V"; fi
+if has psymexc; then
+  # DECLARATION-RS6a-r5.md: the exceptions name ONLY the five objects whose difference litproof proved to be a path-literal length effect
+  B=tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o
+  S=tests/solver/CMakeFiles/hven_drivers_tests.dir
+  python3 $E/tools/gen_exceptions.py "$GD/psym.txt" "$GD/exceptions.txt" "RS-6a r5: a moved or re-spelled -D path define changes the LENGTH of a string literal in this object (std::filesystem::path<char [N]> instantiation, inline copy displacements); proved by gates/RS-6a/litproof (the object recompiled with the base value of the define is byte-identical to the base object)" \
+    "$B" "$S/__/trace/test_human_trace_goldens.cpp.o" "$S/__/trace/test_trace_off_path.cpp.o" "$S/__/trace/test_trace_v1_fixtures.cpp.o" "$S/test_message_sites.cpp.o" > "$GD/exceptions-gen.txt" 2>&1
+  rec exceptions-gen $?; cat "$GD/exceptions-gen.txt"
+  scripts/psym_compare.sh compare --object-map "$GD/object-map-generated.txt" --exceptions "$GD/exceptions.txt" "$SC/arms/psym-base-nu" "$SC/arms/psym-after-nu" > "$GD/psym-r5.txt" 2>&1
+  rec psym-compare-r5 $?; tail -6 "$GD/psym-r5.txt" | cut -c1-300
 fi
 if has flags; then
   python3 $E/tools/flags_diff6a.py "$SC/arms/cc-base.json" "$SC/arms/cc-after.json" --root-before "$WT" --root-after "$WT" --allow-only-after '^tests/core/test_type_storage\.cpp$' --allow-only-after '^tests/kkt/test_kkt_factorization\.cpp$' --allow-vanished '^tests/qp/test_dense_solve_wound_seams\.cpp$' > "$GD/flags.txt" 2>&1
