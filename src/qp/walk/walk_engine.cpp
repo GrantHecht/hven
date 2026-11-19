@@ -2209,9 +2209,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 } else if (eff_opts.dual_regularization > 0.0 && ride_holds_pins(ws, p)) {
                     // THE REGULARIZATION FOOTPRINT: the merit's slope along p must rise too;
                     // f falls along -p for every alpha (slope > 0, verified p'Hp < 0), the merit
-                    // up to its own minimiser when its curvature along p is positive.
+                    // up to its own minimiser when its curvature along p is positive, and the
+                    // rows stay inside the ordinary step's own budget.
                     const FootprintMerit m =
-                        footprint_merit(qp, ws, x, Aix, p, eff_opts.dual_regularization);
+                        footprint_merit(qp, ws, x, Aix, p, ai_row_norm1, lambda_i, ae_row_norm1,
+                                        lambda_e, eff_opts);
                     QpCounters scratch; // read-only ratio test: its ties are not this pass's
                     BlockKind k = BlockKind::kNone;
                     Index i = -1;
@@ -2220,7 +2222,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                       /*cap_at_unit=*/false, scratch);
                     const detail::FootprintDecision fd =
                         detail::footprint_decision(slope, php, m.slope, m.curvature, slope_tol,
-                                                   k != BlockKind::kNone, a_block);
+                                                   k != BlockKind::kNone, a_block, m.row_budget);
                     if (fd.ride) {
                         guard = k == BlockKind::kNone || either_moves();
                     } else if (-fd.move * p_inf > step_tol) {
@@ -6410,20 +6412,35 @@ bool QpEngine::ride_holds_pins(const WorkingSet &ws, const Vec &p) const {
 
 QpEngine::FootprintMerit QpEngine::footprint_merit(const QpProblem &qp, const WorkingSet &ws,
                                                    const Vec &x, const Vec &Aix, const Vec &p,
-                                                   double dual_mu) const {
+                                                   const Vec &ai_row_norm1, const Vec &lambda_i,
+                                                   const Vec &ae_row_norm1, const Vec &lambda_e,
+                                                   const QpOptions &opts) const {
     FootprintMerit m;
-    const auto add = [&](double r, double ap) {
+    m.row_budget = std::numeric_limits<double>::infinity();
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    const auto add = [&](double r, double ap, double b, double norm1, double lambda) {
         m.slope += r * ap;
         m.curvature += ap * ap;
+        if (ap != 0.0) {
+            // Along -p the residual is r - alpha * ap; it reaches -sign(ap) * tol at this alpha,
+            // tol the structural margin THE EQUALITY DRIFT's invariant reads.
+            const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});
+            const double tol =
+                detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts);
+            const double a = ap > 0.0 ? (r + tol) / ap : (r - tol) / ap;
+            m.row_budget = std::min(m.row_budget, std::max(a, 0.0));
+        }
     };
     for (Index j = 0; j < qp.me(); ++j) {
-        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p));
+        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p), qp.be(j), ae_row_norm1(j),
+            lambda_e(j));
     }
     for (const Index row : ws.active_ineq()) {
-        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p));
+        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p), qp.bi(row), ai_row_norm1(row),
+            lambda_i(row));
     }
-    m.slope /= dual_mu;
-    m.curvature /= dual_mu;
+    m.slope /= opts.dual_regularization;
+    m.curvature /= opts.dual_regularization;
     return m;
 }
 

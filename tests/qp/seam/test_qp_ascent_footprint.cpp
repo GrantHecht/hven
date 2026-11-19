@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -132,11 +133,12 @@ void expect_qp26_m42(QpWorkingSetAlgebra alg) {
     std::printf(
         "[ wa1 ] YRK_YORKNET_qp26_m42 %s status=%d minors=%ld facts=%ld f=%.12g "
         "ascent_rides=%ld footprint_rides=%ld on_rows_ordinary=%ld rose=%ld "
-        "worst_rise=%.3e eq=%.2e stat=%.2e comp=%.2e\n",
+        "worst_rise=%.3e eq_drift=%ld eq=%.2e stat=%.2e comp=%.2e\n",
         alg_name(alg), static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
         static_cast<long>(s.counters.factorizations), f, static_cast<long>(s.counters.ascent_rides),
         static_cast<long>(t.footprint_rides), static_cast<long>(t.ordinary),
-        static_cast<long>(t.ordinary_rose), t.worst_rise, k.eq, k.stationarity, k.complementarity);
+        static_cast<long>(t.ordinary_rose), t.worst_rise,
+        static_cast<long>(s.counters.eq_drift_violations), k.eq, k.stationarity, k.complementarity);
 
     // The guard's own invariants, on every build: every flagged ride is counted, a footprint ride
     // is a guard ride, and the walk ends inside its cap.
@@ -148,6 +150,8 @@ void expect_qp26_m42(QpWorkingSetAlgebra alg) {
         }
     }
     EXPECT_EQ(flagged, s.counters.ascent_rides);
+    // The reversed step stays inside the ordinary step's row budget: no equality row drifts.
+    EXPECT_EQ(s.counters.eq_drift_violations, 0);
     EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
 #if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(t.ordinary_rose, 0) << "an ordinary step from an iterate on its rows ascended, by "
@@ -185,35 +189,42 @@ TEST(QpWa1AscentFootprint, YorknetQp26MatchedFaceRefactorize) { expect_qp26_m42(
 // THE DECISION ITSELF (detail::footprint_decision), on hand-made numbers. Along -p the objective
 // is f(x) - a s + a^2 php / 2 and the merit M(x) - a ms + a^2 mc / 2 (ms = s + merit_slope_part,
 // mc = php + merit_curv_part): the move must be M's own minimiser along -p, and both must fall.
+constexpr double kNoRowBudget = std::numeric_limits<double>::infinity();
+
 TEST(QpWa1AscentFootprint, DecisionNothingWhenTheMeritDoesNotRise) {
     // f rises along p but the rows' part makes the merit fall: the ordinary step stands.
-    const auto d = detail::footprint_decision(1.0, -2.0, -1.5, 0.5, 1e-12, true, 3.0);
+    const auto d = detail::footprint_decision(1.0, -2.0, -1.5, 0.5, 1e-12, true, 3.0, kNoRowBudget);
     EXPECT_FALSE(d.ride);
     EXPECT_EQ(d.move, 0.0);
     // A NaN slope decides nothing.
-    const auto n = detail::footprint_decision(std::nan(""), -2.0, 0.0, 0.5, 1e-12, true, 3.0);
+    const auto n =
+        detail::footprint_decision(std::nan(""), -2.0, 0.0, 0.5, 1e-12, true, 3.0, kNoRowBudget);
     EXPECT_FALSE(n.ride);
     EXPECT_EQ(n.move, 0.0);
 }
 
 TEST(QpWa1AscentFootprint, DecisionRidesWhenTheMeritIsConcaveAlongP) {
     // mc = -2 + 0.5 < 0: both fall for every alpha -- to the blocker, or unbounded to the ride.
-    EXPECT_TRUE(detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 3.0).ride);
-    const auto u = detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, false, 0.0);
+    EXPECT_TRUE(
+        detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 3.0, kNoRowBudget).ride);
+    const auto u = detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, false, 0.0, kNoRowBudget);
     EXPECT_TRUE(u.ride);
     EXPECT_EQ(u.move, 0.0);
 }
 
 TEST(QpWa1AscentFootprint, DecisionRidesWhenTheBlockerComesFirst) {
     // mc = -2 + 6 = 4, ms = 1 + 1 = 2: M's minimiser along -p at a = 0.5; a blocker at 0.5 wins.
-    EXPECT_TRUE(detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.5).ride);
-    EXPECT_TRUE(detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.25).ride);
+    EXPECT_TRUE(
+        detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.5, kNoRowBudget).ride);
+    EXPECT_TRUE(
+        detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.25, kNoRowBudget).ride);
 }
 
 TEST(QpWa1AscentFootprint, DecisionMovesToTheMeritMinimiserBeforeTheBlocker) {
     const double s = 1.0, php = -2.0, msp = 1.0, mcp = 6.0;
     for (const bool blocked : {true, false}) {
-        const auto d = detail::footprint_decision(s, php, msp, mcp, 1e-12, blocked, 0.75);
+        const auto d =
+            detail::footprint_decision(s, php, msp, mcp, 1e-12, blocked, 0.75, kNoRowBudget);
         EXPECT_FALSE(d.ride);
         ASSERT_DOUBLE_EQ(d.move, -0.5); // x += move * p: a = 0.5 along -p
         const double a = -d.move;
@@ -224,4 +235,17 @@ TEST(QpWa1AscentFootprint, DecisionMovesToTheMeritMinimiserBeforeTheBlocker) {
         // The minimiser: the merit's slope along -p vanishes there.
         EXPECT_NEAR(-(s + msp) + a * (php + mcp), 0.0, 1e-15);
     }
+}
+
+TEST(QpWa1AscentFootprint, DecisionStopsAtTheRowBudget) {
+    // M concave along p (would ride to the blocker at 3.0), but a working row reaches its
+    // tolerance at 0.4 along -p: a move to the row budget, nothing joins.
+    const auto d = detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 3.0, 0.4);
+    EXPECT_FALSE(d.ride);
+    EXPECT_DOUBLE_EQ(d.move, -0.4);
+    // The nearer of M's minimiser (0.5) and the row budget (0.3) stops the move.
+    EXPECT_DOUBLE_EQ(detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, false, 0.0, 0.3).move,
+                     -0.3);
+    // A blocker no later than the budget still rides.
+    EXPECT_TRUE(detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 0.4, 0.4).ride);
 }

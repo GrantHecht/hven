@@ -452,13 +452,17 @@
 //    merit M = f + |A_W x - b_W|^2 / (2 mu) (the system [H + delta I, A'; A, -mu I] is its
 //    Newton system): when M's slope along p, (Hx + g)'p + r_W'(A_W p) / mu, also rises, the walk
 //    goes along -p -- f falls for every alpha (slope > 0, verified p'Hp < 0) -- to the first of
-//    its blocker (ridden as above) and M's own minimiser along -p, slope / (p'Hp + |A_W p|^2 /
-//    mu) when that curvature is positive (a move; nothing joins). Both f and M fall strictly
-//    along the whole step, so it cannot cycle. Counted in ascent_rides. With dual_mu = 0 nothing
-//    changes. Basis: no Newton step toward the stationary point of a face whose model is not
-//    convex along it; a descent direction to a blocker or to the line's minimiser instead
-//    (Nocedal & Wright ch. 16; Gill & Wong 2015 on regularized active-set QP and its merit;
-//    Gill, Murray, Saunders & Wright 1991).
+//    its blocker (ridden as above), M's own minimiser along -p, slope / (p'Hp + |A_W p|^2 / mu)
+//    when that curvature is positive, and the ROW BUDGET: the alpha at which a working row's
+//    residual reaches kInfeasibilityMarginFactor * row_tolerance, the structural margin THE
+//    EQUALITY DRIFT's invariant reads, so the reversed step never carries a row into a drift
+//    violation (an uncapped ride did, on Windows CI's off-reference BRITGAS route; the ordinary
+//    step's own 1x budget instead moved YORKNET qp25 to a worse local minimum). A move when one
+//    of the last two comes first; nothing joins. Both f and M fall strictly along the step. Counted
+//    in ascent_rides. With dual_mu = 0 nothing changes. Basis: no Newton step toward the stationary
+//    point of a face whose model is not convex along it; a descent direction to a blocker or to the
+//    line's minimiser instead (Nocedal & Wright ch. 16; Gill & Wong 2015 on regularized active-set
+//    QP and its merit; Gill, Murray, Saunders & Wright 1991).
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
@@ -1449,17 +1453,19 @@ constexpr double kCurvatureTolFactor = 1e-12;
 // pins but not its rows, from an iterate on them, with (Hx + g)'p = `slope` above `slope_tol` and
 // VERIFIED p'Hp = `php` < 0 (the caller's tests). `merit_slope_part` = r_W'(A_W p) / mu and
 // `merit_curv_part` = |A_W p|^2 / mu are the working rows' part of the regularized face's penalty
-// merit along p; `blocked`/`a_block` the uncapped ratio test along -p. Nothing when the merit's
-// slope does not rise; else the walk goes along -p -- RIDDEN to the blocker when the blocker comes
-// no later than the merit's own minimiser along -p (or neither exists), else MOVED to that
-// minimiser: x += move * p with move = -merit_slope / merit_curvature < 0.
+// merit along p; `blocked`/`a_block` the uncapped ratio test along -p; `a_rows` the step along -p
+// at which the first working row would carry a structural violation (THE EQUALITY DRIFT's margin).
+// Nothing when the merit's slope does not rise; else the walk goes along -p -- RIDDEN to the
+// blocker when the blocker comes no later than the merit's own minimiser along -p and the row
+// budget (or none of the three exists), else MOVED to the nearer of the two: x += move * p with
+// move < 0.
 struct FootprintDecision {
     bool ride = false;
     double move = 0.0;
 };
 inline FootprintDecision footprint_decision(double slope, double php, double merit_slope_part,
                                             double merit_curv_part, double slope_tol, bool blocked,
-                                            double a_block) {
+                                            double a_block, double a_rows) {
     FootprintDecision d;
     const double merit_slope = slope + merit_slope_part;
     if (!(merit_slope > slope_tol)) {
@@ -1468,10 +1474,11 @@ inline FootprintDecision footprint_decision(double slope, double php, double mer
     const double merit_curv = php + merit_curv_part;
     const double a_merit =
         merit_curv > 0.0 ? merit_slope / merit_curv : std::numeric_limits<double>::infinity();
-    if ((blocked && a_block <= a_merit) || !std::isfinite(a_merit)) {
+    const double a_stop = std::min(a_merit, a_rows);
+    if ((blocked && a_block <= a_stop) || !std::isfinite(a_stop)) {
         d.ride = true;
     } else {
-        d.move = -a_merit;
+        d.move = -a_stop;
     }
     return d;
 }
@@ -2966,13 +2973,19 @@ class QpEngine {
     // THE ASCENT GUARD's REGULARIZATION FOOTPRINT (section 4c): the working rows' part of the
     // dual_mu-regularized face's penalty merit f + |A_W x - b_W|^2 / (2 mu) along p, at x --
     // its slope r_W'(A_W p) / mu and its curvature |A_W p|^2 / mu (r_W = A_W x - b_W; every
-    // equality row and every working inequality row).
+    // equality row and every working inequality row) -- and the ROW BUDGET along -p: the least
+    // alpha at which a working row's |r_j - alpha a_j'p| reaches kInfeasibilityMarginFactor times
+    // its row_tolerance (violation_is_structural's margin, which THE EQUALITY DRIFT's invariant
+    // reads), +inf when no row moves.
     struct FootprintMerit {
         double slope = 0.0;
         double curvature = 0.0;
+        double row_budget = 0.0;
     };
     FootprintMerit footprint_merit(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                   const Vec &Aix, const Vec &p, double dual_mu) const;
+                                   const Vec &Aix, const Vec &p, const Vec &ai_row_norm1,
+                                   const Vec &lambda_i, const Vec &ae_row_norm1,
+                                   const Vec &lambda_e, const QpOptions &opts) const;
 
     // Which sign of `p` the ride takes, or 0 to DECLINE the ride entirely.
     //
