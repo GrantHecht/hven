@@ -1,0 +1,7 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/rs5/build
+    Start 843: HeaderSelfContained
+1/1 Test #843: HeaderSelfContained ..............   Passed   29.60 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =  29.69 sec

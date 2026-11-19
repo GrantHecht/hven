@@ -1,0 +1,9 @@
+== checking export contract: .scratch/mut-prefix/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+FAIL: unknown directory under include/hven (not a known component: core detail ipm linear model qp solver sqp trace warmstart):
+not_a_component

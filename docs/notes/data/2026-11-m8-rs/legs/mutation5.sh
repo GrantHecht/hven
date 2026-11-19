@@ -17,7 +17,7 @@ verdict() { echo "$1" | tee -a "$V"; }
 
 # --- baseline: all checks pass on the clean tree
 lay > "$MD/00-layering-clean.txt"; rc=$?; verdict "clean tree: layering gtests rc=$rc (want 0)"
-SMK=$(find .scratch/smoke-default -name hvenTargets.cmake -path '*hven-install*' | head -1); PFX=$(dirname "$(dirname "$(dirname "$(dirname "$SMK")")")")
+SMK=$(realpath "$(find .scratch/smoke-default -name hvenTargets.cmake -path '*hven-install*' | head -1)"); PFX=$(dirname "$(dirname "$(dirname "$(dirname "$SMK")")")"); REL=${SMK#"$PFX"/}   # lib64/cmake/hven/hvenTargets.cmake on this box
 ALIGN=$(grep -oE 'resolved to [0-9]+' .scratch/smoke-default/hven-configure.log | head -1 | grep -oE '[0-9]+')
 bash scripts/check_export_contract.sh "$SMK" linux "$ALIGN" > "$MD/00-export-clean.txt" 2>&1; rc=$?; verdict "clean install tree: export contract rc=$rc (want 0)"
 
@@ -36,11 +36,11 @@ done
 
 # --- 2. planted root header: caught by the export contract on an install tree carrying it, and by the layering scan on the source tree
 cp -r "$PFX" "$WT/.scratch/mut-prefix"; touch "$WT/.scratch/mut-prefix/include/hven/stray.h"
-bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/lib/cmake/hven/hvenTargets.cmake" linux "$ALIGN" > "$MD/R1-export-planted.txt" 2>&1; rc=$?; verdict "R1 planted root header (install tree): export contract rc=$rc (want nonzero)"; tail -2 "$MD/R1-export-planted.txt" | tee -a "$V"
+bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/$REL" linux "$ALIGN" > "$MD/R1-export-planted.txt" 2>&1; rc=$?; verdict "R1 planted root header (install tree): export contract rc=$rc (want nonzero)"; tail -2 "$MD/R1-export-planted.txt" | tee -a "$V"
 rm -f "$WT/.scratch/mut-prefix/include/hven/stray.h"; mkdir "$WT/.scratch/mut-prefix/include/hven/not_a_component"
-bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/lib/cmake/hven/hvenTargets.cmake" linux "$ALIGN" > "$MD/R2-export-planted-dir.txt" 2>&1; rc=$?; verdict "R2 planted unknown directory (install tree): export contract rc=$rc (want nonzero)"; tail -2 "$MD/R2-export-planted-dir.txt" | tee -a "$V"
+bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/$REL" linux "$ALIGN" > "$MD/R2-export-planted-dir.txt" 2>&1; rc=$?; verdict "R2 planted unknown directory (install tree): export contract rc=$rc (want nonzero)"; tail -2 "$MD/R2-export-planted-dir.txt" | tee -a "$V"
 rmdir "$WT/.scratch/mut-prefix/include/hven/not_a_component"
-bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/lib/cmake/hven/hvenTargets.cmake" linux "$ALIGN" > "$MD/R3-export-restored.txt" 2>&1; rc=$?; verdict "R3 restored: export contract rc=$rc (want 0)"
+bash scripts/check_export_contract.sh "$WT/.scratch/mut-prefix/$REL" linux "$ALIGN" > "$MD/R3-export-restored.txt" 2>&1; rc=$?; verdict "R3 restored: export contract rc=$rc (want 0)"
 rm -rf "$WT/.scratch/mut-prefix"
 touch include/hven/stray.h
 lay > "$MD/R4-layering-planted-root.txt"; rc=$?; verdict "R4 planted root header (source tree): layering gtests rc=$rc (want nonzero)"; grep -E "stray.h" "$MD/R4-layering-planted-root.txt" | head -2 | tee -a "$V"

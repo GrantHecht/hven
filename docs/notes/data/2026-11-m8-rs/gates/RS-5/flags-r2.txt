@@ -1,0 +1,9 @@
+TUs before 363 (after 363 deleted sources removed: 0), after 363, in both 363
+deleted sources: none
+only before: none
+only after:  none
+TUs with an expected removal applied: 0 (tokens none)
+declared deltas applied, per CMake target (TUs, removed, added):
+  hven_tests                           13  -['-DHVEN_CORE_INCLUDE_DIR="@/include/hven/core"'] +['-DHVEN_INCLUDE_ROOT="@/include/hven"', '-DHVEN_SRC_ROOT="@/src"']
+TUs whose flag list differs beyond the expected: 0
+RESULT: IDENTICAL

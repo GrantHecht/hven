@@ -1,0 +1,37 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Layering.*:CoreLayering.*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from CoreLayering
+[ RUN      ] CoreLayering.TheScanActuallyReadsTheCoreHeaders
+[       OK ] CoreLayering.TheScanActuallyReadsTheCoreHeaders (0 ms)
+[ RUN      ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+[       OK ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier (0 ms)
+[----------] 2 tests from CoreLayering (0 ms total)
+
+[----------] 4 tests from Layering
+[ RUN      ] Layering.TheScanReadsTheWholeTree
+[       OK ] Layering.TheScanReadsTheWholeTree (18 ms)
+[ RUN      ] Layering.NoIncludeGoesUpTheLayerOrder
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/tests/core/test_layering.cpp:696: Failure
+Value of: report.empty()
+  Actual: false
+Expected: true
+CLAUDE.md section 2's layer order is core < util < barrier < linear < model < qp-data < kkt < qp-engines < warmstart < solver < {ipm, sqp} public < trace < engine implementations. A file may include its own layer or a lower one; ipm and sqp never include each other. MOVE THE TYPE DOWN rather than the include up. Do not add to kAllowed to make this pass: an entry is a debt with a named owner, and a new one is a design decision.
+Offending include(s):
+  include/hven/detail/barrier/barrier_math.h:266: #include <hven/detail/kkt/kkt_assembly.h> -- a barrier file includes a kkt file -- upward
+
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder (15 ms)
+[ RUN      ] Layering.EveryAllowListedPairStillOccurs
+[       OK ] Layering.EveryAllowListedPairStillOccurs (15 ms)
+[ RUN      ] Layering.PublicHeadersDoNotIncludeDetail
+[       OK ] Layering.PublicHeadersDoNotIncludeDetail (15 ms)
+[----------] 4 tests from Layering (64 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (65 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder
+
+ 1 FAILED TEST
