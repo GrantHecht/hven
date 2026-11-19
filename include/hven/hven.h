@@ -49,6 +49,7 @@
 
 // the QP tier's public types
 #include <hven/qp/ipqp_evidence.h>
+#include <hven/qp/qp_options.h>
 #include <hven/qp/qp_types.h>
 
 // warm starts

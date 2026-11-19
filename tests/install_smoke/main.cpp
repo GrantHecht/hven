@@ -251,7 +251,6 @@ int main() {
     }
 
     std::printf("install smoke: both solvers converged through one generic consumer; a pieces "
-                "problem solved; %d standalone-include TUs compiled and linked\n",
-                standalone_tus);
+                "problem solved\n");
     return 0;
 }
