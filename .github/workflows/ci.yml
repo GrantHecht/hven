@@ -187,7 +187,7 @@ jobs:
         # options through to the binaries `gtest_discover_tests` registers, so
         # the flag has to arrive as an env var instead). It is pointed at a
         # DIRECTORY (trailing slash), not a fixed file: `gtest_discover_tests`
-        # invokes hven_tests once per test case, and GoogleTest's directory-mode
+        # invokes the test executable once per test case, and GoogleTest's directory-mode
         # writer (`FilePath::GenerateUniqueFileName`, gtest-filepath.cc)
         # generates a fresh, collision-free filename per invocation instead of
         # overwriting -- a fixed-file path would leave only the last test's
@@ -692,10 +692,10 @@ jobs:
         # BUILD_SHARED_LIBS-only _dll.lib names -- this project never turns
         # that on), but Intel's OpenMP runtime is ALWAYS a DLL on Windows:
         # libiomp5md.lib ("md" = multithreaded DLL CRT) is an import stub,
-        # not a true static archive, so hven_tests.exe has a genuine
+        # not a true static archive, so each test executable (hven_*_tests.exe) has a genuine
         # load-time DLL dependency regardless of how "static" the rest of
         # the link looks. Confirmed the hard way: run 31284216427 built and
-        # linked hven_tests.exe successfully, then died with
+        # linked hven_tests.exe (then the single test executable; one per tests/ directory since RS-6a) successfully, then died with
         # STATUS_DLL_NOT_FOUND (0xc0000135) the moment CMake's own
         # gtest_discover_tests tried to execute it during the Build step
         # (see the DISCOVERY_MODE note in tests/CMakeLists.txt -- this repo
@@ -742,7 +742,7 @@ jobs:
         # per-test-case overwrite collision).
         #
         # MKL_NUM_THREADS: this lane also links and runs against MKL Pardiso
-        # (same hven_tests binary, same counter-/trajectory-pinned suite), so it
+        # (the same test binaries, same counter-/trajectory-pinned suite), so it
         # gets the same pin as the Linux lane's Test step, for the same reason --
         # see that step's comment and
         # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md §7-8.

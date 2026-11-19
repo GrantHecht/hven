@@ -225,8 +225,8 @@ endif()
 ################################################################################
 # Preprocessor definitions the interior-point engine (src/ipm, src/model,
 # src/util) assumes are set project-wide. Applied here, at directory
-# scope, so every target configured below (hven itself, hven_tests, the
-# interior-engine test executable, and golden_rig) sees the same preprocessor
+# scope, so every target configured below (hven itself, the
+# hven_*_tests executables, and golden_rig) sees the same preprocessor
 # state the engine's numerics depend on — most load-bearingly the first
 # two, which must never be removed: Eigen matrices left uninitialized (the
 # release-build default) can silently carry NaN/garbage into a computation

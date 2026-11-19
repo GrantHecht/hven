@@ -128,8 +128,8 @@ check_one() {
 
 check_one "${REPO_ROOT}/src/linear/accelerate_session.cpp"
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp"
-# Also with HVEN_TESTING defined, the same way hven_fault_injection_tests
-# compiles this file's own copy (tests/CMakeLists.txt) -- covers the
+# Also with HVEN_TESTING defined, the same way hven_linear_seam_tests
+# compiles this file's own copy (tests/linear/CMakeLists.txt) -- covers the
 # fault-injection call site's #ifdef branch, which the check above never
 # instantiates.
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" -DHVEN_TESTING=1

@@ -92,11 +92,11 @@
 //
 // IT COMPILES TO NOTHING without `HVEN_TESTING`, so including it from a normal
 // build of any TU is provably inert. `HVEN_TESTING` is defined ONLY target-wide
-// on the standalone executables in `tests/CMakeLists.txt` that recompile the
-// instrumented sources a second time and do NOT link `hven::hven`
-// (`hven_fault_injection_tests`, `hven_ipqp_seam_tests`, and this seam's
-// `hven_qp_walk_seam_tests`), which is what keeps the production library and
-// every ordinary test binary untouched by it.
+// on the standalone seam executables (`hven_*_seam_tests`, tests/<dir>/CMakeLists.txt)
+// that recompile the instrumented sources a second time and do NOT link `hven::hven`
+// (this seam's is `hven_qp_seam_tests`), which is what keeps the production
+// library and every
+// ordinary test binary untouched by it.
 //
 // WHERE THE HOOKS GO: `src/qp/walk/walk_engine.cpp`, an APACHE-2.0 FILE THIS
 // REPOSITORY WROTE. CLAUDE.md §6's boundary preference is satisfied WITHOUT a

@@ -35,10 +35,10 @@
 // inert: the production `hven` library target's compiled objects are
 // byte-for-byte what they would be if this header did not exist.
 // HVEN_TESTING is defined ONLY target-wide on the standalone
-// hven_fault_injection_tests executable (tests/CMakeLists.txt), which
+// hven_linear_seam_tests executable (tests/linear/CMakeLists.txt), which
 // recompiles the platform's session and adapter sources a second time (their
 // own objects, never reused from libhven.a) alongside its own test sources
-// and does NOT link hven::hven -- so the normal hven_tests executable never
+// and does NOT link hven::hven -- so no ordinary test executable ever
 // sees HVEN_TESTING either, and its pre-existing assertions are exercised
 // against the exact same object code as a release build.
 

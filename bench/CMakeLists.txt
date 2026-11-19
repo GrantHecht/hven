@@ -68,7 +68,7 @@ endif()
 # ipm_corpus_leg.cpp is the ONE non-glue TU here: the top-level interior-point
 # replay leg (--engine interior). A .cpp rather than a header because it is
 # ordinary non-template code with two consumers, and both COMPILE IT: this
-# binary, and hven_sqp_tests (tests/sqp/CMakeLists.txt lists it explicitly).
+# binary, and hven_bench_tests (tests/bench/CMakeLists.txt lists it explicitly).
 # Until M6 W5 T8.9r it had one -- every interior gate read the committed
 # artifact rather than the leg -- and the single-row mode's pin is the first
 # assertion that has to call the leg's own functions to make its point.
@@ -156,16 +156,16 @@ endif()
 # (CorpusRunnerProcess.WallDeadline*) are SUBPROCESS tests — they invoke the
 # actual compiled hven_sqp_corpus binary (the deadline enforcement itself is
 # fork/exec orchestration in bench_corpus.cpp's main(), not something a gtest
-# linked only against corpus_cells.h can reach). hven_sqp_tests already
+# linked only against corpus_cells.h can reach). hven_bench_tests already
 # exists at this point (tests/ is add_subdirectory'd before bench/ in the
 # root CMakeLists.txt), so the dependency and the path macro are wired HERE
-# rather than in tests/sqp/CMakeLists.txt, where hven_sqp_corpus would not
+# rather than in tests/bench/CMakeLists.txt, where hven_sqp_corpus would not
 # exist yet. Guarded: a tests-off, bench-on configure has no test target to
-# decorate.
-if(TARGET hven_sqp_tests)
-    target_compile_definitions(hven_sqp_tests PRIVATE
+# decorate, and the executable's UNIX-only sources are absent on Windows.
+if(TARGET hven_bench_tests AND NOT WIN32)
+    target_compile_definitions(hven_bench_tests PRIVATE
         HVEN_SQP_CORPUS_BINARY="$<TARGET_FILE:hven_sqp_corpus>")
-    add_dependencies(hven_sqp_tests hven_sqp_corpus)
+    add_dependencies(hven_bench_tests hven_sqp_corpus)
 endif()
 
 # hven_sqp_ssn_safeguard_probe — the reproduction vehicle for the archived SSN

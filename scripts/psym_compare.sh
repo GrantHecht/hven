@@ -1155,7 +1155,7 @@ tool_sha() {
 # and is paired by `--object-map` (scripts/rs_object_map.py generates one).
 # Kept in one place so `psym_objects` and `do_capture`'s non-empty assertion
 # cannot disagree about what P-SYM covers.
-PSYM_GROUPS=(
+PSYM_GROUPS_LEGACY=(
     "hven"
     "hven_sqp_tests"
     "hven_interior_tests"
@@ -1170,6 +1170,33 @@ PSYM_GROUPS=(
     "hven_sqp_crossover"
     "hven_sqp_ipqp_e1_arm"
 )
+
+# RS-6a (2026-11-19): the test executables are one per tests/ directory. A build holds either the
+# legacy layout (hven_interior_tests exists) or this one; `psym_choose_groups` picks the layout the
+# build holds, and the non-empty assertion below is unchanged: every group of the CHOSEN layout must
+# contribute objects. The seam and allocation executables are outside the set, as they always were.
+PSYM_GROUPS_RS6A=(
+    "hven"
+    "hven_core_tests"
+    "hven_linear_tests"
+    "hven_model_tests"
+    "hven_kkt_tests"
+    "hven_qp_tests"
+    "hven_warmstart_tests"
+    "hven_solver_tests"
+    "hven_trace_tests"
+    "hven_ipm_tests"
+    "hven_sqp_tests"
+    "hven_bench_tests"
+    "hven_sqp_corpus"
+    "hven_sqp_bench"
+    "hven_sqp_ssn_safeguard_probe"
+    "hven_sqp_f7_cold"
+    "hven_sqp_tau_bar_sweep_probe"
+    "hven_sqp_crossover"
+    "hven_sqp_ipqp_e1_arm"
+)
+PSYM_GROUPS=("${PSYM_GROUPS_LEGACY[@]}")
 
 # Prints the build-relative object directory of target "$2" in build "$1", or
 # nothing when the build holds none. More than one is a hard error (exit 2): a
@@ -1188,6 +1215,16 @@ psym_target_dir() {
         exit 2
     fi
     printf '%s\n' "${found#"${build}"/}"
+}
+
+# Chooses the group set of the layout BUILD "$1" holds (see PSYM_GROUPS_RS6A above).
+psym_choose_groups() {
+    local build="$1"
+    if [ -n "$(psym_target_dir "${build}" hven_interior_tests)" ]; then
+        PSYM_GROUPS=("${PSYM_GROUPS_LEGACY[@]}")
+    else
+        PSYM_GROUPS=("${PSYM_GROUPS_RS6A[@]}")
+    fi
 }
 
 # Emits "<group><TAB><object path>" for every object in the set.
@@ -1210,6 +1247,8 @@ do_capture() {
         echo "psym_compare: no such build directory: ${build}" >&2
         exit 1
     fi
+
+    psym_choose_groups "${build}"
 
     mkdir -p "${snapshot}"
     : > "${snapshot}/.psym-manifest"

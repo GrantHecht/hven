@@ -6,11 +6,12 @@ LISTFILE: one object path per line (relative to --root-*). Each object is disass
 Per defined function symbol the body is normalised (addresses, `# ...` comments and raw branch-target addresses dropped; section-relative relocation
 addends dropped; `.N` numeric suffixes of static-initialiser symbols dropped) and hashed; the class is the SET of (demangled name, body hash).
   * `_GLOBAL__sub_I_*` symbols are the per-TU initialiser entry points: their number and composition follow the batching, so they are compared only
-    by the TOTAL count of `__cxx_global_var_init*` calls they make, before vs after.
+    as one MULTISET of the relocation targets their bodies call (with the registrations inlined into them, that is the registration calls themselves), before vs after.
   * `__cxx_global_var_init*` bodies are compared as the set of bodies (names collapse to one).
 Every function present in one class and not the other, and every (name, hash) in one and not the other, is printed; exit 0 iff none.
 Counts are informational beyond that (a COMDAT symbol is emitted once per object that needs it, so object counts differ with the batching)."""
 import argparse, hashlib, re, subprocess, sys, os
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 ap = argparse.ArgumentParser()
 ap.add_argument('--before', required=True); ap.add_argument('--after', required=True)
@@ -50,12 +51,12 @@ def klass(listfile, root):
     paths = [os.path.join(root, l.strip()) for l in open(listfile) if l.strip()]
     with ThreadPoolExecutor(a.jobs) as ex:
         res = list(ex.map(disasm, paths))
-    bodies, inits, nobj = {}, 0, len(paths)
+    bodies, inits, nobj = {}, Counter(), len(paths)
     for funcs in res:
         for name, body in funcs.items():
             if not body: continue
             if name.startswith('_GLOBAL__sub_I_'):
-                inits += sum(1 for b in body if '__cxx_global_var_init' in b and b.startswith('@') or (b.startswith('call') and '__cxx_global_var_init' in b))
+                inits.update(b for b in body if b.startswith('@'))   # the relocation targets the per-TU entry points call
                 continue
             key = norm_sym(name) if name.startswith('__cxx_global_var_init') else name
             h = hashlib.sha256('\n'.join(body).encode()).hexdigest()[:16]
@@ -69,9 +70,11 @@ diff = 0
 for k in sorted(set(A) & set(B)):
     if A[k] != B[k]:
         diff += 1; errs.append('BODY-SET-DIFFERS: %s (before %d bodies, after %d, shared %d)' % (k, len(B[k]), len(A[k]), len(A[k] & B[k])))
-if ib != ia: errs.append('INIT-CALLS differ: before %d, after %d' % (ib, ia))
+if ib != ia:
+    for k in sorted(set(ib) | set(ia)):
+        if ib[k] != ia[k]: errs.append('INIT-CALL target %s: before %d, after %d' % (k, ib[k], ia[k]))
 nbod = sum(len(v) for v in B.values())
-print('class: before %d objects, %d symbols, %d (name,body) pairs, %d initialiser calls; after %d objects, %d symbols, %d pairs, %d initialiser calls' % (nb, len(B), nbod, ib, na, len(A), sum(len(v) for v in A.values()), ia))
+print('class: before %d objects, %d symbols, %d (name,body) pairs, %d initialiser-entry calls; after %d objects, %d symbols, %d pairs, %d initialiser-entry calls' % (nb, len(B), nbod, sum(ib.values()), na, len(A), sum(len(v) for v in A.values()), sum(ia.values())))
 if a.detail:
     open(a.detail, 'w').write('\n'.join(errs) + '\n')
 if errs:

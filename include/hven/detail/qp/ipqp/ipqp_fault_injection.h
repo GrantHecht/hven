@@ -51,7 +51,7 @@
 // target's compiled `ipqp_engine.cpp.o` is byte-for-byte what it would be if
 // this header did not exist, which docs/testing.md records the measurement
 // for. HVEN_TESTING is defined ONLY target-wide on the standalone
-// hven_ipqp_seam_tests executable (tests/CMakeLists.txt), which recompiles the
+// hven_qp_seam_tests executable (tests/qp/CMakeLists.txt), which recompiles the
 // tier's own sources a second time and does NOT link hven::hven.
 
 #ifdef HVEN_TESTING

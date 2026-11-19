@@ -626,7 +626,7 @@ a `Ledger` and the residuals are not here.
 
 The v1 reader fixtures are three byte-exact streams under `tests/trace/golden/trace_v1/`
 (`ipm_complete.jsonl`, `sqp_complete.jsonl`, `ipm_aborted.jsonl`), written from hand-filled records and held by
-`TraceV1Fixtures.*`, for readers outside the tree. Regenerate: `HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests
+`TraceV1Fixtures.*`, for readers outside the tree. Regenerate: `HVEN_REGEN_GOLDENS=1 ./tests/trace/hven_trace_tests
 --gtest_filter='TraceV1Fixtures.*'` (a declared event for every reader).
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-tr-e/CATCH-UP.txt`.
@@ -755,9 +755,16 @@ had no caller). The private include directory `src/interior/utils` is gone with 
 `tests/{interior,drivers,common_support}/` became `tests/{ipm,solver,support}/`, and
 the fixtures, goldens (`tests/trace/golden/`) and compile-fail probes
 (`tests/model/compile_fail/`) moved with their components. Executable and target
-names did not change in RS-1/RS-2 (`hven_interior_tests`, `hven_drivers_tests`,
-`hven_sqp_tests`, ...); a documented command line such as
-`./hven_drivers_tests --gtest_filter=...` still works.
+names did not change in RS-1/RS-2; they did in RS-6a, which gave every `tests/`
+directory its own executable: `hven_{core,linear,model,kkt,qp,warmstart,solver,trace,ipm,sqp,bench}_tests`,
+plus the seam executables `hven_{linear,kkt,qp,solver,ipm,sqp}_seam_tests` and
+`hven_linear_alloc_tests` (see docs/testing.md, "The test executables since RS-6a").
+`hven_tests`, `hven_interior_tests`, `hven_drivers_tests`, `hven_fault_injection_tests`,
+`hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and `hven_dense_alloc_tests` no
+longer exist; a documented command line such as `./hven_drivers_tests --gtest_filter=...`
+now names the executable of the component that owns the test
+(`./tests/solver/hven_solver_tests --gtest_filter=...`). ctest names (`Suite.Test`) did
+not change, so `ctest -R` and `ctest -N` are unaffected.
 
 ### Stale path literals deliberately left in place
 
