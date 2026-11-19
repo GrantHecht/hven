@@ -40,7 +40,7 @@ elif arg == "M4":
 elif arg == "M8":
     sub1(H, "    const double a_stop = std::min(a_merit, a_rows);", "    const double a_stop = a_merit;")
 elif arg == "M5":
-    sub1(H, "        d.move = -a_merit;", "        d.move = a_merit;")
+    sub1(H, "        d.move = -a_stop;", "        d.move = a_stop;")   # r4: the anchor follows r2's code (was -a_merit)
 elif arg == "M6":
     sub1(E, "                x += footprint_move * p;", "                x -= footprint_move * p;")
 elif arg == "M7":
