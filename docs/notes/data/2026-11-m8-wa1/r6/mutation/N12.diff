@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..92eb72fe3 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2275,7 +2275,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kRide;
+ #endif
+-                        } else if (!ride_moves &&
++                        } else if (false && !ride_moves &&
+                                    !(reach(p, /*cap_at_unit=*/true, nullptr) * p_inf > step_tol)) {
+ #ifdef HVEN_TESTING
+                             walk_obs.record().ascent_footprint =

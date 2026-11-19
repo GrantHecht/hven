@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..061efe02b 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2320,7 +2320,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                                 qp, ws, x, Aix, gx, pu, eff_opts.dual_regularization);
+                             pu_descends = along_pu.slope < -along_pu.tol;
+                         }
+-                        if (pu_descends) {
++                        if (false && pu_descends) {
+                             ++counters.ascent_footprint_regularized_steps;
+                             p = std::move(pu);
+                             landing = &eqp.x_regularized;

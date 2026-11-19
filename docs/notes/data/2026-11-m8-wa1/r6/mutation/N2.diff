@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..a289e275c 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2260,7 +2260,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                     // its bound, and the walk puts x on a pin whenever one joins.
+                     if (verdict == detail::InertiaVerdict::kWrong) {
+                         // f falls along d = -p for every alpha: -s < 0 and p'Hp < 0 (above).
+-                        Vec d = -p;
++                        Vec d = p;
+                         bool blocked = false;
+                         const double a = reach(d, /*cap_at_unit=*/false, &blocked);
+                         const bool ride_moves = a * d.lpNorm<Eigen::Infinity>() > step_tol;

@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..2948dfccf 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -946,7 +946,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             // further footprint rung this solve (the pass is solved again at the restored mu).
+             const double restored = footprint_rung_from;
+             footprint_rung_from = 0.0;
+-            if (verdict == detail::InertiaVerdict::kSuspect) {
++            if (false && verdict == detail::InertiaVerdict::kSuspect) {
+                 eff_opts.dual_regularization = restored;
+                 footprint_rungs_off = true;
+                 ++counters.ascent_footprint_rung_reverts;

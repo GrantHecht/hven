@@ -1,0 +1,163 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:17:20-05:00
+code paths == 0811f4cf6d1e9d017927e55878e5006308b0665c, clean; HEAD 50fedbab418834081ee41197a90c0908989d449c
+LEG P3 start 2026-11-19T14:17:20-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:17:20-05:00
+cells run: 238 2026-11-19T14:21:49-05:00
+FOREGROUND_END 2026-11-19T14:21:49-05:00
+LEG P3 rc=0 2026-11-19T14:21:49-05:00
+LEG P3-criterion start 2026-11-19T14:21:49-05:00
+MOVER BETTER   sd-hven-sqp-CRESC100.K
+MOVER NEUTRAL  sd-hven-sqp-HS101.D
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-HS56.D
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+SUMMARY rows 476; movers vs arm A 9 (better 1, worse 0, neutral 8); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-19T14:21:49-05:00
+LEG P4 start 2026-11-19T14:21:49-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:21:49-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126646e+06 B=7.127950e+06 B/A=1.000183
+  all samples                      A=7.126646e+06 B=7.127950e+06 B/A=1.000183
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850664e+12 B=2.851185e+12 B/A=1.000183
+per-round filtered B/A (informational):
+  round 1: B/A=1.000185
+  round 2: B/A=1.000184
+  round 3: B/A=1.000183
+MODE walk FILTERED B/A = 1.000183 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-19T14:55:33-05:00
+LEG P4 rc=0 2026-11-19T14:55:33-05:00
+LEG P5 start 2026-11-19T14:55:33-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:55:33-05:00
+PREFLIGHT every mutation applies and restores: MUST=[N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16] REC=[]
+MUT control rc=0 killers=0
+APPLIED N1
+MUT N1 rc=1 killers=11
+   QpWa1AscentFootprint.SyntheticKOkFaceStepsAlongTheRegularizedAnswer
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N2
+MUT N2 rc=1 killers=5
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N3
+MUT N3 rc=1 killers=4
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N4
+MUT N4 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N5
+MUT N5 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N6
+MUT N6 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N7
+MUT N7 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKOkFaceStepsAlongTheRegularizedAnswer
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED N8
+MUT N8 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N9
+MUT N9 rc=1 killers=3
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N10
+MUT N10 rc=1 killers=2
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+APPLIED N11
+MUT N11 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N12
+MUT N12 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+APPLIED N13
+MUT N13 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKOkFaceStepsAlongTheRegularizedAnswer
+APPLIED N14
+MUT N14 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKSuspectPassIsNotTheRulesCase
+APPLIED N15
+MUT N15 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N16
+MUT N16 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T15:10:18-05:00
+LEG P5 rc=0 2026-11-19T15:10:18-05:00
+LEG P6 start 2026-11-19T15:10:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T15:10:18-05:00
+SMOKE_START default 2026-11-19T15:10:18-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-19T15:11:03-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-19T15:11:34-05:00
+LEG P6 rc=0 2026-11-19T15:11:34-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-19T15:11:34-05:00
