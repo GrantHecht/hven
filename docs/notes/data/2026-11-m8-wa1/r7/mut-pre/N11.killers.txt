@@ -1,0 +1,2 @@
+QpWa1AscentFootprint.RowBudgetAtItsEdge
+QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused

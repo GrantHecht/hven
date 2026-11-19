@@ -1,0 +1,202 @@
+FOREGROUND_START 2026-11-19T17:13:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:13:52-05:00
+[62/65] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[63/65] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[64/65] Linking CXX executable bench/hven_sqp_corpus
+rc=0
+FOREGROUND_END 2026-11-19T17:14:32-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:14:32-05:00
+[292/297] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[293/297] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[294/297] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-19T17:17:39-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:17:39-05:00
+[328/333] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[329/333] Linking CXX executable examples/hven_example_08_results_trace_options
+[330/333] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-19T17:20:04-05:00
+bd3d322803b1d98e90e6b622b39901da19a48991cdf1caf2a9673ee28e8c71c9  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/A/hven_sqp_corpus
+dac7579832eeb91d8f7f058195e90443a18f57963b5fde791935d12ea5b64403  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_sqp_corpus
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:20:04-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/A/hven_sqp_corpus sha256 bd3d322803b1d98e90e6b622b39901da19a48991cdf1caf2a9673ee28e8c71c9
+RUN A k=1 mode=walk 2026-11-19T17:20:04-05:00
+run rc=0
+RUN A k=1 mode=ssn 2026-11-19T17:24:53-05:00
+run rc=0
+RUN A k=1 mode=ipm 2026-11-19T17:25:14-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T17:25:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:25:40-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_sqp_corpus sha256 dac7579832eeb91d8f7f058195e90443a18f57963b5fde791935d12ea5b64403
+RUN B k=1 mode=walk 2026-11-19T17:25:40-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-19T17:30:28-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-19T17:30:49-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T17:31:15-05:00
+=== dev-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== dev-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== dev-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:31:15-05:00
+PATCHED
+ cmake/hven_pin.cmake            |  4 ++--
+ lanes/external/declared_point.h |  2 +-
+ lanes/hven/hven_bench_cell.cpp  | 10 ++++++++++
+ 3 files changed, 13 insertions(+), 3 deletions(-)
+HVEN_PIN_SHA 64e384e2a4bf1f80a9dc2d72ee2b0bdf41911ed4
+ece63b01bde7a7d854a6416ec6e8253b007757cc086952ff0935de93990df641  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/A/hven_bench_cell
+748e02f37fc25e1e65949582ec18ee8436cfe84dffe69b1d29d9125582ada95e  /home/ghecht/Projects/hven/.claude/worktrees/wa1/.scratch/hb/.hven/install-64e384e2a4bf/lib64/libhven.a
+dbeb66e EVIDENCE-ONLY (private clone, never pushed): pin hven 64e384e2a (wa-1 arm A)
+FOREGROUND_END 2026-11-19T17:31:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:31:50-05:00
+PATCHED
+ cmake/hven_pin.cmake            |  4 ++--
+ lanes/external/declared_point.h |  2 +-
+ lanes/hven/hven_bench_cell.cpp  | 10 ++++++++++
+ 3 files changed, 13 insertions(+), 3 deletions(-)
+HVEN_PIN_SHA 192d005295913ea8484f445e40c774fa5561c0ce
+bf29cc72076bc069772e73c71a3402b3a9f0b8ab11b23631fbd6b3aa1e627ade  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_bench_cell
+58662787b3f872d283fbee7fb2e595937d02c23f2a70c64bb2b3fd4acdb56776  /home/ghecht/Projects/hven/.claude/worktrees/wa1/.scratch/hb/.hven/install-192d00529591/lib64/libhven.a
+80a1b9a EVIDENCE-ONLY (private clone, never pushed): pin hven 192d00529 (wa-1 arm B)
+FOREGROUND_END 2026-11-19T17:32:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:32:24-05:00
+cells run: 238 2026-11-19T17:36:57-05:00
+FOREGROUND_END 2026-11-19T17:36:57-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:36:57-05:00
+cells run: 238 2026-11-19T17:41:16-05:00
+FOREGROUND_END 2026-11-19T17:41:16-05:00
+ece63b01bde7a7d854a6416ec6e8253b007757cc086952ff0935de93990df641  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/A/hven_bench_cell
+bd3d322803b1d98e90e6b622b39901da19a48991cdf1caf2a9673ee28e8c71c9  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/A/hven_sqp_corpus
+bf29cc72076bc069772e73c71a3402b3a9f0b8ab11b23631fbd6b3aa1e627ade  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_bench_cell
+dac7579832eeb91d8f7f058195e90443a18f57963b5fde791935d12ea5b64403  /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_sqp_corpus
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:41:16-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T17:42:42-05:00
+ctest rel rc=0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:42:42-05:00
+	1360 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1493 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1584 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1585 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1586 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-19T17:50:34-05:00
+ctest dbg rc=0
+FOREGROUND_END 2026-11-19T17:50:34-05:00
+DEV_EXIT 0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T17:50:34-05:00
+PREFLIGHT every mutation applies and restores: MUST=[N1 N2 N3 N4 N5 N6 N8 N9 N10 N11 N12 N14 N15 N17 N18 N19 N22 N23] REC=[N20 N21]
+MUT control rc=0 killers=0
+APPLIED N1
+MUT N1 rc=1 killers=12
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N2
+MUT N2 rc=1 killers=6
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N3
+MUT N3 rc=1 killers=5
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N4
+MUT N4 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N5
+MUT N5 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N6
+MUT N6 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N8
+MUT N8 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N9
+MUT N9 rc=1 killers=3
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N10
+MUT N10 rc=1 killers=2
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+APPLIED N11
+MUT N11 rc=1 killers=2
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N12
+MUT N12 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+APPLIED N14
+MUT N14 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKSuspectPassIsNotTheRulesCase
+APPLIED N15
+MUT N15 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED N17
+MUT N17 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N18
+MUT N18 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N19
+MUT N19 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED N22
+MUT N22 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N23
+MUT N23 rc=124 killers=3
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+N20 rc=1 (recorded); killers: 0
+N21 rc=1 (recorded); killers: 0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T18:23:12-05:00
+MUT_EXIT 0

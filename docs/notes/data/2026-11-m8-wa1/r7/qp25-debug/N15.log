@@ -1,0 +1,77 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/dbg/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpYrkRefusedExchange.YorknetRestorationQp25*:QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[==========] Running 3 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from QpWa1AscentFootprint
+[ RUN      ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[ wa1 ] revert refactorize status=3 minors=13 f=0.226661791435 rides=0 refused=0 rungs=1 declines=0 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=1 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=1 obj_in=0.0484432596 dx=1.000e-08 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 3 action=6 fp=-1 verdict=1 obj_in=0.0484432581 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 4 action=11 fp=-1 verdict=1 obj_in=0.226663681 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 5 action=11 fp=-1 verdict=1 obj_in=0.0484432643 dx=2.493e-08 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 6 action=6 fp=-1 verdict=1 obj_in=0.0484432566 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=1 obj_in=0.226663664 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 8 action=11 fp=-1 verdict=1 obj_in=0.0484433189 dx=2.493e-07 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 9 action=6 fp=-1 verdict=1 obj_in=0.0484432413 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 10 action=11 fp=-1 verdict=1 obj_in=0.226663494 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 11 action=11 fp=-1 verdict=1 obj_in=0.0484438647 dx=2.493e-06 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 12 action=7 fp=-1 verdict=1 obj_in=0.0484430886 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_ascent_footprint.cpp:662: Failure
+Expected equality of these values:
+  static_cast<int>(w.records[1].ascent_footprint)
+    Which is: -1
+  static_cast<int>(Footprint::kRungReverted)
+    Which is: 6
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_ascent_footprint.cpp:639: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_ascent_footprint.cpp:663: Failure
+Expected equality of these values:
+  w.solution.counters.ascent_footprint_rung_reverts
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_ascent_footprint.cpp:639: refactorize
+
+[ wa1 ] revert border status=0 minors=4 f=-40.0605468753 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.439453125 dx=9.000e+00 res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0605469 dx=nan res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+[  FAILED  ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted (7 ms)
+[----------] 1 test from QpWa1AscentFootprint (7 ms total)
+
+[----------] 2 tests from QpYrkRefusedExchange
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[ yrk ] YRK_YORKNET_qp25.txt border status=3 minors=87 facts=133 f=-5.7995781471 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_refused_exchange.cpp:131: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Border (20585 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+[ yrk ] YRK_YORKNET_qp25.txt refactorize status=3 minors=87 facts=129 f=-5.7995781471 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/seam/test_qp_refused_exchange.cpp:131: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (3213 ms)
+[----------] 2 tests from QpYrkRefusedExchange (23798 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 2 test suites ran. (23806 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+
+ 3 FAILED TESTS

@@ -1,0 +1,37 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/dbg/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpYrkRefusedExchange.YorknetRestorationQp25*:QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[==========] Running 3 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from QpWa1AscentFootprint
+[ RUN      ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[ wa1 ] revert refactorize status=0 minors=8 f=-40.4964492793 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=17 fp=6 verdict=1 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=11 fp=-1 verdict=2 obj_in=0.00355072137 dx=1.000e-08 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=0.00355072067 dx=9.000e+00 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 5 action=11 fp=-1 verdict=0 obj_in=-40.4366063 dx=2.718e-01 res=9.659e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] revert border status=0 minors=4 f=-40.0605468753 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.439453125 dx=9.000e+00 res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0605469 dx=nan res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted (7 ms)
+[----------] 1 test from QpWa1AscentFootprint (7 ms total)
+
+[----------] 2 tests from QpYrkRefusedExchange
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[ yrk ] YRK_YORKNET_qp25.txt border status=0 minors=80 facts=127 f=-5.79957813652 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-4.257e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Border (18289 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+[ yrk ] YRK_YORKNET_qp25.txt refactorize status=0 minors=80 facts=124 f=-5.79957813652 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-4.257e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (5456 ms)
+[----------] 2 tests from QpYrkRefusedExchange (23746 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 2 test suites ran. (23754 ms total)
+[  PASSED  ] 3 tests.

@@ -1,0 +1,16 @@
+.scratch/r7/train-C: rows 476; qp minors 209264 -> 209313 (+0.02%); factorizations 249651 -> 250134 (+0.19%); status changes 0: 
+.scratch/r7/train-V: rows 476; qp minors 209264 -> 206415 (-1.36%); factorizations 249651 -> 242329 (-2.93%); status changes 0: 
+
+V vs C:
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+SUMMARY rows 476; movers vs arm A 2 (better 0, worse 0, neutral 2); missing/capped 0
+
+MSS1.D dev-train-A status=numerical_error factorizations=10656 objective=-13.92313248994623 side.qp_minor_iters=9003 
+MSS1.D train-C status=numerical_error factorizations=21652 objective=-5.0664634131352688 side.qp_minor_iters=17636 
+MSS1.D train-V status=numerical_error factorizations=10119 objective=-1.6021852668144545 side.qp_minor_iters=9525 
+MSS1.K dev-train-A status=numerical_error factorizations=9501 objective=-15.565129858673044 side.qp_minor_iters=9521 
+MSS1.K train-C status=numerical_error factorizations=7411 objective=-14.760294503742298 side.qp_minor_iters=5903 
+MSS1.K train-V status=numerical_error factorizations=11139 objective=-15.12934489281842 side.qp_minor_iters=11116 
+
+lanes: C = code 189f5c763 (b98380aa...), V = scratch wa1-r7cap 61643b4b0 (387fbb24...)

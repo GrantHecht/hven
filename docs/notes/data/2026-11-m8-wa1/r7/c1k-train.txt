@@ -1,0 +1,19 @@
+cell sequences steps ended_by_pass postponed below_norule above_start following_step_restores_rows solve_end
+sd-hven-sqp-CRESC100.K 1 1 1 0 1 0 1 0
+sd-hven-sqp-HS56.D 1 1 1 1 0 1 1 0
+sd-hven-sqp-MESH.D 3 4 3 1 2 1 2 0
+sd-hven-sqp-MSS1.D 22 35 21 14 7 13 13 1
+sd-hven-sqp-MSS1.K 7 16 7 3 4 3 4 0
+TOTAL sequences=34 steps=57 ended_by_pass=33 postponed=19 below_norule=14 above_start=18 restores=21 solve_end=1
+FOLLOW -2:2 0:27 2:1 7:3
+
+cell chains steps postponed above_start below_norule fe_vs_fl_rose ws_same solve_end
+sd-hven-sqp-CRESC100.K 1 1 0 0 1 1 0 0
+sd-hven-sqp-HS56.D 1 1 1 1 0 1 1 0
+sd-hven-sqp-MESH.D 4 4 2 1 2 3 0 0
+sd-hven-sqp-MSS1.D 35 35 17 13 18 14 14 1
+sd-hven-sqp-MSS1.K 16 16 8 3 8 4 2 0
+TOTAL chains=57 steps=57 postponed=28 above_start=18 below_norule=29 rose_after=23 ws_same=17 solve_end=1
+FOLLOW -2:26 0:27 2:1 7:3
+
+row-restoring endings 21, at/above the no-rule f 18
