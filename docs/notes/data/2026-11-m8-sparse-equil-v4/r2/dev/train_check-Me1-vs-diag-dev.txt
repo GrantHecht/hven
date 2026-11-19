@@ -1,0 +1,12 @@
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    diff: factorizations: 5380 -> 5379; side.eqp_refine_iters: 4853 -> 4843; side.factorizations: 5380 -> 5379; side.harness_factorizations_total: 5394 -> 5393; side.harness_qpsum_dep_grey_rereads: 253 -> 254; side.harness_qpsum_dep_stall_admits: 116 -> 115; side.inertia_suspect_verdicts: 3 -> 2; side.sparse_matched_retakes: 3 -> 0; side.sparse_retake_refusals: 0 -> 2
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    diff: factorizations: 5380 -> 5379; side.eqp_refine_iters: 4853 -> 4843; side.factorizations: 5380 -> 5379; side.harness_factorizations_total: 5394 -> 5393; side.harness_qpsum_dep_grey_rereads: 253 -> 254; side.harness_qpsum_dep_stall_admits: 116 -> 115; side.inertia_suspect_verdicts: 3 -> 2; side.sparse_matched_retakes: 3 -> 0; side.sparse_retake_refusals: 0 -> 2
+
+SUMMARY rows 476; movers vs arm A 2 (better 0, worse 0, neutral 2); missing/capped 0
+residual values equal within the gate but not byte-equal: 0
+REPORT_ONLY (dev run)
