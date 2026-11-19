@@ -2212,8 +2212,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // up to its own minimiser when its curvature along p is positive, and the
                     // rows stay inside the ordinary step's own budget.
                     const FootprintMerit m =
-                        footprint_merit(qp, ws, x, Aix, p, ai_row_norm1, lambda_i, ae_row_norm1,
-                                        lambda_e, eff_opts);
+                        footprint_merit(qp, ws, x, Aix, p, ai_row_norm1, ae_row_norm1, eff_opts);
                     QpCounters scratch; // read-only ratio test: its ties are not this pass's
                     BlockKind k = BlockKind::kNone;
                     Index i = -1;
@@ -6412,32 +6411,30 @@ bool QpEngine::ride_holds_pins(const WorkingSet &ws, const Vec &p) const {
 
 QpEngine::FootprintMerit QpEngine::footprint_merit(const QpProblem &qp, const WorkingSet &ws,
                                                    const Vec &x, const Vec &Aix, const Vec &p,
-                                                   const Vec &ai_row_norm1, const Vec &lambda_i,
-                                                   const Vec &ae_row_norm1, const Vec &lambda_e,
+                                                   const Vec &ai_row_norm1, const Vec &ae_row_norm1,
                                                    const QpOptions &opts) const {
     FootprintMerit m;
     m.row_budget = std::numeric_limits<double>::infinity();
     const double xmag = x.lpNorm<Eigen::Infinity>();
-    const auto add = [&](double r, double ap, double b, double norm1, double lambda) {
+    const auto add = [&](double r, double ap, double b, double norm1) {
         m.slope += r * ap;
         m.curvature += ap * ap;
         if (ap != 0.0) {
             // Along -p the residual is r - alpha * ap; it reaches -sign(ap) * tol at this alpha,
-            // tol the structural margin THE EQUALITY DRIFT's invariant reads.
+            // tol the structural margin of the multiplier-free floor: the step changes the face,
+            // so the footprint allowance of this face's multipliers is not its to spend.
             const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});
             const double tol =
-                detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts);
+                detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, 0.0, opts);
             const double a = ap > 0.0 ? (r + tol) / ap : (r - tol) / ap;
             m.row_budget = std::min(m.row_budget, std::max(a, 0.0));
         }
     };
     for (Index j = 0; j < qp.me(); ++j) {
-        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p), qp.be(j), ae_row_norm1(j),
-            lambda_e(j));
+        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p), qp.be(j), ae_row_norm1(j));
     }
     for (const Index row : ws.active_ineq()) {
-        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p), qp.bi(row), ai_row_norm1(row),
-            lambda_i(row));
+        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p), qp.bi(row), ai_row_norm1(row));
     }
     m.slope /= opts.dual_regularization;
     m.curvature /= opts.dual_regularization;
