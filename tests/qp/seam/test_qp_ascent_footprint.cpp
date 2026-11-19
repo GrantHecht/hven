@@ -142,7 +142,7 @@ Tally tally(const std::vector<Record> &records) {
 }
 
 /// The branch's records against its counters: every outcome is counted exactly once, a ride is a
-/// guard ride, a rung spends a dual_mu decrease and moves nothing.
+/// guard ride, rungs stay inside their cap and move nothing.
 void expect_counted(const Walk &w) {
     const Tally t = tally(w.records);
     const QpCounters &c = w.solution.counters;
@@ -152,7 +152,7 @@ void expect_counted(const Walk &w) {
     EXPECT_EQ(t.refused, c.ascent_footprint_ride_refusals);
     EXPECT_LE(c.ascent_footprint_rung_reverts, 1) << "a reverted rung ends footprint rungs";
     EXPECT_EQ(t.declined, c.ascent_footprint_declines);
-    EXPECT_LE(c.ascent_footprint_rungs, c.dual_regularization_decreases);
+    EXPECT_LE(c.ascent_footprint_rungs, kMaxFootprintRungs);
     EXPECT_LE(c.ascent_footprint_rides, c.ascent_rides);
     Index flagged = 0;
     for (const Record &r : w.records) {
@@ -508,8 +508,8 @@ TEST(QpWa1AscentFootprint, SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheB
 }
 
 // THE DECLINE: from dual_mu = 1e-6 (eps = 1e-4) the footprint stays past kRideNullspaceTol through
-// both rungs (1e-8, 1e-10) on trusted kWrong factors and the blocker stays past the budget, so with
-// the rungs spent the ordinary step stands -- counted.
+// the rung (1e-8) on trusted kWrong factors and the blocker stays past the budget, so with the rung
+// spent the ordinary step stands -- counted.
 TEST(QpWa1AscentFootprint, SyntheticKWrongFaceDeclinesWithTheRungsSpent) {
     const QpProblem qp = synthetic_face(1e-4, 1.0);
     for (const auto alg : {kRefactorize, kBorder}) {
@@ -527,7 +527,7 @@ TEST(QpWa1AscentFootprint, SyntheticKWrongFaceDeclinesWithTheRungsSpent) {
             }
         }
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(w.solution.counters.ascent_footprint_rungs, kMaxDualRegDecreases);
+        EXPECT_EQ(w.solution.counters.ascent_footprint_rungs, kMaxFootprintRungs);
         EXPECT_GE(w.solution.counters.ascent_footprint_declines, 1);
 #else
         hven::test_support::record_off_reference_route(

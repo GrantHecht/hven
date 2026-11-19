@@ -452,10 +452,10 @@
 //      the ride moves, and the landing point keeps every working row within
 //      detail::footprint_rows_within_budget; a ride whose add site passes blockers over is
 //      checked again at the point it lands on, and outside the budget the pass is solved again
-//      without the ride. Else one dual_mu rung (kDualRegDecreaseFactor, inside
-//      kMaxDualRegDecreases, the factor state discarded) and the pass is solved again -- a rung
-//      whose face then reads kSuspect (below the backend's static-pivot floor) is reverted once
-//      and ends footprint rungs for the solve; with the rungs spent or ended the ordinary step
+//      without the ride. Else one dual_mu rung (kDualRegDecreaseFactor, at most
+//      kMaxFootprintRungs per solve, the factor state discarded) and the pass is solved again -- a
+//      rung whose face then reads kSuspect (below the backend's static-pivot floor) is reverted
+//      once and ends footprint rungs for the solve; with the rungs spent or ended the ordinary step
 //      stands, counted. A pass where neither the ride nor the ordinary step moves is a degenerate
 //      pivot: the ordinary add. DESCENT: s > 0 and p'Hp < 0, so f(x - alpha p) < f(x) for every
 //      alpha > 0.
@@ -463,8 +463,8 @@
 //      p (detail::footprint_merit_slope beyond its resolution) the ordinary step stands, counted.
 //    A pass solved again without moving hands the next pass its drop record and its standstill,
 //    stagnation and gray-hold state.
-//    Counted: ascent_footprint_rides (also ascent_rides), ascent_footprint_rungs (also
-//    dual_regularization_decreases), ascent_footprint_rung_reverts,
+//    Counted: ascent_footprint_rides (also ascent_rides), ascent_footprint_rungs,
+//    ascent_footprint_rung_reverts,
 //    ascent_footprint_ride_refusals, ascent_footprint_declines.
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
@@ -1458,6 +1458,11 @@ constexpr double kCurvatureTolFactor = 1e-12;
 // (kInfeasibilityMarginFactor times that), so a landing point inside it neither shifts a working
 // inequality nor reads as drift, whatever the next face's multipliers.
 constexpr double kFootprintRowBudget = 0.5;
+
+// THE REGULARIZATION FOOTPRINT's dual_mu rungs per solve (section 4c): a cap of their own, outside
+// kMaxDualRegDecreases (the release re-admission's). At 1 a reverted rung ends footprint rungs for
+// the solve; a larger cap needs its own stop after a revert.
+constexpr Index kMaxFootprintRungs = 1;
 
 // THE REGULARIZATION FOOTPRINT's merit slope: along d at x, the slope of M = f + |A_W x - b_W|^2 /
 // (2 mu) (every equality row and every working inequality row), and its rounding resolution

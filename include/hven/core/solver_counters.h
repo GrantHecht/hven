@@ -140,13 +140,13 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
-    /// Rungs of the effective dual_regularization this solve took: each multiplies it by
-    /// detail::kDualRegDecreaseFactor, at most detail::kMaxDualRegDecreases per solve, after the
-    /// shift refresh re-admitted the row the previous pass released (walk_engine.h, THE RELEASE
-    /// RE-ADMISSION) or in place of the ascent guard's footprint ride (4c;
-    /// ascent_footprint_rungs). A footprint rung later reverted (ascent_footprint_rung_reverts)
-    /// stays counted and keeps its slot, though dual_regularization is restored. Zero on every
-    /// solve that took neither; independent_working_set walks only.
+    /// Rungs of the release re-admission rule this solve spent (walk_engine.h,
+    /// THE RELEASE RE-ADMISSION): each multiplies the effective
+    /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
+    /// refresh re-admitted the row the previous pass released, at most
+    /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
+    /// released row; independent_working_set walks only. The ascent guard's
+    /// footprint rungs are counted apart (ascent_footprint_rungs).
     Index dual_regularization_decreases = 0;
 
     /// True iff walk_engine.h's border-mode reuse gate (`reuse_eligible` in
@@ -338,10 +338,10 @@ struct QpCounters {
     // working set and ascended with nonpositive curvature (an indefinite face's saddle),
     // ridden along -p instead of stepped along p.
     Index ascent_rides = 0;
-    // THE ASCENT GUARD's REGULARIZATION FOOTPRINT (qp_engine.h 4c), on passes whose EQP direction
+    // THE ASCENT GUARD's REGULARIZATION FOOTPRINT (walk_engine.h 4c), on passes whose EQP direction
     // held its pins but left working rows by the dual_mu footprint: trusted-kWrong passes ridden
     // along -p (also in ascent_rides); dual_mu rungs taken instead of a ride whose landing point
-    // would leave the row budget (also in dual_regularization_decreases); rungs reverted because
+    // would leave the row budget (at most detail::kMaxFootprintRungs); rungs reverted because
     // the face they re-solved read kSuspect (dual_mu restored, no further footprint rung that
     // solve); rides refused because their add site passed the blocker over to a landing point
     // outside the row budget (the pass solved again without the ride; not in ascent_rides); and

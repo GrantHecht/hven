@@ -813,10 +813,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         face.factorized = false;
     };
     // THE REGULARIZATION FOOTPRINT's rung (section 4c) is kept only when the face it re-solves
-    // factors trusted: the dual_mu it replaced, while one is pending, and whether the solve has
-    // given up on footprint rungs (a rung that read kSuspect is reverted once).
+    // factors trusted: the dual_mu it replaced, while one is pending. A reverted rung has spent
+    // the solve's kMaxFootprintRungs, so it ends footprint rungs.
     double footprint_rung_from = 0.0;
-    bool footprint_rungs_off = false;
+    static_assert(detail::kMaxFootprintRungs == 1,
+                  "a reverted footprint rung ends rungs by the cap");
     // Set when the footprint ride's add site passed its blocker over to a landing point outside
     // the row budget: the next pass (the same pass solved again) does not ride.
     bool footprint_ride_refused = false;
@@ -979,7 +980,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             footprint_rung_from = 0.0;
             if (verdict == detail::InertiaVerdict::kSuspect) {
                 eff_opts.dual_regularization = restored;
-                footprint_rungs_off = true;
                 ++counters.ascent_footprint_rung_reverts;
                 discard_factor_state();
                 resolve_pass_again();
@@ -2301,9 +2301,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             walk_obs.record().ascent_footprint =
                                 detail::testing::QpWalkFootprint::kDegenerate;
 #endif
-                        } else if (!footprint_rungs_off && counters.dual_regularization_decreases <
-                                                               detail::kMaxDualRegDecreases) {
-                            ++counters.dual_regularization_decreases;
+                        } else if (counters.ascent_footprint_rungs < detail::kMaxFootprintRungs) {
                             ++counters.ascent_footprint_rungs;
                             footprint_rung_from = eff_opts.dual_regularization;
                             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
