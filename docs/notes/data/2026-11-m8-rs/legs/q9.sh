@@ -6,7 +6,7 @@ set -o pipefail
 source "$(dirname "$0")/env.sh"
 box_check
 ARM=${1:?arm}; OUT=$(realpath -m "${2:?out}"); shift 2
-E=$WT/docs/notes/data/2026-11-m8-rs
+Q9TOOL=${Q9TOOL:-$(dirname "$0")/q9_measure.py}   # next to this script (the base worktree does not hold the tool)
 D=$WT/build-q9
 mkdir -p "$OUT"; rm -rf "$D"
 echo "FOREGROUND_START $(date -Is) arm=$ARM head=$(git -C "$WT" rev-parse --short HEAD)"
@@ -15,8 +15,8 @@ cmake -S "$WT" -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release -DHVEN_FP_MODE=SAFER_
   -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/home/ghecht/Projects/hven/build/_deps/googletest-src > "$OUT/$ARM-configure.log" 2>&1 || { echo CONFIGURE_FAIL; exit 1; }
 ninja -C "$D" -j16 hven gtest gtest_main > "$OUT/$ARM-prebuild.log" 2>&1 || { echo PREBUILD_FAIL; tail "$OUT/$ARM-prebuild.log"; exit 1; }
 sync; sleep 5
-python3 "$E/tools/q9_measure.py" "$OUT/$ARM-seams.json" -- ninja -C "$D" -j16 "$@"; rc1=$?
-python3 "$E/tools/q9_measure.py" "$OUT/$ARM-rest.json" -- ninja -C "$D" -j16; rc2=$?
+python3 "$Q9TOOL" "$OUT/$ARM-seams.json" -- ninja -C "$D" -j16 "$@"; rc1=$?
+python3 "$Q9TOOL" "$OUT/$ARM-rest.json" -- ninja -C "$D" -j16; rc2=$?
 echo "seams rc=$rc1 rest rc=$rc2"; echo "FOREGROUND_END $(date -Is)"
 rm -rf "$D"
 exit $((rc1 + rc2))

@@ -16,6 +16,7 @@ ap.add_argument('--out', required=True); ap.add_argument('--unity-before'); ap.a
 ap.add_argument('--unity-class-source', action='append', default=[], help='a repo-relative source that was unity-batched before and is a plain object after: its AFTER object joins the unity class (compared by psym_union, not paired)')
 a = ap.parse_args()
 def load(p):
+    """Returns ({(target, source): rel}, unity list, other list)."""
     plain, unity, other = {}, [], []
     for raw in open(p):
         rel = raw.strip()
@@ -24,20 +25,35 @@ def load(p):
         if k is None: other.append(rel); continue
         tgt, src = k
         if src.startswith('unity:'): unity.append(rel); continue
-        if src in plain: sys.exit('%s: source %s built twice (%s, %s)' % (p, src, plain[src][1], rel))
-        plain[src] = (tgt, rel)
+        if (tgt, src) in plain: sys.exit('%s: (%s, %s) built twice' % (p, tgt, src))
+        plain[(tgt, src)] = rel
     return plain, sorted(unity), other
+def pair(b, af):
+    """Pair before/after objects: identical (target, source) first (a source compiled into several targets keeps its pairing in the targets that did not change, e.g. bench/ipm_corpus_leg.cpp in
+    hven_sqp_corpus), then the leftovers by source alone, which must be unambiguous (a test source moves from one target to another). Returns ({before key: after key}, [errors])."""
+    pairs, err = {}, []
+    for k in b:
+        if k in af: pairs[k] = k
+    lb = {}; la = {}
+    for k in b:
+        if k not in pairs: lb.setdefault(k[1], []).append(k)
+    for k in af:
+        if k not in pairs.values(): la.setdefault(k[1], []).append(k)
+    for src, ks in sorted(lb.items()):
+        if src in la and len(ks) == 1 and len(la[src]) == 1: pairs[ks[0]] = la[src][0]
+        elif src in la: err.append('AMBIGUOUS %s: before %s after %s' % (src, ks, la[src]))
+        else: err.append('REMOVED (before object with no after object): ' + b[ks[0]])
+    for src, ks in sorted(la.items()):
+        if src not in lb: err.append('NEW (after object with no before object): ' + af[ks[0]])
+    return pairs, err
 b, ub, ob = load(a.before); af, ua, oa = load(a.after)
 for src in a.unity_class_source:
-    if src not in af: sys.exit('--unity-class-source %s has no after object' % src)
-    ua.append(af.pop(src)[1])
+    ks = [k for k in af if k[1] == src]
+    if len(ks) != 1: sys.exit('--unity-class-source %s: %d after objects' % (src, len(ks)))
+    ua.append(af.pop(ks[0])); 
 ua.sort()
-err = []
-for s in sorted(b):
-    if s not in af: err.append('REMOVED (before object with no after object): ' + b[s][1])
-for s in sorted(af):
-    if s not in b: err.append('NEW (after object with no before object): ' + af[s][1])
-gen = sorted('%s => %s' % (b[s][1], af[s][1]) for s in b if s in af and b[s][1] != af[s][1])
+pairs, err = pair(b, af)
+gen = sorted('%s => %s' % (b[k], af[v]) for k, v in pairs.items() if b[k] != af[v])
 open(a.out, 'w').write('\n'.join(gen) + '\n')
 if a.unity_before: open(a.unity_before, 'w').write('\n'.join(ub) + '\n')
 if a.unity_after: open(a.unity_after, 'w').write('\n'.join(ua) + '\n')

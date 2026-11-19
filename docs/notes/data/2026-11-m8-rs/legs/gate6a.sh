@@ -3,7 +3,7 @@
 #   mkdir -p .scratch/instr; cp legs/{gate6a,env,psym_arms,build,ctest,lists,replay,install_smoke,q9,mutation6a}.sh tools/neutral_flags.py .scratch/instr/
 #   WT=<worktree> flock /tmp/box-build.lock setsid -w bash .scratch/instr/gate6a.sh [steps]
 # The design 5.2 / 5.4 gate for RS-6a, DECLARATION-RS6a.md (+ -r2 when present). The base measurement (lists, replay, ctest) comes from legs/baseline2.sh run in the separate base worktree.
-# steps (default all): build psym flags lists ctest smoke replay pch debug sweep mutation q9
+# steps (default all): build psym flags lists ctest smoke replay pch debug sweep mutation q9; extra steps: q9base, q9after (one arm each), psymcmp (compare the captured arms only), membership (compare the build's membership table with the declared one)
 set -o pipefail
 source "$(dirname "$0")/env.sh"
 export HVEN_PCH_NEUTRALITY_JOBS=12
@@ -23,6 +23,8 @@ if has psym; then
   rm -rf "$SC/arms"; WT=$WT bash $L/psym_arms.sh "$SC/arms" > "$GD/psym-arms-run.txt" 2>&1
   rec psym-arms $?; tail -3 "$GD/psym-arms-run.txt"
   cp "$SC/arms/base-build.log" "$SC/arms/after-build.log" "$SC/arms.flags.txt" "$GD/" 2>/dev/null
+fi
+if has psym || has psymcmp; then
   DECL="$GD/declared-object-map.txt"; [ -f "$GD/declared-object-map-r2.txt" ] && DECL="$DECL $GD/declared-object-map-r2.txt"
   python3 $E/tools/rs6a_objmap_check.py "$SC/arms/psym-base/.psym-manifest" "$SC/arms/psym-after/.psym-manifest" $DECL --out "$GD/object-map-generated.txt" --unity-before "$GD/unity-before.txt" --unity-after "$GD/unity-after.txt" --unity-class-source tests/core/test_type_storage.cpp --unity-class-source tests/kkt/test_kkt_factorization.cpp > "$GD/objmap-check.txt" 2>&1
   rec objmap-equals-declared $?; tail -3 "$GD/objmap-check.txt"
@@ -48,7 +50,9 @@ if has lists; then
   cp "$SC/lists/ctest-N.txt" "$GD/ctest-N-after.txt"; cp -r "$SC/lists/gtest" "$GD/gtest-after"; cp "$BASEWT/.scratch/base/lists/ctest-N.txt" "$GD/ctest-N-base.txt"
   python3 $E/tools/lists_verdict6a.py "$BASEWT/.scratch/base/lists" "$SC/lists" > "$GD/lists-verdict.txt" 2>&1
   rec lists-as-declared $?; cat "$GD/lists-verdict.txt" | tee -a "$V" | tail -30
-  cp "$WT/build/tests/hven_test_membership.txt" "$GD/membership-after.txt"
+fi
+if has lists || has membership; then
+  cp "$WT/build/hven_test_membership.txt" "$GD/membership-after.txt"
   python3 - "$GD/declared-membership.txt" "$GD/membership-after.txt" <<'PY' > "$GD/membership-verdict.txt"; rec membership-equals-declared $?
 import re, sys
 decl = {}; cur = None
@@ -81,10 +85,13 @@ if has debug; then
 fi
 if has sweep; then bash $E/tools/header_sweep.sh "$WT" "$GD/header-sweep-after.txt" | tee -a "$V"; fi
 if has mutation; then WT=$WT bash $L/mutation6a.sh > "$GD/mutation-run.txt" 2>&1; rec mutation $?; tail -12 "$GD/mutation-run.txt"; fi
-if has q9; then
+if has q9 || has q9base; then
   mkdir -p "$GD/q9"
   WT=$BASEWT bash $L/q9.sh base "$GD/q9" hven_fault_injection_tests hven_ipqp_seam_tests hven_qp_walk_seam_tests hven_sqp_seam_tests > "$GD/q9/base-run.txt" 2>&1; rec q9-base $?
-  bash $L/q9.sh after "$GD/q9" hven_linear_seam_tests hven_kkt_seam_tests hven_qp_seam_tests hven_solver_seam_tests hven_ipm_seam_tests hven_sqp_seam_tests > "$GD/q9/after-run.txt" 2>&1; rec q9-after $?
-  cat "$GD"/q9/*-seams.json "$GD"/q9/*-rest.json | tee -a "$V"
 fi
+if has q9 || has q9after; then
+  mkdir -p "$GD/q9"
+  bash $L/q9.sh after "$GD/q9" hven_linear_seam_tests hven_kkt_seam_tests hven_qp_seam_tests hven_solver_seam_tests hven_ipm_seam_tests hven_sqp_seam_tests > "$GD/q9/after-run.txt" 2>&1; rec q9-after $?
+fi
+if has q9 || has q9base || has q9after; then cat "$GD"/q9/*-seams.json "$GD"/q9/*-rest.json | tee -a "$V"; fi
 echo "== gate RS-6a done $(date -Is)" | tee -a "$V"
