@@ -2175,10 +2175,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // (0, 1] -- so the walk rides -p (descent, negative curvature) to its first blocker
         // instead, as the saddle exit rides d. A pass at which neither the step along p
         // nor the ride along -p would move x is a degenerate pivot, not an ascent: it is
-        // left to the ordinary add.
+        // left to the ordinary add. THE REGULARIZATION FOOTPRINT: a p that holds its pins
+        // but leaves working rows the iterate meets is read in the dual_mu-regularized
+        // face's own currency, the penalty merit f + |A_W x - b_W|^2 / (2 mu): -p is ridden
+        // when its slope and verified curvature descend that merit as well as f.
         if (eff_opts.independent_working_set && !ride_blocked) {
             const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
             const double slope = gx.dot(p);
+            const double slope_tol = detail::kEngineDenomTol * gx.norm() * p.norm();
+            const double php =
+                slope > slope_tol ? p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) : 0.0;
             const auto either_moves = [&] {
                 QpCounters scratch; // read-only ratio tests: their ties are not this pass's
                 BlockKind k = BlockKind::kNone;
@@ -2193,13 +2199,55 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     ratio_test(qp, ws, x, Aix, Vec(-p), k, i, st, /*cap_at_unit=*/false, scratch);
                 return k == BlockKind::kNone || a_ride * p_inf > step_tol;
             };
-            if (slope > detail::kEngineDenomTol * gx.norm() * p.norm() &&
-                p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) <=
-                    -curvature_tol * p.squaredNorm() &&
-                ride_stays_in_working_set(qp, ws, p) &&
+            bool guard = false;
+            double footprint_move = 0.0; // < 0: the merit-capped move, x += footprint_move * p
+            if (slope > slope_tol && php <= -curvature_tol * p.squaredNorm() &&
                 iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                           lambda_e, eff_opts) &&
-                either_moves()) {
+                                           lambda_e, eff_opts)) {
+                if (ride_stays_in_working_set(qp, ws, p)) {
+                    guard = either_moves();
+                } else if (eff_opts.dual_regularization > 0.0 && ride_holds_pins(ws, p)) {
+                    // THE REGULARIZATION FOOTPRINT: the merit's slope along p must rise too;
+                    // f falls along -p for every alpha (slope > 0, verified p'Hp < 0), the merit
+                    // up to its own minimiser when its curvature along p is positive.
+                    const FootprintMerit m =
+                        footprint_merit(qp, ws, x, Aix, p, eff_opts.dual_regularization);
+                    QpCounters scratch; // read-only ratio test: its ties are not this pass's
+                    BlockKind k = BlockKind::kNone;
+                    Index i = -1;
+                    BoundState st = BoundState::kFree;
+                    const double a_block = ratio_test(qp, ws, x, Aix, Vec(-p), k, i, st,
+                                                      /*cap_at_unit=*/false, scratch);
+                    const detail::FootprintDecision fd =
+                        detail::footprint_decision(slope, php, m.slope, m.curvature, slope_tol,
+                                                   k != BlockKind::kNone, a_block);
+                    if (fd.ride) {
+                        guard = k == BlockKind::kNone || either_moves();
+                    } else if (-fd.move * p_inf > step_tol) {
+                        footprint_move = fd.move;
+                    }
+#ifdef HVEN_TESTING
+                    walk_obs.record().ascent_footprint = guard ? 2 : footprint_move < 0.0 ? 3 : 1;
+#endif
+                }
+            }
+            if (footprint_move < 0.0) {
+                // The merit's minimiser along -p comes before any blocker: a move, nothing joins.
+                ++counters.ascent_rides;
+                x += footprint_move * p;
+                degenerate_run = 0;
+                pt_clear(seen);
+                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                               eff_opts);
+#ifdef HVEN_TESTING
+                walk_obs.record().ascent_ride = true;
+                walk_obs.record().action = detail::testing::QpWalkAction::kMoveOnly;
+                walk_obs.record().alpha = footprint_move;
+                walk_obs.record().dx_inf = -footprint_move * p_inf;
+#endif
+                continue;
+            }
+            if (guard) {
                 ++counters.ascent_rides;
 #ifdef HVEN_TESTING
                 walk_obs.record().ascent_ride = true;
@@ -6347,6 +6395,36 @@ bool QpEngine::ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &
         }
     }
     return true;
+}
+
+bool QpEngine::ride_holds_pins(const WorkingSet &ws, const Vec &p) const {
+    const double pn = p.norm();
+    for (Index i = 0; i < p.size(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree &&
+            std::abs(p(i)) > detail::kRideNullspaceTol * pn) {
+            return false;
+        }
+    }
+    return true;
+}
+
+QpEngine::FootprintMerit QpEngine::footprint_merit(const QpProblem &qp, const WorkingSet &ws,
+                                                   const Vec &x, const Vec &Aix, const Vec &p,
+                                                   double dual_mu) const {
+    FootprintMerit m;
+    const auto add = [&](double r, double ap) {
+        m.slope += r * ap;
+        m.curvature += ap * ap;
+    };
+    for (Index j = 0; j < qp.me(); ++j) {
+        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p));
+    }
+    for (const Index row : ws.active_ineq()) {
+        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p));
+    }
+    m.slope /= dual_mu;
+    m.curvature /= dual_mu;
+    return m;
 }
 
 int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,

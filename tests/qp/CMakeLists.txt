@@ -69,6 +69,7 @@ hven_add_seam_executable(hven_qp_seam_tests
         seam/test_dense_solve_wound_seams.cpp
         seam/test_ipqp_seams.cpp
         seam/test_qp_anti_cycling_arm.cpp
+        seam/test_qp_ascent_footprint.cpp
         seam/test_qp_ascent_guard.cpp
         seam/test_qp_border_certificate.cpp
         seam/test_qp_certificate_sign.cpp

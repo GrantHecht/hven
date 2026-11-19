@@ -445,6 +445,10 @@ struct QpWalkMinorRecord {
     int step_in_face = -1;
     /// True iff THE ASCENT GUARD (4c) fired on this pass: `-p` was ridden instead of `p`.
     bool ascent_ride = false;
+    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT branch (4c): `-1` not asked; `1` asked (a p
+    /// holding its pins but leaving working rows the iterate meets) and declined; `2` `-p` ridden;
+    /// `3` the merit-capped move along `-p`.
+    int ascent_footprint = -1;
 
     // =====================================================================
     // FIX-ROUND 1 (M7 W2 M3b): THE DISCRIMINATING FIELDS.

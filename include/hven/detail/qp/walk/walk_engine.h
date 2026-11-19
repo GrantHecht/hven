@@ -442,6 +442,23 @@
 //    p'Hp < 0, so f falls strictly for every alpha > 0 -- a ride that moves cannot
 //    cycle, a zero-length one is a zero-motion event inside the zero-motion cap.
 //    Counted: ascent_rides. With the option off nothing changes.
+//    THE REGULARIZATION FOOTPRINT (M8 WA-1). The guard's null-space test reads p, the
+//    dual_mu-regularized step, and A_W p = mu lambda_W there: on a nearly dependent working set
+//    (large multipliers) p leaves rows the iterate meets by mu |lambda| (YORKNET qp26: 4.5e-4 on
+//    one row, relative 2e-6 against kRideNullspaceTol), the guard declined, and the ordinary step
+//    ascended (+13.6) into a cycle. The mu-free step is no remedy: that face factors at
+//    dual_mu = 0 with a residual ratio of 1e26..1e45. RULE: a p that holds its pins but not its
+//    rows, from an iterate on them, is read in the regularized face's own currency, the penalty
+//    merit M = f + |A_W x - b_W|^2 / (2 mu) (the system [H + delta I, A'; A, -mu I] is its
+//    Newton system): when M's slope along p, (Hx + g)'p + r_W'(A_W p) / mu, also rises, the walk
+//    goes along -p -- f falls for every alpha (slope > 0, verified p'Hp < 0) -- to the first of
+//    its blocker (ridden as above) and M's own minimiser along -p, slope / (p'Hp + |A_W p|^2 /
+//    mu) when that curvature is positive (a move; nothing joins). Both f and M fall strictly
+//    along the whole step, so it cannot cycle. Counted in ascent_rides. With dual_mu = 0 nothing
+//    changes. Basis: no Newton step toward the stationary point of a face whose model is not
+//    convex along it; a descent direction to a blocker or to the line's minimiser instead
+//    (Nocedal & Wright ch. 16; Gill & Wong 2015 on regularized active-set QP and its merit;
+//    Gill, Murray, Saunders & Wright 1991).
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
 //    left to drop, and classifies it.
@@ -1427,6 +1444,37 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
 // own eigenvalue scale -- so the threshold must be relative to that scale
 // too, or it would classify H and 1000*H differently.
 constexpr double kCurvatureTolFactor = 1e-12;
+
+// THE ASCENT GUARD's REGULARIZATION FOOTPRINT (section 4c): the decision for a p that holds its
+// pins but not its rows, from an iterate on them, with (Hx + g)'p = `slope` above `slope_tol` and
+// VERIFIED p'Hp = `php` < 0 (the caller's tests). `merit_slope_part` = r_W'(A_W p) / mu and
+// `merit_curv_part` = |A_W p|^2 / mu are the working rows' part of the regularized face's penalty
+// merit along p; `blocked`/`a_block` the uncapped ratio test along -p. Nothing when the merit's
+// slope does not rise; else the walk goes along -p -- RIDDEN to the blocker when the blocker comes
+// no later than the merit's own minimiser along -p (or neither exists), else MOVED to that
+// minimiser: x += move * p with move = -merit_slope / merit_curvature < 0.
+struct FootprintDecision {
+    bool ride = false;
+    double move = 0.0;
+};
+inline FootprintDecision footprint_decision(double slope, double php, double merit_slope_part,
+                                            double merit_curv_part, double slope_tol, bool blocked,
+                                            double a_block) {
+    FootprintDecision d;
+    const double merit_slope = slope + merit_slope_part;
+    if (!(merit_slope > slope_tol)) {
+        return d;
+    }
+    const double merit_curv = php + merit_curv_part;
+    const double a_merit =
+        merit_curv > 0.0 ? merit_slope / merit_curv : std::numeric_limits<double>::infinity();
+    if ((blocked && a_block <= a_merit) || !std::isfinite(a_merit)) {
+        d.ride = true;
+    } else {
+        d.move = -a_merit;
+    }
+    return d;
+}
 
 // THE SADDLE EXIT's SHIFTED SEARCH (section 4c): the primal shift, relative to
 // hessian_scale and added to the primal_delta in force, of the face re-factorized when the face's
@@ -2910,6 +2958,21 @@ class QpEngine {
     // rows by O(dual_mu * |lambda|)). Failing this VETOES the ride (section
     // 4c, THE DECLINED RIDE, says what follows).
     bool ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &ws, const Vec &p) const;
+
+    // The pins half of ride_stays_in_working_set: every pinned variable's |p_i| within
+    // kRideNullspaceTol * ||p|| (bounds are eliminated, so an EQP step holds them exactly).
+    bool ride_holds_pins(const WorkingSet &ws, const Vec &p) const;
+
+    // THE ASCENT GUARD's REGULARIZATION FOOTPRINT (section 4c): the working rows' part of the
+    // dual_mu-regularized face's penalty merit f + |A_W x - b_W|^2 / (2 mu) along p, at x --
+    // its slope r_W'(A_W p) / mu and its curvature |A_W p|^2 / mu (r_W = A_W x - b_W; every
+    // equality row and every working inequality row).
+    struct FootprintMerit {
+        double slope = 0.0;
+        double curvature = 0.0;
+    };
+    FootprintMerit footprint_merit(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                   const Vec &Aix, const Vec &p, double dual_mu) const;
 
     // Which sign of `p` the ride takes, or 0 to DECLINE the ride entirely.
     //
