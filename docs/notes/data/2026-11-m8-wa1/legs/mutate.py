@@ -3,7 +3,8 @@
 M1 branch-off:   the footprint branch never entered (the pre-WA-1 guard).                       MUST-KILL
 M2 no-merit-rise: the decision ignores whether the merit's slope rises.                          MUST-KILL
 M3 no-merit-cap: the merit's minimiser along -p is never finite (always ride).                    MUST-KILL
-M4 no-blocker:   the blocker never wins over the merit's minimiser (move through it).             MUST-KILL
+M4 no-blocker:   the blocker never wins over the merit's minimiser / row budget (move through it). MUST-KILL
+M8 no-row-budget: the row budget never stops the step (r2).                                     MUST-KILL
 M5 move-sign:    the move goes along +p (x += a p).                                               MUST-KILL
 M6 apply-sign:   the walk applies the move with the wrong sign (x -= move p).                     RECORDED (move path: no fixture reaches it)
 M7 no-pins:      the pins half of the footprint branch's entry test removed.                      RECORDED (equivalent: bounds are eliminated)"""
@@ -35,7 +36,9 @@ elif arg == "M3":
     sub1(H, "merit_curv > 0.0 ? merit_slope / merit_curv : std::numeric_limits<double>::infinity();",
          "std::numeric_limits<double>::infinity();")
 elif arg == "M4":
-    sub1(H, "if ((blocked && a_block <= a_merit) || !std::isfinite(a_merit)) {", "if (!std::isfinite(a_merit)) {")
+    sub1(H, "if ((blocked && a_block <= a_stop) || !std::isfinite(a_stop)) {", "if (!std::isfinite(a_stop)) {")
+elif arg == "M8":
+    sub1(H, "    const double a_stop = std::min(a_merit, a_rows);", "    const double a_stop = a_merit;")
 elif arg == "M5":
     sub1(H, "        d.move = -a_merit;", "        d.move = a_merit;")
 elif arg == "M6":

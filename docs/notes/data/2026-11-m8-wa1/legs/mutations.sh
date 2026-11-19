@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WA-1 mutation leg (../DECLARATION-WA1.md): control, then M1..M5 (must-kill) and M6, M7 (recorded) via mutate.py, each rebuilt in
+# WA-1 mutation leg (../DECLARATION-WA1.md): control, then M1..M5, M8 (must-kill) and M6, M7 (recorded) via mutate.py, each rebuilt in
 # build-wa/rel (hven_qp_walk_seam_tests) and run on the pinning tests; the tree is restored after each and rebuilt at the end.
 # A mutation is KILLED iff at least one pinning test fails (or the run times out).
 # usage: mutations.sh <out-dir>   Run under: flock /tmp/box-build.lock setsid -w bash mutations.sh ...
@@ -29,7 +29,7 @@ run_one() { # id
 }
 verdict=MUTATIONS_AS_DECLARED
 run_one control || verdict=CONTROL_NOT_CLEAN
-for m in M1 M2 M3 M4 M5; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
+for m in M1 M2 M3 M4 M5 M8; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
 for m in M6 M7; do run_one $m > "$OUT/$m.verdict.txt" 2>&1; echo "$m rc=$? (recorded); killers: $(wc -l < "$OUT/$m.killers.txt")"; done
 timeout 1500 ninja -C "$B" -j16 hven_qp_walk_seam_tests > "$OUT/final.build.log" 2>&1
 git -C "$WT" diff --quiet --ignore-submodules=all -- src include tests || { echo TREE_NOT_RESTORED; verdict=TREE_NOT_RESTORED; }

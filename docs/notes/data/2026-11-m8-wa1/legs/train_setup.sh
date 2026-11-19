@@ -6,7 +6,7 @@
 set -o pipefail
 WT=/home/ghecht/Projects/hven/.claude/worktrees/wa1
 HB=$WT/.scratch/hb
-ARM=${1:?A|B}; PIN_SHA=${2:?hven sha (40 hex)}
+ARM=${1:?A|B}; PIN_SHA=${2:?hven sha (40 hex)}; ROUND=${3:-}   # r2: the round tag in the clone branch name (wa1<ROUND>-<ARM>)
 SRC=/home/ghecht/Projects/hven-bench   # r2: the CURRENT lane (main 6d1a8a07804964be524bbc9d5181f54228f7d400); the dn3-flip-legs lane no longer compiles against this hven's API
 out=$WT/build-wa/bin/$ARM
 if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo "PGREP_BUSY"; pgrep -a hven_bench_cell; exit 3; fi
@@ -22,9 +22,9 @@ fi
 [ -d "$HB/sets/cutest" ] || cp -r "$SRC/sets/cutest" "$HB/sets/cutest" || exit 1
 mkdir -p "$HB/.scratch/h3" && [ -d "$HB/.scratch/h3/decoded" ] || cp -r /home/ghecht/Projects/hven-bench-dn1/.scratch/h3/decoded "$HB/.scratch/h3/decoded" || exit 1
 cd "$HB" || exit 1
-br=wa1-$ARM
+br=wa1$ROUND-$ARM
 git rev-parse --verify -q "$br" > /dev/null && { echo "BRANCH_EXISTS $br"; exit 4; }
-git checkout --quiet -b "$br" 6d1a8a07804964be524bbc9d5181f54228f7d400 || exit 1
+git checkout --quiet -b "$br" 6d1a8a07804964be524bbc9d5181f54228f7d400 || exit 1   # from the lane base, not the current branch
 python3 "$WT/docs/notes/data/2026-11-m8-wa1/legs/hb_patch_never.py" lanes/hven/hven_bench_cell.cpp || exit 1
 # the RS-era include path (hven RS-3 moved detail/drivers/ to detail/solver/); the lane's one detail include
 sed -i 's#<hven/detail/drivers/declared_diagnostics.h>#<hven/detail/solver/declared_diagnostics.h>#' lanes/external/declared_point.h || exit 1
