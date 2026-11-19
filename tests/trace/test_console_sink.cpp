@@ -46,8 +46,8 @@
 namespace hven {
 namespace {
 
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 // --- capture ----------------------------------------------------------------
 

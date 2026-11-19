@@ -24,7 +24,7 @@ namespace {
 
 using namespace hven;
 using hven::test::same_record;
-using namespace hven_drivers_tests;
+using namespace hven_trace_tests;
 
 std::vector<IterationRecord> depth0(const CaptureSink &sink) {
     std::vector<IterationRecord> out;

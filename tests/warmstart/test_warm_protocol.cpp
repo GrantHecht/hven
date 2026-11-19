@@ -177,7 +177,7 @@ struct Hs071Export {
     WarmStart payload;
 
     Hs071Export()
-        : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
+        : problem(std::make_shared<hven_model_tests::Hs071Problem>()),
           program(hven::detail::make_nlp_program(problem)) {
         ipm.set_options(quiet_ipm(ipm));
         const hven::IpmResult r = ipm.solve(hven::detail::problem_ref(*program), hs071_start());
@@ -620,7 +620,7 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
 // ===========================================================================
 
 TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
-    const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
+    const auto problem = std::make_shared<hven_model_tests::Hs071Problem>();
     SqpView view(problem);
 
     SqpSolver producer{quiet_sqp()};
@@ -655,7 +655,7 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
 }
 
 TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
-    const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
+    const auto problem = std::make_shared<hven_model_tests::Hs071Problem>();
     SqpView view(problem);
 
     SqpSolver producer{quiet_sqp()};
@@ -682,7 +682,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
 // artefact and is clamped and counted; outside it the object is malformed and
 // the whole ingest is unwound to a genuine cold solve. Neither is a refusal.
 TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
-    const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
+    const auto problem = std::make_shared<hven_model_tests::Hs071Problem>();
     SqpView view(problem);
 
     SqpSolver producer{quiet_sqp()};

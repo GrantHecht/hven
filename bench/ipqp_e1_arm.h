@@ -29,7 +29,7 @@
 #include <hven/detail/sqp/sqp_solver_impl.h>
 
 #include "model/support/scale_problems.h"
-#include "sqp/support/e1_cells.h"
+#include "sqp/support/kkt_inversion_cells.h"
 
 using namespace hven::detail;
 

@@ -50,8 +50,8 @@
 // applies to BOUNDS. Step (3)'s argument is thereby made true again rather than
 // patched around: the ingested multipliers are complementary by construction,
 // so (stationarity, feasibility) is once more a COMPLETE KKT test where it
-// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/sqp/test_b1_gate.cpp; this
-// file carries element 1 of it (these three specs flipping to sound).
+// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/sqp/test_warm_ingest_complementarity.cpp;
+// this file carries element 1 of it (these three specs flipping to sound).
 //
 // THE CRITERION FOR WHAT WAS EXPOSED -- READ THE NOTE'S §1.4, NOT THIS
 // CORPUS'S OWN SPLIT. A warm ingest was exposed exactly when moving p moved NO
@@ -71,7 +71,7 @@
 // repair and a non-repair alike and so demonstrates nothing. THIS CORPUS DOES
 // NOT CONTAIN SUCH A PROBLEM EITHER -- HS10/HS15/HS33 are exposed because their
 // specs carry `tilt == vec0` and a pure `ci_shift`, which is a property of the
-// SPEC and not of the model -- which is exactly why test_b1_gate.cpp exists and
+// SPEC and not of the model -- which is exactly why test_warm_ingest_complementarity.cpp exists and
 // why the repair is not regression-tested from here alone.
 //
 // CONVEXITY IS IRRELEVANT, and the me-vs-mi split this file's own
@@ -427,7 +427,7 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 //
 // adaptive_mu IS OFF, for the reason test_warm_start_battery.cpp's
 // battery_options() gives: the Task-10 schedule drives dual_mu off the KKT
-// residual, which differs between two consecutive solves, and qp_engine.h's
+// residual, which differs between two consecutive solves, and walk_engine.h's
 // hot-start reuse condition (d) requires the effective (primal_delta,
 // dual_mu) pair to be byte-identical across them. Holding it off on the cold
 // arm too is what makes the arms differ in exactly one thing.
@@ -745,7 +745,8 @@ std::string corpus_table() {
 //   ALSO WHY THEY ARE THE REPAIR'S CONTROL SET: the repair touches lambda_i
 //   only, and on a model with mi() == 0 its loop does not execute at all, so
 //   these three must be bit-identical across it (asserted in
-//   tests/sqp/test_b1_gate.cpp, against values measured at the pre-repair commit).
+//   tests/sqp/test_warm_ingest_complementarity.cpp, against values measured at the pre-repair
+//   commit).
 //
 //   BREAKAGE was confounded. HS10/HS15/HS33 are ALSO exactly the three specs
 //   with tilt == vec0 and a pure ci_shift, while HS26/HS40/HS77 all carry an
@@ -1383,7 +1384,7 @@ void check_soc_costs_what_it_costs() {
     // HS15's warm arm (99 -> 93 minors, 38 -> 31 factorizations in each KD/SOC
     // cell). Three of its QPs (n 2, two rows) take a null-space-vetoed ride
     // whose EQP step re-enters the released constraint: the drop is now undone
-    // (qp_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
+    // (walk_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
     // ends kNumericalError at 4 minors instead of 6 -- the same status. Majors,
     // statuses and every other row identical. 22/3365 = 0.65 %.
     // RE-DERIVED, M7 W2 E4 fix round 1 (declared mover): 3365 -> 3340, -25, and it
@@ -1391,7 +1392,7 @@ void check_soc_costs_what_it_costs() {
     // complementarity term read 0.177 under c46485d8 and reads beneath 1e-6 here).
     // Cause: the UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the
     // proximal answer's O(primal_delta) bias out of every EQP answer, so the extra
-    // pass per face it used to cost is gone, and the TERMINAL POLISH (qp_engine.h
+    // pass per face it used to cost is gone, and the TERMINAL POLISH (walk_engine.h
     // section 5) re-solves a certified point mu-free on its final face. Majors,
     // statuses and every KKT column hold. 22/3340 = 0.66 %.
     // RE-DERIVED, M7 W2 E2 FIX ROUND 8 (declared mover; settler S40, THE BOUNDED REPAIR):
@@ -1481,7 +1482,7 @@ void check_soc_costs_what_it_costs() {
 // PAIRING AN ATTEMPT TO ITS CORRECTED JUDGE CALL uses pred_df: a SOC-corrected
 // judge() reuses the REJECTED trial's own pred_df unchanged (sqp_solver.h's
 // SECOND-ORDER CORRECTION note, pinned exactly by
-// SqpDriverSoc.SocDefeatsMaratos), while a shrink-and-retry at the same
+// SqpSolverSoc.SocDefeatsMaratos), while a shrink-and-retry at the same
 // iterate solves a new QP against a different one.
 // ---------------------------------------------------------------------
 // THE THIRD NEAR-IDENTICAL RECORDING STRATEGY IN THE TEST TREE
@@ -1570,7 +1571,7 @@ void check_soc_trigger_ratios() {
     // THE DERIVATION'S LOAD-BEARING NUMBER: the largest ratio at which a SOC
     // attempt was WASTED and still sits BELOW the one ratio at which SOC has
     // ever been APPLIED anywhere in this project (9.115, measured on
-    // SqpDriverSoc.SocDefeatsMaratos's Maratos fixture: h_old = 6.229194e-4,
+    // SqpSolverSoc.SocDefeatsMaratos's Maratos fixture: h_old = 6.229194e-4,
     // h_raw = 5.678149e-3). Any kappa_soc large enough to preserve that rescue
     // is also large enough to admit this waste -- which is the whole
     // adjudication. See the note's §4.3.

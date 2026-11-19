@@ -11,6 +11,7 @@
 
 #include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/sqp/sqp_options.h>
 
 #include "qp/support/ssn_fixtures.h"
 
@@ -2986,7 +2987,7 @@ TEST(SsnEngineLocal, SafeguardsAreFreeOnTheBenignFixtures) {
 //
 // (The sixth bucket, `ssn_escape_gate_refused`, has no SsnEscape value behind
 // it and is driver-scale only; it is asserted in
-// SqpDriverSsnMode.TheEscapeReasonCensusPartitionsTheEscapeCount.)
+// SqpSolverSsnMode.TheEscapeReasonCensusPartitionsTheEscapeCount.)
 // =====================================================================
 TEST(SsnEngineLocal, TheEscapeReasonCensusMatchesTheReportedReason) {
     const auto census_sum = [](const SsnCounters &c) {

@@ -367,7 +367,7 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
 // priced by 1e-5 at primal_delta = 5e3, so each full step moves it a few 1e-9 (above the walk's
 // zero-motion tolerance) and lowers the model by a few 1e-14, ten of them under the stagnation
 // reading's 1e-12, with nothing to drop and the row met. The walk ends kIterationLimit on the
-// reading (qp_engine.h) after 1 + kStagnationSteps + 1 minors, far under its cap; a doubled cap
+// reading (walk_engine.h) after 1 + kStagnationSteps + 1 minors, far under its cap; a doubled cap
 // would only reach the same stop, so the retry's conjunct refuses it.
 TEST(QpCapRetry, AStagnationStopIsNotRetried) {
     QpProblem qp;

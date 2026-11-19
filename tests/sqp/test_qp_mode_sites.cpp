@@ -22,7 +22,7 @@
 //        covered by a nearby emit or by an explicit `// trace:` marker.
 //
 //        A site added later then fails this test rather than going silently
-//        unrepresented. Precedent: tests/core/test_core_layering.cpp.
+//        unrepresented. Precedent: tests/core/test_layering.cpp.
 
 #include <algorithm>
 #include <cstddef>
@@ -550,7 +550,7 @@ MarkerBinding bind_markers(const std::vector<CallSite> &sites, const std::vector
 
 TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // THE VACUOUS-PASS GUARD, and it comes first for the reason
-    // tests/core/test_core_layering.cpp's does: a wrong path, a renamed file or
+    // tests/core/test_layering.cpp's does: a wrong path, a renamed file or
     // a missing definition would make the rule below check nothing and pass.
     ASSERT_TRUE(std::filesystem::is_regular_file(std::filesystem::path(HVEN_SQP_SOLVER_SOURCE)))
         << "HVEN_SQP_SOLVER_SOURCE does not name a file: " << HVEN_SQP_SOLVER_SOURCE;

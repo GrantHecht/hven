@@ -265,7 +265,7 @@ CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
     // the process-global pool is never dispatched to by these cells (constructed
     // or not is a test-order fact; see the header).
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
@@ -294,7 +294,7 @@ CellReading run_cell(int index) {
     case 1:
         return run_sqp_cell(76);
     case 2:
-        return run_ipm_cell("hs071@a", hven_drivers_tests::hs071_start());
+        return run_ipm_cell("hs071@a", hven_model_tests::hs071_start());
     default:
         return run_ipm_cell("hs071@b", hs071_second_start());
     }
@@ -306,7 +306,7 @@ CellReading run_cell(int index) {
 //
 // WHY THIS AND NOT A BARE LAMBDA. An exception that escapes a std::thread's
 // entry function calls std::terminate, so a solve that threw on a worker used
-// to take the whole hven_drivers_tests process down -- every other test in the
+// to take the whole hven_solver_tests process down -- every other test in the
 // binary reported as lost, with no indication of which cell threw. Caught per
 // worker into a std::exception_ptr and rethrown here, the same throw fails THIS
 // test and nothing else. Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest is the

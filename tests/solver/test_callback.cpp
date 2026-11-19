@@ -409,7 +409,7 @@ struct Hs071View {
     std::shared_ptr<hven::detail::NlpModelAssembly> bridge;
 
     Hs071View()
-        : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
+        : problem(std::make_shared<hven_model_tests::Hs071Problem>()),
           model(std::make_shared<NlpProblemModel>(problem)),
           bridge(std::make_shared<hven::detail::NlpModelAssembly>(model)) {}
 };
@@ -1692,7 +1692,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     // ---- the interior-point engine ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
@@ -1716,7 +1716,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     // ---- the interior-point-only KKT hook, the same rule ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
@@ -1800,7 +1800,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     // ---- the interior-point engine ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         hven::IpmSolver *ipm = &solver;
@@ -1824,7 +1824,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     // ---- the interior-point engine, the other direction ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         hven::IpmSolver *ipm = &solver;
@@ -1845,7 +1845,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     // ---- the interior-point-only KKT hook, both directions ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         hven::IpmSolver *ipm = &solver;
@@ -1872,7 +1872,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     }
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         hven::IpmSolver *ipm = &solver;
@@ -1927,7 +1927,7 @@ TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
 
 TEST(Callback, IpmContinuingEventObservesTheCommittedPoint) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
 
@@ -1994,7 +1994,7 @@ class IterCountingSink : public hven::TraceSink {
 
 TEST(Callback, IpmTerminalRowStillFires) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
 
@@ -2015,7 +2015,7 @@ TEST(Callback, IpmTerminalRowStillFires) {
 
 TEST(Callback, IpmStopEndsThePhaseSequence) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     {
         hven::IpmOptions o = quiet_ipm(solver);
@@ -2051,7 +2051,7 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
     // more factorization: that difference is what makes "the stopped iteration
     // was never factorized" a measurement rather than a description.
     const auto later_program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver later;
     {
         hven::IpmOptions o = quiet_ipm(later);
@@ -2126,7 +2126,7 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
     {
         SCOPED_TRACE("HS071");
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         expect_terminal_event_is_the_ipm_result(solver, *program, hs071_start());
@@ -2160,7 +2160,7 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
 // NaN -- solve_result.h's "unmeasured is NaN, never zero", applied to `f`.
 TEST(Callback, IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     {
         hven::IpmOptions o = quiet_ipm(solver);
@@ -2261,10 +2261,10 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
             break;
         }
         const auto with_program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver with;
         const auto without_program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver without;
         for (hven::IpmSolver *s : {&with, &without}) {
             hven::IpmOptions o = quiet_ipm(*s);
@@ -2416,7 +2416,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
     // ---- the interior-point engine ----
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
 
@@ -2456,7 +2456,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
             solver.solve(hven::detail::problem_ref(*program), hs071_start());
 
         const auto fresh_program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver fresh;
         fresh.set_options(quiet_ipm(fresh));
         const hven::IpmResult baseline =
@@ -2531,7 +2531,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
     // ---- the interior-point engine ----
     {
         const auto with_program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver with;
         with.set_options(quiet_ipm(with));
         Recorder rec;
@@ -2540,7 +2540,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
             with.solve(hven::detail::problem_ref(*with_program), hs071_start());
 
         const auto without_program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver without;
         without.set_options(quiet_ipm(without));
         const hven::IpmResult absent =
@@ -2571,7 +2571,7 @@ TEST(Callback, ClearingTheCallbackStopsTheEvents) {
     EXPECT_EQ(rec.seen.size(), first);
 
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
     Recorder ipm_rec;
@@ -2620,7 +2620,7 @@ struct MaskRun {
 
 MaskRun ipm_run_under(std::optional<IterationPayload> mask) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
     Recorder rec;
@@ -3177,7 +3177,7 @@ TEST(CallbackPayload, DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews) {
 TEST(CallbackPayload, ClearingResetsTheMask) {
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         Recorder narrow;
@@ -3218,7 +3218,7 @@ TEST(CallbackPayload, ClearingResetsTheMask) {
 TEST(CallbackPayload, AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent) {
     {
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         hven::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         std::vector<Eigen::Index> widths;
@@ -3444,7 +3444,7 @@ TEST(CallbackPayload, AnEmptyCallableNormalisesTheMaskToAll) {
             << "an empty callable is a clear, and a clear resets the mask";
         // And the clear really happened: no events on the next solve.
         const auto program =
-            hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+            hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
         solver.set_options(quiet_ipm(solver));
         (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
         EXPECT_TRUE(rec.seen.empty());
@@ -3940,8 +3940,8 @@ TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
         };
         hven::SolveResult r;
         if (interior) {
-            const auto program = hven::detail::make_nlp_program(
-                std::make_shared<hven_drivers_tests::Hs071Problem>());
+            const auto program =
+                hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
             hven::IpmSolver solver;
             solver.set_options(quiet_ipm(solver));
             solver.set_iteration_callback(hook, IterationPayload::kAll);
@@ -3983,7 +3983,7 @@ using IpmRowSink = hven::test::IpmRowSink;
 // k they are the `ipm.iter` row of iterate k - 1, whose step reached it.
 TEST(CallbackPayload, IpmBlockDescribesTheStepThatReachedThePoint) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     hven::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
     IpmRowSink sink;

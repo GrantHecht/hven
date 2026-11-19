@@ -955,7 +955,7 @@ TEST(HsBattery, AggregateCostIsRecordedAndBounded) {
 //
 // AND THE ROW SEEDS CHANGE NOTHING AT ALL. All five row-seeding problems are
 // counter-identical between the arms, because those start points are on the
-// VIOLATED side and qp_engine.h's homotopy (refresh_shifts) admits exactly
+// VIOLATED side and walk_engine.h's homotopy (refresh_shifts) admits exactly
 // those rows in its pre-loop pass with or without the lever. Only the BOUND
 // seeds ever move a trajectory, and only on two problems.
 //
@@ -1059,7 +1059,7 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
     // M7 W2 ladder round (L2, declared mover): 288/289 -> 287/288, HS45's projected
     // start (above).
     // M7 W2 RLA (declared mover): 287/288 -> 275/276, minors and answers unchanged
-    // (both asserted above). Cause: THE LATCH AND ITS REASON (qp_engine.h, section
+    // (both asserted above). Cause: THE LATCH AND ITS REASON (walk_engine.h, section
     // 4) -- a conditioning latch no longer releases, rebuilds K0 and re-latches at
     // every pass; each pass it holds is a K0 factorization not paid (274/275 in
     // its first round; one more each since a latch taken on an updated stack is

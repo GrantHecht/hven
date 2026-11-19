@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_implied_blocker.cpp -- M7 W2 QC-8: THE IMPLIED BLOCKER (qp_engine.h,
+// test_qp_implied_blocker.cpp -- M7 W2 QC-8: THE IMPLIED BLOCKER (walk_engine.h,
 // QpEngine::blocker_implied_by_face). Three subproblems of DALLASM under the quasi-Newton
 // Hessian mode (shipped defaults), every one FEASIBLE by an external oracle (HiGHS phase 1
 // minimum l1 violation 0; Clarabel optimum, residuals ~1e-14), on which BOTH algebras of the

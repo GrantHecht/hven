@@ -41,7 +41,7 @@
 //   FunnelFullStep.*      -- Phase-4 Task 5's full-step mode: what it accepts,
 //                            what it still refuses (a non-finite trial), and
 //                            that resume_from_restoration is its only exit.
-//                            NOT a KLV battery -- see globalization.h's THE
+//                            NOT a KLV battery -- see funnel.h's THE
 //                            FULL-STEP MODE note for its own source, [KD].
 //   FunnelMeasure.*       -- constraint_violation_l1 == the KLV h.
 

@@ -17,7 +17,7 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from test_qp_engine.cpp so this file stays self-contained
+// Repeated verbatim from test_walk_engine.cpp so this file stays self-contained
 // (see that file's fixture-block comment for the rationale).
 QpProblem random_strictly_convex(int n, int mi, unsigned seed) {
     // H = M^T M + I is symmetric positive definite by construction, so the QP
@@ -104,7 +104,7 @@ TEST(QpWarmStart, StaleSeedStillConverges) {
     // (random_strictly_convex keeps bi strictly positive, so x = 0 is
     // strictly feasible). The regularized KKT assembly stays factorizable
     // for any working set handed to it (assemble_kkt's delta/mu ridge -- the
-    // QPBLUR-style safeguard documented in qp_engine.h's "Degeneracy"
+    // QPBLUR-style safeguard documented in walk_engine.h's "Degeneracy"
     // section), so no basis repair is needed before the ordinary drop rule
     // can pare the spurious rows away: each is not truly binding, so its
     // priced multiplier comes out negative and drop_worst() removes it,
@@ -211,7 +211,7 @@ TEST(QpWarmStart, DeltaMuOverrideForcesRefactorization) {
 
     // MUTATION-VERIFY (recorded in task-2-report.md): temporarily dropping
     // `eff_opts.primal_delta == prev_border_effective_delta && eff_opts.
-    // dual_mu == prev_border_effective_mu` from qp_engine.h's reuse_eligible
+    // dual_mu == prev_border_effective_mu` from walk_engine.h's reuse_eligible
     // expression makes this assertion fail (warm.counters.factorizations
     // reads 0 -- the stale K0, built for the OLD dual_mu, is wrongly reused)
     // while every other test in the suite still passes, since it is the only
@@ -409,7 +409,7 @@ TEST(QpWarmStart, ExceptionBetweenSolvesInvalidatesReuseCache) {
     EXPECT_GE(warm.counters.factorizations, 1);
 }
 
-// n=2, one general row, one bound -- test_qp_engine_border.cpp's own
+// n=2, one general row, one bound -- test_walk_engine_border.cpp's own
 // simple_box_qp() shape, parameterized so two problems can share H/Ai
 // (hash-identical) while their optima differ (c0/c1/bi never enter the
 // hash). Repeated here rather than shared, matching this file's own
@@ -463,7 +463,7 @@ TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
 
     // optimum (0, 0): BOTH bounds active, the row inactive -- a genuine
     // shape change from qpA's own exit, which is what forces the mid-solve
-    // rebuild under schur_cap == 1 (test_qp_engine_border.cpp's own
+    // rebuild under schur_cap == 1 (test_walk_engine_border.cpp's own
     // RebuildUnderTinySchurCapMatchesRefactorize technique).
     QpProblem qpB = row_and_bound_qp(-1.0, -1.0, 5.0);
     QpSolution seed = sol_a;

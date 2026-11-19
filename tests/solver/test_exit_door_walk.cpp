@@ -33,7 +33,8 @@
 namespace {
 
 using namespace hven;
-using namespace hven_drivers_tests;
+using namespace hven_model_tests;
+using namespace hven_trace_tests;
 
 enum class Engine { kIpm, kSqp };
 const char *name(Engine e) { return e == Engine::kIpm ? "ipm" : "sqp"; }

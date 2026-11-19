@@ -41,8 +41,8 @@
 #include <hven/detail/solver/result_access.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
 
-#include "../../bench/corpus_cells.h"
-#include "../../bench/ipm_corpus_leg.h"
+#include "bench/corpus_cells.h"
+#include "bench/ipm_corpus_leg.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -3512,7 +3512,7 @@ TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline
 // =====================================================================
 // PHASE-7 TASK 6b -- THE POST-D0-REPAIR RE-SWEEP, PINNED ON BOTH ARMS.
 //
-// The repair (qp_engine.h's clause 6b: a free variable carries no bound
+// The repair (walk_engine.h's clause 6b: a free variable carries no bound
 // price) has exactly two empirical claims, and both are diffs between
 // committed artifacts rather than prose:
 //

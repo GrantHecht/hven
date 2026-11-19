@@ -262,7 +262,7 @@ struct EqOnlyProblem : Nlp {
 };
 
 TEST(IpmSolverEntry, EqualityMultiplierHasIpoptSign) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<EqOnlyProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<EqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -321,7 +321,7 @@ struct LowerBoundRowProblem : Nlp {
 };
 
 TEST(IpmSolverEntry, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<LowerBoundRowProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<LowerBoundRowProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -385,7 +385,7 @@ struct RangeRowProblem : Nlp {
 };
 
 TEST(IpmSolverEntry, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<RangeRowProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<RangeRowProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -450,7 +450,7 @@ struct FreeRowProblem : Nlp {
 };
 
 TEST(IpmSolverEntry, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<FreeRowProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<FreeRowProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -626,7 +626,7 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
 // seeds the exact solution multiplier (lambda = -2, see
 // EqualityMultiplierHasIpoptSign above) -- proves the seed reaches IpmSolver and
 // still converges to the same optimum as the unseeded solve.
-struct SeededEqOnlyProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+struct SeededEqOnlyProblem : EqOnlyProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -2.0;
         return true;
@@ -635,7 +635,7 @@ struct SeededEqOnlyProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeedH
 };
 
 TEST(IpmSolverEntry, SeededSolveConverges) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<SeededEqOnlyProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<SeededEqOnlyProblem>());
     hven::IpmSolver solver;
     {
         auto o = solver.options();
@@ -643,7 +643,7 @@ TEST(IpmSolverEntry, SeededSolveConverges) {
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    const hven::IpmResult result = hven_interior_tests::solve_declared(solver, route, x0);
+    const hven::IpmResult result = hven_ipm_tests::solve_declared(solver, route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     Eigen::VectorXd expect(2);
     expect << 1.0, 1.0;
@@ -747,7 +747,7 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
 // allFinite() guard the seed route applies -- before the payload ever reaches
 // the engine, and with a distinct message. Since M6 W5 T8.9 that route is the
 // caller's (declared_route.h's starting_multiplier_seed).
-struct NonFiniteSeedProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+struct NonFiniteSeedProblem : EqOnlyProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = std::numeric_limits<double>::quiet_NaN();
         return true;
@@ -756,7 +756,7 @@ struct NonFiniteSeedProblem : EqOnlyProblem, hven_interior_tests::MultiplierSeed
 };
 
 TEST(IpmSolverEntry, NonFiniteStartingMultipliersThrow) {
-    const auto route = hven_interior_tests::transcribe(std::make_shared<NonFiniteSeedProblem>());
+    const auto route = hven_ipm_tests::transcribe(std::make_shared<NonFiniteSeedProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -766,7 +766,7 @@ TEST(IpmSolverEntry, NonFiniteStartingMultipliersThrow) {
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     try {
-        (void)hven_interior_tests::solve_declared(solver, route, x0);
+        (void)hven_ipm_tests::solve_declared(solver, route, x0);
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("non-finite"), std::string::npos);

@@ -59,7 +59,7 @@ namespace {
 
 // --- The three fixtures -------------------------------------------------
 //
-// Transcribed from tests/qp/test_qp_engine.cpp's battery (that file is not
+// Transcribed from tests/qp/test_walk_engine.cpp's battery (that file is not
 // included: a test TU never includes another test TU) so that the degenerate
 // one is the SAME degenerate problem the ordinary QP suite pins.
 
@@ -86,7 +86,7 @@ QpProblem simple_box_qp() {
 
 /// simple_box_qp with the inequality row DUPLICATED: at the optimum the two
 /// identical rows are both active, so the working set is linearly DEPENDENT —
-/// the case `qp_engine.h`'s "Degeneracy" note is about.
+/// the case `walk_engine.h`'s "Degeneracy" note is about.
 QpProblem degenerate_qp() {
     QpProblem qp = simple_box_qp();
     Eigen::MatrixXd Aid(2, 2);
@@ -419,7 +419,7 @@ QpSolution baseline_for(const Case &c) {
 
 /// A capture is COMPLETE when it was neither truncated nor short of memory:
 /// the "one record per pass" correspondence is asserted only under those two
-/// qualifications (see qp_walk_trace.h's contract).
+/// qualifications (see walk_trace.h's contract).
 void expect_complete_own_capture(const ThreadResult &r, Index n_of_its_own_problem) {
     EXPECT_FALSE(r.truncated);
     EXPECT_FALSE(r.allocation_failed);
@@ -959,7 +959,7 @@ TEST(QpWalkSeam, EveryPassRecordsTheMainVerdictAndThePathThatProducedIt) {
 // THE SINGLE-READ PROPERTY (fix round 2), and what can and cannot be asserted
 // about it here.
 //
-// The hooks at the two verdict sites in `qp_engine.cpp` now read
+// The hooks at the two verdict sites in `walk_engine.cpp` now read
 // `factor.inertia()` ONCE, into a local, and hand that same object to
 // `detail::inertia_verdict` and to `qp_walk_note_inertia`. Before this round
 // each site called the accessor twice, once per consumer. That matters because

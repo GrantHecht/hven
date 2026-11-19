@@ -464,7 +464,7 @@ CellStats collect(const Ledger &ledger, const ContinuationResult &res) {
 // The one SqpOptions every cell shares apart from the two axis fields.
 //
 // adaptive_mu IS OFF ON EVERY ARM, INCLUDING THE ONES THAT DO NOT NEED IT.
-// The hot arm needs it: qp_engine.h's reuse condition (d) requires the
+// The hot arm needs it: walk_engine.h's reuse condition (d) requires the
 // EFFECTIVE (primal_delta, dual_mu) pair to be byte-identical across two
 // consecutive solves, and the Task-10 adaptive schedule drives dual_mu off the
 // KKT residual, which differs between them -- with the schedule on, kHot is
@@ -1064,7 +1064,7 @@ void check_predictor_never_degrades() {
 // (Measured: on the F3 hot cells they match exactly, 12 == 12 and 30 == 30,
 // because nothing on those cells triggers SOC or elastic.)
 //
-// WHY THE FIRST SUBPROBLEM AND NOT ANY: warm_start.h's `hot` handle is
+// WHY THE FIRST SUBPROBLEM AND NOT ANY: sqp_warm_state.h's `hot` handle is
 // consumed once, at ingest, so only a solve's first subproblem is ever a reuse
 // candidate; every later major builds a fresh linearization and pays. This is
 // exactly what mutation M3 (this file's header) demonstrates.
@@ -1127,7 +1127,7 @@ void check_hot_steps_skip_factorizations() {
     }
     // ON F2 KHOT IS UNREACHABLE and degrades silently, which is the contract
     // working: F2's Ji = [2x1, 2x2] changes VALUES at every iterate, so
-    // qp_engine.h's reuse condition (c) can never hold across two solves.
+    // walk_engine.h's reuse condition (c) can never hold across two solves.
     for (const char *name : {"F2", "F2far"}) {
         for (int fi = 0; fi < 2; ++fi) {
             const FamilyCells &f = family(name);
@@ -1587,7 +1587,7 @@ TEST(WarmStartBattery, Corpus) {
 // convergence test fires before the first subproblem is built, so
 // major_iters == 0 -- sqp_solver_types.h). The SqpWarmState such a solve returned was
 // `valid` but carried structure_hash == 0, which the ingest rule reads as
-// warm_start.h's hash-0 sentinel (then documented as "never computed"; since
+// sqp_warm_state.h's hash-0 sentinel (then documented as "never computed"; since
 // the repair, "no model was seen") and degrades to kCold -- so a
 // zero-major solve produced a hand-off the very next solve could not use, and
 // the better the predictor got the more often the chain broke. This test was
@@ -2120,7 +2120,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 //
 // THE QUESTION. StartLevel::kSeeded exists so that an object with no usable
 // structural hash can still hand its VALUES to a solve. The interior-point
-// crossover (warm_start.h's from_interior_point) is one of the two producers it
+// crossover (crossover.h's from_interior_point) is one of the two producers it
 // was built for, and the Phase-5 head-to-head
 // (docs/notes/2026-08-01-psiopt-first-comparison.md) is where that producer's
 // motivating consumer lives: the IPM engine runs to near-KKT on F7, this engine polishes.
@@ -2205,7 +2205,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     // lambda ~ h shrinks while mu does not, and by N = 1600 even the derived
     // 1e-6 default recovered 0 of 1486 rows.
     //
-    // PHASE-7 TASK 0 REPLACED THE RULE (warm_start.h's ACTIVITY INFERENCE
+    // PHASE-7 TASK 0 REPLACED THE RULE (crossover.h's ACTIVITY INFERENCE
     // note; docs/notes/2026-08-06-activity-tol-repair.md): the test is now
     // relative to the hand-off's OWN dual scale, so no per-mesh tolerance has
     // to be derived by a caller at all, and THE OVERRIDE IS DELETED. Every

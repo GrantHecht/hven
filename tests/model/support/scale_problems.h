@@ -397,7 +397,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-#include "parametric_families.h"
+#include "model/support/parametric_families.h"
 
 using namespace hven::detail;
 

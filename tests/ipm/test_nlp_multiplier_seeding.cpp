@@ -121,7 +121,7 @@ struct SeedHs071Problem : Nlp {
 // EqualityMultiplierHasIpoptSign-style tests, this is only checking that a
 // seed which is in the right ballpark does not perturb the converged
 // optimum).
-struct SeededSeedHs071Problem : SeedHs071Problem, hven_interior_tests::MultiplierSeedHook {
+struct SeededSeedHs071Problem : SeedHs071Problem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -1.0; // row 0: active lower bound -> negative Ipopt sign
         lambda[1] = 0.5;  // row 1: equality, sign unconstrained
@@ -134,8 +134,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
-    const auto unseeded_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedHs071Problem>());
+    const auto unseeded_route = hven_ipm_tests::transcribe(std::make_shared<SeedHs071Problem>());
     hven::IpmSolver unseeded;
     hven::IpmResult unseeded_result;
     {
@@ -143,11 +142,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
         o.common.verbosity = hven::Verbosity::kSilent;
         unseeded.set_options(std::move(o));
     }
-    unseeded_result = hven_interior_tests::solve_declared(unseeded, unseeded_route, x0);
+    unseeded_result = hven_ipm_tests::solve_declared(unseeded, unseeded_route, x0);
     ASSERT_EQ(unseeded_result.status, hven::SolveStatus::kOptimal);
 
     const auto seeded_route =
-        hven_interior_tests::transcribe(std::make_shared<SeededSeedHs071Problem>());
+        hven_ipm_tests::transcribe(std::make_shared<SeededSeedHs071Problem>());
     hven::IpmSolver seeded;
     hven::IpmResult seeded_result;
     {
@@ -155,7 +154,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
         o.common.verbosity = hven::Verbosity::kSilent;
         seeded.set_options(std::move(o));
     }
-    seeded_result = hven_interior_tests::solve_declared(seeded, seeded_route, x0);
+    seeded_result = hven_ipm_tests::solve_declared(seeded, seeded_route, x0);
     ASSERT_EQ(seeded_result.status, hven::SolveStatus::kOptimal);
 
     EXPECT_LT((seeded_result.x - unseeded_result.x).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -230,8 +229,7 @@ hven::WarmStart seed_payload(const hven::detail::NonLinearProgram &program,
 } // namespace
 
 TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected) {
-    const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
+    const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -319,8 +317,7 @@ struct SeedLowerBoundProblem : Nlp {
 // produces a negative seed on the IpmSolver-internal inequality multiplier,
 // which apply_staged_multipliers must clamp to kSeededInequalityMultiplierFloor rather than
 // installing it verbatim.
-struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem,
-                                     hven_interior_tests::MultiplierSeedHook {
+struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = 100.0;
         return true;
@@ -330,7 +327,7 @@ struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem,
 
 TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeededSeedLowerBoundProblem>());
+        hven_ipm_tests::transcribe(std::make_shared<SeededSeedLowerBoundProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -340,7 +337,7 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 1.0, 1e-5);
 }
@@ -350,8 +347,7 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
 // `UnseededPathDoesNotConsultStaging` (M6 W5 T8.5): there is no staging left to
 // consult, and what is pinned is that the unseeded path still converges.
 TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
-    const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
+    const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -361,7 +357,7 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     // The result is the proof: a payload was neither built nor applied.
     EXPECT_EQ(result.counters.payload_ignored, 0);
@@ -381,7 +377,7 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
 // SeedEqOnlyProblem specifically -- 2 unbounded primal vars (so reduced ==
 // full, no fixed-variable elimination), 0 inequality rows (no slacks), 1
 // equality row -- that puts the single equality multiplier at XSL[2].
-struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         // Deliberately NOT the true KKT multiplier (-2.0, see the EqOnly-style
         // tests elsewhere in this series): SeedEqOnlyProblem is exactly
@@ -409,8 +405,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     // itself takes.
     double unseeded_opt_entry_eq_mult = std::numeric_limits<double>::quiet_NaN();
     {
-        const auto solver_route =
-            hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
+        const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         {
@@ -433,7 +428,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
                         hven::IpmPhase::kOptimize}; // what solve_optimize() ran
             solver.set_options(std::move(o));
         }
-        result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+        result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
         ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     }
     ASSERT_FALSE(std::isnan(unseeded_opt_entry_eq_mult));
@@ -441,7 +436,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     double seeded_opt_entry_eq_mult = std::numeric_limits<double>::quiet_NaN();
     {
         const auto solver_route =
-            hven_interior_tests::transcribe(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
+            hven_ipm_tests::transcribe(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         {
@@ -464,7 +459,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
                         hven::IpmPhase::kOptimize}; // what solve_optimize() ran
             solver.set_options(std::move(o));
         }
-        result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+        result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
         ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     }
 
@@ -527,8 +522,7 @@ struct SeedFixedVarEqProblem : Nlp {
     std::string name() const override { return "SeedFixedVarEqProblem"; }
 };
 
-struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem,
-                                     hven_interior_tests::MultiplierSeedHook {
+struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -2.0;
         return true;
@@ -538,7 +532,7 @@ struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem,
 
 TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeededSeedFixedVarEqProblem>());
+        hven_ipm_tests::transcribe(std::make_shared<SeededSeedFixedVarEqProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -548,7 +542,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     Eigen::VectorXd x = result.x;
     EXPECT_NEAR(x[0], 1.0, 1e-6);
@@ -564,8 +558,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
 // solve to be handed. The hazard is unconstructible, and the test below is what
 // remains to say about a declining problem.
 TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
-    const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
+    const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -575,7 +568,7 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     }
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(result.counters.payload_ignored, 0);
 
@@ -586,8 +579,7 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
 }
 
 TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
-    const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
+    const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -623,7 +615,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
 // solution regardless of the seeded multiplier, clamp deleted or not. Making
 // this assertive means observing the CAPPED value directly, the same way
 // SeededSolveOptimizeReachesOptPhase does.
-struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::MultiplierSeedHook {
+struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem, hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = 1.0e12;
         return true;
@@ -633,7 +625,7 @@ struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::Mu
 
 TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeededOversizedEqOnlyProblem>());
+        hven_ipm_tests::transcribe(std::make_shared<SeededOversizedEqOnlyProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -654,7 +646,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     });
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_eq_mult, 1.0e6); // kSeededMultiplierMax, not the raw 1e12 seed
 }
@@ -666,7 +658,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 // arrives at IpmSolver as a +1e12 iq seed, which the upper clamp (not the floor
 // -- that only bites negative seeds) must cap.
 struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem,
-                                          hven_interior_tests::MultiplierSeedHook {
+                                          hven_ipm_tests::MultiplierSeedHook {
     bool starting_multipliers(hven::VecRef lambda) const override {
         lambda[0] = -1.0e12;
         return true;
@@ -676,7 +668,7 @@ struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem,
 
 TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeededOversizedLowerBoundProblem>());
+        hven_ipm_tests::transcribe(std::make_shared<SeededOversizedLowerBoundProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -698,7 +690,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
@@ -711,8 +703,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 // which reports in the problem's declared row space. A solve that converges
 // exercises the first; the assertions below exercise the second.
 TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMultipliers) {
-    const auto solver_route =
-        hven_interior_tests::transcribe(std::make_shared<SeedFixedVarEqProblem>());
+    const auto solver_route = hven_ipm_tests::transcribe(std::make_shared<SeedFixedVarEqProblem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -722,7 +713,7 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    result = hven_interior_tests::solve_declared(solver, solver_route, x0);
+    result = hven_ipm_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     Eigen::VectorXd x = result.x;

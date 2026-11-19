@@ -26,7 +26,7 @@ namespace {
 
 // --- fixture helpers, repeated from test_ipqp_engine.cpp / test_ipqp_
 // certification.cpp for the same reason test_ledger.cpp repeats
-// test_qp_engine.cpp's: this file stays self-contained. -------------------
+// test_walk_engine.cpp's: this file stays self-contained. -------------------
 
 SpMatRM dense_upper(const std::vector<std::vector<double>> &a) {
     const Index n = static_cast<Index>(a.size());

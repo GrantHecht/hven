@@ -103,7 +103,7 @@ using namespace hven::detail;
 
 namespace hven::test_support {
 
-// The analytic active set at a parameter value, in exactly warm_start.h's
+// The analytic active set at a parameter value, in exactly sqp_warm_state.h's
 // encoding so a test can compare it against a solve's SqpWarmState field for
 // field. ACTIVE HERE MEANS GEOMETRICALLY ACTIVE -- the constraint holds with
 // equality at x*(p) -- which is well defined even where the multiplier

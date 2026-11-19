@@ -180,11 +180,11 @@ template <class Problem> void expect_sqp_arms_agree(const Eigen::VectorXd &x0) {
 }
 
 TEST(DenseArmEngines, IpmSolvesHs071AsTheSparseArmDoes) {
-    expect_ipm_arms_agree<hven_drivers_tests::Hs071Problem>(hven_drivers_tests::hs071_start());
+    expect_ipm_arms_agree<hven_model_tests::Hs071Problem>(hven_model_tests::hs071_start());
 }
 
 TEST(DenseArmEngines, SqpSolvesHs071AsTheSparseArmDoes) {
-    expect_sqp_arms_agree<hven_drivers_tests::Hs071Problem>(hven_drivers_tests::hs071_start());
+    expect_sqp_arms_agree<hven_model_tests::Hs071Problem>(hven_model_tests::hs071_start());
 }
 
 TEST(DenseArmEngines, IpmSolvesASingularKktProblemAsTheSparseArmDoes) {

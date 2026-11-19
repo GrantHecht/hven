@@ -25,7 +25,7 @@ using hven::Vec;
 // not (symmetric_factor.h; the engine's own assemblies emit it
 // unconditionally). The dissolved seam forwarded the pattern unvalidated, so
 // these dense-built fixtures could drop the zero diagonal via sparseView();
-// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// this builder keeps it explicit, exactly as test_kkt_factor.cpp's fixture
 // does.
 static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
     SpMatRM K(D.rows(), D.cols());

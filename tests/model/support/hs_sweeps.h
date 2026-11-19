@@ -150,7 +150,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-#include "hs_problems.h"
+#include "model/support/hs_problems.h"
 
 using namespace hven::detail;
 

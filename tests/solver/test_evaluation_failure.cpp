@@ -76,8 +76,8 @@ using hven::SqpResult;
 using hven::SqpSolver;
 using hven::StopReason;
 using hven::Verbosity;
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 // A start point strictly inside HS071's box, so the interior-point engine
 // evaluates it as given (a point on a bound is pushed inward first).

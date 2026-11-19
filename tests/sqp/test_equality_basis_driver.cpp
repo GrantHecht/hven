@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_sqp_equality_basis.cpp — SqpOptions::equality_basis in the driver (M7 W2 E1).
+// test_equality_basis_driver.cpp — SqpOptions::equality_basis in the driver (M7 W2 E1).
 //
 //   F1  two networks, one redundant balance row each: optimal under every qp_mode,
 //       x and the minimum-norm lambda_e match a dense oracle; warm round trips.
@@ -39,8 +39,8 @@
 #include <hven/sqp/sqp_solver_types.h>
 
 #include "qp/support/qp_as_nlp_model.h"
-#include "sqp/support/e1b_off_golden.h"
-#include "sqp/support/e1b_off_golden_data.h"
+#include "sqp/support/equality_basis_off_golden.h"
+#include "sqp/support/equality_basis_off_golden_data.h"
 #include "support/route_reference.h"
 
 namespace {
@@ -739,7 +739,7 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
 // T5 (E1b): with equality_basis = false, a dependent and consistent network QP (F1's
 // two networks plus a duplicate balance row) solves byte-identically to E1's
 // pre-merge base 8fdeed3e under every qp_mode: status, six counters, x and lambda_e
-// in hex, against goldens generated there (support/e1b_off_golden_data.h, and the
+// in hex, against goldens generated there (support/equality_basis_off_golden_data.h, and the
 // generator and command in docs/notes/data/2026-09-m7-w2-e1-equality-basis/
 // e1b-off-golden/). MKL only: the goldens are MKL's bytes; Accelerate's are
 // UNOBSERVED and not invented. The fingerprint runs with

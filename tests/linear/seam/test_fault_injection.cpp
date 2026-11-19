@@ -3,8 +3,8 @@
 
 // Fault-injection coverage for backend paths no real fixture can provoke --
 // see docs/testing.md for the seam design and why it is shaped this way.
-// This file is compiled ONLY into the standalone hven_fault_injection_tests
-// executable (tests/CMakeLists.txt), never into hven_tests: it is the one
+// This file is compiled ONLY into the standalone hven_linear_seam_tests
+// executable (tests/linear/CMakeLists.txt), never into hven_linear_tests: it is the one
 // place hven/detail/linear/fault_injection.h's injectors are exercised.
 //
 // Both halves below are guarded by the standard __APPLE__ predefined macro

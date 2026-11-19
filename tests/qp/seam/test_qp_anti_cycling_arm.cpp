@@ -1392,7 +1392,7 @@ TEST(QpE2WorkingSet, TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum)
     // violation (the step's dual_mu * lambda leak off the member, 1e-2 here) exceeded
     // feas_tol * row_scale. That blocker is IMPLIED by its face (g = 2 * 1 - 2 = 0): the exact
     // step cannot cross it, its rate is the leak, and the leak stays within the member's own
-    // footprint dual_mu * |lambda| (THE LEAK BUDGET, qp_engine.h). The walk now passes it over
+    // footprint dual_mu * |lambda| (THE LEAK BUDGET, walk_engine.h). The walk now passes it over
     // and ends kOptimal at the QP's optimum (3/4, 0, 1/4), the same point the default dual_mu
     // reaches; no blocker termination. (On the R1 form whose footprint was capped at
     // kInfeasibilityAbsorbTol * scale -- QC-8 riders, 5a118ad4 -- the pass was refused and the
@@ -1426,7 +1426,7 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
     // (`TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum` above).
     //
     // THE N3 DEAD END WITH THE FACE ON THE WRONG SIDE. THE
-    // IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face) passes a proved-dependent blocker
+    // IMPLIED BLOCKER (walk_engine.h, blocker_implied_by_face) passes a proved-dependent blocker
     // over only when its working set's face satisfies it (g <= feas_tol * row_scale); this is
     // the other side of that test. x0 + x1 = 1 (an EQUALITY, so nothing is shifted and the
     // face test's g side alone decides, not the shifted-row gate) and x0 + x1 >= 1 + eta,
@@ -2220,7 +2220,7 @@ TEST(QpE2WorkingSet, AMuFreeSuspectReadDoesNotCertifyASaddle) {
 // test that converged to "independent" with kDepTol < rho < kDepUndecidable is
 // re-read with the refinement run to its end on the same factor; rho' plus its
 // rounding floor <= kDepTol is a certified dependent (QpEngine::test_candidate;
-// the theorem is in qp_engine.h, Degeneracy). The F1 design note's dense check
+// the theorem is in walk_engine.h, Degeneracy). The F1 design note's dense check
 // (the relative distance of the candidate from the working rows' span, QR on the
 // free columns) is the truth these fixtures are read against.
 // ===========================================================================
@@ -2315,7 +2315,7 @@ TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
 }
 
 // ===========================================================================
-// (M7 W2 NC1) THE DECLINED RIDE (qp_engine.h section 4c). A drop onto a
+// (M7 W2 NC1) THE DECLINED RIDE (walk_engine.h section 4c). A drop onto a
 // negative-curvature face never falls through to a step that re-enters the
 // released constraint. On STEENBRB's post-restoration QPs (R1 dumps
 // Cs_STEENBRB_qp3-qp6, n 468, me 96, radius 0.1 / 0.05 / 0.025 / 0.0125) the

@@ -13,8 +13,8 @@
 #include <hven/detail/qp/walk/walk_engine.h>
 
 namespace hven::detail {
-// QpEngine's named friend, DEFINED here for hven_qp_walk_seam_tests (test_qp_engine_indefinite.cpp
-// defines its own in hven_tests, a different executable): every private site a seam test reads
+// QpEngine's named friend, DEFINED here for hven_qp_seam_tests (test_walk_engine_indefinite.cpp
+// defines its own in hven_qp_tests, a different executable): every private site a seam test reads
 // directly. One definition for every TU of the executable (its member functions are inline).
 struct QpEngineTestAccess {
     static bool terminal_mu_free(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,

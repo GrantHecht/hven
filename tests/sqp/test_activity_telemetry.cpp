@@ -13,7 +13,7 @@
 //        two HS cells hand-counted, a bound-only QP-NLP reading zero, and two
 //        one-variable QP-NLPs either side of `kWeakActivityMargin`.
 //
-// The stream side of the same fields is pinned in test_trace_writer.cpp (the
+// The stream side of the same fields is pinned in test_json_lines_trace_sink.cpp (the
 // re-derived `sqp.major` golden lines, the field-by-field row comparison, and
 // the restoration sub-solve's own first row at depth 1).
 

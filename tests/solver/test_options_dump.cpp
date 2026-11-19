@@ -70,7 +70,7 @@ constexpr std::size_t kCommonOptionsFields = 10;
 static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
               "IpmOptions gained or lost a field. Give it a line in "
               "dump_options(const IpmOptions&, std::ostream&) "
-              "(src/drivers/ipm_options.cpp), in its declaration position, then move "
+              "(src/ipm/ipm_options.cpp), in its declaration position, then move "
               "kIpmOptionsFields and kIpmDumpLines here together.");
 static_assert(::hven::detail::kAggregateArity<hven::IpmLinearOptions> == kIpmLinearOptionsFields,
               "IpmLinearOptions gained or lost a field: it is flattened under `linear.`.");
@@ -84,7 +84,7 @@ static_assert(::hven::detail::kAggregateArity<hven::IpmAdvancedOptions> ==
 static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
               "SqpOptions gained or lost a field. Give it a line in "
               "dump_options(const SqpOptions&, std::ostream&) "
-              "(src/drivers/sqp_options.cpp), in its declaration position, then move "
+              "(src/sqp/sqp_options.cpp), in its declaration position, then move "
               "kSqpOptionsFields and kSqpDumpLines here together.");
 static_assert(::hven::detail::kAggregateArity<hven::SqpLinearOptions> == kSqpLinearOptionsFields,
               "SqpLinearOptions gained or lost a field: it is flattened under `linear.`.");

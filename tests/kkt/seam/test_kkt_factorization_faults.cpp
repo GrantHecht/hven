@@ -9,7 +9,7 @@
 // ever compiled.
 //
 // Compiled ONLY into the standalone hven_fault_injection_tests executable
-// (tests/CMakeLists.txt), alongside tests/linear/test_fault_injection.cpp and
+// (tests/CMakeLists.txt), alongside tests/linear/seam/test_fault_injection.cpp and
 // for the same reason: that is the one target where
 // hven/detail/linear/fault_injection.h's injectors exist at all.
 //

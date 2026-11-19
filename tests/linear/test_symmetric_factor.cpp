@@ -776,10 +776,10 @@ TEST(SymmetricFactor, ANegativeThreadCountIsRejectedAndChangesNothing) {
 // =============================================================================
 
 // The defaults-write-nothing rule itself has executable coverage in
-// tests/linear/test_fault_injection.cpp's PardisoIparmObservation suite
+// tests/linear/seam/test_fault_injection.cpp's PardisoIparmObservation suite
 // (hven_fault_injection_tests), which compares hven's actual iparm[1]/
 // iparm[12] against a fresh, independent pardisoinit() call -- see
-// docs/testing.md. This suite (hven_tests) is not where that observability
+// docs/testing.md. This suite (hven_linear_tests) is not where that observability
 // lives (see PardisoIparmObserver's own doc comment for why: only the
 // standalone fault-injection target recompiles the adapter TU with the
 // hook that records it), so it is not duplicated here.

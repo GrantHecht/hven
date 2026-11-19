@@ -81,7 +81,7 @@ Vec hs071_start() {
     return x0;
 }
 
-std::shared_ptr<Nlp> hs071() { return std::make_shared<hven_drivers_tests::Hs071Problem>(); }
+std::shared_ptr<Nlp> hs071() { return std::make_shared<hven_model_tests::Hs071Problem>(); }
 
 bool bitwise_equal(const Vec &a, const Vec &b) {
     if (a.size() != b.size()) {
@@ -882,7 +882,7 @@ TEST(Problem, APiecesProblemReportsTheDeclarationsRowSpace) {
 // ---------------------------------------------------------------------------
 
 struct CountingHs071 final : Nlp {
-    hven_drivers_tests::Hs071Problem inner;
+    hven_model_tests::Hs071Problem inner;
     mutable Index f = 0, grad = 0, g = 0, jac = 0, hess = 0;
     NlpDimensions dimensions() const override { return inner.dimensions(); }
     void bounds(VecRef xl, VecRef xu, VecRef gl, VecRef gu) const override {

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_saddle_exit.cpp -- M7 W2 NC3: THE SADDLE EXIT (qp_engine.h section 4c), on the walk
+// test_qp_saddle_exit.cpp -- M7 W2 NC3: THE SADDLE EXIT (walk_engine.h section 4c), on the walk
 // seam (docs/testing.md). A trusted-kWrong dead end -- a stationary point of a face whose
 // reduced Hessian is indefinite, nothing left to drop -- used to end the solve kNumericalError
 // (the certification branch of section 4b). The exit searches the face for a VERIFIED

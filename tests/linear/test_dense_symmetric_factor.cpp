@@ -368,7 +368,7 @@ TEST(DenseSymmetricFactor, ThreadCountDefaultsToTheBackendDefaultAndRefusesNegat
 // The other half of the call-scoped promise, at the DENSE level -- the shape
 // `SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`
 // pins for the sparse surface, and the shape the thread-scope pins in
-// tests/linear/test_fault_injection.cpp use: a caller's own thread-local
+// tests/linear/seam/test_fault_injection.cpp use: a caller's own thread-local
 // override survives both LAPACK calls. The override (3) is distinct from both
 // the backend default (0) and the count asked for (2), so an implementation
 // that restored a hardcoded 0 fails this instead of passing it.

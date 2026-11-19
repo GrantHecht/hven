@@ -42,7 +42,7 @@ namespace {
 using hven::detail::WarmStartAccess;
 } // namespace
 
-namespace hven_interior_tests {
+namespace hven_ipm_tests {
 
 /// @brief The multiplier-seed hook the retired Nlp::starting_multipliers was.
 ///
@@ -128,4 +128,4 @@ inline hven::IpmResult solve_declared(hven::IpmSolver &engine, const DeclaredRou
                             : engine.solve(hven::detail::problem_ref(*route.program), x0);
 }
 
-} // namespace hven_interior_tests
+} // namespace hven_ipm_tests

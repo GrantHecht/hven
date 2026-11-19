@@ -3,7 +3,7 @@
 
 // test_qp_unrun_dependency_test.cpp -- M7 W2 E2 FIX ROUND 7, on the walk seam
 // (docs/testing.md): AN UN-RUN DEPENDENCY TEST IS NOT A VERDICT OF DEPENDENCE
-// (qp_engine.h, Degeneracy; settler S39). With no factor for the pass's working set the
+// (walk_engine.h, Degeneracy; settler S39). With no factor for the pass's working set the
 // test computes NOTHING -- rho stays at its NaN default, `solves` at 0 -- so the integer
 // screen decides alone: positive it is an exact proof, negative the blocker is an ORDINARY
 // ADD, the pre-E2 admission (S17), counted `dep_unrun_tests`. Before this round that case

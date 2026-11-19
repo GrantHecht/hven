@@ -162,10 +162,9 @@ Eigen::VectorXd two_var_start(double a, double b) {
 // together, which is the only reason these builders return one object
 // (declared_route.h's IpmCase). Each fixture's PHASE SEQUENCE is written on the
 // options here rather than chosen by which entry point the test calls.
-hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols = true) {
-    hven_interior_tests::IpmCase c{
-        hven::detail::make_nlp_program(std::make_shared<PowerSpikeProblem>()),
-        std::make_unique<IpmSolver>()};
+hven_ipm_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols = true) {
+    hven_ipm_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<PowerSpikeProblem>()),
+                              std::make_unique<IpmSolver>()};
     {
         auto o = c.engine->options();
         o.phases = {hven::IpmPhase::kSolve}; // what solve() ran
@@ -238,7 +237,7 @@ struct TerminalIter {
     int last = -1;
 };
 
-void record_terminal_iter(hven_interior_tests::IpmCase &c, TerminalIter &rec) {
+void record_terminal_iter(hven_ipm_tests::IpmCase &c, TerminalIter &rec) {
     // M6 W5 T8.6: the shared iteration callback in place of the late one. The
     // TERMINAL row's index is the same number either way -- one event per
     // `ipm.iter` row, and the last event is the last row.
@@ -251,8 +250,8 @@ void record_terminal_iter(hven_interior_tests::IpmCase &c, TerminalIter &rec) {
 // The restoration-locally-infeasible lever set, on the other fixture and the
 // OPTIMIZE entry: the optimality phase's own switch enters restoration and the
 // subproblem converges at a still-infeasible point. Default tolerances.
-hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
-    hven_interior_tests::IpmCase c{
+hven_ipm_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
+    hven_ipm_tests::IpmCase c{
         hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>()),
         std::make_unique<IpmSolver>()};
     {
@@ -284,8 +283,8 @@ hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
 // proximal subproblem is "near-feasible, resume the true objective" or "locally
 // infeasible" -- entirely cold, the third-largest uncovered region in
 // `src/ipm/`. One option value away from the arm above.
-hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_iters) {
-    hven_interior_tests::IpmCase c = make_locally_infeasible_solver(max_iters);
+hven_ipm_tests::IpmCase make_proximal_locally_infeasible_solver(int max_iters) {
+    hven_ipm_tests::IpmCase c = make_locally_infeasible_solver(max_iters);
     auto o = c.engine->options();
     o.advanced.restoration_mode = IpmRestorationMode::kProximalSwitch;
     c.engine->set_options(std::move(o));
@@ -299,7 +298,7 @@ hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_ite
 // here rather than shared, since the two files' fixtures differ in what happens
 // next. Nothing ever throws at a COMMITTED point: a rejected iteration commits
 // alpha = 0, so the iterate never leaves the anchor.
-struct AnchorOnlyProblem : Nlp {
+struct AnchorOnlyProblem : hven::Nlp {
     hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
@@ -371,13 +370,12 @@ struct AnchorOnlyProblem : Nlp {
 /// bypass's middle branch cannot be taken; `restoration_on` turns it back on so
 /// that middle branch can be reached, and `ls` selects which classic merit
 /// variant absorbs the refused trials on the way there.
-hven_interior_tests::IpmCase
+hven_ipm_tests::IpmCase
 make_anchor_only_solver(bool acceptable_tier_contains_the_iterate, bool restoration_on = false,
                         hven::IpmLineSearchMode ls = hven::IpmLineSearchMode::kAugmentedLagrangian,
                         int max_iters = 20) {
-    hven_interior_tests::IpmCase c{
-        hven::detail::make_nlp_program(std::make_shared<AnchorOnlyProblem>()),
-        std::make_unique<IpmSolver>()};
+    hven_ipm_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<AnchorOnlyProblem>()),
+                              std::make_unique<IpmSolver>()};
     auto o = c.engine->options();
     o.phases = {hven::IpmPhase::kOptimize};
     o.common.verbosity = hven::Verbosity::kSilent;
@@ -1166,7 +1164,7 @@ struct StopInRestoration {
 };
 
 // Runs `c` with a token requested at the `stop_at`-th recovering event.
-StopInRestoration token_stop_at_recovering_event(hven_interior_tests::IpmCase &c,
+StopInRestoration token_stop_at_recovering_event(hven_ipm_tests::IpmCase &c,
                                                  const Eigen::VectorXd &x0, std::size_t stop_at) {
     StopInRestoration out;
     hven::StopSource source;

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_saddle_shift.cpp -- M7 W2 SDL: THE SADDLE EXIT's SHIFTED SEARCH (qp_engine.h, 4c).
+// test_qp_saddle_shift.cpp -- M7 W2 SDL: THE SADDLE EXIT's SHIFTED SEARCH (walk_engine.h, 4c).
 // Two restoration sub-solve QPs of the exact-Hessian TRAIN cell YORKNET (m7 fc567ce9; n = 824,
 // me = 256, nonconvex) on which the walk ended kNumericalError on a saddle-exit MISS. Their final
 // faces are full rank (normalized sigma_min ~1e-2) and carry a genuine negative curvature of the

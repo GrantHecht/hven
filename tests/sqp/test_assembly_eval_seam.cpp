@@ -29,7 +29,7 @@
 //                                     evaluation re-lays and still agrees.
 //   AggregateEvalSeamArena.*       -- consecutive evaluations at different
 //                                     points do not accumulate into each other.
-//   SqpDriverEntryEquivalence.*    -- one level up: the driver's aggregate-taking
+//   SqpSolverEntryEquivalence.*    -- one level up: the driver's aggregate-taking
 //                                     solve() and its model-taking wrapper run
 //                                     the same solve, counters and hand-off
 //                                     included, cold and warm.
@@ -996,7 +996,7 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
 }
 
 // ---------------------------------------------------------------------------
-// SqpDriverEntryEquivalence -- the two doors into one solve
+// SqpSolverEntryEquivalence -- the two doors into one solve
 // ---------------------------------------------------------------------------
 //
 // WHAT IS BEING PINNED, and why it is a different claim from the four batteries
@@ -1016,7 +1016,7 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
 // must still agree to the integer, because a lay is a structural walk of the
 // model's three derivative patterns and is invisible to every counter the
 // driver keeps (include/hven/detail/model/nlp_model_assembly.h's constructor doc;
-// SqpDriverContract.CallCountPerMajorIsBounded is where that cost IS pinned,
+// SqpSolverContract.CallCountPerMajorIsBounded is where that cost IS pinned,
 // against a counting model). PLAIN MODELS ARE USED HERE FOR EXACTLY THAT
 // REASON: a CountingModel would make the two arms differ by one lay's worth of
 // derivative calls, which is a fact about the entry points rather than about
@@ -1243,12 +1243,12 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
 
 } // namespace
 
-TEST(SqpDriverEntryEquivalence, ColdArmAgreesOnF1AndF3n50) {
+TEST(SqpSolverEntryEquivalence, ColdArmAgreesOnF1AndF3n50) {
     check_cold_arm([] { return hven::test_support::F1BoxQp(0.0); }, "F1");
     check_cold_arm([] { return hven::test_support::F3SpringChain(50, 0.5, 0.25); }, "F3n50");
 }
 
-TEST(SqpDriverEntryEquivalence, WarmArmAgreesOnF1AndF3n50) {
+TEST(SqpSolverEntryEquivalence, WarmArmAgreesOnF1AndF3n50) {
     check_warm_arm([] { return hven::test_support::F1BoxQp(0.0); }, "F1");
     check_warm_arm([] { return hven::test_support::F3SpringChain(50, 0.5, 0.25); }, "F3n50");
 }

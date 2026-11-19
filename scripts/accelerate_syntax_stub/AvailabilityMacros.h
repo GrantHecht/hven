@@ -5,7 +5,7 @@
 // the gtest paths this repository actually exercises reads a macro this
 // header would define. An empty stub is therefore sufficient to let
 // `-D__APPLE__` syntax-checks of the two Apple-gated test files
-// (tests/linear/test_fault_injection.cpp,
+// (tests/linear/seam/test_fault_injection.cpp,
 // tests/linear/test_symmetric_factor_evidence_invariants.cpp;
 // scripts/check_accelerate_syntax_linux.sh) get past googletest's own
 // platform-detection headers on Linux. See that script's header comment for

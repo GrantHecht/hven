@@ -6,7 +6,7 @@
 // WHAT THIS FILE PINS, in the order the task's own acceptance list gives:
 //
 //   (a) THE ACCEPTANCE CELL. The S = 1e12 dual-scale instance -- the one
-//       test_b1_gate.cpp's fixture banner records as running out of majors
+//       test_warm_ingest_complementarity.cpp's fixture banner records as running out of majors
 //       (60/60, "a pre-existing scaling limit of the driver") -- converges with
 //       the layer on.
 //   (b) HS25, the battery's excused row, MEASURED with the layer on. Whatever
@@ -52,7 +52,7 @@ using hven::detail::ProblemScaling;
 using hven::detail::ScalingRule;
 
 // ===========================================================================
-// THE ACCEPTANCE MODEL, copied field for field from test_b1_gate.cpp's
+// THE ACCEPTANCE MODEL, copied field for field from test_warm_ingest_complementarity.cpp's
 // B1ScaledStalePrice.
 //
 //     min  -S*x + x^2/2   s.t.  x - eps <= 0,  -1 <= x <= 1
@@ -564,7 +564,7 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
                 after.f, after.convergence.kkt_residual, after.scaling.scaled_kkt_residual,
                 after.scaling.objective);
 
-    // THE PIN. The instance the fixture banner in test_b1_gate.cpp records as
+    // THE PIN. The instance the fixture banner in test_warm_ingest_complementarity.cpp records as
     // running out of majors converges here.
     EXPECT_EQ(SolveStatus::kOptimal, after.status);
     EXPECT_TRUE(after.scaling.active);

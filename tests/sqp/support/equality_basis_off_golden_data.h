@@ -3,7 +3,7 @@
 
 #pragma once
 
-// e1b_off_golden_data.h — GENERATED at E1's pre-merge base 8fdeed3e by
+// equality_basis_off_golden_data.h — GENERATED at E1's pre-merge base 8fdeed3e by
 // docs/notes/data/2026-09-m7-w2-e1-equality-basis/e1b-off-golden/gen.sh (MKL,
 // clang++, MKL_NUM_THREADS=1), one fingerprint per build configuration: Release
 // and Debug differ in the last bits (-O0 vs -O2 contraction), so each is pinned

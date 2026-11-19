@@ -75,7 +75,7 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
 // boundary observation can read their count, so CONSTRUCTION-RULE coverage
 // (this pin, plus the report's `grep -n 'KktFactor \w*;' src/ include/`, which
 // finds no library site that default-constructs one) is what covers them. An
-// HVEN_TESTING construction observer in qp_engine.cpp is REGISTERED for W6 if
+// HVEN_TESTING construction observer in walk_engine.cpp is REGISTERED for W6 if
 // the temporaries are ever to be OBSERVED rather than argued.
 TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
     const hven::linear::SymmetricFactor::Options two =
@@ -219,7 +219,7 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
 // twin's MISS branch: what an EXACTLY SINGULAR KKT (`dual_mu = 0`, a working
 // row dependent on the face, zero (2,2)) does under sqp_kkt_options().
 //
-// Red here = qp_engine.h's twin declaration is owed a re-read.
+// Red here = walk_engine.h's twin declaration is owed a re-read.
 TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
     // K = [[I, A^T], [A, 0]] with A = [[1, 0], [1, 0]]: rank 1, so K is exactly
     // singular. Upper triangle only, with the structural diagonal the backend

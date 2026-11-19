@@ -12,7 +12,7 @@ include(FetchContent)
 # target instead of being pulled in only transitively; googletest's own
 # sample/test executables stay off by default regardless (gtest_build_tests /
 # gtest_build_samples default OFF upstream), so this only means gmock/
-# gmock_main compile even though hven_tests below links gtest_main only.
+# gmock_main compile even though the test executables below link gtest_main only.
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -86,7 +86,7 @@ include(GoogleTest)
 # is whatever the invoking job's process environment already has). On
 # Windows this is a real problem: hven links MKL's OpenMP runtime
 # (libiomp5md.lib), which is an import stub for a DLL with no static
-# equivalent on Windows -- so hven_tests.exe genuinely cannot load without
+# equivalent on Windows -- so the test executables genuinely cannot load without
 # the oneAPI redist bin directories on PATH (see
 # .github/workflows/ci.yml's windows-clang-release job for where PATH gets
 # set), and a build that runs before PATH is correct fails inside ninja's
@@ -118,8 +118,10 @@ endif()
 # local proof that a non-matching host compiles and passes them). The sentinel
 # RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch re-checks the signature at run time,
 # so a reference binary carried to another host fails one readable test.
-set(HVEN_TEST_ROUTE_REFERENCE_DISPATCH "AUTO" CACHE STRING
-    "Route-pin reference dispatch: AUTO probes the configuring host's MKL dispatch; OFF forces the off-reference (portable) arms")
+string(CONCAT _hven_route_doc
+    "Route-pin reference dispatch: AUTO probes the configuring host's MKL dispatch; "
+    "OFF forces the off-reference (portable) arms")
+set(HVEN_TEST_ROUTE_REFERENCE_DISPATCH "AUTO" CACHE STRING "${_hven_route_doc}")
 set_property(CACHE HVEN_TEST_ROUTE_REFERENCE_DISPATCH PROPERTY STRINGS AUTO OFF)
 set(_hven_reference_dispatch 0)
 set(_hven_dispatch_signature "not probed")
@@ -156,9 +158,11 @@ else()
     set(_hven_dispatch_signature "not Linux x86-64 clang MKL")
 endif()
 if(_hven_reference_dispatch)
-    message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> REFERENCE (route pins asserted)")
+    message(STATUS
+        "hven tests: MKL dispatch ${_hven_dispatch_signature} -> REFERENCE (route pins asserted)")
 else()
-    message(STATUS "hven tests: MKL dispatch ${_hven_dispatch_signature} -> OFF-REFERENCE (portable arms)")
+    message(STATUS
+        "hven tests: MKL dispatch ${_hven_dispatch_signature} -> OFF-REFERENCE (portable arms)")
 endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/hven_mkl_dispatch.txt"
     "${_hven_dispatch_signature}\nHVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}\n")
@@ -195,26 +199,36 @@ foreach(_f IN LISTS _hven_support_files)
 endforeach()
 
 ################################################################################
-# One ordinary test executable per tests/ directory (RS-6a)
+# One ordinary test executable per tests/ directory
 #
 # tests/<dir>/CMakeLists.txt defines hven_<dir>_tests for core, linear, model, kkt, qp,
-# warmstart, solver, trace, ipm, sqp and bench; the sources of an executable are the
-# .cpp files of its directory. Two kinds of process stay separate, each documented in
-# the CMakeLists of the directory that owns it:
-#   - SEAM executables (hven_<dir>_seam_tests; at most one per directory). They recompile
-#     library translation units with HVEN_TESTING defined and cannot share a binary with
-#     ordinary tests; none links hven::hven (docs/testing.md, the test-seam convention).
-#   - hven_linear_alloc_tests, which replaces the global operator new and wraps malloc
-#     at link time, so it needs its own process.
+# warmstart, solver, trace, ipm, sqp and bench; the sources of an executable are the .cpp files
+# of its directory (docs/testing.md, "Run, add, find"). Two kinds of process stay separate:
+#   - SEAM executables (hven_<dir>_seam_tests; at most one per directory). They compile library
+#     translation units with HVEN_TESTING defined and cannot share a binary with ordinary tests;
+#     none links hven::hven. Their sources live in tests/<dir>/seam/ and nowhere else.
+#   - hven_linear_alloc_tests, which replaces the global operator new and wraps malloc at link
+#     time, so it needs its own process (hven_add_isolated_test_executable).
+#
+# COMPILE FLAGS, one rule per directory. Every test target takes ${COMPILE_FLAGS}, the same flag
+# regime as the library (CLAUDE.md section 7). A directory whose fixtures are compile-heavy and
+# whose tests do not depend on the optimisation level of the test code itself builds at -O1 in
+# Release (the RELEASE_O1 argument of its hven_add_test_executable call): ipm, model, solver and
+# trace. The others build at the project's level. There is no per-file override and no unity
+# batching: a test file includes what it uses.
 #
 # The helpers below are the only way a test source reaches an executable, and they keep a
-# registry, so the build itself answers "is every test source built exactly once?":
+# registry, so the build itself answers "is every test source built exactly once, and in the
+# right kind of executable?":
 #   - hven_check_test_source_membership() (end of this file) fails the configure if a
-#     tests/<dir>/*.cpp is in no executable, or in two, or is claimed but missing;
-#   - a source a platform does not build is recorded with hven_test_sources_absent() so
-#     the absence is explicit, not silent;
-#   - hven_check_seam_targets() fails the configure if a seam executable links hven::hven
-#     or an ordinary executable defines HVEN_TESTING.
+#     tests/<dir>/*.cpp (or <dir>/support or <dir>/seam) is in no executable, or in two, or is
+#     claimed but missing;
+#   - a source a platform does not build is recorded with hven_test_sources_absent() (or
+#     hven_sources_not_on_windows()) so the absence is explicit, not silent;
+#   - a seam executable taking a source from outside tests/<dir>/seam/, or an ordinary one
+#     taking a source from inside it, fails the configure;
+#   - hven_check_seam_targets() fails the configure if a seam executable links hven::hven or an
+#     ordinary executable defines HVEN_TESTING.
 ################################################################################
 
 get_filename_component(HVEN_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
@@ -260,24 +274,99 @@ function(hven_test_sources_absent reason)
     _hven_claim_test_sources("(absent: ${reason})" ${ARGN})
 endfunction()
 
+# Appends the sources to the list variable <out> except on Windows, where each is recorded absent.
+# The one reason, true of every such source: the suites have not yet been built or derived on
+# Windows (RS-6b lifts this gate).
+function(hven_sources_not_on_windows out)
+    if(NOT WIN32)
+        set(${out} ${${out}} ${ARGN} PARENT_SCOPE)
+    else()
+        hven_test_sources_absent("not yet built on Windows (RS-6b)" ${ARGN})
+    endif()
+endfunction()
+
+# Seam sources live in tests/<dir>/seam/ and nowhere else; ordinary executables never take one.
+# <want_seam> is TRUE for a seam executable's sources, FALSE for an ordinary one's. Sources outside
+# tests/ (a library or bench source compiled in) are not test sources and are not checked.
+function(_hven_check_seam_placement owner want_seam)
+    foreach(_s IN LISTS ARGN)
+        get_filename_component(_abs "${_s}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        file(RELATIVE_PATH _rel "${HVEN_TESTS_ROOT}" "${_abs}")
+        if(_rel MATCHES "^\\.\\.")
+            continue()
+        endif()
+        if(_rel MATCHES "^[a-z_]+/seam/[^/]+$")
+            set(_in_seam TRUE)
+        else()
+            set(_in_seam FALSE)
+        endif()
+        if(want_seam AND NOT _in_seam)
+            message(FATAL_ERROR "${owner} is a seam executable (HVEN_TESTING) but takes the source "
+                "tests/${_rel}, which is not under tests/<dir>/seam/. Seam sources live in "
+                "tests/<dir>/seam/ so that a reader sees which tests need the HVEN_TESTING build.")
+        endif()
+        if(NOT want_seam AND _in_seam)
+            message(FATAL_ERROR "${owner} is an ordinary executable but takes the source "
+                "tests/${_rel}, which is under tests/<dir>/seam/. Sources in seam/ need the "
+                "HVEN_TESTING build and belong to the directory's hven_<dir>_seam_tests.")
+        endif()
+    endforeach()
+endfunction()
+
 # hven_add_test_executable(<name>
 #     SOURCES <src>...          every source of the executable, relative to the calling directory
-#     [O1_SOURCES <src>...]     the subset compiled at -O1 in Release (compile time; the sources of
-#                               the retired interior/drivers/model targets, which carried -O1)
-#     [UNITY_SOURCES <src>...]  the subset merged into unity batches of 8; every other source of
-#                               the executable is excluded from unity. Fewer than two such sources
-#                               is built non-unity: a batch of one is the plain translation unit.
+#     [RELEASE_O1]              build the executable at -O1 in Release (the directory's rule, see
+#                               the COMPILE FLAGS block above); no per-file override exists
+#     [INCLUDE_BENCH]           the executable includes bench/ headers, spelled "bench/<h>.h" from
+#                               the repository root
 #     [EXTRA_SOURCES <src>...]  non-test sources compiled in (bench/ipm_corpus_leg.cpp)
 #     [DEFINITIONS <def>...]    compile definitions (the ones only this executable's sources read)
 #     [TEST_FILTER <filter>])   gtest_discover_tests TEST_FILTER (registration, not execution)
 # Links hven::hven and gtest_main, so it must never carry HVEN_TESTING (see the seam helper).
 function(hven_add_test_executable name)
-    cmake_parse_arguments(PARSE_ARGV 1 A "" "TEST_FILTER"
-        "SOURCES;O1_SOURCES;UNITY_SOURCES;EXTRA_SOURCES;DEFINITIONS")
+    cmake_parse_arguments(PARSE_ARGV 1 A "RELEASE_O1;INCLUDE_BENCH" "TEST_FILTER"
+        "SOURCES;EXTRA_SOURCES;DEFINITIONS")
     if(NOT A_SOURCES)
         return()   # every source of this directory is gated off here: no executable
     endif()
+    _hven_check_seam_placement(${name} FALSE ${A_SOURCES})
     add_executable(${name} ${A_SOURCES} ${A_EXTRA_SOURCES})
+    _hven_claim_test_sources(${name} ${A_SOURCES})
+    set_property(GLOBAL APPEND PROPERTY HVEN_ORDINARY_TEST_TARGETS ${name})
+    target_link_libraries(${name} PRIVATE hven::hven GTest::gtest_main)
+    target_compile_options(${name} PRIVATE ${COMPILE_FLAGS})
+    target_include_directories(${name} PRIVATE ${HVEN_TESTS_INCLUDE_ROOT})
+    if(A_INCLUDE_BENCH)
+        target_include_directories(${name} PRIVATE ${HVEN_REPO_ROOT})
+    endif()
+    if(A_DEFINITIONS)
+        target_compile_definitions(${name} PRIVATE ${A_DEFINITIONS})
+    endif()
+    set(_o1_ok FALSE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(_o1_ok TRUE)
+    endif()
+    if(A_RELEASE_O1 AND _o1_ok)
+        target_compile_options(${name} PRIVATE "$<$<CONFIG:Release>:-O1>")
+    endif()
+    if(A_TEST_FILTER)
+        gtest_discover_tests(${name} TEST_FILTER "${A_TEST_FILTER}"
+            DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+    else()
+        gtest_discover_tests(${name} DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+    endif()
+endfunction()
+
+# hven_add_isolated_test_executable(<name>
+#     SOURCES <src>...             the sources, relative to the calling directory
+#     [DEFINITIONS <def>...] [LINK_OPTIONS <opt>...])
+# An ordinary executable (links hven::hven, no HVEN_TESTING) that needs a process of its own because
+# its test changes something process-global at link time -- hven_linear_alloc_tests replaces
+# operator new and wraps malloc, which no other test can share a binary with.
+function(hven_add_isolated_test_executable name)
+    cmake_parse_arguments(PARSE_ARGV 1 A "" "" "SOURCES;DEFINITIONS;LINK_OPTIONS")
+    _hven_check_seam_placement(${name} FALSE ${A_SOURCES})
+    add_executable(${name} ${A_SOURCES})
     _hven_claim_test_sources(${name} ${A_SOURCES})
     set_property(GLOBAL APPEND PROPERTY HVEN_ORDINARY_TEST_TARGETS ${name})
     target_link_libraries(${name} PRIVATE hven::hven GTest::gtest_main)
@@ -286,41 +375,10 @@ function(hven_add_test_executable name)
     if(A_DEFINITIONS)
         target_compile_definitions(${name} PRIVATE ${A_DEFINITIONS})
     endif()
-    list(LENGTH A_UNITY_SOURCES _n_unity)
-    set(_o1_flag "$<$<CONFIG:Release>:-O1>")
-    set(_restore_flag "$<$<CONFIG:Release>:-O3>")   # the Release level ${COMPILE_FLAGS} carries
-    set(_o1_ok FALSE)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        set(_o1_ok TRUE)
+    if(A_LINK_OPTIONS)
+        target_link_options(${name} PRIVATE ${A_LINK_OPTIONS})
     endif()
-    if(_n_unity GREATER 1)
-        # Unity: the batches are -O1, so the target carries -O1 and a source that was not -O1 has
-        # its Release level restored; sources outside the unity set are compiled alone.
-        set_target_properties(${name} PROPERTIES UNITY_BUILD ON UNITY_BUILD_BATCH_SIZE 8)
-        foreach(_s IN LISTS A_SOURCES)
-            if(NOT _s IN_LIST A_UNITY_SOURCES)
-                set_source_files_properties(${_s} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
-            endif()
-        endforeach()
-        if(_o1_ok)
-            target_compile_options(${name} PRIVATE ${_o1_flag})
-            foreach(_s IN LISTS A_SOURCES)
-                if(NOT _s IN_LIST A_O1_SOURCES)
-                    set_source_files_properties(${_s} PROPERTIES COMPILE_OPTIONS "${_restore_flag}")
-                endif()
-            endforeach()
-        endif()
-    elseif(_o1_ok)
-        foreach(_s IN LISTS A_O1_SOURCES)
-            set_source_files_properties(${_s} PROPERTIES COMPILE_OPTIONS "${_o1_flag}")
-        endforeach()
-    endif()
-    if(A_TEST_FILTER)
-        gtest_discover_tests(${name} TEST_FILTER "${A_TEST_FILTER}"
-            DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
-    else()
-        gtest_discover_tests(${name} DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
-    endif()
+    gtest_discover_tests(${name} DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 endfunction()
 
 # The platform's backend session and adapter TUs a seam executable recompiles beside the
@@ -374,6 +432,7 @@ endfunction()
 function(hven_add_seam_executable name)
     cmake_parse_arguments(PARSE_ARGV 1 A "WHOLE_LIBRARY" ""
         "SOURCES;LIBRARY_SOURCES;DEFINITIONS")
+    _hven_check_seam_placement(${name} TRUE ${A_SOURCES})
     if(A_WHOLE_LIBRARY)
         _hven_testing_library()
         add_executable(${name} $<TARGET_OBJECTS:hven_testing_library> ${A_SOURCES})
@@ -408,7 +467,8 @@ function(hven_check_test_source_membership)
     set(_globbed "")
     foreach(_d IN ITEMS core linear model kkt qp warmstart solver trace ipm sqp bench)
         file(GLOB _g RELATIVE "${HVEN_TESTS_ROOT}" CONFIGURE_DEPENDS
-            "${HVEN_TESTS_ROOT}/${_d}/*.cpp" "${HVEN_TESTS_ROOT}/${_d}/support/*.cpp")
+            "${HVEN_TESTS_ROOT}/${_d}/*.cpp" "${HVEN_TESTS_ROOT}/${_d}/support/*.cpp"
+            "${HVEN_TESTS_ROOT}/${_d}/seam/*.cpp")
         list(APPEND _globbed ${_g})
     endforeach()
     get_property(_claimed GLOBAL PROPERTY HVEN_TEST_SRC_CLAIMED)
@@ -434,7 +494,8 @@ function(hven_check_test_source_membership)
     endforeach()
     file(WRITE "${CMAKE_BINARY_DIR}/hven_test_membership.txt" "${_table}")
     list(LENGTH _globbed _n)
-    message(STATUS "hven tests: ${_n} test sources, each in exactly one executable or recorded absent")
+    message(STATUS
+        "hven tests: ${_n} test sources, each in exactly one executable or recorded absent")
 endfunction()
 
 # Run once, after every tests/ subdirectory has been added.
@@ -546,7 +607,10 @@ target_compile_options(hven_header_selfcheck PRIVATE ${COMPILE_FLAGS})
 add_test(NAME HeaderSelfContained
     COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --config $<CONFIG>
             --target hven_header_selfcheck)
-set_tests_properties(HeaderSelfContained PROPERTIES TIMEOUT 1800)
+# It drives a nested `cmake --build` of the same build directory, like the compile_fail probes
+# (tests/model/CMakeLists.txt), so it takes the same lock and never races them under ctest -j.
+set_tests_properties(HeaderSelfContained PROPERTIES TIMEOUT 1800
+    RESOURCE_LOCK hven_compile_fail_nested_build)
 
 ################################################################################
 # The golden-numerics rig: the harness, the seam adapters, the traces, the

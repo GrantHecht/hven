@@ -976,7 +976,7 @@ TEST(IpqpFaceTest, ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundSta
 }
 
 // THE TWO EXPORT INVARIANTS THIS TIER RE-DERIVES (M6 W1 task 6 fix round 1).
-// `qp_engine.h`'s export contract says a third producer must RE-DERIVE rather than
+// `walk_engine.h`'s export contract says a third producer must RE-DERIVE rather than
 // inherit; these pin the re-derivation directly on the engine, not via a driver.
 TEST(IpqpFaceTest, AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced) {
     // A WIDE box with a FINITE trust region -- the configuration that makes both

@@ -11,6 +11,9 @@
 // running on a host whose dispatch is not the one tests/CMakeLists.txt probed at configure time
 // (an AVX-512 runner moved 39 cells, WX-R13). This one readable test fails first and names the
 // cause.
+//
+// PLACEMENT. The sentinel guards the route pins of the walk (test_walk_engine*, the walk seams),
+// so it lives in tests/qp; it needs no HVEN_TESTING build, so it is in the ordinary hven_qp_tests.
 
 #include <cstdlib>
 #include <string>

@@ -75,8 +75,8 @@ using hven::StopReason;
 using hven::StopSource;
 using hven::StopToken;
 using hven::Verbosity;
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 enum class Engine { kIpm, kSqp };
 

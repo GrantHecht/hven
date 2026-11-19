@@ -13,14 +13,14 @@
 //                              derivative blocks against finite differences,
 //                              and the sigma scaling that Task 8's carry asks
 //                              this construction to apply.
-//   SqpDriverRestoration.*  -- the phase itself: an infeasible NLP CERTIFIED
+//   SqpSolverRestoration.*  -- the phase itself: an infeasible NLP CERTIFIED
 //                              (with the subgradient certificate re-derived
 //                              in-test from the model, not read off the
 //                              driver), a stalled-but-feasible NLP RECOVERED
 //                              and resumed to its optimum, the once-per-solve
 //                              cap, idleness on the clean battery, and the two
 //                              authoritative triggers the phase now serves.
-//   SqpDriverRadius.*       -- the radius rules Task 9 owns: the floor
+//   SqpSolverRadius.*       -- the radius rules Task 9 owns: the floor
 //                              (KLV Algorithm 4's alpha_min analogue) and the
 //                              +inf degeneracy, both measured against the
 //                              behaviour they replaced.
@@ -215,7 +215,7 @@ class InfeasibleCircleLineModel : public NlpModel {
 // max(100, 1.25*0.5) = 100. THE RADIUS SCHEDULE STARTS AT 8, NOT AT THE 4 THE
 // SIBLING FIXTURE USES, because the gate is now 4 rather than 3 and at
 // Delta = 0.25 the trial (h_new = 62.5 <= 100) would be funnel-acceptable --
-// see globalization.h's kRestoreMinRejections for the re-derivation.
+// see funnel.h's kRestoreMinRejections for the re-derivation.
 //
 // THE SOLUTION, hand-derived. On the feasible manifold x1 = -1000 x0^2,
 //     F(x0) = 10000 x0^2 + 5e6 x0^4 - 0.01 x0 + 0.0005 x0^2,
@@ -1141,7 +1141,7 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblemAtAPositiveProximity) {
 }
 
 // =========================================================================
-// SqpDriverRestoration -- the phase.
+// SqpSolverRestoration -- the phase.
 // =========================================================================
 
 // TEST (a). A PROVABLY INFEASIBLE NLP is CERTIFIED: the driver returns
@@ -1186,7 +1186,7 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblemAtAPositiveProximity) {
 // refactorize path needs 65 and a default-budget run would sit one regression
 // away from flipping status rather than failing an assertion. The margin is
 // explicit here instead of implicit there.
-TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
+TEST(SqpSolverRestoration, InfeasibleNlpCertifies) {
     for (const auto algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
@@ -1273,7 +1273,7 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
 // correction the design page's first draft proposed (subtracting grad P from z)
 // would have made it identically zero at every wrapper-stationary point, i.e.
 // certified everything.
-TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidual) {
+TEST(SqpSolverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidual) {
     struct Arm {
         double zeta;
         bool certified;
@@ -1352,7 +1352,7 @@ TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidua
 // is a CONSTRAINT-side identity, not a curvature one) and the separation only
 // as "materially nonzero".
 //
-// SO THE EQUIVALENCE ORACLE IS NOT BROKEN. qp_engine.h scopes the
+// SO THE EQUIVALENCE ORACLE IS NOT BROKEN. walk_engine.h scopes the
 // border/refactorize equivalence claim to CONVEX H; H == 0 is convex but not
 // strictly convex, so it delivers a common optimal VALUE and not a common
 // optimal POINT. qp_types.h's QpWorkingSetAlgebra note carries that caveat
@@ -1366,7 +1366,7 @@ TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidua
 // mode and 46/43/57/44 in refactorize, i.e. both modes grind and neither wins.
 // Every one of those eight runs returns kInfeasible at the same certified
 // point (0.707107, 0.707107).
-TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
+TEST(SqpSolverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
     // (a) THE OPTIMAL FACE. Stop both modes after the major where they part
     // company and read the iterate each landed on.
     Vec x_border(2), x_refac(2);
@@ -1385,7 +1385,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         opts.qp.working_set_algebra = algebra;
         // M7 W2 R2: the restoration-route fixtures on this family pin the
         // pre-R2 ROUTE, so the failed-subproblem step is off (see
-        // SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer for the default).
+        // SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer for the default).
         opts.advanced.qp_failure_step = false;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -1493,7 +1493,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
 // restarted at the documented fraction of trust_region_initial, and the trial that raised
 // the request was the fifth consecutive rejection at the start point -- i.e.
 // the funnel's own signature, at the re-derived gate.
-TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
+TEST(SqpSolverRestoration, RestorationRecoversAndResumes) {
     for (const auto algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
@@ -1572,9 +1572,9 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
 }
 
 // TEST (c). The phase is INERT on every problem that does not need it. Same
-// fixture set and same options as SqpDriverElastic.ElasticIsIdleOnCleanProblems
+// fixture set and same options as SqpSolverElastic.ElasticIsIdleOnCleanProblems
 // (test_sqp_solver.cpp), which is the sibling claim for the tier below it.
-TEST(SqpDriverRestoration, RestorationIsIdleOnCleanProblems) {
+TEST(SqpSolverRestoration, RestorationIsIdleOnCleanProblems) {
     struct Case {
         int number;
         SqpOptions opts;
@@ -1653,13 +1653,13 @@ class RunawayValleyModel : public StalledValleyModel {
 };
 } // namespace
 
-TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
+TEST(SqpSolverRestoration, SecondRequestIsCappedAndReported) {
     RunawayValleyModel model;
     SqpOptions opts;
     opts.trust_region_initial = 8.0;
     opts.common.max_iterations = 60;
     // THE ONCE-PER-SOLVE RULE, which this test pins, is `max_restoration_entries = 1`
-    // since M7 W2 RST (SqpDriverRestorationEntries covers the cap above one).
+    // since M7 W2 RST (SqpSolverRestorationEntries covers the cap above one).
     opts.advanced.max_restoration_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
@@ -1689,7 +1689,7 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     // the funnel's own signature, as does a certified exit reached the same
     // way), but a certified exit reached via the RADIUS FLOOR route instead
     // leaves kReject on its last row (sqp_solver.h's RESTORATION PHASE note
-    // has the corrected decision table; SqpDriverRadius.
+    // has the corrected decision table; SqpSolverRadius.
     // FloorRaisesTheRestorationRequest exercises that route). So neither
     // field says which exit this is -- the status and the flag do
     // (sqp_solver_types.h's SqpResult::infeasibility_certified).
@@ -1715,7 +1715,7 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
 // to judge the zero step (Algorithm 2 tests ||d|| = 0 AHEAD of the funnel
 // condition), so a recording funnel sees zero judge calls before the accepted
 // row.
-TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
+TEST(SqpSolverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
     BoxBlockedEqualityModel model;
     Vec x(2);
     x << 1.0, 0.0; // the point the outer solve's elastic tier leaves it at
@@ -1746,10 +1746,10 @@ TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
 // THE OUTER SOLVE OF THE SAME MODEL, end to end: a genuinely infeasible NLP
 // whose linearization is inconsistent at every radius now CERTIFIES instead of
 // reporting the elastic tier's exhaustion verbatim. This is
-// SqpDriverElastic.RhoEscalationIsBoundedAndSignals' successor claim -- that
+// SqpSolverElastic.RhoEscalationIsBoundedAndSignals' successor claim -- that
 // test pins the tier's own signature, this one pins what the signature now
 // buys.
-TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
+TEST(SqpSolverRestoration, ExhaustedElasticTierEntersRestoration) {
     BoxBlockedEqualityModel model;
     SqpOptions opts;
     SqpSolver driver(opts);
@@ -1789,7 +1789,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
 // (grad L at the active bound, i.e. 0) while RETURNING the certificate's, and
 // so reported 0 on the scaled path and 1 on the unscaled one for the same
 // solve of the same model.
-TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices) {
+TEST(SqpSolverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices) {
     BoxBlockedEqualityModel model;
     SqpOptions opts;
     SqpSolver driver(opts);
@@ -1820,7 +1820,7 @@ TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPri
 // THE SAME EXHAUSTION IN THE OTHER TWO MODES (W2 T4, owner ruling Q-O3): the
 // route and the certificate do not depend on which kernel solved the
 // subproblems -- kIpqp reaches it through the certified fallback's own ladder.
-TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) {
+TEST(SqpSolverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) {
     for (const QpMode mode : {QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(mode == QpMode::kSsn ? "ssn" : "ipm");
         BoxBlockedEqualityModel model;
@@ -1847,7 +1847,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
 }
 
 // =========================================================================
-// SqpDriverRadius -- the two radius rules Task 9 owns.
+// SqpSolverRadius -- the two radius rules Task 9 owns.
 // =========================================================================
 
 // THE RADIUS FLOOR IS A TRIGGER, NOT A CLAMP -- KLV Algorithm 4's "alpha <
@@ -1887,7 +1887,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
 // trigger -- has NO fixture on the E4 engine. It needs a model whose trial is
 // rejected often enough to grind the radius down; this one no longer is. The rule
 // itself is unchanged code.
-TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
+TEST(SqpSolverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
     struct Run {
         double tr_min;
         Index majors = 0;
@@ -2004,7 +2004,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
 // f*. The three problems that never reject (HS3/HS6/HS76) are unaffected and
 // are included to pin that: their radius stays +inf for the whole solve, which
 // is what "no trust region" is supposed to mean.
-TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
+TEST(SqpSolverRadius, InfiniteInitialRadiusShrinksToTrMax) {
     struct Case {
         int number;
         bool rejects;
@@ -2046,7 +2046,7 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
 
 // The floor joins the option validation, on the same terms as the rest of the
 // radius triple: positive, and not above either end of the range it floors.
-TEST(SqpDriverRadius, RejectsUnusableFloors) {
+TEST(SqpSolverRadius, RejectsUnusableFloors) {
     {
         SqpOptions opts;
         opts.trust_region_min = 0.0;
@@ -2079,13 +2079,13 @@ TEST(SqpDriverRadius, RejectsUnusableFloors) {
     }
 }
 
-// SqpDriverRestorationSeed -- W2 T4: the phase starts at a request site's
+// SqpSolverRestorationSeed -- W2 T4: the phase starts at a request site's
 // CANDIDATE only when its MEASURED violation is below the entry's. Every
 // "taken" pin here has a "refused" sibling on the same site (non-vacuity).
 
 namespace {
 // Counts model calls, so the decision-driven eval counters are read beside an
-// independent count -- test_sqp_solver.cpp's SqpDriverEvalEconomics
+// independent count -- test_sqp_solver.cpp's SqpSolverEvalEconomics
 // convention, and the only thing that caught a desync last time.
 class SeedCountingModel final : public NlpModel {
   public:
@@ -2325,7 +2325,7 @@ const char *seed_mode_name(QpMode m) {
 //   TheSeedsEvaluationIsCountedExactlyOnce  (name unchanged: counts re-derived)
 //   AJacobianPoisonedCandidateIsRefusedNotTaken (name unchanged: still true, and
 //     now at the h screen rather than at the Jacobian one)
-//   SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+//   SqpSolverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
 //
 // M7 W2 R2, THE ROUTE WRITTEN OUT. On this model the walk fails on the way to the
 // request (kIterationLimit / kNumericalError), and the R2 default judges the failed
@@ -2333,13 +2333,13 @@ const char *seed_mode_name(QpMode m) {
 // raised and what the knife-edge candidate measures. The fixtures above pin the
 // ROUTE, so each sets `qp_failure_step = false` and keeps every pinned value; the
 // default's own reading on the same model is
-// SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (the same certified
+// SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (the same certified
 // kInfeasible at the same analytic point).
 
 // THE R2 DEFAULT ON THE FAMILY'S KNIFE-EDGE MODEL: whatever route the failed
 // subproblems' own steps take it by, the answer is the one the family pins --
 // kInfeasible, certified, at the analytic point -- on both walks.
-TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
+TEST(SqpSolverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
     for (const bool independent : {false, true}) {
         SCOPED_TRACE(independent ? "independent working set" : "pre-E2 walk");
         InfeasibleCircleLineModel model(2.0, 1.999999);
@@ -2404,19 +2404,19 @@ static void run_the_offered_candidate_no_longer_measures_better_and_is_not_taken
     EXPECT_NEAR(sol.x(1), t, 1e-5);
 }
 
-TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
+TEST(SqpSolverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
     run_the_offered_candidate_no_longer_measures_better_and_is_not_taken(
         hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken. The kNever test
+// SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
 // with that arm's own readings: the candidate is offered AND TAKEN (seeded_rows 1, both configs),
 // the old pre-flip premise. Exact readings are pinned on the reference build only (Linux/MKL, per
 // Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
 // status-level contracts are asserted.
-TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm) {
+TEST(SqpSolverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm) {
     run_the_offered_candidate_no_longer_measures_better_and_is_not_taken(
         hven::linear::DensePolicy::kAuto);
 }
@@ -2480,19 +2480,19 @@ static void run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_eve
     }
 }
 
-TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
+TEST(SqpSolverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
     run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
         hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne. The kNever test
+// SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
 // with that arm's own readings: the walk takes the candidate (1) in both configs, ssn and ipm only
 // in Debug. Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
 // elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
 // contracts are asserted.
-TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm) {
+TEST(SqpSolverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm) {
     run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
         hven::linear::DensePolicy::kAuto);
 }
@@ -2501,7 +2501,7 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
 // for their candidate premise; this one runs the SAME configuration with the
 // independent working set ON and asserts the ANSWER, so the on-path is
 // covered on the circle-line model too.
-TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAnswer) {
+TEST(SqpSolverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAnswer) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
@@ -2579,19 +2579,19 @@ static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refu
     }
 }
 
-TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
+TEST(SqpSolverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
     run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
         hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt. The kNever
+// SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt. The kNever
 // test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
 // arm) with that arm's own readings: every mode takes the candidate (1) and no history row carries
 // kRestore. Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
 // elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
 // contracts are asserted.
-TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm) {
+TEST(SqpSolverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm) {
     run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
         hven::linear::DensePolicy::kAuto);
 }
@@ -2599,7 +2599,7 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
 // THE SAME MODEL, THE SAME SITE, A WORSE CANDIDATE: from the symmetric start
 // the exhausted ladder's step measures h = 3.0 against the entry's 1.0.
 // `reduced` is false at any exhaustion, so only the measurement can tell.
-TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
+TEST(SqpSolverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     InfeasibleCircleLineModel model;
     SqpOptions opts;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
@@ -2616,7 +2616,7 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     // takes it. The site is still reached with an offer under kRestore and the solve still
     // ends certified kInfeasible (asserted below in both configs); the WORSE-candidate
     // refusal this fixture is named for is Release's reading. Release unchanged.
-    // M7 W2 SNX (declared mover, Debug only): 1 -> 0. THE STAGNATION READING (qp_engine.h)
+    // M7 W2 SNX (declared mover, Debug only): 1 -> 0. THE STAGNATION READING (walk_engine.h)
     // takes Debug's walk off the idle run that delayed its request, and Debug reaches the
     // ladder's exhaustion where Release does: the refusal is now both configurations' reading.
     // WHICH candidate the ladder's exhaustion offers (and so whether the guard refuses it) is
@@ -2641,7 +2641,7 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
 // A ZERO STEP IS NOT A CANDIDATE. This fixture's ladder exhausts AT the bound
 // with p_elastic = 0, so x + p_elastic IS x and a "seeded" flag would be a
 // lie. Every mode: no seed, and the certificate is the file's usual one.
-TEST(SqpDriverRestorationSeed, AZeroElasticStepIsNotACandidate) {
+TEST(SqpSolverRestorationSeed, AZeroElasticStepIsNotACandidate) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         BoxBlockedEqualityModel model;
@@ -2664,7 +2664,7 @@ TEST(SqpDriverRestorationSeed, AZeroElasticStepIsNotACandidate) {
 // A CANDIDATE THE MODEL CANNOT MEASURE IS REFUSED: every offer here is a
 // TRIAL whose bundle is non-finite, so the site refuses it on the bundle --
 // before any query, and without reclassifying the trial's own.
-TEST(SqpDriverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
+TEST(SqpSolverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
     NanAwayFromStartModel model;
     SqpOptions opts;
     opts.common.max_iterations = 60;
@@ -2786,17 +2786,17 @@ run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy
     }
 }
 
-TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
+TEST(SqpSolverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
     run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy::kNever);
 }
 
-// C330-C DENSE-ARM TWIN of SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken.
+// C330-C DENSE-ARM TWIN of SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken.
 // The kNever test above is kept as it was; this one runs the same fixture on the default (kAuto,
 // the dense arm) with that arm's own readings: exactly one k (16 Release, 17 Debug) reaches the
 // Jacobian screen and sees it refuse. Exact readings are pinned on the reference build only
 // (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
 // and only status-level contracts are asserted.
-TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm) {
+TEST(SqpSolverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm) {
     run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy::kAuto);
 }
 
@@ -2852,19 +2852,19 @@ static void run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refu
     EXPECT_TRUE(sol.infeasibility_certified);
 }
 
-TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
+TEST(SqpSolverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
     run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refuses_it(
         hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt. The kNever
+// SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt. The kNever
 // test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
 // arm) with that arm's own readings: the seed is taken and the radius floor (a kReject row, no
 // kRestore row) is the site. Exact readings are pinned on the reference build only (Linux/MKL, per
 // Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
 // status-level contracts are asserted.
-TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm) {
+TEST(SqpSolverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm) {
     run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refuses_it(
         hven::linear::DensePolicy::kAuto);
 }
@@ -2872,7 +2872,7 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
 // THE GUARD, AND THE PHASE, ARE ON THE CALLER'S SCALE, pinned where the two
 // scales genuinely differ: row 0 carries the factor 1e-2 and rows 1-2 carry 1,
 // so engine-scale h and caller-scale h rank this box's two ends oppositely.
-TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
+TEST(SqpSolverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         BoxWatchingSpreadModel model;
@@ -3009,24 +3009,24 @@ static void run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::Dense
     EXPECT_GT(model.n_jac_e, 0);
 }
 
-TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
+TEST(SqpSolverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy::kNever);
 }
 
-// C330-C DENSE-ARM TWIN of SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce. The
+// C330-C DENSE-ARM TWIN of SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce. The
 // kNever test above is kept as it was; this one runs the same fixture on the default (kAuto, the
 // dense arm) with that arm's own readings: the take survives; evals_full 28, evals_values 37
 // Release / 36 Debug (partition unchanged). Exact readings are pinned on the reference build only
 // (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
 // and only status-level contracts are asserted.
-TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceDenseArm) {
+TEST(SqpSolverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceDenseArm) {
     run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy::kAuto);
 }
 
 // THE SAME FIXTURE UNDER THE SHIPPED DEFAULT (kAuto, M7 W2 SCW): below the gate the
 // solve is the kOff solve plus the rule's one Jacobian probe, charged to evals_values
 // and nothing else -- so the seed's evaluation is still counted exactly once.
-TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe) {
+TEST(SqpSolverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe) {
     SqpOptions opts;
     opts.qp.independent_working_set = false;
     opts.advanced.equality_basis = false;
@@ -3073,10 +3073,10 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDef
 // a certificate's independently recomputed h. A record that agreed only with
 // itself would pin nothing.
 
-TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
+TEST(SqpSolverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     StalledValleyModel model;
     SqpOptions opts;
-    opts.trust_region_initial = 8.0; // SqpDriverRestoration.RestorationRecoversAndResumes' options
+    opts.trust_region_initial = 8.0; // SqpSolverRestoration.RestorationRecoversAndResumes' options
     opts.common.max_iterations = 60;
     FunnelLog log;
     record_funnel_into(opts, &log);
@@ -3130,7 +3130,7 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
                                  sol.counters.restoration_f_out));
 }
 
-TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
+TEST(SqpSolverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     InfeasibleCircleLineModel model;
     SqpOptions opts;
     opts.common.max_iterations = 200;
@@ -3164,11 +3164,11 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
 }
 
-TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
+TEST(SqpSolverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
     RunawayValleyModel model;
     SqpOptions opts;
     opts.trust_region_initial =
-        8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
+        8.0; // SqpSolverRestoration.SecondRequestIsCappedAndReported' options
     opts.common.max_iterations = 60;
     opts.advanced.max_restoration_entries = 1;
     FunnelLog log;
@@ -3197,7 +3197,7 @@ TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRec
     EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
 }
 
-TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
+TEST(SqpSolverRestorationExcursion, ACleanSolveHoldsNoReading) {
     const HsProblem p = make_hs(1);
     SqpOptions opts;
     opts.common.max_iterations = 60;
@@ -3362,19 +3362,19 @@ run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(hven::linear::
 #endif
 }
 
-TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
+TEST(SqpSolverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
     run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(
         hven::linear::DensePolicy::kNever, 5);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne. The kNever test
+// SqpSolverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
 // with that arm's own readings: the request is reached one major later than on the sparse arm: the
 // cramped budget is the measured minimum that reaches it (kDenseCrampedBudget). Exact readings are
 // pinned on the reference build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate:
 // UNOBSERVED) the route is recorded and only status-level contracts are asserted.
-TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm) {
+TEST(SqpSolverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm) {
     run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(
         hven::linear::DensePolicy::kAuto, kDenseCrampedBudget);
 }
@@ -3527,19 +3527,19 @@ static void run_the_sub_status_discriminates_at_one_parent_status(hven::linear::
               sub_cut_off.counters.restoration_sub_status);
 }
 
-TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
+TEST(SqpSolverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
     run_the_sub_status_discriminates_at_one_parent_status(hven::linear::DensePolicy::kNever, 5);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus. The kNever test above
+// SqpSolverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus. The kNever test above
 // is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm) with that
 // arm's own readings: arm 3's cramped budget is the measured minimum that reaches the request
 // (kDenseCrampedBudget); arms 1 and 2 are unchanged.
 // Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
 // elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
 // contracts are asserted.
-TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatusDenseArm) {
+TEST(SqpSolverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatusDenseArm) {
     run_the_sub_status_discriminates_at_one_parent_status(hven::linear::DensePolicy::kAuto,
                                                           kDenseCrampedBudget);
 }
@@ -3865,19 +3865,19 @@ run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::Dense
                                     opts.common.optimality_tol, sol.infeasibility_certified));
 }
 
-TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
+TEST(SqpSolverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
     run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::DensePolicy::kNever,
                                                                  kCancellationKktTol);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses. The kNever test
+// SqpSolverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
 // with that arm's own readings: the same premises (proxy below kkt_tol, exact residual above),
 // Debug at its own midpoint (kDenseCancellationKktTol). Exact readings are pinned on the reference
 // build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is
 // recorded and only status-level contracts are asserted.
-TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefusesDenseArm) {
+TEST(SqpSolverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefusesDenseArm) {
     run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::DensePolicy::kAuto,
                                                                  kDenseCancellationKktTol);
 }
@@ -3993,18 +3993,18 @@ run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::Dense
 #endif
 }
 
-TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
+TEST(SqpSolverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
     run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP. The kNever test
+// SqpSolverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
 // with that arm's own readings: the guard TAKES the offered candidate (seeded_rows 1, both
 // configs). Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
 // elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
 // contracts are asserted.
-TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusPDenseArm) {
+TEST(SqpSolverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusPDenseArm) {
     run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy::kAuto);
 }
 
@@ -4012,7 +4012,7 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
 // library refusal to fold the diagnostic into the exception it throws; a test
 // that only checks the TYPE cannot tell a useful message from an empty one.
 // Both boundaries are checked: the options door and the wrapper's own.
-TEST(SqpDriverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy) {
+TEST(SqpSolverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy) {
     auto message_of = [](const std::function<void()> &f) -> std::string {
         try {
             f();
@@ -4100,7 +4100,7 @@ TEST(SqpDriverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy)
 // `subgradient_certificate_residual_inf` yields NaN, and `NaN <= kkt_tol` is
 // false. A gate that reads the bundle at zeta == 0 fails the first arm; a gate
 // that stops reading it at zeta > 0 fails the second.
-TEST(SqpDriverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
+TEST(SqpSolverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double kkt_tol = 1e-8;
 
@@ -4154,7 +4154,7 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
 // fixture whose whole point is that the engine and caller scales order its
 // offers oppositely. If the OFF path ever routes through the rescaled copy
 // again, this is where a boundary refusal on a real scaled solve shows up.
-TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
+TEST(SqpSolverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
     BoxWatchingSpreadModel model;
     SqpOptions opts;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
@@ -4356,7 +4356,7 @@ class WatchedSeparatedRestorationModel final : public SeparatedRestorationModel 
 };
 } // namespace
 
-TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNotTheSeed) {
+TEST(SqpSolverRestorationProximity, TheProductionCentreIsTheRequestingIterateNotTheSeed) {
     WatchedSeparatedRestorationModel model;
     SqpOptions opts;
     opts.common.max_iterations = 200;
@@ -4818,19 +4818,19 @@ static void run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_
     }
 }
 
-TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
+TEST(SqpSolverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
     run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_one(
         hven::linear::DensePolicy::kNever);
 }
 
 // C330-C DENSE-ARM TWIN of
-// SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne. The kNever
+// SqpSolverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne. The kNever
 // test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
 // arm) with that arm's own readings: Release resumes twice and ends kOptimal at a cap above one (2
 // resumes, 2 entries). Exact readings are pinned on the reference build only (Linux/MKL, per
 // Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
 // status-level contracts are asserted.
-TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm) {
+TEST(SqpSolverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm) {
     run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_one(
         hven::linear::DensePolicy::kAuto);
 }
@@ -4874,7 +4874,7 @@ class SteepRunawayValleyModel final : public RunawayValleyModel {
     }
 };
 
-TEST(SqpDriverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItFound) {
+TEST(SqpSolverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItFound) {
     SteepRunawayValleyModel model;
     SqpOptions opts;
     opts.trust_region_initial = 8.0;
@@ -4928,7 +4928,7 @@ TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {
     }
 }
 
-TEST(SqpDriverRestorationEntries, ACapOfZeroRefusesTheFirstRequest) {
+TEST(SqpSolverRestorationEntries, ACapOfZeroRefusesTheFirstRequest) {
     RunawayValleyModel model;
     SqpOptions opts;
     opts.trust_region_initial = 8.0;
@@ -4964,7 +4964,7 @@ TEST(RestorationEntriesOption, BothFieldsCarryADumpLineInDeclarationPosition) {
 // THE REGULARIZED CURVATURE IN THE DRIVER: the phase certifies the same infeasible
 // point with the same first-order certificate, and none of its curvature comes from
 // the caller's model -- the wrapper's eval_hess never calls the wrapped model's.
-TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstraintCurvature) {
+TEST(SqpSolverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstraintCurvature) {
     for (const auto curvature :
          {SqpRestorationCurvature::kModel, SqpRestorationCurvature::kRegularized}) {
         SCOPED_TRACE(curvature == SqpRestorationCurvature::kModel ? "kModel" : "kRegularized");
@@ -4993,7 +4993,7 @@ TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstrain
 // phase's point is reported without a certificate, and the solve never reaches its free
 // answer. The ceiling is found by scanning down from the free run's total; the premise (some
 // ceiling lands inside the phase) is asserted on the reference build and recorded off it.
-TEST(SqpDriverRestorationExcursion, AWorkLimitBindingInsideTheSubSolvePropagates) {
+TEST(SqpSolverRestorationExcursion, AWorkLimitBindingInsideTheSubSolvePropagates) {
     InfeasibleCircleLineModel model;
     SqpOptions opts;
     opts.advanced.equality_basis = false;
@@ -5070,13 +5070,13 @@ TEST(SqpRestorationNanGate, TheSubgradientCertificateRefusesANonFirstNaN) {
     }
 }
 
-// C330-C DENSE-ARM TWIN of SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum.
+// C330-C DENSE-ARM TWIN of SqpSolverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum.
 // On the dense arm the two algebras do NOT diverge: both land on the open-relaxation LP face
 // x0 + x1 = 2 at (1.875, 0.125), 6e-9 (Release) / 1e-9 (Debug) apart -- the diagnosis's reading
 // (regularization-defined terminal point; no dense inertia mis-report). Part (b), the fragility
 // half, holds unchanged. Exact readings on the reference build; elsewhere the route is recorded
 // and the structural face-or-diagonal contract of the kNever test's off-reference arm is asserted.
-TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimumDenseArm) {
+TEST(SqpSolverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimumDenseArm) {
     Vec x_border(2), x_refac(2);
     for (const auto algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
@@ -5141,7 +5141,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimumDen
     }
 }
 
-// C330-C DENSE-ARM TWIN of SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel.
+// C330-C DENSE-ARM TWIN of SqpSolverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel.
 // On the dense arm the radius DOES grind: the last funnel verdict is kReject (the floor escalated
 // an ordinary rejection, route (3)), the radius ends within one halving of the floor, and the
 // floor is a real knob (a floor three orders higher saves 10 majors). That is the fixture's
@@ -5150,7 +5150,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimumDen
 //   floor 1e-2: Release 25 majors / Debug 28, last radius 0.015625,     5 phase iterations
 // Exact readings on the reference build; elsewhere recorded, with the contract (verdict, the
 // certificate, the floor held) asserted.
-TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm) {
+TEST(SqpSolverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm) {
     struct Run {
         double tr_min;
         Index majors = 0;

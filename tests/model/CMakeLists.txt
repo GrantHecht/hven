@@ -1,10 +1,12 @@
 ################################################################################
-# The model contract surface's test suite, hven_model_tests: the provider-side contract types in include/hven/model/ that a consumer meets before any engine is in the picture -- the claim arenas
-# and their published tables, the declaration and its boundary validation, the structural key, the structure epoch's ordering and failure-restore rules, the identity probe, and the request flags that
-# select what one evaluation call produces. It also carries the NlpModel bridge, the contract's second provider, which is engine-free in the same sense, and the function-entry seam's adapters.
-# The bridge's equivalence pins consume the HS transcriptions in model/support/ (header-only test support), named rooted from the tests root.
-# UNITY only for the six sources the retired interior target batched (test_assembly_allocation, test_nlp_adapter, test_nlp_assembly_contract, test_nlp_problem_model, test_solver_interface_adapter,
-# test_string_piece): the model suite's own files each carry fixtures with deliberately parallel roles, and merging them would couple files meant to be readable one at a time.
+# model/ tests: hven_model_tests: the provider-side contract types in include/hven/model/ that a
+# consumer meets before any engine is in the picture (claim arenas and their published tables, the
+# declaration and its boundary validation, the structural key, the structure epoch's ordering and
+# failure-restore rules, the identity probe, the request flags), the NlpModel bridge (the
+# contract's second provider, engine-free in the same sense), the function-entry seam's adapters,
+# and the engine problem forms. The HS transcriptions the bridge's equivalence pins consume are in
+# model/support/ (header-only test support), named from the tests root.
+# Flags: RELEASE_O1 (the directory rule in tests/CMakeLists.txt); no unity batching.
 ################################################################################
 
 set(_hven_model_sources
@@ -27,58 +29,15 @@ set(_hven_model_sources
     test_string_piece.cpp
     test_structure_epoch.cpp
 )
-
-# The former hven_sqp_tests sources: UNIX-only (its subprocess wall-deadline tests drive the
-# corpus runner, whose deadline enforcement is fork/exec orchestration, and the suite has never
-# been built or derived on Windows; RS-6b is the stage that lifts the gate).
-set(_hven_model_unix_sources
+hven_sources_not_on_windows(_hven_model_sources
     test_nlp_model.cpp
     test_parametric_families.cpp
     test_scale_problems.cpp
 )
-if(NOT WIN32)
-    list(APPEND _hven_model_sources ${_hven_model_unix_sources})
-else()
-    hven_test_sources_absent("Windows" ${_hven_model_unix_sources})
-endif()
-
-# Compiled at -O1 in Release, as the retired interior/drivers/model targets compiled them
-# (compile time; the sources of the former hven_tests and hven_sqp_tests were not).
-set(_hven_model_o1_sources
-    support/fake_aggregate.cpp
-    test_aggregate_contract.cpp
-    test_assembly_allocation.cpp
-    test_claim_stream_restatement.cpp
-    test_claim_stream_state.cpp
-    test_contract_flags.cpp
-    test_identity_probe.cpp
-    test_local_block_include.cpp
-    test_model_structure_key.cpp
-    test_nlp_adapter.cpp
-    test_nlp_assembly_contract.cpp
-    test_nlp_model_assembly.cpp
-    test_nlp_problem_model.cpp
-    test_pieces.cpp
-    test_problem.cpp
-    test_solver_interface_adapter.cpp
-    test_string_piece.cpp
-    test_structure_epoch.cpp
-)
-
-# Unity batches, the retired hven_interior_tests pattern (batch size 8): the six former-interior sources only; see the block comment above and tests/ipm/CMakeLists.txt.
-set(_hven_model_unity_sources
-    test_assembly_allocation.cpp
-    test_nlp_adapter.cpp
-    test_nlp_assembly_contract.cpp
-    test_nlp_problem_model.cpp
-    test_solver_interface_adapter.cpp
-    test_string_piece.cpp
-)
 
 hven_add_test_executable(hven_model_tests
     SOURCES ${_hven_model_sources}
-    O1_SOURCES ${_hven_model_o1_sources}
-    UNITY_SOURCES ${_hven_model_unity_sources}
+    RELEASE_O1
     TEST_FILTER "-ScaleF7Slow.*")
 
 ################################################################################

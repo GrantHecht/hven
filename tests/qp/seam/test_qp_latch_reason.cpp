@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_latch_reason.cpp -- M7 W2 RLA, on the walk seam (docs/testing.md): THE LATCH AND ITS
-// REASON (qp_engine.h, section 4). Border mode latches onto the elimination path where a K0
+// REASON (walk_engine.h, section 4). Border mode latches onto the elimination path where a K0
 // rebuild cannot help; a kCap latch (more pins than schur_cap) releases when the pins are back
 // under the cap, as before, while a kConditioning latch (C ill-conditioned or singular with the
 // pins under the cap) is no longer re-tested at every pass. One taken on an updated (not rebuilt)

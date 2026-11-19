@@ -33,6 +33,7 @@
 
 #include <hven/detail/ipm/kkt_vector.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/solver/result_access.h>
 #include <hven/ipm/ipm_solver.h>

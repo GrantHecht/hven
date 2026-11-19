@@ -13,7 +13,7 @@
 // solver, MKL kernel or platform reaches a byte.
 //
 // Regenerate (a DECLARED event: every outside reader's fixtures move with it):
-//   HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests --gtest_filter='TraceV1Fixtures.*'
+//   HVEN_REGEN_GOLDENS=1 ./tests/trace/hven_trace_tests --gtest_filter='TraceV1Fixtures.*'
 
 #include <algorithm>
 #include <cstdlib>

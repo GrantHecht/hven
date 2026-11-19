@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_ascent_guard.cpp -- M7 W2 W1: THE ASCENT GUARD (qp_engine.h section 4c), on the walk
+// test_qp_ascent_guard.cpp -- M7 W2 W1: THE ASCENT GUARD (walk_engine.h section 4c), on the walk
 // seam (docs/testing.md). An ordinary EQP step on a face whose reduced Hessian is indefinite
 // heads for the face's stationary point, a saddle; when its direction p holds the working set
 // and (Hx + g)'p > 0, the objective rises for every step in (0, 1]. The guard rides -p (descent,

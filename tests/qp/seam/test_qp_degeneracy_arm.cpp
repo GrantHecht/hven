@@ -8,7 +8,7 @@
 // IT COVERS ARM A, THE DIAGNOSTIC HALF, AND ARM B1 -- the
 // independence-preserving ratio test the settler's ruling R3 made arm B's
 // primary form. Arm b2, the classical exchange, is REGISTERED and not built
-// (`qp_degeneracy_arm.h`'s ARM B2 block says why), so the two columns it would
+// (`degeneracy_arm.h`'s ARM B2 block says why), so the two columns it would
 // fill are asserted ABSENT throughout, which is the falsifiable form of "it
 // did not run".
 //
@@ -52,7 +52,7 @@
 //       The block above those fixtures lists every claim.
 //
 // THE CYCLING FIXTURE IS M4's, EXTENDED. Its three-variable cycling block is
-// `tests/qp/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
+// `tests/qp/seam/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
 // by a randomized search over small convex QPs, not designed); this file adds
 // one DECOUPLED variable that carries a large gradient term and nothing else,
 // which is what puts the drop's multiplier far below `opt_tol * scale` while

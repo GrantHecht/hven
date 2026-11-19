@@ -3,9 +3,9 @@
 
 #pragma once
 
-// e1b_off_golden.h — M7 W2 E1b T5: the OFF byte-identity pin on a DEPENDENT QP.
+// equality_basis_off_golden.h — M7 W2 E1b T5: the OFF byte-identity pin on a DEPENDENT QP.
 // ONE source for both ends of the pin: the fixture at HEAD
-// (test_sqp_equality_basis.cpp, T5) and the generator compiled against E1's
+// (test_equality_basis_driver.cpp, T5) and the generator compiled against E1's
 // pre-merge base 8fdeed3e (docs/notes/data/2026-09-m7-w2-e1-equality-basis/
 // e1b-off-golden/), which predates SqpOptions::equality_basis: define
 // HVEN_E1B_GOLDEN_AT_BASE there and the field is not named.

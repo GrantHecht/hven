@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_release_readmission.cpp -- M8 PF-1, on the walk seam's target (docs/testing.md): THE
-// RELEASE RE-ADMISSION (qp_engine.h, Degeneracy). A row released on its dual_mu footprint is
+// RELEASE RE-ADMISSION (walk_engine.h, Degeneracy). A row released on its dual_mu footprint is
 // re-admitted by the shift refresh on the post-drop pass; the walk lowers dual_mu one rung.
 //
 // The fixture is the census cell f7_n1000_path_corrupted's QP1 at m8 bdd797e3 (FORMAT.txt), which

@@ -6,7 +6,7 @@
 // iteration_record_eq.h -- test support: bit-exact equality of two `IterationRecord`s over EVERY
 // member (a double compares by its bits, so a NaN equals itself and -0.0 differs from 0.0), and
 // the same predicate over the optional blocks. A new member stops the build in the arity pins of
-// trace_writer.cpp until it is added here.
+// json_lines_trace_sink.cpp until it is added here.
 
 #include <bit>
 #include <cstdint>

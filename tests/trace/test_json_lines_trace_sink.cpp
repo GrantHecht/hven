@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_trace_writer.cpp -- M6 W4 task 1: JsonLinesTraceSink, schema v0's
+// test_json_lines_trace_sink.cpp -- M6 W4 task 1: JsonLinesTraceSink, schema v0's
 // serializer. Four pin families, in the order the brief lists them.
 //
 //   (i)   GOLDEN LINES, byte-exact, one per event struct (ten lines over the
@@ -502,7 +502,7 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
 // ===========================================================================
 // R1(c) -- THE COMPILE-TIME NET the production TU cannot provide
 // ===========================================================================
-// `-Wswitch` in `src/trace/trace_writer.cpp` only WARNS: this tree carries no
+// `-Wswitch` in `src/trace/json_lines_trace_sink.cpp` only WARNS: this tree carries no
 // `-Werror`, so an enumerator added without a spelling ships a `"unknown"`.
 //
 // Here it is an ERROR, over one exhaustive switch per enum. An added enumerator

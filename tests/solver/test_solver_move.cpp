@@ -81,8 +81,8 @@ hven::SqpOptions sqp_options() {
 
 TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    const Eigen::VectorXd x0 = hven_model_tests::hs071_start();
 
     hven::IpmSolver reference(ipm_options());
     (void)reference.solve(hven::detail::problem_ref(*program), x0);
@@ -124,8 +124,8 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
 
 TEST(SolverMove, IpmMoveAssignmentTransfersTheEngine) {
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    const Eigen::VectorXd x0 = hven_model_tests::hs071_start();
 
     hven::IpmSolver reference(ipm_options());
     (void)reference.solve(hven::detail::problem_ref(*program), x0);
@@ -143,9 +143,9 @@ TEST(SolverMove, AMovedFromIpmSolverRefusesUseByName) {
     hven::IpmSolver source(ipm_options());
     hven::IpmSolver sink(std::move(source));
     const auto program =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
     EXPECT_THROW(
-        (void)source.solve(hven::detail::problem_ref(*program), hven_drivers_tests::hs071_start()),
+        (void)source.solve(hven::detail::problem_ref(*program), hven_model_tests::hs071_start()),
         std::logic_error);
     EXPECT_THROW(source.set_options(ipm_options()), std::logic_error);
     EXPECT_THROW(source.clear_iteration_callback(), std::logic_error);

@@ -258,13 +258,13 @@ TEST(DenseAuto, IpmAboveItsThresholdIsThePlatformSession) {
 }
 
 TEST(DenseAuto, IpmCountsTheDenseArmsFactorizations) {
-    const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
+    const Eigen::VectorXd x0 = hven_model_tests::hs071_start();
     const hven::IpmResult never =
-        ipm_solve(DensePolicy::kNever, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        ipm_solve(DensePolicy::kNever, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     const hven::IpmResult always =
-        ipm_solve(DensePolicy::kAlways, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        ipm_solve(DensePolicy::kAlways, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     const hven::IpmResult automatic =
-        ipm_solve(DensePolicy::kAuto, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        ipm_solve(DensePolicy::kAuto, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     EXPECT_EQ(never.counters.dense_factorizations, 0);
     EXPECT_GT(always.counters.dense_factorizations, 0);
     EXPECT_EQ(always.counters.dense_factorizations, always.work.factorizations);
@@ -277,9 +277,9 @@ TEST(DenseAuto, IpmCountsPerCall) {
     o.common.verbosity = hven::Verbosity::kSilent;
     o.linear.dense_factorization = DensePolicy::kAuto;
     hven::IpmSolver solver(o);
-    hven::Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const hven::IpmResult first = solver.solve(problem, hven_drivers_tests::hs071_start());
-    const hven::IpmResult second = solver.solve(problem, hven_drivers_tests::hs071_start());
+    hven::Problem problem(std::make_shared<hven_model_tests::Hs071Problem>());
+    const hven::IpmResult first = solver.solve(problem, hven_model_tests::hs071_start());
+    const hven::IpmResult second = solver.solve(problem, hven_model_tests::hs071_start());
     EXPECT_GT(first.counters.dense_factorizations, 0);
     EXPECT_EQ(second.counters.dense_factorizations, second.work.factorizations);
     EXPECT_EQ(first.counters.dense_factorizations, first.work.factorizations);
@@ -290,13 +290,13 @@ TEST(DenseAuto, IpmCountsPerCall) {
 // ---------------------------------------------------------------------------------------------
 
 TEST(DenseAuto, SqpBelowItsThresholdIsTheDenseArm) {
-    const Eigen::VectorXd x0 = hven_drivers_tests::hs071_start();
+    const Eigen::VectorXd x0 = hven_model_tests::hs071_start();
     const hven::SqpResult never =
-        sqp_solve(DensePolicy::kNever, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        sqp_solve(DensePolicy::kNever, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     const hven::SqpResult always =
-        sqp_solve(DensePolicy::kAlways, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        sqp_solve(DensePolicy::kAlways, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     const hven::SqpResult automatic =
-        sqp_solve(DensePolicy::kAuto, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
+        sqp_solve(DensePolicy::kAuto, std::make_shared<hven_model_tests::Hs071Problem>(), x0);
     ASSERT_TRUE(success(always.status));
     EXPECT_EQ(never.counters.dense_factorizations, 0);
     EXPECT_GT(always.counters.dense_factorizations, 0);

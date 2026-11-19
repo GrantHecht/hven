@@ -2,10 +2,10 @@
 // (see LICENSE).
 
 // test_qp_stagnation_stop.cpp -- M7 W2 SNX, on the walk seam (docs/testing.md): THE STAGNATION
-// READING (qp_engine.h, section 4). A run of ordinary full steps keeps the working set fixed; when
-// it stops making progress the next pass is a KKT point of the working set for the drop rule alone,
-// and with nothing to drop (or the readings spent) the walk ends kIterationLimit at the iterate it
-// stands on instead of spending the rest of its minor cap re-solving the same face.
+// READING (walk_engine.h, section 4). A run of ordinary full steps keeps the working set fixed;
+// when it stops making progress the next pass is a KKT point of the working set for the drop rule
+// alone, and with nothing to drop (or the readings spent) the walk ends kIterationLimit at the
+// iterate it stands on instead of spending the rest of its minor cap re-solving the same face.
 //
 // The fixtures are two `default`-label BRITGAS restoration subproblems that ran to their minor cap
 // in-cell at 5ecd0dea (each dump's `result` line: status=1, minors=11700) on long idle runs. Both

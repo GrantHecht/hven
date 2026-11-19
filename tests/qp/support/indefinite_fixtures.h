@@ -7,7 +7,7 @@
 // the public library surface.
 //
 // THE THREE ROW-CARRYING INDEFINITE QPs the SQP suite already owns, factored
-// out of tests/qp/test_qp_engine_indefinite.cpp (where they were written, and
+// out of tests/qp/test_walk_engine_indefinite.cpp (where they were written, and
 // where their battery still consumes them) so the IPQP tier's A11 cell can
 // assert against THE SAME PROBLEMS rather than a second hand-built copy.
 //

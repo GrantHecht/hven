@@ -304,7 +304,7 @@ TEST(SqpElasticWitnessStart, SawpathMajor0RungSolvesFromItsWitness) {
     // off_rows 2.41e-13 (43 minors). Debug: the repair is taken but rounding leads the walk into
     // the known downstream two-pass cycle and the minor cap ends it (kIterationLimit, 6830 minors,
     // off_rows 7.6e-13) -- so Debug asserts only "repaired, no dead-end exit, no false
-    // certificate", as tests/qp/test_qp_rank_repair.cpp does for this fixture's sister.
+    // certificate", as tests/qp/seam/test_qp_rank_repair.cpp does for this fixture's sister.
     expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false, true);
 }
 

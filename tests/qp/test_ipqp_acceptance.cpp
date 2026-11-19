@@ -25,14 +25,14 @@
 #include <hven/sqp/sqp_solver_types.h>
 #include <hven/trace/trace.h>
 
-#include "../../bench/bench_cli.h"
-#include "../../bench/corpus_cells.h"
-#include "../../bench/ipqp_e1_arm.h"
+#include "bench/bench_cli.h"
+#include "bench/corpus_cells.h"
+#include "bench/ipqp_e1_arm.h"
 #include "model/support/hs_problems.h"
 #include "model/support/scale_problems.h"
 #include "qp/support/indefinite_fixtures.h"
 #include "qp/support/ipqp_test_support.h"
-#include "sqp/support/e1_cells.h"
+#include "sqp/support/kkt_inversion_cells.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -333,7 +333,7 @@ namespace {
 // bench_cli.h's version-2 dump does: the whole QP plus the major's dual
 // state, so A2 writes a real mid-solve subproblem through the seam, reads it
 // back, and solves it WARM the way the driver enters it.
-constexpr const char *kA2Usage = "tests/sqp/test_ipqp_acceptance.cpp -- A2's dump round trip\n";
+constexpr const char *kA2Usage = "tests/qp/test_ipqp_acceptance.cpp -- A2's dump round trip\n";
 
 /// The base-warm grade `sqp_solver.cpp`'s `build_ipqp_staged_seed` builds from
 /// a major's signed prices, here from the dumped ones.

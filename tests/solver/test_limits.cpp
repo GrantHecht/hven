@@ -53,8 +53,8 @@ Eigen::VectorXd hs071_start() {
     return x0;
 }
 
-std::shared_ptr<hven_drivers_tests::Hs071Problem> hs071() {
-    return std::make_shared<hven_drivers_tests::Hs071Problem>();
+std::shared_ptr<hven_model_tests::Hs071Problem> hs071() {
+    return std::make_shared<hven_model_tests::Hs071Problem>();
 }
 
 IpmResult ipm_solve(const IpmOptions &o, SolveBudget budget = {}) {

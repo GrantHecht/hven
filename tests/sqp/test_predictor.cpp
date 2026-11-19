@@ -1075,7 +1075,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
     // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors, majors and
-    // factorizations unmoved. The terminal polish (qp_engine.h section 5) re-solves
+    // factorizations unmoved. The terminal polish (walk_engine.h section 5) re-solves
     // the certified point mu-free on its final face; the O-2 cost claim this pins is
     // one major and a handful of minors either way.
     EXPECT_EQ(boosted.counters.qp_minor_iters, 3);
@@ -1339,7 +1339,7 @@ TEST(PredictorRatioTest, RejectsANegativeRoundBudget) {
 // PHASE-6 FINAL FIX WAVE (W1) -- **THE EMITTED PRICE IS NEVER NEGATIVE.**
 //
 // THE BYPASS THIS PINS. `lambda_i >= 0` is a SqpWarmState PRECONDITION
-// (warm_start.h's SIGN CONVENTIONS), and sqp_solver.h gates it at kSeeded ONLY,
+// (sqp_warm_state.h's SIGN CONVENTIONS), and sqp_solver.h gates it at kSeeded ONLY,
 // on the argument that every producer able to clear a HASH gate is either
 // non-negative by construction or "bounded by 1e-9 relative (predictor.h's
 // kDualSignTol)". predict() carries structure_hash forward, so its output does

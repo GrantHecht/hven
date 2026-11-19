@@ -71,8 +71,8 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 
 // The canonical HS071 lives in support/hs071_problem.h, shared with this
 // directory's other live-solve suite.
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 // Silent, and otherwise default.
 IpmOptions quiet() {

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_equality_basis.cpp — the independent equality basis component (M7 W2 E1),
+// test_equality_basis_unit.cpp — the independent equality basis component (M7 W2 E1),
 // unit level: u1 two networks, u2 duplicates / zero row / scaled duplicate and the
 // coefficient-cap refusal, u3 a graded no-gap spectrum, u4 fixed-column elimination
 // and the gap bands, u5 lift/fold against a dense minimum-norm oracle, u6 the rhs

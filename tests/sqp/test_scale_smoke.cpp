@@ -99,7 +99,7 @@ namespace {
 //
 //   H:  block-tridiagonal. Each diagonal block is M_b^T M_b + I (SPD by
 //       construction, same convention as random_strictly_convex in
-//       test_qp_engine.cpp/test_qp_warm_start.cpp/test_ledger.cpp, but one
+//       test_walk_engine.cpp/test_qp_warm_start.cpp/test_ledger.cpp, but one
 //       instance per block rather than one for the whole matrix). Each pair
 //       of adjacent blocks is coupled by a SCALED IDENTITY (kCouplingScale =
 //       0.1) rather than a second random block, which is what makes the
@@ -125,7 +125,7 @@ namespace {
 //       (the n ~ 3000 fixture below): 49 of the 3000 variables end up pinned
 //       at a bound at the optimum -- a moderate, nontrivial-but-not-total
 //       active set, not the pathological "every variable pinned" shape
-//       qp_engine.h's LATCH section describes (which would make
+//       walk_engine.h's LATCH section describes (which would make
 //       schur_cap-forced rebuilding permanently a no-op).
 //
 //   General inequalities: ~10% of variables (kIneqFrac = 0.1) each get ONE
@@ -135,7 +135,7 @@ namespace {
 //       uniform in [-kIneqTightness, kIneqTightness] (kIneqTightness = 0.5):
 //       since the cold start clamps to x = 0 and each row's value at x = 0
 //       is 0, a negative bi(idx) is VIOLATED at the start point (exercising
-//       qp_engine.h's shifted-constraint homotopy, step 1), while a positive
+//       walk_engine.h's shifted-constraint homotopy, step 1), while a positive
 //       one starts slack and may or may not bind later. Traced: 167 of the
 //       300 rows are active at the optimum.
 //
@@ -309,7 +309,7 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
 
     // Two independently-derived answers (bound-eliminated K vs a Schur
     // border over the full-variable K0) agreeing is the best correctness
-    // evidence available at a size with no dense oracle -- qp_engine.h calls
+    // evidence available at a size with no dense oracle -- walk_engine.h calls
     // the two modes "observationally equivalent" for convex H, and this is
     // that claim's first check at this scale.
     EXPECT_LT((cold_border.x - cold_refactorize.x).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -354,7 +354,7 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
     // per-iteration ws mutations). What IS externally verifiable, and
     // asserted below as the consistency check the brief calls for: every
     // variable pinned at exit needed at least one add_border call that is
-    // still live (a pin can NEVER be folded into K0 -- see qp_engine.h's
+    // still live (a pin can NEVER be folded into K0 -- see walk_engine.h's
     // "NOT EVERY UNTRUSTWORTHY BORDER STACK IS FIXABLE" paragraph), so
     // schur_updates is at least the exit-time pinned-variable count; and it
     // is bounded above by a small multiple of minor_iters, since each major
@@ -398,7 +398,7 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
     EXPECT_LE(static_cast<double>(warm_border.counters.minor_iters),
               0.25 * static_cast<double>(cold_border.counters.minor_iters));
 
-    // factorizations == 0 -- per the qp_engine.h carry-forward, this is NOT
+    // factorizations == 0 -- per the walk_engine.h carry-forward, this is NOT
     // asserted unconditionally on every warm re-solve (a carried
     // needs_refactorization()/perturbed-pivot condition can still force a
     // rebuild). It is asserted here because this run CONFIRMS all three
@@ -584,7 +584,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 
     EXPECT_EQ(sol.counters.major_iters, 1);
     // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors. The TERMINAL POLISH
-    // (qp_engine.h section 5) re-solves this subproblem's certified point mu-free on
+    // (walk_engine.h section 5) re-solves this subproblem's certified point mu-free on
     // its final face -- a strictly better point -- and the walk spends one more pass
     // reaching it. `factorizations` is unmoved: the polish's own solve is charged to
     // `terminal_polish_solves` (solver_counters.h).
@@ -615,7 +615,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // The N = 200 wall-time cliff (tests/model/test_scale_problems.cpp's CARRY 2) is a
 // QpOptions::max_schur_border_dimension-triggered K0-REBUILD STORM, not a minor-iteration
 // blow-up and not cycling: once the live border count exceeds schur_cap,
-// qp_engine.h's border_solve_or_fall_back finds needs_refactorization() true on
+// walk_engine.h's border_solve_or_fall_back finds needs_refactorization() true on
 // nearly every minor, and each one buys a K0 rebuild plus a full re-border of
 // the surviving stack. The MEASURED signature at N = 150, p = 0.85, schur_cap
 // 128 vs 512 (Release, clang, MKL Pardiso, this machine) is in the note; the
@@ -637,7 +637,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // pinned CONTROLS are Theta(N), which is what crosses 128 between N = 100
 // (peak 126, no latch, 8 factorizations) and N = 125. That correction is what
 // made the storm fixable: see LatchedBorderModeDoesNotThrashOnRowChanges in
-// tests/qp/test_qp_engine_border.cpp.
+// tests/qp/test_walk_engine_border.cpp.
 //
 // This test reproduces exactly that signature at N = 30 (n = 150, ~1.9 s Debug
 // per wide-window solve per test_scale_problems.cpp's own timings) by moving
@@ -657,7 +657,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // assertion. The starved arm's cost used to be 333 factorizations, 2533
 // border operations and 103 Pardiso symbolic analyses; it is now 239 / 95 /
 // 10, because the latch no longer releases and re-takes on every working-ROW
-// change (qp_engine.h's latch_still_holds, and
+// change (walk_engine.h's latch_still_holds, and
 // docs/notes/2026-07-31-schur-cap-policy.md for the measurement). The minor
 // counts, the answer and the ample arm are untouched -- which is exactly the
 // "cost, not answers" claim this test exists to pin, now holding across an
@@ -666,7 +666,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // THE MINOR-COUNT EQUALITY IS AN EXACT PIN ON PURPOSE. It is not a
 // tie-break-sensitive count being over-asserted: the claim is that two runs
 // differing ONLY in a linear-algebra caching parameter visit the same working
-// sets, which is qp_engine.h's own observational-equivalence contract. A
+// sets, which is walk_engine.h's own observational-equivalence contract. A
 // one-iteration wobble here would be a real finding, not noise.
 TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
     constexpr Index kNodes = 30;
@@ -736,8 +736,8 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
     //
     // THE COUNTER IS BACKEND-PORTABLE BY CONSTRUCTION, which is the reason a
     // guard suffices where a per-backend arm would otherwise be owed:
-    // QpCounters::symbolic_analyses is bumped at the qp_engine.h CALL SITE, on
-    // `analysis_decision(border.kkt, border.k0.K).needed` (kkt_calls.h), and
+    // QpCounters::symbolic_analyses is bumped at the walk_engine.h CALL SITE, on
+    // `analysis_decision(border.kkt, border.k0.K).needed` (kkt_factor.h), and
     // that decision compares hven::pattern_hash(K) -- hven's own hash, not a
     // backend call -- against KktFactor's mirror. So it counts K0 pattern
     // changes, not Pardiso phase-11 calls, and it cannot be structurally zero
@@ -830,7 +830,7 @@ TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
 // identified face has a weakly active row, and this family does not produce
 // one below roughly N = 580 nodes. That is this file's weight class, not that
 // one's -- the sweep's EXACT semantics are pinned there, on hand-built
-// vectors (SqpDriverSignSweep.*); what is pinned HERE is that the driver
+// vectors (SqpSolverSignSweep.*); what is pinned HERE is that the driver
 // really does reach the state, and really does export a dual-feasible point
 // when it does.
 //

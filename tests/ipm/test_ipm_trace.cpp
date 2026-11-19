@@ -6,7 +6,7 @@
 // events) as the DRIVER produces them.
 //
 // The serializer's own golden lines live with every other golden line, in
-// tests/trace/test_trace_writer.cpp; what is pinned HERE is the driver side:
+// tests/trace/test_json_lines_trace_sink.cpp; what is pinned HERE is the driver side:
 //
 //   (i)   THE CALLBACK IS THE ORACLE. Both are attached at once, and the two
 //         are emitted at the same point, so any divergence between the stream
@@ -263,10 +263,9 @@ Eigen::VectorXd nonconvex_start() {
 
 /// A solver over `NonconvexProblem` with the empty ladder and no console, with
 /// the program it solves (M6 W5 T8.9: declared_route.h's IpmCase).
-hven_interior_tests::IpmCase nonconvex_solver() {
-    hven_interior_tests::IpmCase c{
-        hven::detail::make_nlp_program(std::make_shared<NonconvexProblem>()),
-        std::make_unique<hven::IpmSolver>()};
+hven_ipm_tests::IpmCase nonconvex_solver() {
+    hven_ipm_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<NonconvexProblem>()),
+                              std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
     o.common.verbosity = hven::Verbosity::kSilent;
     o.advanced.max_inertia_correction_attempts = 0;
@@ -1381,9 +1380,9 @@ std::string mask_wall_clock(const std::string &stream) {
 
 /// A silent solver on HS071 -- `print_level` 10 -- so a ledger pin does not
 /// also print a table into the test log.
-hven_interior_tests::IpmCase silent_hs071() {
-    hven_interior_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<Hs071Problem>()),
-                                   std::make_unique<hven::IpmSolver>()};
+hven_ipm_tests::IpmCase silent_hs071() {
+    hven_ipm_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<Hs071Problem>()),
+                              std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
     o.common.verbosity = hven::Verbosity::kSilent;
     c.engine->set_options(std::move(o));

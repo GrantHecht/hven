@@ -876,7 +876,7 @@ TEST(QpEngine, ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndepende
     // grows as 1/(2a^2) as the row is scaled down) while the contradiction's gap
     // stays fixed, so shrinking `a` inflated the footprint out from under a fixed
     // violation until the contradiction hid beneath it: at a = 1e-3 the violation
-    // route read kOptimal, which is WRONG (TRUSTWORTHY RANGE (ii) in qp_engine.h,
+    // route read kOptimal, which is WRONG (TRUSTWORTHY RANGE (ii) in walk_engine.h,
     // the mirror of the false-kInfeasible direction pinned by
     // IllScaledFeasibleRowsAreNotDeclaredInfeasible). The M8 walk cap removed that
     // excuse: with independent_working_set off the violation route now decides
@@ -1053,7 +1053,7 @@ TEST(QpEngine, RandomizedAgainstOracle) {
 // RandomizedAgainstOracle above covers inequalities and bounds; this covers
 // me = 1 as well, in BOTH ws_algebra modes.
 //
-// Unlike the indefinite batteries in test_qp_engine_indefinite.cpp, cross-mode
+// Unlike the indefinite batteries in test_walk_engine_indefinite.cpp, cross-mode
 // equality IS asserted here, and legitimately so: these problems are strictly
 // convex, so the optimum is unique and both modes must find the same one. The
 // full solution is compared -- x, the active set, the bound labels, and every
@@ -1121,7 +1121,7 @@ TEST(QpEngine, MaxIterBudgetIsReported) {
 // A FREE VARIABLE CARRIES NO BOUND PRICE.
 // =====================================================================
 //
-// qp_engine.h's interface contract, clause 6b:
+// walk_engine.h's interface contract, clause 6b:
 //     bound_state[i] == kFree  =>  z(i) == 0.0, on EVERY status.
 //
 // THE DEFECT THIS PINS, which the Phase-7 gate battery found at scale
@@ -1233,7 +1233,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
 //
 // QpOptions::max_iterations's default became a SENTINEL meaning "derive the cap
 // from this subproblem's size" (qp_types.h). The derivation is three small
-// functions in qp_engine.h's detail namespace, tested here directly so the
+// functions in walk_engine.h's detail namespace, tested here directly so the
 // policy is pinned away from any solve, and so a change to the coefficient
 // or the floor fails LOUDLY rather than through a distant counter pin.
 TEST(QpEngineSizeDerivedCap, BaseCountsRealBoundsAndTheDerivationIsFloored) {

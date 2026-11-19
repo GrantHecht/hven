@@ -23,7 +23,7 @@
 
 #include <hven/model/nlp.h>
 
-namespace hven_drivers_tests {
+namespace hven_model_tests {
 
 inline constexpr double kHs071Inf = std::numeric_limits<double>::infinity();
 
@@ -99,4 +99,4 @@ inline Eigen::VectorXd hs071_start() {
     return x0;
 }
 
-} // namespace hven_drivers_tests
+} // namespace hven_model_tests

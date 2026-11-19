@@ -79,7 +79,7 @@ SqpOptions opts_for(QpMode mode) {
     return o;
 }
 
-// F9's model (test_sqp_equality_basis.cpp): an inconsistent duplicate pair whose
+// F9's model (test_equality_basis_driver.cpp): an inconsistent duplicate pair whose
 // start is the reduced problem's stationary point.
 TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
     const SeamReset guard;
@@ -97,7 +97,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
                              x0);
     // BOTH ARMS. M8 DN-3 flip: kNever was pinned because under kAuto every mode ended
     // kIterationLimit after the hand-off; M8 WALK CAP (declared mover): a walk defect, fixed
-    // (see F9 in test_sqp_equality_basis.cpp), so the default arm is the test again.
+    // (see F9 in test_equality_basis_driver.cpp), so the default arm is the test again.
     for (const auto policy :
          {SqpOptions{}.linear.dense_factorization, hven::linear::DensePolicy::kNever})
         for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
@@ -220,7 +220,7 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     EXPECT_EQ(res.equality_basis.dropped_peak, 1);
 }
 
-// The two networks of test_sqp_equality_basis.cpp's F1/F2 with a 5e-9 supply error on
+// The two networks of test_equality_basis_driver.cpp's F1/F2 with a 5e-9 supply error on
 // the second network's last node: the split drops one row per network and the
 // projection's rhs gamma is nonzero at the start, so its estimate is positive.
 TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {

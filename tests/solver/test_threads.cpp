@@ -35,9 +35,9 @@
 //   scope is per BACKEND CALL and is undone before any callback fires. They
 //   are covered by CONSTRUCTION RULE instead: `detail::KktFactor`'s
 //   constructor is the single point every walk/SSN-tier factor is built
-//   through (pinned in tests/kkt/test_kkt_calls.cpp), and no library site
+//   through (pinned in tests/kkt/test_kkt_factor.cpp), and no library site
 //   default-constructs one. An `HVEN_TESTING` construction observer in
-//   `qp_engine.cpp` is REGISTERED for W6 if they are ever to be OBSERVED.
+//   `walk_engine.cpp` is REGISTERED for W6 if they are ever to be OBSERVED.
 //   Where a counter exists, this file asserts that the temporary's PATH RAN as
 //   a premise rather than hoping it did.
 //
@@ -253,7 +253,7 @@ class InfeasibleCircleLineModel : public NlpModel {
 };
 
 // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10.
-// tests/qp/test_qp_engine.cpp's `simple_box_qp`, verbatim: the face
+// tests/qp/test_walk_engine.cpp's `simple_box_qp`, verbatim: the face
 // {row 0 working, both variables free} is the fixture that reaches
 // `QpEngine::refine_on_face`, whose one temporary factor this file asserts the
 // PATH of.
@@ -300,7 +300,7 @@ SqpOptions base_options(QpMode mode, int threads) {
 
 // The driver's OWN K0 factor's live thread count, read through the hot handle
 // its solve emitted. `HotState::border` is the very `BorderState` the engine
-// solved through -- qp_engine.h defines the type the opaque handle names.
+// solved through -- walk_engine.h defines the type the opaque handle names.
 int driver_k0_num_threads(const SqpResult &sol) {
     EXPECT_NE(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr)
         << "the driver emitted no hot handle to read";
@@ -724,7 +724,7 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // The EQP-refine temporary (QpEngine::refine_on_face). `factorizations`
     // counts exactly the temporary this call builds, so a count of 1 IS the
     // statement that the site ran; what count that temporary was built at is
-    // covered by KktFactor's constructor (tests/kkt/test_kkt_calls.cpp) and by
+    // covered by KktFactor's constructor (tests/kkt/test_kkt_factor.cpp) and by
     // the report's grep, because the object dies before this line runs.
     const QpProblem qp = simple_box_qp();
     Vec off(2);
@@ -782,7 +782,7 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // ropts = opts_` copies `common` whole), and the caller-override pin below
     // holds the restoration end to end.
     //
-    // The verdict-refine fallback (`fresh`, qp_engine.cpp) is CONSTRUCTED on
+    // The verdict-refine fallback (`fresh`, walk_engine.cpp) is CONSTRUCTED on
     // every verdict-refine call, at `threads_` -- the construction rule covers
     // it on every path -- but no counter distinguishes its FACTORIZATION from
     // the reused factor at that site, so that branch is NOT asserted here:

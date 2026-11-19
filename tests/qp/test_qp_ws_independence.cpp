@@ -791,7 +791,7 @@ TEST_P(WsIndependence, DependentShiftAddIsRefused) {
 // deferred-add path (a re-check pass, and a known-dependent mark if that
 // re-check removed it) on the strength of a rho that had never been computed.
 // The walk-level consequence is the ACOPR118 fixture in
-// tests/qp/test_qp_unrun_dependency_test.cpp.
+// tests/qp/seam/test_qp_unrun_dependency_test.cpp.
 // ===========================================================================
 
 // 4 variables, one working row, nothing pinned: me + |W| + 1 = 2 <= n = 4, so the

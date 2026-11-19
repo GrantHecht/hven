@@ -217,7 +217,7 @@ TEST(MeshTransfer, TransferredMultipliersMatchFineSolve) {
     EXPECT_EQ(moved.tr_radius, coarse_ws.tr_radius); // x-units: transferred as is
     // The regularization constants ride along for the same reason tr_radius
     // does -- they are algorithmic, not mesh-scaled -- and the source values
-    // are checked to be REAL here (off warm_start.h's -1 "never populated"
+    // are checked to be REAL here (off sqp_warm_state.h's -1 "never populated"
     // sentinel) so the equalities cannot pass by both sides being unset.
     ASSERT_GT(coarse_ws.primal_delta, 0.0);
     ASSERT_GT(coarse_ws.dual_mu, 0.0);
@@ -487,7 +487,7 @@ TEST(MeshTransfer, WarmSolveOnFineMeshBeatsCold) {
 // only FIRST-order across the two activity junctions, so its Lagrangian
 // gradient at the fine mesh is outside kkt_tol and a real major is owed. A
 // fixture whose transfer landed inside tolerance would certify for free --
-// tests/sqp/test_b1_gate.cpp's seeded zero-major guard covers that shape.
+// tests/sqp/test_warm_ingest_complementarity.cpp's seeded zero-major guard covers that shape.
 //
 // THE ANSWER IS CHECKED INDEPENDENTLY, not taken on the certificate's word:
 // the seeded arm's x is compared against the COLD arm's converged answer.
@@ -668,7 +668,7 @@ TEST(MeshTransfer, RejectsMalformedInput) {
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_wsz, good, good); }, "qp_working_set"));
 
     // A COLD (default-constructed) SqpWarmState carries nothing that may be fed
-    // forward -- warm_start.h's own contract -- so transferring one is a
+    // forward -- sqp_warm_state.h's own contract -- so transferring one is a
     // caller error rather than a silent no-op.
     hven::detail::SqpWarmState cold;
     EXPECT_TRUE(throws_with([&] { transfer.transfer(cold, good, good); }, "valid"));

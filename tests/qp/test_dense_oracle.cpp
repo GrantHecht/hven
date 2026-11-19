@@ -153,7 +153,7 @@ TEST(DenseOracle, CombinatoricsGuardThrows) {
 
 TEST(QpProblem, ValidateRejectsLowerTriangleHEntries) {
     // F6: every consumer of qp.H (kkt_assembly.h's Hessian block,
-    // qp_engine.h's price()) reads it via selfadjointView<Upper>() /
+    // walk_engine.h's price()) reads it via selfadjointView<Upper>() /
     // symmetrizes off of the "H stores only row <= col" convention alone. A
     // caller who instead populates a lower-triangle entry gets a DIFFERENT
     // matrix interpreted silently -- the dense oracle wouldn't even catch it,

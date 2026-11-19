@@ -34,8 +34,8 @@ IpmResult ipm_counters_solve_hs071(hven::IpmOptions o, hven::Ledger *ledger = nu
         solver.attach_ledger(ledger, "ipm");
     }
     const auto model =
-        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    return solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    return solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
 }
 
 // The Maratos problem: min 2 (x0^2 + x1^2 - 1) - x0  s.t.  x0^2 + x1^2 = 1. A full step from a

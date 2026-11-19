@@ -21,8 +21,8 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from tests/qp/test_qp_engine.cpp's simple_box_qp() (also
-// duplicated in test_qp_engine_border.cpp, following that file's own
+// Repeated verbatim from tests/qp/test_walk_engine.cpp's simple_box_qp() (also
+// duplicated in test_walk_engine_border.cpp, following that file's own
 // precedent of copying rather than sharing this tiny fixture).
 QpProblem simple_box_qp() {
     // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10.

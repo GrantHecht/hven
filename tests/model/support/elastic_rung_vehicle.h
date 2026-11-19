@@ -84,7 +84,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
 
-#include "scale_problems.h"
+#include "model/support/scale_problems.h"
 
 namespace hven::test_support {
 

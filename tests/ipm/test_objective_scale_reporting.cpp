@@ -32,15 +32,15 @@
 using hven::IpmSolver;
 using hven::Nlp;
 using hven::detail::ConstEigenRef;
-using hven_interior_tests::solve_declared;
-using hven_interior_tests::transcribe;
+using hven_ipm_tests::solve_declared;
+using hven_ipm_tests::transcribe;
 
 // min 0.5*|x|^2 subject to sum(x) == 3, with a two-sided box on every
 // variable. The optimum is x_i = 0.75 with f = 1.125, and the equality
 // multiplier is -0.75 under the caller's convention -- all three known by hand,
 // so a scale leaking into a report is a difference from a NUMBER rather than a
 // difference between two runs.
-struct ObjScaleBoxedProblem : Nlp, hven_interior_tests::MultiplierSeedHook {
+struct ObjScaleBoxedProblem : Nlp, hven_ipm_tests::MultiplierSeedHook {
     hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }

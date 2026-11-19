@@ -46,7 +46,7 @@
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/model/nlp_assembly.h>
 
-#include "../../bench/model_surface_kkt.h"
+#include "bench/model_surface_kkt.h"
 
 using hven::Index;
 using hven::model_surface_kkt_residuals;

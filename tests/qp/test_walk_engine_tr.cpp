@@ -1,8 +1,8 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_engine_tr.cpp — Task 9: the l-infinity trust-region soft-bound
-// block (qp_engine.h "Section 6"), the interface the Phase-3 SQP driver needs
+// test_walk_engine_tr.cpp — Task 9: the l-infinity trust-region soft-bound
+// block (walk_engine.h "Section 6"), the interface the Phase-3 SQP driver needs
 // from this QP engine.
 //
 // Effective bounds lo_eff = max(lower, x0 - Delta), up_eff = min(upper,
@@ -45,7 +45,7 @@ constexpr QpWorkingSetAlgebra kBothModes[] = {QpWorkingSetAlgebra::kSchurBorder,
 // --- Battery fixtures -----------------------------------------------------
 
 // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10. Repeated
-// verbatim from test_qp_engine.cpp so this file stays self-contained (see
+// verbatim from test_walk_engine.cpp so this file stays self-contained (see
 // that file's own note on the convention).
 QpProblem simple_box_qp() {
     QpProblem qp;
@@ -106,7 +106,7 @@ QpProblem loosely_bounded_quadratic_qp() {
     return qp;
 }
 
-// min 1/2(x0^2 - x1^2) over [-1,1]^2 (test_qp_engine_indefinite.cpp's
+// min 1/2(x0^2 - x1^2) over [-1,1]^2 (test_walk_engine_indefinite.cpp's
 // fixture, repeated verbatim per this suite's self-contained-file
 // convention). H = diag(1, -1), g = 0. Unconstrained stationary point is the
 // SADDLE (0,0); the box turns it into two true minimizers x = (0, +/-1).
@@ -320,7 +320,7 @@ TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
 // term still settles at the interior point 0). Checked against
 // enumerate_local_minimizers run on the EFFECTIVE-bounds problem directly --
 // the oracle for this exact case is "the same saddle_box derivation, just
-// with the box narrowed to +/-0.5" (test_qp_engine_indefinite.cpp derives
+// with the box narrowed to +/-0.5" (test_walk_engine_indefinite.cpp derives
 // the +/-1 case by hand; the argument is unchanged under a narrower box).
 TEST(QpEngineTr, IndefiniteInteractionWithSaddleBox) {
     const QpProblem qp = saddle_box_qp();
@@ -610,7 +610,7 @@ TEST(QpEngineTr, OverridesResolveCorrectlyUnderRefactorizeMode) {
 // `return run(qp, nullptr, false, QpSolveOverrides{});` /
 // `return run(qp, &seed, true, QpSolveOverrides{});` -- so this test mostly
 // re-confirms that the forwarding line itself was typed correctly, which a
-// diff of qp_engine.h already shows. The REAL evidence that nothing else
+// diff of walk_engine.h already shows. The REAL evidence that nothing else
 // changed is the pre-existing 118 tests, none of which use QpSolveOverrides at
 // all and all of which still pass unmodified; this test is a guard against a
 // future edit accidentally threading a non-default QpSolveOverrides (or a

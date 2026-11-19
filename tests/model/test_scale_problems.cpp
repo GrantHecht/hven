@@ -164,7 +164,7 @@ const std::vector<double> &path_samples() {
 //   WHAT CROSSES THE CAP IS THE PIN COUNT (the Theta(N) pinned CONTROLS), not
 //   the active path rows -- Phase-5 Task 4 measured the stack's composition at
 //   every breach and found it 100% pins, and FIXED the resulting latch thrash
-//   in qp_engine.h. See docs/notes/2026-07-31-schur-cap-policy.md sections 1-2;
+//   in walk_engine.h. See docs/notes/2026-07-31-schur-cap-policy.md sections 1-2;
 //   with that fix N = 150 costs 4.8 s instead of 87 s (the single-threaded
 //   figure -- §2.3's cross-check, not §2.2's 97 s 16-thread one) and N = 200
 //   costs 31.6 s instead of not finishing in 13 minutes, on the SAME minor
@@ -535,7 +535,7 @@ TEST(ScaleF7, AnalyticPathMatchesColdSolveAtHundredNodes) {
 //
 //   DEGENERACY: NO.    degenerate_steps is EXACTLY ZERO. Every blocking add
 //                      this walk makes moves the iterate by more than the
-//                      loop's own step tolerance. qp_engine.h implements no
+//                      loop's own step tolerance. walk_engine.h implements no
 //                      anti-cycling rule at all and says so (its section on
 //                      degeneracy: "a degenerate stall is bounded by
 //                      max_iter"); this pins the measured fact that the
@@ -705,7 +705,7 @@ TEST(ScaleF7, WideWindowWalkIsChurnNotDegeneracy) {
     // N = 30: |W*| = 26. 80 row admissions over 28 distinct rows = 2.86x;
     // 44 bound pins over 44 distinct bounds = 1.00x. 278 minors, 1.43/event.
     // M7 W2 E4 fix round 1 (declared mover): 278 -> 280 minors, every other column
-    // unmoved. The terminal polish (qp_engine.h section 5) re-solves a certified
+    // unmoved. The terminal polish (walk_engine.h section 5) re-solves a certified
     // point mu-free on its final face and the walk that follows it takes two more
     // passes on this window; the churn reading this test is about -- one bound pin
     // per event, 44 pins over 44 distinct bounds -- is unchanged.
@@ -1334,7 +1334,7 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
 //
 // WHY HERE AND NOT IN THE PER-COMMIT SUITE. It costs ~1 s in Release and
 // several in Debug, and the POLICY it exercises is already pinned directly and
-// cheaply by tests/qp/test_qp_engine.cpp's QpEngineSizeDerivedCap battery (the
+// cheaply by tests/qp/test_walk_engine.cpp's QpEngineSizeDerivedCap battery (the
 // base, the coefficient, the floor and the precedence rule, all without
 // solving anything). This test adds the end-to-end consequence, which belongs
 // with the family that produces it and at the cadence this suite already runs.

@@ -1,4 +1,4 @@
-E2-D4 QP dump format (D4QP v1) -- written by the scratch instrumentation in src/qp/qp_engine.cpp (QpEngine::run, just before
+E2-D4 QP dump format (D4QP v1) -- written by the scratch instrumentation in src/qp/walk/walk_engine.cpp (QpEngine::run, just before
 the ledger record) when HVEN_D4_QPDUMP=<dir> is set and the solve ends kNumericalError or kMaxIter (HVEN_D4_DUMPALL: every solve).
 One file per solve: <cell>/qp<seq>.txt, seq in solve order within the cell run; the cell's stderr D4DUMP line (in the
 transcript) names seq, the engine solve number and the outcome, and the neighbouring D3 lines give the context (major,

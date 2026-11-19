@@ -49,8 +49,8 @@ using hven::StopReason;
 using hven::Verbosity;
 using hven::linear::detail::testing::AnalyzeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 // Process-global statics: disarmed by a guard, so a failed assertion never
 // leaves the next test running under an injected fault.

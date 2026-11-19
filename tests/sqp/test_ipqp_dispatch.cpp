@@ -832,7 +832,7 @@ TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
 }
 
 // RULING 4 (decision 7b, REVERSED): the SSN warm grade participates in the
-// proximal carry, because `warm_start.h` scopes `prox_sigma` to "the maximum
+// proximal carry, because `sqp_warm_state.h` scopes `prox_sigma` to "the maximum
 // over any SSN subproblem" and one reached through this chain is one.
 TEST(IpqpDispatch, TheSsnWarmGradeExportsTheProximalCarry) {
     // HS43 routes to the SSN warm grade once, and that subproblem's ladder

@@ -38,7 +38,7 @@
 namespace {
 
 using namespace hven;
-using namespace hven_drivers_tests;
+using namespace hven_trace_tests;
 
 enum class Engine { kIpm, kSqp };
 

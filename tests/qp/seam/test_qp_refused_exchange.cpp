@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_refused_exchange.cpp -- M7 W2 YRK: THE REFUSED-BLOCKER EXCHANGE (qp_engine.h,
+// test_qp_refused_exchange.cpp -- M7 W2 YRK: THE REFUSED-BLOCKER EXCHANGE (walk_engine.h,
 // Degeneracy). Two restoration sub-solve QPs of the exact-Hessian TRAIN cell YORKNET (m7
 // 2282f86b, restoration majors 1 and 2; n = 824 = 312 + 2 * 256 slacks, me = 256, nonconvex: 10
 // negative eigenvalues), both FEASIBLE by an external oracle (HiGHS phase 1 minimum l1 violation

@@ -17,7 +17,7 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from test_qp_engine.cpp so this file stays self-contained
+// Repeated verbatim from test_walk_engine.cpp so this file stays self-contained
 // (see that file's fixture-block comment for the rationale).
 QpProblem random_strictly_convex(int n, int mi, unsigned seed) {
     // H = M^T M + I is symmetric positive definite by construction, so the QP

@@ -25,7 +25,10 @@
 
 #include "model/support/hs071_problem.h"
 
-namespace hven_drivers_tests {
+namespace hven_trace_tests {
+
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 struct Hs006 final : hven::Nlp {
     hven::NlpDimensions dimensions() const override { return {2, 1, 2, 1}; }
@@ -239,4 +242,4 @@ class CaptureSink final : public hven::TraceSink {
     hven::Index depth_ = 0;
 };
 
-} // namespace hven_drivers_tests
+} // namespace hven_trace_tests

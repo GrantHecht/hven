@@ -56,7 +56,7 @@
 
 #include <hven/core/types.h>
 
-#include "../../bench/bench_cli.h"
+#include "bench/bench_cli.h"
 
 namespace {
 

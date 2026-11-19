@@ -22,7 +22,7 @@ using hven::Vec;
 
 namespace {
 
-// Repeated verbatim from tests/qp/test_qp_engine.cpp's simple_box_qp().
+// Repeated verbatim from tests/qp/test_walk_engine.cpp's simple_box_qp().
 QpProblem simple_box_qp() {
     // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10.
     // Optimum (0, 1) is a DEGENERATE vertex: the inequality is active with
@@ -50,7 +50,7 @@ QpProblem simple_box_qp() {
 // not (symmetric_factor.h; the engine's own assemblies emit it
 // unconditionally). The dissolved seam forwarded the pattern unvalidated, so
 // these dense-built fixtures could drop the zero diagonal via sparseView();
-// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// this builder keeps it explicit, exactly as test_kkt_factor.cpp's fixture
 // does.
 static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
     SpMatRM K(D.rows(), D.cols());
@@ -74,7 +74,7 @@ SpMatRM make_kkt3() {
 // --- Equivalence-battery fixtures ---------------------------------------
 //
 // Repeated VERBATIM (modulo the simple_box_qp above, reused as-is) from
-// tests/qp/test_qp_engine.cpp's battery, so BorderModeMatchesRefactorizeMode
+// tests/qp/test_walk_engine.cpp's battery, so BorderModeMatchesRefactorizeMode
 // exercises the border path against the exact same problems the refactorize
 // path is pinned on -- including the infeasible, crossed-bounds, degenerate
 // and start-infeasible ones, whose regularization-artifact regimes are
@@ -790,7 +790,7 @@ QpProblem box_all_bounds_active(Index n) {
 //
 // The optimum is x = 1 with every variable pinned at its upper bound and NO
 // row active (1 + 1 = 2 >= 0.5 strictly). But the COLD START is x = clamp(0)
-// = 0, where every one of those rows is VIOLATED (0 < 0.5), so qp_engine.h's
+// = 0, where every one of those rows is VIOLATED (0 < 0.5), so walk_engine.h's
 // shifted-constraint homotopy (loop contract step 1) puts all `pairs` of them
 // into the initial working set and then DROPS them one at a time as their
 // shifts decay -- while the ratio test is simultaneously pinning variables at

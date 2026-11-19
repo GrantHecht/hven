@@ -26,7 +26,8 @@
 namespace {
 
 using namespace hven;
-using namespace hven_drivers_tests;
+using namespace hven_model_tests;
+using namespace hven_trace_tests;
 
 /// min x0 + x1 s.t. x0^2 + x1^2 + 1 = 0 (infeasible). `nan_from > 0`: eval_f turns NaN from that
 /// call on.

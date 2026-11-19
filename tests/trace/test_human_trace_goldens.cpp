@@ -9,7 +9,7 @@
 // tests/trace/golden/human_trace/<engine>_<case>_<rung>.txt.
 //
 // Regenerate (a DECLARED event, with the console-bytes event of TR-A):
-//   HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests --gtest_filter='HumanTraceGoldens.*'
+//   HVEN_REGEN_GOLDENS=1 ./tests/trace/hven_trace_tests --gtest_filter='HumanTraceGoldens.*'
 // and read the diff. Wall-clock never appears: `timing: false`, and the `solver_initialized`
 // notice is suppressed by warming the process first.
 
@@ -42,7 +42,7 @@
 namespace {
 
 using namespace hven;
-using namespace hven_drivers_tests;
+using namespace hven_trace_tests;
 
 // c(x) = x0^2 + x1^2 + 1 = 0: no real solution and a strict stationary point of its violation at
 // the origin -- the engines enter feasibility restoration, and (on the SQP, where the linearization

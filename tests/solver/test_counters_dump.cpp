@@ -26,7 +26,7 @@
 namespace {
 
 using namespace hven;
-using namespace hven_drivers_tests;
+using namespace hven_model_tests;
 
 struct Dump {
     std::vector<std::string> keys;

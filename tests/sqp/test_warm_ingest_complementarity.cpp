@@ -76,11 +76,11 @@
 // (lambda_i >= 0) IS NEITHER RESTORED NOR GATED ANYWHERE**: evaluate_kkt folds
 // a sign-consistency residual into the reduced stationarity measure for BOUNDS
 // only, and a general inequality row enters grad_lag unconditionally with no
-// sign test. It is an INGEST PRECONDITION -- warm_start.h's SIGN CONVENTIONS
+// sign test. It is an INGEST PRECONDITION -- sqp_warm_state.h's SIGN CONVENTIONS
 // paragraph -- and every test below assumes a SqpWarmState that honours it.
 //
 // AND THAT PRECONDITION HAS A LIVE IN-REPO PRODUCER, not only hand-assembly:
-// warm_start.h's from_interior_point COPIES THE CALLER'S lambda_i VERBATIM (its
+// crossover.h's from_interior_point COPIES THE CALLER'S lambda_i VERBATIM (its
 // dual_tol filter governs working-set MEMBERSHIP, not the price), so an
 // interior-point crossover taken before full convergence can carry a negative
 // price on a GEOMETRICALLY ACTIVE row -- which is exactly the configuration the
@@ -332,7 +332,7 @@ WarmLink warm_link(ParametricNlpModel &model, double p_from, double p_to, const 
 // =====================================================================
 // PHASE-6 TASK 5: THE SEEDED ARMS.
 //
-// StartLevel::kSeeded (warm_start.h) ingests x, the duals and the activity hint
+// StartLevel::kSeeded (start_level.h) ingests x, the duals and the activity hint
 // from an object with NO USABLE HASH -- a mesh transfer, an interior-point
 // crossover, or anything a caller assembled. That is a SECOND ROUTE INTO THE
 // EXACT EXIT THIS FILE EXISTS FOR, and a repair that carried only to the kWarm

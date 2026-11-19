@@ -76,7 +76,7 @@
 #include <hven/core/compiler.h>
 #include <hven/qp/qp_types.h>
 
-#include "../../bench/snopt_f7_driver.h"
+#include "bench/snopt_f7_driver.h"
 #include "model/support/scale_problems.h"
 
 // by-value oracle of the in-place hot path; migration is a separate task

@@ -3,7 +3,7 @@
 # (hven/detail/linear/accelerate_session.h/.cpp,
 # src/linear/symmetric_factor_accelerate.cpp) AND of the Apple-gated halves
 # of the three test files that exercise it
-# (tests/linear/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
+# (tests/linear/seam/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
 # tests/linear/test_symmetric_factor_evidence_invariants.cpp's one
 # `#if defined(__APPLE__)` assertion,
 # tests/linear/test_symmetric_factor_pardiso_only_options.cpp's
@@ -188,7 +188,7 @@ if [[ -z "${GTEST_INCLUDE}" ]]; then
     echo "      FetchContent has pulled it, then re-run this script."
 else
     TEST_HALVES_CHECKED=1
-    check_one "${REPO_ROOT}/tests/linear/test_fault_injection.cpp" \
+    check_one "${REPO_ROOT}/tests/linear/seam/test_fault_injection.cpp" \
         -D__APPLE__ -DHVEN_TESTING=1 -isystem "${GTEST_INCLUDE}"
     check_one "${REPO_ROOT}/tests/linear/test_symmetric_factor_evidence_invariants.cpp" \
         -D__APPLE__ -isystem "${GTEST_INCLUDE}"

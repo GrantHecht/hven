@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // Phase-4 Task 2: the SqpWarmState value object
-// (warm_start.h) SqpSolver::solve() emits on SqpResult::warm_start.
+// (sqp_warm_start.h) SqpSolver::solve() emits on SqpResult::warm_start.
 //
 // THREE CHECKS, per the task brief:
 //   (a) a normal, converged solve (HS7) populates warm_start fully: valid,
@@ -64,7 +64,7 @@ using hven::test_support::make_hs;
 namespace {
 
 // (a) HS7, DEFAULT options: converges in a handful of majors (see
-// test_sqp_solver.cpp's SqpDriverEquality battery), so by the time it exits a
+// test_sqp_solver.cpp's SqpSolverEquality battery), so by the time it exits a
 // subproblem HAS been built and the funnel HAS been reset -- both
 // globalization fields are therefore expected to be real values, not their
 // "unset" sentinels.
@@ -126,7 +126,7 @@ TEST(WarmStart, SolvedHs7PopulatesEveryField) {
 // iterate -- checked against the history the same solve produced, which is
 // exactly what a caller re-deriving "did this warm object describe the point
 // the solve actually stopped at" would do. Fixture ported from
-// test_sqp_solver.cpp's SqpDriverTrustRegion.StrategyIsPluggable: HS5 with an
+// test_sqp_solver.cpp's SqpSolverTrustRegion.StrategyIsPluggable: HS5 with an
 // accept-everything strategy at trust_region_initial = 2 reproduces Task 4's permanent
 // 2-cycle and burns the whole max_iter budget.
 TEST(WarmStart, MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate) {
@@ -270,7 +270,7 @@ TEST(WarmStart, ZeroMajorSolveEmitsTheSameStructureHashAsABuiltSubproblem) {
 // overridden, and eval_hess/eval_jac_e/eval_jac_i/bounds/start_point are
 // inherited unchanged. Its structure_hash is therefore IDENTICAL to
 // Hs7Model's own (structural_hash hashes sparsity pattern only, never
-// values -- qp_engine.h), which is exactly what lets a HS7 warm object
+// values -- walk_engine.h), which is exactly what lets a HS7 warm object
 // resolve to kWarm here.
 class Hs7PerturbedModel : public hven::test_support::Hs7Model {
   public:
@@ -451,7 +451,7 @@ TEST(WarmStart, PerturbedWarmBeatsCold) {
 // its own documented solution: g1 (ci1) is active (its comment's x* sums to
 // exactly 5 on the first general row) while g2/g3 are strictly satisfied,
 // and x3 sits at its lower bound 0 while x1/x2/x4 are strictly positive --
-// so this is a positive check of the +1/-1/1 encodings warm_start.h
+// so this is a positive check of the +1/-1/1 encodings crossover.h
 // specifies, not merely of the all-zero case HS7 exercises.
 TEST(WarmStart, ActivityMappingMarksKnownActiveRowsOnHs76) {
     const auto p = make_hs(76);
@@ -493,7 +493,7 @@ namespace {
 // own copy lives in an anonymous namespace there, so it is not reachable from
 // this TU): n=2, me=1, mi=0, H = hval*obj_scale*I and Ae = [a, a] on EVERY
 // call regardless of x -- constant by construction, exactly the shape
-// qp_engine.h's HOT-START REUSE conditions (a)/(c) need to hold trivially
+// walk_engine.h's HOT-START REUSE conditions (a)/(c) need to hold trivially
 // across two otherwise-unrelated solves. `hval` is this file's own addition:
 // build_subproblem (sqp_solver.h) always calls eval_hess with obj_scale = 1.0,
 // so it is the only way to change H's VALUE independently of its PATTERN,
@@ -550,12 +550,12 @@ class ScaledRowModel : public NlpModel {
     mutable Vec lower_;
 };
 
-// FIX ROUND 1: n=2, me=0, mi=1 -- test_qp_engine_border.cpp's own
+// FIX ROUND 1: n=2, me=0, mi=1 -- test_walk_engine_border.cpp's own
 // simple_box_qp() shape (H=I, one general row x0+x1<=bi, box [0,10]^2),
 // reachable through an NlpModel so it can drive SqpSolver rather than
 // QpEngine directly. UNLIKE ScaledRowModel (equality-only, no general row),
 // this model's optimum can activate BOTH a general row AND a bound
-// simultaneously -- exactly the shape qp_engine.h's own
+// simultaneously -- exactly the shape walk_engine.h's own
 // RebuildUnderTinySchurCapMatchesRefactorize needs to force a genuine
 // mid-solve K0 rebuild under a tiny QpOptions::max_schur_border_dimension, which is what the
 // SYMMETRIC generation-counter case (below) needs: a producer whose OWN
@@ -563,7 +563,7 @@ class ScaledRowModel : public NlpModel {
 // solves (so it never detaches) can still rebuild K0 mid-solve, purely from
 // schur_cap pressure, changing BorderState::generation without changing
 // anything (a)-(d) can see. c0/c1 are the (otherwise free -- see
-// warm_start.h's own note that g/b never enter the reuse key) linear-term
+// sqp_warm_state.h's own note that g/b never enter the reuse key) linear-term
 // coefficients that move the optimum; `bi` is the row's own RHS, likewise
 // free of the hash.
 class RowAndBoundModel : public NlpModel {
@@ -633,13 +633,13 @@ class RowAndBoundModel : public NlpModel {
 //
 // THE CONSUMER'S BOUND IS DELIBERATELY DIFFERENT (lo = 1.0, not the
 // producer's 1.5) -- bounds are NOT part of H/Ae/Ai and so never enter
-// structural_hash/values_hash (qp_engine.h), but they DO move the true
+// structural_hash/values_hash (walk_engine.h), but they DO move the true
 // optimum. Feeding the producer's exact optimum (1.5, 0.5) back "unchanged"
 // into a problem whose own optimum is elsewhere (here, (1, 1): the
 // unconstrained-along-the-equality minimizer, since 1.0 <= 1 no longer binds)
 // means the consumer's very first convergence check does NOT fire, so a REAL
 // first subproblem is solved and qp_factorizations == 0 is a meaningful pin
-// rather than a vacuous "no QP ever ran" one. qp_engine.h's own
+// rather than a vacuous "no QP ever ran" one. walk_engine.h's own
 // ingest_seed_working_set re-pins a seeded bound at the CURRENT solve's own
 // bound value regardless of where the driver's x geometrically sits, so the
 // working-set SHAPE the seed carries (var0 pinned, var1 free) still matches
@@ -1127,7 +1127,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
 // consumer must force a genuine refactorization on the consumer's first
 // subproblem and report start_level_used == kWarm, not kHot -- Task 4's
 // "any failure degrades to kWarm silently" contract, pinned on the specific
-// failure mode qp_engine.h's condition (c) exists to catch. The bound is
+// failure mode walk_engine.h's condition (c) exists to catch. The bound is
 // ALSO changed here (same lo = 1.0 as the success test above), for the same
 // reason as there: without it the objective's uniform rescaling by `hval`
 // would leave (1.5, 0.5) exactly optimal for the consumer too (scaling a
@@ -1232,8 +1232,8 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
 
 // =============================================================================
 // FIX ROUND 1: the aliasing hazard the review found -- BorderState::
-// generation (qp_engine.h's fifth reuse condition) and the DETACH-on-refusal
-// fix (qp_engine.h's rebuild_k0/reuse_eligible block).
+// generation (walk_engine.h's fifth reuse condition) and the DETACH-on-refusal
+// fix (walk_engine.h's rebuild_k0/reuse_eligible block).
 // =============================================================================
 
 // THE REVIEW'S OWN DEMONSTRATED PROBE (task-4-review.md, finding 1): a
@@ -1248,23 +1248,23 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
 // THIS FIXTURE USES RowAndBoundModel with QpOptions::max_schur_border_dimension FORCED TO 1,
 // which is the shape that reproduces the failure WITHOUT relying on
 // producer's own top-level reuse check failing (a values/structural
-// mismatch there would trigger the DETACH fix -- qp_engine.h's Q3 -- on its
+// mismatch there would trigger the DETACH fix -- walk_engine.h's Q3 -- on its
 // own, which already keeps a REFUSED adoption from touching a shared
 // object, and does not need the generation counter to do it). Here H/Ai are
 // BYTE-IDENTICAL across every solve below (only the linear term c0/c1 and
-// the row's own bi move -- neither enters qp_engine.h's structural/values
+// the row's own bi move -- neither enters walk_engine.h's structural/values
 // hash), so producer's OWN top-level reuse conditions (a)-(d) keep passing
 // across its own two further solves and it NEVER detaches -- it keeps
 // mutating the SAME shared BorderState the very first handle still names.
 // The tiny schur_cap forces a genuine mid-solve K0 rebuild on EACH of
-// producer's solves (test_qp_engine_border.cpp's own
+// producer's solves (test_walk_engine_border.cpp's own
 // RebuildUnderTinySchurCapMatchesRefactorize technique), bumping
 // BorderState::generation each time even though (a)-(d) alone see nothing
 // change.
 //
 // THE SEQUENCE:
 //   1. driver1 solves model_a (row x0+x1<=1, optimum (0,1): row AND the
-//      x0>=0 bound both active -- test_qp_engine_border.cpp's own
+//      x0>=0 bound both active -- test_walk_engine_border.cpp's own
 //      simple_box_qp() shape). sol1.warm_start is captured as `handle`
 //      BEFORE anything else touches driver1.
 //   2. CONTROL consumes `handle` immediately, on a FRESH driver, against
@@ -1290,7 +1290,7 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
 // (same H/Ai bytes, same effective primal_delta/dual_mu, same committed
 // exit shape) -- only BorderState::generation differs, since driver1's own
 // two solves in between moved it. That is exactly the case
-// qp_engine.h's condition (e) note calls the SYMMETRIC one.
+// walk_engine.h's condition (e) note calls the SYMMETRIC one.
 TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
     SqpOptions opts;
     opts.advanced.adaptive_dual_regularization = false;
@@ -1364,7 +1364,7 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
 // mutated the object out from under it (that is exactly what
 // BorderState::generation, pinned above, is for -- but generation only
 // helps because the FIX here stops the mutation from ever landing on a
-// shared object at all). Before this fix, qp_engine.h's `!reuse_eligible`
+// shared object at all). Before this fix, walk_engine.h's `!reuse_eligible`
 // branch cleared schur/latched/k0_rows/ledger ON THE SHARED OBJECT and the
 // NEXT rebuild_k0() call -- driven by the REFUSING engine's OWN problem --
 // refactorized it, silently overwriting whatever the producer had built.
@@ -1434,7 +1434,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
 // essentially every major and a detach would fire that often. Measured by
 // the re-review with a temporary counter (since reverted): 48 Pardiso
 // phase-11 analyses across this exact solve pre-guard, vs 1 with the
-// use_count() > 1 guard in place (qp_engine.h's reuse_eligible block) --
+// use_count() > 1 guard in place (walk_engine.h's reuse_eligible block) --
 // this driver's engine_ is never shared with any other engine, so
 // use_count() reads 1 at every one of those majors and the SAME
 // BorderState/KktFactor is wiped and reused in place instead of replaced,
@@ -1791,7 +1791,7 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
 // non-increasing width is exactly what KLV Thm. 1 case 1 sums.
 //
 // WHY THE WIDTH IS OBSERVABLE HERE, which is what makes this testable at all:
-// NO VERDICT THE MODE RETURNS MUTATES tau (globalization.h), so from the
+// NO VERDICT THE MODE RETURNS MUTATES tau (funnel.h), so from the
 // Task-3 ingest until the watchdog the width is FROZEN at its ingested value,
 // which this test re-derives from the published constants and h0. Stopping the
 // solve on the very pass the watchdog fires (max_iter == the number of
@@ -2235,7 +2235,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 
 // =============================================================================
 // PHASE-4 TASK 12: from_interior_point -- the interior-point crossover
-// (warm_start.h). THE KNITRO CROSSOVER PATTERN: an IP method runs to
+// (crossover.h). THE KNITRO CROSSOVER PATTERN: an IP method runs to
 // near-KKT, then hands off to an active-set method (this driver) for the
 // final polish -- in tycho this is exactly how an IPM solve would seed
 // this driver.
@@ -2258,7 +2258,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 // caller read off the object and passed explicitly.
 //
 // A HASH MISMATCH NOW RESOLVES `StartLevel::kSeeded`, which takes the values
-// without asking about provenance (warm_start.h's StartLevel note), so the
+// without asking about provenance (start_level.h's StartLevel note), so the
 // duals and the activity hint reach the solve and the two calls are NO LONGER
 // identical -- which is the whole point of the level. This test keeps both arms
 // and now pins the DIFFERENCE, measured:
@@ -2276,7 +2276,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 // kkt_tol at the IP point" and "took one more QP step" -- both inside tolerance,
 // and the seeded arm's is the one the crossover asked for. The B-1 clear did not
 // fire because no row is slack; O-1's legitimate-zero-major feature is what
-// permits the exit, and tests/sqp/test_b1_gate.cpp's seeded twin of
+// permits the exit, and tests/sqp/test_warm_ingest_complementarity.cpp's seeded twin of
 // AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies guards it directly.
 TEST(WarmStart, CrossoverRecoversExactSolveHs14) {
     const auto p = make_hs(14);
@@ -2579,7 +2579,7 @@ TEST(WarmStart, CrossoverWrongSignDualLeavesRowFree) {
 
 // =============================================================================
 // PHASE-6 TASK 5: StartLevel::kSeeded -- "trusts values, not provenance".
-// See warm_start.h's StartLevel note for the contract and sqp_solver.h's
+// See start_level.h's StartLevel note for the contract and sqp_solver.h's
 // WARM-START INGEST / THE SEEDED DUAL CLAMP notes for the resolution ladder.
 // =============================================================================
 
@@ -2688,7 +2688,7 @@ TEST(WarmStart, SeededGrossWrongSignPriceDegradesToCold) {
 }
 
 // (2) THE CLAMP'S OWN BOUNDARY, BOTH SIDES, on one fixture -- the same
-// discipline test_b1_gate.cpp's TheActivityBoundaryIsFeasTolOnBothSides applies
+// discipline test_warm_ingest_complementarity.cpp's TheActivityBoundaryIsFeasTolOnBothSides applies
 // to the B-1 gate. Only the magnitude of the negative price differs between the
 // arms; it straddles kSeededDualClampTol.
 TEST(WarmStart, SeededDualClampBoundaryIsExactOnBothSides) {
@@ -2996,7 +2996,7 @@ TEST(WarmStart, LedgerLevelHistogramCountsEveryResolvedLevel) {
 
 // =============================================================================
 // PHASE-7 TASK 0: the collocation-scale activity repair
-// (warm_start.h's ACTIVITY INFERENCE note;
+// (crossover.h's ACTIVITY INFERENCE note;
 // docs/notes/2026-08-06-activity-tol-repair.md).
 // =============================================================================
 //
@@ -3294,7 +3294,7 @@ TEST(WarmStart, CrossoverActivityInferenceHoldsUnderMeshRefinement) {
 // then every live price (<= 5.00e-4) sits under the threshold a mu of 1e-4
 // forces (1.00e-3) while the barrier-noise prices on inactive rows do not.
 // Identification is simply not available from a hand-off that loose, and
-// warm_start.h's note states the regime (kIpmActivityFactor * mu_hat >
+// crossover.h's note states the regime (kIpmActivityFactor * mu_hat >
 // ||lambda_i||inf * activity_relative_tol) so a caller can test for it. Pinned
 // below so the carry cannot rot silently.
 TEST(WarmStart, CrossoverLooseIpIterateDoesNotOverInfer) {
@@ -3319,7 +3319,7 @@ TEST(WarmStart, CrossoverLooseIpIterateDoesNotOverInfer) {
     EXPECT_EQ(fine_score.inferred, 114) << "THE PIN (observed)";
     EXPECT_EQ(fine_score.recovered, 0)
         << "THE PIN (observed): at mu = 1e-4 and N = 1600 the hint is 100 % wrong -- the regime "
-           "warm_start.h's ACTIVITY INFERENCE note tells a caller to test for";
+           "crossover.h's ACTIVITY INFERENCE note tells a caller to test for";
 }
 
 // THE BAKE-OFF, KEPT EXECUTABLE. The task brief named two candidate repairs
@@ -3456,7 +3456,7 @@ TEST(WarmStart, CrossoverAllZeroDualsInferNothingAndStillResolveSeeded) {
         << "THE PIN: identically 0 above kSeeded, hint or no hint";
 }
 
-// THE EXTREME-DUAL TRAP, CLOSED AND PINNED. warm_start.h documented this from
+// THE EXTREME-DUAL TRAP, CLOSED AND PINNED. crossover.h documented this from
 // Phase 4 as a defect it could not fix: under the OLD rule
 // `|slack_i(j)| < activity_tol * max(1, |lambda_i(j)|)`, a hand-off pricing a
 // row at 1e6 against a residual of 0.9 is certified ACTIVE, because
@@ -3541,7 +3541,7 @@ TEST(WarmStart, CrossoverExtremeDualAgainstALargeResidualIsRefused) {
 // reported FREE -- the empty-hint outcome the whole task exists to repair.
 //
 // BOTH SIDES ARE EXERCISED because each estimates its OWN mu_hat and dual norm
-// (warm_start.h's note on why the two are separate populations): the second
+// (crossover.h's note on why the two are separate populations): the second
 // block mirrors the first onto the upper bound and must read kAtUpper.
 TEST(WarmStart, CrossoverBoundActivityIsInferredAtCollocationScale) {
     constexpr double kMu = 1.0e-8;
@@ -3743,7 +3743,7 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     // exactly the evidence the carry transmits); the centre only over CERTIFYING
     // ones, because an escaped iterate is a diverged point by construction. On
     // HS27 the max-sigma subproblem escapes, so the block ships a real level
-    // with both vectors empty -- which warm_start.h's own field note admits
+    // with both vectors empty -- which sqp_warm_state.h's own field note admits
     // ("n, or empty"). tests/sqp/test_sqp_solver.cpp's
     // TheCarriedProximalCentreIsNeverAnEscapedIterate pins both polarities.
     EXPECT_EQ(0, SqpWarmAccess::state(ssn.sqp_warm_start).prox_center_x.size())

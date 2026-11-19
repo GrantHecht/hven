@@ -266,8 +266,8 @@ hven::IpmOptions hs071_options(hven::IpmBarrierMode barrier_mode) {
 
 // HS071 on the dense arm.
 RecordedSolve solve_hs071_dense(const hven::IpmOptions &o, const EventHook &on_event = {}) {
-    return record_solve(o, std::make_shared<hven_drivers_tests::Hs071Problem>(),
-                        hven_drivers_tests::hs071_start(), on_event);
+    return record_solve(o, std::make_shared<hven_model_tests::Hs071Problem>(),
+                        hven_model_tests::hs071_start(), on_event);
 }
 
 RecordedSolve solve_hs071_dense(hven::IpmBarrierMode barrier_mode) {
@@ -410,7 +410,7 @@ class TrialRefusingHs071 final : public hven::Nlp {
             throw hven::EvaluationError("trial point refused");
         }
     }
-    hven_drivers_tests::Hs071Problem inner_;
+    hven_model_tests::Hs071Problem inner_;
 };
 
 } // namespace
@@ -748,7 +748,7 @@ TEST(IpmNoNumericsSeam, AnUnevaluableStepInsideRestorationIsNeverAnAcceptableSto
     RecordedSolve run;
     {
         const Armed armed(1);
-        ASSERT_NO_THROW(run = record_solve(o, nlp, hven_drivers_tests::hs071_start(),
+        ASSERT_NO_THROW(run = record_solve(o, nlp, hven_model_tests::hs071_start(),
                                            [model](const hven::IterationEvent &e) {
                                                if (e.iteration >= 1) {
                                                    disarm();
@@ -821,8 +821,8 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunUnderRestorationDiscardsItsStep) {
 namespace {
 
 RecordedSolve solve_hs071_report(const hven::IpmOptions &o, const EventHook &on_event = {}) {
-    return record_solve(o, std::make_shared<hven_drivers_tests::Hs071Problem>(),
-                        hven_drivers_tests::hs071_start(), on_event, SingularPolicy::kReport);
+    return record_solve(o, std::make_shared<hven_model_tests::Hs071Problem>(),
+                        hven_model_tests::hs071_start(), on_event, SingularPolicy::kReport);
 }
 
 void expect_no_platform_factorization(const hven::IpmResult &r) {

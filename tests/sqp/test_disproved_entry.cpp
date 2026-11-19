@@ -156,7 +156,7 @@ CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
 // (b) -- the fixture premise, stated once so every pin below is non-vacuous.
 // ---------------------------------------------------------------------------
 
-TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem) {
+TEST(SqpSolverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem) {
     // THE TWO PREMISES THE PINS BELOW ARE WRITTEN AGAINST, asserted where they are
     // stated rather than assumed (fix round 1, Minors 1 and 2).
     //
@@ -234,7 +234,7 @@ TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSub
 // other escape. Three readings of the same fact, on the same cell.
 // ---------------------------------------------------------------------------
 
-TEST(SqpDriverDisprovedEntry, OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier) {
+TEST(SqpSolverDisprovedEntry, OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresTheTier) {
     // K = 1 makes the CHARGE itself observable at the driver: the only counter a
     // caller can read the tally through is `ipqp_tier_retired_after`, which moves
     // when the tally reaches K. At K = 1 one charge is the whole threshold, so a
@@ -243,7 +243,7 @@ TEST(SqpDriverDisprovedEntry, OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresT
     ASSERT_EQ(one.sol.counters.ipqp_suspicion_disproved, 1) << "fixture premise";
     EXPECT_EQ(one.sol.counters.ipqp.ipqp_tier_retired_after, 1)
         << "Q-S3 (a): THE CHARGE STANDS ON A DISPROVAL. The escape is recorded on "
-           "the ladder ABOVE the routing branch (src/drivers/sqp_solver.cpp's "
+           "the ladder ABOVE the routing branch (src/sqp/sqp_solver.cpp's "
            "`ipqp_ladder.record`), so the fallback's later success does not "
            "un-charge it -- a disproved suspicion is evidence that the DETECTOR "
            "is unsuited to this problem";
@@ -257,7 +257,7 @@ TEST(SqpDriverDisprovedEntry, OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresT
         << "one charge is not three: the tally advanced, retirement did not fire";
 }
 
-TEST(SqpDriverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold) {
+TEST(SqpSolverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold) {
     // THE CHARGE AT THE SHIPPED THRESHOLD, with nothing but disprovals feeding
     // the tally: three majors, three tier entries, three escapes, three
     // disprovals, and retirement at major 3. If a disproval did NOT charge, the
@@ -289,7 +289,7 @@ TEST(SqpDriverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippe
 // (a) -- THE RESEED, on the same cell, as a paired A/B.
 // ---------------------------------------------------------------------------
 
-TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
+TEST(SqpSolverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     // THE SHIPPED DEFAULT, stated where a change to it would be caught.
     EXPECT_FALSE(SqpOptions{}.advanced.ipqp_reseed_after_disproval);
 
@@ -311,7 +311,7 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     EXPECT_EQ(off.sol.status, SolveStatus::kOptimal);
 }
 
-TEST(SqpDriverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping) {
+TEST(SqpSolverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping) {
     const CellRun on =
         run_cell(/*max_iter=*/3, /*retire_after=*/kShippedRetireAfter, /*reseed=*/true);
 
@@ -345,7 +345,7 @@ TEST(SqpDriverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsE
     EXPECT_NEAR(on.sol.f, off.sol.f, 1.0e-6);
 }
 
-TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
+TEST(SqpSolverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
     // THE TOGGLE TOUCHES ONE ARM. A cell whose first major never escapes never
     // reaches route 5 at all, so both states must be counter-identical -- this is
     // what makes "default OFF" and "ON" the same library everywhere else.

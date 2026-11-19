@@ -8,7 +8,7 @@
 // THE QUESTION IT EXISTED TO ANSWER, AND WHAT REMAINS. Task 11b iterated the
 // BORDERED path's refinement and deliberately did not apply the symmetric fix
 // to solve_eqp, because a symmetric fix (written then WITHOUT the footprint
-// stopping rule) broke both SqpDriverAdaptiveMu tests by removing the fixed-mu
+// stopping rule) broke both SqpSolverAdaptiveMu tests by removing the fixed-mu
 // accuracy ceiling that Task 10's adaptive-mu schedule exists to break
 // through. The carry's prior question was therefore: is adaptive-mu a REAL
 // mechanism, or is it compensation for under-refinement? Measured across the
@@ -159,7 +159,7 @@ struct Outcome {
 };
 
 // A tolerance REGIME. The battery's own tolerances (1e-6) are the shipped
-// defaults, but SqpDriverAdaptiveMu's fixture comment already records why a
+// defaults, but SqpSolverAdaptiveMu's fixture comment already records why a
 // lever A/B run there can be blind: at 1e-6 a solve certifies before either
 // the mu schedule or a refinement footprint has anything to say. So every
 // cell is measured twice -- once at the shipped tolerances (does the lever
@@ -292,7 +292,7 @@ void sweep(const Regime &g) {
 
 // THE ILL-SCALED FIXTURE, ported verbatim (modulo naming) from
 // tests/sqp/test_sqp_solver.cpp's ScaledRowModel -- the fixture the two
-// SqpDriverAdaptiveMu tests are built on, and the ONLY place in this project
+// SqpSolverAdaptiveMu tests are built on, and the ONLY place in this project
 // where the fixed-mu accuracy ceiling has ever been demonstrated:
 //
 //     min 1/2||x||^2  s.t.  a*x0 + a*x1 = 2a,   x0 >= lo,  x1 free.
@@ -396,7 +396,7 @@ class ScaledRowModel : public NlpModel {
 //     rows -- and the inflation comes entirely from the OBJECTIVE side. So the
 //     ceiling cannot be an artifact of a badly scaled constraint block. (The
 //     engine's own QP-level battery makes the same distinction with
-//     objective_inflated_lambda_qp in test_qp_engine_border.cpp; this is its
+//     objective_inflated_lambda_qp in test_walk_engine_border.cpp; this is its
 //     driver-level, many-variable counterpart.)
 //   * ACTIVE-SET SHAPE. ScaledRowModel has one equality row and one active
 //     BOUND at the optimum, and nothing else. F7 in its wide window has
@@ -764,7 +764,7 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
             // err 9.7980412186621743e-16. The A/B this test runs still runs, and what it
             // now reports is that the `adaptive_mu` axis makes no difference on this
             // fixture -- which is a finding, and the same one
-            // `SqpDriverAdaptiveMu.AdaptiveMuRecoversTailAccuracy` records.
+            // `SqpSolverAdaptiveMu.AdaptiveMuRecoversTailAccuracy` records.
             EXPECT_EQ(sol.status, SolveStatus::kOptimal)
                 << "the fixed-mu ceiling is back: the polish has stopped removing the dual "
                    "regularization's footprint, and this arm's original read-out applies again";

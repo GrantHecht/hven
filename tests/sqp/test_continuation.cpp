@@ -1576,7 +1576,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     EXPECT_FALSE(res.reached_p1);
     ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
     EXPECT_NE(res.steps.front().status, SolveStatus::kOptimal);
-    // warm_start.h's contract: even a failed solve's exit state is safe to
+    // sqp_warm_state.h's contract: even a failed solve's exit state is safe to
     // feed forward, so the result still carries one.
     EXPECT_TRUE(res.final_warm.valid);
 

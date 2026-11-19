@@ -62,8 +62,8 @@ using hven::SqpSolver;
 using hven::StopReason;
 using hven::StopSource;
 using hven::Verbosity;
-using hven_drivers_tests::hs071_start;
-using hven_drivers_tests::Hs071Problem;
+using hven_model_tests::hs071_start;
+using hven_model_tests::Hs071Problem;
 
 enum class Engine { kIpm, kSqp };
 
@@ -620,7 +620,7 @@ TEST(BestIterate, AnIterateScoringTheOldSentinelValueIsRecorded) {
 // pricing that produces one needs a wide-window collocation chain: see
 // tests/sqp/test_scale_smoke.cpp, M6 W0.3), so this pins the invariant itself, and
 // that a returned best's primary carries exactly the snapshot's prices; the repair's
-// own arithmetic is pinned by SqpDriverSignSweep.
+// own arithmetic is pinned by SqpSolverSignSweep.
 TEST(BestIterate, SqpBestIterateInequalityMultipliersAreSignCorrect) {
     for (Index stop_at = 0; stop_at < 8; ++stop_at) {
         const SolveResult r = solve(Engine::kSqp, 0, false, [&](const IterationEvent &ev) {

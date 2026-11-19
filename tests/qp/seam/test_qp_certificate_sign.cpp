@@ -1,13 +1,13 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_certificate_sign.cpp -- M7 W2 SDL, RDV-5: THE CERTIFICATE'S SIGN HALF (qp_engine.h,
+// test_qp_certificate_sign.cpp -- M7 W2 SDL, RDV-5: THE CERTIFICATE'S SIGN HALF (walk_engine.h,
 // section 5). The walk's one certified exit read the iterate against its box (the bound half)
 // and the rows, but not the SIGNS of the multipliers it exports: those were judged by the drop
 // rule alone, before the terminal polish replaced them and with re-entered (exempt) members
 // excused. A rejected prototype that let the walk past a saddle-exit miss reached kOptimal on
 // SAWPATH with a lower pin priced z = -1.25e12. The fixtures present such a pair through the
-// certificate seam (qp_certificate_seam.h), on the production statements that follow it.
+// certificate seam (certificate_seam.h), on the production statements that follow it.
 // Before the sign half each presented pair below came back kOptimal with the presented z.
 //
 // THE INCUMBENT FALLBACK (HIGH-1): an adopted terminal polish that fails the sign half is undone

@@ -454,7 +454,7 @@ struct SqpRun {
 // Its Jacobian evaluation can too (`jac_stop_at`): the full evaluation an accepted step's
 // commit pays, after the post-push poll, so the next major's exit test sees the stop.
 struct Hs071StopOnHessian final : hven::Nlp {
-    hven_drivers_tests::Hs071Problem inner;
+    hven_model_tests::Hs071Problem inner;
     StopSource *source = nullptr;
     int stop_at = 0;
     mutable int calls = 0;
@@ -512,7 +512,7 @@ SqpRun run_problem(Problem &problem, const SqpOptions &opts, StopSource &source,
 
 SqpRun run_hs071(const SqpOptions &opts, StopSource &source, std::optional<Index> max_iterations,
                  SqpSolver *reuse = nullptr) {
-    Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    Problem problem(std::make_shared<hven_model_tests::Hs071Problem>());
     return run_problem(problem, opts, source, max_iterations, reuse);
 }
 
@@ -1526,7 +1526,7 @@ TEST(StopPollSeam, T9AnArmedUnfiredSolveIsTheUnarmedSolveOnEachQpMode) {
     for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
         const SqpOptions opts = quiet_sqp(mode);
-        Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        Problem problem(std::make_shared<hven_model_tests::Hs071Problem>());
         SqpSolver plain_solver(opts);
         const SqpResult plain = plain_solver.solve(problem, hs071_start());
         Seam::reset();

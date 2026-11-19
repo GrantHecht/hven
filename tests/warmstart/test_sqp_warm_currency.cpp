@@ -490,7 +490,7 @@ TEST(SqpWarmCurrency, ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey) 
     EXPECT_EQ(WarmStartAccess::primal(warm), sol.x);
     EXPECT_EQ(WarmStartAccess::eq(warm), hven::detail::engine_rows(sol).lambda_e);
     EXPECT_EQ(WarmStartAccess::iq(warm), hven::detail::engine_rows(sol).lambda_i);
-    // z IS the currency's signed z = zL - zU already (warm_start.h's SIGN
+    // z IS the currency's signed z = zL - zU already (sqp_warm_state.h's SIGN
     // CONVENTIONS): nothing is converted on the way out. The fixture's only
     // active bound is x2's LOWER one, so the signed block is non-negative there
     // and zero elsewhere -- which is what "z >= 0 at an active lower bound"
@@ -1209,7 +1209,7 @@ void expect_same_counters(const SqpCounters &hot, const SqpCounters &cold) {
 //
 // SqpSolver carries no cross-solve NUMERIC state of its own; the one piece in
 // the picture is its QpEngine's border cache, consulted through the gate whose
-// conjuncts are qp_engine.h's HOT-START REUSE conditions (a)-(e). A grant means
+// conjuncts are walk_engine.h's HOT-START REUSE conditions (a)-(e). A grant means
 // the matrix that WOULD have been assembled and factorized is bit-for-bit the
 // one already in hand, and the fast path skips only that assembly and
 // factorization -- never sync_borders(), which reconciles unconditionally.
@@ -1252,7 +1252,7 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
 //
 // Neither test claims a granted reuse. Measured on this fixture, no
 // factorization was saved -- the reused driver pays exactly the factorizations
-// and symbolic analyses the fresh one pays -- and qp_engine.h notes its five
+// and symbolic analyses the fresh one pays -- and walk_engine.h notes its five
 // conditions are necessary but not sufficient for `factorizations == 0`, so
 // equal counts are consistent with a granted reuse that border_candidate then
 // rebuilt anyway. What these two pin is that whatever the driver carried out of

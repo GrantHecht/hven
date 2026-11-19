@@ -446,7 +446,7 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
         "NOT RATIFIABLE 2026-08-15, for a reason worth stating precisely: the "
         "authority named a PATH, not a matrix. QpEngine::refine_on_face migrated "
         "(include/hven/detail/qp/walk/walk_engine.h), and its accepted arm is under test "
-        "(tests/qp/test_qp_engine.cpp), but that arm builds its face by hand on a "
+        "(tests/qp/test_walk_engine.cpp), but that arm builds its face by hand on a "
         "small box QP rather than instantiating any named fixture -- there is no "
         "committed matrix for this recipe to have been transcribed from, then or "
         "now. So the matrix below is an INDEPENDENT construction and is not upgraded "

@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_qp_standstill_retreat.cpp -- M7 W2 E2 FIX ROUND 9, on the walk seam (docs/testing.md):
-// THE STANDSTILL RETREAT (qp_engine.h). On the border path the independent walk could stand
+// THE STANDSTILL RETREAT (walk_engine.h). On the border path the independent walk could stand
 // still forever off its own equality rows: on an exactly rank-deficient face the border
 // factor's step and dependency coefficients are inaccurate, the inertia reads kWrong on a face
 // whose reduced Hessian is positive definite, and the iterate takes tiny full steps (or

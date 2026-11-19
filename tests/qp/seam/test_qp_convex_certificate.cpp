@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_convex_certificate.cpp -- M7 W2 NC4: THE CONVEX CERTIFICATE (qp_engine.h section 4c),
+// test_qp_convex_certificate.cpp -- M7 W2 NC4: THE CONVEX CERTIFICATE (walk_engine.h section 4c),
 // on the walk seam (docs/testing.md). A trusted-kWrong dead end on a QP whose Hessian is
 // STRUCTURALLY convex -- every stored entry of H exactly 0 off the diagonal and >= 0 on it; an
 // LP is H == 0 -- cannot be a saddle: every KKT matrix the walk factorizes is then

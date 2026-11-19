@@ -42,7 +42,7 @@
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start.h>
 
-#include "../../bench/crossover_legs.h"
+#include "bench/crossover_legs.h"
 #include "support/route_reference.h"
 
 namespace {

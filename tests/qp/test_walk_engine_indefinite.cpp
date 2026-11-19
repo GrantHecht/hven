@@ -1,12 +1,12 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_engine_indefinite.cpp — INDEFINITE-H coverage of the QP engine
-// (qp_engine.h section 4b: the inertia gate and the temporary-vertex start
+// test_walk_engine_indefinite.cpp — INDEFINITE-H coverage of the QP engine
+// (walk_engine.h section 4b: the inertia gate and the temporary-vertex start
 // repair; section 4c: the negative-curvature ride after a drop).
 //
 // WHY THIS FILE DOES NOT CHECK CROSS-MODE EQUALITY. The convex battery
-// (test_qp_engine_border.cpp's BorderModeMatchesRefactorizeMode) holds
+// (test_walk_engine_border.cpp's BorderModeMatchesRefactorizeMode) holds
 // kSchurBorder and kRefactorize observationally equivalent. That claim does
 // NOT extend to an indefinite H: the bound-eliminated K and the full-variable
 // K0 have structurally different inertia (elimination removes exactly the rows
@@ -73,7 +73,7 @@ namespace {
 // not (symmetric_factor.h; the engine's own assemblies emit it
 // unconditionally). The dissolved seam forwarded the pattern unvalidated, so
 // these dense-built fixtures could drop the zero diagonal via sparseView();
-// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// this builder keeps it explicit, exactly as test_kkt_factor.cpp's fixture
 // does.
 SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
     SpMatRM K(D.rows(), D.cols());
@@ -143,7 +143,7 @@ QpProblem near_singular_indefinite_qp(double h11) {
 }
 
 // The SAME cancellation, with the ratio test's accidental rescue removed --
-// the fixture the SUSPECT-STALL GATE (qp_engine.h section 4b) is pinned on.
+// the fixture the SUSPECT-STALL GATE (walk_engine.h section 4b) is pinned on.
 //
 // H = diag(1, -delta, 1), g = (-1,-1,-1), equality x0 = 0, box [-1,1] on x0/x2
 // and [-x1_bound, x1_bound] on x1, solved with QpOptions::primal_regularization ==
@@ -2148,7 +2148,7 @@ TEST(QpEngineIndefinite, RandomizedIndefiniteBatteryLandsOnLocalMinimizers) {
 // now checks. For the ledger trail: this was
 // QpEngineIndefinite.EngineCertifiesANonMinimizerAtAWeaklyActiveBound
 // throughout Phase 2, and that is the name the Phase-2 reports, the Task-1
-// brief and (historically) qp_engine.h section 4b refer to.
+// brief and (historically) walk_engine.h section 4b refer to.
 //
 //   min x0*x1 + 1/2 x2^2 - x2
 //   s.t. x0 + x2 = 0.5,  x0 + x1 <= -2,  x in [-2, 2]^3
@@ -2522,7 +2522,7 @@ TEST(QpEngineIndefinite, WeaklyActiveGeneralRowIsNotCertifiedEither) {
 // reaches both minimizers: the restart is still spent exactly once, and
 // saddle_exits == 1 is what says the second dead end was not a second restart.
 //
-// This is also the shape SqpDriverQpFailure's fixtures are built on: a
+// This is also the shape SqpSolverQpFailure's fixtures are built on: a
 // reproducible kNumericalError WITH a finite, bound-feasible iterate is
 // precisely what the driver's shrink-retry routing needs to be exercised
 // against -- now from the option-off walk (test_sqp_solver.cpp,

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_rank_repair.cpp -- M7 W2 RDV: THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy;
+// test_qp_rank_repair.cpp -- M7 W2 RDV: THE DEAD-END RANK REPAIR (walk_engine.h, Degeneracy;
 // ws_independence.h, rank_repair). Three subproblems of the exact-Hessian TRAIN cells YORKNET and
 // SAWPATH, every one FEASIBLE by an external oracle (HiGHS phase 1 minimum l1 violation 0), on
 // which BOTH algebras of the independent working set's walk ended kNumericalError at the add
@@ -89,7 +89,7 @@ double pin_sign_violation(const QpSolution &s) {
 // equality row's residual within 1x of its tolerance, |r_j| <= row_tolerance(row_scale_j,
 // lambda_j) with row_tolerance = max(feas_tol * row_scale, min(dual_mu * |lambda_j|,
 // kInfeasibilityAbsorbTol * row_scale)) and row_scale_j = max(1, |be_j|, ||Ae_j||_1 * ||x||_inf)
-// (qp_engine.cpp, worst_row_ratio / row_tolerance). The kInfeasibilityMarginFactor (10x) is the
+// (walk_engine.cpp, worst_row_ratio / row_tolerance). The kInfeasibilityMarginFactor (10x) is the
 // infeasibility classifier's margin and is not the kOptimal contract. `ratio` is the worst
 // |r_j| over the tolerance (<= 1: every row meets it).
 struct EqRowContract {
@@ -203,7 +203,7 @@ void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
 // stationarity stalls on the equality block's 1e-11 singular values; YORKNET qp5: on a full-rank
 // square face, sigma_min 0.027, the EQP answer from the point on the rows misses them by 1.2e-2
 // and the next answer returns); until M7 W2 SNX the minor cap ended both cycles. THE STAGNATION
-// READING (qp_engine.h) now ends each with a drop, and Debug too certifies the KKT point Release
+// READING (walk_engine.h) now ends each with a drop, and Debug too certifies the KKT point Release
 // reaches (declared, Debug only): SAWPATH f = -376.163994774, inside the oracle band below;
 // YORKNET qp5 f = -1078.49295775, Release's pin. The kOptimal status stays asserted in Release
 // only. Asserted on both: the rule's own effect (no dead-end exit, a repair taken) and NO FALSE

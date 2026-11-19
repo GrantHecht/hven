@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_qp_flat_face_saddle.cpp — M7 W2 NC2: THE FLAT FACE (qp_engine.h section 4c), on the walk
+// test_qp_flat_face_saddle.cpp — M7 W2 NC2: THE FLAT FACE (walk_engine.h section 4c), on the walk
 // seam (docs/testing.md). Synthetic QPs first, then the
 // R2 dumps (tests/qp/fixtures/e2-d4/R2_*, the E2-D4 format;
 // docs/notes/data/2026-09-m7-w2-r2-composite-landing/).
@@ -67,7 +67,7 @@ Walk observed(const QpProblem &qp, const QpSolution *seed, const QpOptions &o) {
     return w;
 }
 
-// THE DESCENT INVARIANT (qp_engine.h section 4c, THE FLAT FACE): no ride ascends a slope the
+// THE DESCENT INVARIANT (walk_engine.h section 4c, THE FLAT FACE): no ride ascends a slope the
 // arithmetic can read. `ride_sign_chosen` is the sign `ride_sign` returned, `ride_slope` the slope
 // it read at the pass's starting iterate and `ride_slope_tol` the resolution it read it at. The
 // ratio test returns max(0, .), so alpha >= 0 and this is equivalently "no ride raises f by more

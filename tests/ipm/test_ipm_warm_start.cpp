@@ -1715,7 +1715,7 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
 // multiplier writes below are discriminating rather than no-ops: 7 is not zero,
 // and 5e3 is above rho. Everything else is inherited unchanged.
 struct WarmInfeasibleSeededMultProblem : WarmInfeasibleBoundedProblem,
-                                         hven_interior_tests::MultiplierSeedHook {
+                                         hven_ipm_tests::MultiplierSeedHook {
     static constexpr double kEqSeed = 7.0;
     static constexpr double kIqSeed = 5.0e3;
     bool starting_multipliers(hven::VecRef lambda) const override {
@@ -1744,7 +1744,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     constexpr double kMuCeiling = 1.0;
 
     const auto seeded_route =
-        hven_interior_tests::transcribe(std::make_shared<WarmInfeasibleSeededMultProblem>());
+        hven_ipm_tests::transcribe(std::make_shared<WarmInfeasibleSeededMultProblem>());
     hven::IpmSolver solver;
     {
         auto o = hven::ipm_preset("filter_l1");
@@ -1784,7 +1784,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // that route spelled out (M6 W5 T8.9). warm_optimize is not used here, so
     // the result is read from this call's own return value rather than from
     // that helper's stash.
-    const hven::IpmResult result = hven_interior_tests::solve_declared(solver, seeded_route, x0);
+    const hven::IpmResult result = hven_ipm_tests::solve_declared(solver, seeded_route, x0);
     ASSERT_GT(last_ran_phase(result)->restoration_entries, 0)
         << "the fixture must actually reach feasibility restoration";
     ASSERT_GE(eq_mult.size(), 2u)

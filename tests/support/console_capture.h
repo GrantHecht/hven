@@ -13,7 +13,7 @@
 // shared between `tests/support/` and a component's `support/` -- the
 // configure-time duplicate-basename check in tests/CMakeLists.txt enforces it.
 //
-// WHY IT EXISTS. Both console-capture suites -- tests/trace/test_trace_writer.cpp
+// WHY IT EXISTS. Both console-capture suites -- tests/trace/test_json_lines_trace_sink.cpp
 // and tests/ipm/test_ipm_trace.cpp -- had a private copy of the same
 // class, and each copy included <unistd.h> and called ::dup/::dup2/::fileno
 // unconditionally. Both targets are built on Windows, where that header does

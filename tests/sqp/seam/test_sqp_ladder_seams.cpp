@@ -1124,7 +1124,7 @@ class CountingCircleHalfPlaneModel final : public NlpModel {
 } // namespace
 
 namespace {
-// F9's inconsistent duplicate pair (test_sqp_equality_basis.cpp) WITHOUT the equality basis:
+// F9's inconsistent duplicate pair (test_equality_basis_driver.cpp) WITHOUT the equality basis:
 // c0 = x0 - 1, c1 = x0 - 1.001, the start (1.0005, 0) their least-squares point and the
 // objective's own stationary point, so QP 0 is inconsistent and its elastic optimum is the zero
 // step with both slacks open (l1 0.001): an exhausted ladder at h = 0.001.
