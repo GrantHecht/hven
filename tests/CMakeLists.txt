@@ -230,6 +230,8 @@ set(HVEN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 set_property(GLOBAL PROPERTY HVEN_TEST_SRC_CLAIMED "")
 set_property(GLOBAL PROPERTY HVEN_SEAM_TARGETS "")
+set_property(GLOBAL PROPERTY HVEN_WHOLE_SEAM_TARGETS "")
+set_property(GLOBAL PROPERTY HVEN_NARROW_SEAM_TARGETS "")
 set_property(GLOBAL PROPERTY HVEN_ORDINARY_TEST_TARGETS "")
 
 # Records that <owner> builds each given source (paths relative to the calling directory;
@@ -335,31 +337,60 @@ function(_hven_seam_backend_sources out)
     set(${out} ${_l} PARENT_SCOPE)
 endfunction()
 
+# The HVEN_TESTING build of the whole library, compiled ONCE (RS-6a, owner ruling Q9). Every
+# whole-library seam executable links these objects instead of recompiling the library itself, so
+# adding a seam executable costs its test sources and one link, not another library build. The
+# objects are the hven target's own sources and definitions plus HVEN_TESTING=1; nothing here links
+# hven::hven, so the production library stays untouched by HVEN_TESTING. Created on first use.
+function(_hven_testing_library)
+    if(TARGET hven_testing_library)
+        return()
+    endif()
+    add_library(hven_testing_library OBJECT $<TARGET_PROPERTY:hven,SOURCES>)
+    target_compile_definitions(hven_testing_library PRIVATE
+        $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)
+    target_include_directories(hven_testing_library PRIVATE
+        $<TARGET_PROPERTY:hven,INCLUDE_DIRECTORIES> ${HVEN_TESTS_INCLUDE_ROOT})
+    target_link_libraries(hven_testing_library PRIVATE
+        Eigen3::Eigen fmt::fmt-header-only Threads::Threads ${LINK_LIBS})
+    if(APPLE)
+        target_link_libraries(hven_testing_library PRIVATE AccelerateSparse::AccelerateSparse)
+    endif()
+    target_compile_options(hven_testing_library PRIVATE ${COMPILE_FLAGS})
+endfunction()
+
 # hven_add_seam_executable(<name>
 #     SOURCES <src>...             the seam test sources (relative to the calling directory)
 #     ( LIBRARY_SOURCES <src>...   the library TUs to recompile with HVEN_TESTING (absolute), plus
-#                                  the platform backend TUs, appended here
-#     | WHOLE_LIBRARY )            or every source of the hven target, taken from the target
+#                                  the platform backend TUs, appended here: a NARROW seam, for a
+#                                  directory whose closure is a handful of TUs
+#     | WHOLE_LIBRARY )            or the whole library, linked from the shared HVEN_TESTING object
+#                                  library hven_testing_library (compiled once for all of them)
 #     [DEFINITIONS <def>...])
 # A standalone executable on the HVEN_TESTING convention (docs/testing.md): HVEN_TESTING is
-# target-wide, the library TUs are compiled a SECOND time here, and it does NOT link hven::hven:
-# that keeps the production library's objects and every ordinary executable untouched by
-# HVEN_TESTING, and libhven.a would define the same symbols a second time.
+# target-wide on the library TUs it carries, and it does NOT link hven::hven: that keeps the
+# production library's objects and every ordinary executable untouched by HVEN_TESTING, and
+# libhven.a would define the same symbols a second time.
 function(hven_add_seam_executable name)
     cmake_parse_arguments(PARSE_ARGV 1 A "WHOLE_LIBRARY" ""
         "SOURCES;LIBRARY_SOURCES;DEFINITIONS")
     if(A_WHOLE_LIBRARY)
-        add_executable(${name} $<TARGET_PROPERTY:hven,SOURCES> ${A_SOURCES})
+        _hven_testing_library()
+        add_executable(${name} $<TARGET_OBJECTS:hven_testing_library> ${A_SOURCES})
         target_compile_definitions(${name} PRIVATE
             $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1 ${A_DEFINITIONS})
         target_include_directories(${name} PRIVATE
             $<TARGET_PROPERTY:hven,INCLUDE_DIRECTORIES> ${HVEN_TESTS_INCLUDE_ROOT})
+        set_property(GLOBAL APPEND PROPERTY HVEN_WHOLE_SEAM_TARGETS ${name})
     else()
         _hven_seam_backend_sources(_backend)
         add_executable(${name} ${A_LIBRARY_SOURCES} ${_backend} ${A_SOURCES})
         target_compile_definitions(${name} PRIVATE HVEN_TESTING=1 ${A_DEFINITIONS})
         target_include_directories(${name} PRIVATE
             ${HVEN_TESTS_ROOT}/../include ${INCLUDE_DIRS} ${HVEN_TESTS_INCLUDE_ROOT})
+        list(LENGTH A_LIBRARY_SOURCES _n_lib)
+        set_property(GLOBAL APPEND PROPERTY HVEN_NARROW_SEAM_TARGETS ${name})
+        set_property(GLOBAL PROPERTY "HVEN_NARROW_SEAM_LIBCOUNT:${name}" ${_n_lib})
     endif()
     _hven_claim_test_sources(${name} ${A_SOURCES})
     set_property(GLOBAL APPEND PROPERTY HVEN_SEAM_TARGETS ${name})
@@ -415,6 +446,49 @@ function(hven_check_seam_targets)
             message(FATAL_ERROR "${_t} is a seam executable (HVEN_TESTING) and links hven::hven; "
                 "it must not (docs/testing.md: libhven.a would define the same symbols a second "
                 "time and the production library would no longer be untouched by HVEN_TESTING).")
+        endif()
+    endforeach()
+    # A whole-library seam must take the library from the shared object library, never compile
+    # a library TU of its own (RS-6a, Q9): its sources are the test sources and
+    # $<TARGET_OBJECTS:hven_testing_library>, nothing under src/. A narrow seam must stay narrow:
+    # fewer library TUs than half the library, or it is a whole-library seam that was not declared
+    # as one.
+    get_property(_whole GLOBAL PROPERTY HVEN_WHOLE_SEAM_TARGETS)
+    get_filename_component(_src_abs "${HVEN_SRC_DIR}" ABSOLUTE)
+    foreach(_t IN LISTS _whole)
+        get_target_property(_srcs ${_t} SOURCES)
+        if(NOT "$<TARGET_OBJECTS:hven_testing_library>" IN_LIST _srcs)
+            message(FATAL_ERROR "${_t} is a whole-library seam executable but does not link the "
+                "shared HVEN_TESTING objects (hven_testing_library); the library is compiled "
+                "once for all whole-library seams.")
+        endif()
+        foreach(_s IN LISTS _srcs)
+            get_filename_component(_s_abs "${_s}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+            if(_s_abs MATCHES "^${_src_abs}/")
+                message(FATAL_ERROR "${_t} is a whole-library seam executable and compiles the "
+                    "library TU ${_s} itself; it must take it from hven_testing_library (the "
+                    "library is compiled once for all whole-library seams).")
+            endif()
+        endforeach()
+    endforeach()
+    get_property(_narrow GLOBAL PROPERTY HVEN_NARROW_SEAM_TARGETS)
+    get_target_property(_hven_srcs hven SOURCES)
+    list(LENGTH _hven_srcs _n_hven)
+    math(EXPR _narrow_max "${_n_hven} / 2")
+    foreach(_t IN LISTS _narrow)
+        get_property(_n_lib GLOBAL PROPERTY "HVEN_NARROW_SEAM_LIBCOUNT:${_t}")
+        get_target_property(_srcs ${_t} SOURCES)
+        set(_n_src 0)
+        foreach(_s IN LISTS _srcs)
+            get_filename_component(_s_abs "${_s}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+            if(_s_abs MATCHES "^${_src_abs}/")
+                math(EXPR _n_src "${_n_src} + 1")
+            endif()
+        endforeach()
+        if(_n_src GREATER _narrow_max)
+            message(FATAL_ERROR "${_t} is a narrow seam executable but recompiles ${_n_src} of "
+                "the library's ${_n_hven} TUs; a seam that needs most of the library must be "
+                "declared WHOLE_LIBRARY and use the shared hven_testing_library.")
         endif()
     endforeach()
     get_property(_ordinary GLOBAL PROPERTY HVEN_ORDINARY_TEST_TARGETS)

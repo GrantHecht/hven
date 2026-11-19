@@ -50,7 +50,7 @@ hven_add_test_executable(hven_qp_tests
 
 ################################################################################
 # QP-tier seam tests (docs/testing.md: the HVEN_TESTING convention, applied to the QP tiers). ONE standalone executable (RS-6a merged the former hven_ipqp_seam_tests and hven_qp_walk_seam_tests and one
-# source of the whole-library hven_sqp_seam_tests) that recompiles the tiers' own sources -- plus the transitive closure they need to link -- a SECOND time, with HVEN_TESTING defined ONLY on that second copy's compile.
+# source of the whole-library hven_sqp_seam_tests) that takes the library from hven_testing_library, the HVEN_TESTING build of the whole library compiled once and shared with the solver, ipm and sqp seam executables (RS-6a, Q9: the former narrow closure of fourteen TUs is cheaper as a link against objects that exist anyway, and it retires the narrow-seam flag class); it does not link hven::hven.
 # WHAT IT COVERS AND WHY NOTHING ELSE CAN. IPQP: the specification's evidence-failure policy (an InertiaEvidence state other than kObserved permits a step only at a conservative rho floor and downgrades the
 # certificate for the whole solve) and the two terminal inertia states the certification read can report (PERTURBED, UNREADABLE) are unreachable from any legal subproblem on this backend; the kUnavailable case is an
 # Accelerate path, which under CLAUDE.md section 6's never-fabricate rule stays UNOBSERVED until real Mac hardware runs it. The hook is one function in src/qp/ipqp/ipqp_engine.cpp, at the single line where the tier
@@ -62,6 +62,7 @@ hven_add_test_executable(hven_qp_tests
 ################################################################################
 
 hven_add_seam_executable(hven_qp_seam_tests
+    WHOLE_LIBRARY
     SOURCES
         test_dense_solve_wound_seams.cpp
         test_ipqp_seams.cpp
@@ -75,6 +76,7 @@ hven_add_seam_executable(hven_qp_seam_tests
         test_qp_flat_face_saddle.cpp
         test_qp_implied_blocker.cpp
         test_qp_latch_reason.cpp
+        test_qp_platform_retake.cpp
         test_qp_rank_repair.cpp
         test_qp_refused_exchange.cpp
         test_qp_release_readmission.cpp
@@ -85,20 +87,5 @@ hven_add_seam_executable(hven_qp_seam_tests
         test_qp_unrun_dependency_test.cpp
         test_qp_walk_seam.cpp
         test_route_reference.cpp
-    LIBRARY_SOURCES
-        ${HVEN_SRC_DIR}/core/enum_names.cpp
-        ${HVEN_SRC_DIR}/core/ledger.cpp
-        ${HVEN_SRC_DIR}/core/pattern_hash.cpp
-        ${HVEN_SRC_DIR}/kkt/kkt_factor.cpp
-        ${HVEN_SRC_DIR}/kkt/kkt_factorization.cpp
-        ${HVEN_SRC_DIR}/linear/dense_symmetric_factor.cpp
-        ${HVEN_SRC_DIR}/qp/ipqp/ipqp_engine.cpp
-        ${HVEN_SRC_DIR}/qp/ipqp/ipqp_kkt_layout.cpp
-        ${HVEN_SRC_DIR}/qp/ssn/ssn_engine.cpp
-        ${HVEN_SRC_DIR}/qp/walk/walk_engine.cpp
-        ${HVEN_SRC_DIR}/qp/walk/ws_independence.cpp
-        ${HVEN_SRC_DIR}/solver/common_options.cpp
-        ${HVEN_SRC_DIR}/sqp/sqp_options.cpp
-        ${HVEN_SRC_DIR}/trace/trace.cpp
     DEFINITIONS
         HVEN_QP_E2D4_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/e2-d4")

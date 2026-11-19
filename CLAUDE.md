@@ -324,8 +324,8 @@ no exceptions:
   `src/linear/symmetric_factor_mkl.cpp`), with `HVEN_TESTING` defined
   target-wide on a standalone test executable that recompiles those TUs a
   second time and does not link `hven::hven`, so the production library and
-  `hven_tests` are never touched by it. Use this convention for any new need
-  rather than inventing another; `docs/testing.md` also records why each
+  the ordinary `hven_<component>_tests` executables are never touched by it.
+  Use this convention for any new need rather than inventing another; `docs/testing.md` also records why each
   existing injector is or is not faithful for scenarios beyond the one it was
   built for, and lists every sanctioned inside-the-session-file deviation with
   its reasoning and its cost evidence.

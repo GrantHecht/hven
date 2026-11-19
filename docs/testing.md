@@ -223,18 +223,21 @@ Two kinds of process stay separate, as they must:
 | `hven_linear_seam_tests` | the backend fault seam (formerly `hven_fault_injection_tests`) | `linear/test_fault_injection.cpp` |
 | `hven_kkt_seam_tests` | the KKT factorization's failed-factorization and failed-analysis paths (same convention, formerly the second source of `hven_fault_injection_tests`) | `kkt/test_kkt_factorization_faults.cpp` |
 | `hven_qp_seam_tests` | the IPQP tier seam, the walk seam and the SSN dense-solve wound seam, one executable (formerly `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and one source of `hven_sqp_seam_tests`) | `qp/test_ipqp_seams.cpp`, the walk-seam sources, `qp/test_dense_solve_wound_seams.cpp` |
-| `hven_solver_seam_tests` | the shared-engine seams (backend errors, intra-iteration stop polls); recompiles the whole library | `solver/test_backend_error_seams.cpp`, `solver/test_stop_poll_seams.cpp` |
-| `hven_ipm_seam_tests` | the IPM dense guard seam; recompiles the whole library | `ipm/test_ipm_dense_guard_seams.cpp` |
-| `hven_sqp_seam_tests` | the equality-basis and ladder seams; recompiles the whole library | `sqp/test_sqp_equality_basis_seams.cpp`, `sqp/test_sqp_ladder_seams.cpp` |
+| `hven_solver_seam_tests` | the shared-engine seams (backend errors, intra-iteration stop polls); whole library from `hven_testing_library` | `solver/test_backend_error_seams.cpp`, `solver/test_stop_poll_seams.cpp` |
+| `hven_ipm_seam_tests` | the IPM dense guard seam; whole library from `hven_testing_library` | `ipm/test_ipm_dense_guard_seams.cpp` |
+| `hven_sqp_seam_tests` | the equality-basis and ladder seams; whole library from `hven_testing_library` | `sqp/test_sqp_equality_basis_seams.cpp`, `sqp/test_sqp_ladder_seams.cpp` |
 | `hven_linear_alloc_tests` | the dense arm's allocation-free hot path; replaces the global `operator new` and wraps malloc at link time (formerly `hven_dense_alloc_tests`) | `linear/test_dense_arm_allocation.cpp` |
 
 At most one seam executable per directory; each is defined by `hven_add_seam_executable`, which defines `HVEN_TESTING`
 target-wide, never links `hven::hven`, and registers itself so that `hven_check_seam_targets()` fails the configure if
 one ever does (or if an ordinary executable defines `HVEN_TESTING`). Everything the sections below say about
 `hven_fault_injection_tests`, `hven_ipqp_seam_tests`, `hven_qp_walk_seam_tests` and the old `hven_sqp_seam_tests` holds of the
-executable that replaced it. Three or four whole-library `HVEN_TESTING` recompiles (solver, ipm, sqp; the qp executable
-recompiles only the tiers' closure) are the cost of that split; it is measured in
-`docs/notes/data/2026-11-m8-rs/gates/RS-6a/` (Q9) and the single `hven_seam_tests` fallback is the owner's call.
+executable that replaced it. The four whole-library seam executables (qp, solver, ipm, sqp) do not each recompile the
+library: the `HVEN_TESTING` build of every source of the `hven` target is compiled ONCE, as the OBJECT library
+`hven_testing_library` (defined on first use in `tests/CMakeLists.txt`), and each executable links those objects beside its
+own test sources (owner ruling Q9). `hven_check_seam_targets()` fails the configure if a whole-library seam compiles a
+library TU of its own or lacks the shared objects, or if a narrow seam (`LIBRARY_SOURCES`, linear and kkt) recompiles more than half
+the library. The cost is measured in `docs/notes/data/2026-11-m8-rs/gates/RS-6a/` (Q9; the -r6 declaration's re-measure).
 
 ### One target, two, or three (four since M7 W2 E1b: `hven_sqp_seam_tests`, below)
 

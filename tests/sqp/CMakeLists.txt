@@ -77,7 +77,7 @@ endif()
 
 ################################################################################
 # SQP seam tests (docs/testing.md: the HVEN_TESTING convention; M7 W2 E1b), and since the M7 W2 ladder round the SQP ladder seam's (hven/detail/sqp/ladder_testing.h, the sixth seam). Both seams
-# (the first is hven/detail/sqp/equality_basis_testing.h) sit in sqp_solver.cpp, whose transitive closure is the whole library, so this target recompiles EVERY source of the hven target a SECOND time with
+# (the first is hven/detail/sqp/equality_basis_testing.h) sit in sqp_solver.cpp, whose transitive closure is the whole library, so this target takes EVERY source of the hven target from hven_testing_library (compiled once, shared by all whole-library seam executables) with
 # HVEN_TESTING defined, taking hven's own sources, include directories and compile definitions from the target itself (derived, not carried), and does not link hven::hven: libhven.a's objects and these
 # define the same symbols.
 ################################################################################

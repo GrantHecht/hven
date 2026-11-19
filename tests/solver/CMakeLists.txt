@@ -56,7 +56,7 @@ hven_add_test_executable(hven_solver_tests
         HVEN_SRC_ROOT="${HVEN_REPO_ROOT}/src")
 
 ################################################################################
-# Shared-engine seam tests (docs/testing.md; HVEN_TESTING). Both sources drive BOTH engines through the public handles, so this executable recompiles every source of the hven target a SECOND time
+# Shared-engine seam tests (docs/testing.md; HVEN_TESTING). Both sources drive BOTH engines through the public handles, so this executable takes every source of the hven target from hven_testing_library (compiled once with HVEN_TESTING, shared by all whole-library seam executables)
 # with HVEN_TESTING defined (taken from the target itself) and does not link hven::hven. test_backend_error_seams: the backend-failure half of the exception contract (M8 B5 riders), on the linear
 # layer's analyze/factorize injectors. test_stop_poll_seams: the intra-iteration stop polls (M8 AP-5 G4; StopPollSeam, detail/core/stop_poll.h).
 ################################################################################

@@ -7,6 +7,7 @@
 set(_hven_linear_sources
     test_dense_symmetric_factor.cpp
     test_dense_symmetric_factor_growth.cpp
+    test_matching_scaling.cpp
     test_symmetric_factor_dense_arm.cpp
     test_symmetric_factor_evidence_invariants.cpp
     test_symmetric_factor_pardiso_only_options.cpp

@@ -94,7 +94,7 @@ hven_add_test_executable(hven_ipm_tests
 
 ################################################################################
 # The IPM dense guard's failed re-run (DN-1b review F8), on the dense-attempt and platform-factorize injectors (docs/testing.md; HVEN_TESTING). The seam is in the IPM solver TU, whose transitive
-# closure is the whole library, so this executable recompiles every source of the hven target a SECOND time with HVEN_TESTING defined and does not link hven::hven.
+# closure is the whole library, so this executable takes the library from hven_testing_library (every source of the hven target compiled once with HVEN_TESTING, shared by the qp, solver, ipm and sqp seam executables) and does not link hven::hven.
 ################################################################################
 
 hven_add_seam_executable(hven_ipm_seam_tests
