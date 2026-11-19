@@ -1,0 +1,2 @@
+RS-4 CI (workflow_dispatch on origin rs-4): run 44435459164 on head 6977240a07e8 (the rebased branch over m8 66cc44ccc, which carries the Windows LLVM 22.1.7 fix):
+linux-clang-release success, windows-clang-release success, macos-clang-release success, linux-clang-coverage success. (The Windows STL1000 failure did not occur.)
