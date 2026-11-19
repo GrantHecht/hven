@@ -153,7 +153,9 @@ InFaceTally in_face_tally(const std::vector<Record> &records) {
         const double floor = 1e-12 * std::max(1.0, std::abs(r.obj_in));
         if (r.ascent_ride) {
             ++t.rides;
-            t.rides_not_down += next < r.obj_in ? 0 : 1;
+            // Not down past f's own rounding floor: a short ride's decrease can sit below it
+            // (M8 WA-1: the regularization footprint's rides stop inside the row budget).
+            t.rides_not_down += next - r.obj_in > floor ? 1 : 0;
         } else if (r.step_in_face == 1 &&
                    (r.action == Action::kAdd || r.action == Action::kMoveOnly)) {
             ++t.ordinary;

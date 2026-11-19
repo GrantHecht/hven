@@ -190,9 +190,11 @@ void expect_exchanged_to_kkt(const char *file, const char *premise, QpWorkingSet
 
 } // namespace
 
-// The Release values measured at the landing (the walk's certified points).
+// The Release values measured at the landing (the walk's certified points). qp25 re-derived at M8
+// WA-1 r5 (declared there): the ascent guard's regularization footprint (walk_engine.h 4c) rides
+// down where the walk had stepped up, and the walk certifies the fixture's other known point.
 constexpr double kQp26Release = 0.133368173127;
-constexpr double kQp25Release = -1398.63412864;
+constexpr double kQp25Release = -5.79957813652;
 
 TEST(QpYrkRefusedExchange, YorknetRestorationQp26Border) {
     expect_exchanged_to_kkt("YRK_YORKNET_qp26.txt", "status=3 minors=9 ", kBorder, kQp26Release);

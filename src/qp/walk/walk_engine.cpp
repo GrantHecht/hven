@@ -798,6 +798,25 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     std::unique_ptr<detail::KktFactor> diag_kkt;
     EliminatedFace diag_face;
 #endif
+    // A dual_mu rung's companion: the factor state is discarded so the next pass factorizes at
+    // the new dual_mu (THE RELEASE RE-ADMISSION; section 4c's REGULARIZATION FOOTPRINT).
+    const auto discard_factor_state = [&] {
+        if (border_.use_count() > 1) {
+            border_ = std::make_shared<BorderState>(0, dense_policy_);
+        } else {
+            border_->schur.reset();
+            border_->latched = false;
+            border_->k0_rows.clear();
+            border_->ledger.clear();
+            detail::clear_platform_retake_request(border_->kkt);
+        }
+        face.factorized = false;
+    };
+    // THE REGULARIZATION FOOTPRINT's rung (section 4c) is kept only when the face it re-solves
+    // factors trusted: the dual_mu it replaced, while one is pending, and whether the solve has
+    // given up on footprint rungs (a rung that read kSuspect is reverted once).
+    double footprint_rung_from = 0.0;
+    bool footprint_rungs_off = false;
     // THE STOP POLL (M8 AP-5 G4), hoisted: null unless the SQP driver armed it.
     const std::atomic<bool> *const stop = stop_flag_;
     detail::poll_stop_begin_solve(stop, detail::StopPollSite::kWalk);
@@ -922,6 +941,24 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         walk_obs.record().eqp_residual_iters = eqp.residual_refine_iters;
         walk_obs.record().eqp_residual_refused = eqp.residual_refused ? 1 : 0;
 #endif
+        if (footprint_rung_from > 0.0) {
+            // A footprint rung's face below the backend's static-pivot floor: reverted, and no
+            // further footprint rung this solve (the pass is solved again at the restored mu).
+            const double restored = footprint_rung_from;
+            footprint_rung_from = 0.0;
+            if (verdict == detail::InertiaVerdict::kSuspect) {
+                eff_opts.dual_regularization = restored;
+                footprint_rungs_off = true;
+                ++counters.ascent_footprint_rung_reverts;
+                discard_factor_state();
+#ifdef HVEN_TESTING
+                walk_obs.record().ascent_footprint =
+                    detail::testing::QpWalkFootprint::kRungReverted;
+                walk_obs.record().action = detail::testing::QpWalkAction::kFootprintRung;
+#endif
+                continue;
+            }
+        }
 
         // THE EQP-SITE RESIDUAL CHECK's REFUSAL (section 5; eqp_solve.h states the
         // check), and a NON-FINITE answer, which is the same statement at its limit.
@@ -1189,7 +1226,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                               ? dep_factor_view(ws, kkt, face, *border_)
                                               : detail::DepFactorView{};
 
-        const Vec p = eqp.x - x;
+        // The step's direction and landing point: the EQP answer, or THE REGULARIZATION
+        // FOOTPRINT's regularized answer (section 4c), which replaces both for the ordinary step.
+        Vec p = eqp.x - x;
+        const Vec *landing = &eqp.x;
 
         // Whatever the previous iteration's drop rule released. Consumed
         // here whether or not the ride below fires, so it can never arm an
@@ -2175,86 +2215,138 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // (0, 1] -- so the walk rides -p (descent, negative curvature) to its first blocker
         // instead, as the saddle exit rides d. A pass at which neither the step along p
         // nor the ride along -p would move x is a degenerate pivot, not an ascent: it is
-        // left to the ordinary add. THE REGULARIZATION FOOTPRINT: a p that holds its pins
-        // but leaves working rows the iterate meets is read in the dual_mu-regularized
-        // face's own currency, the penalty merit f + |A_W x - b_W|^2 / (2 mu): -p is ridden
-        // when its slope and verified curvature descend that merit as well as f.
+        // left to the ordinary add. THE REGULARIZATION FOOTPRINT: a p that holds its pins but
+        // leaves working rows by the dual_mu footprint -- on a trusted-kWrong face the ride
+        // along -p inside the row budget, else a dual_mu rung; on a kOk face whose merit
+        // rises along p, the ordinary step along the regularized answer.
+        Vec footprint_ride_dir; // non-empty: the footprint ride's direction (-p)
         if (eff_opts.independent_working_set && !ride_blocked) {
             const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
             const double slope = gx.dot(p);
-            const double slope_tol = detail::kEngineDenomTol * gx.norm() * p.norm();
-            const double php =
-                slope > slope_tol ? p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) : 0.0;
-            const auto either_moves = [&] {
-                QpCounters scratch; // read-only ratio tests: their ties are not this pass's
+            const double php = slope > detail::kEngineDenomTol * gx.norm() * p.norm()
+                                   ? p.dot(qp.H.selfadjointView<Eigen::Upper>() * p)
+                                   : 0.0;
+            QpCounters scratch; // read-only ratio tests: their ties are not this pass's
+            // The length of the step along `dir` to its first blocker (capped at 1 or not);
+            // `blocked` reports whether one exists.
+            const auto reach = [&](const Vec &dir, bool cap_at_unit, bool *blocked) {
                 BlockKind k = BlockKind::kNone;
                 Index i = -1;
                 BoundState st = BoundState::kFree;
-                if (ratio_test(qp, ws, x, Aix, p, k, i, st, /*cap_at_unit=*/true, scratch) * p_inf >
-                    step_tol) {
+                const double a = ratio_test(qp, ws, x, Aix, dir, k, i, st, cap_at_unit, scratch);
+                if (blocked != nullptr) {
+                    *blocked = k != BlockKind::kNone;
+                }
+                return a;
+            };
+            const auto either_moves = [&] {
+                if (reach(p, /*cap_at_unit=*/true, nullptr) * p_inf > step_tol) {
                     return true;
                 }
-                k = BlockKind::kNone;
-                const double a_ride =
-                    ratio_test(qp, ws, x, Aix, Vec(-p), k, i, st, /*cap_at_unit=*/false, scratch);
-                return k == BlockKind::kNone || a_ride * p_inf > step_tol;
+                bool blocked = false;
+                const double a_ride = reach(Vec(-p), /*cap_at_unit=*/false, &blocked);
+                return !blocked || a_ride * p_inf > step_tol;
             };
             bool guard = false;
-            double footprint_move = 0.0; // < 0: the merit-capped move, x += footprint_move * p
-            if (slope > slope_tol && php <= -curvature_tol * p.squaredNorm() &&
+            if (slope > detail::kEngineDenomTol * gx.norm() * p.norm() &&
+                php <= -curvature_tol * p.squaredNorm() &&
                 iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
                                            lambda_e, eff_opts)) {
                 if (ride_stays_in_working_set(qp, ws, p)) {
                     guard = either_moves();
-                } else if (eff_opts.dual_regularization > 0.0 && ride_holds_pins(ws, p)) {
-                    // THE REGULARIZATION FOOTPRINT: the merit's slope along p must rise too;
-                    // f falls along -p for every alpha (slope > 0, verified p'Hp < 0), the merit
-                    // up to its own minimiser when its curvature along p is positive, and the
-                    // rows stay inside the ordinary step's own budget.
-                    const FootprintMerit m =
-                        footprint_merit(qp, ws, x, Aix, p, ai_row_norm1, ae_row_norm1, eff_opts);
-                    QpCounters scratch; // read-only ratio test: its ties are not this pass's
-                    BlockKind k = BlockKind::kNone;
-                    Index i = -1;
-                    BoundState st = BoundState::kFree;
-                    const double a_block = ratio_test(qp, ws, x, Aix, Vec(-p), k, i, st,
-                                                      /*cap_at_unit=*/false, scratch);
-                    const detail::FootprintDecision fd =
-                        detail::footprint_decision(slope, php, m.slope, m.curvature, slope_tol,
-                                                   k != BlockKind::kNone, a_block, m.row_budget);
-                    if (fd.ride) {
-                        guard = k == BlockKind::kNone || either_moves();
-                    } else if (-fd.move * p_inf > step_tol) {
-                        footprint_move = fd.move;
+                } else if (eff_opts.dual_regularization > 0.0 &&
+                           verdict != detail::InertiaVerdict::kSuspect) {
+                    // p holds its pins exactly here: both EQP producers write a pinned entry at
+                    // its bound, and the walk puts x on a pin whenever one joins.
+                    if (verdict == detail::InertiaVerdict::kWrong) {
+                        // f falls along d = -p for every alpha: -s < 0 and p'Hp < 0 (above).
+                        Vec d = -p;
+                        bool blocked = false;
+                        const double a = reach(d, /*cap_at_unit=*/false, &blocked);
+                        const bool ride_moves = a * d.lpNorm<Eigen::Infinity>() > step_tol;
+                        if (blocked && ride_moves &&
+                            detail::footprint_rows_within_budget(qp, ws, Vec(x + a * d),
+                                                                 ai_row_norm1, ae_row_norm1,
+                                                                 eff_opts.feasibility_tol)) {
+                            ++counters.ascent_footprint_rides;
+                            footprint_ride_dir = std::move(d);
+                            guard = true;
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kRide;
+#endif
+                        } else if (!ride_moves &&
+                                   !(reach(p, /*cap_at_unit=*/true, nullptr) * p_inf > step_tol)) {
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kDegenerate;
+#endif
+                        } else if (!footprint_rungs_off && counters.dual_regularization_decreases <
+                                                               detail::kMaxDualRegDecreases) {
+                            ++counters.dual_regularization_decreases;
+                            ++counters.ascent_footprint_rungs;
+                            footprint_rung_from = eff_opts.dual_regularization;
+                            eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
+                            discard_factor_state();
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kRung;
+                            walk_obs.record().action =
+                                detail::testing::QpWalkAction::kFootprintRung;
+#endif
+                            continue;
+                        } else {
+                            ++counters.ascent_footprint_declines;
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kDeclined;
+#endif
+                        }
+                    } else if (const detail::FootprintSlope along_p = detail::footprint_merit_slope(
+                                   qp, ws, x, Aix, gx, p, eff_opts.dual_regularization);
+                               !(along_p.slope > along_p.tol)) {
+#ifdef HVEN_TESTING
+                        walk_obs.record().ascent_footprint =
+                            detail::testing::QpWalkFootprint::kMeritFalls;
+#endif
+                    } else {
+                        // M rises along the refined p: the regularized answer descends M by
+                        // construction on a kOk face, verified here before it is stepped along.
+                        bool pu_descends = false;
+                        Vec pu;
+                        if (eqp.x_regularized.size() == n) {
+                            pu = eqp.x_regularized - x;
+                            const detail::FootprintSlope along_pu = detail::footprint_merit_slope(
+                                qp, ws, x, Aix, gx, pu, eff_opts.dual_regularization);
+                            pu_descends = along_pu.slope < -along_pu.tol;
+                        }
+                        if (pu_descends) {
+                            ++counters.ascent_footprint_regularized_steps;
+                            p = std::move(pu);
+                            landing = &eqp.x_regularized;
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kRegularizedStep;
+#endif
+                        } else {
+                            ++counters.ascent_footprint_declines;
+#ifdef HVEN_TESTING
+                            walk_obs.record().ascent_footprint =
+                                detail::testing::QpWalkFootprint::kDeclined;
+#endif
+                        }
                     }
-#ifdef HVEN_TESTING
-                    walk_obs.record().ascent_footprint = guard ? 2 : footprint_move < 0.0 ? 3 : 1;
-#endif
                 }
-            }
-            if (footprint_move < 0.0) {
-                // The merit's minimiser along -p comes before any blocker: a move, nothing joins.
-                ++counters.ascent_rides;
-                x += footprint_move * p;
-                degenerate_run = 0;
-                pt_clear(seen);
-                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
-                               eff_opts);
-#ifdef HVEN_TESTING
-                walk_obs.record().ascent_ride = true;
-                walk_obs.record().action = detail::testing::QpWalkAction::kMoveOnly;
-                walk_obs.record().alpha = footprint_move;
-                walk_obs.record().dx_inf = -footprint_move * p_inf;
-#endif
-                continue;
             }
             if (guard) {
                 ++counters.ascent_rides;
 #ifdef HVEN_TESTING
                 walk_obs.record().ascent_ride = true;
 #endif
-                const RideOutcome ao = ride_direction(counters, seen, qp, Vec(-p), Aix, ws, x,
-                                                      &pass_view, eff_opts, ride);
+                const RideOutcome ao =
+                    ride_direction(counters, seen, qp,
+                                   footprint_ride_dir.size() > 0 ? footprint_ride_dir : Vec(-p),
+                                   Aix, ws, x, &pass_view, eff_opts, ride);
                 if (ao == RideOutcome::kStepped) {
                     degenerate_run = 0;
                     if (ride.dx_inf > step_tol) {
@@ -2910,7 +3002,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         if (ride_blocked) {
             x += alpha * sdir; // a ride step: no landing point, uncapped
         } else {
-            x = (alpha >= 1.0) ? eqp.x : Vec(x + alpha * p);
+            x = (alpha >= 1.0) ? *landing : Vec(x + alpha * p);
         }
         // The ordinary step ran: a hold issued this pass is spent (a repair or retreat `continue`
         // before here leaves it unspent, and the next pass may hold again).
@@ -3064,16 +3156,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             eff_opts.dual_regularization > 0.0) {
             ++counters.dual_regularization_decreases;
             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
-            if (border_.use_count() > 1) {
-                border_ = std::make_shared<BorderState>(0, dense_policy_);
-            } else {
-                border_->schur.reset();
-                border_->latched = false;
-                border_->k0_rows.clear();
-                border_->ledger.clear();
-                detail::clear_platform_retake_request(border_->kkt);
-            }
-            face.factorized = false;
+            discard_factor_state();
         }
         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
             standstill_steps = standstill_steps_in + 1;
@@ -6396,49 +6479,6 @@ bool QpEngine::ride_stays_in_working_set(const QpProblem &qp, const WorkingSet &
         }
     }
     return true;
-}
-
-bool QpEngine::ride_holds_pins(const WorkingSet &ws, const Vec &p) const {
-    const double pn = p.norm();
-    for (Index i = 0; i < p.size(); ++i) {
-        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree &&
-            std::abs(p(i)) > detail::kRideNullspaceTol * pn) {
-            return false;
-        }
-    }
-    return true;
-}
-
-QpEngine::FootprintMerit QpEngine::footprint_merit(const QpProblem &qp, const WorkingSet &ws,
-                                                   const Vec &x, const Vec &Aix, const Vec &p,
-                                                   const Vec &ai_row_norm1, const Vec &ae_row_norm1,
-                                                   const QpOptions &opts) const {
-    FootprintMerit m;
-    m.row_budget = std::numeric_limits<double>::infinity();
-    const double xmag = x.lpNorm<Eigen::Infinity>();
-    const auto add = [&](double r, double ap, double b, double norm1) {
-        m.slope += r * ap;
-        m.curvature += ap * ap;
-        if (ap != 0.0) {
-            // Along -p the residual is r - alpha * ap; it reaches -sign(ap) * tol at this alpha,
-            // tol the structural margin of the multiplier-free floor: the step changes the face,
-            // so the footprint allowance of this face's multipliers is not its to spend.
-            const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});
-            const double tol =
-                detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, 0.0, opts);
-            const double a = ap > 0.0 ? (r + tol) / ap : (r - tol) / ap;
-            m.row_budget = std::min(m.row_budget, std::max(a, 0.0));
-        }
-    };
-    for (Index j = 0; j < qp.me(); ++j) {
-        add(qp.Ae.row(j).dot(x) - qp.be(j), qp.Ae.row(j).dot(p), qp.be(j), ae_row_norm1(j));
-    }
-    for (const Index row : ws.active_ineq()) {
-        add(Aix(row) - qp.bi(row), qp.Ai.row(row).dot(p), qp.bi(row), ai_row_norm1(row));
-    }
-    m.slope /= opts.dual_regularization;
-    m.curvature /= opts.dual_regularization;
-    return m;
 }
 
 int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Vec &p, const Vec &x,

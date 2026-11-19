@@ -140,12 +140,12 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
-    /// Rungs of the release re-admission rule this solve spent (walk_engine.h,
-    /// THE RELEASE RE-ADMISSION): each multiplies the effective
-    /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
-    /// refresh re-admitted the row the previous pass released, at most
-    /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
-    /// released row; independent_working_set walks only.
+    /// Rungs of the effective dual_regularization this solve spent: each multiplies it by
+    /// detail::kDualRegDecreaseFactor, at most detail::kMaxDualRegDecreases per solve, after the
+    /// shift refresh re-admitted the row the previous pass released (walk_engine.h, THE RELEASE
+    /// RE-ADMISSION) or in place of the ascent guard's footprint ride (4c;
+    /// ascent_footprint_rungs). Zero on every solve that took neither;
+    /// independent_working_set walks only.
     Index dual_regularization_decreases = 0;
 
     /// True iff walk_engine.h's border-mode reuse gate (`reuse_eligible` in
@@ -337,6 +337,18 @@ struct QpCounters {
     // working set and ascended with nonpositive curvature (an indefinite face's saddle),
     // ridden along -p instead of stepped along p.
     Index ascent_rides = 0;
+    // THE ASCENT GUARD's REGULARIZATION FOOTPRINT (qp_engine.h 4c), on passes whose EQP direction
+    // held its pins but left working rows by the dual_mu footprint: trusted-kWrong passes ridden
+    // along -p (also in ascent_rides); kOk passes stepped along the regularized answer instead of
+    // the refined one; dual_mu rungs taken instead of a ride whose landing point would leave the
+    // row budget (also in dual_regularization_decreases); rungs reverted because the face they
+    // re-solved read kSuspect (dual_mu restored, no further footprint rung that solve); and passes
+    // where the rule had nothing to take, so the ordinary ascending step stood.
+    Index ascent_footprint_rides = 0;
+    Index ascent_footprint_regularized_steps = 0;
+    Index ascent_footprint_rungs = 0;
+    Index ascent_footprint_rung_reverts = 0;
+    Index ascent_footprint_declines = 0;
     Index dep_pin_skips = 0;
     Index ws_count_violations = 0; // passes with me + |W| > n (the integer screen)
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve

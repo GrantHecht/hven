@@ -289,6 +289,12 @@ constexpr Index kMaxVerdictRefineSteps = 10;
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
 
+    /// The answer's x BEFORE the model's mu-free refinement and the unregularized polish: the
+    /// solution of the REGULARIZED system itself (after the residual check's loop), pins at their
+    /// bounds. The walk's ascent guard steps along it (walk_engine.h 4c, THE REGULARIZATION
+    /// FOOTPRINT). Empty from producers that do not fill it.
+    Vec x_regularized;
+
     /// Refinement steps this ONE solve kept — deliberately two different
     /// meanings by producer, feeding QpCounters' two fields:
     /// solve_eqp reports EXTRA steps beyond the mandatory first (identically 0
@@ -538,6 +544,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // returned.
     Vec y;
     Vec r_reg;
+    Vec x_regularized;
     bool shifted_refused = false;
     double ratio = 0.0;
     bool refused = false;
@@ -578,6 +585,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
 
         if (unrefined_out != nullptr) {
             *unrefined_out = scatter(y);
+        }
+        x_regularized = x_fixed;
+        for (Index k = 0; k < n_free; ++k) {
+            x_regularized(asm_.free_of_full[static_cast<std::size_t>(k)]) = y(k);
         }
 
         if (!kkt.dense_shifted) {
@@ -621,6 +632,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
 
     EqpResult out = scatter(y);
+    out.x_regularized = std::move(x_regularized);
     out.polish_steps = polish_kept;
     out.refine_steps = 0; // no iterated loop on this path -- see the header note
     out.row_residual = row_residual;

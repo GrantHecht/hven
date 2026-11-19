@@ -210,6 +210,31 @@ enum class QpWalkAction : int {
     /// THE STAGNATION READING with nothing to drop re-solved the face mu-free and adopted the
     /// point (once per solve); nothing released: the next pass starts from it.
     kStagnationRefine,
+    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT (4c) took a dual_mu rung instead of a ride whose
+    /// landing point would leave the row budget, or reverted one whose face read kSuspect: the pass
+    /// is solved again, nothing moved.
+    kFootprintRung,
+};
+
+/// THE ASCENT GUARD's REGULARIZATION FOOTPRINT branch (4c) on this pass.
+enum class QpWalkFootprint : int {
+    /// The branch was not reached.
+    kNotAsked = -1,
+    /// kOk face, and the penalty merit falls along p: the ordinary step, not this rule's case.
+    kMeritFalls = 0,
+    /// kWrong face: `-p` ridden to its blocker inside the row budget.
+    kRide = 1,
+    /// kOk face: the ordinary step taken along the regularized answer.
+    kRegularizedStep = 2,
+    /// kWrong face: a dual_mu rung instead of the ride (`QpWalkAction::kFootprintRung`).
+    kRung = 3,
+    /// Nothing to take (no ride inside the budget and the rungs spent, or the regularized answer
+    /// does not descend the merit): the ordinary step along p stands.
+    kDeclined = 4,
+    /// kWrong face where neither the ride nor the ordinary step moves: the ordinary add.
+    kDegenerate = 5,
+    /// The pass after a footprint rung read kSuspect: the rung reverted (`kFootprintRung`).
+    kRungReverted = 6,
 };
 
 /// Which block a constraint identity refers to.
@@ -445,10 +470,8 @@ struct QpWalkMinorRecord {
     int step_in_face = -1;
     /// True iff THE ASCENT GUARD (4c) fired on this pass: `-p` was ridden instead of `p`.
     bool ascent_ride = false;
-    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT branch (4c): `-1` not asked; `1` asked (a p
-    /// holding its pins but leaving working rows the iterate meets) and declined; `2` `-p` ridden;
-    /// `3` the merit-capped move along `-p`.
-    int ascent_footprint = -1;
+    /// THE ASCENT GUARD's REGULARIZATION FOOTPRINT branch (4c) on this pass.
+    QpWalkFootprint ascent_footprint = QpWalkFootprint::kNotAsked;
 
     // =====================================================================
     // FIX-ROUND 1 (M7 W2 M3b): THE DISCRIMINATING FIELDS.

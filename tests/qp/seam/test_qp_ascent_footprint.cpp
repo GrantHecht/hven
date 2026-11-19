@@ -4,23 +4,19 @@
 // test_qp_ascent_footprint.cpp -- M8 WA-1: THE ASCENT GUARD's REGULARIZATION FOOTPRINT
 // (walk_engine.h section 4c), on the walk seam (docs/testing.md).
 //
-// The fixture (tests/qp/fixtures/e2-d4/YRK_YORKNET_qp26_m42.txt) is YORKNET's restoration qp26
-// (YRK_YORKNET_qp26.txt) warm-started from the walk state at the top of pass 42 of the
-// sparse-equilibration diagnosis's matched run (docs/notes/data/2026-11-m8-wa1/), with the trust
-// region baked into the bounds (the walk's own effective bounds). From there the walk drops a
-// bound, rides negative curvature, and the ride's add leaves an INDEFINITE face whose inertia
-// reads a trusted kWrong. The next EQP step p heads for that face's saddle: (Hx + g)'p = +50.4
-// and p'Hp = -86.6 (verified), from an iterate on its rows. Before WA-1 the guard did not ride:
-// the dual_mu-regularized p leaves two equality rows by mu * lambda (4.5e-4 on row 191, relative
-// 2e-6 > kRideNullspaceTol), so `ride_stays_in_working_set(p)` refused and the ordinary step
-// raised f by 13.6, left the iterate off row 191, and the walk entered a period-5 cycle to its
-// minor cap. With WA-1 the guard reads the step in the regularized face's penalty merit
-// f + |A_W x - b_W|^2 / (2 mu) and goes along -p when the merit rises too (walk_engine.h 4c).
+// On a nearly dependent working set the refined dual_mu-regularized EQP step p leaves rows the
+// iterate meets by the dual_mu footprint, so the guard's null-space test declines and the ordinary
+// step from an on-row iterate can ascend f toward an indefinite face's saddle. The rule: on a
+// trusted-kWrong face, ride -p to a blocker whose landing point keeps the working rows inside the
+// row budget, else a dual_mu rung, else the ordinary step (counted); on a kOk face whose penalty
+// merit rises along p, the ordinary step along the regularized answer.
 //
-// The assertions are the descent of every ordinary step from an iterate on its rows (the
-// row-restoring steps of an iterate off its rows are excluded), that the footprint branch fired,
-// and the KKT battery if the walk certifies. MINOR AND FACTORIZATION COUNTS ARE PRINTED, NEVER
-// ASSERTED.
+// Three layers: the two helpers on hand-made data; a synthetic dense QP (indefinite H, two nearly
+// parallel rows -- an equality and a working inequality -- and a pinned column) driving the kWrong
+// branches end to end; and YORKNET's restoration qp26 (tests/qp/fixtures/e2-d4/
+// YRK_YORKNET_qp26_m42.txt, warm-started at pass 42 of the sparse-equilibration diagnosis's matched
+// run, docs/notes/data/2026-11-m8-wa1/) whose base walk cycles to its minor cap through ordinary
+// ascending steps. MINOR AND FACTORIZATION COUNTS ARE PRINTED, NEVER ASSERTED.
 
 #include <algorithm>
 #include <cmath>
@@ -29,6 +25,7 @@
 #include <string>
 #include <vector>
 
+#include <Eigen/Dense>
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/walk/walk_engine.h>
@@ -43,6 +40,7 @@ using hven::Vec;
 using hven::test_support::QpDump;
 using Obs = hven::detail::testing::QpWalkObserver;
 using Action = hven::detail::testing::QpWalkAction;
+using Footprint = hven::detail::testing::QpWalkFootprint;
 using Record = hven::detail::testing::QpWalkMinorRecord;
 
 namespace {
@@ -52,17 +50,21 @@ constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
 const char *alg_name(QpWorkingSetAlgebra alg) { return alg == kBorder ? "border" : "refactorize"; }
 
+double objective(const QpProblem &qp, const Vec &x) {
+    return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
+}
+
 struct Walk {
     QpSolution solution;
     std::vector<Record> records;
     bool truncated = false;
 };
 
-Walk observed(const QpDump &d, const QpOptions &o) {
+template <class Solve> Walk observed(Solve &&solve) {
     Obs::reset();
     Obs::active = true;
     Walk w;
-    w.solution = hven::test_support::solve_qp_dump(d, o);
+    w.solution = solve();
     w.records = Obs::records;
     w.truncated = Obs::truncated;
     Obs::active = false;
@@ -70,37 +72,51 @@ Walk observed(const QpDump &d, const QpOptions &o) {
     return w;
 }
 
-/// THE DESCENT INVARIANT OF EVERY ORDINARY STEP FROM AN ITERATE ON ITS ROWS. Consecutive records
-/// are a pass and its successor, so the successor's `obj_in` is the objective the pass reached.
-/// Counted over the ordinary steps (`kAdd`, `kMoveOnly`) that MOVED from an iterate whose working
-/// rows and pins hold to `kOnRows` (a row-restoring step may legitimately pay for feasibility in
-/// f), whatever the direction's own null-space reading -- that reading is what WA-1 is about --
-/// and whose factorization was trusted.
-struct OnRowsTally {
+/// THE DESCENT INVARIANT OF EVERY ORDINARY STEP FROM AN ITERATE ON ITS ROWS, and the branch's
+/// own tallies. Consecutive records are a pass and its successor, so the successor's `obj_in` is
+/// the objective the pass reached. Counted over the ordinary steps (`kAdd`, `kMoveOnly`) that MOVED
+/// from an iterate whose working rows and pins hold to `kOnRows` (a row-restoring step may pay for
+/// feasibility in f) on a factorization that was not kSuspect, the rule's counted declines (the
+/// ordinary step it had nothing to replace with) excepted.
+struct Tally {
     Index ordinary = 0;
     Index ordinary_rose = 0;
     double worst_rise = 0.0;
-    Index footprint_rides =
-        0; ///< passes whose guard rode -p on the footprint branch (ascent_footprint == 2)
+    Index rides = 0; ///< kRide records
+    Index rides_fell = 0;
+    Index regularized = 0; ///< kRegularizedStep records
+    Index rungs = 0;       ///< kRung records
+    Index reverts = 0;     ///< kRungReverted records
+    Index declined = 0;    ///< kDeclined records
 };
 
 constexpr double kOnRows = 1e-6;
-// A pass whose factorization reported perturbed pivots (verdict kSuspect) solved its EQP through an
-// untrustworthy factor; its step is outside the invariant this file pins (the start of this walk
-// takes one such step, alpha 3.9e-8, f +2.4e-9 with p'Hp > 0 -- an inexact solve, not a saddle).
+// A pass on a factorization with perturbed pivots (verdict kSuspect) solved its EQP through an
+// untrustworthy factor; its step is outside the invariant (qp26's walk takes one such step at its
+// start, alpha 3.9e-8, f +2.4e-9 with p'Hp > 0 -- an inexact solve, not a saddle).
 constexpr int kSuspect = static_cast<int>(hven::detail::InertiaVerdict::kSuspect);
 
-OnRowsTally on_rows_tally(const std::vector<Record> &records) {
-    OnRowsTally t;
+Tally tally(const std::vector<Record> &records) {
+    Tally t;
     for (std::size_t k = 0; k < records.size(); ++k) {
         const Record &r = records[k];
-        t.footprint_rides += r.ascent_footprint == 2 ? 1 : 0;
+        t.rides += r.ascent_footprint == Footprint::kRide ? 1 : 0;
+        t.regularized += r.ascent_footprint == Footprint::kRegularizedStep ? 1 : 0;
+        t.rungs += r.ascent_footprint == Footprint::kRung ? 1 : 0;
+        t.reverts += r.ascent_footprint == Footprint::kRungReverted ? 1 : 0;
+        t.declined += r.ascent_footprint == Footprint::kDeclined ? 1 : 0;
         if (k + 1 == records.size()) {
             break;
         }
         const double next = records[k + 1].obj_in;
+        // A ride falls (f's own rounding floor: a short ride's decrease can sit below it).
+        if (r.ascent_footprint == Footprint::kRide &&
+            !(next - r.obj_in > 1e-12 * std::max(1.0, std::abs(r.obj_in)))) {
+            ++t.rides_fell;
+        }
         if (!std::isfinite(r.obj_in) || !std::isfinite(next) || !(r.dx_inf > r.step_tol) ||
             !(r.active_res_inf <= kOnRows) || r.ascent_ride || r.inertia_verdict == kSuspect ||
+            r.ascent_footprint == Footprint::kDeclined ||
             (r.action != Action::kAdd && r.action != Action::kMoveOnly)) {
             continue;
         }
@@ -112,60 +128,559 @@ OnRowsTally on_rows_tally(const std::vector<Record> &records) {
     return t;
 }
 
-QpDump qp26_m42() {
-    return hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) +
-                                            "/YRK_YORKNET_qp26_m42.txt");
+/// The branch's records against its counters: every outcome is counted exactly once, a ride is a
+/// guard ride, a rung spends a dual_mu decrease and moves nothing.
+void expect_counted(const Walk &w) {
+    const Tally t = tally(w.records);
+    const QpCounters &c = w.solution.counters;
+    EXPECT_EQ(t.rides, c.ascent_footprint_rides);
+    EXPECT_EQ(t.regularized, c.ascent_footprint_regularized_steps);
+    EXPECT_EQ(t.rungs, c.ascent_footprint_rungs);
+    EXPECT_EQ(t.reverts, c.ascent_footprint_rung_reverts);
+    EXPECT_LE(c.ascent_footprint_rung_reverts, 1) << "a reverted rung ends footprint rungs";
+    EXPECT_EQ(t.declined, c.ascent_footprint_declines);
+    EXPECT_LE(c.ascent_footprint_rungs, c.dual_regularization_decreases);
+    EXPECT_LE(c.ascent_footprint_rides, c.ascent_rides);
+    Index flagged = 0;
+    for (const Record &r : w.records) {
+        flagged += r.ascent_ride ? 1 : 0;
+        if (r.inertia_verdict == kSuspect && r.ascent_footprint != Footprint::kRungReverted) {
+            EXPECT_EQ(static_cast<int>(r.ascent_footprint), static_cast<int>(Footprint::kNotAsked))
+                << "a kSuspect pass is not the rule's case; minor " << r.minor;
+        }
+        if (r.ascent_footprint == Footprint::kRide) {
+            EXPECT_TRUE(r.ascent_ride) << "minor " << r.minor;
+        }
+        if (r.ascent_footprint == Footprint::kRungReverted) {
+            EXPECT_EQ(r.inertia_verdict, kSuspect) << "minor " << r.minor;
+        }
+        if (r.ascent_footprint == Footprint::kRung ||
+            r.ascent_footprint == Footprint::kRungReverted) {
+            EXPECT_EQ(static_cast<int>(r.action), static_cast<int>(Action::kFootprintRung));
+            EXPECT_FALSE(r.ascent_ride);
+        }
+        if (r.ascent_footprint == Footprint::kRegularizedStep ||
+            r.ascent_footprint == Footprint::kDeclined) {
+            EXPECT_FALSE(r.ascent_ride) << "minor " << r.minor;
+        }
+    }
+    EXPECT_EQ(flagged, c.ascent_rides);
 }
 
+// ---------------------------------------------------------------------------
+// THE HELPERS, on hand-made data.
+// ---------------------------------------------------------------------------
+
+/// n = 2; one equality row a_e = (1, 1), b_e = 1; two inequality rows a_0 = (1, -1), b_0 = 0 and
+/// a_1 = (0, 2), b_1 = 1, of which only row 0 is in the working set.
+QpProblem two_by_two() {
+    QpProblem qp;
+    Eigen::MatrixXd H(2, 2);
+    H << 1.0, 0.0, 0.0, -1.0;
+    qp.H = H.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd Ae(1, 2);
+    Ae << 1.0, 1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Ones(1);
+    Eigen::MatrixXd Ai(2, 2);
+    Ai << 1.0, -1.0, 0.0, 2.0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(2);
+    qp.bi << 0.0, 1.0;
+    qp.lower = Vec::Constant(2, -1e20);
+    qp.upper = Vec::Constant(2, 1e20);
+    return qp;
+}
+
+TEST(QpWa1AscentFootprint, MeritSlopeReadsTheWorkingRowsOnly) {
+    const QpProblem qp = two_by_two();
+    WorkingSet ws(2, 2);
+    ws.add_ineq(0);
+    Vec x(2);
+    x << 0.75, 0.5; // r_e = 0.25, r_0 = 0.25, r_1 = 0 (row 1 is not working either way)
+    const Vec Aix = qp.Ai * x;
+    Vec gx(2);
+    gx << 2.0, -1.0;
+    const double mu = 0.5;
+    Vec d(2);
+    d << 1.0, 3.0; // a_e'd = 4, a_0'd = -2, a_1'd = 6
+    const FootprintSlope m = footprint_merit_slope(qp, ws, x, Aix, gx, d, mu);
+    // gx'd = -1; rows: (0.25 * 4 + 0.25 * -2) / 0.5 = 1.
+    EXPECT_DOUBLE_EQ(m.slope, -1.0 + 1.0);
+    EXPECT_DOUBLE_EQ(m.tol, kEngineDenomTol * (gx.norm() * d.norm() + (1.0 + 0.5) / mu));
+    // Row 1 joins: it is at its bound times 2 off (r_1 = 2 * 0.5 - 1 = 0) -- nothing changes.
+    ws.add_ineq(1);
+    EXPECT_DOUBLE_EQ(footprint_merit_slope(qp, ws, x, Aix, gx, d, mu).slope, 0.0);
+}
+
+TEST(QpWa1AscentFootprint, MeritSlopeSignCases) {
+    const QpProblem qp = two_by_two();
+    const WorkingSet ws(2, 2); // the equality row alone
+    const Vec gx = Vec::Zero(2);
+    Vec d(2);
+    d << 1.0, 0.0; // a_e'd = 1
+    const double mu = 1e-8;
+    for (const double r : {1e-9, -1e-9}) {
+        Vec x(2);
+        x << 1.0 + r, 0.0;
+        const FootprintSlope m = footprint_merit_slope(qp, ws, x, qp.Ai * x, gx, d, mu);
+        // Moving further off the row raises M, back toward it lowers M: r * a'd / mu.
+        EXPECT_NEAR(m.slope, r / mu, 1e-6 * std::abs(r / mu));
+        EXPECT_NEAR(footprint_merit_slope(qp, ws, x, qp.Ai * x, gx, Vec(-d), mu).slope, -r / mu,
+                    1e-6 * std::abs(r / mu));
+        EXPECT_GT(m.tol, 0.0);
+    }
+    // On the row the merit's slope is f's.
+    Vec x(2);
+    x << 0.25, 0.75;
+    Vec g(2);
+    g << 3.0, -2.0;
+    EXPECT_DOUBLE_EQ(footprint_merit_slope(qp, ws, x, qp.Ai * x, g, d, mu).slope, 3.0);
+}
+
+TEST(QpWa1AscentFootprint, RowBudgetAtItsEdge) {
+    // Strictly inside the shift test (1x the floor) and the structural margin (10x).
+    EXPECT_GT(kFootprintRowBudget, 0.0);
+    EXPECT_LT(kFootprintRowBudget, 1.0);
+    const QpProblem qp = two_by_two();
+    WorkingSet ws(2, 2);
+    ws.add_ineq(0);
+    const Vec n1e = (Eigen::MatrixXd(qp.Ae).cwiseAbs().rowwise().sum());
+    const Vec n1i = (Eigen::MatrixXd(qp.Ai).cwiseAbs().rowwise().sum());
+    const double ftol = 1e-9;
+    // Equality row at x = (1 + r, 0): row_scale = max(1, |b| = 1, |a|_1 |x|_inf = 2 (1 + r)).
+    const auto at_eq = [&](double r) {
+        Vec x(2);
+        x << 1.0 + r, 0.0;
+        // keep working row 0 satisfied: its residual is x0 - x1 = 1 + r > 0, so take it out
+        WorkingSet e(2, 2);
+        return footprint_rows_within_budget(qp, e, x, n1i, n1e, ftol);
+    };
+    const double edge = kFootprintRowBudget * ftol * 2.0; // scale 2 (1 + r) ~ 2
+    EXPECT_TRUE(at_eq(0.0));
+    EXPECT_TRUE(at_eq(0.99 * edge));
+    EXPECT_TRUE(at_eq(-0.99 * edge));
+    EXPECT_FALSE(at_eq(1.01 * edge));
+    EXPECT_FALSE(at_eq(-1.01 * edge));
+    // The working inequality row is read on its infeasible side only: x = (0.5 + s/2, 0.5 - s/2)
+    // keeps the equality row exact and puts r_0 = s.
+    const auto at_ineq = [&](double s) {
+        Vec x(2);
+        x << 0.5 + 0.5 * s, 0.5 - 0.5 * s;
+        return footprint_rows_within_budget(qp, ws, x, n1i, n1e, ftol);
+    };
+    const double iedge = kFootprintRowBudget * ftol * 1.0; // scale max(1, 0, 2 * ~0.5) = 1
+    EXPECT_TRUE(at_ineq(0.99 * iedge));
+    EXPECT_FALSE(at_ineq(1.01 * iedge));
+    EXPECT_TRUE(at_ineq(-0.25)) << "slack is feasible";
+    // The scale is the landing point's own: far from the origin the same residual fits.
+    Vec far(2);
+    far << 1e6 + 1.0 + 1e-4, -1e6; // row_scale = |a_e|_1 |x|_inf ~ 2e6; r_e = 1e-4 < 1e-3
+    EXPECT_TRUE(footprint_rows_within_budget(qp, WorkingSet(2, 2), far, n1i, n1e, ftol));
+    // A NaN fails.
+    Vec nan(2);
+    nan << std::nan(""), 0.0;
+    EXPECT_FALSE(footprint_rows_within_budget(qp, WorkingSet(2, 2), nan, n1i, n1e, ftol));
+}
+
+// ---------------------------------------------------------------------------
+// THE SYNTHETIC kWRONG FACE. x = (x0, x1, x2, x3); H = diag(1, 1, -1, 1), g = (0, -1, 1, 0); x3
+// fixed at 0 (the pin). Equality x0 + x3 = 0; working inequality x0 + eps x1 <= 0, nearly parallel
+// to it; inequalities -x2 <= c (the blocker along -p) and x2 <= u. From x = 0 the working face
+// fixes x0 and x1 and leaves x2 free with curvature -1: the EQP step heads for x2 = 1, the face's
+// saddle, with (Hx + g)'p = +1 and p'Hp = -1, and the multipliers are of order 1/eps, so the
+// regularized step leaves the two rows by about mu/eps -- relative to |p|, far past
+// kRideNullspaceTol. The landing point along -p is at x2 = -c, its rows off by about c mu / eps.
+// ---------------------------------------------------------------------------
+QpProblem synthetic_face(double eps, double c, double u = 10.0) {
+    QpProblem qp;
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(4, 4);
+    H.diagonal() << 1.0, 1.0, -1.0, 1.0;
+    qp.H = H.sparseView();
+    qp.g = Vec(4);
+    qp.g << 0.0, -1.0, 1.0, 0.0;
+    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(1, 4);
+    Ae << 1.0, 0.0, 0.0, 1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Zero(1);
+    Eigen::MatrixXd Ai = Eigen::MatrixXd::Zero(3, 4);
+    Ai << 1.0, eps, 0.0, 0.0, //
+        0.0, 0.0, -1.0, 0.0,  //
+        0.0, 0.0, 1.0, 0.0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(3);
+    qp.bi << 0.0, c, u;
+    qp.lower = Vec::Constant(4, -1e20);
+    qp.upper = Vec::Constant(4, 1e20);
+    qp.lower(3) = 0.0;
+    qp.upper(3) = 0.0;
+    return qp;
+}
+
+// THE SYNTHETIC kOK FACE (found by a scan of the family, recorded in the WA-1 r5 evidence).
+// x = (x0, x1, x2); H = diag(-0.1, -0.1, 1), g = (0, 1, 0). Equality x0 = 0; working inequality
+// x0 + eps x1 <= 0 with eps^2 / 2 = 10 mu, so H + A'A / mu is positive definite (inertia kOk)
+// while H is negative on the rows' span; rows -x1 <= 10 and x1 <= 10 bound the problem. The refined
+// step from x = 0 leaves the rows and rises along p ((Hx + g)'p = +1.0e-3, p'Hp = -1.0e-7). From
+// x0 = 5e-7 at mu = 1e-10 (inside the row's tolerance) the same p restores the row, and the merit's
+// row part -r_0^2 / mu outweighs f's rise: M falls along p.
+QpProblem synthetic_kok_face(double mu = 1e-8) {
+    const double eps = std::sqrt(2.0 * 10.0 * mu);
+    QpProblem qp;
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(3, 3);
+    H.diagonal() << -0.1, -0.1, 1.0;
+    qp.H = H.sparseView();
+    qp.g = Vec(3);
+    qp.g << 0.0, 1.0, 0.0;
+    Eigen::MatrixXd Ae = Eigen::MatrixXd::Zero(1, 3);
+    Ae << 1.0, 0.0, 0.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Zero(1);
+    Eigen::MatrixXd Ai = Eigen::MatrixXd::Zero(3, 3);
+    Ai << 1.0, eps, 0.0, //
+        0.0, -1.0, 0.0,  //
+        0.0, 1.0, 0.0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(3);
+    qp.bi << 0.0, 10.0, 10.0;
+    qp.lower = Vec::Constant(3, -1e20);
+    qp.upper = Vec::Constant(3, 1e20);
+    return qp;
+}
+
+Walk walk_seeded(const QpProblem &qp, QpWorkingSetAlgebra alg, double mu = 1e-8, double x0 = 0.0) {
+    QpOptions o;
+    o.max_iterations = 60;
+    o.working_set_algebra = alg;
+    o.dual_regularization = mu;
+    QpSolution seed;
+    seed.x = Vec::Zero(qp.n());
+    seed.x(0) = x0;
+    seed.ineq_active.assign(static_cast<std::size_t>(qp.mi()), false);
+    seed.ineq_active[0] = true;
+    return observed(
+        [&] { return QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp, seed); });
+}
+
+void print_walk(const std::string &tag, const QpProblem &qp, const Walk &w) {
+    const QpSolution &s = w.solution;
+    std::printf("[ wa1 ] %s status=%d minors=%ld f=%.12g rides=%ld reg=%ld rungs=%ld "
+                "declines=%ld mu_rungs=%ld\n",
+                tag.c_str(), static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
+                objective(qp, s.x), static_cast<long>(s.counters.ascent_footprint_rides),
+                static_cast<long>(s.counters.ascent_footprint_regularized_steps),
+                static_cast<long>(s.counters.ascent_footprint_rungs),
+                static_cast<long>(s.counters.ascent_footprint_declines),
+                static_cast<long>(s.counters.dual_regularization_decreases));
+    for (const Record &r : w.records) {
+        std::printf("    minor %ld action=%d fp=%d verdict=%d obj_in=%.9g dx=%.3e res=%.3e "
+                    "mu=%.1e\n",
+                    static_cast<long>(r.minor), static_cast<int>(r.action),
+                    static_cast<int>(r.ascent_footprint), r.inertia_verdict, r.obj_in, r.dx_inf,
+                    r.active_res_inf, r.dual_mu);
+    }
+}
+
+/// The route-independent half of every synthetic walk: the records match the counters, every
+/// footprint ride lowers f, no ordinary step from an iterate on its rows rises, a regularized step
+/// from an iterate on its rows lowers f, and the walk ends inside its cap and never infeasible.
+void expect_portable(const QpProblem &qp, const Walk &w) {
+    ASSERT_FALSE(w.truncated);
+    expect_counted(w);
+    const Tally t = tally(w.records);
+    EXPECT_EQ(t.rides_fell, t.rides) << "a footprint ride did not lower f";
+    EXPECT_EQ(t.ordinary_rose, 0) << "worst rise " << t.worst_rise;
+    for (std::size_t k = 0; k + 1 < w.records.size(); ++k) {
+        const Record &r = w.records[k];
+        if (r.ascent_footprint == Footprint::kRegularizedStep) {
+            EXPECT_LT(w.records[k + 1].obj_in, r.obj_in) << "minor " << r.minor;
+        }
+    }
+    EXPECT_NE(static_cast<int>(w.solution.status), static_cast<int>(QpStatus::kInfeasible));
+    EXPECT_NE(static_cast<int>(w.solution.status), static_cast<int>(QpStatus::kIterationLimit));
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (qp.lower(i) == qp.upper(i)) {
+            EXPECT_EQ(w.solution.x(i), qp.lower(i)) << "the pin " << i;
+        }
+    }
+}
+
+/// The first pass's branch, asserted on the reference build and recorded off it.
+void expect_first(const Walk &w, Footprint want, const std::string &key) {
+    ASSERT_FALSE(w.records.empty());
+    const Record &r = w.records.front();
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_EQ(static_cast<int>(r.ascent_footprint), static_cast<int>(want));
+#else
+    hven::test_support::record_off_reference_route(
+        key, "first_footprint=" + std::to_string(static_cast<int>(r.ascent_footprint)) +
+                 " verdict=" + std::to_string(r.inertia_verdict) +
+                 " want=" + std::to_string(static_cast<int>(want)));
+#endif
+}
+
+} // namespace
+
+// THE RIDE: the blocker at c = 1e-6 is inside the row budget, so the first pass rides -p to it
+// and f falls; the landing point's rows are inside the budget.
+TEST(QpWa1AscentFootprint, SyntheticKWrongFaceRidesToABlockerInsideTheBudget) {
+    const double c = 1e-6;
+    const QpProblem qp = synthetic_face(1e-4, c);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg);
+        print_walk(std::string("ride ") + alg_name(alg), qp, w);
+        expect_portable(qp, w);
+        expect_first(w, Footprint::kRide, std::string("wa1_synthetic_ride_") + alg_name(alg));
+        if (!w.records.empty() && w.records.front().ascent_footprint == Footprint::kRide) {
+            ASSERT_GE(w.records.size(), 2U);
+            EXPECT_EQ(static_cast<int>(w.records.front().action),
+                      static_cast<int>(Action::kRideStepped));
+            EXPECT_LT(w.records[1].obj_in, w.records[0].obj_in);
+            // The landing point (the next pass's own reading; row_scale 1 there).
+            EXPECT_LE(w.records[1].active_res_inf, kFootprintRowBudget * 1e-9);
+            EXPECT_NEAR(w.solution.x(2), -c, 1e-12) << "the ride's blocker joined and held";
+        }
+    }
+}
+
+// THE RUNG: the blocker at c = 1 lies past the row budget, so the pass takes a dual_mu rung --
+// nothing moves, the same working set is solved again at mu / 100 -- and never a move along -p.
+TEST(QpWa1AscentFootprint, SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget) {
+    const QpProblem qp = synthetic_face(1e-4, 1.0);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg);
+        print_walk(std::string("rung ") + alg_name(alg), qp, w);
+        expect_portable(qp, w);
+        expect_first(w, Footprint::kRung, std::string("wa1_synthetic_rung_") + alg_name(alg));
+        for (std::size_t k = 0; k + 1 < w.records.size(); ++k) {
+            if (w.records[k].ascent_footprint == Footprint::kRung ||
+                w.records[k].ascent_footprint == Footprint::kRungReverted) {
+                EXPECT_EQ(w.records[k + 1].obj_in, w.records[k].obj_in) << "a rung moved x";
+            }
+            if (w.records[k].ascent_footprint == Footprint::kRung) {
+                EXPECT_DOUBLE_EQ(w.records[k + 1].dual_mu,
+                                 w.records[k].dual_mu * kDualRegDecreaseFactor);
+            }
+        }
+        EXPECT_LE(w.solution.counters.dual_regularization_decreases, kMaxDualRegDecreases);
+    }
+}
+
+// THE DECLINE: from dual_mu = 1e-6 (eps = 1e-4) the footprint stays past kRideNullspaceTol through
+// both rungs (1e-8, 1e-10) on trusted kWrong factors and the blocker stays past the budget, so with
+// the rungs spent the ordinary step stands -- counted.
+TEST(QpWa1AscentFootprint, SyntheticKWrongFaceDeclinesWithTheRungsSpent) {
+    const QpProblem qp = synthetic_face(1e-4, 1.0);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg, 1e-6);
+        print_walk(std::string("decline ") + alg_name(alg), qp, w);
+        ASSERT_FALSE(w.truncated);
+        expect_counted(w);
+        for (const Record &r : w.records) {
+            if (r.ascent_footprint == Footprint::kDeclined) {
+                EXPECT_TRUE(r.action == Action::kAdd || r.action == Action::kMoveOnly)
+                    << "a decline takes the ordinary step; minor " << r.minor;
+            }
+        }
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(w.solution.counters.ascent_footprint_rungs, kMaxDualRegDecreases);
+        EXPECT_GE(w.solution.counters.ascent_footprint_declines, 1);
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("wa1_synthetic_decline_") + alg_name(alg),
+            "rungs=" + std::to_string(w.solution.counters.ascent_footprint_rungs) +
+                " declines=" + std::to_string(w.solution.counters.ascent_footprint_declines));
+#endif
+    }
+}
+
+// THE DEGENERATE PIVOT: rows -x2 <= 0 and x2 <= 0 are tight at x = 0 and out of the working set,
+// so neither the ride along -p nor the step along p moves: the ordinary add, no rung.
+TEST(QpWa1AscentFootprint, SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd) {
+    const QpProblem qp = synthetic_face(1e-4, 0.0, 0.0);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg);
+        print_walk(std::string("degenerate ") + alg_name(alg), qp, w);
+        expect_portable(qp, w);
+        expect_first(w, Footprint::kDegenerate,
+                     std::string("wa1_synthetic_degenerate_") + alg_name(alg));
+        if (!w.records.empty() && w.records.front().ascent_footprint == Footprint::kDegenerate) {
+            EXPECT_EQ(static_cast<int>(w.records.front().action), static_cast<int>(Action::kAdd));
+            EXPECT_EQ(w.records.front().dual_mu, 1e-8);
+        }
+    }
+}
+
+// THE REGULARIZED STEP: on the kOk face the refined p raises the merit, so the ordinary step is
+// taken along the regularized answer, which lowers M -- and f, from an iterate on its rows.
+TEST(QpWa1AscentFootprint, SyntheticKOkFaceStepsAlongTheRegularizedAnswer) {
+    const QpProblem qp = synthetic_kok_face();
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg);
+        print_walk(std::string("kok ") + alg_name(alg), qp, w);
+        expect_portable(qp, w);
+        expect_first(w, Footprint::kRegularizedStep,
+                     std::string("wa1_synthetic_kok_") + alg_name(alg));
+        if (!w.records.empty() &&
+            w.records.front().ascent_footprint == Footprint::kRegularizedStep) {
+            EXPECT_TRUE(w.records.front().action == Action::kAdd ||
+                        w.records.front().action == Action::kMoveOnly);
+            EXPECT_FALSE(w.records.front().ascent_ride);
+        }
+    }
+}
+
+// THE MERIT GATE: from an iterate inside its row's tolerance the refined p restores the row, M
+// falls along it, and the ordinary step along p stands -- the regularized answer is not taken.
+TEST(QpWa1AscentFootprint, SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep) {
+    const QpProblem qp = synthetic_kok_face(1e-10);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg, 1e-10, 5e-7);
+        print_walk(std::string("merit-falls ") + alg_name(alg), qp, w);
+        ASSERT_FALSE(w.truncated);
+        expect_counted(w);
+        expect_first(w, Footprint::kMeritFalls,
+                     std::string("wa1_synthetic_merit_falls_") + alg_name(alg));
+        if (!w.records.empty() && w.records.front().ascent_footprint == Footprint::kMeritFalls) {
+            EXPECT_TRUE(w.records.front().action == Action::kAdd ||
+                        w.records.front().action == Action::kMoveOnly);
+            EXPECT_EQ(w.solution.counters.ascent_footprint_regularized_steps +
+                          w.solution.counters.ascent_footprint_declines,
+                      0);
+        }
+    }
+}
+
+// THE REVERTED RUNG: at eps = 3e-5 the first pass takes a rung and, on the eliminated path, the
+// face at mu = 1e-10 factors with perturbed pivots (kSuspect): the rung is reverted -- dual_mu
+// restored, no further footprint rung -- and the face is solved again at mu = 1e-8. The border path
+// reads that face trusted (kWrong) and keeps the rung.
+TEST(QpWa1AscentFootprint, SyntheticRungOnASuspectFaceIsReverted) {
+    const QpProblem qp = synthetic_face(3e-5, 1.0);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg);
+        print_walk(std::string("revert ") + alg_name(alg), qp, w);
+        expect_portable(qp, w);
+        for (std::size_t k = 0; k + 1 < w.records.size(); ++k) {
+            if (w.records[k].ascent_footprint == Footprint::kRungReverted) {
+                EXPECT_DOUBLE_EQ(w.records[k + 1].dual_mu,
+                                 w.records[k].dual_mu / kDualRegDecreaseFactor);
+                for (std::size_t m = k + 1; m < w.records.size(); ++m) {
+                    EXPECT_NE(static_cast<int>(w.records[m].ascent_footprint),
+                              static_cast<int>(Footprint::kRung))
+                        << "a footprint rung after a revert; minor " << w.records[m].minor;
+                }
+            }
+        }
+        if (alg != kRefactorize) {
+            continue;
+        }
+#if HVEN_TEST_ROUTE_REFERENCE
+        ASSERT_GE(w.records.size(), 3U);
+        EXPECT_EQ(static_cast<int>(w.records[0].ascent_footprint),
+                  static_cast<int>(Footprint::kRung));
+        EXPECT_EQ(static_cast<int>(w.records[1].ascent_footprint),
+                  static_cast<int>(Footprint::kRungReverted));
+        EXPECT_EQ(w.solution.counters.ascent_footprint_rung_reverts, 1);
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("wa1_synthetic_revert_") + alg_name(alg),
+            "reverts=" + std::to_string(w.solution.counters.ascent_footprint_rung_reverts));
+#endif
+    }
+}
+
+// A kSUSPECT PASS IS NOT THE RULE'S CASE: started at dual_mu = 1e-10, the eps = 3e-5 face factors
+// with perturbed pivots on the eliminated path from the first pass, and its p meets every other
+// entry test of the rule (rising, negative curvature, off the rows' null space, on the rows).
+TEST(QpWa1AscentFootprint, SyntheticKSuspectPassIsNotTheRulesCase) {
+    const QpProblem qp = synthetic_face(3e-5, 1.0);
+    for (const auto alg : {kRefactorize, kBorder}) {
+        SCOPED_TRACE(alg_name(alg));
+        const Walk w = walk_seeded(qp, alg, 1e-10);
+        print_walk(std::string("suspect ") + alg_name(alg), qp, w);
+        ASSERT_FALSE(w.truncated);
+        expect_counted(w); // every kSuspect record that is not a revert is kNotAsked
+        if (alg != kRefactorize) {
+            continue;
+        }
+#if HVEN_TEST_ROUTE_REFERENCE
+        ASSERT_FALSE(w.records.empty());
+        const Record &r = w.records.front();
+        EXPECT_EQ(r.inertia_verdict, kSuspect);
+        EXPECT_GT(r.step_slope, 0.0);
+        EXPECT_LT(r.step_php, 0.0);
+        EXPECT_EQ(r.step_in_face, 0);
+        EXPECT_LE(r.active_res_inf, kOnRows);
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("wa1_synthetic_suspect_") + alg_name(alg),
+            "first_verdict=" +
+                std::to_string(w.records.empty() ? -9 : w.records.front().inertia_verdict));
+#endif
+    }
+}
+
+// ---------------------------------------------------------------------------
+// YORKNET qp26 FROM PASS 42. From there the walk drops a bound, rides negative curvature, and the
+// ride's add leaves an INDEFINITE face (trusted kWrong) whose refined EQP step heads for its saddle
+// ((Hx + g)'p = +50.4, p'Hp = -86.6) and leaves two equality rows by the footprint (4.5e-4 on row
+// 191). Before WA-1 the ordinary step raised f by 13.6 and the walk entered a period-5 cycle to its
+// minor cap.
+// ---------------------------------------------------------------------------
+namespace {
+
 void expect_qp26_m42(QpWorkingSetAlgebra alg) {
-    const QpDump d = qp26_m42();
+    const QpDump d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) +
+                                                      "/YRK_YORKNET_qp26_m42.txt");
     ASSERT_TRUE(d.has_seed);
     ASSERT_FALSE(std::isfinite(d.overrides.trust_region_radius)) << "the radius is in the bounds";
     QpOptions o = d.opts;
     o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
-    const Walk w = observed(d, o);
+    const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
     const QpSolution &s = w.solution;
     ASSERT_FALSE(w.truncated);
-    const OnRowsTally t = on_rows_tally(w.records);
+    const Tally t = tally(w.records);
     const double f = hven::test_support::qp_dump_objective(d, s.x);
     const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
     std::printf(
         "[ wa1 ] YRK_YORKNET_qp26_m42 %s status=%d minors=%ld facts=%ld f=%.12g "
-        "ascent_rides=%ld footprint_rides=%ld on_rows_ordinary=%ld rose=%ld "
-        "worst_rise=%.3e eq_drift=%ld eq=%.2e stat=%.2e comp=%.2e\n",
+        "ascent_rides=%ld fp_rides=%ld fp_reg=%ld fp_rungs=%ld fp_declines=%ld "
+        "on_rows_ordinary=%ld rose=%ld worst_rise=%.3e eq_drift=%ld eq=%.2e stat=%.2e "
+        "comp=%.2e\n",
         alg_name(alg), static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
         static_cast<long>(s.counters.factorizations), f, static_cast<long>(s.counters.ascent_rides),
-        static_cast<long>(t.footprint_rides), static_cast<long>(t.ordinary),
+        static_cast<long>(s.counters.ascent_footprint_rides),
+        static_cast<long>(s.counters.ascent_footprint_regularized_steps),
+        static_cast<long>(s.counters.ascent_footprint_rungs),
+        static_cast<long>(s.counters.ascent_footprint_declines), static_cast<long>(t.ordinary),
         static_cast<long>(t.ordinary_rose), t.worst_rise,
         static_cast<long>(s.counters.eq_drift_violations), k.eq, k.stationarity, k.complementarity);
-
-    // The guard's own invariants, on every build: every flagged ride is counted, a footprint ride
-    // is a guard ride, and the walk ends inside its cap.
-    Index flagged = 0;
-    for (const Record &r : w.records) {
-        flagged += r.ascent_ride ? 1 : 0;
-        if (r.ascent_footprint == 2) {
-            EXPECT_TRUE(r.ascent_ride) << "minor " << r.minor;
-        }
-    }
-    EXPECT_EQ(flagged, s.counters.ascent_rides);
-    // The reversed step stays inside the ordinary step's row budget: no equality row drifts.
+    expect_counted(w);
+    EXPECT_EQ(t.rides_fell, t.rides) << "a footprint ride did not lower f";
     EXPECT_EQ(s.counters.eq_drift_violations, 0);
     EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
 #if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_EQ(t.ordinary_rose, 0) << "an ordinary step from an iterate on its rows ascended, by "
                                      "up to "
                                   << t.worst_rise;
-    EXPECT_GE(t.footprint_rides, 1) << "the regularization-footprint branch did not fire";
+    EXPECT_GE(t.rides + t.regularized, 1) << "the regularization-footprint branch took nothing";
     ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
 #else
     hven::test_support::record_off_reference_route(
         std::string("yorknet_qp26_m42_") + alg_name(alg),
         "status=" + std::to_string(static_cast<int>(s.status)) +
             " minors=" + std::to_string(s.counters.minor_iters) +
-            " ascent_rides=" + std::to_string(s.counters.ascent_rides) +
-            " footprint_rides=" + std::to_string(t.footprint_rides) +
+            " fp_rides=" + std::to_string(t.rides) + " fp_reg=" + std::to_string(t.regularized) +
             " on_rows_ordinary_rose=" + std::to_string(t.ordinary_rose) +
             " worst_rise=" + std::to_string(t.worst_rise) + " f=" + std::to_string(f));
     ASSERT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
@@ -185,67 +700,3 @@ void expect_qp26_m42(QpWorkingSetAlgebra alg) {
 TEST(QpWa1AscentFootprint, YorknetQp26MatchedFaceBorder) { expect_qp26_m42(kBorder); }
 
 TEST(QpWa1AscentFootprint, YorknetQp26MatchedFaceRefactorize) { expect_qp26_m42(kRefactorize); }
-
-// THE DECISION ITSELF (detail::footprint_decision), on hand-made numbers. Along -p the objective
-// is f(x) - a s + a^2 php / 2 and the merit M(x) - a ms + a^2 mc / 2 (ms = s + merit_slope_part,
-// mc = php + merit_curv_part): the move must be M's own minimiser along -p, and both must fall.
-constexpr double kNoRowBudget = std::numeric_limits<double>::infinity();
-
-TEST(QpWa1AscentFootprint, DecisionNothingWhenTheMeritDoesNotRise) {
-    // f rises along p but the rows' part makes the merit fall: the ordinary step stands.
-    const auto d = detail::footprint_decision(1.0, -2.0, -1.5, 0.5, 1e-12, true, 3.0, kNoRowBudget);
-    EXPECT_FALSE(d.ride);
-    EXPECT_EQ(d.move, 0.0);
-    // A NaN slope decides nothing.
-    const auto n =
-        detail::footprint_decision(std::nan(""), -2.0, 0.0, 0.5, 1e-12, true, 3.0, kNoRowBudget);
-    EXPECT_FALSE(n.ride);
-    EXPECT_EQ(n.move, 0.0);
-}
-
-TEST(QpWa1AscentFootprint, DecisionRidesWhenTheMeritIsConcaveAlongP) {
-    // mc = -2 + 0.5 < 0: both fall for every alpha -- to the blocker, or unbounded to the ride.
-    EXPECT_TRUE(
-        detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 3.0, kNoRowBudget).ride);
-    const auto u = detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, false, 0.0, kNoRowBudget);
-    EXPECT_TRUE(u.ride);
-    EXPECT_EQ(u.move, 0.0);
-}
-
-TEST(QpWa1AscentFootprint, DecisionRidesWhenTheBlockerComesFirst) {
-    // mc = -2 + 6 = 4, ms = 1 + 1 = 2: M's minimiser along -p at a = 0.5; a blocker at 0.5 wins.
-    EXPECT_TRUE(
-        detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.5, kNoRowBudget).ride);
-    EXPECT_TRUE(
-        detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, true, 0.25, kNoRowBudget).ride);
-}
-
-TEST(QpWa1AscentFootprint, DecisionMovesToTheMeritMinimiserBeforeTheBlocker) {
-    const double s = 1.0, php = -2.0, msp = 1.0, mcp = 6.0;
-    for (const bool blocked : {true, false}) {
-        const auto d =
-            detail::footprint_decision(s, php, msp, mcp, 1e-12, blocked, 0.75, kNoRowBudget);
-        EXPECT_FALSE(d.ride);
-        ASSERT_DOUBLE_EQ(d.move, -0.5); // x += move * p: a = 0.5 along -p
-        const double a = -d.move;
-        const double df = -a * s + 0.5 * a * a * php;
-        const double dm = -a * (s + msp) + 0.5 * a * a * (php + mcp);
-        EXPECT_LT(df, 0.0);
-        EXPECT_LT(dm, 0.0);
-        // The minimiser: the merit's slope along -p vanishes there.
-        EXPECT_NEAR(-(s + msp) + a * (php + mcp), 0.0, 1e-15);
-    }
-}
-
-TEST(QpWa1AscentFootprint, DecisionStopsAtTheRowBudget) {
-    // M concave along p (would ride to the blocker at 3.0), but a working row reaches its
-    // tolerance at 0.4 along -p: a move to the row budget, nothing joins.
-    const auto d = detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 3.0, 0.4);
-    EXPECT_FALSE(d.ride);
-    EXPECT_DOUBLE_EQ(d.move, -0.4);
-    // The nearer of M's minimiser (0.5) and the row budget (0.3) stops the move.
-    EXPECT_DOUBLE_EQ(detail::footprint_decision(1.0, -2.0, 1.0, 6.0, 1e-12, false, 0.0, 0.3).move,
-                     -0.3);
-    // A blocker no later than the budget still rides.
-    EXPECT_TRUE(detail::footprint_decision(1.0, -2.0, 0.0, 0.5, 1e-12, true, 0.4, 0.4).ride);
-}
