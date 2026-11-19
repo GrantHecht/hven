@@ -334,6 +334,16 @@ struct EqpResult {
     /// only; the caller takes the eliminated twin for the pass. Always false from
     /// solve_eqp.
     bool border_uncertified = false;
+
+    /// THE PLATFORM-SOLVE RESPONSE (detail/kkt/kkt_factor.h). On the border path:
+    /// K0's numerics failed the platform solve check and `platform_retake` is the
+    /// retake it calls for; the caller requests it on K0's factor and takes the
+    /// eliminated twin for the pass. Always kNone from solve_eqp, which requests
+    /// and re-solves in place.
+    detail::PlatformRetake platform_retake = detail::PlatformRetake::kNone;
+    /// The answer came through retake numerics (kScaled or kMatched) and the
+    /// residual check above refused it (QpCounters::sparse_retake_refusals).
+    bool retake_refused = false;
 };
 
 // THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11): the loop, and
@@ -526,6 +536,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     const bool refused = !(ratio <= 1.0) || shifted_refused;
     const double row_residual =
         nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
+    // The answer refined against K, for the platform solve check below (copied
+    // only where the check applies).
+    const bool platform_check = detail::platform_solve_check_applies(kkt);
+    const Vec y_refined = platform_check ? y : Vec();
 
     if (unrefined_out != nullptr) {
         *unrefined_out = scatter(y);
@@ -556,6 +570,23 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         }
     }
 
+    // ---- THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h) ----
+    // The answer the engine has refined against K -- the residual loop's, or at
+    // dual_mu = 0 (where the proximal system IS K) the proximal step's -- judged
+    // for a FAILED factorization, with the residual check's verdict for the
+    // escalation. A failure requests the retake it calls for and the EQP is
+    // solved again from the start on it; that answer is returned. The recursion
+    // is bounded: kMatched numerics, and platform numerics a retake fell back
+    // to, are never judged.
+    if (platform_check) {
+        const detail::PlatformRetake retake = detail::platform_solve_response(
+            kkt, asm_.K, rhs, opts.dual_regularization == 0.0 ? y : y_refined, refused);
+        if (retake != detail::PlatformRetake::kNone) {
+            detail::request_platform_retake(kkt, retake);
+            return solve_eqp(qp, ws, x_k, kkt, opts, unrefined_out);
+        }
+    }
+
     // ---- THE UNREGULARIZED POLISH (E4-11; polish_eqp_core, and the header's own
     // section) ----
     // The step above targets the PROXIMAL system, whose answer is the face's exact
@@ -582,6 +613,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     out.residual_refine_iters = res_spent;
     out.residual_refused = refused;
     out.shifted_refused = shifted_refused;
+    out.retake_refused = refused && kkt.numerics != detail::PlatformRetake::kNone;
     return out;
 }
 

@@ -836,3 +836,27 @@ aggregates change object layouts. Custom globalization strategies and any code t
 rebuild against this version; mixed objects built against the old and new headers are not supported.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-gl0/CATCH-UP.txt`.
+
+## The platform-solve response of the SQP's sparse KKT factors (M8 sparse-equil-v4)
+
+Numerics only where a factorization fails; no interface change beyond three counters. The SQP factors its KKT matrices on
+the platform session without weighted matching or scaling (`sqp_kkt_options`). MKL Pardiso replaces a pivot it cannot
+take by a static perturbation and leans on refinement; two failure classes were measured -- a badly scaled K, and a
+saddle-point K whose pivots must pair into 2x2 blocks -- and the walk now answers both.
+
+- The trigger: in `solve_eqp` and `solve_bordered_eqp`, on platform numerics that reported perturbed pivots (on
+  Accelerate, which reports no count: every platform factorization), the answer refined against K is measured by its
+  normwise backward error in the Ruiz-equilibrated metric. Above `detail::kPlatformSolveFailureTol` = 1e-5 the
+  factorization has failed.
+- The response, per factorization (never sticky): the same K is retaken as D K D on a plain session, D the
+  maximum-product-matching symmetric scaling (`hven/detail/linear/matching_scaling.h`, Duff & Koster 2001, Duff & Pralet
+  2005), and the EQP is solved again. If those numerics still perturb pivots and the answer fails again -- on the backward
+  error or on the EQP-site residual check, which sees the near-null blow-up the backward error is blind to -- K is
+  retaken on a weighted-matching session (Pardiso only). The next factorization is the platform's own again.
+- Unaffected: unperturbed factorizations (bit-identical), the dense arm (its own check), the SSN and IPQP tiers' factors.
+- New counters `sparse_scaled_retakes`, `sparse_matched_retakes`, `sparse_retake_refusals` (`QpCounters`, `SqpCounters`,
+  trace keys after `rejection_run_histogram`).
+- IPARM-SURFACE: the SQP now configures `iparm[12] = 1` (without `iparm[10]`) on the on-demand matched session.
+  Evidence: `docs/notes/data/2026-11-m8-sparse-equil-v4/`.
+
+Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.

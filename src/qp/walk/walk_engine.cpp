@@ -222,6 +222,8 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
         const detail::DenseTallyScope tally(
             kkt, out.counters.dense_factorizations, out.counters.dense_flagged_factorizations,
             out.counters.dense_singular_refactors, out.counters.dense_platform_retakes);
+        const detail::RetakeTallyScope retakes(kkt, out.counters.sparse_scaled_retakes,
+                                               out.counters.sparse_matched_retakes);
         return solve_eqp(qp, ws, face.x, kkt, eff_opts);
     }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
@@ -231,12 +233,15 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
         // THE EQP-SITE RESIDUAL CHECK (E4-4): the face's own solve does not solve
         // its own system, so there is no refined point to offer the caller.
         ++out.counters.eqp_residual_refusals;
+        if (eqp.retake_refused) {
+            ++out.counters.sparse_retake_refusals;
+        }
         if (eqp.shifted_refused) {
             ++out.counters.dense_shifted_solve_refusals;
         }
         return false;
     }
-    if (detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(), me + n_working) !=
+    if (detail::inertia_verdict(detail::kkt_inertia(kkt), ws.num_free(), me + n_working) !=
         detail::InertiaVerdict::kOk) {
         return false;
     }
@@ -606,7 +611,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             ws.active_ineq() == border_exit_active_ineq_ &&
             border_->kkt.factor.session_id() == prev_border_kkt_session_id &&
             border_->kkt.factor.epoch() == prev_border_kkt_epoch &&
-            border_->kkt.factor.inertia().state == hven::linear::InertiaEvidence::State::kObserved;
+            detail::kkt_inertia(border_->kkt).state ==
+                hven::linear::InertiaEvidence::State::kObserved;
         // The direct "did the gate pass" signal -- see
         // QpCounters::k0_reused's own note for why a caller must read THIS
         // rather than infer reuse from `factorizations == 0`.
@@ -3688,6 +3694,8 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         const detail::DenseTallyScope tally(
             fresh, counters.dense_factorizations, counters.dense_flagged_factorizations,
             counters.dense_singular_refactors, counters.dense_platform_retakes);
+        const detail::RetakeTallyScope retakes(fresh, counters.sparse_scaled_retakes,
+                                               counters.sparse_matched_retakes);
         detail::factorize_checked(fresh, assembly.K, analysis, detail::DenseShiftSite{n_free});
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
@@ -3808,6 +3816,8 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         const detail::DenseTallyScope tally(
             kkt, counters.dense_factorizations, counters.dense_flagged_factorizations,
             counters.dense_singular_refactors, counters.dense_platform_retakes);
+        const detail::RetakeTallyScope retakes(kkt, counters.sparse_scaled_retakes,
+                                               counters.sparse_matched_retakes);
         return solve_eqp(qp, ws, x_k, kkt, opts);
     }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
@@ -3824,6 +3834,9 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     counters.eqp_polish_steps += res.polish_steps;
     if (res.residual_refused) {
         ++counters.eqp_residual_refusals;
+    }
+    if (res.retake_refused) {
+        ++counters.sparse_retake_refusals;
     }
     if (res.shifted_refused) {
         ++counters.dense_shifted_solve_refusals;
@@ -3842,7 +3855,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     // split only by which expression supplies the evidence; nothing is
     // reordered, hoisted out of, or re-evaluated on the production path, which
     // is the `#else` arm verbatim.
-    const hven::linear::InertiaEvidence eliminated_inertia = kkt.factor.inertia();
+    const hven::linear::InertiaEvidence eliminated_inertia = detail::kkt_inertia(kkt);
     verdict = detail::inertia_verdict(eliminated_inertia, ws.num_free(),
                                       qp.me() + static_cast<Index>(ws.active_ineq().size()));
     // The seam's record of the ELIMINATED path's own verdict evidence: the
@@ -3859,7 +3872,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         });
     }
 #else
-    verdict = detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(),
+    verdict = detail::inertia_verdict(detail::kkt_inertia(kkt), ws.num_free(),
                                       qp.me() + static_cast<Index>(ws.active_ineq().size()));
 #endif
     return res;
@@ -3923,7 +3936,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
         // none is taken, and the border answer is gated on its backward error
         // (solve_bordered_eqp). Other rows rebuild below.
         if (!(border.kkt.dense_shifted && border.k0_rows == ws.active_ineq())) {
-            const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
+            const hven::linear::InertiaEvidence e = detail::kkt_inertia(border.kkt);
             k0_untrusted = e.state != hven::linear::InertiaEvidence::State::kObserved ||
                            (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) ||
                            (!e.zero_is_derived && e.zero != 0);
@@ -4025,10 +4038,24 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             // A shifted-K0 gate refusal is one of these (shifted_refused implies
             // residual_refused, as on the eliminated path).
             ++counters.eqp_residual_refusals;
+            if (res.retake_refused) {
+                ++counters.sparse_retake_refusals;
+            }
             if (res.shifted_refused) {
                 ++counters.dense_shifted_solve_refusals;
                 ++counters.dense_shifted_k0_fallbacks;
             }
+            // A refusal of kScaled K0 numerics that escalates (kkt_factor.h) still
+            // requests the kMatched retake for K0's next factorization.
+            detail::request_platform_retake(border.kkt, res.platform_retake);
+            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+        }
+        if (res.platform_retake != detail::PlatformRetake::kNone) {
+            // THE PLATFORM SOLVE CHECK FAILED on K0 (kkt_factor.h): the retake is
+            // requested on K0's factor (needs_refactorization() then rebuilds K0 on
+            // the next pass, which takes it) and this pass takes the eliminated
+            // twin, the retreat the refusal above takes.
+            detail::request_platform_retake(border.kkt, res.platform_retake);
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         if (res.border_uncertified) {
@@ -4108,12 +4135,12 @@ detail::InertiaVerdict QpEngine::border_inertia_verdict(const QpProblem &qp,
     // backend triple AS COMPARED, with the expectation C's Haynsworth
     // contribution has already been backed out of. The `#else` arm is the
     // production statement, unchanged.
-    const hven::linear::InertiaEvidence k0_inertia = border.kkt.factor.inertia();
+    const hven::linear::InertiaEvidence k0_inertia = detail::kkt_inertia(border.kkt);
     detail::testing::qp_walk_note_inertia(k0_inertia, expected_pos - extra_pos,
                                           expected_neg - extra_neg);
     return detail::inertia_verdict(k0_inertia, expected_pos - extra_pos, expected_neg - extra_neg);
 #else
-    return detail::inertia_verdict(border.kkt.factor.inertia(), expected_pos - extra_pos,
+    return detail::inertia_verdict(detail::kkt_inertia(border.kkt), expected_pos - extra_pos,
                                    expected_neg - extra_neg);
 #endif
 }
@@ -4706,6 +4733,9 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
         counters.dense_factorizations += local_counters.dense_factorizations;
         counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+        counters.sparse_scaled_retakes += local_counters.sparse_scaled_retakes;
+        counters.sparse_matched_retakes += local_counters.sparse_matched_retakes;
+        counters.sparse_retake_refusals += local_counters.sparse_retake_refusals;
         counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
         if (stage1_fallback()) {
             ++counters.terminal_polish_adopted;
@@ -4721,6 +4751,9 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
     counters.dense_factorizations += local_counters.dense_factorizations;
     counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+    counters.sparse_scaled_retakes += local_counters.sparse_scaled_retakes;
+    counters.sparse_matched_retakes += local_counters.sparse_matched_retakes;
+    counters.sparse_retake_refusals += local_counters.sparse_retake_refusals;
     counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
     // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
     // here: at a terminal point the step is going to zero, so the proximal
@@ -5820,6 +5853,8 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
         const detail::DenseTallyScope tally(
             border.kkt, counters.dense_factorizations, counters.dense_flagged_factorizations,
             counters.dense_singular_refactors, counters.dense_platform_retakes);
+        const detail::RetakeTallyScope retakes(border.kkt, counters.sparse_scaled_retakes,
+                                               counters.sparse_matched_retakes);
         detail::factorize_checked(
             border.kkt, k0.K, analysis,
             detail::DenseShiftSite{static_cast<Index>(k0.free_of_full.size())});

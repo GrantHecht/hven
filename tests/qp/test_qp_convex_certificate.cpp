@@ -234,8 +234,20 @@ TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp4) {
     // SteenbrbRestorationLpQp3..8 and BritgasRestorationLpQp3 (one certificate each, both
     // algebras, both configs) and BritgasRestorationLpQp2 (Release; Debug reads no kWrong
     // there, as its own note above says).
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder, /*route_certificates=*/0,
-                     /*route_rereads=*/1);
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize,
-                     /*route_certificates=*/0, /*route_rereads=*/1);
+    // M8 sparse-equil-v4 (declared route mover; the outcome holds): a platform factorization
+    // on this route perturbs pivots and its refined answer misses the platform solve check;
+    // the scaled retake answers it (kkt_factor.h), and the walk reaches the same optimum by
+    // a route that reads 3 kWrong re-reads and takes the convex certificate once (Release,
+    // both algebras: 1148 minors; was 0 certificates / 1 re-read). MEASURED: Debug's route
+    // (985 minors) is unchanged -- no failed platform answer on it.
+#ifdef NDEBUG
+    constexpr Index kQp4Certificates = 1;
+    constexpr Index kQp4Rereads = 3;
+#else
+    constexpr Index kQp4Certificates = 0;
+    constexpr Index kQp4Rereads = 1;
+#endif
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder, kQp4Certificates, kQp4Rereads);
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize, kQp4Certificates,
+                     kQp4Rereads);
 }

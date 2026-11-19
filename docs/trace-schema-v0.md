@@ -899,6 +899,9 @@ group; `SqpOptions::hessian_mode`).
 | `accepted_f_type` | integer | `SqpCounters::accepted_f_type` | accepted steps with verdict `kAcceptObjectiveStep`, including the zero-step and full-step-mode accepts (M8 GL-0). No sentinel. |
 | `accepted_h_type` | integer | `SqpCounters::accepted_h_type` | accepted steps with verdict `kAcceptFeasibilityStep`; `steps_accepted` is the sum of the two (M8 GL-0). No sentinel. |
 | `rejection_run_histogram` | 5-integer array | `SqpCounters::rejection_run_histogram` | each rejection placed by its position in the run at one iterate: entry `k-1` counts rejections that were the `k`-th consecutive, the last entry 5 or more; the sum is `rejected_steps` (M8 GL-0). No sentinel. |
+| `sparse_scaled_retakes` | integer | `SqpCounters::sparse_scaled_retakes` | sparse platform KKT factorizations retaken on the maximum-product-matching scaled D K D after a refined walk answer through them missed `detail::kPlatformSolveFailureTol` (M8 sparse-equil-v4; `detail/kkt/kkt_factor.h`). Folded like `factorizations`. No sentinel. |
+| `sparse_matched_retakes` | integer | `SqpCounters::sparse_matched_retakes` | scaled retakes that still perturbed pivots and failed again (backward error or the EQP-site residual check), escalated to the weighted-matching session (Pardiso only; 0 on Accelerate) (M8 sparse-equil-v4). Folded like `factorizations`. No sentinel. |
+| `sparse_retake_refusals` | integer | `SqpCounters::sparse_retake_refusals` | walk answers through retake numerics that the EQP-site residual check refused without an escalation (M8 sparse-equil-v4). Folded like `eqp_residual_refusals`. No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -979,6 +982,13 @@ tables' distinct values up by one, no sentinel, both golden lines re-derived ONC
 `rejection_run_histogram`, the table rows above), after `payload_ignored`, the same route: eight keys
 before the `ssn` object (the last an array, one table entry), the nested tables' distinct values up by
 eight, no sentinel, the golden lines re-derived ONCE with a "RE-DERIVED AT M8 GL-0" note.
+
+**THE DIRECT COUNTERS M8 sparse-equil-v4 APPENDED — THREE** (`sparse_scaled_retakes`,
+`sparse_matched_retakes`, `sparse_retake_refusals`, the table rows above), after
+`rejection_run_histogram`, the same route: three keys before the `ssn` object, the nested tables'
+distinct values up by three, no sentinel, both v1 golden `sqp.solve.end` lines
+(`tests/trace/golden/trace_v1/sqp_complete.jsonl`) and the two counters-object goldens of
+`tests/trace/test_trace_writer.cpp` re-derived once.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

@@ -17,6 +17,10 @@ target_sources(hven PRIVATE
     # The dense arm behind SymmetricFactor: both platforms run the same LAPACK
     # calls (MKL's LAPACKE, or the Accelerate shim), as the file above does.
     linear/dense_session.cpp
+    # The maximum-product matching and its symmetric scaling (Duff & Koster
+    # 2001, Duff & Pralet 2005): backend-independent sparse preprocessing the
+    # KKT factor's platform-solve response applies before a retake.
+    linear/matching_scaling.cpp
     kkt/kkt_factor.cpp
 )
 
@@ -591,7 +595,10 @@ endif()
 # counters' X-macro tables. NOT a PCH source, on the same footing: it includes only the counter and
 # result headers, fmt and the standard library.
 # 57 as of RS-1a: util/color_text.cpp (enable_color_console, no caller) deleted with its private header.
-set(_hven_expected_source_count 57)
+# 58 as of linear/matching_scaling.cpp (M8 sparse-equil-v4): the maximum-product matching and its
+# symmetric scaling. NOT a PCH source, on the same unmeasured-default footing: it includes its own
+# header, fmt and the standard library, a different set from src/hven_pch.h's prefix.
+set(_hven_expected_source_count 58)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

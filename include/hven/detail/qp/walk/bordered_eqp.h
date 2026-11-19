@@ -713,6 +713,11 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         ratio = candidate_ratio;
     }
     const double row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n, nc)) : 0.0;
+    // The answer refined against the bordered K, for the platform solve check
+    // below (copied only where the check applies).
+    const detail::KktFactor &k0_factor = schur.k0_factor();
+    const bool platform_check = detail::platform_solve_check_applies(k0_factor);
+    const Vec sol_refined = platform_check ? sol : Vec();
 
     Index refine_steps = 0;
     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
@@ -727,6 +732,26 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
                                          opts, &refine_steps, certify ? &resolution : nullptr,
                                          certify ? &outcome : nullptr, k0_shift_scale != nullptr);
+    // THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h), the bordered twin of
+    // solve_eqp's: the answer refined against the bordered K (the residual loop's,
+    // or at dual_mu = 0 the refinement's), judged on the bordered system in K0's
+    // equilibrated metric (borders unscaled, bordered_shifted_backward_error's
+    // metric), with the residual check's verdict for the escalation. A failure is
+    // reported; the caller requests the retake on K0's factor.
+    detail::PlatformRetake platform_retake = detail::PlatformRetake::kNone;
+    if (platform_check) {
+        const Vec d0 = detail::equilibration_scale(k0.K);
+        const bool missed =
+            !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d, sys.rhs,
+                                              opts.dual_regularization == 0.0 ? sol : sol_refined,
+                                              d0) <= detail::kPlatformSolveFailureTol);
+        if (k0_factor.numerics == detail::PlatformRetake::kNone) {
+            platform_retake =
+                missed ? detail::PlatformRetake::kScaled : detail::PlatformRetake::kNone;
+        } else if (missed || !(ratio <= 1.0)) {
+            platform_retake = detail::PlatformRetake::kMatched;
+        }
+    }
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.
     const Index polish_kept =
@@ -737,10 +762,13 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     res.polish_steps = polish_kept;
     res.refine_steps = refine_steps;
     res.border_uncertified = !outcome.target_met;
+    res.platform_retake = platform_retake;
     res.row_residual = row_residual;
     res.residual_ratio = ratio;
     res.residual_refine_iters = res_iters;
     res.residual_refused = !(ratio <= 1.0) || shifted_refused;
+    res.retake_refused = res.residual_refused && platform_retake == detail::PlatformRetake::kNone &&
+                         k0_factor.numerics != detail::PlatformRetake::kNone;
     res.shifted_refused = shifted_refused;
     res.x = sol.head(n);
     for (Index i = 0; i < n; ++i) {
