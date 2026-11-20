@@ -58,3 +58,18 @@ sequential's instruction counts are roughly 60x more reproducible than intel's.
 - `threads > 1` is ignored under sequential (design). No wall-clock was measured (none asserted); parallel-Pardiso speedup on large problems is the capability given up.
 - Windows is covered by construction in FindMKL/hvenConfig (same branches, `libiomp5md.lib` skipped) but unobserved here; the Windows CI lane runs the default.
 - CI (default lanes) plus the new Linux sequential install-smoke step: see CI note below.
+
+## 6. CI
+
+workflow_dispatch run 44780861607 on pf6 at `55fae24a6`: linux-clang-release, windows-clang-release, macos-clang-release, linux-clang-coverage all success, including the new
+step "Run hven install smoke, sequential MKL threading (Linux)" (full configure/build/install/consume with `-DHVEN_MKL_THREADING=sequential`, asserts the configure line
+and that the consumer binary has no libiomp5 NEEDED entry). CI otherwise runs the default layer.
+
+## 7. Recommendation (not acted on)
+
+- Library default: keep `intel`. The only cost of `sequential` is the capability (`threads > 1` ignored), tycho may depend on it, and large-problem wall time was not measured here.
+- Benchmark builds (hven-bench's hven lane) and standalone single-threaded use: flip to `sequential` is justified by the data: -3.5% suite instructions (-29% on HS, -2.4M per solve of fixed
+  OpenMP bring-up, -1.4% to -4% on the long nlp-35 cells), zero replay differences, and 60x more reproducible instruction counts. Mechanism: pass `-DHVEN_MKL_THREADING=sequential` in
+  `scripts/build_hven_pin.sh` (a hven-bench change), keeping the library default. Caveat: the bench's IPOPT lane cannot link against a sequential hven (section 5), so the pin's
+  hven lane and the IPOPT lane need separate binaries or the IPOPT lane must stay on its own libs; the flip also moves every instruction baseline once (a declared event).
+- Flip the library default only after tycho confirms it never requests `threads > 1` and a large-problem wall comparison (solo, `--exclusive`) shows no regression.
