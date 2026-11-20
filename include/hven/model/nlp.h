@@ -17,6 +17,30 @@ struct NlpDimensions {
     Index hessian_nonzeros = 0;  ///< entries of hessian_structure(), lower triangle
 };
 
+/// @brief Entries of a dense m x n Jacobian: m * n.
+/// @throws std::invalid_argument if m < 0 or n < 1, or the product overflows Index.
+Index dense_jacobian_nonzeros(Index m, Index n);
+
+/// @brief Entries of the lower triangle (diagonal included) of a dense n x n
+///        Hessian: n * (n + 1) / 2.
+/// @throws std::invalid_argument if n < 1, or the count overflows Index.
+Index dense_lower_hessian_nonzeros(Index n);
+
+/// @brief Fills a Nlp::jacobian_structure() output with the dense m x n pattern,
+///        row-major: (0,0), (0,1), ..., (0,n-1), (1,0), ...
+///        Pair it with dense_jacobian_nonzeros(m, n) in NlpDimensions, and write
+///        eval_jacobian() values in the same order.
+/// @throws std::invalid_argument if m < 0 or n < 1, or rows or cols does not have
+///         exactly dense_jacobian_nonzeros(m, n) entries.
+void dense_jacobian_structure(Index m, Index n, IndexVecRef rows, IndexVecRef cols);
+
+/// @brief Fills a Nlp::hessian_structure() output with the dense lower triangle of
+///        an n x n Hessian, row by row: (0,0), (1,0), (1,1), (2,0), (2,1), (2,2), ...
+///        Pair it with dense_lower_hessian_nonzeros(n) in NlpDimensions.
+/// @throws std::invalid_argument if n < 1, or rows or cols does not have exactly
+///         dense_lower_hessian_nonzeros(n) entries.
+void dense_lower_hessian_structure(Index n, IndexVecRef rows, IndexVecRef cols);
+
 /// @brief The callback NLP, in the shape of Ipopt's TNLP:
 ///
 ///        min f(x)   s.t.   g_lower <= g(x) <= g_upper,   x_lower <= x <= x_upper

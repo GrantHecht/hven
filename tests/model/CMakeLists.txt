@@ -13,6 +13,7 @@ set(_hven_model_sources
     support/fake_aggregate.cpp
     test_aggregate_contract.cpp
     test_assembly_allocation.cpp
+    test_dense_structure.cpp
     test_claim_stream_restatement.cpp
     test_claim_stream_state.cpp
     test_contract_flags.cpp

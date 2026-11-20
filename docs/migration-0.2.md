@@ -501,6 +501,22 @@ selects the `WarmStart` overload, and `{.stop = token}` without the type name is
 `SolveBudget` initializer there (spell `SolveBudget{.stop = token}`). A `SolveBudget` lvalue or
 prvalue selects the new overload, which forwards to `solve(problem, x0, WarmStart{}, budget)`.
 
+### AP-4 G5 -- dense structure helpers
+
+Addition; nothing moves. `<hven/model/nlp.h>` gains four free functions for the common case of
+a dense Jacobian or a dense Hessian triangle:
+
+| before | after |
+|---|---|
+| `{.jacobian_nonzeros = 8, ...}` and `r << 0,0,0,0,1,1,1,1; c << 0,1,2,3,0,1,2,3;` | `.jacobian_nonzeros = dense_jacobian_nonzeros(2, 4)` and `dense_jacobian_structure(2, 4, r, c);` |
+| `{.hessian_nonzeros = 10, ...}` and `r << 0,1,1,2,2,2,3,3,3,3; c << 0,0,1,0,1,2,0,1,2,3;` | `.hessian_nonzeros = dense_lower_hessian_nonzeros(4)` and `dense_lower_hessian_structure(4, r, c);` |
+
+The Jacobian order is row-major, `(0,0), (0,1), ..., (0,n-1), (1,0), ...`; the Hessian is the lower
+triangle row by row, `(0,0), (1,0), (1,1), (2,0), ...`. `eval_jacobian` / `eval_hessian` write their
+values in the same order. A size that cannot be a dense pattern (`m < 0`, `n < 1`, an overflowing
+count) and an output whose length is not the pattern's throw `std::invalid_argument`. Examples
+01, 06, 08 and 10 use them.
+
 ## G-RB -- one `return_best`, one "best", both engines
 
 The two engines' return-best options become one `CommonOptions::return_best`, and "best" gets one

@@ -29,7 +29,10 @@ constexpr double kOptimum = 17.0140173;
 
 struct Hs071FirstOrder : Nlp {
     NlpDimensions dimensions() const override {
-        return {.n = 4, .m = 2, .jacobian_nonzeros = 8, .hessian_nonzeros = 0};
+        return {.n = 4,
+                .m = 2,
+                .jacobian_nonzeros = dense_jacobian_nonzeros(2, 4),
+                .hessian_nonzeros = 0};
     }
     void bounds(VecRef xl, VecRef xu, VecRef gl, VecRef gu) const override {
         xl.setConstant(1.0);
@@ -48,8 +51,7 @@ struct Hs071FirstOrder : Nlp {
         g << x[0] * x[1] * x[2] * x[3], x.squaredNorm();
     }
     void jacobian_structure(IndexVecRef r, IndexVecRef c) const override {
-        r << 0, 0, 0, 0, 1, 1, 1, 1;
-        c << 0, 1, 2, 3, 0, 1, 2, 3;
+        dense_jacobian_structure(2, 4, r, c); // row-major: (0,0), (0,1), ..., (1,3)
     }
     void eval_jacobian(ConstVecRef x, VecRef v) const override {
         v << x[1] * x[2] * x[3], x[0] * x[2] * x[3], x[0] * x[1] * x[3], x[0] * x[1] * x[2],
