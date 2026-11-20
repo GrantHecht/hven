@@ -1,0 +1,2 @@
+QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+QpIssue18AccuracyStop.TheVerdictAndKeepRules
