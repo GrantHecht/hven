@@ -1,0 +1,18 @@
+rows compared 4; skipped 0 
+TOTAL ALL                rows    4  A 7.996122e+11  B 7.465991e+11  B/A 0.933702
+TOTAL hven-sqp           rows    4  A 7.996122e+11  B 7.465991e+11  B/A 0.933702
+TOTAL hven-sqp.D         rows    4  A 7.996122e+11  B 7.465991e+11  B/A 0.933702
+
+focus rows:
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+
+largest savings:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063493e+11 B 1.737219e+11 B/A 0.8419
+  nlp-hven-sqp-YORKNET.D                   A 2.034929e+11 B 1.834064e+11 B/A 0.9013
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+  nlp-hven-sqp-DALLASM.D                   A 1.179550e+10 B 1.179234e+10 B/A 0.9997
+largest increases:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063493e+11 B 1.737219e+11 B/A 0.8419
+  nlp-hven-sqp-YORKNET.D                   A 2.034929e+11 B 1.834064e+11 B/A 0.9013
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+  nlp-hven-sqp-DALLASM.D                   A 1.179550e+10 B 1.179234e+10 B/A 0.9997

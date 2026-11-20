@@ -1,0 +1,29 @@
+rows compared 15; skipped 0 
+TOTAL ALL                rows   15  A 2.021185e+12  B 1.965108e+12  B/A 0.972255
+TOTAL hven-sqp           rows   15  A 2.021185e+12  B 1.965108e+12  B/A 0.972255
+TOTAL hven-sqp.D         rows   15  A 2.021185e+12  B 1.965108e+12  B/A 0.972255
+
+focus rows:
+
+largest savings:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063493e+11 B 1.737220e+11 B/A 0.8419
+  nlp-hven-sqp-YORKNET.D                   A 2.034929e+11 B 1.833954e+11 B/A 0.9012
+  nlp-hven-sqp-ACOPP57.D                   A 7.708517e+08 B 7.647322e+08 B/A 0.9921
+  nlp-hven-sqp-STEENBRE.D                  A 2.560528e+11 B 2.551304e+11 B/A 0.9964
+  nlp-hven-sqp-STEENBRB.D                  A 1.954730e+11 B 1.949424e+11 B/A 0.9973
+  nlp-hven-sqp-STEENBRC.D                  A 3.419012e+11 B 3.410438e+11 B/A 0.9975
+  nlp-hven-sqp-STEENBRD.D                  A 2.442620e+11 B 2.437353e+11 B/A 0.9978
+  nlp-hven-sqp-STEENBRG.D                  A 3.243229e+11 B 3.238422e+11 B/A 0.9985
+  nlp-hven-sqp-READING6.D                  A 8.740751e+09 B 8.729034e+09 B/A 0.9987
+  nlp-hven-sqp-ACOPR57.D                   A 1.860565e+10 B 1.858383e+10 B/A 0.9988
+largest increases:
+  nlp-hven-sqp-STEENBRC.D                  A 3.419012e+11 B 3.410438e+11 B/A 0.9975
+  nlp-hven-sqp-STEENBRD.D                  A 2.442620e+11 B 2.437353e+11 B/A 0.9978
+  nlp-hven-sqp-STEENBRG.D                  A 3.243229e+11 B 3.238422e+11 B/A 0.9985
+  nlp-hven-sqp-READING6.D                  A 8.740751e+09 B 8.729034e+09 B/A 0.9987
+  nlp-hven-sqp-ACOPR57.D                   A 1.860565e+10 B 1.858383e+10 B/A 0.9988
+  nlp-hven-sqp-SAWPATH.D                   A 8.987174e+09 B 8.977188e+09 B/A 0.9989
+  nlp-hven-sqp-DALLASM.D                   A 1.179550e+10 B 1.179235e+10 B/A 0.9997
+  nlp-hven-sqp-SMBANK.D                    A 1.264890e+09 B 1.264615e+09 B/A 0.9998
+  nlp-hven-sqp-BIGBANK.D                   A 1.957960e+11 B 1.958120e+11 B/A 1.0001
+  nlp-hven-sqp-ZAMB2-8.D                   A 3.370157e+09 B 3.372507e+09 B/A 1.0007

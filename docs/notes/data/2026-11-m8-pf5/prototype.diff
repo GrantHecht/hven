@@ -1,0 +1,357 @@
+diff --git a/include/hven/detail/kkt/kkt_factor.h b/include/hven/detail/kkt/kkt_factor.h
+index d2e0f5623..7d90bf621 100644
+--- a/include/hven/detail/kkt/kkt_factor.h
++++ b/include/hven/detail/kkt/kkt_factor.h
+@@ -13,6 +13,7 @@
+ #include <memory>
+ #include <optional>
+ #include <utility>
++#include <vector>
+ 
+ #include <Eigen/SparseCore>
+ 
+@@ -109,9 +110,24 @@ struct KktFactor {
+     ///                No default for either: a construction site that leaves a
+     ///                factor on the platform session says kNever.
+     explicit KktFactor(int threads, hven::linear::DensePolicy dense)
+-        : factor(sqp_kkt_options(threads, dense)) {}
++        : factor(sqp_kkt_options(threads, dense)), opts(sqp_kkt_options(threads, dense)) {}
+ 
+     hven::linear::SymmetricFactor factor;
++    // PF-5 PROTOTYPE (scratch, never landed): retained analyzed sessions.
++    struct RetainedAnalysis {
++        std::uint64_t pattern = 0;
++        std::unique_ptr<hven::linear::SymmetricFactor> factor;
++    };
++    hven::linear::SymmetricFactor::Options opts;
++    std::vector<RetainedAnalysis> retained; // most recently used first
++    std::vector<std::uint64_t> pf5_shadow;  // unbounded LRU stack (probe)
++    int pf5_role = 0;                       // 0 walk/local, 1 border K0, 2 ssn
++    bool swapped_in = false;
++    // Dense counters of sessions that have left `factor` minus those of
++    // sessions that have entered it, so dense_response_tally() stays the
++    // KktFactor's cumulative count across swaps.
++    Index carry_dense_factorize = 0, carry_dense_singular = 0, carry_dense_flagged = 0,
++          carry_dense_shift_refactor = 0, carry_dense_retake = 0;
+     std::uint64_t analyzed_pattern = 0;
+     bool analyzed = false;
+     /// True iff the current numerics are a dense shift response:
+@@ -261,10 +277,12 @@ struct DenseResponseTally {
+ };
+ inline DenseResponseTally dense_response_tally(const KktFactor &k) {
+     const auto &c = k.factor.counters();
+-    return DenseResponseTally{c.dense_factorize_count + c.dense_singular_count,
+-                              c.dense_flagged_count + c.dense_singular_count -
+-                                  k.shifted_exact_singular,
+-                              c.dense_shift_refactor_count, c.dense_retake_count};
++    const Index fz = c.dense_factorize_count + k.carry_dense_factorize;
++    const Index sg = c.dense_singular_count + k.carry_dense_singular;
++    const Index fl = c.dense_flagged_count + k.carry_dense_flagged;
++    return DenseResponseTally{fz + sg, fl + sg - k.shifted_exact_singular,
++                              c.dense_shift_refactor_count + k.carry_dense_shift_refactor,
++                              c.dense_retake_count + k.carry_dense_retake};
+ }
+ 
+ /// @brief Adds a factor's tally delta to four counters when it leaves scope,
+@@ -658,4 +676,7 @@ inline void clear_platform_retake_request(KktFactor &k) {
+ /// the scaled session's analysis record with it).
+ void release_idle_retake_sessions(KktFactor &k);
+ 
++/// PF-5 PROTOTYPE: frees every retained analysis (end of a QP solve).
++void release_retained_analyses(KktFactor &k);
++
+ } // namespace hven::detail
+diff --git a/include/hven/detail/qp/ssn/ssn_engine.h b/include/hven/detail/qp/ssn/ssn_engine.h
+index ba97cc71f..0138933b5 100644
+--- a/include/hven/detail/qp/ssn/ssn_engine.h
++++ b/include/hven/detail/qp/ssn/ssn_engine.h
+@@ -731,7 +731,9 @@ class SsnEngine {
+     ///                M8 DN-1); kNever is the configuration before the arm. Neither
+     ///                `threads` nor `dense` has a default (M8 DN-3).
+     explicit SsnEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
+-        : opts_(opts), kkt_(threads, dense) {}
++        : opts_(opts), kkt_(threads, dense) {
++        kkt_.pf5_role = 2;
++    }
+ 
+     SsnEngine(const SsnEngine &) = delete;
+     SsnEngine &operator=(const SsnEngine &) = delete;
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index fe9e75a83..1b4733fd8 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1677,7 +1677,9 @@ struct BorderState {
+     /// @param dense   The owning engine's dense-arm policy (M8 DN-1). Neither
+     ///                parameter has a default (M8 DN-3), so a construction site
+     ///                that forgets the engine's policy does not compile.
+-    explicit BorderState(int threads, hven::linear::DensePolicy dense) : kkt(threads, dense) {}
++    explicit BorderState(int threads, hven::linear::DensePolicy dense) : kkt(threads, dense) {
++        kkt.pf5_role = 1;
++    }
+ 
+     BorderState(const BorderState &) = delete;
+     BorderState &operator=(const BorderState &) = delete;
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 76d4ee911..2024065e9 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -6,6 +6,10 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <map>
+ #include <stdexcept>
+ 
+ #include <fmt/format.h>
+@@ -32,8 +36,182 @@ bool needs_analysis(const KktFactor &k, const SpMatRM &K) { return analysis_deci
+ 
+ namespace {
+ 
++// ---- PF-5 PROTOTYPE -------------------------------------------------------
++int pf5_cap() {
++    static const int cap = [] {
++        const char *e = std::getenv("HVEN_PF5_RETAIN");
++        return e != nullptr ? std::atoi(e) : 0;
++    }();
++    return cap;
++}
++struct Pf5Stats {
++    std::uint64_t analyses[3] = {0, 0, 0};     // fresh backend analyses, by role
++    std::uint64_t hits[3] = {0, 0, 0};         // retained session swapped in
++    std::uint64_t discards = 0;                // swapped-in session discarded on failure
++    std::uint64_t evictions = 0;
++    std::map<std::size_t, std::uint64_t> dist[3]; // LRU stack distance (1 = previous pattern), 0 = cold
++    ~Pf5Stats() {
++        if (std::getenv("HVEN_PF5_PROBE") == nullptr) {
++            return;
++        }
++        std::fprintf(stderr, "PF5 cap=%d discards=%llu evictions=%llu\n", pf5_cap(),
++                     (unsigned long long)discards, (unsigned long long)evictions);
++        for (int r = 0; r < 3; ++r) {
++            std::fprintf(stderr, "PF5R role=%d fresh=%llu hits=%llu", r,
++                         (unsigned long long)analyses[r], (unsigned long long)hits[r]);
++            for (const auto &[d, c] : dist[r]) {
++                std::fprintf(stderr, " d%zu=%llu", d, (unsigned long long)c);
++            }
++            std::fprintf(stderr, "\n");
++        }
++    }
++};
++Pf5Stats &pf5_stats() {
++    static Pf5Stats s;
++    return s;
++}
++void pf5_note(KktFactor &k, std::uint64_t pattern) {
++    auto &sh = k.pf5_shadow;
++    std::size_t d = 0;
++    for (std::size_t i = 0; i < sh.size(); ++i) {
++        if (sh[i] == pattern) {
++            d = i + 1;
++            sh.erase(sh.begin() + static_cast<std::ptrdiff_t>(i));
++            break;
++        }
++    }
++    sh.insert(sh.begin(), pattern);
++    ++pf5_stats().dist[k.pf5_role][d];
++}
++void pf5_carry(KktFactor &k, const hven::linear::SymmetricFactor &f, Index sign) {
++    const auto &c = f.counters();
++    k.carry_dense_factorize += sign * c.dense_factorize_count;
++    k.carry_dense_singular += sign * c.dense_singular_count;
++    k.carry_dense_flagged += sign * c.dense_flagged_count;
++    k.carry_dense_shift_refactor += sign * c.dense_shift_refactor_count;
++    k.carry_dense_retake += sign * c.dense_retake_count;
++}
++// Moves `incoming` into k.factor; the outgoing session (if analyzed) becomes
++// the most recently used retained entry, the LRU tail evicted past the cap.
++void pf5_install(KktFactor &k, std::unique_ptr<hven::linear::SymmetricFactor> incoming,
++                 std::uint64_t pattern) {
++    pf5_carry(k, *incoming, -1);
++    std::swap(k.factor, *incoming); // incoming now holds the outgoing session
++    pf5_carry(k, *incoming, +1);
++    if (k.analyzed) {
++        k.retained.insert(k.retained.begin(),
++                          KktFactor::RetainedAnalysis{k.analyzed_pattern, std::move(incoming)});
++        while (static_cast<int>(k.retained.size()) > pf5_cap()) {
++            k.retained.pop_back();
++            ++pf5_stats().evictions;
++        }
++    }
++    k.analyzed_pattern = pattern;
++    k.analyzed = true;
++}
++// Discards a swapped-in session whose refactorization did not succeed: its
++// old (session, epoch) must never be live again without committed numerics.
++struct Pf5SwapGuard {
++    KktFactor &k;
++    bool ok = false;
++    ~Pf5SwapGuard() {
++        if (k.swapped_in && !ok) {
++            pf5_carry(k, k.factor, +1);
++            k.factor = hven::linear::SymmetricFactor(k.opts);
++            k.analyzed = false;
++            k.analyzed_pattern = 0;
++            ++pf5_stats().discards;
++        }
++        k.swapped_in = false;
++    }
++};
++std::uint64_t pf5_v_same = 0, pf5_v_diff = 0, pf5_v_inertia_diff = 0, pf5_v_skipped = 0;
++double pf5_v_maxrel = 0.0;
++struct Pf5VerifyReport {
++    ~Pf5VerifyReport() {
++        if (std::getenv("HVEN_PF5_VERIFY") != nullptr) {
++            std::fprintf(stderr,
++                         "PF5V identical=%llu differ=%llu inertia_differ=%llu skipped=%llu max_rel=%.3e\n",
++                         (unsigned long long)pf5_v_same, (unsigned long long)pf5_v_diff,
++                         (unsigned long long)pf5_v_inertia_diff, (unsigned long long)pf5_v_skipped,
++                         pf5_v_maxrel);
++        }
++    }
++} pf5_verify_report;
++// On a retained-session hit: a fresh analysis + factorization of the same K
++// on a throwaway factor, and one solve through each, compared bitwise.
++void pf5_verify(const KktFactor &k, const SpMatRM &K, const hven::linear::FactorizeOutcome &o) {
++    static const bool on = std::getenv("HVEN_PF5_VERIFY") != nullptr;
++    if (!on || !k.swapped_in) {
++        return;
++    }
++    hven::linear::SymmetricFactor::Options opts = k.opts;
++    opts.threads = k.factor.threads();
++    hven::linear::SymmetricFactor f(opts);
++    f.analyze(K);
++    const hven::linear::FactorizeOutcome fo = f.factorize(K);
++    if (fo.status != o.status || fo.arm != o.arm ||
++        fo.inertia.positive != o.inertia.positive || fo.inertia.negative != o.inertia.negative ||
++        fo.inertia.perturbed_pivots != o.inertia.perturbed_pivots) {
++        ++pf5_v_inertia_diff;
++    }
++    if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
++        o.status != hven::linear::FactorizeOutcome::Status::kOk) {
++        ++pf5_v_skipped;
++        return;
++    }
++    const Index n = K.rows();
++    Vec b(n);
++    for (Index i = 0; i < n; ++i) {
++        b(i) = 1.0 + static_cast<double>(i % 7) / 7.0;
++    }
++    Vec x1(n), x2(n);
++    k.factor.solve(b, x1);
++    f.solve(b, x2);
++    bool same = true;
++    for (Index i = 0; i < n; ++i) {
++        if (std::memcmp(&x1(i), &x2(i), sizeof(double)) != 0) {
++            same = false;
++            const double den = std::max(std::abs(x2(i)), 1e-300);
++            pf5_v_maxrel = std::max(pf5_v_maxrel, std::abs(x1(i) - x2(i)) / den);
++        }
++    }
++    same ? ++pf5_v_same : ++pf5_v_diff;
++}
++// ---------------------------------------------------------------------------
++
+ void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &decision) {
++    k.swapped_in = false;
++    if (decision.needed && pf5_cap() > 0) {
++        const std::uint64_t pattern = decision.pattern ? *decision.pattern : hven::pattern_hash(K);
++        if (std::getenv("HVEN_PF5_PROBE") != nullptr) {
++            pf5_note(k, pattern);
++        }
++        for (auto it = k.retained.begin(); it != k.retained.end(); ++it) {
++            if (it->pattern == pattern) {
++                std::unique_ptr<hven::linear::SymmetricFactor> f = std::move(it->factor);
++                k.retained.erase(it);
++                pf5_install(k, std::move(f), pattern);
++                k.swapped_in = true;
++                ++pf5_stats().hits[k.pf5_role];
++                return;
++            }
++        }
++        hven::linear::SymmetricFactor::Options o = k.opts;
++        o.threads = k.factor.threads();
++        auto fresh = std::make_unique<hven::linear::SymmetricFactor>(o);
++        fresh->analyze(K); // a throw leaves `k` exactly as it was
++        ++pf5_stats().analyses[k.pf5_role];
++        pf5_install(k, std::move(fresh), pattern);
++        return;
++    }
+     if (decision.needed) {
++        if (std::getenv("HVEN_PF5_PROBE") != nullptr) {
++            const std::uint64_t pattern =
++                decision.pattern ? *decision.pattern : hven::pattern_hash(K);
++            pf5_note(k, pattern);
++            ++pf5_stats().analyses[k.pf5_role];
++        }
+         k.factor.analyze(K);
+         // The record reuses the hash the decision was taken on. Only the
+         // short-circuit path (nothing analyzed yet, so K was never hashed)
+@@ -191,8 +369,10 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+     // (both commit only on success), so the marker describing them is cleared
+     // only once factorize() has returned -- by then the old numerics are gone.
+     const PlatformRetake request = take_request(k);
++    Pf5SwapGuard pf5_guard{k};
+     analyze_if_needed(k, K, decision);
+     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
++    pf5_verify(k, K, outcome);
+     clear_shift_marker(k);
+     if (flagged(outcome)) {
+         // No site to shift on: the platform session retakes K.
+@@ -204,6 +384,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
+         throw_failed(outcome);
+     }
++    pf5_guard.ok = true;
+     return outcome;
+ }
+ 
+@@ -231,8 +412,10 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+     using Status = hven::linear::FactorizeOutcome::Status;
+     // Cleared only once factorize() has returned, as in the overload above.
+     const PlatformRetake request = take_request(k);
++    Pf5SwapGuard pf5_guard{k};
+     analyze_if_needed(k, K, decision);
+     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
++    pf5_verify(k, K, outcome);
+     clear_shift_marker(k);
+     if (flagged(outcome)) {
+         // The pattern was verified by the call above; the responses factor the
+@@ -266,6 +449,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+     if (outcome.status == Status::kBackendError) {
+         throw_failed(outcome);
+     }
++    pf5_guard.ok = true;
+     return outcome;
+ }
+ 
+@@ -360,6 +544,15 @@ void request_platform_retake(KktFactor &k, PlatformRetake tier) {
+     k.rebuild_pending = true;
+ }
+ 
++void release_retained_analyses(KktFactor &k) {
++    static const bool keep = std::getenv("HVEN_PF5_KEEP") != nullptr;
++    if (keep) {
++        return; // PF-5 probe arm: retain across QP solves
++    }
++    k.retained.clear();
++    k.pf5_shadow.clear();
++}
++
+ void release_idle_retake_sessions(KktFactor &k) {
+     if (k.numerics != PlatformRetake::kScaled) {
+         k.scaled_session.reset();
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 60a130b43..60f745b25 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -454,6 +454,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             if (border != nullptr) {
+                 detail::clear_platform_retake_request(border->kkt);
+                 detail::release_idle_retake_sessions(border->kkt);
++                detail::release_retained_analyses(border->kkt);
+             }
+         }
+     } border_retake_exit(border_);

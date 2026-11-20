@@ -1,0 +1,35 @@
+rows compared 119; skipped 0 
+TOTAL ALL                rows  119  A 1.141056e+12  B 1.139805e+12  B/A 0.998903
+TOTAL hven-sqp           rows  119  A 1.141056e+12  B 1.139805e+12  B/A 0.998903
+TOTAL hven-sqp.D         rows  119  A 1.141056e+12  B 1.139805e+12  B/A 0.998903
+
+focus rows:
+  nlp-hven-sqp-CRESC100.D                  A 3.780380e+11 B 3.776789e+11 B/A 0.9991
+  nlp-hven-sqp-CRESC50.D                   A 9.141169e+10 B 9.132472e+10 B/A 0.9990
+  nlp-hven-sqp-DNIEPER.D                   A 1.354596e+09 B 1.354439e+09 B/A 0.9999
+  nlp-hven-sqp-MESH.D                      A 3.368657e+10 B 3.364268e+10 B/A 0.9987
+  nlp-hven-sqp-MSS1.D                      A 9.934398e+10 B 9.885806e+10 B/A 0.9951
+  nlp-hven-sqp-SPANHYD.D                   A 4.351784e+11 B 4.349785e+11 B/A 0.9995
+
+largest savings:
+  nlp-hven-sqp-ACOPP30.D                   A 2.520988e+09 B 2.482169e+09 B/A 0.9846
+  nlp-hven-sqp-MSS1.D                      A 9.934398e+10 B 9.885806e+10 B/A 0.9951
+  nlp-hven-sqp-MESH.D                      A 3.368657e+10 B 3.364268e+10 B/A 0.9987
+  nlp-hven-sqp-CRESC50.D                   A 9.141169e+10 B 9.132472e+10 B/A 0.9990
+  nlp-hven-sqp-CRESC100.D                  A 3.780380e+11 B 3.776789e+11 B/A 0.9991
+  nlp-hven-sqp-LAKES.D                     A 6.487658e+10 B 6.483415e+10 B/A 0.9993
+  nlp-hven-sqp-SPANHYD.D                   A 4.351784e+11 B 4.349785e+11 B/A 0.9995
+  nlp-hven-sqp-NET1.D                      A 7.849007e+09 B 7.846221e+09 B/A 0.9996
+  nlp-hven-sqp-LAUNCH.D                    A 6.701564e+07 B 6.699379e+07 B/A 0.9997
+  nlp-hven-sqp-hs005.D                     A 6.961168e+06 B 6.960018e+06 B/A 0.9998
+largest increases:
+  nlp-hven-sqp-HS17.D                      A 9.165001e+06 B 9.185078e+06 B/A 1.0022
+  nlp-hven-sqp-hs071.D                     A 8.901494e+06 B 8.921318e+06 B/A 1.0022
+  nlp-hven-sqp-hs033.D                     A 8.732954e+06 B 8.752549e+06 B/A 1.0022
+  nlp-hven-sqp-HS27.D                      A 9.156933e+06 B 9.178182e+06 B/A 1.0023
+  nlp-hven-sqp-ZY2.D                       A 7.941641e+06 B 7.960848e+06 B/A 1.0024
+  nlp-hven-sqp-BURKEHAN.D                  A 7.221654e+07 B 7.239912e+07 B/A 1.0025
+  nlp-hven-sqp-BT7.D                       A 2.485349e+08 B 2.491771e+08 B/A 1.0026
+  nlp-hven-sqp-LOOTSMA.D                   A 1.057087e+07 B 1.059922e+07 B/A 1.0027
+  nlp-hven-sqp-HIMMELP6.D                  A 1.313218e+07 B 1.317077e+07 B/A 1.0029
+  nlp-hven-sqp-HS83.D                      A 2.637718e+07 B 2.648074e+07 B/A 1.0039

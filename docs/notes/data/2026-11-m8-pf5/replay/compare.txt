@@ -1,0 +1,6 @@
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+=== walk-probe === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== ssn-probe === cells compared: 27  columns compared: 75  differences: 0
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ipm-probe === cells compared: 27  columns compared: 75  differences: 0

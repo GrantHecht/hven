@@ -1,0 +1,3 @@
+rows 4; movers A vs B 0
+  FAIL ROW_COUNT 4
+NLP_REPORT (with missing/WORSE rows)

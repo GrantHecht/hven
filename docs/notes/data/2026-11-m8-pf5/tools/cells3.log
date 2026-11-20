@@ -1,0 +1,36 @@
+box-lane: lane 1 acquired 2026-11-20T10:36:48-05:00
+FOREGROUND_START 2026-11-20T10:36:48-05:00 lane=1 phys=[4 5 6 7]
+7f988b29f840c2771975b079505538fddc9c0f8d93118abb760371035b3109e2  /home/ghecht/Projects/hven/.claude/worktrees/pf5-proto/.scratch/bin/proto2/hven_bench_cell
+CELL_RESULT stat hven-sqp CRESC100 default 1 rc=0 wall=35.51
+CELL_RESULT stat hven-sqp CRESC100 default 1 rc=0 wall=35.83
+CELL_RESULT stat hven-sqp CRESC100 default 1 rc=0 wall=35.93
+CELL_RESULT run hven-sqp CRESC100 default 1 rc=0 wall=35.93
+CELL_RESULT stat hven-sqp CRESC50 default 1 rc=0 wall=8.81
+CELL_RESULT run hven-sqp CRESC50 default 1 rc=0 wall=8.81
+CELL_RESULT stat hven-sqp CRESC50 default 1 rc=0 wall=8.81
+CELL_RESULT stat hven-sqp CRESC50 default 1 rc=0 wall=8.81
+CELL_RESULT stat hven-sqp MESH default 1 rc=0 wall=3.15
+CELL_RESULT stat hven-sqp MESH default 1 rc=0 wall=3.15
+CELL_RESULT run hven-sqp MESH default 1 rc=0 wall=3.14
+CELL_RESULT stat hven-sqp MESH default 1 rc=0 wall=3.15
+CELL_RESULT stat hven-sqp SPANHYD default 1 rc=0 wall=38.09
+CELL_RESULT run hven-sqp SPANHYD default 1 rc=0 wall=38.20
+CELL_RESULT stat hven-sqp SPANHYD default 1 rc=0 wall=38.20
+CELL_RESULT stat hven-sqp SPANHYD default 1 rc=0 wall=38.41
+CELL_RESULT stat hven-sqp MSS1 default 1 rc=0 wall=11.14
+CELL_RESULT stat hven-sqp MSS1 default 1 rc=0 wall=11.14
+CELL_RESULT run hven-sqp MSS1 default 1 rc=0 wall=11.24
+CELL_RESULT stat hven-sqp MSS1 default 1 rc=0 wall=11.24
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=19.83
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=19.83
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=24.43
+CELL_RESULT run hven-sqp YORKNET default 1 rc=0 wall=26.52
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=16.51
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=16.50
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=24.65
+CELL_RESULT run hven-sqp ACOPP118 default 1 rc=0 wall=27.06
+CELL_RESULT stat hven-sqp STEENBRC default 1 rc=0 wall=41.69
+CELL_RESULT stat hven-sqp STEENBRC default 1 rc=0 wall=41.65
+CELL_RESULT stat hven-sqp STEENBRC default 1 rc=0 wall=41.54
+CELL_RESULT run hven-sqp STEENBRC default 1 rc=0 wall=41.79
+FOREGROUND_END 2026-11-20T10:40:05-05:00

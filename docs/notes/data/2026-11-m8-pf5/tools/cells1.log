@@ -1,0 +1,20 @@
+box-lane: lane 1 acquired 2026-11-20T09:48:04-05:00
+FOREGROUND_START 2026-11-20T09:48:04-05:00 lane=1 phys=[4 5 6 7]
+92bfc41ba9005051b73b435c37d944fddba1b83dfc8a228ed0702b14059918e4  /home/ghecht/Projects/hven/.claude/worktrees/pf5-proto/.scratch/bin/proto/hven_bench_cell
+CELL_RESULT run hven-sqp CRESC100 default 1 rc=0 wall=35.77
+CELL_RESULT stat hven-sqp CRESC100 default 1 rc=0 wall=35.77
+CELL_RESULT stat hven-sqp CRESC100 default 1 rc=0 wall=35.98
+CELL_RESULT run hven-sqp CRESC100 default 1 rc=0 wall=36.19
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=19.98
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=24.48
+CELL_RESULT run hven-sqp YORKNET default 1 rc=0 wall=24.48
+CELL_RESULT run hven-sqp YORKNET default 1 rc=0 wall=26.57
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=16.63
+CELL_RESULT stat hven-sqp DALLASM default 1 rc=0 wall=1.15
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=24.87
+CELL_RESULT stat hven-sqp DALLASM default 1 rc=0 wall=1.15
+CELL_RESULT run hven-sqp DALLASM default 1 rc=0 wall=1.14
+CELL_RESULT run hven-sqp DALLASM default 1 rc=0 wall=1.14
+CELL_RESULT run hven-sqp ACOPP118 default 1 rc=0 wall=24.82
+CELL_RESULT run hven-sqp ACOPP118 default 1 rc=0 wall=27.08
+FOREGROUND_END 2026-11-20T09:49:36-05:00

@@ -1,0 +1,4 @@
+PF5 cap=0 discards=0 evictions=0
+PF5R role=0 fresh=17634 hits=0 d0=17133 d2=177 d3=32 d4=140 d5=5 d6=5 d7=43 d8=11 d9=5 d10=10 d11=10 d13=11 d15=1 d20=4 d22=1 d24=4 d27=6 d28=2 d30=7 d31=3 d33=4 d34=1 d37=3 d38=1 d40=6 d41=2 d43=3 d44=1 d45=2 d48=1
+PF5R role=1 fresh=5704 hits=0 d0=5626 d2=10 d3=3 d4=3 d5=3 d6=2 d7=2 d8=2 d9=1 d11=1 d12=2 d13=2 d14=2 d15=2 d16=1 d18=1 d19=2 d20=2 d21=1 d25=1 d26=1 d34=34
+PF5R role=2 fresh=0 hits=0

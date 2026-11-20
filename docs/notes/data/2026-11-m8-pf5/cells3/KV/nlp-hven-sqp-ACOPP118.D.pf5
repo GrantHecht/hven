@@ -1,0 +1,5 @@
+PF5 cap=8 discards=0 evictions=1467
+PF5R role=0 fresh=1537 hits=7411 d0=1457 d2=2677 d3=7 d4=709 d5=5 d6=2072 d8=1941 d58=2 d79=78
+PF5R role=1 fresh=1 hits=0 d0=1
+PF5R role=2 fresh=0 hits=0
+PF5V identical=7411 differ=0 inertia_differ=0 skipped=0 max_rel=0.000e+00

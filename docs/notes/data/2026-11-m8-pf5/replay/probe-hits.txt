@@ -1,0 +1,27 @@
+== walk
+     27 PF5R role=2 fresh=0 hits=0
+     25 PF5R role=0 fresh=0 hits=0
+     25 PF5 cap=8 discards=0 evictions=0
+     15 PF5R role=1 fresh=1 hits=0 d0=1
+     10 PF5R role=1 fresh=2 hits=0 d0=2
+      1 PF5R role=1 fresh=7 hits=0 d0=7
+      1 PF5R role=1 fresh=6 hits=0 d0=6
+      1 PF5R role=0 fresh=7194 hits=3 d0=7194 d2=3
+      1 PF5R role=0 fresh=5307 hits=0 d0=5307
+      1 PF5 cap=8 discards=0 evictions=7185
+      1 PF5 cap=8 discards=0 evictions=5298
+== ssn
+     27 PF5R role=2 fresh=1 hits=0 d0=1
+     27 PF5R role=1 fresh=0 hits=0
+     27 PF5 cap=8 discards=0 evictions=0
+     15 PF5R role=0 fresh=1 hits=0 d0=1
+     10 PF5R role=0 fresh=2 hits=0 d0=2
+      2 PF5R role=0 fresh=6 hits=0 d0=6
+== ipm
+     27 PF5R role=1 fresh=0 hits=0
+     27 PF5 cap=8 discards=0 evictions=0
+     25 PF5R role=2 fresh=0 hits=0
+     15 PF5R role=0 fresh=1 hits=0 d0=1
+     10 PF5R role=0 fresh=2 hits=0 d0=2
+      2 PF5R role=2 fresh=1 hits=0 d0=1
+      2 PF5R role=0 fresh=10 hits=0 d0=10

@@ -1,0 +1,4 @@
+PF5 cap=0 discards=0 evictions=0
+PF5R role=0 fresh=277 hits=0 d0=277
+PF5R role=1 fresh=3 hits=0 d0=3
+PF5R role=2 fresh=0 hits=0

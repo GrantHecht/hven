@@ -1,0 +1,30 @@
+rows compared 8; skipped 0 
+TOTAL ALL                rows    8  A 1.789377e+12  B 1.734542e+12  B/A 0.969355
+TOTAL hven-sqp           rows    8  A 1.789377e+12  B 1.734542e+12  B/A 0.969355
+TOTAL hven-sqp.D         rows    8  A 1.789377e+12  B 1.734542e+12  B/A 0.969355
+
+focus rows:
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+  nlp-hven-sqp-CRESC50.D                   A 9.143863e+10 B 9.135165e+10 B/A 0.9990
+  nlp-hven-sqp-MESH.D                      A 3.368658e+10 B 3.364268e+10 B/A 0.9987
+  nlp-hven-sqp-MSS1.D                      A 9.935593e+10 B 9.884613e+10 B/A 0.9949
+  nlp-hven-sqp-SPANHYD.D                   A 4.351783e+11 B 4.348657e+11 B/A 0.9993
+
+largest savings:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063493e+11 B 1.737334e+11 B/A 0.8419
+  nlp-hven-sqp-YORKNET.D                   A 2.034929e+11 B 1.834064e+11 B/A 0.9013
+  nlp-hven-sqp-MSS1.D                      A 9.935593e+10 B 9.884613e+10 B/A 0.9949
+  nlp-hven-sqp-STEENBRC.D                  A 3.419012e+11 B 3.410177e+11 B/A 0.9974
+  nlp-hven-sqp-MESH.D                      A 3.368658e+10 B 3.364268e+10 B/A 0.9987
+  nlp-hven-sqp-CRESC50.D                   A 9.143863e+10 B 9.135165e+10 B/A 0.9990
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+  nlp-hven-sqp-SPANHYD.D                   A 4.351783e+11 B 4.348657e+11 B/A 0.9993
+largest increases:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063493e+11 B 1.737334e+11 B/A 0.8419
+  nlp-hven-sqp-YORKNET.D                   A 2.034929e+11 B 1.834064e+11 B/A 0.9013
+  nlp-hven-sqp-MSS1.D                      A 9.935593e+10 B 9.884613e+10 B/A 0.9949
+  nlp-hven-sqp-STEENBRC.D                  A 3.419012e+11 B 3.410177e+11 B/A 0.9974
+  nlp-hven-sqp-MESH.D                      A 3.368658e+10 B 3.364268e+10 B/A 0.9987
+  nlp-hven-sqp-CRESC50.D                   A 9.143863e+10 B 9.135165e+10 B/A 0.9990
+  nlp-hven-sqp-CRESC100.D                  A 3.779744e+11 B 3.776784e+11 B/A 0.9992
+  nlp-hven-sqp-SPANHYD.D                   A 4.351783e+11 B 4.348657e+11 B/A 0.9993
