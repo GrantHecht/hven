@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..9cdf4cf99 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -348,7 +348,7 @@ class SchurComplement {
+ 
+     // Inside a batch, the recorded adds count: dim() is the stack the same
+     // adds made one at a time would have built so far.
+-    Index dim() const { return static_cast<Index>(v_.size() + pending_v_.size()); }
++    Index dim() const { return static_cast<Index>(v_.size()); }
+ 
+     // C's two extreme directions, the ends cond_estimate() measures: the one
+     // nearest its null space (kConditionDirectionSteps steps of inverse

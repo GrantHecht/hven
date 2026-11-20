@@ -1,0 +1,12 @@
+diff --git a/src/linear/symmetric_factor_mkl.cpp b/src/linear/symmetric_factor_mkl.cpp
+index 07d4d47b4..a4d80b1a5 100644
+--- a/src/linear/symmetric_factor_mkl.cpp
++++ b/src/linear/symmetric_factor_mkl.cpp
+@@ -683,7 +683,6 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
+     numerics_refused_ = false;
+     refused_epoch_ = 0;
+     ++counters_.analyze_count;
+-    AnalysisTally::record(detail::analysis_key(pattern_hash_, A, opts_));
+ }
+ 
+ void SymmetricFactor::check_factorize_input(const SpMatRM &A, PatternCheck check,

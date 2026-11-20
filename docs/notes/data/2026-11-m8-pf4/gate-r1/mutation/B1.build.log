@@ -1,0 +1,91 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/rel'
+[0/2] Re-checking globbed directories...
+[1/74] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_print.cpp.o
+[2/74] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver_handle.cpp.o
+[3/74] Building CXX object CMakeFiles/hven.dir/src/sqp/quasi_newton/qn_lift_bridge.cpp.o
+[4/74] Building CXX object CMakeFiles/hven.dir/src/sqp/assembly_eval_seam.cpp.o
+[5/74] Building CXX object CMakeFiles/hven.dir/src/sqp/globalization/soc_elastic_restoration.cpp.o
+[6/74] Building CXX object CMakeFiles/hven.dir/src/sqp/continuation.cpp.o
+[7/74] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp/ipqp_engine.cpp.o
+[8/74] Building CXX object tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_border_ops.cpp.o
+[9/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/qp/ipqp/ipqp_engine.cpp.o
+[10/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_print.cpp.o
+[11/74] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/src/sqp/sqp_solver.cpp:6977:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6977 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[12/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/assembly_eval_seam.cpp.o
+[13/74] Building CXX object CMakeFiles/hven.dir/src/qp/walk/ws_independence.cpp.o
+[14/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/qp/walk/ws_independence.cpp.o
+[15/74] Building CXX object CMakeFiles/hven.dir/src/qp/walk/walk_engine.cpp.o
+[16/74] Linking CXX static library libhven.a
+[17/74] Building CXX object tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_schur.cpp.o
+[18/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/continuation.cpp.o
+[19/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/quasi_newton/qn_lift_bridge.cpp.o
+[20/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver_handle.cpp.o
+[21/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/globalization/soc_elastic_restoration.cpp.o
+[22/74] Building CXX object tests/linear/CMakeFiles/hven_linear_tests.dir/test_symmetric_factor_dense_arm.cpp.o
+[23/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/qp/walk/walk_engine.cpp.o
+[24/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_border_certificate.cpp.o
+[25/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_convex_certificate.cpp.o
+[26/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_ascent_footprint.cpp.o
+[27/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_flat_face_saddle.cpp.o
+[28/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_ascent_guard.cpp.o
+[29/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_implied_blocker.cpp.o
+[30/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_certificate_sign.cpp.o
+[31/74] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/src/sqp/sqp_solver.cpp:6977:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6977 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[32/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_rank_repair.cpp.o
+[33/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_anti_cycling_arm.cpp.o
+[34/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_degeneracy_arm.cpp.o
+[35/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_latch_reason.cpp.o
+[36/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_release_readmission.cpp.o
+[37/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_platform_retake.cpp.o
+[38/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_stagnation_stop.cpp.o
+[39/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_standstill_retreat.cpp.o
+[40/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_refused_exchange.cpp.o
+[41/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_unrun_dependency_test.cpp.o
+[42/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_backend_analysis_tally.cpp.o
+[43/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_saddle_exit.cpp.o
+[44/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+[45/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_saddle_shift.cpp.o
+[46/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+[47/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_dense_arm.cpp.o
+[48/74] Building CXX object tests/qp/CMakeFiles/hven_qp_seam_tests.dir/seam/test_qp_walk_seam.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/qp/seam/test_qp_walk_seam.cpp:774:21: warning: enumeration value 'kFootprintRung' not handled in switch [-Wswitch]
+  774 |             switch (r.action) {
+      |                     ^~~~~~~~
+1 warning generated.
+[49/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+[50/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+[51/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+[52/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_witness_start.cpp.o
+[53/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+[54/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_column_scaling.cpp.o
+[55/74] Linking CXX executable tests/linear/hven_linear_tests
+[56/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/sqp/test_hs_battery.cpp:240:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  240 |     switch (s) {
+      |             ^
+1 warning generated.
+[57/74] Linking CXX executable tests/kkt/hven_kkt_tests
+[58/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[59/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+[60/74] Linking CXX executable tests/qp/hven_qp_seam_tests
+[61/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+[62/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[63/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+[64/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[65/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[66/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[67/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_qn_mode.cpp.o
+[68/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis_driver.cpp.o
+[69/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_ingest_complementarity.cpp.o
+[70/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[71/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+[72/74] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[73/74] Linking CXX executable tests/sqp/hven_sqp_tests

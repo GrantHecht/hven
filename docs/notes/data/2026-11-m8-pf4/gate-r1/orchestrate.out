@@ -1,0 +1,161 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:56:47-05:00
+code paths == ea71502aa7789f27931e63d1ab6d10fa02b20e8b, clean; HEAD 9b09a934f07943e3e1309a1147ae91d136fa1d4f
+LEG P4a start 2026-11-20T05:56:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:56:47-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126960e+06 B=7.124827e+06 B/A=0.999701
+  all samples                      A=7.126960e+06 B=7.124827e+06 B/A=0.999701
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850789e+12 B=2.849937e+12 B/A=0.999701
+per-round filtered B/A (informational):
+  round 1: B/A=0.999703
+  round 2: B/A=0.999701
+  round 3: B/A=0.999701
+MODE walk FILTERED B/A = 0.999701 -> AT OR BELOW 1.005 (no regression)
+FOREGROUND_END 2026-11-20T06:30:33-05:00
+LEG P4a rc=0 2026-11-20T06:30:33-05:00
+LEG P4b start 2026-11-20T06:30:33-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T06:30:33-05:00
+CELL_RESULT stat hven-sqp STEENBRC default 1 rc=0 wall=41.01
+CELL_RESULT stat hven-sqp STEENBRC default 1 rc=0 wall=39.17
+CELL_RESULT stat hven-sqp STEENBRG default 1 rc=0 wall=38.00
+CELL_RESULT stat hven-sqp STEENBRG default 1 rc=0 wall=35.21
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=23.92
+CELL_RESULT stat hven-sqp YORKNET default 1 rc=0 wall=22.36
+CELL_RESULT stat hven-sqp STEENBRB default 1 rc=0 wall=23.82
+CELL_RESULT stat hven-sqp STEENBRB default 1 rc=0 wall=26.40
+CELL_RESULT stat hven-sqp STEENBRE default 1 rc=0 wall=29.72
+CELL_RESULT stat hven-sqp STEENBRE default 1 rc=0 wall=27.65
+CELL_RESULT stat hven-sqp STEENBRD default 1 rc=0 wall=29.10
+CELL_RESULT stat hven-sqp STEENBRD default 1 rc=0 wall=27.85
+CELL_RESULT stat hven-sqp BIGBANK default 1 rc=0 wall=24.75
+CELL_RESULT stat hven-sqp BIGBANK default 1 rc=0 wall=23.33
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=24.24
+CELL_RESULT stat hven-sqp ACOPP118 default 1 rc=0 wall=60.06
+CELL_RESULT stat hven-sqp ACOPR57 default 1 rc=0 wall=2.07
+CELL_RESULT stat hven-sqp ACOPR57 default 1 rc=0 wall=2.07
+CELL_RESULT stat hven-sqp DALLASM default 1 rc=0 wall=1.14
+CELL_RESULT stat hven-sqp DALLASM default 1 rc=0 wall=1.04
+CELL_RESULT stat hven-sqp READING6 default 1 rc=0 wall=0.83
+CELL_RESULT stat hven-sqp READING6 default 1 rc=0 wall=0.62
+CELL_RESULT stat hven-sqp SAWPATH default 1 rc=0 wall=0.83
+CELL_RESULT stat hven-sqp SAWPATH default 1 rc=0 wall=0.83
+CELL_RESULT stat hven-sqp ZAMB2-8 default 1 rc=0 wall=0.42
+CELL_RESULT stat hven-sqp ZAMB2-8 default 1 rc=0 wall=0.31
+CELL_RESULT stat hven-sqp SMBANK default 1 rc=0 wall=0.21
+CELL_RESULT stat hven-sqp SMBANK default 1 rc=0 wall=0.21
+CELL_RESULT stat hven-sqp ACOPP57 default 1 rc=0 wall=0.21
+CELL_RESULT stat hven-sqp ACOPP57 default 1 rc=0 wall=0.10
+FOREGROUND_END 2026-11-20T06:39:01-05:00
+LEG P4b rc=0 2026-11-20T06:39:01-05:00
+LEG P4b-criterion start 2026-11-20T06:39:01-05:00
+rows 15; movers A vs B 14
+NLP_AS_DECLARED
+TOTAL ALL                rows   15  A 2.021085e+12  B 2.018923e+12  B/A 0.998930
+TOTAL hven-sqp           rows   15  A 2.021085e+12  B 2.018923e+12  B/A 0.998930
+TOTAL hven-sqp.D         rows   15  A 2.021085e+12  B 2.018923e+12  B/A 0.998930
+LEG P4b-criterion rc=0 2026-11-20T06:39:01-05:00
+LEG P5 start 2026-11-20T06:39:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T06:39:01-05:00
+PREFLIGHT every mutation applies and restores: MUST=[B1 B2 B3 B4 B5 B6 B7 T2 T3 T4 T5 T6] REC=[R1 R2]
+MUT control rc=0 killers=0
+APPLIED B1 to include/hven/detail/kkt/schur_complement.h
+MUT B1 rc=1 killers=1
+   Schur.BatchLandsWithOneSolveOnEitherArm
+APPLIED B2 to include/hven/detail/kkt/schur_complement.h
+MUT B2 rc=1 killers=1
+   Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+APPLIED B3 to include/hven/detail/kkt/schur_complement.h
+MUT B3 rc=1 killers=2
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+   Schur.BatchLandsWithOneSolveOnEitherArm
+APPLIED B4 to include/hven/detail/kkt/schur_complement.h
+MUT B4 rc=1 killers=2
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+   Schur.BatchLandsWithOneSolveOnEitherArm
+APPLIED B5 to include/hven/detail/kkt/schur_complement.h
+MUT B5 rc=1 killers=1
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+APPLIED B6 to include/hven/detail/kkt/schur_complement.h
+MUT B6 rc=1 killers=1
+   Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+APPLIED B7 to include/hven/detail/kkt/schur_complement.h
+MUT B7 rc=1 killers=1
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+APPLIED T2 to src/linear/symmetric_factor_mkl.cpp
+MUT T2 rc=1 killers=5
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+   AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+   AnalysisTally.ValuesDoNotMatterThePatternDoes
+   SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+APPLIED T3 to src/linear/analysis_tally.cpp
+MUT T3 rc=1 killers=4
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+   AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+   AnalysisTally.ValuesDoNotMatterThePatternDoes
+APPLIED T4 to include/hven/detail/linear/analysis_key.h
+MUT T4 rc=1 killers=1
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+APPLIED T5 to src/linear/analysis_tally.cpp
+MUT T5 rc=1 killers=1
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+APPLIED T6 to src/sqp/sqp_solver.cpp
+MUT T6 rc=1 killers=1
+   SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+R1 rc=1 (recorded); killers: 0
+R2 rc=1 (recorded); killers: 0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-20T06:53:41-05:00
+LEG P5 rc=0 2026-11-20T06:53:41-05:00
+LEG P6 start 2026-11-20T06:53:41-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T06:53:41-05:00
+SMOKE_START default 2026-11-20T06:53:41-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-20T06:54:54-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-20T06:55:45-05:00
+LEG P6 rc=0 2026-11-20T06:55:45-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-20T06:55:45-05:00

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..22d5e857f 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -619,7 +619,7 @@ class SchurComplement {
+                     rhs.col(j) = pv[static_cast<std::size_t>(j)];
+                 }
+                 detail::solve_mat(kkt_, rhs, sol);
+-                batched = true;
++                batched = false;
+             } catch (...) {
+                 batched = false;
+             }

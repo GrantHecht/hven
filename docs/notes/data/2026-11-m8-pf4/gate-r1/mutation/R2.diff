@@ -1,0 +1,13 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 1cb6b6645..961dc040b 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -324,7 +324,7 @@ void solve_mat(const KktFactor &k, const Mat &rhs, Mat &x) {
+         break;
+     }
+     case PlatformRetake::kMatched:
+-        k.matched_session->solve(rhs, x);
++        k.factor.solve(rhs, x);
+         break;
+     }
+ }
