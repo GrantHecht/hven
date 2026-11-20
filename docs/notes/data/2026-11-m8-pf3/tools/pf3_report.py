@@ -3,12 +3,15 @@
 import csv, glob, json, os, statistics, sys, collections
 
 cd, outp = sys.argv[1], sys.argv[2]
-cells = [json.load(open(f)) for f in sorted(glob.glob(cd + "/*.json"))]
+cells = []
+for d in cd.split(","):
+    for f in sorted(glob.glob(d + "/*.json")):
+        c = json.load(open(f)); c["_dir"] = os.path.basename(d.rstrip("/")); cells.append(c)
 bad = [c for c in cells if "error" in c]
 cells = [c for c in cells if "error" not in c]
 unit = cells[0].get("unit", "instructions")
 for c in cells:
-    c["set"] = "hs" if c["problem"].startswith("hs") else "cutest"
+    c["set"] = "sd" if c["_dir"] == "cells-sd" else ("hs" if c["problem"].startswith("hs") else "cutest")
     c["engine"] = c["lane"].replace("hven-", "")
 OC = lambda k: k.split(".")[0]
 # FAMILY-CONDITIONAL REDISTRIBUTION of chains truncated inside MKL assembly kernels (DECLARATION-PF-3.md section 4, amended):
@@ -93,7 +96,7 @@ md = [f"# PF-3 attribution tables ({unit})", f"cells read: {len(cells)} ({len(fu
 if bad:
     md.append("FAILED: " + ", ".join(c["cell"] for c in bad) + "\n")
 for name, grp in [("SUITE (all full cells)", full)] + [(f"{e} / all", [c for c in full if c["engine"] == e]) for e in ("ipm", "sqp")] + \
-        [(f"{e} / {s}", [c for c in full if c["engine"] == e and c["set"] == s]) for e in ("ipm", "sqp") for s in ("hs", "cutest")]:
+        [(f"{e} / {s}", [c for c in full if c["engine"] == e and c["set"] == s]) for e in ("ipm", "sqp") for s in ("hs", "cutest", "sd")]:
     if grp:
         md.append(md_table(grp, name + " -- all-in"))
         md.append(md_table(grp, name + " -- solver only (proc.* excluded)", SOLVER))
@@ -105,7 +108,7 @@ if trunc:
             md.append(md_table(g, f"{e} / truncated -- solver only", SOLVER))
 # overlays
 md += ["## Overlays (non-additive; share of each cell group's total)", "", "| group | alloc_leaf | iomp_leaf | fortran_leaf | unattributed |", "|---|---:|---:|---:|---:|"]
-for name, grp in [("suite", full)] + [(e, [c for c in full if c["engine"] == e]) for e in ("ipm", "sqp")] + [(f"{e}/{s}", [c for c in full if c["engine"] == e and c["set"] == s]) for e in ("ipm", "sqp") for s in ("hs", "cutest")]:
+for name, grp in [("suite", full)] + [(e, [c for c in full if c["engine"] == e]) for e in ("ipm", "sqp")] + [(f"{e}/{s}", [c for c in full if c["engine"] == e and c["set"] == s]) for e in ("ipm", "sqp") for s in ("hs", "cutest", "sd")]:
     if not grp:
         continue
     d = sum(tot(c) for c in grp)

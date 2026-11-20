@@ -183,3 +183,14 @@ co-run protocol (width 6, cpus 0-5, one flock acquisition, longest-first order f
 set, so the "fixed overhead on small problems" and the factorization pathologies (SPANHYD, CRESC100, MSS1 are all small-dense TRAIN
 cells) are read from it. HOLDOUT problems of the set (42) are not named anywhere. Pass A and pass B each run under a `timeout`
 (600 s and 900 s); a cell that trips it is an error row, to be re-run as `trunc30`, never a silent zero.
+
+## Addendum 2 (committed before the re-run of both legs; amends section 4)
+
+**A classification bug found in the first complete tables, and its correction.** The table's regexes were applied to the full
+demangled signature, parameter list included, so a frame such as `QpEngine::ratio_test(..., hven::QpCounters&)` matched the
+instrumentation rule through its argument type, and `solve_bordered_eqp(..., KktAssembly const&)` matched `kkt.assembly` before the
+QP rule. Rules are now matched against the function name alone (`components.func_name`: `(anonymous namespace)` normalised to
+`ANON`, the name cut at the first `(`). No rule text changed except `ANON::` for the harness-report override. Sampling, cells,
+protocol, periods and the redistribution rule are unchanged. Both legs (90 + 194 cells) and the routes attribution are re-taken
+with the corrected table; the tables produced by the faulty classifier are retained under `out/superseded-signature-match/`
+(their pass-A instruction totals are unaffected and join the cross-run determinism check).

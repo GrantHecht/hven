@@ -26,7 +26,7 @@ OWNER_CATEGORY = {
 # (problem decode/load and post-solve reporting are harness work whatever library code they call).
 CHAIN_OVERRIDES = [
     ("proc.problem_load", r"CutestModel::CutestModel|CutestSource::|CUTEST_load_routines|HsSource::|small_dense_(problems|sources)|cutest_problems|hven_bench::roster|dlopen|_dl_open"),
-    ("proc.harness_report", r"hven::dump_counters|hven::dump_options|add_counters_dump|\(anonymous namespace\)::(add_side|spell|fill_shared|kv_|CellReport)|compute_declared_diagnostics|DeclaredRows"),
+    ("proc.harness_report", r"hven::dump_counters|hven::dump_options|add_counters_dump|ANON::(add_side|spell|fill_shared|kv_|CellReport)|compute_declared_diagnostics|DeclaredRows"),
 ]
 
 RULES = [
@@ -82,8 +82,20 @@ COMPILED = [(c, re.compile(s) if s else None, re.compile(d) if d else None) for 
 ALLOC_RE = re.compile(r"^(malloc|_int_malloc|_int_free\w*|free|cfree(@\S+)?|calloc|realloc|_int_realloc|operator new\S*|operator delete\S*|malloc_consolidate|__libc_malloc|__libc_free|mkl_serv_(malloc|free|calloc)|mm_internal_malloc|mm_internal_free|mkl_serv_(i_)?malloc\w*|_mkl_serv_\w*alloc\w*|mm_\w*(alloc|free)\w*|unlink_chunk\S*|sysmalloc|__libc_calloc|tcache_\w+)")
 
 
+_ANON = "(anonymous namespace)"
+
+
+def func_name(sym):
+    """The demangled function name WITHOUT its parameter list (rules must never match argument types:
+    `QpEngine::ratio_test(..., QpCounters&)` is not instrumentation)."""
+    s = sym.replace(_ANON, "ANON")
+    i = s.find("(")
+    return s[:i] if i >= 0 else s
+
+
 def classify(frames):
     """frames: list of (sym, dso) leaf-first.  Returns component or 'unattributed'."""
+    frames = [(func_name(sym), dso) for sym, dso in frames]
     for comp, rre in COMPILED_OVERRIDES:
         for sym, dso in frames:
             if rre.search(sym):
