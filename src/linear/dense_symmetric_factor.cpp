@@ -144,7 +144,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
                 return std::nullopt;
             }
             evidence.block_abs_eigs.push_back(std::abs(dii));
-            if (dii < 0.0) {
+            if (dii > 0.0) {
                 ++evidence.neg_eigs;
             }
             k += 1;
