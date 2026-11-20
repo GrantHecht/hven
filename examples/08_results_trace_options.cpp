@@ -27,10 +27,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 struct Hs071 : Nlp {
     NlpDimensions dimensions() const override {
@@ -121,8 +117,7 @@ std::map<std::string, int> tally(const std::string &trace) {
 
 int main() {
     Problem problem(std::make_shared<Hs071>());
-    Eigen::VectorXd x0(4);
-    x0 << 1.0, 5.0, 5.0, 1.0;
+    const Vec x0{{1.0, 5.0, 5.0, 1.0}};
 
     // ---- Interior-point engine: callback + trace ----
     IpmOptions ipm_options;
@@ -156,6 +151,9 @@ int main() {
     std::printf("kkt_inf         %.2e   (the interior-point engine's own measure)\n",
                 ipm_result.convergence.stationarity);
     std::printf("callbacks seen  %d\n", ipm_callbacks);
+    std::printf("counters        factorizations=%lld inertia_corrections=%lld\n",
+                static_cast<long long>(ipm_result.counters.factorizations),
+                static_cast<long long>(ipm_result.counters.inertia_corrections));
 
     // ---- SQP engine: callback + trace + counters ----
     SqpOptions sqp_options;
@@ -174,11 +172,10 @@ int main() {
     JsonLinesTraceSink sqp_sink(sqp_trace);
     sqp.attach_trace(&sqp_sink);
     int sqp_callbacks = 0;
-    sqp.set_iteration_callback([&](const IterationEvent &e) {
-        // depth 0 is the caller's own problem; deeper rows belong to restoration.
-        if (e.sqp && e.sqp->depth == 0) {
-            sqp_callbacks++;
-        }
+    // Defaults: kVectors | kDiagnostics, and only the caller's own rows (restoration
+    // sub-solves are shown only under CallbackScope::kIncludeRestoration).
+    sqp.set_iteration_callback([&](const IterationEvent &) {
+        sqp_callbacks++;
         return CallbackAction::kContinue;
     });
     const SqpResult sqp_result = sqp.solve(problem, x0);
@@ -186,10 +183,9 @@ int main() {
     std::printf("sqp_stationarity %.2e   (the SQP engine's own measure)\n",
                 sqp_result.convergence.stationarity);
     std::printf("callbacks seen  %d\n", sqp_callbacks);
-    std::printf("counters        major=%lld factorizations=%lld eval_hess_calls=%lld\n",
+    std::printf("counters        major=%lld qp_minor=%lld\n",
                 static_cast<long long>(sqp_result.counters.major_iters),
-                static_cast<long long>(sqp_result.counters.factorizations),
-                static_cast<long long>(sqp_result.counters.eval_hess_calls));
+                static_cast<long long>(sqp_result.counters.qp_minor_iters));
 
     // ---- The traces ----
     ipm_sink.flush();

@@ -10,7 +10,7 @@
 //
 // With hessian_mode = kLbfgsDamped the engine builds its own damped L-BFGS
 // curvature and never asks for the Lagrangian Hessian
-// (counters.eval_hess_calls stays 0), so the problem needs first derivatives
+// (work.hessian_evals stays 0), so the problem needs first derivatives
 // only: BallFirstOrder declares has_hessian() == false and no Hessian
 // structure. The exact-Hessian solve is run next to it, on a problem that does
 // provide the Hessian, for comparison.
@@ -24,11 +24,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::Vec;
-using hven::VecRef;
 
 // First derivatives only.
 struct BallFirstOrder : Nlp {
@@ -76,10 +71,9 @@ bool report(const char *label, const SqpResult &r) {
     const double lambda_star = 0.5 * std::sqrt(30.0) - 1.0;
     const bool ok = r.status == SolveStatus::kOptimal && std::abs(r.f - f_star) < 1e-6 &&
                     std::abs(r.lambda[0] - lambda_star) < 1e-4;
-    std::printf(
-        "%-12s status=%-8s iterations=%2lld  f=%.8f (exact %.8f)  eval_hess calls=%lld  %s\n",
-        label, to_string(r.status), static_cast<long long>(r.iterations), r.f, f_star,
-        static_cast<long long>(r.counters.eval_hess_calls), ok ? "OK" : "FAILED");
+    std::printf("%-12s status=%-8s iterations=%2lld  f=%.8f (exact %.8f)  hessian evals=%lld  %s\n",
+                label, to_string(r.status), static_cast<long long>(r.iterations), r.f, f_star,
+                static_cast<long long>(r.work.hessian_evals), ok ? "OK" : "FAILED");
     return ok;
 }
 
@@ -96,11 +90,11 @@ int main() {
     Problem first_order(std::make_shared<BallFirstOrder>());
     SqpOptions qn;
     qn.hessian_mode = SqpHessianMode::kLbfgsDamped;
-    qn.lbfgs_memory = 10; // L-BFGS window (default 10; shown for the knob)
+    qn.lbfgs_memory = 10; // the L-BFGS window; the default, shown for the knob
     SqpSolver qn_solver(qn);
     const SqpResult r_qn = qn_solver.solve(first_order, x0);
 
     const bool ok_exact = report("exact", r_exact);
-    const bool ok_qn = report("L-BFGS", r_qn) && r_qn.counters.eval_hess_calls == 0;
+    const bool ok_qn = report("L-BFGS", r_qn) && r_qn.work.hessian_evals == 0;
     return (ok_exact && ok_qn) ? 0 : 1;
 }

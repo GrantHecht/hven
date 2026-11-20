@@ -22,10 +22,7 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
+
 constexpr double kOptimum = 17.0140173;
 
 struct Hs071 : Nlp {
@@ -88,8 +85,7 @@ bool report(const char *engine, const SolveResult &r) {
 
 int main() {
     Problem problem(std::make_shared<Hs071>());
-    Eigen::VectorXd x0(4);
-    x0 << 1.0, 5.0, 5.0, 1.0;
+    const Vec x0{{1.0, 5.0, 5.0, 1.0}};
 
     // Both engines are silent by default. One line turns the console on:
     //     IpmOptions options;

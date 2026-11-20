@@ -20,10 +20,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 struct BoundedRosenbrock : Nlp {
     NlpDimensions dimensions() const override { return {.n = 2, .m = 0, .hessian_nonzeros = 3}; }
@@ -61,8 +57,7 @@ bool check(const char *engine, const SolveResult &r) {
 
 int main() {
     Problem problem(std::make_shared<BoundedRosenbrock>());
-    Eigen::VectorXd x0(2);
-    x0 << -1.2, 1.0; // the classic starting point
+    const Vec x0{{-1.2, 1.0}}; // the classic starting point
 
     IpmSolver ipm;
     const bool ok_ipm = check("IpmSolver", ipm.solve(problem, x0));

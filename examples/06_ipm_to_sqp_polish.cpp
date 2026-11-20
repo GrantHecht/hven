@@ -30,10 +30,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 struct Hs071 : Nlp {
     NlpDimensions dimensions() const override {
@@ -85,10 +81,8 @@ struct Hs071 : Nlp {
 } // namespace
 
 int main() {
-    const auto hs071 = std::make_shared<Hs071>();
-    Problem problem(hs071);
-    Eigen::VectorXd x0(4);
-    x0 << 1.0, 5.0, 5.0, 1.0;
+    Problem problem(std::make_shared<Hs071>());
+    const Vec x0{{1.0, 5.0, 5.0, 1.0}};
 
     IpmOptions ipm_options;
     ipm_options.common.optimality_tol = 1e-3;

@@ -79,8 +79,9 @@ SNOPT Scale option number maps where is "approximate".
 
 ### Complete snippet
 
-Based on `examples/07_sqp_quasi_newton.cpp` and
-`examples/01_hs071_both_engines.cpp`. The model is a toy; the shim would put its
+Based on `examples/10_first_derivatives_only.cpp` (the same configuration on HS071),
+`examples/07_sqp_quasi_newton.cpp` and `examples/09_callbacks_and_stop.cpp` (the callback and the
+cooperative stop). The model is a toy; the shim would put its
 own `Nlp` subclass in its place.
 
 ```cpp
@@ -92,10 +93,6 @@ own `Nlp` subclass in its place.
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 // min (x0-1)^2 + (x1-2)^2   s.t.  x0^2 + x1^2 <= 2,  -5 <= x <= 5.  First derivatives only.
 struct Toy : Nlp {

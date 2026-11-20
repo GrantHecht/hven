@@ -11,7 +11,8 @@
 #                    cmake -S examples -B ex-build -DCMAKE_PREFIX_PATH=<prefix>
 #
 # Each example returns non-zero when its solve fails, so `ctest` (or a plain
-# run) is the check. Wiring them into CI is a separate task.
+# run) is the check. In tree they are ON by default (HVEN_BUILD_EXAMPLES) and run
+# with the rest of ctest, so CI builds and runs them on every lane.
 ################################################################################
 
 cmake_minimum_required(VERSION 3.24)
@@ -28,6 +29,9 @@ if(NOT TARGET hven::hven)
     enable_testing()
 endif()
 
+# Example 9 starts a thread.
+find_package(Threads REQUIRED)
+
 set(HVEN_EXAMPLE_SOURCES
     01_hs071_both_engines
     02_bounded_rosenbrock
@@ -36,12 +40,17 @@ set(HVEN_EXAMPLE_SOURCES
     05_warm_continuation
     06_ipm_to_sqp_polish
     07_sqp_quasi_newton
-    08_results_trace_options)
+    08_results_trace_options
+    09_callbacks_and_stop
+    10_first_derivatives_only)
 
 foreach(example IN LISTS HVEN_EXAMPLE_SOURCES)
     add_executable(hven_example_${example} ${example}.cpp)
-    target_link_libraries(hven_example_${example} PRIVATE hven::hven)
+    target_link_libraries(hven_example_${example} PRIVATE hven::hven Threads::Threads)
     set_target_properties(hven_example_${example} PROPERTIES
         CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
     add_test(NAME hven_example_${example} COMMAND hven_example_${example})
+    # One MKL thread: the examples are tiny, and a worker pool only adds spin-wait noise.
+    set_tests_properties(hven_example_${example} PROPERTIES
+        ENVIRONMENT "MKL_NUM_THREADS=1" TIMEOUT 120)
 endforeach()

@@ -21,10 +21,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 struct Sphere : Nlp {
     NlpDimensions dimensions() const override {
@@ -76,8 +72,7 @@ bool check(const char *engine, const SolveResult &r) {
 
 int main() {
     Problem problem(std::make_shared<Sphere>());
-    Eigen::VectorXd x0(3);
-    x0 << 1.0, 1.0, 1.0;
+    const Vec x0{{1.0, 1.0, 1.0}};
 
     IpmSolver ipm;
     const bool ok_ipm = check("IpmSolver", ipm.solve(problem, x0));

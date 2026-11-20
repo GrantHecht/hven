@@ -32,10 +32,6 @@
 namespace {
 
 using namespace hven;
-using hven::ConstVecRef;
-using hven::IndexVecRef;
-using hven::kInfinity;
-using hven::VecRef;
 
 struct Disc : Nlp {
     double p = 0.0; // the parameter, changed between solves
@@ -96,7 +92,7 @@ bool sweep(const char *label, bool use_warm, SolveAt solve_at, long long &total)
 } // namespace
 
 int main() {
-    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+    const Vec x0 = Vec::Zero(2);
     bool ok = true;
     long long cold = 0, warm = 0;
 

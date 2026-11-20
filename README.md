@@ -21,6 +21,10 @@ installed CMake package via `find_package(hven)` +
 `target_link_libraries(app hven::hven)` (see
 `scripts/check_install_smoke.sh`).
 
+The `examples/` directory has ten one-problem programs, from HS071 on both engines to
+callbacks and first-derivative-only SQP; see `examples/README.md`. They build and run with the
+normal build.
+
 Consumers include the umbrella header, `#include <hven/hven.h>`, which pulls in
 every public header.
 
