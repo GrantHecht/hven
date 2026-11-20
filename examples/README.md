@@ -17,6 +17,15 @@ with `OK` and exit status 0, or `FAILED` and 1.
 | 9 | `09_callbacks_and_stop.cpp` | The iteration callback: a live feed, an early stop that returns the iterate, a thread-safe external stop (`StopSource`). |
 | 10 | `10_first_derivatives_only.cpp` | HS071 with first derivatives only, configured as `docs/guides/snopt-like-configuration.md` describes. |
 
+## Printing results
+
+The library has no result-printing helpers: it reports values, and a program formats
+them. Each example carries a few lines of its own for that. `dump_options` and the trace
+sinks (`08_results_trace_options.cpp`) are the library's text output.
+
+A note on `Vec`: `Vec{3}` is an uninitialized vector of size 3; write `Vec{{a, b}}` for
+the two values a and b.
+
 ## Building and running
 
 In tree they are part of the normal build (`HVEN_BUILD_EXAMPLES` is ON when hven is the

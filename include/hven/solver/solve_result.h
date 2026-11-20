@@ -111,6 +111,13 @@ void validate(const SolveBudget &budget);
 /// `factorizations` is the number of KKT factorizations the solve performed:
 /// the interior-point engine's factorizations over the call, the SQP engine's
 /// `SqpCounters::factorizations`.
+///
+/// `factorizations` equals `SqpCounters::factorizations` by design. `hessian_evals`
+/// does NOT always equal `SqpCounters::eval_hess_calls`: this one counts calls that
+/// reach the caller's model, while `eval_hess_calls` also counts the evaluations the
+/// restoration wrapper and the pattern walk make on the engine's side. When the two
+/// differ, `SqpCounters::eval_hess_calls` (core/solver_counters.h) is the engine's
+/// own measured count.
 struct WorkCounters {
     Index objective_evals = 0;
     Index gradient_evals = 0;
@@ -323,9 +330,11 @@ struct SolveResult {
     // engine already held at the returned point. NaN means UNMEASURED and
     // nothing else: the engines never zero-fill a diagnostic they did not take.
     //
-    // These are NOT the quantity either engine's convergence test gated on.
+    // These are the SHARED measures: the same three numbers, computed the same
+    // way, whichever engine produced the result. They are NOT the quantity either
+    // engine's convergence test gated on.
     // That quantity stays on the engine's own result (IpmResult::convergence,
-    // SqpResult::convergence), because a tolerance comparison must be made
+    // SqpResult::convergence), which is engine-specific, because a tolerance comparison must be made
     // against the number the test actually read.
     /// @brief inf-norm dual residual over the measured declared coordinates.
     double stationarity = std::numeric_limits<double>::quiet_NaN();

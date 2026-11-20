@@ -53,6 +53,11 @@ static_assert(std::is_same_v<Index, Eigen::Index>,
               "hven commits to one index vocabulary across every supported platform.");
 
 /// @brief Dense vector alias (column vector of double).
+///
+/// Eigen's brace rules apply: `Vec{3}` is an UNINITIALIZED vector of size 3 (the
+/// integer is a size, not an element), while `Vec{{a, b}}` is the two-element vector
+/// (a, b). Spell values with the doubled braces, or use `Vec::Zero(n)` /
+/// `Vec::Constant(n, v)`.
 using Vec = Eigen::VectorXd;
 
 /// @brief Dense matrix alias (dense matrix of double).

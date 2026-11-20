@@ -1498,6 +1498,9 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// consumer budgeting Hessian evaluations should use
 /// steps_accepted + restoration_iters + 1 as the unconditional upper bound.
 ///
+/// See also `WorkCounters::hessian_evals` (solver/solve_result.h): the shared work
+/// count of calls reaching the caller's model, which can be smaller than this one.
+///
 /// EXACT-HESSIAN-SPECIFIC: this identity holds under SqpHessianMode::kExact only;
 /// `eval_hess_calls` is the measured count, and it is 0 under kLbfgsDamped unless
 /// `SqpOptions::restoration_curvature == kRegularized`, whose phase runs the exact-Hessian

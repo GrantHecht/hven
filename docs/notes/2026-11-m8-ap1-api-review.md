@@ -1080,3 +1080,10 @@ one-window rule. B1-B4 and B8 are the break.
    numerical-error status and a message. No benchmark problem takes these paths. The benchmark
    harness's CUTEst adapter, and tycho's models, are checked and adjusted; tycho's is a catch-up
    item, not a gate.
+
+---
+
+## Erratum (appended 2026-11-20, AP-4; the approved text above is unedited)
+
+B8's naming table (`docs/notes/2026-11-m8-ap2-b8-naming.md`) supersedes the spellings used on
+this page. Where a name here differs from that table, the table is the one the code carries.
