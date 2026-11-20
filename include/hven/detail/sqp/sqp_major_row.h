@@ -186,9 +186,10 @@ struct SqpMajorRow {
     /// exhausted. It is the branch input SOC is gated on.
     ///
     /// ON A ROW WHOSE LADDER SUPPLIED THE STEP the qp_* Fields describe the final elastic solve,
-    /// with the escalation re-solves' costs folded into SqpCounters' aggregates only; on an
-    /// EXHAUSTED ladder `qp_status` is the main QP's and the final rung's is in `ladder`. On a
-    /// rung-A-owned major they are the ladder's own counts.
+    /// with the escalation re-solves' costs folded into SqpCounters' aggregates only. ON AN
+    /// EXHAUSTED-LADDER ROW `qp_status` is the main QP's (the final rung's is in `ladder`) while
+    /// `qp_minor_iters`/`qp_factorizations` are the ladder's. On a rung-A-owned major they are
+    /// the ladder's own counts.
     ///
     /// tr_binding IS STILL MEANINGFUL: the elastic solve gets its trust region as
     /// REAL bounds on the original variables rather than through QpSolveOverrides,

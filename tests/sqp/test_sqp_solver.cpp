@@ -11002,6 +11002,16 @@ TEST(SqpSolverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHi
         // the totals exact, so a row fed from them would read 0 on exactly these majors.
         EXPECT_EQ(h.sqp->qp_minor_iterations.value_or(0), 2) << "trial " << h.iteration;
         EXPECT_FALSE(h.soc) << "trial " << h.iteration << ": SOC is gated on !elastic_applied";
+        // M8 I17 rider: the usable rung A's ladder rides on the row, beside the interior-point
+        // tier's own escape status.
+        ASSERT_TRUE(h.sqp->ladder.has_value()) << "trial " << h.iteration;
+        EXPECT_EQ(h.sqp->ladder->entry, ElasticEntry::kIpqpFallback);
+        EXPECT_FALSE(h.sqp->ladder->exhausted);
+        EXPECT_EQ(h.sqp->ladder->rung_status, QpStatus::kOptimal);
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(h.sqp->ladder->main_status, QpStatus::kNumericalError)
+            << "the tier's own status at the escape";
+#endif
     }
     EXPECT_EQ(elastic_rows, 2) << "both rung-A-owned majors are marked as elastic rows";
     // W2 T5 DECLARED BREAK, MEASURED AT THE DRIVER: this fixture's two escapes price 1.784e7 and
@@ -11864,6 +11874,8 @@ TEST(SqpSolverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     EXPECT_TRUE(last.sqp->ladder->exhausted);
     EXPECT_EQ(last.sqp->ladder->entry, ElasticEntry::kIpqpFallback);
     EXPECT_EQ(last.sqp->ladder->rung_status, QpStatus::kOptimal) << "exhausted, not declined";
+    EXPECT_EQ(last.sqp->ladder->main_status, QpStatus::kNumericalError)
+        << "the tier's own status at the escape, never the synthesized kInfeasible";
     EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore);
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);

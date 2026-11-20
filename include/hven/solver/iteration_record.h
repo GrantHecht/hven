@@ -29,7 +29,9 @@ enum class ElasticEntry {
 /// @brief One elastic ladder's outcome, beside (never in place of) the main QP's status.
 struct ElasticLadderRow {
     ElasticEntry entry = ElasticEntry::kVerifiedInfeasible;
-    QpStatus main_status = QpStatus::kOptimal; ///< The main QP's status, before the ladder.
+    /// The main QP's status, before the ladder; under kIpqpFallback the interior-point tier's
+    /// status at its escape.
+    QpStatus main_status = QpStatus::kOptimal;
     QpStatus rung_status = QpStatus::kOptimal; ///< The final rung's status.
     double rho = 0.0;                          ///< The final rung's penalty.
     Index rungs = 0;                           ///< Rungs climbed above the first.

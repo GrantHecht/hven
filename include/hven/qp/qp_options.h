@@ -31,6 +31,11 @@ enum class QpMode {
     kIpqp,
 };
 
+/// @brief Which walk solves a QP dump directory receives (SqpAdvancedOptions::qp_dump_policy).
+///
+/// `kFailed` writes the solves that end in any status but optimal.
+enum class QpDumpPolicy { kOff, kFailed, kAll };
+
 // Declared here, in the QP layer, rather than in ssn_engine.h or sqp_options.h: the SQP
 // options carry them and the QP engines consume them, and neither engine may include the
 // other's header. Their SEMANTICS live at their SsnOptions fields, which

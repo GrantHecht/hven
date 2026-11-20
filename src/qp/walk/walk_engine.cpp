@@ -3376,6 +3376,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         ds.x_final = &out.x;
         write_qp_dump(dump_, dump_tag_, ds);
     }
+    if (dump_.enabled()) [[unlikely]] {
+        dump_tag_.site = QpDumpTag{}.site;
+    }
 
     return out;
 }

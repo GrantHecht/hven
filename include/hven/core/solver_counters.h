@@ -1566,8 +1566,9 @@ struct SqpCounters {
     //         == elastic_from_ipqp_escape - elastic_floor_retries
     //
     // where <relaxed> and <exhausted> carry no counter of their own and are read
-    // off the returned `qp_status`. An entry whose block never fired charges none
-    // of them: it is a single cold walk, outside the partition by construction.
+    // off the returned QpSolution's status (on the row: `ladder->exhausted`). An entry whose block
+    // never fired charges none of them: it is a single cold walk, outside the partition by
+    // construction.
 
     /// Elastic ACTIVATIONS this solve owes to the certified fallback rather than
     /// to a walk `kInfeasible`: every ladder the fallback ran, an entry's first

@@ -323,14 +323,7 @@ struct MessageTraceEvent {
     std::optional<Index> z;            ///< `inertia_exhausted`: observed zero eigenvalues.
     std::optional<Index> expected_p;
     std::optional<Index> expected_n;
-    /// `elastic_exhausted` only (`a` is the final rung's rho, `b` slack_l1, `k` the rungs climbed):
-    /// the entry route, the main QP's status, the final rung's status, and the three verdict flags.
-    std::optional<std::string_view> route;
-    std::optional<std::string_view> main_status;
-    std::optional<std::string_view> rung_status;
-    std::optional<bool> closed;
-    std::optional<bool> reduced;
-    std::optional<bool> promises_f;
+    std::optional<ElasticLadderRow> ladder; ///< `elastic_exhausted`: the row's ladder block.
 };
 
 /// @brief The severity a kind carries unless its emit site says otherwise.

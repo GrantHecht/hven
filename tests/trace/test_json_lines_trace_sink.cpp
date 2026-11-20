@@ -5024,99 +5024,103 @@ const std::map<std::string, std::string> kMessageGoldenLines = {
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"solver_initialized\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":"
      "null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_"
-     "n\":null}\n"},
+     "n\":null,\"ladder\":null}\n"},
     {"rank_deficiency",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"rank_"
      "deficiency\",\"severity\":\"warning\",\"phase\":1,\"iter\":7,\"a\":null,\"b\":null,\"k\":"
-     "null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null}\n"},
+     "null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,"
+     "\"ladder\":null}\n"},
     {"factorization_hard_error",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"factorization_hard_error\",\"severity\":\"warning\",\"phase\":0,\"iter\":3,\"a\":null,"
      "\"b\":null,\"k\":-4,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"inertia_exhausted",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"inertia_exhausted\",\"severity\":\"warning\",\"phase\":0,\"iter\":4,\"a\":null,\"b\":null,"
-     "\"k\":15,\"s\":null,\"p\":3,\"n\":2,\"z\":1,\"expected_p\":5,\"expected_n\":2}\n"},
+     "\"k\":15,\"s\":null,\"p\":3,\"n\":2,\"z\":1,\"expected_p\":5,\"expected_n\":2,\"ladder\":"
+     "null}\n"},
     {"feasibility_stall",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"feasibility_stall\",\"severity\":\"warning\",\"phase\":1,\"iter\":12,\"a\":0.0015,\"b\":9."
      "9999999999999995e-07,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":"
-     "null,\"expected_n\":null}\n"},
+     "null,\"expected_n\":null,\"ladder\":null}\n"},
     {"phase_diverged",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"phase_"
      "diverged\",\"severity\":\"warning\",\"phase\":2,\"iter\":null,\"a\":null,\"b\":null,\"k\":"
-     "null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null}\n"},
+     "null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,"
+     "\"ladder\":null}\n"},
     {"interrupt_skipping_phases",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"interrupt_skipping_phases\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":"
      "null,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"stop_requested_skipping_phases",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"stop_"
      "requested_skipping_phases\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,"
      "\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"restoration_entered_ipm",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"restoration_entered\",\"severity\":\"notice\",\"phase\":0,\"iter\":3,\"a\":0."
      "90000000000000002,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,"
-     "\"expected_p\":null,\"expected_n\":null}\n"},
+     "\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n"},
     {"restoration_entered_sqp",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"restoration_entered\",\"severity\":\"notice\",\"phase\":null,\"iter\":4,\"a\":1."
      "3999999999999999,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,"
-     "\"expected_p\":null,\"expected_n\":null}\n"},
+     "\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n"},
     {"restoration_exited_locally_infeasible",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":"
      "\"restoration_exited\",\"severity\":\"warning\",\"phase\":0,\"iter\":7,\"a\":0.0015,\"b\":9."
      "9999999999999995e-07,\"k\":null,\"s\":\"locally_infeasible\",\"p\":null,\"n\":null,\"z\":"
-     "null,\"expected_p\":null,\"expected_n\":null}\n"},
+     "null,\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n"},
     {"restoration_exited_resumed",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"restoration_exited\",\"severity\":\"notice\",\"phase\":null,\"iter\":4,\"a\":9."
      "9999999999999998e-13,\"b\":9.9999999999999995e-07,\"k\":null,\"s\":\"resumed\",\"p\":null,"
-     "\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null}\n"},
+     "\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n"},
     {"restoration_refused",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"restoration_refused\",\"severity\":\"warning\",\"phase\":null,\"iter\":null,\"a\":null,"
      "\"b\":null,\"k\":null,\"s\":\"nested\",\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"subproblem_failure",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"subproblem_failure\",\"severity\":\"warning\",\"phase\":null,\"iter\":null,\"a\":null,"
      "\"b\":null,\"k\":2,\"s\":\"iteration_limit\",\"p\":null,\"n\":null,\"z\":null,\"expected_p\":"
-     "null,\"expected_n\":null}\n"},
+     "null,\"expected_n\":null,\"ladder\":null}\n"},
     {"elastic_exhausted",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"elastic_exhausted\",\"severity\":\"warning\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":"
      "null,\"k\":6,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":"
-     "null}\n"},
+     "null,\"ladder\":null}\n"},
     {"inconsistent_equalities",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"inconsistent_equalities\",\"severity\":\"warning\",\"phase\":null,\"iter\":null,\"a\":null,"
      "\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"start_point_clamped",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":\"start_"
      "point_clamped\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":null,"
-     "\"k\":3,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null}"
+     "\"k\":3,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,"
+     "\"ladder\":null}"
      "\n"},
     {"scaled_convergence_refused",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":"
      "\"scaled_convergence_refused\",\"severity\":\"notice\",\"phase\":null,\"iter\":9,\"a\":null,"
      "\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,"
-     "\"expected_n\":null}\n"},
+     "\"expected_n\":null,\"ladder\":null}\n"},
     {"stop_at_iteration_callback_ipm",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"stop_"
      "at_iteration\",\"severity\":\"notice\",\"phase\":null,\"iter\":5,\"a\":null,\"b\":null,\"k\":"
      "null,\"s\":\"callback\",\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":"
-     "null}\n"},
+     "null,\"ladder\":null}\n"},
     {"stop_at_iteration_token_sqp",
      "{\"v\":1,\"ev\":\"message\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"kind\":\"stop_"
      "at_iteration\",\"severity\":\"notice\",\"phase\":null,\"iter\":5,\"a\":null,\"b\":null,\"k\":"
      "null,\"s\":\"token\",\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":"
-     "null}\n"},
+     "null,\"ladder\":null}\n"},
 };
 
 TEST(JsonLinesTraceSink, GoldenLineMessageOnePerKind) {
@@ -5152,30 +5156,37 @@ TEST(JsonLinesTraceSink, TheSolverInitializedMessageCarriesNoMillisecondsOnTheWi
     EXPECT_EQ(raw_field(os.str(), "severity"), "\"notice\"");
 }
 
-TEST(JsonLinesTraceSink, TheElasticExhaustionMessageCarriesItsSixDiagnosticKeysOnlyWhenSet) {
+TEST(JsonLinesTraceSink, TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere) {
     MessageTraceEvent m = make_message(TraceEngine::kSqp, MessageKind::kElasticExhausted);
     m.iter = 3;
     m.k = 5;
-    m.a = 1e8;
-    m.b = 0.25;
-    m.route = "verified_infeasible";
-    m.main_status = "infeasible";
-    m.rung_status = "numerical_error";
-    m.closed = false;
-    m.reduced = false;
-    m.promises_f = true;
+    ElasticLadderRow l;
+    l.entry = ElasticEntry::kVerifiedInfeasible;
+    l.main_status = QpStatus::kInfeasible;
+    l.rung_status = QpStatus::kNumericalError;
+    l.rho = 1e8;
+    l.rungs = 5;
+    l.promises_f = true;
+    l.slack_l1 = 0.25;
+    l.exhausted = true;
+    m.ladder = l;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_message(m);
     const std::string line = os.str();
-    EXPECT_EQ(raw_field(line, "route"), "\"verified_infeasible\"");
-    EXPECT_EQ(raw_field(line, "main_status"), "\"infeasible\"");
-    EXPECT_EQ(raw_field(line, "rung_status"), "\"numerical_error\"");
-    EXPECT_EQ(raw_field(line, "closed"), "false");
-    EXPECT_EQ(raw_field(line, "reduced"), "false");
-    EXPECT_EQ(raw_field(line, "promises_f"), "true");
+    EXPECT_NE(line.find("\"expected_n\":null,\"ladder\":{\"entry\":\"verified_infeasible\","
+                        "\"main_status\":\"infeasible\",\"rung_status\":\"numerical_error\","
+                        "\"rho\":100000000,\"rungs\":5,\"closed\":false,\"reduced\":false,"
+                        "\"promises_f\":true,\"slack_l1\":0.25,\"exhausted\":true}"),
+              std::string::npos)
+        << line;
     EXPECT_EQ(raw_field(line, "k"), "5");
-    EXPECT_NE(line.find("\"expected_n\":null,\"route\""), std::string::npos) << line;
+    EXPECT_EQ(raw_field(line, "a"), "null");
+    // Every other kind writes the key as null.
+    std::ostringstream os2;
+    JsonLinesTraceSink sink2(os2);
+    sink2.on_message(make_message(TraceEngine::kSqp, MessageKind::kInconsistentEqualities));
+    EXPECT_EQ(raw_field(os2.str(), "ladder"), "null") << os2.str();
 }
 
 TEST(JsonLinesTraceSink, ARowsLadderBlockIsAnObjectAndNullWithoutOne) {
@@ -5242,8 +5253,8 @@ TEST(JsonLinesTraceSink, TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull) 
     std::ostringstream os2;
     JsonLinesTraceSink sink2(os2);
     sink2.on_message(make_message(TraceEngine::kSqp, MessageKind::kInconsistentEqualities));
-    for (const char *k :
-         {"phase", "iter", "a", "b", "k", "s", "p", "n", "z", "expected_p", "expected_n"}) {
+    for (const char *k : {"phase", "iter", "a", "b", "k", "s", "p", "n", "z", "expected_p",
+                          "expected_n", "ladder"}) {
         EXPECT_EQ(raw_field(os2.str(), k), "null") << k;
     }
 }

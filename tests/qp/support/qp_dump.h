@@ -4,11 +4,12 @@
 #pragma once
 
 // qp_dump.h -- the loader for the M7 W2 E2-D4 QP dump corpus (format "D4QP 1", the contract in
-// tests/qp/fixtures/e2-d4/FORMAT.txt; the full 32-dump corpus is under
-// docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/). A dump is one walk solve as a cell
-// made it: the QP, the engine's QpOptions, the solve's QpSolveOverrides, and the warm seed. The
-// in-cell outcome line is kept verbatim (`result`). Replaying a dump on a fresh QpEngine
-// reproduced the in-cell status and minors on every dump (E2-D4 REPORT).
+// tests/qp/fixtures/e2-d4/FORMAT.txt) and for the library's own dumps (docs/qp-dump-format.md,
+// whose optional `infinite_bound` line it reads; absent, the library default holds). The full
+// 32-dump corpus is under docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/. A dump is one
+// walk solve as a cell made it: the QP, the engine's QpOptions, the solve's QpSolveOverrides, and
+// the warm seed. The in-cell outcome line is kept verbatim (`result`). Replaying a dump on a fresh
+// QpEngine reproduced the in-cell status and minors on every dump (E2-D4 REPORT).
 //
 // Also here: the KKT residuals of a returned point, recomputed from the QP (not from the
 // engine's counters), against the EFFECTIVE box -- the real bounds intersected with the
@@ -66,6 +67,12 @@ inline QpDump load_qp_dump(const std::string &path) {
         }
         if (key == "dims") {
             is >> n >> me >> mi;
+            continue;
+        }
+        if (key == "infinite_bound") {
+            std::string v;
+            is >> v;
+            d.qp.infinite_bound = num(v);
             continue;
         }
         if (key == "opts") {

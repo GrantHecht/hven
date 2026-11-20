@@ -1911,11 +1911,13 @@ class QpEngine {
     // been attempted.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
-    // The QP dump (qp_dump_writer.h): off by default. Each solve that qualifies under the policy
-    // writes one file after the walk ends, named by the tag the caller set before it. The
-    // tag is per-call state of a logically const solve, like the hot-start cache.
+    // The QP dump (qp_dump_writer.h), off by default: a qualifying solve writes one file named by
+    // the tag set before it; every solve resets the tag's site. The tag is per-call state of a
+    // logically const solve, like the hot-start cache.
     void set_dump(QpDumpConfig cfg) { dump_ = std::move(cfg); }
+    bool dump_enabled() const noexcept { return dump_.enabled(); }
     void set_dump_tag(QpDumpTag tag) const { dump_tag_ = std::move(tag); }
+    void set_dump_site(std::string site) const { dump_tag_.site = std::move(site); }
     const QpDumpTag &dump_tag() const noexcept { return dump_tag_; }
 
     // The per-solve record counter this engine has reached, and the way to hand

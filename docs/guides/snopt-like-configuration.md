@@ -88,8 +88,11 @@ touch the row and objective factors, which `scaling_factor_max` still clamps, an
 clamps its column factors with `scaling_factor_max`).
 
 Caller-unit step limit. `caller_step_limit = r` (default 0, off) narrows every QP's variable box
-to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode. The trust
-region stays in the engine's units.
+to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode, including
+the restoration phase's steps in the original variables (its elastic slacks are not limited). A
+variable stopped by the limit is reported free (zero bound multiplier) and the step counts as
+trust-region-limited. The trust region stays in the engine's units. These options are SQP-only:
+the interior-point solver has no trust region, column layer or walk QP.
 
 Console and trace units. With column scaling firing, the console `step` and `radius` columns
 (and `sqp.major`'s `step` and `trust_radius`) are in the engine's SCALED units; the returned
@@ -103,11 +106,11 @@ status, the final rung's status and penalty, and `closed`/`reduced`/`promises_f`
 `sqp.major` row keeps the MAIN QP's `qp_status` and carries the ladder in its `ladder` block
 (`docs/trace-schema-v1.md`).
 
-Failed-QP dump. `advanced.qp_dump_dir` plus `advanced.qp_dump_policy` (`kOff` default, `kFailed`,
-`kAll`) write each qualifying walk solve (the major's QP, SOC, cap retry, each ladder rung,
-restoration's included) as a "D4QP 1" text file, `qp<seq>_d<depth>_m<major>_<site>.txt`
-(format: `tests/qp/fixtures/e2-d4/FORMAT.txt`; the loader and replay are
-`tests/qp/support/qp_dump.h` and `docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/runners/qp_replay.cpp`).
+Failed-QP dump. `advanced.qp_dump_dir` plus `advanced.qp_dump_policy` (`QpDumpPolicy::kOff`
+default, `kFailed`, `kAll`) write each qualifying walk solve (the major's QP, SOC, cap retry, the
+certified fallback's walks, each ladder rung, restoration's included) as a new "D4QP 1" text file,
+`qp_p<pid>_s<solver>_<seq>_d<depth>_m<major>_<site>.txt`, never overwriting an existing one. The
+format and the names are in `docs/qp-dump-format.md`.
 
 ### Complete snippet
 

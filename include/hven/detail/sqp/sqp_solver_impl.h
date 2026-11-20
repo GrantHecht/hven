@@ -2052,6 +2052,8 @@ class SqpSolverImpl {
     // hands back a subproblem with a NaN Hessian, which the subproblem guard
     // rejects (rollback, or the exit).
     QpProblem build_exact_subproblem(SolveState &st, AssemblyEvalSeam &seam);
+    // Folds SqpOptions::caller_step_limit into `st.qp`'s box and records its sides.
+    void limit_subproblem_step(SolveState &st) const;
     // Runs while an exception unwinds solve_impl_body; see the recorder there.
     void record_interrupted_solve(SolveState &st, const AssemblyEvalSeam &seam) noexcept;
 
@@ -2067,6 +2069,15 @@ class SqpSolverImpl {
     // phase on its sub-driver -- the wrapper's x-block, its slack columns carrying no
     // curvature (ruling C30 AMEND-7).
     Index qn_struct_vars_ = -1;
+    // THE CALLER STEP LIMIT'S BLOCK ON A RESTORATION SUB-DRIVER: the wrapper's x-block width and
+    // the parent's column factors (null: none). Set only by the restoration phase; the slack
+    // columns are not limited.
+    Index step_limit_block_ = -1;
+    const Vec *step_limit_factors_ = nullptr;
+    // The QP dump file names' solver token: unique per driver in the process.
+    std::uint64_t dump_solver_id_ = detail::next_qp_dump_solver_id();
+    // A per-solver-lifetime count of restoration phase runs: the sub-driver ledger prefix.
+    Index restoration_phase_runs_ = 0;
     // THE PHASE'S CURVATURE SWITCH (M7 W2 RST): set only by the restoration phase on its
     // sub-driver under SqpOptions::restoration_curvature == kModelThenRegularized. The
     // first failed walk subproblem then ends this sub-solve at its iterate, and an exhausted

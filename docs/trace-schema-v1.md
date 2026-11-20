@@ -108,7 +108,8 @@ ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 `ladder` is `null` unless the row's major ran an elastic ladder; then an object with `entry` (`verified_infeasible`
 -- the main QP was verified infeasible in box and trust region; `working_set_termination` -- its working set ended
 numerically at a violated iterate; `refused_certificate` -- its infeasibility certificate was refused;
-`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's `qp_status`, before the ladder),
+`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's `qp_status`, before the ladder; on
+`ipqp_fallback` the interior-point tier's status at its escape),
 `rung_status` (the final rung's), `rho` (the final rung's penalty), `rungs` (climbed above the first), `closed`,
 `reduced`, `promises_f`, `slack_l1` (0 unless the final rung is optimal) and `exhausted`. On an exhausted ladder the
 row's `qp_status` is the MAIN QP's, never the final rung's; on a usable ladder it is the rung that supplied the step.
@@ -156,10 +157,8 @@ handle-derived fields. A depth-1 SQP end is written by the sub-driver and has `s
 ### 3.4 `message`
 
 Keys: `kind`, `severity` (`notice`/`warning`), `phase`, `iter`, `a`, `b`, `k`, `s`, `p`, `n`, `z`,
-`expected_p`, `expected_n`; a slot a kind does not use is `null`. `elastic_exhausted` alone adds six keys, written
-only on that kind and only when set: `route` (the ladder's `entry` values above), `main_status`, `rung_status`
-(`optimal`/`max_iter`/`infeasible`/`numerical_error`), `closed`, `reduced`, `promises_f`; its `a` is the final rung's
-`rho` and its `b` the final rung's `slack_l1`.
+`expected_p`, `expected_n`, `ladder`; a slot a kind does not use is `null`. `ladder` is the `sqp` block's `ladder`
+object (section 3.1), set on `elastic_exhausted` only.
 
 | `kind` | severity | payload |
 |---|---|---|
@@ -175,7 +174,7 @@ only on that kind and only when set: `route` (the ladder's `entry` values above)
 | `restoration_exited` | warning unless `s == resumed` | both engines; one per entered. `s` = `resumed`/`locally_infeasible`/`failed`/`non_finite`/`interrupted`; `a` = violation at exit (absent for `non_finite` on the SQP), `b` = the threshold judged against (IPM: 100x `feasibility_tol`; SQP: `feasibility_tol`) |
 | `restoration_refused` | warning | SQP. `s` = `nested`/`entry_rule`/`budget`; written at both depths (a refusal inside a restoration sub-solve is `nested`) |
 | `subproblem_failure` | notice while the solve continues, warning when it ends it | SQP, both depths. `s` = `iteration_limit`/`numerical_error`/`non_finite`; `k` = the driver's run of consecutive failures once the exit was handled. Lines == `qp_maxiter_exits + qp_numerical_exits + nonfinite_subproblems` (the spec's `- nonfinite_box_projections` does not apply: the projection precedes the guard and is not in `nonfinite_subproblems`) |
-| `elastic_exhausted` | warning | SQP. `k` = rungs climbed above the first; `a` final rung `rho`; `b` `slack_l1`; `route`, `main_status`, `rung_status`, `closed`, `reduced`, `promises_f` (the six keys above) |
+| `elastic_exhausted` | warning | SQP. `k` = rungs climbed above the first; `ladder` = the exhausted ladder's block |
 | `inconsistent_equalities` | warning | SQP, depth 0, at most once |
 | `start_point_clamped` | notice | SQP, depth 0, once, first message; `k` = `start_point_clamps` |
 | `scaled_convergence_refused` | notice | SQP. `iter`; lines == `scaled_convergence_refusals` |
@@ -226,7 +225,7 @@ meaning) is v2.
 | v1 | M8 TR-A | all | initial freeze; `ipm.phase.exit` carries `stationarity`/`complementarity` (engine scale) in place of `kkt_inf`/`barr_inf` |
 | none | M8 TR-B | `message` | the SQP kinds and the IPM `restoration_entered` and the other `restoration_exited` values are emitted; every kind, key and enum value was already in the v1 freeze, so no schema change |
 | new trailing key | M8 GL-0 | `iter`, `sqp` block | `switching_ratio` (double or `null`), after `active_upper_sides`; the `sqp` block's arity pin moves 23 -> 24. `solve.end.counters` (SQP) gains eight trailing keys after `payload_ignored`: `reject_funnel_ceiling`, `reject_f_armijo`, `reject_h_funnel`, `reject_qp_failed`, `reject_other`, `accepted_f_type`, `accepted_h_type`, `rejection_run_histogram` (a 5-integer array); the three golden lines are re-derived |
-| new trailing key + six conditional message keys | M8 I17 | `iter` `sqp` block; `message` | `ladder` (object or `null`), after `switching_ratio`; the `sqp` block's arity pin moves 24 -> 25. `message` `elastic_exhausted` gains `route`, `main_status`, `rung_status`, `closed`, `reduced`, `promises_f` after `expected_n`, written only when set (the `MessageTraceEvent` arity pin moves 14 -> 20); the exhausted row's `qp_status` is the main QP's. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
+| new trailing key | M8 I17 | `iter` `sqp` block; `message` | `ladder` (object or `null`), after `switching_ratio`; the `sqp` block's arity pin moves 24 -> 25. `message` gains the same `ladder` key after `expected_n`, `null` on every kind but `elastic_exhausted` (the `MessageTraceEvent` arity pin moves 14 -> 15); the exhausted row's `qp_status` is the main QP's. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map

@@ -10,7 +10,14 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <vector>
+
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <fmt/format.h>
 
@@ -21,6 +28,15 @@ namespace hven::detail {
 namespace {
 
 std::atomic<std::uint64_t> g_dump_seq{0};
+std::atomic<std::uint64_t> g_solver_id{0};
+
+long process_token() noexcept {
+#ifdef _WIN32
+    return static_cast<long>(_getpid());
+#else
+    return static_cast<long>(getpid());
+#endif
+}
 
 void put_vec(std::string &o, const char *name, const Vec &v) {
     o += fmt::format("{} {}\n", name, v.size());
@@ -47,6 +63,8 @@ void put_ints(std::string &o, const char *name, const std::vector<long> &v) {
 
 } // namespace
 
+std::uint64_t next_qp_dump_solver_id() noexcept { return g_solver_id.fetch_add(1) + 1; }
+
 bool qp_dump_wanted(const QpDumpConfig &cfg, QpStatus status) noexcept {
     return cfg.enabled() && (cfg.policy == QpDumpPolicy::kAll || status != QpStatus::kOptimal);
 }
@@ -66,6 +84,7 @@ std::string write_qp_dump(const QpDumpConfig &cfg, const QpDumpTag &tag, const Q
     std::string o;
     o += "D4QP 1\n";
     o += fmt::format("dims {} {} {}\n", qp.n(), qp.me(), qp.mi());
+    o += fmt::format("infinite_bound {:.17g}\n", qp.infinite_bound);
     o += fmt::format("opts {:.17g} {:.17g} {:.17g} {:.17g} {} {} {:.17g} {} {:.17g} {} {}\n",
                      op.primal_regularization, op.dual_regularization, op.feasibility_tol,
                      op.optimality_tol, s.max_iter, op.max_schur_border_dimension,
@@ -103,15 +122,29 @@ std::string write_qp_dump(const QpDumpConfig &cfg, const QpDumpTag &tag, const Q
     }
     put_vec(o, "x_final", *s.x_final);
 
-    const std::string path =
-        (fs::path(cfg.dir) / fmt::format("qp{:05d}_d{}_m{}_{}.txt", g_dump_seq.fetch_add(1),
-                                         tag.depth, tag.major, tag.site))
-            .string();
-    std::ofstream f(path, std::ios::binary);
-    f << o;
-    f.flush();
-    if (!f) {
-        throw std::runtime_error(fmt::format("QP dump: cannot write '{}'", path));
+    const std::string name =
+        fmt::format("qp_p{}_s{}_{:05d}_d{}_m{}_{}.txt", process_token(), cfg.solver_id,
+                    g_dump_seq.fetch_add(1), tag.depth, tag.major, tag.site);
+    const fs::path final_path = fs::path(cfg.dir) / name;
+    const fs::path tmp_path = fs::path(cfg.dir) / (name + ".tmp");
+    const std::string path = final_path.string();
+    {
+        std::ofstream f(tmp_path, std::ios::binary | std::ios::trunc);
+        f << o;
+        f.flush();
+        if (!f) {
+            fs::remove(tmp_path, ec);
+            throw std::runtime_error(fmt::format("QP dump: cannot write '{}'", tmp_path.string()));
+        }
+    }
+    // Linked into place, never renamed over: an existing file of the final name is an error.
+    fs::create_hard_link(tmp_path, final_path, ec);
+    std::error_code ec_rm;
+    fs::remove(tmp_path, ec_rm);
+    if (ec) {
+        throw std::runtime_error(
+            fmt::format("QP dump: cannot create '{}': {}", path,
+                        fs::exists(final_path) ? "the file exists" : ec.message()));
     }
     return path;
 }

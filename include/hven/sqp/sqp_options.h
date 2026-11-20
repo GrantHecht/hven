@@ -48,11 +48,6 @@ class GlobalizationStrategy;
 /// instance.
 enum class SqpElasticRungEngine { kWalk, kTier };
 
-/// @brief Which walk solves SqpAdvancedOptions::qp_dump_dir receives.
-///
-/// `kFailed` writes the solves that end in any status but optimal.
-enum class SqpQpDumpPolicy { kOff, kFailed, kAll };
-
 /// @brief The curvature source of the SQP subproblems.
 ///
 /// `kExact` evaluates the model's Lagrangian Hessian at every subproblem build.
@@ -210,17 +205,15 @@ struct SqpAdvancedOptions {
     IpqpOptions ipqp;
 
     /// Directory the walk's QP dump files are written to; empty is off, and so is
-    /// `qp_dump_policy == kOff`. Each qualifying walk solve -- the major's QP, its SOC
-    /// re-solve, its cap retry and each elastic-ladder rung, restoration's included -- writes one
-    /// file in the "D4QP 1" text format (tests/qp/fixtures/e2-d4/FORMAT.txt), named
-    /// `qp<seq>_d<depth>_m<major>_<site>.txt`; `site` is `main`, `soc`, `retry` or `rung<k>`.
-    /// The engine's own solves under kSsn/kIpqp are not walk solves and are not written. The
-    /// directory is created; a path that cannot be created or written throws
-    /// std::runtime_error out of solve().
+    /// `qp_dump_policy == kOff`. Each qualifying walk solve -- the major's QP, its SOC re-solve,
+    /// its cap retry, the certified fallback's walks and each elastic-ladder rung, restoration's
+    /// included -- writes one new file; format and file names in docs/qp-dump-format.md. kSsn and
+    /// kIpqp solves are not written. The directory is created; a path that cannot be created or
+    /// written, or a file name that already exists, throws std::runtime_error out of solve().
     std::string qp_dump_dir;
 
     /// Which walk solves are dumped; default `kOff`.
-    SqpQpDumpPolicy qp_dump_policy = SqpQpDumpPolicy::kOff;
+    QpDumpPolicy qp_dump_policy = QpDumpPolicy::kOff;
 
     /// Read the proximal carry off an ingested SqpWarmStart.
     ///
@@ -502,14 +495,14 @@ struct SqpOptions {
     /// trust_region_max.
     double trust_region_min = 1e-10;
 
-    /// The caller-unit step limit r, default 0 = off. When > 0, every QP's variable box is
-    /// narrowed to |dx_j| <= r * (1 + |x_j|) in the CALLER's units (x_j the iterate's caller-unit
-    /// value, column scaling undone), folded into the engine's own units under column scaling. It
-    /// is a box bound on the subproblem, consumed alike by kWalk, kSsn and kIpqp and by the
-    /// elastic ladder and SOC built from it; a bound the iterate already stands beyond is
-    /// left alone. The restoration sub-solve is not limited. The trust region is in the engine's
-    /// units, so under column scaling it bounds |dx_j| by d_j * radius -- up to the column factor
-    /// d_j; this limit is the caller-unit bound. Must be finite and >= 0.
+    /// The caller-unit step limit r, default 0 = off; SQP-only (the interior-point solver has no
+    /// trust region, column layer or walk QP). When > 0, every QP's variable box is narrowed to
+    /// |dx_j| <= r * (1 + |x_j|), x_j the iterate in caller units, divided by the column factor
+    /// d_j under column scaling. It binds kWalk, kSsn and kIpqp, the SOC re-solve, the elastic
+    /// ladder and the restoration phase's x-block (its slacks are not limited). Where the limit
+    /// and the declared box do not intersect, that variable keeps its declared box. A variable
+    /// pinned at a limit side is reported free with z = 0 and counts as trust-region-binding. The
+    /// trust region stays in engine units (|dx_j| <= d_j * radius). Must be finite and >= 0.
     double caller_step_limit = 0.0;
 
     /// Copied into the driver's single QpEngine at construction, so
@@ -557,8 +550,8 @@ struct SqpOptions {
     /// Symmetric clamp on every factor the rule produces: each is confined to
     /// [1/scaling_factor_max, scaling_factor_max]. Default 1e12 -- twelve
     /// orders each way. Must be finite and >= 1. Read when the row layer runs
-    /// (`row_scaling`, or column_scaling kAuto's engagement); the column factors have their
-    /// own clamp, `column_scaling_factor_max`.
+    /// (`row_scaling`, or column_scaling kAuto's engagement) and by kAuto's column rule;
+    /// kAlways's column factors are clamped by `column_scaling_factor_max` instead.
     ///
     /// It is what bounds the damage from the rule being TWO-SIDED
     /// (problem_scaling.h): a start point that is genuinely near-stationary has
@@ -614,13 +607,11 @@ struct SqpOptions {
     double column_scaling_threshold = 67108864.0;
 
     /// Symmetric clamp on the column factors under `kAlways`: each is confined to
-    /// [1/column_scaling_factor_max, column_scaling_factor_max]. Default 1024 (2^10). A column
-    /// factor is a unit change of the variable and also scales the trust region
-    /// (|dx_j| <= d_j * radius), so its ceiling bounds how far a weakly-coupled column can be
-    /// amplified. `scaling_factor_max` clamps the row and objective factors; under `kAuto` it also
-    /// clamps the column factors, as before, and this option is not read. Must be finite and >= 1.
-    /// The default is the smallest power of two that moved no TRAIN row under kAlways
-    /// (docs/notes/data/2026-11-m8-i17/).
+    /// [1/column_scaling_factor_max, column_scaling_factor_max]. Default 1024 (2^10), so the
+    /// kAlways spread is at most 2^20, below kAuto's default gate 2^26. A column factor also
+    /// scales the trust region in caller units (|dx_j| <= d_j * radius). Not read under kAuto,
+    /// whose column factors `scaling_factor_max` clamps (up to 2^39 at its default). Must be
+    /// finite and >= 1.
     double column_scaling_factor_max = 1024.0;
 
     /// Project the start point onto the declared box, or take it verbatim.

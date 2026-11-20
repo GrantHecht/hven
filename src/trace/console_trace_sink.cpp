@@ -255,47 +255,43 @@ std::string message_text(const MessageTraceEvent &e) {
                            e.s ? *e.s : std::string_view{}, idx(e.k));
     case MessageKind::kElasticExhausted: {
         std::string t = fmt::format("elastic ladder exhausted after {} rungs", idx(e.k));
-        if (!e.route) {
+        if (!e.ladder) {
             return t;
         }
-        const auto words = [](std::string_view v) -> std::string {
-            if (v == "verified_infeasible") {
+        const ElasticLadderRow &l = *e.ladder;
+        const auto entry_words = [](ElasticEntry v) {
+            switch (v) {
+            case ElasticEntry::kVerifiedInfeasible:
                 return "verified infeasible in trust region";
-            }
-            if (v == "working_set_termination") {
+            case ElasticEntry::kWorkingSetTermination:
                 return "working-set numerical termination";
-            }
-            if (v == "refused_certificate") {
+            case ElasticEntry::kRefusedCertificate:
                 return "refused certificate";
-            }
-            if (v == "ipqp_fallback") {
+            case ElasticEntry::kIpqpFallback:
                 return "IPQP fallback";
             }
-            if (v == "numerical_error") {
+            return "unknown";
+        };
+        const auto status_words = [](QpStatus v) {
+            switch (v) {
+            case QpStatus::kOptimal:
+                return "optimal";
+            case QpStatus::kIterationLimit:
+                return "iteration limit";
+            case QpStatus::kInfeasible:
+                return "infeasible";
+            case QpStatus::kNumericalError:
                 return "numerical failure";
             }
-            if (v == "max_iter") {
-                return "iteration limit";
-            }
-            return std::string(v);
+            return "unknown";
         };
-        const auto yn = [](const std::optional<bool> &b) { return b && *b ? "yes" : "no"; };
-        t += fmt::format(" (entered: {}", words(*e.route));
-        if (e.main_status) {
-            t += fmt::format("; main QP: {}", words(*e.main_status));
-        }
-        if (e.rung_status) {
-            t += fmt::format("; last rung: {}", words(*e.rung_status));
-            if (e.a) {
-                t += fmt::format(" at rho {:.0e}", *e.a);
-            }
-        }
-        t += fmt::format("; closed {}, reduced {}, promises_f {}", yn(e.closed), yn(e.reduced),
-                         yn(e.promises_f));
-        if (e.b) {
-            t += fmt::format("; slack_l1 {:.1e}", *e.b);
-        }
-        return t + ")";
+        const auto yn = [](bool b) { return b ? "yes" : "no"; };
+        return t +
+               fmt::format(" (entered: {}; main QP: {}; last rung: {} at rho {:.0e}; closed {}, "
+                           "reduced {}, promises_f {}; slack_l1 {:.1e})",
+                           entry_words(l.entry), status_words(l.main_status),
+                           status_words(l.rung_status), l.rho, yn(l.closed), yn(l.reduced),
+                           yn(l.promises_f), l.slack_l1);
     }
     case MessageKind::kInconsistentEqualities:
         return "equality constraints are inconsistent";

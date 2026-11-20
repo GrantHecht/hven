@@ -262,25 +262,19 @@ TEST(TraceMessagesSqp, TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdic
     CaptureSink sink;
     solver.attach_trace(&sink);
     const SqpResult r = solver.solve(problem, ones2());
-    const auto is_status = [](std::string_view s) {
-        return s == "optimal" || s == "max_iter" || s == "infeasible" || s == "numerical_error";
-    };
     Index exhausted = 0;
     for (const MessageTraceEvent &m : sink.messages) {
         if (m.kind != MessageKind::kElasticExhausted) {
             continue;
         }
         ++exhausted;
-        ASSERT_TRUE(m.route && m.main_status && m.rung_status && m.a && m.b);
-        ASSERT_TRUE(m.closed && m.reduced && m.promises_f);
-        const std::string_view route = *m.route;
-        EXPECT_TRUE(route == "verified_infeasible" || route == "working_set_termination" ||
-                    route == "refused_certificate" || route == "ipqp_fallback")
-            << route;
-        EXPECT_TRUE(is_status(*m.main_status)) << *m.main_status;
-        EXPECT_TRUE(is_status(*m.rung_status)) << *m.rung_status;
-        EXPECT_GT(*m.a, 0.0) << "the final rung's rho";
-        EXPECT_GE(*m.b, 0.0);
+        ASSERT_TRUE(m.ladder.has_value());
+        EXPECT_TRUE(m.ladder->exhausted);
+        EXPECT_EQ(m.ladder->rungs, m.k.value_or(-1)) << "k is the rungs climbed";
+        EXPECT_GT(m.ladder->rho, 0.0) << "the final rung's rho";
+        EXPECT_GE(m.ladder->slack_l1, 0.0);
+        EXPECT_FALSE(m.a.has_value()) << "the ladder block carries rho and slack_l1";
+        EXPECT_FALSE(m.b.has_value());
     }
     ASSERT_GE(exhausted, 1);
     // The row keeps the MAIN QP's status; the ladder outcome rides beside it.

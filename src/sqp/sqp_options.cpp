@@ -176,9 +176,8 @@ void validate(const SqpOptions &opts) {
             "|dx_j| by r * (1 + |x_j|) in caller units",
             opts.caller_step_limit));
     }
-    enum_in_range(opts.advanced.qp_dump_policy, SqpQpDumpPolicy::kAll, "advanced.qp_dump_policy");
-    if (opts.advanced.qp_dump_policy != SqpQpDumpPolicy::kOff &&
-        opts.advanced.qp_dump_dir.empty()) {
+    enum_in_range(opts.advanced.qp_dump_policy, QpDumpPolicy::kAll, "advanced.qp_dump_policy");
+    if (opts.advanced.qp_dump_policy != QpDumpPolicy::kOff && opts.advanced.qp_dump_dir.empty()) {
         throw std::invalid_argument(
             "SqpSolver: advanced.qp_dump_policy is on but advanced.qp_dump_dir is empty; name the "
             "directory the dump files are written to");
@@ -423,13 +422,13 @@ const char *enum_name(SqpElasticRungEngine v) {
     }
     return "unknown";
 }
-const char *enum_name(SqpQpDumpPolicy v) {
+const char *enum_name(QpDumpPolicy v) {
     switch (v) {
-    case SqpQpDumpPolicy::kOff:
+    case QpDumpPolicy::kOff:
         return "kOff";
-    case SqpQpDumpPolicy::kFailed:
+    case QpDumpPolicy::kFailed:
         return "kFailed";
-    case SqpQpDumpPolicy::kAll:
+    case QpDumpPolicy::kAll:
         return "kAll";
     }
     return "unknown";

@@ -652,14 +652,14 @@ TEST(ConsoleMessages, EachTemplateRendersItsOwnLine) {
     {
         MessageTraceEvent m = message(TraceEngine::kSqp, MessageKind::kElasticExhausted);
         m.k = 5;
-        m.a = 1e8;
-        m.b = 0.0;
-        m.route = "verified_infeasible";
-        m.main_status = "infeasible";
-        m.rung_status = "numerical_error";
-        m.closed = false;
-        m.reduced = false;
-        m.promises_f = false;
+        ElasticLadderRow l;
+        l.entry = ElasticEntry::kVerifiedInfeasible;
+        l.main_status = QpStatus::kInfeasible;
+        l.rung_status = QpStatus::kNumericalError;
+        l.rho = 1e8;
+        l.rungs = 5;
+        l.exhausted = true;
+        m.ladder = l;
         add(m, "      ! elastic ladder exhausted after 5 rungs (entered: verified infeasible in "
                "trust region; main QP: infeasible; last rung: numerical failure at rho 1e+08; "
                "closed no, reduced no, promises_f no; slack_l1 0.0e+00)\n");
