@@ -49,7 +49,7 @@ std::string Ledger::summary_table() const {
 
     for (const auto &rec : records_) {
         result += fmt::format("{:<30} {:<10} {:<8} {:<16} {:<14}\n", rec.label,
-                              rec.warm ? "yes" : "no", rec.counters.minor_iters,
+                              rec.warm ? "no" : "no", rec.counters.minor_iters,
                               rec.counters.factorizations, rec.counters.schur_updates);
     }
 
