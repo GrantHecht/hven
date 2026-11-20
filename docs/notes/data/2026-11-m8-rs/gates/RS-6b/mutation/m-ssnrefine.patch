@@ -1,0 +1,31 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index b55380f25..103a502b1 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -5403,7 +5403,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
+                 }
+             }
+             refined.counters = qs.counters;
+-            qs = std::move(refined);
++            (void)refined;
+             ++out.counters.ssn.ssn_refinements;
+         } else {
+             ++out.counters.ssn.ssn_refine_refused;
+@@ -5749,7 +5749,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
+             // the swap for the reason the SSN arm preserves it:
+             // refine_on_face reports only what ITS call paid.
+             refined.counters = face.counters;
+-            qs = std::move(refined);
++            (void)refined;
+             qs.counters.factorizations += refine_facts;
+             qs.counters.eqp_refine_steps += refine_steps;
+             qs.counters.eqp_refine_iters += refine_res_iters;
+@@ -10166,7 +10166,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
+             }
+         }
+         refined.counters = qs.counters;
+-        qs = std::move(refined);
++        (void)refined;
+         ++counters.ssn.ssn_refinements;
+     } else {
+         ++counters.ssn.ssn_refine_refused;

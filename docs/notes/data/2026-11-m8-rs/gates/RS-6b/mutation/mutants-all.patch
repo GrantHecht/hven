@@ -1,0 +1,131 @@
+diff --git a/src/core/ledger.cpp b/src/core/ledger.cpp
+index e083c0e10..b88c0fecc 100644
+--- a/src/core/ledger.cpp
++++ b/src/core/ledger.cpp
+@@ -25,7 +25,7 @@ StartLevelHistogram Ledger::level_histogram() const {
+             ++h.seeded;
+             break;
+         case StartLevel::kWarm:
+-            ++h.warm;
++            ++h.hot;
+             break;
+         case StartLevel::kHot:
+             ++h.hot;
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 76d4ee911..630fd1bff 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -178,7 +178,7 @@ PlatformRetake take_request(KktFactor &k) {
+ 
+ bool flagged(const hven::linear::FactorizeOutcome &o) {
+     return o.status == hven::linear::FactorizeOutcome::Status::kOk
+-               ? o.inertia.numerically_singular
++               ? !o.inertia.numerically_singular
+                : o.backend_code == hven::linear::kDenseSingular;
+ }
+ 
+diff --git a/src/linear/dense_symmetric_factor.cpp b/src/linear/dense_symmetric_factor.cpp
+index 92d3fdd13..d6cc836a8 100644
+--- a/src/linear/dense_symmetric_factor.cpp
++++ b/src/linear/dense_symmetric_factor.cpp
+@@ -144,7 +144,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence()
+                 return std::nullopt;
+             }
+             evidence.block_abs_eigs.push_back(std::abs(dii));
+-            if (dii < 0.0) {
++            if (dii > 0.0) {
+                 ++evidence.neg_eigs;
+             }
+             k += 1;
+diff --git a/src/model/nlp_adapter.cpp b/src/model/nlp_adapter.cpp
+index 5a38f4f6c..7952922ac 100644
+--- a/src/model/nlp_adapter.cpp
++++ b/src/model/nlp_adapter.cpp
+@@ -33,7 +33,7 @@ int to_host_count(Index value, const char *what, const std::string &name) {
+ /// Rejects a return whose shape is not the one the model declared.
+ void require_dimensions(const SpMatRM &matrix, int rows, int cols, const char *what,
+                         const std::string &name) {
+-    if (matrix.rows() != rows || matrix.cols() != cols) {
++    if (matrix.rows() != rows && matrix.cols() != cols) {
+         throw std::invalid_argument(
+             fmt::format("{}: {} returned a {}x{} matrix, but the model declares it {}x{}", name,
+                         what, matrix.rows(), matrix.cols(), rows, cols));
+diff --git a/src/qp/ipqp/ipqp_engine.cpp b/src/qp/ipqp/ipqp_engine.cpp
+index 63eaa6d0b..0713a16f6 100644
+--- a/src/qp/ipqp/ipqp_engine.cpp
++++ b/src/qp/ipqp/ipqp_engine.cpp
+@@ -3047,7 +3047,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
+     const double kappa = iopts.face_ratio_threshold;
+     const double mu_scale = std::max(mu_meas, 0.0);
+     auto classify = [&](double slack, double dual) {
+-        if (slack < kappa * dual && dual > mu_scale) {
++        if (slack > kappa * dual && dual > mu_scale) {
+             return IpqpFace::kActive;
+         }
+         if (dual < kappa * slack) {
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index b55380f25..87a124799 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -2029,7 +2029,7 @@ bool stored_values_finite(const SpMatRM &m) {
+ // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
+ // start candidate's STORED Je/Ji values are screened by this instead.
+ bool jacobian_values_finite(const NlpEval &ev) {
+-    return stored_values_finite(ev.Je) && stored_values_finite(ev.Ji);
++    return true;
+ }
+ 
+ // --- EVALUATION FAILURE AT A TRIAL POINT (M8 B5) ----------------------------
+@@ -5403,7 +5403,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
+                 }
+             }
+             refined.counters = qs.counters;
+-            qs = std::move(refined);
++            (void)refined;
+             ++out.counters.ssn.ssn_refinements;
+         } else {
+             ++out.counters.ssn.ssn_refine_refused;
+@@ -5749,7 +5749,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
+             // the swap for the reason the SSN arm preserves it:
+             // refine_on_face reports only what ITS call paid.
+             refined.counters = face.counters;
+-            qs = std::move(refined);
++            (void)refined;
+             qs.counters.factorizations += refine_facts;
+             qs.counters.eqp_refine_steps += refine_steps;
+             qs.counters.eqp_refine_iters += refine_res_iters;
+@@ -10166,7 +10166,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
+             }
+         }
+         refined.counters = qs.counters;
+-        qs = std::move(refined);
++        (void)refined;
+         ++counters.ssn.ssn_refinements;
+     } else {
+         ++counters.ssn.ssn_refine_refused;
+diff --git a/src/trace/json_lines_trace_sink.cpp b/src/trace/json_lines_trace_sink.cpp
+index 82ab1adb1..646e25a78 100644
+--- a/src/trace/json_lines_trace_sink.cpp
++++ b/src/trace/json_lines_trace_sink.cpp
+@@ -548,7 +548,7 @@ void JsonLinesTraceSink::write_line(const char *ev, const std::string &body, con
+     ++seq_;
+     std::string line = "{\"v\":1,\"ev\":\"";
+     line += ev;
+-    line += "\",\"seq\":";
++    line += "\",\"sq\":";
+     append_index(line, seq_);
+     line += ",\"sid\":";
+     append_index(line, sid_);
+diff --git a/src/warmstart/crossover.cpp b/src/warmstart/crossover.cpp
+index a4b11d543..b0a8d5fd2 100644
+--- a/src/warmstart/crossover.cpp
++++ b/src/warmstart/crossover.cpp
+@@ -68,7 +68,7 @@ detail::SqpWarmState detail::from_interior_point(const Vec &x, const Vec &lambda
+     const double row_threshold =
+         detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_relative_tol);
+     for (Index j = 0; j < mi; ++j) {
+-        const bool active = lambda_i(j) > opts.dual_tol && lambda_i(j) >= row_threshold;
++        const bool active = lambda_i(j) < opts.dual_tol && lambda_i(j) >= row_threshold;
+         if (active) {
+             out.ineq_active[static_cast<std::size_t>(j)] = 1;
+             out.qp_working_set.add_ineq(j);

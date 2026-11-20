@@ -1,0 +1,13 @@
+diff --git a/src/linear/dense_symmetric_factor.cpp b/src/linear/dense_symmetric_factor.cpp
+index 92d3fdd13..d6cc836a8 100644
+--- a/src/linear/dense_symmetric_factor.cpp
++++ b/src/linear/dense_symmetric_factor.cpp
+@@ -144,7 +144,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence()
+                 return std::nullopt;
+             }
+             evidence.block_abs_eigs.push_back(std::abs(dii));
+-            if (dii < 0.0) {
++            if (dii > 0.0) {
+                 ++evidence.neg_eigs;
+             }
+             k += 1;

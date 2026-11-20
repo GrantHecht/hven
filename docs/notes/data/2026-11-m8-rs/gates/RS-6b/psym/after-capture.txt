@@ -1,0 +1,22 @@
+captured 227 objects from build-n into /home/ghecht/Projects/hven/.claude/worktrees/rs6b/docs/notes/data/2026-11-m8-rs/gates/RS-6b/psym/psym-after
+  hven                             59
+  hven_core_tests                  6
+  hven_linear_tests                10
+  hven_model_tests                 21
+  hven_kkt_tests                   7
+  hven_qp_tests                    24
+  hven_warmstart_tests             7
+  hven_solver_tests                18
+  hven_trace_tests                 8
+  hven_ipm_tests                   24
+  hven_sqp_tests                   28
+  hven_bench_tests                 6
+  hven_sqp_corpus                  2
+  hven_sqp_bench                   1
+  hven_sqp_ssn_safeguard_probe     1
+  hven_sqp_f7_cold                 1
+  hven_sqp_tau_bar_sweep_probe     1
+  hven_sqp_crossover               1
+  hven_sqp_ipqp_e1_arm             1
+  libhven.a                        1
+psym_compare: tool sha256 29e3f5e246e3c6e162b01e7f4b9f94597c64defb5f433ca8113eb9b25d3324d5
