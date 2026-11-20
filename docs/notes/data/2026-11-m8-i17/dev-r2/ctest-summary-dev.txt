@@ -1,0 +1,2 @@
+Release: 100% tests passed, 0 tests failed out of 3954
+Debug: 100% tests passed, 0 tests failed out of 3954
