@@ -8,6 +8,7 @@
 ################################################################################
 
 set(_hven_core_sources
+    test_core_count.cpp
     test_inf_norm.cpp
     test_layering.cpp
     test_pattern_hash.cpp

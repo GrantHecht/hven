@@ -13,11 +13,13 @@
 
 #include <algorithm>
 #include <cctype>
-#include <fstream>
-#include <iostream>
-#include <locale>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <set>
+#include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <hven/detail/util/get_core_count.h>
@@ -90,51 +92,72 @@ int hven::detail::get_core_count() {
         // (boostorg/thread, pthread/thread.cpp), modified to work without
         // boost.
 
-        auto trim = [](std::string &s) {
-            s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                            [](unsigned char ch) { return !std::isspace(ch); }));
-
-            s.erase(std::find_if(s.rbegin(), s.rend(),
-                                 [](unsigned char ch) { return !std::isspace(ch); })
-                        .base(),
-                    s.end());
-        };
-
-        try {
-            using namespace std;
-
-            ifstream proc_cpuinfo("/proc/cpuinfo");
-            const string physical_id("physical id"), core_id("core id");
-            typedef std::pair<int, int> core_entry; // [physical ID, core id]
-            std::set<core_entry> cores;
-            core_entry current_core_entry;
-
-            string line;
-            while (getline(proc_cpuinfo, line)) {
-                if (line.empty())
-                    continue;
-
-                size_t pos = line.find(":");
-                if (pos == string::npos)
-                    return tcount;
-
-                string key = line.substr(0, pos);
-                string value = line.erase(0, pos + 1);
-                trim(key);
-                trim(value);
-
-                if (key == physical_id) {
-                    current_core_entry.first = atoi(value.c_str());
-                    continue;
-                }
-                if (key == core_id) {
-                    current_core_entry.second = atoi(value.c_str());
-                    cores.insert(current_core_entry);
-                    continue;
-                }
+        // Same answer as the line-by-line stream parse this replaced (every
+        // "physical id" / "core id" pair counted once; a non-empty line with no
+        // colon, or no core id anywhere, falls back to hardware_concurrency()),
+        // but read as one buffer and scanned in place: the stream version copied
+        // every line (the long "flags" lines included) and cost ~0.28M
+        // instructions on a 16-thread machine.
+        std::FILE *fp = std::fopen("/proc/cpuinfo", "r");
+        if (fp == nullptr) {
+            return tcount;
+        }
+        std::string text;
+        {
+            char buf[8192];
+            std::size_t got = 0;
+            while ((got = std::fread(buf, 1, sizeof(buf), fp)) > 0) {
+                text.append(buf, got);
             }
-            // Fall back to hardware_concurrency() in case
-            // /proc/cpuinfo is formatted differently than we expect.
+            std::fclose(fp);
+        }
+        try {
+            std::set<std::pair<int, int>> cores; // [physical id, core id]
+            std::pair<int, int> current{0, 0};
+            const char *const end = text.data() + text.size();
+            const char *line = text.data();
+            while (line < end) {
+                const char *eol = static_cast<const char *>(
+                    std::memchr(line, '\n', static_cast<std::size_t>(end - line)));
+                if (eol == nullptr) {
+                    eol = end;
+                }
+                const char *a = line;
+                const char *z = eol;
+                while (a < z && std::isspace(static_cast<unsigned char>(*a))) {
+                    ++a;
+                }
+                // The stream version skipped only lines that were EMPTY; a line of
+                // whitespace has no colon and so fell back, which this keeps.
+                if (line == eol) {
+                    line = eol + 1;
+                    continue;
+                }
+                const char *colon = static_cast<const char *>(
+                    std::memchr(line, ':', static_cast<std::size_t>(eol - line)));
+                if (colon == nullptr) {
+                    return tcount;
+                }
+                const char *ke = colon;
+                while (ke > a && std::isspace(static_cast<unsigned char>(*(ke - 1)))) {
+                    --ke;
+                }
+                const auto klen = static_cast<std::size_t>(ke - a);
+                const bool is_phys = klen == 11 && std::memcmp(a, "physical id", 11) == 0;
+                const bool is_core = klen == 7 && std::memcmp(a, "core id", 7) == 0;
+                if (is_phys || is_core) {
+                    std::string value(colon + 1, eol);
+                    const int v = std::atoi(
+                        value.c_str()); // atoi skips leading space and stops at the first non-digit
+                    if (is_phys) {
+                        current.first = v;
+                    } else {
+                        current.second = v;
+                        cores.insert(current);
+                    }
+                }
+                line = eol + 1;
+            }
             return cores.size() != 0 ? int(cores.size()) : tcount;
         } catch (...) {
             return tcount;
@@ -155,7 +178,15 @@ int hven::detail::get_core_count() {
     auto Run = [tcount]() { return tcount; };
 #endif
 
-    int ccount = std::max<int>(1, Run());
+    // The physical-core probe (Run) reads /proc/cpuinfo or asks the OS, and the
+    // answer is a property of the machine, not of the call: it is taken once per
+    // process. tcount is NOT cached (hardware_concurrency follows the process's
+    // affinity mask, which the caller may change), so the result is the same
+    // min(tcount, cores) every call computed before the probe was cached. The
+    // interior-point constructor calls this per solver, and the probe was ~0.28M
+    // instructions of the ~0.65M a tiny solve costs (PF-7).
+    static const int probed = std::max<int>(1, Run());
+    int ccount = probed;
     if (tcount > 0)
         ccount = std::min<int>(tcount, ccount);
     return std::max<int>(1, ccount);
