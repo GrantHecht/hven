@@ -31,6 +31,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/detail/ipm/ipm_options_fields.h>
 #include <hven/detail/ipm/ipm_solver_presets.h>
 #include <hven/detail/model/fixed_variable_treatment.h>
 #include <hven/detail/solver/common_options_validate.h>
@@ -39,24 +40,6 @@
 using namespace hven::detail;
 
 namespace {
-// Name of a non-classic acceptance strategy, for the validate() error message
-// below. classic_merit never reaches this helper (the guard that calls it is
-// gated on acceptance_mode_ != classic_merit).
-const char *acceptance_strategy_name(hven::IpmAcceptanceMode strategy) {
-    using hven::IpmAcceptanceMode;
-    switch (strategy) {
-    case IpmAcceptanceMode::kMerit:
-        return "kMerit";
-    case IpmAcceptanceMode::kFunnel:
-        return "kFunnel";
-    case IpmAcceptanceMode::kFilter:
-        return "kFilter";
-    case IpmAcceptanceMode::kClassicMerit:
-        return "kClassicMerit";
-    }
-    return "unknown";
-}
-
 // Validation helpers for validate() below. Until M6 W5 T8.3 every numeric-field
 // invariant was checked TWICE -- once in that field's set_*() method, once again
 // over the whole struct at run_phase_sequence() entry -- and these helpers
@@ -321,7 +304,7 @@ void hven::validate(const IpmOptions &o) {
             "advanced.barrier_governor_mode = kMonitored (the default), or set "
             "advanced.never_monotone "
             "= true to explicitly accept adaptive-only operation",
-            acceptance_strategy_name(adv.acceptance_mode)));
+            EnumTraits<IpmAcceptanceMode>::name(adv.acceptance_mode)));
     // never_monotone accepts running WITHOUT a monotone safeguard; kMonitored
     // provides one, so the combination is a direct contradiction.
     if (adv.never_monotone && adv.barrier_governor_mode == IpmBarrierGovernorMode::kMonitored)
@@ -387,375 +370,61 @@ hven::IpmOptions hven::worker_options(IpmOptions base) {
 }
 
 // =============================================================================
-// M7 W0 T5(b): the options dump.
+// The options dump.
 //
-// A hand-written printer, one line per field, pinned against IpmOptions by
-// tests/solver/test_options_dump.cpp. The contract -- order, prefixes,
-// enumerator names, shortest round-trip doubles -- is documented once at the
-// declaration in ipm/ipm_options.h and is not restated here.
-//
-// The four kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
-// deliberately duplicated in src/sqp/sqp_options.cpp rather than promoted
-// to a shared header: the dump is the only consumer either engine has for an
-// enumerator-name table, and a public enum-to-string surface is a bigger
-// commitment than this task takes. If a third consumer appears, promote them
-// then.
+// A walk over the per-struct tables (detail/ipm/ipm_options_fields.h), one row per field in
+// declaration order, so the printer cannot miss a field or print one twice. The contract -- order,
+// prefixes, enumerator names, shortest round-trip doubles -- is documented once at the declaration
+// in ipm/ipm_options.h and is not restated here. The tables are checked against the structs at
+// compile time, below: a field added without a row, or a row out of declaration order, does not
+// compile. (M7 W0 T5(b) wrote the dump by hand, one line per field, pinned by a drift test; M8 AP-4
+// G1 replaced it with the tables.)
 // =============================================================================
+
+// -Wreorder-init-list is the order check below: a table whose rows are out of declaration order
+// is an error here, not a warning.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic error "-Wreorder-init-list"
+#endif
+namespace hven {
+HVEN_CHECK_OPTIONS_TABLE(CommonOptions, HVEN_COMMON_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(IpmLinearOptions, HVEN_IPM_LINEAR_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(IpmTerminationOptions, HVEN_IPM_TERMINATION_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(IpmAdvancedOptions, HVEN_IPM_ADVANCED_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE_G(IpmOptions, HVEN_IPM_OPTIONS_FIELDS)
+} // namespace hven
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 namespace {
 
-// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol
-// Important 1). The declaration promises that the same value dumps the same
-// bytes in any process. Composing a line with `os << name << " = " << v` breaks
-// that promise the moment the caller hands over a stream it has configured:
-// `std::hex` turns `max_iters = 1000` into `max_iters = 3e8`, `showpos` and
-// `uppercase` and `scientific` each rewrite a field, a non-zero `width()` pads
-// the first insertion with the caller's `fill()`, and a stream imbued with a
-// locale whose numpunct groups digits inserts separators into every integer.
-// None of that is hypothetical for a harness that records a run into a stream
-// it also writes its own report through.
+// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol Important 1). The
+// declaration promises that the same value dumps the same bytes in any process. Composing a line
+// with `os << name << " = " << v` breaks that promise the moment the caller hands over a stream
+// it has configured: `std::hex` turns `max_iters = 1000` into `max_iters = 3e8`, `showpos` and
+// `uppercase` and `scientific` each rewrite a field, a non-zero `width()` pads the first
+// insertion with the caller's `fill()`, and a stream imbued with a locale whose numpunct groups
+// digits inserts separators into every integer.
 //
-// So NOTHING HERE GOES THROUGH A FORMATTED INSERTION. Each line is rendered
-// whole by fmt and handed to the stream by `write()`, an UNFORMATTED output
-// function: it consults neither the flags, nor the precision, nor the width and
-// fill, nor the imbued locale. fmt's own rendering is locale-independent by
-// specification -- a locale is consulted only for the `L` specifier, which
-// nothing below uses -- so the bytes are the classic locale's for every caller,
-// and this TU is compiled with FMT_USE_LOCALE=0 besides.
+// So NOTHING HERE GOES THROUGH A FORMATTED INSERTION. Each line is rendered whole and handed to
+// the stream by `write()`, an UNFORMATTED output function: it consults neither the flags, nor the
+// precision, nor the width and fill, nor the imbued locale. The numbers are rendered by fmt
+// (detail::format_double, format_int), whose output is locale-independent by specification and
+// whose TU is compiled with FMT_USE_LOCALE=0 besides.
 //
-// The width is the one that leaves a visible trace: an unformatted write does
-// not CONSUME `width()`, where a formatted insertion would reset it to 0. The
-// regression test reads that back, so "we did not use `operator<<`" is checked
-// rather than promised.
+// The width is the one that leaves a visible trace: an unformatted write does not CONSUME
+// `width()`, where a formatted insertion would reset it to 0. The regression test reads that
+// back, so "we did not use `operator<<`" is checked rather than promised.
 void emit(std::ostream &os, const std::string &line) {
     os.write(line.data(), static_cast<std::streamsize>(line.size()));
-}
-
-void kv_int(std::ostream &os, const char *name, long long v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-void kv_str(std::ostream &os, const char *name, const char *v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-void kv_bool(std::ostream &os, const char *name, bool v) {
-    emit(os, fmt::format("{} = {}\n", name, v ? "true" : "false"));
-}
-// SHORTEST ROUND-TRIP: fmt's default rendering of a double is the shortest
-// string that reads back as the same double (`1e-06`, not
-// `9.9999999999999995e-07`).
-void kv_dbl(std::ostream &os, const char *name, double v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-void kv_opt_int(std::ostream &os, const char *name, const std::optional<hven::Index> &v) {
-    if (v)
-        kv_int(os, name, static_cast<long long>(*v));
-    else
-        kv_str(os, name, "unset");
-}
-void kv_opt_dbl(std::ostream &os, const char *name, const std::optional<double> &v) {
-    if (v)
-        kv_dbl(os, name, *v);
-    else
-        kv_str(os, name, "unset");
-}
-
-// ENUMERATOR NAMES, not display strings. to_string(StartLevel)
-// (src/core/enum_names.cpp) spells "Warm"; a recorded run has to say `kWarm`,
-// the token a reader can paste back into source. Each switch is exhaustive with
-// no default, so a new enumerator warns here; the trailing return covers a
-// value that is in range for no enumerator at all.
-const char *enum_name(hven::IpmSolvePhaseMode v) {
-    using hven::IpmSolvePhaseMode;
-    switch (v) {
-    case IpmSolvePhaseMode::kOptimize:
-        return "kOptimize";
-    case IpmSolvePhaseMode::kOptimizeWithoutObjective:
-        return "kOptimizeWithoutObjective";
-    case IpmSolvePhaseMode::kSolveEquations:
-        return "kSolveEquations";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmBarrierMode v) {
-    using hven::IpmBarrierMode;
-    switch (v) {
-    case IpmBarrierMode::kProbe:
-        return "kProbe";
-    case IpmBarrierMode::kLoqo:
-        return "kLoqo";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmLineSearchMode v) {
-    using hven::IpmLineSearchMode;
-    switch (v) {
-    case IpmLineSearchMode::kAugmentedLagrangian:
-        return "kAugmentedLagrangian";
-    case IpmLineSearchMode::kLagrangian:
-        return "kLagrangian";
-    case IpmLineSearchMode::kL1:
-        return "kL1";
-    case IpmLineSearchMode::kNone:
-        return "kNone";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmStepLengthRule v) {
-    using hven::IpmStepLengthRule;
-    switch (v) {
-    case IpmStepLengthRule::kEqualityMultipliersPrimal:
-        return "kEqualityMultipliersPrimal";
-    case IpmStepLengthRule::kAllMinimum:
-        return "kAllMinimum";
-    case IpmStepLengthRule::kEqualityMultipliersDual:
-        return "kEqualityMultipliersDual";
-    case IpmStepLengthRule::kEqualityMultipliersMaximum:
-        return "kEqualityMultipliersMaximum";
-    }
-    return "unknown";
-}
-// acceptance_strategy_name() above spells these as their enumerators for
-// validate()'s message; the dump reuses that table.
-const char *enum_name(hven::IpmAcceptanceMode v) { return acceptance_strategy_name(v); }
-const char *enum_name(hven::IpmMeritPenaltyRule v) {
-    using hven::IpmMeritPenaltyRule;
-    switch (v) {
-    case IpmMeritPenaltyRule::kSinglePenalty:
-        return "kSinglePenalty";
-    case IpmMeritPenaltyRule::kFlexible:
-        return "kFlexible";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmBarrierGovernorMode v) {
-    using hven::IpmBarrierGovernorMode;
-    switch (v) {
-    case IpmBarrierGovernorMode::kClassicAdaptive:
-        return "kClassicAdaptive";
-    case IpmBarrierGovernorMode::kMonitored:
-        return "kMonitored";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmRestorationMode v) {
-    using hven::IpmRestorationMode;
-    switch (v) {
-    case IpmRestorationMode::kOff:
-        return "kOff";
-    case IpmRestorationMode::kProximalSwitch:
-        return "kProximalSwitch";
-    case IpmRestorationMode::kL1Nested:
-        return "kL1Nested";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmFixedVariableTreatment v) {
-    using hven::IpmFixedVariableTreatment;
-    switch (v) {
-    case IpmFixedVariableTreatment::kMakeParameter:
-        return "kMakeParameter";
-    case IpmFixedVariableTreatment::kMakeConstraint:
-        return "kMakeConstraint";
-    case IpmFixedVariableTreatment::kRelaxBounds:
-        return "kRelaxBounds";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmInertiaMode v) {
-    using hven::IpmInertiaMode;
-    switch (v) {
-    case IpmInertiaMode::kClassic:
-        return "kClassic";
-    case IpmInertiaMode::kProximalRegularization:
-        return "kProximalRegularization";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmOrdering v) {
-    using hven::IpmOrdering;
-    switch (v) {
-    case IpmOrdering::kMinimumDegree:
-        return "kMinimumDegree";
-    case IpmOrdering::kNestedDissection:
-        return "kNestedDissection";
-    case IpmOrdering::kParallelNestedDissection:
-        return "kParallelNestedDissection";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmPivotStrategy v) {
-    using hven::IpmPivotStrategy;
-    switch (v) {
-    case IpmPivotStrategy::kOneByOne:
-        return "kOneByOne";
-    case IpmPivotStrategy::kTwoByTwo:
-        return "kTwoByTwo";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmSolveParallelism v) {
-    using hven::IpmSolveParallelism;
-    switch (v) {
-    case IpmSolveParallelism::kAdaptivePartitioning:
-        return "kAdaptivePartitioning";
-    case IpmSolveParallelism::kSequential:
-        return "kSequential";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::ReturnBest v) {
-    using hven::ReturnBest;
-    switch (v) {
-    case ReturnBest::kNever:
-        return "kNever";
-    case ReturnBest::kOnLimit:
-        return "kOnLimit";
-    case ReturnBest::kOnAnyNonOptimal:
-        return "kOnAnyNonOptimal";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::StartLevel v) {
-    using hven::StartLevel;
-    switch (v) {
-    case StartLevel::kCold:
-        return "kCold";
-    case StartLevel::kSeeded:
-        return "kSeeded";
-    case StartLevel::kWarm:
-        return "kWarm";
-    case StartLevel::kHot:
-        return "kHot";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::IpmPhase v) {
-    using hven::IpmPhase;
-    switch (v) {
-    case IpmPhase::kOptimize:
-        return "kOptimize";
-    case IpmPhase::kSolve:
-        return "kSolve";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::Verbosity v) {
-    using hven::Verbosity;
-    switch (v) {
-    case Verbosity::kSilent:
-        return "kSilent";
-    case Verbosity::kWarnings:
-        return "kWarnings";
-    case Verbosity::kSummary:
-        return "kSummary";
-    case Verbosity::kIterations:
-        return "kIterations";
-    case Verbosity::kDetail:
-        return "kDetail";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::linear::DensePolicy v) {
-    using hven::linear::DensePolicy;
-    switch (v) {
-    case DensePolicy::kNever:
-        return "kNever";
-    case DensePolicy::kAlways:
-        return "kAlways";
-    case DensePolicy::kAuto:
-        return "kAuto";
-    }
-    return "unknown";
 }
 
 } // namespace
 
 void hven::dump_options(const IpmOptions &o, std::ostream &os) {
-    const CommonOptions &c = o.common;
-    kv_dbl(os, "common.optimality_tol", c.optimality_tol);
-    kv_dbl(os, "common.feasibility_tol", c.feasibility_tol);
-    kv_int(os, "common.max_iterations", static_cast<long long>(c.max_iterations));
-    kv_opt_int(os, "common.max_factorizations", c.max_factorizations);
-    kv_opt_dbl(os, "common.time_limit_seconds", c.time_limit_seconds);
-    kv_str(os, "common.verbosity", enum_name(c.verbosity));
-    kv_int(os, "common.threads", c.threads);
-    kv_str(os, "common.start_level", enum_name(c.start_level));
-    kv_dbl(os, "common.infinite_bound", c.infinite_bound);
-    kv_str(os, "common.return_best", enum_name(c.return_best));
-    // The one sequence-valued field: bracketed, comma-separated, one line. An
-    // EMPTY sequence -- which validate() refuses -- still dumps, as `[]`: a dump
-    // is a faithful record of the value it was handed, not a second validator.
-    std::string seq = "[";
-    for (std::size_t i = 0; i < o.phases.size(); ++i) {
-        if (i != 0) {
-            seq += ", ";
-        }
-        seq += enum_name(o.phases[i]);
-    }
-    seq += ']';
-    kv_str(os, "phases", seq.c_str());
-    const IpmTerminationOptions &t = o.termination;
-    kv_opt_dbl(os, "termination.complementarity_tol", t.complementarity_tol);
-    kv_int(os, "termination.acceptable_iterations",
-           static_cast<long long>(t.acceptable_iterations));
-    kv_dbl(os, "termination.acceptable_stationarity_tol", t.acceptable_stationarity_tol);
-    kv_dbl(os, "termination.acceptable_equality_tol", t.acceptable_equality_tol);
-    kv_dbl(os, "termination.acceptable_inequality_tol", t.acceptable_inequality_tol);
-    kv_dbl(os, "termination.acceptable_complementarity_tol", t.acceptable_complementarity_tol);
-    kv_dbl(os, "termination.divergence_stationarity_tol", t.divergence_stationarity_tol);
-    kv_dbl(os, "termination.divergence_equality_tol", t.divergence_equality_tol);
-    kv_dbl(os, "termination.divergence_inequality_tol", t.divergence_inequality_tol);
-    kv_dbl(os, "termination.divergence_complementarity_tol", t.divergence_complementarity_tol);
-    kv_dbl(os, "barrier_initial", o.barrier_initial);
-    kv_dbl(os, "barrier_max", o.barrier_max);
-    kv_dbl(os, "barrier_min", o.barrier_min);
-    kv_dbl(os, "fraction_to_boundary", o.fraction_to_boundary);
-    kv_dbl(os, "bound_push", o.bound_push);
-    kv_dbl(os, "bound_interval_push", o.bound_interval_push);
-    kv_str(os, "fixed_variable_treatment", enum_name(o.fixed_variable_treatment));
-    kv_dbl(os, "bound_relax_factor", o.bound_relax_factor);
-    kv_dbl(os, "objective_scale", o.objective_scale);
-    const IpmLinearOptions &l = o.linear;
-    kv_str(os, "linear.ordering", enum_name(l.ordering));
-    kv_str(os, "linear.pivot_strategy", enum_name(l.pivot_strategy));
-    kv_bool(os, "linear.weighted_matching", l.weighted_matching);
-    kv_bool(os, "linear.matrix_scaling", l.matrix_scaling);
-    kv_int(os, "linear.pivot_perturbation_exponent", l.pivot_perturbation_exponent);
-    kv_int(os, "linear.max_refinement_steps", l.max_refinement_steps);
-    kv_str(os, "linear.solve_parallelism", enum_name(l.solve_parallelism));
-    kv_bool(os, "linear.conditional_reproducibility", l.conditional_reproducibility);
-    kv_bool(os, "linear.force_analysis", l.force_analysis);
-    kv_str(os, "linear.dense_factorization", enum_name(l.dense_factorization));
-    kv_dbl(os, "linear.accelerate_zero_tol", l.accelerate_zero_tol);
-    kv_opt_int(os, "linear.max_dense_dimension", l.max_dense_dimension);
-    const IpmAdvancedOptions &a = o.advanced;
-    kv_str(os, "advanced.acceptance_mode", enum_name(a.acceptance_mode));
-    kv_str(os, "advanced.merit_penalty_rule", enum_name(a.merit_penalty_rule));
-    kv_str(os, "advanced.barrier_governor_mode", enum_name(a.barrier_governor_mode));
-    kv_bool(os, "advanced.never_monotone", a.never_monotone);
-    kv_str(os, "advanced.restoration_mode", enum_name(a.restoration_mode));
-    kv_str(os, "advanced.inertia_mode", enum_name(a.inertia_mode));
-    kv_int(os, "advanced.max_second_order_corrections",
-           static_cast<long long>(a.max_second_order_corrections));
-    kv_int(os, "advanced.max_extended_backtracks",
-           static_cast<long long>(a.max_extended_backtracks));
-    kv_bool(os, "advanced.watchdog", a.watchdog);
-    kv_int(os, "advanced.max_restoration_entries",
-           static_cast<long long>(a.max_restoration_entries));
-    kv_int(os, "advanced.max_line_search_backtracks",
-           static_cast<long long>(a.max_line_search_backtracks));
-    kv_dbl(os, "advanced.backtrack_divisor", a.backtrack_divisor);
-    kv_str(os, "advanced.solve_phase_mode", enum_name(a.solve_phase_mode));
-    kv_str(os, "advanced.optimize_barrier_mode", enum_name(a.optimize_barrier_mode));
-    kv_str(os, "advanced.solve_barrier_mode", enum_name(a.solve_barrier_mode));
-    kv_str(os, "advanced.optimize_line_search_mode", enum_name(a.optimize_line_search_mode));
-    kv_str(os, "advanced.solve_line_search_mode", enum_name(a.solve_line_search_mode));
-    kv_str(os, "advanced.step_length_rule", enum_name(a.step_length_rule));
-    kv_dbl(os, "advanced.inertia_correction_initial", a.inertia_correction_initial);
-    kv_dbl(os, "advanced.inertia_correction_increase", a.inertia_correction_increase);
-    kv_dbl(os, "advanced.inertia_correction_decrease", a.inertia_correction_decrease);
-    kv_int(os, "advanced.max_inertia_correction_attempts",
-           static_cast<long long>(a.max_inertia_correction_attempts));
-    kv_bool(os, "advanced.skip_unperturbed_attempts", a.skip_unperturbed_attempts);
-    kv_dbl(os, "advanced.negative_slack_reset", a.negative_slack_reset);
+    detail::for_each_option(o, [&os](const detail::OptionMeta &m, const auto &value) {
+        emit(os, m.name() + " = " + detail::render_option_value(value) + "\n");
+    });
 }

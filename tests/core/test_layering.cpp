@@ -241,14 +241,17 @@ TEST(CoreLayering, TheScanActuallyReadsTheCoreHeaders) {
     // Index re-declaration a future simplification is most likely to "fix" by
     // including qp/qp_types.h. If either is ever renamed, this test is the place
     // that says so out loud instead of quietly scanning less.
-    // THE COUNT (RS-1a): 11 public headers and 6 internal ones, so a new core file has to be
-    // acknowledged here, in the same commit, with the reason for it. It is asserted inside this
+    // THE COUNT (RS-1a): 11 public headers and 7 internal ones (the seventh: M8 AP-4 G1's
+    // detail/core/options_registry.h, the options registry's vocabulary -- ranges, field metadata,
+    // rendering and the table-check macros -- which every layer's options table includes, so it
+    // sits at the bottom), so a new core file has to be acknowledged here, in the same commit,
+    // with the reason for it. It is asserted inside this
     // test, not as a test of its own, so the gtest list stays what it was.
     EXPECT_EQ(headers_under(core_dir()).size(), 11U)
         << "include/hven/core/ gained or lost a header: acknowledge it here";
-    EXPECT_EQ(headers_under(core_detail_dir()).size(), 6U)
+    EXPECT_EQ(headers_under(core_detail_dir()).size(), 7U)
         << "include/hven/detail/core/ gained or lost a header: acknowledge it here";
-    EXPECT_EQ(headers.size(), 17U);
+    EXPECT_EQ(headers.size(), 18U);
 
     std::vector<std::string> names;
     names.reserve(headers.size());

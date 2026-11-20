@@ -100,6 +100,7 @@ target_sources(hven PRIVATE
     solver/callback_rows.cpp
     solver/common_options.cpp
     solver/counters_dump.cpp
+    solver/option_enum_names.cpp   # detail/solver/common_option_enum_names.h
     solver/result_message.cpp
     solver/solve_result.cpp
 )
@@ -113,6 +114,7 @@ target_sources(hven PRIVATE
 
 # --- ipm: the interior-point solver ---------------------------------------------------------
 target_sources(hven PRIVATE
+    ipm/ipm_option_enum_names.cpp  # detail/ipm/ipm_option_enum_names.h
     ipm/ipm_options.cpp
     ipm/ipm_phase_status.cpp
     ipm/ipm_solver.cpp
@@ -133,6 +135,7 @@ target_sources(hven PRIVATE
     sqp/quasi_newton/mixed_lift.cpp
     sqp/quasi_newton/qn_lift_bridge.cpp
     sqp/quasi_newton/qn_models.cpp
+    sqp/sqp_option_enum_names.cpp  # detail/sqp/sqp_option_enum_names.h
     sqp/sqp_options.cpp          # NaN-rejection premise: see the file's banner
     sqp/sqp_print.cpp
     sqp/sqp_solver.cpp
@@ -254,14 +257,15 @@ endif()
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
 #
-# Current count: 61 (RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
+# Current count: 64 (M8 AP-4 G1 added the three option-enum-name TUs, all OUT of the PCH: they hold
+# switch tables and run once per dump; RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
 # json_lines_trace_sink.cpp; M8 I17 added qp/qp_dump_writer.cpp, a once-per-dump TU kept OUT of
 # the PCH: it runs only when a dump directory is configured; M8 PF-4 added
 # linear/analysis_tally.cpp, OUT of the PCH: a dozen lines over <unordered_set> and the public
 # factor header, nothing a PCH would save). Every source since the 29th has stayed OUT of the PCH on the
 # unmeasured-default footing; the per-source history is in docs/build.md, "History: the source
 # count".
-set(_hven_expected_source_count 61)
+set(_hven_expected_source_count 64)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

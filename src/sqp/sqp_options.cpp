@@ -73,6 +73,7 @@
 #include <fmt/format.h>
 
 #include <hven/detail/solver/common_options_validate.h>
+#include <hven/detail/sqp/sqp_options_fields.h>
 #include <hven/qp/qp_types.h>
 #include <hven/sqp/sqp_options.h>
 
@@ -425,346 +426,52 @@ SqpOptions worker_options(SqpOptions base) {
 }
 
 // =============================================================================
-// M7 W0 T5(b): the options dump.
+// The options dump.
 //
-// A hand-written printer, one line per field, pinned against SqpOptions (and
-// the nested structs) by tests/solver/test_options_dump.cpp. The contract --
-// order, prefixes, enumerator names, shortest round-trip doubles -- is
-// documented once at dump_options(const IpmOptions &, std::ostream &) in
-// ipm/ipm_options.h and is not restated here.
+// A walk over the per-struct tables (detail/sqp/sqp_options_fields.h and the QP-layer tables it
+// uses), one row per field in declaration order, so the printer cannot miss a field or print one
+// twice. The contract -- order, prefixes, enumerator
+// names, shortest round-trip doubles -- is documented once at dump_options(const IpmOptions &,
+// std::ostream &) in ipm/ipm_options.h and is not restated here. The tables are checked against
+// the structs at compile time, below. (M7 W0 T5(b) wrote the dump by hand, one line per field,
+// pinned by a drift test; M8 AP-4 G1 replaced it with the tables.)
 //
-// NOTHING BELOW WEAKENS THIS FILE'S FP PREMISE. The dump performs no
-// floating-point operation either: every double it touches is handed to
-// fmt::format for rendering, exactly as the rejection messages above do.
-//
-// The kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
-// deliberately duplicated from src/ipm/ipm_options.cpp; the reasoning is
-// recorded there.
+// NOTHING BELOW WEAKENS THIS FILE'S FP PREMISE. The dump performs no floating-point operation
+// either: every double it touches is handed to fmt::format for rendering, exactly as the
+// rejection messages above do.
 // =============================================================================
+
+// -Wreorder-init-list is the order check below: a table whose rows are out of declaration order
+// is an error here, not a warning.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic error "-Wreorder-init-list"
+#endif
+HVEN_CHECK_OPTIONS_TABLE(QpOptions, HVEN_QP_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(IpqpOptions, HVEN_IPQP_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(SqpLinearOptions, HVEN_SQP_LINEAR_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE_G(SqpAdvancedOptions, HVEN_SQP_ADVANCED_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE_G(SqpOptions, HVEN_SQP_OPTIONS_FIELDS)
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 namespace {
 
-// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol
-// Important 1): every line is rendered whole by fmt and handed to the stream by
-// `write()`, an UNFORMATTED output function, so the caller's flags, precision,
-// width, fill and imbued locale reach no byte of the output. The reasoning is
-// recorded in full in src/ipm/ipm_options.cpp.
+// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol Important 1): every line
+// is rendered whole and handed to the stream by `write()`, an UNFORMATTED output function, so the
+// caller's flags, precision, width, fill and imbued locale reach no byte of the output. The
+// reasoning is recorded in full in src/ipm/ipm_options.cpp.
 void emit(std::ostream &os, const std::string &line) {
     os.write(line.data(), static_cast<std::streamsize>(line.size()));
-}
-
-void kv_int(std::ostream &os, const char *name, long long v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-void kv_bool(std::ostream &os, const char *name, bool v) {
-    emit(os, fmt::format("{} = {}\n", name, v ? "true" : "false"));
-}
-void kv_str(std::ostream &os, const char *name, const char *v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-// Shortest round-trip (`1e-06`); see src/ipm/ipm_options.cpp.
-void kv_dbl(std::ostream &os, const char *name, double v) {
-    emit(os, fmt::format("{} = {}\n", name, v));
-}
-void kv_opt_int(std::ostream &os, const char *name, const std::optional<Index> &v) {
-    if (v) {
-        kv_int(os, name, static_cast<long long>(*v));
-    } else {
-        kv_str(os, name, "unset");
-    }
-}
-void kv_opt_dbl(std::ostream &os, const char *name, const std::optional<double> &v) {
-    if (v) {
-        kv_dbl(os, name, *v);
-    } else {
-        kv_str(os, name, "unset");
-    }
-}
-
-// ENUMERATOR NAMES, not display strings -- see src/ipm/ipm_options.cpp.
-const char *enum_name(QpMode v) {
-    switch (v) {
-    case QpMode::kWalk:
-        return "kWalk";
-    case QpMode::kSsn:
-        return "kSsn";
-    case QpMode::kIpqp:
-        return "kIpqp";
-    }
-    return "unknown";
-}
-const char *enum_name(SqpElasticRungEngine v) {
-    switch (v) {
-    case SqpElasticRungEngine::kWalk:
-        return "kWalk";
-    case SqpElasticRungEngine::kTier:
-        return "kTier";
-    }
-    return "unknown";
-}
-const char *enum_name(QpDumpPolicy v) {
-    switch (v) {
-    case QpDumpPolicy::kOff:
-        return "kOff";
-    case QpDumpPolicy::kFailed:
-        return "kFailed";
-    case QpDumpPolicy::kAll:
-        return "kAll";
-    }
-    return "unknown";
-}
-const char *enum_name(SqpHessianMode v) {
-    switch (v) {
-    case SqpHessianMode::kExact:
-        return "kExact";
-    case SqpHessianMode::kLbfgsDamped:
-        return "kLbfgsDamped";
-    }
-    return "unknown";
-}
-const char *enum_name(SqpRestorationCurvature v) {
-    switch (v) {
-    case SqpRestorationCurvature::kModel:
-        return "kModel";
-    case SqpRestorationCurvature::kRegularized:
-        return "kRegularized";
-    case SqpRestorationCurvature::kModelThenRegularized:
-        return "kModelThenRegularized";
-    }
-    return "unknown";
-}
-const char *enum_name(SqpTrustRegionGrowth v) {
-    switch (v) {
-    case SqpTrustRegionGrowth::kRatio:
-        return "kRatio";
-    case SqpTrustRegionGrowth::kRatioOrFeasibilityStep:
-        return "kRatioOrFeasibilityStep";
-    case SqpTrustRegionGrowth::kAnyAccepted:
-        return "kAnyAccepted";
-    }
-    return "unknown";
-}
-const char *enum_name(SqpColumnScaling v) {
-    switch (v) {
-    case SqpColumnScaling::kOff:
-        return "kOff";
-    case SqpColumnScaling::kAlways:
-        return "kAlways";
-    case SqpColumnScaling::kAuto:
-        return "kAuto";
-    }
-    return "unknown";
-}
-const char *enum_name(IpqpBarrierInitialRule v) {
-    switch (v) {
-    case IpqpBarrierInitialRule::kFixed:
-        return "kFixed";
-    case IpqpBarrierInitialRule::kComplementarity:
-        return "kComplementarity";
-    }
-    return "unknown";
-}
-const char *enum_name(SsnSigmaRule v) {
-    switch (v) {
-    case SsnSigmaRule::kLadder:
-        return "kLadder";
-    case SsnSigmaRule::kResidualArmed:
-        return "kResidualArmed";
-    case SsnSigmaRule::kResidualAlways:
-        return "kResidualAlways";
-    }
-    return "unknown";
-}
-const char *enum_name(SsnHintRule v) {
-    switch (v) {
-    case SsnHintRule::kIterationZeroFree:
-        return "kIterationZeroFree";
-    case SsnHintRule::kWatchdog:
-        return "kWatchdog";
-    }
-    return "unknown";
-}
-const char *enum_name(SsnInfeasibilityRule v) {
-    switch (v) {
-    case SsnInfeasibilityRule::kSymptoms:
-        return "kSymptoms";
-    case SsnInfeasibilityRule::kFarkasGated:
-        return "kFarkasGated";
-    }
-    return "unknown";
-}
-const char *enum_name(QpWorkingSetAlgebra v) {
-    switch (v) {
-    case QpWorkingSetAlgebra::kRefactorize:
-        return "kRefactorize";
-    case QpWorkingSetAlgebra::kSchurBorder:
-        return "kSchurBorder";
-    }
-    return "unknown";
-}
-const char *enum_name(Verbosity v) {
-    switch (v) {
-    case Verbosity::kSilent:
-        return "kSilent";
-    case Verbosity::kWarnings:
-        return "kWarnings";
-    case Verbosity::kSummary:
-        return "kSummary";
-    case Verbosity::kIterations:
-        return "kIterations";
-    case Verbosity::kDetail:
-        return "kDetail";
-    }
-    return "unknown";
-}
-const char *enum_name(hven::linear::DensePolicy v) {
-    switch (v) {
-    case hven::linear::DensePolicy::kNever:
-        return "kNever";
-    case hven::linear::DensePolicy::kAlways:
-        return "kAlways";
-    case hven::linear::DensePolicy::kAuto:
-        return "kAuto";
-    }
-    return "unknown";
-}
-const char *enum_name(ReturnBest v) {
-    switch (v) {
-    case ReturnBest::kNever:
-        return "kNever";
-    case ReturnBest::kOnLimit:
-        return "kOnLimit";
-    case ReturnBest::kOnAnyNonOptimal:
-        return "kOnAnyNonOptimal";
-    }
-    return "unknown";
-}
-const char *enum_name(StartLevel v) {
-    switch (v) {
-    case StartLevel::kCold:
-        return "kCold";
-    case StartLevel::kSeeded:
-        return "kSeeded";
-    case StartLevel::kWarm:
-        return "kWarm";
-    case StartLevel::kHot:
-        return "kHot";
-    }
-    return "unknown";
 }
 
 } // namespace
 
 void dump_options(const SqpOptions &o, std::ostream &os) {
-    const CommonOptions &c = o.common;
-    kv_dbl(os, "common.optimality_tol", c.optimality_tol);
-    kv_dbl(os, "common.feasibility_tol", c.feasibility_tol);
-    kv_int(os, "common.max_iterations", static_cast<long long>(c.max_iterations));
-    kv_opt_int(os, "common.max_factorizations", c.max_factorizations);
-    kv_opt_dbl(os, "common.time_limit_seconds", c.time_limit_seconds);
-    kv_str(os, "common.verbosity", enum_name(c.verbosity));
-    kv_int(os, "common.threads", c.threads);
-    kv_str(os, "common.start_level", enum_name(c.start_level));
-    kv_dbl(os, "common.infinite_bound", c.infinite_bound);
-    kv_str(os, "common.return_best", enum_name(c.return_best));
-    kv_dbl(os, "trust_region_initial", o.trust_region_initial);
-    kv_dbl(os, "trust_region_max", o.trust_region_max);
-    kv_dbl(os, "trust_region_min", o.trust_region_min);
-    kv_dbl(os, "caller_step_limit", o.caller_step_limit);
-    kv_dbl(os, "qp.primal_regularization", o.qp.primal_regularization);
-    kv_dbl(os, "qp.dual_regularization", o.qp.dual_regularization);
-    kv_dbl(os, "qp.feasibility_tol", o.qp.feasibility_tol);
-    kv_dbl(os, "qp.optimality_tol", o.qp.optimality_tol);
-    kv_opt_int(os, "qp.max_iterations", o.qp.max_iterations);
-    kv_int(os, "qp.max_schur_border_dimension",
-           static_cast<long long>(o.qp.max_schur_border_dimension));
-    kv_dbl(os, "qp.schur_condition_max", o.qp.schur_condition_max);
-    kv_str(os, "qp.working_set_algebra", enum_name(o.qp.working_set_algebra));
-    kv_dbl(os, "qp.trust_region_radius", o.qp.trust_region_radius);
-    kv_bool(os, "qp.independent_working_set", o.qp.independent_working_set);
-    kv_bool(os, "qp.hessian_known_convex", o.qp.hessian_known_convex);
-    kv_str(os, "qp_mode", enum_name(o.qp_mode));
-    kv_bool(os, "row_scaling", o.row_scaling);
-    kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
-    kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);
-    kv_bool(os, "row_scaling_power_of_two", o.row_scaling_power_of_two);
-    kv_str(os, "column_scaling", enum_name(o.column_scaling));
-    kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
-    kv_dbl(os, "column_scaling_factor_max", o.column_scaling_factor_max);
-    kv_bool(os, "project_start_point", o.project_start_point);
-    kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
-    kv_int(os, "lbfgs_memory", static_cast<long long>(o.lbfgs_memory));
-    kv_str(os, "linear.dense_factorization", enum_name(o.linear.dense_factorization));
-    kv_opt_int(os, "linear.max_dense_dimension", o.linear.max_dense_dimension);
-    const SqpAdvancedOptions &a = o.advanced;
-    kv_bool(os, "advanced.second_order_correction", a.second_order_correction);
-    kv_bool(os, "advanced.adaptive_dual_regularization", a.adaptive_dual_regularization);
-    // A CALLABLE, not a configuration: see the declaration's note.
-    kv_str(os, "advanced.make_strategy", a.make_strategy ? "set" : "unset");
-    kv_bool(os, "advanced.warm_full_step", a.warm_full_step);
-    kv_bool(os, "advanced.elastic_ladder_early_exit", a.elastic_ladder_early_exit);
-    kv_bool(os, "advanced.crash_basis", a.crash_basis);
-    kv_str(os, "advanced.elastic_rung_engine", enum_name(a.elastic_rung_engine));
-    kv_bool(os, "advanced.ipqp_reseed_after_disproval", a.ipqp_reseed_after_disproval);
-    const IpqpOptions &q = a.ipqp;
-    kv_opt_int(os, "advanced.ipqp.max_iterations", q.max_iterations);
-    kv_int(os, "advanced.ipqp.hard_max_iterations", static_cast<long long>(q.hard_max_iterations));
-    kv_opt_int(os, "advanced.ipqp.max_factorizations", q.max_factorizations);
-    kv_dbl(os, "advanced.ipqp.barrier_initial", q.barrier_initial);
-    kv_dbl(os, "advanced.ipqp.barrier_min", q.barrier_min);
-    kv_dbl(os, "advanced.ipqp.primal_regularization_initial", q.primal_regularization_initial);
-    kv_dbl(os, "advanced.ipqp.dual_regularization_initial", q.dual_regularization_initial);
-    kv_dbl(os, "advanced.ipqp.regularization_min", q.regularization_min);
-    kv_dbl(os, "advanced.ipqp.regularization_max", q.regularization_max);
-    kv_dbl(os, "advanced.ipqp.regularization_decrease", q.regularization_decrease);
-    kv_dbl(os, "advanced.ipqp.fraction_to_boundary", q.fraction_to_boundary);
-    kv_dbl(os, "advanced.ipqp.face_ratio_threshold", q.face_ratio_threshold);
-    kv_dbl(os, "advanced.ipqp.convergence_slack", q.convergence_slack);
-    kv_bool(os, "advanced.ipqp.ruiz_equilibration", q.ruiz_equilibration);
-    kv_bool(os, "advanced.ipqp.warm_repair", q.warm_repair);
-    kv_int(os, "advanced.ipqp.max_warm_iterations", static_cast<long long>(q.max_warm_iterations));
-    kv_dbl(os, "advanced.ipqp.barrier_adoption_factor", q.barrier_adoption_factor);
-    kv_int(os, "advanced.ipqp.stall_window", static_cast<long long>(q.stall_window));
-    kv_int(os, "advanced.ipqp.max_consecutive_escapes",
-           static_cast<long long>(q.max_consecutive_escapes));
-    kv_bool(os, "advanced.ipqp.farkas_gate", q.farkas_gate);
-    kv_bool(os, "advanced.ipqp.hoist_symbolic_analysis", q.hoist_symbolic_analysis);
-    kv_bool(os, "advanced.ipqp.require_final_inertia", q.require_final_inertia);
-    kv_str(os, "advanced.ipqp.barrier_initial_rule", enum_name(q.barrier_initial_rule));
-    kv_bool(os, "advanced.ipqp.barrier_residual_floor", q.barrier_residual_floor);
-    kv_int(os, "advanced.ipqp.ladder_skip_after", static_cast<long long>(q.ladder_skip_after));
-    kv_str(os, "advanced.qp_dump_dir", a.qp_dump_dir.empty() ? "unset" : a.qp_dump_dir.c_str());
-    kv_str(os, "advanced.qp_dump_policy", enum_name(a.qp_dump_policy));
-    kv_bool(os, "advanced.ssn_proximal_carry", a.ssn_proximal_carry);
-    kv_bool(os, "advanced.ssn_certify_from_face", a.ssn_certify_from_face);
-    kv_str(os, "advanced.ssn_sigma_rule", enum_name(a.ssn_sigma_rule));
-    kv_str(os, "advanced.ssn_hint_rule", enum_name(a.ssn_hint_rule));
-    kv_str(os, "advanced.ssn_infeasibility_rule", enum_name(a.ssn_infeasibility_rule));
-    kv_int(os, "advanced.max_consecutive_qp_failures",
-           static_cast<long long>(a.max_consecutive_qp_failures));
-    kv_bool(os, "advanced.qp_iteration_limit_retry", a.qp_iteration_limit_retry);
-    kv_bool(os, "advanced.qp_failure_step", a.qp_failure_step);
-    kv_dbl(os, "advanced.restoration_proximity", a.restoration_proximity);
-    kv_bool(os, "advanced.equality_basis", a.equality_basis);
-    kv_bool(os, "advanced.elastic_witness_start", a.elastic_witness_start);
-    kv_bool(os, "advanced.elastic_last_optimal_rung", a.elastic_last_optimal_rung);
-    kv_dbl(os, "advanced.restoration_resume_reduction", a.restoration_resume_reduction);
-    kv_bool(os, "advanced.lbfgs_update_on_reject", a.lbfgs_update_on_reject);
-    kv_bool(os, "advanced.lbfgs_nonlinear_only", a.lbfgs_nonlinear_only);
-    kv_int(os, "advanced.max_lbfgs_full_memory_dimension",
-           static_cast<long long>(a.max_lbfgs_full_memory_dimension));
-    kv_str(os, "advanced.restoration_curvature", enum_name(a.restoration_curvature));
-    kv_int(os, "advanced.max_restoration_entries",
-           static_cast<long long>(a.max_restoration_entries));
-    kv_str(os, "advanced.trust_region_growth", enum_name(a.trust_region_growth));
-    kv_dbl(os, "advanced.ssn_farkas_residual_tol", a.ssn_farkas_residual_tol);
-    kv_dbl(os, "advanced.ssn_uncertain_tol", a.ssn_uncertain_tol);
-    kv_dbl(os, "advanced.ssn_lm_sigma_c", a.ssn_lm_sigma_c);
-    kv_dbl(os, "advanced.ssn_lm_sigma_exponent", a.ssn_lm_sigma_exponent);
-    kv_bool(os, "advanced.restoration_elastic_seed", a.restoration_elastic_seed);
-    kv_int(os, "advanced.elastic_rho0_headroom_rungs",
-           static_cast<long long>(a.elastic_rho0_headroom_rungs));
-    kv_dbl(os, "advanced.adaptive_dual_regularization_max", a.adaptive_dual_regularization_max);
+    detail::for_each_option(o, [&os](const detail::OptionMeta &m, const auto &value) {
+        emit(os, m.name() + " = " + detail::render_option_value(value) + "\n");
+    });
 }
 
 } // namespace hven

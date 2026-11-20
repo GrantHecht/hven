@@ -32,7 +32,8 @@ hven_add_test_executable(hven_solver_tests
     SOURCES ${_hven_solver_sources}
     RELEASE_O1
     DEFINITIONS
-        HVEN_SRC_ROOT="${HVEN_REPO_ROOT}/src")
+        HVEN_SRC_ROOT="${HVEN_REPO_ROOT}/src"
+        HVEN_OPTIONS_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/options_dump")
 
 ################################################################################
 # Shared-engine seam tests (docs/testing.md, "Seam tests"). Both sources drive BOTH engines through

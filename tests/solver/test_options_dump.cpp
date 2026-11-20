@@ -1,45 +1,50 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// M7 W0 T5(b): THE DRIFT PIN for dump_options().
+// M7 W0 T5(b): THE DRIFT PIN for dump_options(); re-derived at M8 AP-4 G1.
 //
-// The dump is hand-written -- hven has no options registry, no name->field map
-// and no reflection -- so nothing in the language stops a field being added to
-// IpmOptions or SqpOptions without a line in the printer. This TU is what does,
-// on three independent axes, because no single one of them catches everything:
+// The dump is a walk over the per-struct options tables (detail/*/..._options_fields.h). Nothing in
+// the language stops a field being added to IpmOptions or SqpOptions without a row, so the
+// instruments are:
 //
-//   1. DECLARED FIELD COUNT, at compile time. kAggregateArity<T> is the number
-//      of initializers T{...} accepts, which for these aggregates is the field
-//      count (a nested aggregate counts as ONE -- detail/core/aggregate_arity.h
-//      states the rule and its three unsupported shapes). This is the sharp
-//      instrument: it moves for an added field and for nothing else.
-//   2. sizeof, at compile time. Weaker than (1) -- a field that lands in
-//      existing padding does not move it -- but it is the axis that notices a
-//      TYPE change (an int widened to a long long) that leaves the count alone.
-//      PLATFORM-DEPENDENT BY CONSTRUCTION, so gated to Linux x86-64; on any
-//      other target the asserts simply do not run, and (1) and (3) still do.
-//   3. DUMPED LINE COUNT, at run time. The one axis that reads the printer
-//      itself: (1) and (2) both pass if a field is added AND given a line, and
-//      both pass if a field is added and the line is put in twice. This does
-//      not.
-//
-// The count beside each struct below is what that struct carried when this file
-// was written; a diff that moves one moves the other in the same commit.
+//   1. THE TABLES vs THE STRUCTS, at compile time, in the library's own TUs
+//      (HVEN_CHECK_OPTIONS_TABLE in src/ipm/ipm_options.cpp and src/sqp/sqp_options.cpp): the row
+//      count must equal kAggregateArity<T> -- the number of initializers T{...} accepts, which is
+//      the field count (a nested aggregate counts as ONE; detail/core/aggregate_arity.h states the
+//      rule and its unsupported shapes) -- and the rows must name the members in declaration
+//      order. A field added without a row, or a row out of order, does not compile. These replace
+//      the ten hand-kept field-count constants this file used to carry.
+//   2. sizeof, at compile time. Weaker than (1) -- a field that lands in existing padding does not
+//      move it -- but it is the axis that notices a TYPE change (an int widened to a long long)
+//      that leaves the count alone. PLATFORM-DEPENDENT BY CONSTRUCTION, so gated to Linux x86-64.
+//   3. THE DUMPED BYTES, at run time: the verbatim head of the IPM dump below, and the whole dump
+//      of IpmOptions{}, every ipm_preset, SqpOptions{} and one all-fields-perturbed value of each
+//      against fixtures captured from the hand-written dump that the tables replaced
+//      (tests/solver/fixtures/options_dump/, base 0cecdc6d0). The line count is derived from a
+//      walk over the tables, so it follows them and is checked against the dump.
+//   4. EVERY FIELD PERTURBED: no line of a perturbed dump equals the same line of the default
+//      dump, so a field added without a perturbation in support/options_perturbed.h is named.
 
 #include <cstddef>
+#include <fstream>
 #include <iomanip>
 #include <ios>
 #include <locale>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/core/aggregate_arity.h>
+#include <hven/detail/ipm/ipm_options_fields.h>
+#include <hven/detail/ipm/ipm_solver_presets.h>
+#include <hven/detail/sqp/sqp_options_fields.h>
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/qp/qp_types.h>
 #include <hven/solver/common_options.h>
 #include <hven/sqp/sqp_solver_types.h>
+
+#include "solver/support/options_perturbed.h"
 
 namespace {
 
@@ -48,58 +53,6 @@ using hven::IpmOptions;
 using hven::IpqpOptions;
 using hven::QpOptions;
 using hven::SqpOptions;
-
-// ---------------------------------------------------------------------------
-// Axis 1: the declared field counts, pinned at compile time.
-// ---------------------------------------------------------------------------
-// M8 AP-2 B3 (the options break) re-laid both structs into tiers, so the counts
-// below are per struct. Each nested struct is flattened under its member name.
-// `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
-// counts are the same everywhere.
-constexpr std::size_t kIpmLinearOptionsFields = 12;
-constexpr std::size_t kIpmOptionsFields = 14;
-constexpr std::size_t kIpmTerminationOptionsFields = 10;
-constexpr std::size_t kIpmAdvancedOptionsFields = 24;
-constexpr std::size_t kSqpOptionsFields = 19;
-constexpr std::size_t kSqpLinearOptionsFields = 2;
-constexpr std::size_t kSqpAdvancedOptionsFields = 37;
-constexpr std::size_t kIpqpOptionsFields = 25;
-constexpr std::size_t kQpOptionsFields = 11;
-constexpr std::size_t kCommonOptionsFields = 10;
-
-static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
-              "IpmOptions gained or lost a field. Give it a line in "
-              "dump_options(const IpmOptions&, std::ostream&) "
-              "(src/ipm/ipm_options.cpp), in its declaration position, then move "
-              "kIpmOptionsFields and kIpmDumpLines here together.");
-static_assert(::hven::detail::kAggregateArity<hven::IpmLinearOptions> == kIpmLinearOptionsFields,
-              "IpmLinearOptions gained or lost a field: it is flattened under `linear.`.");
-static_assert(::hven::detail::kAggregateArity<hven::IpmTerminationOptions> ==
-                  kIpmTerminationOptionsFields,
-              "IpmTerminationOptions gained or lost a field: it is flattened under "
-              "`termination.`.");
-static_assert(::hven::detail::kAggregateArity<hven::IpmAdvancedOptions> ==
-                  kIpmAdvancedOptionsFields,
-              "IpmAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
-static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
-              "SqpOptions gained or lost a field. Give it a line in "
-              "dump_options(const SqpOptions&, std::ostream&) "
-              "(src/sqp/sqp_options.cpp), in its declaration position, then move "
-              "kSqpOptionsFields and kSqpDumpLines here together.");
-static_assert(::hven::detail::kAggregateArity<hven::SqpLinearOptions> == kSqpLinearOptionsFields,
-              "SqpLinearOptions gained or lost a field: it is flattened under `linear.`.");
-static_assert(::hven::detail::kAggregateArity<hven::SqpAdvancedOptions> ==
-                  kSqpAdvancedOptionsFields,
-              "SqpAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
-static_assert(::hven::detail::kAggregateArity<IpqpOptions> == kIpqpOptionsFields,
-              "IpqpOptions gained or lost a field: it is flattened under the "
-              "`advanced.ipqp.` prefix by dump_options(const SqpOptions&, std::ostream&).");
-static_assert(::hven::detail::kAggregateArity<QpOptions> == kQpOptionsFields,
-              "QpOptions gained or lost a field: it is flattened under the `qp.` "
-              "prefix by dump_options(const SqpOptions&, std::ostream&).");
-static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFields,
-              "CommonOptions gained or lost a field: BOTH dumps flatten it under the "
-              "`common.` prefix, so both printers need the new line.");
 
 // ---------------------------------------------------------------------------
 // Axis 2: sizeof, on the one platform these values were observed on.
@@ -133,14 +86,15 @@ static_assert(sizeof(CommonOptions) == 88, "CommonOptions' layout moved on Linux
 #endif
 
 // ---------------------------------------------------------------------------
-// Axis 3: the dumped line count, read off the printer.
-//
-// IpmOptions: common 9 + phases 1 + termination 10 + 12 own scalars + linear 12
-// + advanced 24 = 68.
-// SqpOptions: the nested blocks flattened, one line per field; 99 lines (TU-0: +9).
+// Axis 3: the dumped line count, derived from the registry, checked against the printer.
 // ---------------------------------------------------------------------------
-constexpr int kIpmDumpLines = 66;
-constexpr int kSqpDumpLines = 99;
+// The number of rows the tables hold for a struct: one walk, one tick per field.
+template <class Options> std::size_t table_rows() {
+    Options o;
+    std::size_t rows = 0;
+    hven::detail::for_each_option(o, [&rows](const auto &, const auto &) { ++rows; });
+    return rows;
+}
 
 int count_lines(const std::string &text) {
     int n = 0;
@@ -175,11 +129,13 @@ bool has_line(const std::string &text, const std::string &line) {
 }
 
 TEST(OptionsDump, IpmDumpsOneLinePerField) {
-    EXPECT_EQ(count_lines(dump_to_string(IpmOptions{})), kIpmDumpLines);
+    EXPECT_EQ(static_cast<std::size_t>(count_lines(dump_to_string(IpmOptions{}))),
+              table_rows<IpmOptions>());
 }
 
 TEST(OptionsDump, SqpDumpsOneLinePerField) {
-    EXPECT_EQ(count_lines(dump_to_string(SqpOptions{})), kSqpDumpLines);
+    EXPECT_EQ(static_cast<std::size_t>(count_lines(dump_to_string(SqpOptions{}))),
+              table_rows<SqpOptions>());
 }
 
 // The two fields whose defaults differ between the engines, which is what makes
@@ -403,7 +359,88 @@ TEST(OptionsDump, ReadsTheValueItWasGiven) {
     EXPECT_TRUE(has_line(text, "common.threads = 7")) << text;
     EXPECT_TRUE(has_line(text, "advanced.restoration_mode = kL1Nested")) << text;
     EXPECT_TRUE(has_line(text, "phases = [kSolve, kOptimize]")) << text;
-    EXPECT_EQ(count_lines(text), kIpmDumpLines);
+    EXPECT_EQ(static_cast<std::size_t>(count_lines(text)), table_rows<IpmOptions>());
+}
+
+// ---------------------------------------------------------------------------
+// THE REGISTRY vs THE HAND-WRITTEN DUMP IT REPLACED (M8 AP-4 G1).
+//
+// tests/solver/fixtures/options_dump/ holds the bytes the hand-written printer produced at base
+// 0cecdc6d0, before it was re-implemented over the options tables: IpmOptions{}, each ipm_preset,
+// SqpOptions{}, and one all-fields-perturbed value of each (support/options_perturbed.h). The
+// registry's dump must be byte-identical. The one substitution: the IPM default thread count is
+// the build's HVEN_DEFAULT_IPM_THREADS, which the fixtures carry as captured (8); a build that
+// overrides it compares against that line rewritten.
+// ---------------------------------------------------------------------------
+std::string read_fixture(const std::string &name) {
+    const std::string path = std::string(HVEN_OPTIONS_FIXTURE_DIR) + "/" + name;
+    std::ifstream in(path, std::ios::binary);
+    EXPECT_TRUE(in.good()) << "missing fixture " << path;
+    std::ostringstream buf;
+    buf << in.rdbuf();
+    return buf.str();
+}
+
+// The captured fixtures carry `common.threads = 8`; the IPM defaults carry the build's value.
+std::string with_build_threads(std::string text) {
+    const std::string captured = "common.threads = 8\n";
+    const std::string build = "common.threads = " + std::to_string(HVEN_DEFAULT_IPM_THREADS) + "\n";
+    const std::size_t at = text.find(captured);
+    if (at != std::string::npos) {
+        text.replace(at, captured.size(), build);
+    }
+    return text;
+}
+
+TEST(OptionsDumpFixtures, IpmDefaultsMatchTheHandWrittenDump) {
+    EXPECT_EQ(dump_to_string(IpmOptions{}), with_build_threads(read_fixture("ipm_default.txt")));
+}
+
+TEST(OptionsDumpFixtures, EveryIpmPresetMatchesTheHandWrittenDump) {
+    for (const auto &entry : hven::detail::kInteriorPointSolverPresets) {
+        const std::string name(entry.name_);
+        EXPECT_EQ(dump_to_string(hven::ipm_preset(name)),
+                  with_build_threads(read_fixture("ipm_preset_" + name + ".txt")))
+            << name;
+    }
+}
+
+TEST(OptionsDumpFixtures, TheIpmAllFieldsPerturbedValueMatchesTheHandWrittenDump) {
+    EXPECT_EQ(dump_to_string(hven::test::ipm_all_perturbed()), read_fixture("ipm_perturbed.txt"));
+}
+
+TEST(OptionsDumpFixtures, SqpDefaultsMatchTheHandWrittenDump) {
+    EXPECT_EQ(dump_to_string(SqpOptions{}), read_fixture("sqp_default.txt"));
+}
+
+TEST(OptionsDumpFixtures, TheSqpAllFieldsPerturbedValueMatchesTheHandWrittenDump) {
+    EXPECT_EQ(dump_to_string(hven::test::sqp_all_perturbed()), read_fixture("sqp_perturbed.txt"));
+}
+
+std::vector<std::string> split_lines(const std::string &text) {
+    std::vector<std::string> out;
+    std::size_t start = 0;
+    while (start < text.size()) {
+        const std::size_t end = text.find('\n', start);
+        out.push_back(text.substr(start, end - start));
+        start = end + 1;
+    }
+    return out;
+}
+
+// A field added to a struct without a perturbation in support/options_perturbed.h leaves its line
+// equal to the default's, and is named here.
+TEST(OptionsDumpFixtures, NoLineOfAPerturbedDumpEqualsTheDefaultsLine) {
+    const auto check = [](const std::string &perturbed, const std::string &defaults) {
+        const std::vector<std::string> p = split_lines(perturbed);
+        const std::vector<std::string> d = split_lines(defaults);
+        ASSERT_EQ(p.size(), d.size());
+        for (std::size_t i = 0; i < p.size(); ++i) {
+            EXPECT_NE(p[i], d[i]) << "field not perturbed: " << d[i];
+        }
+    };
+    check(dump_to_string(hven::test::ipm_all_perturbed()), dump_to_string(IpmOptions{}));
+    check(dump_to_string(hven::test::sqp_all_perturbed()), dump_to_string(SqpOptions{}));
 }
 
 } // namespace
