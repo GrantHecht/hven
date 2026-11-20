@@ -683,6 +683,64 @@ TEST(Schur, BatchWhoseK0SolveThrowsLeavesThePerAddStack) {
 }
 
 #if !defined(__APPLE__)
+// A batch on RETAKE numerics (PF-4 r2): solve_mat's scaled arm (D, then D's
+// unscaling, on the scaled session) and its matched arm (the matched session)
+// land the columns the per-add path's solve_vec lands, bit for bit on this
+// fixture, through ONE solve on the tier's session (none on the platform
+// factor), and the bordered solve answers the bordered system. (MKL only: the
+// retake tiers are the Pardiso sessions' -- iparm[12] for the matched one.)
+TEST(Schur, BatchOnRetakeNumericsLandsThePerAddColumns) {
+    for (const auto tier : {detail::PlatformRetake::kScaled, detail::PlatformRetake::kMatched}) {
+        SCOPED_TRACE(tier == detail::PlatformRetake::kScaled ? "scaled" : "matched");
+        IncrementalFixture fx;
+        QpOptions opts;
+        opts.max_schur_border_dimension = 100;
+        opts.schur_condition_max = 1e300;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+        detail::factorize_checked(kkt, fx.K0);
+        ASSERT_TRUE(detail::retake_in_place(kkt, fx.K0, tier));
+        ASSERT_EQ(kkt.numerics, tier);
+
+        SchurComplement per_add(kkt, opts);
+        SchurComplement batched(kkt, opts);
+        constexpr std::size_t kAdds = 9;
+        for (std::size_t p = 0; p < kAdds; ++p) {
+            per_add.add_border(fx.pool[p], fx.diag[p]);
+        }
+        batched.begin_batch();
+        for (std::size_t p = 0; p < kAdds; ++p) {
+            batched.add_border(fx.pool[p], fx.diag[p]);
+        }
+        // The batch's one solve runs on the tier's session, not the platform factor.
+        const hven::linear::SymmetricFactor &session =
+            tier == detail::PlatformRetake::kScaled ? *kkt.scaled_session : *kkt.matched_session;
+        const Index session_before = session.counters().solve_count;
+        const Index platform_before = kkt.factor.counters().solve_count;
+        batched.end_batch();
+        EXPECT_EQ(session.counters().solve_count - session_before, 1);
+        EXPECT_EQ(kkt.factor.counters().solve_count - platform_before, 0);
+
+        ASSERT_EQ(batched.dim(), per_add.dim());
+        const Vec rhs = probe_rhs(IncrementalFixture::kN0, batched.dim());
+        const Vec x = batched.solve(rhs);
+        expect_same_bits(x, per_add.solve(rhs));
+
+        // The bordered system [K0 V; V' diag(d)] from scratch, dense.
+        const Index n0 = IncrementalFixture::kN0;
+        const auto m = static_cast<Index>(kAdds);
+        Eigen::MatrixXd M = Eigen::MatrixXd::Zero(n0 + m, n0 + m);
+        const Eigen::MatrixXd upper = Eigen::MatrixXd(fx.K0);
+        M.topLeftCorner(n0, n0) = upper.selfadjointView<Eigen::Upper>();
+        for (Index j = 0; j < m; ++j) {
+            M.block(0, n0 + j, n0, 1) = fx.pool[static_cast<std::size_t>(j)];
+            M.block(n0 + j, 0, 1, n0) = fx.pool[static_cast<std::size_t>(j)].transpose();
+            M(n0 + j, n0 + j) = fx.diag[static_cast<std::size_t>(j)];
+        }
+        const Vec ref = M.fullPivLu().solve(rhs);
+        EXPECT_LE((x - ref).cwiseAbs().maxCoeff(), 1e-9 * ref.cwiseAbs().maxCoeff());
+    }
+}
+
 // A non-finite border inside a batch: the single factorization throws, and the
 // replay leaves the stack where the per-add path leaves it -- the first
 // non-finite add rolled back, every earlier add kept, the factorization
