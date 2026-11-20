@@ -199,6 +199,57 @@ class ScaledUnevenModel : public NlpModel {
     Vec upper_ = Vec::Constant(2, 10.0);
 };
 
+// TR-S1: an objective out of scale (factor 1e-4 at the start) with a NONLINEAR inequality that
+// binds, so that the iterates carry a nonzero NLP complementarity |lambda_i * cI| in both unit
+// systems.
+//
+//     min  1e6*(0.5*(x0-1)^2 + 0.5*x1^2)   s.t.  x0^2 + x1^2 - 0.25 <= 0,  -10 <= x <= 10,  x_start
+//     = 0
+//
+// The solution is on the circle at x = (0.5, 0).
+class ScaledCircleModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override {
+        return 1.0e6 * (0.5 * (x(0) - 1.0) * (x(0) - 1.0) + 0.5 * x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 1.0e6 * (x(0) - 1.0), 1.0e6 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &x) const override {
+        return Vec::Constant(1, x(0) * x(0) + x(1) * x(1) - 0.25);
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
+        SpMatRM h(2, 2);
+        const double d = 1.0e6 * obj_scale + 2.0 * (lambda_i.size() > 0 ? lambda_i(0) : 0.0);
+        h.insert(0, 0) = d;
+        h.insert(1, 1) = d;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &x) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lower_ = Vec::Constant(2, -10.0);
+    Vec upper_ = Vec::Constant(2, 10.0);
+};
+
 // A model the driver can DIFFERENTIATE at the start point but cannot MEASURE
 // there: the derivatives are finite (so the factor rule has real data and
 // produces sf = 1e-4), while the inequality residual is NaN (so the very first
@@ -709,33 +760,52 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
 // max(stationarity, feasibility) is the number the convergence test gated on
 // (`scaling.scaled_kkt_residual`).
 TEST(ProblemScalingRoundTrip, TheRowsCarryTheScaledMeasuresTheTestCompares) {
-    ScaledUnevenModel model;
-    SqpOptions opts;
-    opts.row_scaling = true;
-    SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
-    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
-    ASSERT_TRUE(sol.scaling.active);
-    ASSERT_FALSE(sol.returned_best_iterate);
-    const double sf = sol.scaling.objective;
-    ASSERT_DOUBLE_EQ(1.0e-4, sf);
-    const hven::IterationRecord &last = sol.history.back();
-    EXPECT_DOUBLE_EQ(std::max(last.tested_stationarity, last.tested_feasibility),
-                     sol.scaling.scaled_kkt_residual);
-    bool feasibility_shrunk = false;
-    bool complementarity_seen = false;
-    for (const hven::IterationRecord &r : sol.history) {
-        // Stationarity and complementarity carry the objective factor; feasibility the row's.
-        EXPECT_NEAR(r.stationarity * sf, r.tested_stationarity,
-                    1e-12 * (1.0 + std::abs(r.tested_stationarity)));
-        EXPECT_NEAR(r.complementarity * sf, r.tested_complementarity,
-                    1e-12 * (1.0 + std::abs(r.tested_complementarity)));
-        EXPECT_LE(r.tested_feasibility, r.feasibility * (1.0 + 1e-12) + 1e-300);
-        feasibility_shrunk = feasibility_shrunk || r.tested_feasibility < 0.999 * r.feasibility;
-        complementarity_seen = complementarity_seen || r.tested_complementarity != 0.0;
+    // Relative comparison: complementarity here is small and the factor between the two unit
+    // systems is the thing under test (1e-4), so an absolute tolerance would hide it.
+    const auto same = [](double a, double b) {
+        return std::abs(a - b) <= 1e-9 * std::max(std::abs(a), std::abs(b));
+    };
+    {
+        ScaledUnevenModel model;
+        SqpOptions opts;
+        opts.row_scaling = true;
+        SqpSolver driver{opts};
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+        ASSERT_TRUE(sol.scaling.active);
+        ASSERT_FALSE(sol.returned_best_iterate);
+        const double sf = sol.scaling.objective;
+        ASSERT_DOUBLE_EQ(1.0e-4, sf);
+        const hven::IterationRecord &last = sol.history.back();
+        EXPECT_DOUBLE_EQ(std::max(last.tested_stationarity, last.tested_feasibility),
+                         sol.scaling.scaled_kkt_residual);
+        bool feasibility_shrunk = false;
+        for (const hven::IterationRecord &r : sol.history) {
+            // Stationarity carries the objective factor; feasibility the row's.
+            EXPECT_TRUE(same(r.stationarity * sf, r.tested_stationarity));
+            EXPECT_LE(r.tested_feasibility, r.feasibility * (1.0 + 1e-12) + 1e-300);
+            feasibility_shrunk = feasibility_shrunk || r.tested_feasibility < 0.999 * r.feasibility;
+        }
+        EXPECT_TRUE(feasibility_shrunk) << "non-vacuous: the equality row's shrink shows";
     }
-    EXPECT_TRUE(feasibility_shrunk) << "non-vacuous: the equality row's shrink shows";
-    EXPECT_TRUE(complementarity_seen) << "non-vacuous: a row with nonzero complementarity";
+    {
+        ScaledCircleModel model;
+        SqpOptions opts;
+        opts.row_scaling = true;
+        opts.common.max_iterations = 60;
+        SqpSolver driver{opts};
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_TRUE(sol.scaling.active);
+        const double sf = sol.scaling.objective;
+        ASSERT_GT(sf, 0.0);
+        ASSERT_LT(sf, 1.0);
+        bool complementarity_seen = false;
+        for (const hven::IterationRecord &r : sol.history) {
+            EXPECT_TRUE(same(r.complementarity * sf, r.tested_complementarity));
+            complementarity_seen = complementarity_seen || r.tested_complementarity != 0.0;
+        }
+        EXPECT_TRUE(complementarity_seen) << "non-vacuous: a row with nonzero complementarity";
+    }
 }
 
 TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
