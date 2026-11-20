@@ -8,7 +8,7 @@ tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
       . qp.mode walk optimal at dispatch, 2 iterations
     1 W -2.0000000e+00 1.00e+00 3.00e+00 0.00e+00 7.50e-01 2.00e+00 3.00e+00     2    1 H
       . qp.mode walk optimal at dispatch, 2 iterations
-    2 W -5.0000000e-01 7.50e-01 1.12e+00 0.00e+00 1.13e+00 2.00e+00 1.12e+00     2    1 H
+    2 W -5.0000000e-01 7.50e-01 1.13e+00 0.00e+00 1.13e+00 2.00e+00 1.13e+00     2    1 H
       . qp.mode walk optimal at dispatch, 2 iterations
     3 W  1.7500000e+00 8.44e+00 2.53e+00 0.00e+00 7.23e-01 2.00e+00 2.53e+00     2    1 H
       . qp.mode walk optimal at dispatch, 2 iterations

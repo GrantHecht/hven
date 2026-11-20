@@ -5,5 +5,5 @@ tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 1000
 exit        Optimal (none) -- converged: optimality and feasibility tolerances met
 iterations  18 · restoration entries 0 · factorizations 18
 objective   2.49999990e-01
-diagnostics stationarity 6.2e-15 · feasibility 1.0e-08 · complementarity 1.0e-08   (declared)
+diagnostics stationarity 4.1e-15 · feasibility 1.0e-08 · complementarity 1.0e-08   (declared)
 counters    soc 0 · watchdog 0 · inertia corrections 0

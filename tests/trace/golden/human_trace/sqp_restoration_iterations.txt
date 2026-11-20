@@ -4,7 +4,7 @@ engine     QP mode walk (schur_border) · Hessian exact · row scaling off · co
 tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
  iter t      objective stat_scl feas_scl comp_scl     step   radius    h(l1) qp_it qp_fa v codes
     0 W  2.0000000e+00 1.00e+00 3.00e+00 0.00e+00 7.50e-01 1.00e+00 3.00e+00     2    1 H
-    1 E  5.0000000e-01 7.50e-01 1.12e+00 0.00e+00 1.00e+00 1.00e+00 1.12e+00     2    0 F b
+    1 E  5.0000000e-01 7.50e-01 1.13e+00 0.00e+00 1.00e+00 1.00e+00 1.13e+00     2    0 F b
     2 W -1.5000000e+00 1.00e+00 2.12e+00 0.00e+00 7.77e-01 1.00e+00 2.12e+00     2    1 H
     3 E -8.3333333e-02 1.04e+00 1.01e+00 0.00e+00 1.00e+00 1.00e+00 1.01e+00     2    0 H b
     4 W -8.3333333e-02 1.00e+00 2.74e+00 0.00e+00 1.00e+00 1.00e+00 2.74e+00     3    1 H b

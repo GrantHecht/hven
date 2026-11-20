@@ -704,6 +704,31 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
 // PIN (d): THE ROUND TRIP.
 // ===========================================================================
 
+// TR-S1: on a solve whose equality row is shrunk (factor 1e-4), the row's TESTED feasibility is
+// the shrunk residual, not the caller's; the last row's tested max(stationarity, feasibility) is
+// the number the convergence test gated on (`scaling.scaled_kkt_residual`).
+TEST(ProblemScalingRoundTrip, TheRowsCarryTheScaledFeasibilityTheTestCompares) {
+    UnevenRowModel model;
+    SqpOptions opts;
+    opts.row_scaling = true;
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+    ASSERT_TRUE(sol.scaling.active);
+    ASSERT_FALSE(sol.returned_best_iterate);
+    const hven::IterationRecord &last = sol.history.back();
+    EXPECT_DOUBLE_EQ(std::max(last.tested_stationarity, last.tested_feasibility),
+                     sol.scaling.scaled_kkt_residual);
+    // Row factors never exceed 1 here, so the tested feasibility never exceeds the caller's,
+    // and it is strictly smaller wherever the shrunk equality row dominates.
+    bool strictly_smaller = false;
+    for (const hven::IterationRecord &r : sol.history) {
+        EXPECT_LE(r.tested_feasibility, r.feasibility * (1.0 + 1e-12) + 1e-300);
+        strictly_smaller = strictly_smaller || r.tested_feasibility < 0.999 * r.feasibility;
+    }
+    EXPECT_TRUE(strictly_smaller);
+}
+
 TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     UnevenRowModel model;
     SqpOptions opts;
