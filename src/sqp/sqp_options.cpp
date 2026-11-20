@@ -99,6 +99,45 @@ void validate(const SqpOptions &opts) {
         throw std::invalid_argument(fmt::format(
             "SqpSolver: qp.max_iterations ({}) must be empty or >= 1", *opts.qp.max_iterations));
     }
+    // THE QP BLOCK'S OWN FIELDS (TU-0): each in the negated form, so NaN is refused.
+    if (!(opts.qp.dual_regularization >= 0.0) || std::isinf(opts.qp.dual_regularization)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: qp.dual_regularization ({}) must be finite and >= 0",
+                        opts.qp.dual_regularization));
+    }
+    if (!(opts.qp.primal_regularization >= 0.0) || std::isinf(opts.qp.primal_regularization)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: qp.primal_regularization ({}) must be finite and >= 0",
+                        opts.qp.primal_regularization));
+    }
+    if (!(opts.qp.feasibility_tol > 0.0) || std::isinf(opts.qp.feasibility_tol)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qp.feasibility_tol ({}) must be finite and > 0", opts.qp.feasibility_tol));
+    }
+    if (!(opts.qp.optimality_tol > 0.0) || std::isinf(opts.qp.optimality_tol)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qp.optimality_tol ({}) must be finite and > 0", opts.qp.optimality_tol));
+    }
+    if (!(opts.qp.schur_condition_max >= 1.0) || std::isinf(opts.qp.schur_condition_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qp.schur_condition_max ({}) must be finite and >= 1; it bounds a condition "
+            "estimate, which is never below 1",
+            opts.qp.schur_condition_max));
+    }
+    // 0 is legal: a border of dimension 0 is never admitted, so every working-set change
+    // refactorizes (the walk latches on the cap at the first pinned variable).
+    if (!(opts.qp.max_schur_border_dimension >= 0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: qp.max_schur_border_dimension ({}) must be >= 0",
+                        opts.qp.max_schur_border_dimension));
+    }
+    enum_in_range(opts.qp.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder,
+                  "qp.working_set_algebra");
+    if (!(opts.qp.trust_region_radius >= 0.0)) { // +inf passes; NaN and negatives do not
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qp.trust_region_radius ({}) must be >= 0 (+inf is legal and means none)",
+            opts.qp.trust_region_radius));
+    }
     if (!(opts.trust_region_initial > 0.0)) { // catches NaN, negatives and exactly 0
         throw std::invalid_argument(fmt::format("SqpSolver: trust_region_initial ({}) must be > 0 "
                                                 "(use +inf for no trust region; 0 would "
@@ -182,6 +221,7 @@ void validate(const SqpOptions &opts) {
             "SqpSolver: advanced.qp_dump_policy is on but advanced.qp_dump_dir is empty; name the "
             "directory the dump files are written to");
     }
+    // `row_scaling_power_of_two` is a BOOL with no refusable value.
     // THE COLUMN LAYER (M7 W2 SCL), validated unconditionally for the same reason.
     enum_in_range(opts.column_scaling, SqpColumnScaling::kAuto, "column_scaling");
     if (!(opts.column_scaling_threshold >= 1.0) || std::isinf(opts.column_scaling_threshold)) {
@@ -312,6 +352,46 @@ void validate(const SqpOptions &opts) {
         throw std::invalid_argument(fmt::format("SqpSolver: advanced.max_restoration_entries ({}) "
                                                 "must be >= 0 (0 refuses restoration)",
                                                 opts.advanced.max_restoration_entries));
+    }
+
+    // THE TU-0 LEVERS.
+    enum_in_range(opts.advanced.trust_region_growth, SqpTrustRegionGrowth::kAnyAccepted,
+                  "advanced.trust_region_growth");
+    if (!(opts.advanced.ssn_farkas_residual_tol > 0.0) ||
+        !(opts.advanced.ssn_farkas_residual_tol < 1.0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ssn_farkas_residual_tol ({}) must be in (0, 1)",
+                        opts.advanced.ssn_farkas_residual_tol));
+    }
+    if (!(opts.advanced.ssn_uncertain_tol >= 0.0) || !(opts.advanced.ssn_uncertain_tol < 1.0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ssn_uncertain_tol ({}) must be in [0, 1)",
+                        opts.advanced.ssn_uncertain_tol));
+    }
+    if (!(opts.advanced.ssn_lm_sigma_c > 0.0) || std::isinf(opts.advanced.ssn_lm_sigma_c)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ssn_lm_sigma_c ({}) must be finite and > 0",
+                        opts.advanced.ssn_lm_sigma_c));
+    }
+    if (!(opts.advanced.ssn_lm_sigma_exponent >= 1.0) ||
+        !(opts.advanced.ssn_lm_sigma_exponent <= 2.0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ssn_lm_sigma_exponent ({}) must be in [1, 2]",
+                        opts.advanced.ssn_lm_sigma_exponent));
+    }
+    // `restoration_elastic_seed` is a BOOL with no refusable value.
+    if (!(opts.advanced.elastic_rho0_headroom_rungs >= 1) ||
+        !(opts.advanced.elastic_rho0_headroom_rungs <= 6)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.elastic_rho0_headroom_rungs ({}) must be in [1, 6]",
+                        opts.advanced.elastic_rho0_headroom_rungs));
+    }
+    if (!(opts.advanced.adaptive_dual_regularization_max >= 1e-12) ||
+        !(opts.advanced.adaptive_dual_regularization_max <= 1.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.adaptive_dual_regularization_max ({}) must be in [1e-12, 1]; it "
+            "is the schedule's ceiling, whose floor is 1e-12",
+            opts.advanced.adaptive_dual_regularization_max));
     }
 
     // THE DENSE ARM: kNever, kAlways and kAuto (M8 DN-3: the dense arm for each analyzed
@@ -450,6 +530,17 @@ const char *enum_name(SqpRestorationCurvature v) {
         return "kRegularized";
     case SqpRestorationCurvature::kModelThenRegularized:
         return "kModelThenRegularized";
+    }
+    return "unknown";
+}
+const char *enum_name(SqpTrustRegionGrowth v) {
+    switch (v) {
+    case SqpTrustRegionGrowth::kRatio:
+        return "kRatio";
+    case SqpTrustRegionGrowth::kRatioOrFeasibilityStep:
+        return "kRatioOrFeasibilityStep";
+    case SqpTrustRegionGrowth::kAnyAccepted:
+        return "kAnyAccepted";
     }
     return "unknown";
 }
@@ -596,6 +687,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "row_scaling", o.row_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
     kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);
+    kv_bool(os, "row_scaling_power_of_two", o.row_scaling_power_of_two);
     kv_str(os, "column_scaling", enum_name(o.column_scaling));
     kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
     kv_dbl(os, "column_scaling_factor_max", o.column_scaling_factor_max);
@@ -664,6 +756,15 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_str(os, "advanced.restoration_curvature", enum_name(a.restoration_curvature));
     kv_int(os, "advanced.max_restoration_entries",
            static_cast<long long>(a.max_restoration_entries));
+    kv_str(os, "advanced.trust_region_growth", enum_name(a.trust_region_growth));
+    kv_dbl(os, "advanced.ssn_farkas_residual_tol", a.ssn_farkas_residual_tol);
+    kv_dbl(os, "advanced.ssn_uncertain_tol", a.ssn_uncertain_tol);
+    kv_dbl(os, "advanced.ssn_lm_sigma_c", a.ssn_lm_sigma_c);
+    kv_dbl(os, "advanced.ssn_lm_sigma_exponent", a.ssn_lm_sigma_exponent);
+    kv_bool(os, "advanced.restoration_elastic_seed", a.restoration_elastic_seed);
+    kv_int(os, "advanced.elastic_rho0_headroom_rungs",
+           static_cast<long long>(a.elastic_rho0_headroom_rungs));
+    kv_dbl(os, "advanced.adaptive_dual_regularization_max", a.adaptive_dual_regularization_max);
 }
 
 } // namespace hven

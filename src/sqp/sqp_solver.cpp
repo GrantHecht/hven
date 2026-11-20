@@ -1166,14 +1166,18 @@ namespace {
 // AMENDMENT H, Q-S4 AT c = 1, WITH W2 T5's TWO CAPS: the FIRED block's multiplier norm places the
 // first rung, FLOORED at today's start and capped by the escalation headroom and the
 // dual-regularization safety margin -- sqp_solver.h's THE PLACEMENT BOUND has the rule.
-double elastic_initial_rho(const ElasticSeedSource &seed, double dual_mu, bool &ceiling_hit) {
+double elastic_initial_rho(const ElasticSeedSource &seed, double dual_mu, Index headroom_rungs,
+                           bool &ceiling_hit) {
     ceiling_hit = false;
     if (seed.evidence == nullptr || !seed.evidence->fired ||
         !std::isfinite(seed.evidence->dual_norm_start)) {
         return kElasticRhoInit;
     }
     const double priced = std::max(kElasticRhoInit, seed.evidence->dual_norm_start);
-    double cap = kElasticRhoMax / kElasticRhoFactor;
+    double cap = kElasticRhoMax;
+    for (Index k = 0; k < headroom_rungs; ++k) {
+        cap /= kElasticRhoFactor;
+    }
     // A dual_mu of zero or worse prices nothing -- the walk's misfire is proportional to the
     // product, so no product means no cap, and the headroom one still stands.
     if (std::isfinite(dual_mu) && dual_mu > 0.0) {
@@ -1416,7 +1420,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     const double rho_0 =
         rho_0_override.has_value()
             ? std::min(kElasticRhoMax, std::max(kElasticRhoInit, *rho_0_override))
-            : elastic_initial_rho(seed, opts.qp.dual_regularization, rho0_ceiling_hit);
+            : elastic_initial_rho(seed, opts.qp.dual_regularization,
+                                  opts.advanced.elastic_rho0_headroom_rungs, rho0_ceiling_hit);
     if (rho0_ceiling_hit) {
         ++out.elastic_rho0_ceiling_hits;
     }
@@ -3194,6 +3199,7 @@ Index SqpSolverImpl::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0
     // kAuto's engagement alone (the caller did not ask for the row layer) takes the
     // one-sided objective rule: problem_scaling.h, `amplify_objective`.
     rule.amplify_objective = opts_.row_scaling;
+    rule.power_of_two_rows = opts_.row_scaling_power_of_two;
     seam.install_scaling(detail::compute_problem_scaling(at_x0.grad, at_x0.Je, at_x0.Ji, rule));
     return 1;
 }
@@ -8468,10 +8474,11 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // with the caller's own levers.
     const bool adaptive_mu_active = opts_.advanced.adaptive_dual_regularization && !st.ssn_mode;
     if (adaptive_mu_active) {
-        const double mu_raw = (iter == 0)
-                                  ? kAdaptiveMuMax
-                                  : std::clamp(kAdaptiveMuKappa * std::pow(mj.kkt.residual(), 1.5),
-                                               kAdaptiveMuMin, kAdaptiveMuMax);
+        const double mu_raw =
+            (iter == 0)
+                ? opts_.advanced.adaptive_dual_regularization_max
+                : std::clamp(kAdaptiveMuKappa * std::pow(mj.kkt.residual(), 1.5), kAdaptiveMuMin,
+                             opts_.advanced.adaptive_dual_regularization_max);
         overrides.dual_regularization = std::pow(10.0, std::round(std::log10(mu_raw)));
     }
     mj.row.mu = adaptive_mu_active ? overrides.dual_regularization : opts_.qp.dual_regularization;
@@ -8916,7 +8923,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                     ? Vec((st.x + report.p_elastic).cwiseMax(seam.lower()).cwiseMin(seam.upper()))
                     : Vec();
             RestorationCandidate elastic_cand;
-            if (have_p) {
+            if (have_p && opts_.advanced.restoration_elastic_seed) {
                 elastic_cand.x = &x_elastic;
             }
             // T3-A: after a refusal that walked to kInfeasible, `report` is
@@ -9787,8 +9794,10 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) earns no growth: the
             // radius it was taken under is the one its subproblem failed at.
             const double actual_df = st.ev.f - mj.ctx.f_new;
-            if (!mj.failure_step && mj.row.tr_binding && std::isfinite(st.delta) &&
-                mj.ctx.pred_df > 0.0 && actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
+            if (trust_region_grows(opts_.advanced.trust_region_growth, mj.failure_step,
+                                   mj.row.tr_binding, std::isfinite(st.delta), mj.ctx.pred_df,
+                                   actual_df,
+                                   mj.row.verdict == StepVerdict::kAcceptFeasibilityStep)) {
                 st.delta = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
             }
             // THE QN PAIR'S OLD HALF (M7 QN stage 3), taken before the commit moves the iterate.
@@ -10121,6 +10130,10 @@ SsnOptions SqpSolverImpl::ssn_options(double prox_sigma_init) const {
     sopts.sigma_rule = opts_.advanced.ssn_sigma_rule;
     sopts.hint_rule = opts_.advanced.ssn_hint_rule;
     sopts.infeasibility_rule = opts_.advanced.ssn_infeasibility_rule;
+    sopts.farkas_residual_tol = opts_.advanced.ssn_farkas_residual_tol;
+    sopts.uncertain_tol = opts_.advanced.ssn_uncertain_tol;
+    sopts.lm_sigma_c = opts_.advanced.ssn_lm_sigma_c;
+    sopts.lm_sigma_exponent = opts_.advanced.ssn_lm_sigma_exponent;
     return sopts;
 }
 

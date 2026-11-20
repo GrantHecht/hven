@@ -540,6 +540,13 @@ struct SsnOptions {
     // reluctant to report kInfeasible: an armed check that finds no Farkas
     // direction falls through to the ordinary routes.
     SsnInfeasibilityRule infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
+
+    // The Farkas certificate's relative-residual threshold (kFarkasGated only); in (0, 1).
+    double farkas_residual_tol = detail::kSsnFarkasResidualTol;
+    // The Levenberg-Marquardt sizing's coefficient c (the residual sigma rules only); finite, > 0.
+    double lm_sigma_c = detail::kSsnLmSigmaC;
+    // The Levenberg-Marquardt sizing's exponent p in c * min(r, r^p); in [1, 2].
+    double lm_sigma_exponent = 2.0;
 };
 
 // The tolerance derivation of banner section 5, in code: an FB residual at
@@ -1031,7 +1038,7 @@ class SsnEngine {
     // no allocation beyond two n-vectors. Returns true iff both tolerances are
     // met; `resid_out`/`gap_out` carry the two relative quantities.
     bool farkas_certificate(const QpProblem &qp, const Vec &dle, const Vec &dli, const Vec &dlb,
-                            Index mb, double *resid_out, double *gap_out) const;
+                            Index mb, double resid_tol, double *resid_out, double *gap_out) const;
 
     // -----------------------------------------------------------------------
     // Residual

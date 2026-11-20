@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include <cmath>
+
+#include <hven/sqp/sqp_options.h>
+
 namespace hven::detail {
 
 // Trust-region update constants of the SQP driver. Source: Conn, Gould &
@@ -21,6 +25,28 @@ inline constexpr double kTrGrowFactor = 2.0;
 /// The contraction factor, applied on every kReject verdict. COUPLED to
 /// funnel.h's kRestoreMinRejections -- see RADIUS MANAGEMENT.
 inline constexpr double kTrShrinkFactor = 0.5;
+
+/// Whether an ACCEPTED step grows the radius under `rule`. `delta_finite` and `tr_binding` are the
+/// radius being finite and active at the step; `failure_step` marks a failed subproblem's own step,
+/// which never grows it. `pred_df`/`actual_df` are the predicted and actual objective decreases;
+/// `feasibility_step` marks an accepted h-type step. Only the ratio test reads `pred_df`.
+inline bool trust_region_grows(SqpTrustRegionGrowth rule, bool failure_step, bool tr_binding,
+                               bool delta_finite, double pred_df, double actual_df,
+                               bool feasibility_step) {
+    if (failure_step || !tr_binding || !delta_finite) {
+        return false;
+    }
+    const bool ratio = pred_df > 0.0 && actual_df >= kTrGrowThreshold * pred_df;
+    switch (rule) {
+    case SqpTrustRegionGrowth::kRatio:
+        return ratio;
+    case SqpTrustRegionGrowth::kRatioOrFeasibilityStep:
+        return ratio || feasibility_step;
+    case SqpTrustRegionGrowth::kAnyAccepted:
+        return true;
+    }
+    return ratio;
+}
 
 /// Relative size below which an L-BFGS pair's step counts as zero, ||s||inf <= kZeroStepScale *
 /// max(1, ||x||inf) (LbfgsDamped's zero_step_scale): a numerical-zero threshold, far tighter

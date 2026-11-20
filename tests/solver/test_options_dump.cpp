@@ -60,9 +60,9 @@ constexpr std::size_t kIpmLinearOptionsFields = 12;
 constexpr std::size_t kIpmOptionsFields = 14;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
 constexpr std::size_t kIpmAdvancedOptionsFields = 24;
-constexpr std::size_t kSqpOptionsFields = 18;
+constexpr std::size_t kSqpOptionsFields = 19;
 constexpr std::size_t kSqpLinearOptionsFields = 2;
-constexpr std::size_t kSqpAdvancedOptionsFields = 29;
+constexpr std::size_t kSqpAdvancedOptionsFields = 37;
 constexpr std::size_t kIpqpOptionsFields = 25;
 constexpr std::size_t kQpOptionsFields = 11;
 constexpr std::size_t kCommonOptionsFields = 10;
@@ -137,11 +137,10 @@ static_assert(sizeof(CommonOptions) == 88, "CommonOptions' layout moved on Linux
 //
 // IpmOptions: common 9 + phases 1 + termination 10 + 12 own scalars + linear 12
 // + advanced 24 = 68.
-// SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
-// advanced.ipqp 25 = 86.
+// SqpOptions: the nested blocks flattened, one line per field; 99 lines (TU-0: +9).
 // ---------------------------------------------------------------------------
 constexpr int kIpmDumpLines = 66;
-constexpr int kSqpDumpLines = 90;
+constexpr int kSqpDumpLines = 99;
 
 int count_lines(const std::string &text) {
     int n = 0;
@@ -191,6 +190,18 @@ TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
     const std::string text = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(text, "common.threads = 0")) << text;
     EXPECT_TRUE(has_line(text, "common.verbosity = kSilent")) << text;
+}
+
+TEST(OptionsDump, SqpDumpsTheTu0LeversAtTheirOldConstants) {
+    const std::string text = dump_to_string(SqpOptions{});
+    for (const char *line :
+         {"row_scaling_power_of_two = false", "advanced.trust_region_growth = kRatio",
+          "advanced.ssn_farkas_residual_tol = 1e-06", "advanced.ssn_uncertain_tol = 0.1",
+          "advanced.ssn_lm_sigma_c = 1", "advanced.ssn_lm_sigma_exponent = 2",
+          "advanced.restoration_elastic_seed = true", "advanced.elastic_rho0_headroom_rungs = 1",
+          "advanced.adaptive_dual_regularization_max = 1e-08"}) {
+        EXPECT_TRUE(has_line(text, line)) << line << "\n" << text;
+    }
 }
 
 // SqpOptions::equality_basis is ON by default (M7 W2 E1b; off from E1 fix round 1 until

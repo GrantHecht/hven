@@ -45,7 +45,9 @@
 #include <hven/detail/model/fixed_variable_treatment.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/qp/ssn/ssn_engine.h>
 #include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/qp/qp_types.h>
@@ -807,4 +809,185 @@ TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     // until T8.8; hashed from T8.3 so this pin's meaning does not change then.
     EXPECT_NE(options_fingerprint(base, 1), h0) << "threads";
     EXPECT_NE(options_fingerprint(base, 2), options_fingerprint(base, 1)) << "threads";
+}
+
+// ---------------------------------------------------------------------------
+// TU-0: the qp block's validation and the tuning levers' predicates
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// `edit` is applied to a default SqpOptions; the result must be refused, and the message must
+// name `field`.
+template <typename Edit> void expect_sqp_refused(const char *field, Edit edit) {
+    SqpOptions o;
+    edit(o);
+    try {
+        hven::validate(o);
+        FAIL() << field << ": expected a refusal";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find(field), std::string::npos) << e.what();
+    }
+}
+
+template <typename Edit> void expect_sqp_accepted(const char *field, Edit edit) {
+    SqpOptions o;
+    edit(o);
+    EXPECT_NO_THROW(hven::validate(o)) << field;
+}
+
+constexpr double kNanValue = std::numeric_limits<double>::quiet_NaN();
+constexpr double kInfValue = std::numeric_limits<double>::infinity();
+
+} // namespace
+
+TEST(Options, SqpValidateRefusesTheQpBlocksIllFormedFields) {
+    // dual_regularization / primal_regularization: finite and >= 0 (0 is the off state).
+    for (const double bad : {-1e-300, kNanValue, kInfValue}) {
+        expect_sqp_refused("qp.dual_regularization",
+                           [&](SqpOptions &o) { o.qp.dual_regularization = bad; });
+        expect_sqp_refused("qp.primal_regularization",
+                           [&](SqpOptions &o) { o.qp.primal_regularization = bad; });
+    }
+    expect_sqp_accepted("dual 0", [](SqpOptions &o) { o.qp.dual_regularization = 0.0; });
+    expect_sqp_accepted("primal 0", [](SqpOptions &o) { o.qp.primal_regularization = 0.0; });
+    expect_sqp_accepted("dual tiny", [](SqpOptions &o) { o.qp.dual_regularization = 1e-300; });
+
+    // feasibility_tol / optimality_tol: finite and > 0.
+    for (const double bad : {0.0, -1e-9, kNanValue, kInfValue}) {
+        expect_sqp_refused("qp.feasibility_tol",
+                           [&](SqpOptions &o) { o.qp.feasibility_tol = bad; });
+        expect_sqp_refused("qp.optimality_tol", [&](SqpOptions &o) { o.qp.optimality_tol = bad; });
+    }
+    expect_sqp_accepted("feas tiny", [](SqpOptions &o) { o.qp.feasibility_tol = 1e-300; });
+    expect_sqp_accepted("opt tiny", [](SqpOptions &o) { o.qp.optimality_tol = 1e-300; });
+
+    // schur_condition_max: finite and >= 1.
+    for (const double bad : {0.999999, 0.0, -1.0, kNanValue, kInfValue}) {
+        expect_sqp_refused("qp.schur_condition_max",
+                           [&](SqpOptions &o) { o.qp.schur_condition_max = bad; });
+    }
+    expect_sqp_accepted("cond 1", [](SqpOptions &o) { o.qp.schur_condition_max = 1.0; });
+
+    // max_schur_border_dimension: >= 0. Zero is legal (the border is never admitted).
+    expect_sqp_refused("qp.max_schur_border_dimension",
+                       [](SqpOptions &o) { o.qp.max_schur_border_dimension = -1; });
+    expect_sqp_accepted("border 0", [](SqpOptions &o) { o.qp.max_schur_border_dimension = 0; });
+
+    // working_set_algebra: an enumerator.
+    expect_sqp_refused("qp.working_set_algebra", [](SqpOptions &o) {
+        o.qp.working_set_algebra = static_cast<hven::QpWorkingSetAlgebra>(2);
+    });
+    expect_sqp_refused("qp.working_set_algebra", [](SqpOptions &o) {
+        o.qp.working_set_algebra = static_cast<hven::QpWorkingSetAlgebra>(-1);
+    });
+    expect_sqp_accepted("algebra refactorize", [](SqpOptions &o) {
+        o.qp.working_set_algebra = hven::QpWorkingSetAlgebra::kRefactorize;
+    });
+
+    // trust_region_radius: >= 0 or +inf, never NaN.
+    for (const double bad : {-1e-300, -kInfValue, kNanValue}) {
+        expect_sqp_refused("qp.trust_region_radius",
+                           [&](SqpOptions &o) { o.qp.trust_region_radius = bad; });
+    }
+    expect_sqp_accepted("radius 0", [](SqpOptions &o) { o.qp.trust_region_radius = 0.0; });
+    expect_sqp_accepted("radius inf", [](SqpOptions &o) { o.qp.trust_region_radius = kInfValue; });
+}
+
+TEST(Options, SqpValidateRefusesTheTuningLeversOutOfRange) {
+    using hven::SqpTrustRegionGrowth;
+    // trust_region_growth: enumerators 0..2.
+    for (const int bad : {-1, 3}) {
+        expect_sqp_refused("advanced.trust_region_growth", [&](SqpOptions &o) {
+            o.advanced.trust_region_growth = static_cast<SqpTrustRegionGrowth>(bad);
+        });
+    }
+    for (const auto g :
+         {SqpTrustRegionGrowth::kRatio, SqpTrustRegionGrowth::kRatioOrFeasibilityStep,
+          SqpTrustRegionGrowth::kAnyAccepted}) {
+        expect_sqp_accepted("growth", [&](SqpOptions &o) { o.advanced.trust_region_growth = g; });
+    }
+
+    // ssn_farkas_residual_tol: in (0, 1), open at both ends.
+    for (const double bad : {0.0, 1.0, -1e-6, 2.0, kNanValue, kInfValue}) {
+        expect_sqp_refused("advanced.ssn_farkas_residual_tol",
+                           [&](SqpOptions &o) { o.advanced.ssn_farkas_residual_tol = bad; });
+    }
+    for (const double ok : {1e-300, 0.999999}) {
+        expect_sqp_accepted("farkas",
+                            [&](SqpOptions &o) { o.advanced.ssn_farkas_residual_tol = ok; });
+    }
+
+    // ssn_uncertain_tol: in [0, 1).
+    for (const double bad : {-1e-12, 1.0, 1.5, kNanValue, kInfValue}) {
+        expect_sqp_refused("advanced.ssn_uncertain_tol",
+                           [&](SqpOptions &o) { o.advanced.ssn_uncertain_tol = bad; });
+    }
+    for (const double ok : {0.0, 0.999999}) {
+        expect_sqp_accepted("uncertain", [&](SqpOptions &o) { o.advanced.ssn_uncertain_tol = ok; });
+    }
+
+    // ssn_lm_sigma_c: finite and > 0.
+    for (const double bad : {0.0, -1.0, kNanValue, kInfValue}) {
+        expect_sqp_refused("advanced.ssn_lm_sigma_c",
+                           [&](SqpOptions &o) { o.advanced.ssn_lm_sigma_c = bad; });
+    }
+    expect_sqp_accepted("c tiny", [](SqpOptions &o) { o.advanced.ssn_lm_sigma_c = 1e-300; });
+    expect_sqp_accepted("c huge", [](SqpOptions &o) { o.advanced.ssn_lm_sigma_c = 1e300; });
+
+    // ssn_lm_sigma_exponent: in [1, 2].
+    for (const double bad : {0.999999, 2.000001, 0.0, kNanValue, kInfValue, -kInfValue}) {
+        expect_sqp_refused("advanced.ssn_lm_sigma_exponent",
+                           [&](SqpOptions &o) { o.advanced.ssn_lm_sigma_exponent = bad; });
+    }
+    for (const double ok : {1.0, 1.5, 2.0}) {
+        expect_sqp_accepted("exponent",
+                            [&](SqpOptions &o) { o.advanced.ssn_lm_sigma_exponent = ok; });
+    }
+
+    // elastic_rho0_headroom_rungs: integer in [1, 6].
+    for (const int bad : {-1, 0, 7}) {
+        expect_sqp_refused("advanced.elastic_rho0_headroom_rungs",
+                           [&](SqpOptions &o) { o.advanced.elastic_rho0_headroom_rungs = bad; });
+    }
+    for (const int ok : {1, 6}) {
+        expect_sqp_accepted("headroom",
+                            [&](SqpOptions &o) { o.advanced.elastic_rho0_headroom_rungs = ok; });
+    }
+
+    // adaptive_dual_regularization_max: finite, in [1e-12, 1].
+    for (const double bad : {1e-13, 0.0, -1e-8, 1.000001, kNanValue, kInfValue}) {
+        expect_sqp_refused("advanced.adaptive_dual_regularization_max", [&](SqpOptions &o) {
+            o.advanced.adaptive_dual_regularization_max = bad;
+        });
+    }
+    for (const double ok : {1e-12, 1e-8, 1.0}) {
+        expect_sqp_accepted(
+            "mu max", [&](SqpOptions &o) { o.advanced.adaptive_dual_regularization_max = ok; });
+    }
+
+    // The two bools have no refusable value.
+    expect_sqp_accepted("bools", [](SqpOptions &o) {
+        o.row_scaling_power_of_two = true;
+        o.advanced.restoration_elastic_seed = false;
+    });
+}
+
+TEST(Options, SqpTheTuningLeversDefaultToTheirOldConstants) {
+    const SqpOptions o;
+    EXPECT_EQ(o.advanced.trust_region_growth, hven::SqpTrustRegionGrowth::kRatio);
+    EXPECT_EQ(o.advanced.ssn_farkas_residual_tol, hven::detail::kSsnFarkasResidualTol);
+    EXPECT_EQ(o.advanced.ssn_uncertain_tol, hven::detail::kSsnUncertainEnter);
+    EXPECT_EQ(o.advanced.ssn_lm_sigma_c, hven::detail::kSsnLmSigmaC);
+    EXPECT_EQ(o.advanced.ssn_lm_sigma_exponent, 2.0);
+    EXPECT_TRUE(o.advanced.restoration_elastic_seed);
+    EXPECT_EQ(o.advanced.elastic_rho0_headroom_rungs, 1);
+    EXPECT_EQ(o.advanced.adaptive_dual_regularization_max, kAdaptiveMuMax);
+    EXPECT_FALSE(o.row_scaling_power_of_two);
+    // The SsnOptions defaults the SQP engine forwards onto agree with the same constants.
+    const SsnOptions s;
+    EXPECT_EQ(s.farkas_residual_tol, o.advanced.ssn_farkas_residual_tol);
+    EXPECT_EQ(s.uncertain_tol, o.advanced.ssn_uncertain_tol);
+    EXPECT_EQ(s.lm_sigma_c, o.advanced.ssn_lm_sigma_c);
+    EXPECT_EQ(s.lm_sigma_exponent, o.advanced.ssn_lm_sigma_exponent);
 }

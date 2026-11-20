@@ -9695,8 +9695,10 @@ struct W2LadderRun {
 
 W2LadderRun w2_run_ladder(const QpProblem &qp, const IpqpInfeasibilityEvidence *evidence,
                           double window = std::numeric_limits<double>::infinity(),
-                          double dual_mu = SqpOptions{}.qp.dual_regularization) {
+                          double dual_mu = SqpOptions{}.qp.dual_regularization,
+                          Index headroom_rungs = 1) {
     SqpOptions opts;
+    opts.advanced.elastic_rho0_headroom_rungs = headroom_rungs;
     // THE PLACEMENT BOUND'S SECOND CAP reads `dual_mu`, so a pin that must say WHICH cap bound
     // needs to move it; the engine is built from the same options object the ladder reads.
     opts.qp.dual_regularization = dual_mu;
@@ -10039,6 +10041,37 @@ TEST(SqpSolverElasticSeed, AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt) {
     EXPECT_FALSE(ordinary.report.rho0_ceiling_hit);
     EXPECT_EQ(ordinary.counters.elastic_rho0_ceiling_hits, 0);
     EXPECT_DOUBLE_EQ(ordinary.report.rho_0, ires.infeasibility_evidence.dual_norm_start);
+}
+
+TEST(SqpSolverElasticSeed, TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling) {
+    // TU-0 (M7-11): the headroom cap is kElasticRhoMax divided by kElasticRhoFactor
+    // `elastic_rho0_headroom_rungs` times; 1 is the shipped one-rung headroom. dual_mu = 1e-12
+    // keeps the safety margin (1e10) out of the way, so the headroom is the binding cap, and the
+    // floor outranks it where it reaches kElasticRhoInit (six rungs: 1e8 / 1e6 = 1e2).
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    IpqpInfeasibilityEvidence above = ires.infeasibility_evidence;
+    above.dual_norm_start = 1.0e12;
+    ASSERT_EQ(SqpOptions{}.advanced.elastic_rho0_headroom_rungs, 1);
+    double expected = kElasticRhoMax;
+    for (Index k = 1; k <= 6; ++k) {
+        SCOPED_TRACE(k);
+        expected /= kElasticRhoFactor;
+        const W2LadderRun run =
+            w2_run_ladder(qp, &above, std::numeric_limits<double>::infinity(), 1.0e-12, k);
+        EXPECT_DOUBLE_EQ(run.report.rho_0, std::max(kElasticRhoInit, expected));
+        EXPECT_TRUE(run.report.rho0_ceiling_hit);
+    }
+    // More headroom leaves more rungs to climb: one rung of headroom places at 1e7 (one
+    // escalation to the ceiling), three at 1e5 (three).
+    const W2LadderRun one =
+        w2_run_ladder(qp, &above, std::numeric_limits<double>::infinity(), 1.0e-12, 1);
+    const W2LadderRun three =
+        w2_run_ladder(qp, &above, std::numeric_limits<double>::infinity(), 1.0e-12, 3);
+    EXPECT_DOUBLE_EQ(one.report.rho_0, kElasticRhoMax / kElasticRhoFactor);
+    EXPECT_DOUBLE_EQ(three.report.rho_0,
+                     kElasticRhoMax / (kElasticRhoFactor * kElasticRhoFactor * kElasticRhoFactor));
 }
 
 TEST(SqpSolverElasticSeed, ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay) {

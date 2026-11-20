@@ -330,7 +330,8 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             double farkas_gap = 0.0;
             if (standing_fires && farkas_rule &&
                 !farkas_certificate(qp, out->lambda_e - wref_le, out->lambda_i - wref_li,
-                                    lambda_b - wref_lb, mb, &farkas_resid, &farkas_gap)) {
+                                    lambda_b - wref_lb, mb, sopts.farkas_residual_tol,
+                                    &farkas_resid, &farkas_gap)) {
                 standing_fires = false;
                 ++out->farkas_refusals;
             }
@@ -360,7 +361,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                         "increment over this window, projected onto the sign cone, has "
                         "relative residual ||A^T y||inf = {} (threshold {}) and relative "
                         "Farkas objective <b, y> = {} (threshold {})",
-                        farkas_resid, detail::kSsnFarkasResidualTol, farkas_gap,
+                        farkas_resid, sopts.farkas_residual_tol, farkas_gap,
                         -detail::kSsnFarkasGapTol);
                 }
                 break;
@@ -407,9 +408,10 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         if (lm_sigma_rule && !verifying &&
             (sopts.sigma_rule == SsnSigmaRule::kResidualAlways || ladder_sigma_ > 0.0)) {
             const double r = nrm.inf_norm / f_scale;
-            lm_sigma_ =
-                std::min(std::max(detail::kSsnLmSigmaC * std::min(r, r * r), detail::kSsnProxInit),
-                         detail::kSsnProxMax);
+            const double rp =
+                sopts.lm_sigma_exponent == 2.0 ? r * r : std::pow(r, sopts.lm_sigma_exponent);
+            lm_sigma_ = std::min(std::max(sopts.lm_sigma_c * std::min(r, rp), detail::kSsnProxInit),
+                                 detail::kSsnProxMax);
             // apply_sigma() is the ONE site that combines the ladder floor
             // with the residual size. Recomputing the max here as well
             // would make the floor UNFALSIFIABLE.
@@ -840,7 +842,8 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             double ex_gap = 0.0;
             if (exhaustion_fires && farkas_rule &&
                 !farkas_certificate(qp, out->lambda_e - prev_le, out->lambda_i - prev_li,
-                                    lambda_b - prev_lb, mb, &ex_resid, &ex_gap)) {
+                                    lambda_b - prev_lb, mb, sopts.farkas_residual_tol, &ex_resid,
+                                    &ex_gap)) {
                 exhaustion_fires = false;
                 ++out->farkas_refusals;
             }
@@ -864,7 +867,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                         "increment across the most recent accepted step, projected onto the "
                         "sign cone, has relative residual ||A^T y||inf = {} (threshold {}) "
                         "and relative Farkas objective <b, y> = {} (threshold {})",
-                        ex_resid, detail::kSsnFarkasResidualTol, ex_gap, -detail::kSsnFarkasGapTol);
+                        ex_resid, sopts.farkas_residual_tol, ex_gap, -detail::kSsnFarkasGapTol);
                 }
                 break;
             }
@@ -1037,6 +1040,19 @@ void SsnEngine::validate_options(const SsnOptions &s) {
     if (!(s.uncertain_tol >= 0.0) || !(s.uncertain_tol < 1.0)) {
         throw std::invalid_argument(fmt::format(
             "SsnEngine::solve: uncertain_tol must be in [0, 1), got {}", s.uncertain_tol));
+    }
+    if (!(s.farkas_residual_tol > 0.0) || !(s.farkas_residual_tol < 1.0)) {
+        throw std::invalid_argument(
+            fmt::format("SsnEngine::solve: farkas_residual_tol must be in (0, 1), got {}",
+                        s.farkas_residual_tol));
+    }
+    if (!(s.lm_sigma_c > 0.0) || std::isinf(s.lm_sigma_c)) {
+        throw std::invalid_argument(fmt::format(
+            "SsnEngine::solve: lm_sigma_c must be finite and > 0, got {}", s.lm_sigma_c));
+    }
+    if (!(s.lm_sigma_exponent >= 1.0) || !(s.lm_sigma_exponent <= 2.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SsnEngine::solve: lm_sigma_exponent must be in [1, 2], got {}", s.lm_sigma_exponent));
     }
     // q = 0 would be a watchdog granting no relaxed step at all -- a plain
     // monotone rule wearing the name of a nonmonotone one, whose
@@ -1475,7 +1491,7 @@ bool SsnEngine::escalate_prox(const QpProblem &qp, Index n, Index me, Index mi, 
 }
 
 bool SsnEngine::farkas_certificate(const QpProblem &qp, const Vec &dle, const Vec &dli,
-                                   const Vec &dlb, Index mb, double *resid_out,
+                                   const Vec &dlb, Index mb, double resid_tol, double *resid_out,
                                    double *gap_out) const {
     const Index n = qp.n();
     const Index me = qp.me();
@@ -1538,7 +1554,7 @@ bool SsnEngine::farkas_certificate(const QpProblem &qp, const Vec &dle, const Ve
     if (!std::isfinite(rel_resid) || !std::isfinite(rel_gap)) {
         return false;
     }
-    return rel_resid <= detail::kSsnFarkasResidualTol && rel_gap <= -detail::kSsnFarkasGapTol;
+    return rel_resid <= resid_tol && rel_gap <= -detail::kSsnFarkasGapTol;
 }
 
 detail::SsnNorms SsnEngine::residual(const QpProblem &qp, const Vec &x, const Vec &le,

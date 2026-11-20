@@ -89,6 +89,20 @@ enum class SqpRestorationCurvature {
     kModelThenRegularized,
 };
 
+/// @brief When an accepted step earns the trust-region radius a larger value; see
+///        SqpAdvancedOptions::trust_region_growth.
+///
+/// Every arm grows only when the radius was active at the step and finite, and never after a
+/// failed subproblem's own step.
+enum class SqpTrustRegionGrowth {
+    /// The accepted step's actual/predicted objective decrease ratio is at least 0.75.
+    kRatio = 0,
+    /// `kRatio`, or the accepted step was a feasibility (h-type) step.
+    kRatioOrFeasibilityStep,
+    /// Any accepted step, with no ratio test.
+    kAnyAccepted
+};
+
 /// @brief The SQP engine's research tier.
 ///
 /// THESE FIELDS MAY CHANGE IN ANY MILESTONE, outside the break windows that
@@ -425,6 +439,32 @@ struct SqpAdvancedOptions {
     /// `common.max_iterations` budget, and each resume re-bases the funnel (KLV
     /// Algorithm 2).
     Index max_restoration_entries = 10;
+
+    /// The trust-region growth rule. Default kRatio.
+    SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kRatio;
+
+    /// SSN Farkas certificate's relative-residual threshold (kFarkasGated only). In (0, 1).
+    double ssn_farkas_residual_tol = 1e-6;
+
+    /// SSN uncertain-set entering threshold on |alpha - beta|; 0 disables the set. In [0, 1).
+    double ssn_uncertain_tol = 0.1;
+
+    /// SSN Levenberg-Marquardt sizing coefficient c (residual sigma rules only). Finite, > 0.
+    double ssn_lm_sigma_c = 1.0;
+
+    /// SSN Levenberg-Marquardt sizing exponent p in c * min(r, r^p). In [1, 2].
+    double ssn_lm_sigma_exponent = 2.0;
+
+    /// Offer the elastic ladder's step as a restoration candidate at the ladder-unusable site.
+    bool restoration_elastic_seed = true;
+
+    /// Escalation headroom, in rungs of the penalty ladder, the evidence-placed first rung leaves
+    /// below the ladder ceiling. Integer in [1, 6].
+    Index elastic_rho0_headroom_rungs = 1;
+
+    /// Ceiling of the adaptive dual-regularization schedule (read when
+    /// `adaptive_dual_regularization` is on). Finite, in [1e-12, 1].
+    double adaptive_dual_regularization_max = 1e-8;
 };
 
 /// @brief The SQP engine's factorization settings.
@@ -559,6 +599,10 @@ struct SqpOptions {
     /// is unbounded.
     double scaling_factor_max = 1e12;
 
+    /// Round each row factor to the nearest power of two after the clamp. Read when the row
+    /// layer runs.
+    bool row_scaling_power_of_two = false;
+
     /// The column (variable) layer of problem scaling. When it fires the
     /// engine solves the problem in the variables x~ = x / d, d the power-of-two column
     /// half of a Ruiz equilibration of [Je; Ji] at the start point
@@ -678,7 +722,13 @@ struct SqpOptions {
 ///         `restoration_resume_reduction` outside [0, 1) or NaN, a `lbfgs_memory`
 ///         below 1, a negative `max_lbfgs_full_memory_dimension`, `kLbfgsDamped` with
 ///         `restoration_proximity > 0`, a `max_restoration_entries` below 0, a
-///         `max_consecutive_qp_failures` below 1, or a reserved dense-arm value.
+///         `max_consecutive_qp_failures` below 1, a reserved dense-arm value, a `qp` regularization
+///         or tolerance that is NaN, infinite or out of its range, a
+///         `qp.max_schur_border_dimension` below 0, a `qp.trust_region_radius` that is negative or
+///         NaN, or an out-of-range `advanced` lever (`trust_region_growth`,
+///         `ssn_farkas_residual_tol`, `ssn_uncertain_tol`, `ssn_lm_sigma_c`,
+///         `ssn_lm_sigma_exponent`, `elastic_rho0_headroom_rungs`,
+///         `adaptive_dual_regularization_max`).
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

@@ -35,6 +35,7 @@ list(APPEND _hven_sqp_sources
     test_sqp_solver.cpp
     test_start_point_projection.cpp
     test_trace_messages_sqp.cpp
+    test_tu0_levers.cpp
     test_warm_ingest_complementarity.cpp
 )
 

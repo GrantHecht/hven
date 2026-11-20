@@ -72,6 +72,9 @@ struct ScalingRule {
     /// below). False is IPOPT's one-sided `min(1, g_max/||g||inf)`, the form the
     /// column layer's kAuto engagement uses (SqpOptions::column_scaling).
     bool amplify_objective = true;
+    /// Round each row factor to the nearest power of two after the clamp (the column
+    /// rule's rounding; the objective factor is not rounded).
+    bool power_of_two_rows = false;
 };
 
 /// @brief One solve's factors: strictly positive, finite, and fixed once set.

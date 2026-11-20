@@ -5233,3 +5233,51 @@ TEST(SqpSolverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDense
 }
 
 HVEN_SUPPRESS_DEPRECATED_END
+
+// ===========================================================================
+// TU-0 (M7-7): SqpAdvancedOptions::restoration_elastic_seed
+// ===========================================================================
+//
+// At false the elastic exhaustion site offers no candidate: the phase starts from the requesting
+// iterate and the guard has nothing to take, so `restoration_seed_used` never reads true on a row
+// that site raised. The trial-site offer is unchanged by the option. On the default configuration
+// the circle-line model's single restoration entry is raised at the elastic site and its offer is
+// taken (a route reading: reference build only); the answer is the certified kInfeasible either
+// way, on every build.
+TEST(SqpSolverRestorationSeed, TheElasticSiteOfferIsGatedByTheOption) {
+    for (const QpMode mode : kSeedModes) {
+        SCOPED_TRACE(seed_mode_name(mode));
+        Index seeded[2] = {-1, -1};
+        for (const bool offer : {true, false}) {
+            InfeasibleCircleLineModel model;
+            SqpOptions opts;
+            opts.qp_mode = mode;
+            opts.common.max_iterations = 200;
+            opts.advanced.restoration_elastic_seed = offer;
+            const SqpResult sol =
+                SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
+            seeded[offer ? 1 : 0] = seeded_rows(sol);
+            EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+            EXPECT_TRUE(sol.infeasibility_certified);
+            EXPECT_EQ(1, sol.counters.restoration_entries);
+            EXPECT_NEAR(sol.x(0), 1.0 / std::sqrt(2.0), 1e-5);
+        }
+        // The walk's reading is the reference route's; the SSN and IPQP kernels' readings are
+        // recorded (whether the guard takes the offer is a margin, and theirs flips with the
+        // dense kernels MKL picks).
+#if HVEN_TEST_ROUTE_REFERENCE
+        if (mode == QpMode::kWalk) {
+            EXPECT_EQ(1, seeded[1]) << "the default takes the elastic offer";
+            EXPECT_EQ(0, seeded[0]) << "the offer is not made at the elastic site";
+        } else {
+            hven::test_support::record_off_reference_route(
+                std::string("elastic_seed_offer_") + seed_mode_name(mode),
+                fmt::format("seeded_on={} seeded_off={}", seeded[1], seeded[0]));
+        }
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("elastic_seed_offer_") + seed_mode_name(mode),
+            fmt::format("seeded_on={} seeded_off={}", seeded[1], seeded[0]));
+#endif
+    }
+}

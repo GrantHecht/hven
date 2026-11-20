@@ -3659,3 +3659,148 @@ TEST(SsnEngineLocal, TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap) {
         EXPECT_GE(res.farkas_refusals, 1);
     }
 }
+
+// =============================================================================
+// TU-0: the SSN kernel's tuning levers (SsnOptions::farkas_residual_tol, lm_sigma_c,
+// lm_sigma_exponent; uncertain_tol is pinned above)
+// =============================================================================
+
+TEST(SsnEngineLocal, TheTu0LeversAreValidatedAtTheEngine) {
+    const QpProblem qp = two_row_qp();
+    const double inf = std::numeric_limits<double>::infinity();
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const auto refused = [&](auto edit) {
+        SsnOptions s;
+        edit(s);
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        EXPECT_THROW(e.solve(qp, SsnStart{}, s, &res), std::invalid_argument);
+    };
+    const auto accepted = [&](auto edit) {
+        SsnOptions s;
+        edit(s);
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        EXPECT_NO_THROW(e.solve(qp, SsnStart{}, s, &res));
+    };
+    for (const double bad : {0.0, 1.0, -1e-6, nan, inf}) {
+        refused([&](SsnOptions &s) { s.farkas_residual_tol = bad; });
+    }
+    accepted([](SsnOptions &s) { s.farkas_residual_tol = 0.999999; });
+    for (const double bad : {0.0, -1.0, nan, inf}) {
+        refused([&](SsnOptions &s) { s.lm_sigma_c = bad; });
+    }
+    accepted([](SsnOptions &s) { s.lm_sigma_c = 1e300; });
+    for (const double bad : {0.999999, 2.000001, nan, inf}) {
+        refused([&](SsnOptions &s) { s.lm_sigma_exponent = bad; });
+    }
+    accepted([](SsnOptions &s) { s.lm_sigma_exponent = 1.0; });
+}
+
+// The coefficient c scales the residual-sized sigma. The brutally scaled cell's first attempt has
+// r = 1 exactly, so min(r, r^p) = 1 for every p and sigma = c to the digit.
+// ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
+TEST(SsnEngineLocal, TheLmSigmaCoefficientSizesTheResidualSigma) {
+    for (const double c : {3.0, 1e-3, 1.0}) {
+        SCOPED_TRACE(c);
+        SsnOptions s;
+        s.sigma_rule = SsnSigmaRule::kResidualArmed;
+        s.soft_budget = 0;
+        s.hard_budget = 1;
+        s.lm_sigma_c = c;
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        e.solve(brutally_scaled_feasible_qp(), SsnStart{}, s, &res);
+        EXPECT_DOUBLE_EQ(res.prox_sigma, c);
+    }
+    // Below the ladder's own rung the ladder is the floor; above the cap the sizing is clamped to
+    // kSsnProxMax.
+    {
+        SsnOptions s;
+        s.sigma_rule = SsnSigmaRule::kResidualArmed;
+        s.soft_budget = 0;
+        s.hard_budget = 1;
+        s.lm_sigma_c = 1e-12;
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        e.solve(brutally_scaled_feasible_qp(), SsnStart{}, s, &res);
+        EXPECT_DOUBLE_EQ(res.prox_sigma, detail::kSsnProxInit * detail::kSsnProxGrowth);
+        s.lm_sigma_c = 1e300;
+        SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res2;
+        e2.solve(brutally_scaled_feasible_qp(), SsnStart{}, s, &res2);
+        EXPECT_DOUBLE_EQ(res2.prox_sigma, detail::kSsnProxMax);
+    }
+}
+
+// The exponent p in min(r, r^p): p = 2 is today's min(r, r*r), bit for bit; p < 2 sizes sigma
+// larger where r < 1.
+// ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
+TEST(SsnEngineLocal, TheLmSigmaExponentSizesTheResidualSigmaWhereTheResidualIsBelowOne) {
+    const auto run = [](double p, bool set) {
+        SsnOptions s;
+        s.sigma_rule = SsnSigmaRule::kResidualAlways;
+        if (set) {
+            s.lm_sigma_exponent = p;
+        }
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        e.solve(two_row_qp(), SsnStart{}, s, &res);
+        return res;
+    };
+    const SsnResult dflt = run(2.0, false);
+    const SsnResult two = run(2.0, true);
+    EXPECT_EQ(two.prox_sigma, dflt.prox_sigma);
+    EXPECT_EQ(two.factorizations, dflt.factorizations);
+    EXPECT_EQ((two.x - dflt.x).cwiseAbs().maxCoeff(), 0.0);
+
+    const SsnResult one = run(1.0, true);
+    ASSERT_EQ(one.status, QpStatus::kOptimal);
+    EXPECT_GT(one.prox_sigma, 1e-5) << "r^1 > r^2 for r < 1: the sizing lands above the floor";
+    EXPECT_DOUBLE_EQ(dflt.prox_sigma, detail::kSsnProxInit) << "p = 2 stays on the floor here";
+}
+
+// The Farkas certificate's residual threshold: loose accepts a direction the default refuses,
+// tight refuses one the default accepts.
+// ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
+TEST(SsnEngineLocal, TheFarkasResidualToleranceDecidesWhichDirectionsAreCertificates) {
+    const auto run = [](const QpProblem &qp, double tol) {
+        SsnOptions s;
+        s.infeasibility_rule = SsnInfeasibilityRule::kFarkasGated;
+        s.farkas_residual_tol = tol;
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
+        SsnResult res;
+        e.solve(qp, SsnStart{}, s, &res);
+        return res;
+    };
+    // The default is the shipped 1e-6 constant.
+    EXPECT_EQ(SsnOptions{}.farkas_residual_tol, detail::kSsnFarkasResidualTol);
+    {
+        // The genuinely infeasible cell is certified at the default and refused at a tight tol.
+        const SsnResult dflt = run(contradictory_qp(), 1e-6);
+        EXPECT_EQ(dflt.status, QpStatus::kInfeasible);
+        EXPECT_EQ(dflt.farkas_fired, 1);
+        const SsnResult tight = run(contradictory_qp(), 1e-12);
+        EXPECT_NE(tight.status, QpStatus::kInfeasible);
+        EXPECT_EQ(tight.farkas_fired, 0);
+        EXPECT_GE(tight.farkas_refusals, 1);
+    }
+    {
+        // The feasible trap is refused at the default and certified (wrongly) only at a tol so
+        // loose the residual conjunct stops constraining.
+        const SsnResult dflt = run(false_infeasible_trap_qp(), 1e-6);
+        EXPECT_NE(dflt.status, QpStatus::kInfeasible);
+        EXPECT_EQ(dflt.farkas_fired, 0);
+        const SsnResult loose = run(false_infeasible_trap_qp(), 0.999999);
+        EXPECT_EQ(loose.status, QpStatus::kInfeasible);
+        EXPECT_EQ(loose.farkas_fired, 1);
+    }
+    {
+        // The sign-cone cell: refused at the default, certified once the residual may be 1e-2.
+        const SsnResult dflt = run(sign_cone_discriminating_infeasible_qp(), 1e-6);
+        EXPECT_NE(dflt.status, QpStatus::kInfeasible);
+        const SsnResult loose = run(sign_cone_discriminating_infeasible_qp(), 1e-2);
+        EXPECT_EQ(loose.status, QpStatus::kInfeasible);
+        EXPECT_EQ(loose.farkas_fired, 1);
+    }
+}

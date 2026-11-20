@@ -32,6 +32,15 @@
 namespace hven::detail {
 namespace {
 
+// The nearest power of two to v > 0, its exponent confined to
+// [-floor(log2 limit), floor(log2 limit)] so the clamp keeps the factor a power of
+// two inside [1/limit, limit].
+double power_of_two_factor(double v, double limit) {
+    const int cap = static_cast<int>(std::floor(std::log2(limit)));
+    const int e = std::clamp(static_cast<int>(std::lround(std::log2(v))), -cap, cap);
+    return std::ldexp(1.0, e);
+}
+
 // The rule of section 1.3, for one norm. Factored out because the objective and
 // every constraint row take it identically -- that sameness is the design, not
 // an accident of implementation, and a reader should not have to diff three
@@ -111,12 +120,18 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
     s.eq_rows.resize(e_norms.size());
     for (Index i = 0; i < e_norms.size(); ++i) {
         s.eq_rows(i) = factor_for(e_norms(i), rule, /*two_sided=*/false);
+        if (rule.power_of_two_rows) {
+            s.eq_rows(i) = power_of_two_factor(s.eq_rows(i), rule.factor_limit);
+        }
     }
 
     const Vec i_norms = row_inf_norms(Ji);
     s.ineq_rows.resize(i_norms.size());
     for (Index i = 0; i < i_norms.size(); ++i) {
         s.ineq_rows(i) = factor_for(i_norms(i), rule, /*two_sided=*/false);
+        if (rule.power_of_two_rows) {
+            s.ineq_rows(i) = power_of_two_factor(s.ineq_rows(i), rule.factor_limit);
+        }
     }
     return s;
 }
@@ -133,15 +148,6 @@ namespace {
 
 // A Jacobian entry carries scale information only when it is finite and nonzero.
 bool usable(double v) { return std::isfinite(v) && v != 0.0; }
-
-// The nearest power of two to v > 0, its exponent confined to
-// [-floor(log2 limit), floor(log2 limit)] so the clamp keeps the factor a power of
-// two inside [1/limit, limit].
-double power_of_two_factor(double v, double limit) {
-    const int cap = static_cast<int>(std::floor(std::log2(limit)));
-    const int e = std::clamp(static_cast<int>(std::lround(std::log2(v))), -cap, cap);
-    return std::ldexp(1.0, e);
-}
 
 } // namespace
 
