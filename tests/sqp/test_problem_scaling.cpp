@@ -704,29 +704,38 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
 // PIN (d): THE ROUND TRIP.
 // ===========================================================================
 
-// TR-S1: on a solve whose equality row is shrunk (factor 1e-4), the row's TESTED feasibility is
-// the shrunk residual, not the caller's; the last row's tested max(stationarity, feasibility) is
-// the number the convergence test gated on (`scaling.scaled_kkt_residual`).
-TEST(ProblemScalingRoundTrip, TheRowsCarryTheScaledFeasibilityTheTestCompares) {
-    UnevenRowModel model;
+// TR-S1: on a solve whose objective (factor 1e-4) and equality row (factor 1e-4) are both scaled,
+// every row carries the TESTED measures beside the caller-unit ones, and the last row's tested
+// max(stationarity, feasibility) is the number the convergence test gated on
+// (`scaling.scaled_kkt_residual`).
+TEST(ProblemScalingRoundTrip, TheRowsCarryTheScaledMeasuresTheTestCompares) {
+    ScaledUnevenModel model;
     SqpOptions opts;
     opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
     ASSERT_FALSE(sol.returned_best_iterate);
+    const double sf = sol.scaling.objective;
+    ASSERT_DOUBLE_EQ(1.0e-4, sf);
     const hven::IterationRecord &last = sol.history.back();
     EXPECT_DOUBLE_EQ(std::max(last.tested_stationarity, last.tested_feasibility),
                      sol.scaling.scaled_kkt_residual);
-    // Row factors never exceed 1 here, so the tested feasibility never exceeds the caller's,
-    // and it is strictly smaller wherever the shrunk equality row dominates.
-    bool strictly_smaller = false;
+    bool feasibility_shrunk = false;
+    bool complementarity_seen = false;
     for (const hven::IterationRecord &r : sol.history) {
+        // Stationarity and complementarity carry the objective factor; feasibility the row's.
+        EXPECT_NEAR(r.stationarity * sf, r.tested_stationarity,
+                    1e-12 * (1.0 + std::abs(r.tested_stationarity)));
+        EXPECT_NEAR(r.complementarity * sf, r.tested_complementarity,
+                    1e-12 * (1.0 + std::abs(r.tested_complementarity)));
         EXPECT_LE(r.tested_feasibility, r.feasibility * (1.0 + 1e-12) + 1e-300);
-        strictly_smaller = strictly_smaller || r.tested_feasibility < 0.999 * r.feasibility;
+        feasibility_shrunk = feasibility_shrunk || r.tested_feasibility < 0.999 * r.feasibility;
+        complementarity_seen = complementarity_seen || r.tested_complementarity != 0.0;
     }
-    EXPECT_TRUE(strictly_smaller);
+    EXPECT_TRUE(feasibility_shrunk) << "non-vacuous: the equality row's shrink shows";
+    EXPECT_TRUE(complementarity_seen) << "non-vacuous: a row with nonzero complementarity";
 }
 
 TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
