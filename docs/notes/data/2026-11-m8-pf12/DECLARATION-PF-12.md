@@ -42,11 +42,11 @@ cache columns are informational.
 
 ## Co-run terms (CLAUDE.md section 7)
 Counters/instructions only; nothing here is a quotable timing. Four workers, each pinned
-(`taskset`) to one logical CPU of a distinct physical core (cpu4..cpu7; siblings 12..15 not used
+(`taskset`) to one logical CPU of a distinct physical core (the 4 physical CPUs of the box-lane the leg is granted (BOX_LANE_PHYS; siblings idle)
 by this leg), `MKL_NUM_THREADS=OMP_NUM_THREADS=1` in every process. The box is shared with other
 agents' work; that cannot move instructions:u or counters (only a budget outcome, which these
 no-deadline `--internal-run-one` processes do not have). Wall columns stay informational.
-The whole leg runs under `flock /tmp/box-build.lock` with `setsid -w`.
+The whole leg runs under `box-lane` (shared lane, owner rule of 2026-11-20 replacing the flock).
 
 ## STOP conditions (determinism checks)
 1. Per arm and cell the three rounds must agree on every row column except wall_s and residual-class
