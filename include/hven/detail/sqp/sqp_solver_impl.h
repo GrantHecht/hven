@@ -2202,6 +2202,10 @@ class SqpSolverImpl {
     // asserted (CLAUDE.md section 7).
     std::chrono::steady_clock::time_point entry_time_{};
 
+    /// Events delivered so far in this solve, for IterationEvent::event_index:
+    /// depth-0 rows and the forwarded depth-1 rows alike. Zeroed with `entry_time_`.
+    Index event_count_ = 0;
+
     // THE INTRA-ITERATION STOP FLAG (M8 AP-5 G4): `detail::stop_flag(budget.stop)`
     // for the solve in flight, null otherwise. Handed to every QP engine this driver
     // owns but the cap retry's, and withdrawn from the walk around the SOC re-solve,

@@ -1368,6 +1368,10 @@ class IpmSolverImpl {
     /// instant. INFORMATIONAL, never asserted (CLAUDE.md section 7).
     std::chrono::steady_clock::time_point entry_time_{};
 
+    /// Events delivered so far in this solve, for IterationEvent::event_index.
+    /// Zeroed at every public solve() entry, counted across phases and restoration.
+    Index event_count_ = 0;
+
     /// The sink the CALLER attached, or null. Never owned; see attach_trace().
     TraceSink *user_trace_ = nullptr;
 

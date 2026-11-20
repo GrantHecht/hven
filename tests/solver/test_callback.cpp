@@ -4350,3 +4350,89 @@ TEST(CallbackPayload, TheFixedVariableMakeConstraintArmSplitsItsPriceIntoTheBoun
     EXPECT_TRUE(last.z[1] > 0.0 ? last.z_lower[1] > 0.0 && last.z_upper[1] == 0.0
                                 : last.z_upper[1] > 0.0 && last.z_lower[1] == 0.0);
 }
+
+// ---------------------------------------------------------------------------
+// M8 AP-4 G6: IterationEvent::event_index -- the 0-based count of events delivered
+// earlier in the solve, monotone where `iteration` is not.
+// ---------------------------------------------------------------------------
+TEST(Callback, IpmEventIndexIsMonotoneAcrossAFullTwoPhaseSolve) {
+    const auto program =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+        solver.set_options(std::move(o));
+    }
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.phases.size(), 2u);
+    ASSERT_TRUE(r.phases[1].ran) << "premise: a second phase delivered events";
+
+    ASSERT_FALSE(rec.seen.empty());
+    bool iteration_restarted = false;
+    for (std::size_t k = 0; k < rec.seen.size(); ++k) {
+        EXPECT_EQ(rec.seen[k].event_index, static_cast<Index>(k)) << "event " << k;
+        if (k > 0 && rec.seen[k].iteration <= rec.seen[k - 1].iteration) {
+            iteration_restarted = true;
+        }
+    }
+    EXPECT_TRUE(iteration_restarted)
+        << "premise: `iteration` restarts at the phase boundary, event_index does not";
+    EXPECT_EQ(rec.seen.back().event_index + 1, static_cast<Index>(rec.seen.size()));
+
+    // A second solve of the same solver counts from 0 again.
+    Recorder again;
+    solver.set_iteration_callback(again.hook());
+    (void)solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_FALSE(again.seen.empty());
+    EXPECT_EQ(again.seen.front().event_index, 0);
+    EXPECT_EQ(again.seen.back().event_index + 1, static_cast<Index>(again.seen.size()));
+}
+
+TEST(Callback, SqpEventIndexCountsDepthOneRowsAndEqualsTheEventCount) {
+    for (int which = 0; which < 2; ++which) {
+        SCOPED_TRACE(which == 0 ? "resuming fixture" : "certificate fixture");
+        StalledValleyModel valley;
+        InfeasibleCircleLineModel circle;
+        const NlpModel &model = which == 0 ? static_cast<const NlpModel &>(valley)
+                                           : static_cast<const NlpModel &>(circle);
+        SqpOptions opts = quiet_sqp();
+        if (which == 0) {
+            opts.trust_region_initial = 8.0;
+            opts.common.max_iterations = 60;
+        }
+        SqpSolver driver(opts);
+        Recorder rec;
+        driver.set_iteration_callback(rec.hook(), IterationPayload::kAll,
+                                      CallbackScope::kIncludeRestoration);
+        (void)driver.solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_FALSE(rec.seen.empty());
+        Index depth1 = 0;
+        for (std::size_t k = 0; k < rec.seen.size(); ++k) {
+            EXPECT_EQ(rec.seen[k].event_index, static_cast<Index>(k)) << "event " << k;
+            depth1 += rec.seen[k].sqp->depth == 1 ? 1 : 0;
+        }
+        EXPECT_GT(depth1, 0) << "premise: restoration rows were delivered";
+        EXPECT_EQ(rec.seen.back().event_index + 1, static_cast<Index>(rec.seen.size()));
+    }
+}
+
+TEST(Callback, EventIndexSurvivesSnapshotAndTheDefaultScopeStaysGapless) {
+    StalledValleyModel valley;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver driver(opts);
+    Recorder rec; // kTopLevel: restoration rows are not delivered, and not counted
+    driver.set_iteration_callback(rec.hook());
+    (void)driver.solve(hven::detail::problem_ref(valley), valley.start_point());
+    ASSERT_FALSE(rec.seen.empty());
+    for (std::size_t k = 0; k < rec.seen.size(); ++k) {
+        EXPECT_EQ(rec.seen[k].event_index, static_cast<Index>(k));
+        EXPECT_EQ(rec.seen[k].event_index, rec.seen[k].iteration)
+            << "at depth 0 only, event_index and the major index agree";
+    }
+}

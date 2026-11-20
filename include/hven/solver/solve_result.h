@@ -195,6 +195,7 @@ struct SqpIterationInfo {
 /// engine storage, so another thread may read it.
 struct IterationSnapshot {
     Index iteration = 0;
+    Index event_index = 0;
     bool recovering = false;
     double f = std::numeric_limits<double>::quiet_NaN();
     double stationarity = std::numeric_limits<double>::quiet_NaN();
@@ -524,6 +525,16 @@ struct IterationEvent {
     /// @brief SQP: the major's index, also its row in SqpResult::history.
     ///        INTERIOR-POINT: the per-phase iterate index (`ipm.iter`'s own).
     Index iteration = 0;
+    /// @brief The 0-based count of events delivered before this one in the same
+    ///        solve: 0 on the first event, then 1, 2, ... without a gap or a
+    ///        repeat. Unlike `iteration` (a per-phase index on the interior-point
+    ///        engine, a per-solve major index on the SQP that depth-1 rows
+    ///        repeat), it is monotone across interior-point phases, across
+    ///        restoration, and across SQP depth-1 rows, so it is the one key that
+    ///        orders every event of a solve; `(ipm->phase, iteration)` is the key
+    ///        for a row within its phase. On a solve that delivered every event
+    ///        the last one's `event_index + 1` is the number of events.
+    Index event_index = 0;
     /// @brief The point is inside feasibility restoration. INTERIOR-POINT:
     ///        restoration is in place and its rows are delivered under either
     ///        CallbackScope with this set. SQP: exactly the depth-1 rows (only

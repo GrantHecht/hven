@@ -517,6 +517,23 @@ values in the same order. A size that cannot be a dense pattern (`m < 0`, `n < 1
 count) and an output whose length is not the pattern's throw `std::invalid_argument`. Examples
 01, 06, 08 and 10 use them.
 
+### AP-4 G6 -- `IterationEvent::event_index`
+
+Addition. `IterationEvent` and `IterationSnapshot` gain `Index event_index`, declared right after
+`iteration`. It is the 0-based count of events delivered earlier in the same solve, so the first
+event is 0 and the sequence has no gap or repeat; on a solve that delivered every event the last
+`event_index + 1` is the number of events (`snapshot()` copies it).
+
+`iteration` keeps its meaning: the interior-point engine's per-phase iterate index (it restarts
+at each phase) and the SQP's major index (depth-1 restoration rows repeat it). `event_index` is
+the one key that is monotone across interior-point phases, restoration and SQP depth-1 rows;
+`(ipm->phase, iteration)` identifies a row within its phase.
+
+| before | after |
+|---|---|
+| a caller counted events itself to order a two-phase or depth-1 stream | `event.event_index` |
+| designated initialisers of `IterationEvent` / `IterationSnapshot` | unchanged by name; a positional initialiser shifts by one after `iteration` (it already could not be positional, see G1) |
+
 ## G-RB -- one `return_best`, one "best", both engines
 
 The two engines' return-best options become one `CommonOptions::return_best`, and "best" gets one

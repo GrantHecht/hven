@@ -2739,6 +2739,7 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
 
     IterationEvent event{
         .iteration = static_cast<Index>(iter.iter),
+        .event_index = this->event_count_++,
         .recovering = restoration_contaminated,
         .f = f_declared,
         .stationarity = diag.stationarity,
@@ -7270,6 +7271,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     // are informational and neither is ever asserted (CLAUDE.md section 7), so
     // the difference is stated rather than engineered away.
     this->entry_time_ = std::chrono::steady_clock::now();
+    this->event_count_ = 0;
     // The factor's lifetime factorization count BEFORE this call, so the ledger
     // record can report this call's own; read whether or not a ledger is
     // attached, because it is one integer load and a conditional read would
@@ -7341,6 +7343,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     wall.start();
     // The same stamp as the cold entry above, for the same reason.
     this->entry_time_ = std::chrono::steady_clock::now();
+    this->event_count_ = 0;
     // See the cold overload above.
     const Index factorizations_at_entry = this->lifetime_factorize_count();
     this->factorizations_at_entry_ = factorizations_at_entry;

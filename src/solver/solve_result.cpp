@@ -225,6 +225,7 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
 IterationSnapshot snapshot(const IterationEvent &event) {
     IterationSnapshot out;
     out.iteration = event.iteration;
+    out.event_index = event.event_index;
     out.recovering = event.recovering;
     out.f = event.f;
     out.stationarity = event.stationarity;

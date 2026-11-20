@@ -2671,6 +2671,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBu
     // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): one
     // stamp serves the shared wall clock and the per-iteration clock alike.
     entry_time_ = entry;
+    event_count_ = 0;
     // A DEFERRAL LEFT STANDING BY A CALLBACK THAT THREW is applied here, before
     // anything reads the callable (M6 W5 T8.6 fix1) -- and so is one parked by
     // a SINK method during the previous solve (M6 W5 T8.7b).
@@ -2726,6 +2727,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0,
     const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
     // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
+    event_count_ = 0;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
     adopt_bridge_threshold(bridge);
@@ -2798,6 +2800,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const W
     const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
     // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
+    event_count_ = 0;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
     adopt_bridge_threshold(bridge);
@@ -6605,6 +6608,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                     }
                     const IterationEvent nested{
                         .iteration = e.iteration,
+                        .event_index = this->event_count_++,
                         .recovering = true,
                         .f = e.f,
                         .stationarity = e.stationarity,
@@ -7347,6 +7351,7 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpMajorRow &expo
     const Vec no_vector;
     IterationEvent event{
         .iteration = static_cast<Index>(st.out.history.size()),
+        .event_index = event_count_++,
         .recovering = false,
         .f = exported.f,
         .stationarity = mj.event_diag.stationarity,
