@@ -235,13 +235,13 @@ TEST(StopRecovery, T12IpmRecoveringEventsCarryNoRowsAndNoBoundSides) {
                 if (e.recovering) {
                     ++recovering;
                     EXPECT_EQ(e.g.size(), 0) << "iteration " << e.iteration;
-                    EXPECT_EQ(e.violation.size(), 0);
+                    EXPECT_EQ(e.row_violation.size(), 0);
                     EXPECT_EQ(e.z_lower.size(), 0);
                     EXPECT_EQ(e.z_upper.size(), 0);
                 } else {
                     ++ordinary;
                     EXPECT_EQ(e.g.size(), 1) << "iteration " << e.iteration;
-                    EXPECT_EQ(e.violation.size(), 1);
+                    EXPECT_EQ(e.row_violation.size(), 1);
                     EXPECT_EQ(e.z_lower.size(), 2);
                     EXPECT_EQ(e.z_upper.size(), 2);
                 }

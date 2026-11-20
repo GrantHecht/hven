@@ -84,8 +84,8 @@ std::string show(const Eigen::Ref<const Vec> &v) {
 
 // 1. The live feed. Works unchanged on either engine: the event is the same type.
 CallbackAction print_row(const IterationEvent &e) {
-    // kConstraints adds `violation`, one entry per row (0 when the row is satisfied).
-    const double violation = e.violation.size() ? e.violation.maxCoeff() : 0.0;
+    // kConstraints adds `row_violation`, one entry per row (0 when the row is satisfied).
+    const double violation = e.row_violation.size() ? e.row_violation.maxCoeff() : 0.0;
     std::printf("  iter %2lld  f=%+.6f  x=%s  lambda=%s  violation=%.1e\n",
                 static_cast<long long>(e.iteration), e.f, show(e.x).c_str(), show(e.lambda).c_str(),
                 violation);

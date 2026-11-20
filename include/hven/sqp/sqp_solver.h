@@ -245,7 +245,7 @@ class SqpSolver {
     /// the steps taken). `IterationEvent::lambda` is in the problem's row
     /// space at depth 0, as `SolveResult::lambda` is, and costs a compose per
     /// event only under a payload that includes `kVectors` (likewise
-    /// `g`/`violation` under `kConstraints`). `SqpResult::best_iterate.lambda`
+    /// `g`/`row_violation` under `kConstraints`). `SqpResult::best_iterate.lambda`
     /// carries the export boundary's sign repair of the inequality prices and
     /// may therefore differ from the lambda of its own event.
     void set_iteration_callback(IterationCallback cb,

@@ -207,7 +207,7 @@ struct IterationSnapshot {
     Vec lambda;
     Vec z;
     Vec g;
-    Vec violation;
+    Vec row_violation;
     Vec z_lower;
     Vec z_upper;
     /// Exactly one of the two is engaged.
@@ -448,7 +448,7 @@ enum class IterationPayload : unsigned {
     /// `stationarity`, `feasibility`, `complementarity`. Without this bit all
     /// three arrive NaN (not requested reads as not measured).
     kDiagnostics = 2,
-    /// `g` and `violation`, in `lambda`'s row space. Without it both are EMPTY.
+    /// `g` and `row_violation`, in `lambda`'s row space. Without it both are EMPTY.
     kConstraints = 4,
     /// `z_lower`, `z_upper`, declared width. Without it both are EMPTY.
     kBoundMultipliers = 8,
@@ -505,7 +505,7 @@ enum class CallbackScope {
 ///
 /// SPACE. Every interior-point event and every SQP depth-0 event is in DECLARED
 /// space and CALLER units, exactly as SolveResult is; `lambda`, `g` and
-/// `violation` are in the problem's row space, and the final depth-0 event's
+/// `row_violation` are in the problem's row space, and the final depth-0 event's
 /// `lambda` equals the result's. An SQP depth-1 event (`sqp->depth == 1`) is
 /// the restoration sub-solve's OWN row, in that sub-problem's variables, rows
 /// and objective (elastic variables included); nothing is mapped back, save
@@ -513,7 +513,7 @@ enum class CallbackScope {
 /// `z_upper` are in caller units.
 ///
 /// ON A `recovering` INTERIOR-POINT EVENT `f` and the diagnostics are NaN and
-/// `g`, `violation`, `z_lower`, `z_upper` are EMPTY: no caller-space evaluation
+/// `g`, `row_violation`, `z_lower`, `z_upper` are EMPTY: no caller-space evaluation
 /// of a restoration iterate exists.
 ///
 /// THE VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias storage the
@@ -569,7 +569,7 @@ struct IterationEvent {
     Eigen::Ref<const Vec> g;
     /// @brief kConstraints. Row violation at `x`: >= 0, 0 on a free row, and NaN
     ///        where the row value is NaN (a NaN residual propagates, never 0).
-    Eigen::Ref<const Vec> violation;
+    Eigen::Ref<const Vec> row_violation;
     /// @brief kBoundMultipliers. Declared width, both >= 0, z_lower - z_upper ==
     ///        z. INTERIOR-POINT: the engine's per-side multipliers (an
     ///        eliminated or fixing-row coordinate takes the sign split of its z).

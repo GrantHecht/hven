@@ -237,7 +237,7 @@ IterationSnapshot snapshot(const IterationEvent &event) {
     out.lambda = event.lambda;
     out.z = event.z;
     out.g = event.g;
-    out.violation = event.violation;
+    out.row_violation = event.row_violation;
     out.z_lower = event.z_lower;
     out.z_upper = event.z_upper;
     out.ipm = event.ipm;

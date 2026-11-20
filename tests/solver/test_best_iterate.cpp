@@ -160,7 +160,7 @@ void expect_primary_is(const SolveResult &r, const IterationSnapshot &best) {
     EXPECT_TRUE(same_scalar(r.complementarity, best.complementarity))
         << r.complementarity << " vs " << best.complementarity;
     // The G5 views are filled on a best iterate (R5: composed by the engine).
-    EXPECT_EQ(best.violation.size(), best.g.size());
+    EXPECT_EQ(best.row_violation.size(), best.g.size());
     ASSERT_EQ(best.z_lower.size(), r.z.size());
     ASSERT_EQ(best.z_upper.size(), r.z.size());
     EXPECT_LE((best.z_lower - best.z_upper - r.z).lpNorm<Eigen::Infinity>(),
@@ -537,7 +537,7 @@ void expect_snapshot_equals(const IterationSnapshot &best, const IterationSnapsh
     // The G5 views, where the event carried them (a kAll event).
     if (ev.g.size() != 0 || ev.z_lower.size() != 0) {
         EXPECT_TRUE(bit_equal(best.g, ev.g));
-        EXPECT_TRUE(bit_equal(best.violation, ev.violation));
+        EXPECT_TRUE(bit_equal(best.row_violation, ev.row_violation));
         EXPECT_TRUE(bit_equal(best.z_lower, ev.z_lower));
         EXPECT_TRUE(bit_equal(best.z_upper, ev.z_upper));
     }
@@ -676,7 +676,7 @@ TEST(BestIterate, SqpScaledBestIterateEqualsItsEventsSnapshot) {
         EXPECT_LE((r.z - r.best_iterate->z).cwiseAbs().maxCoeff(),
                   1e-9 * (1.0 + r.z.cwiseAbs().maxCoeff()));
         EXPECT_EQ(r.best_iterate->g.size(), 2);
-        EXPECT_EQ(r.best_iterate->violation.size(), 2);
+        EXPECT_EQ(r.best_iterate->row_violation.size(), 2);
         EXPECT_EQ(r.best_iterate->z_lower.size(), 4);
     }
 }

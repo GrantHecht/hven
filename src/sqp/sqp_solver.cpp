@@ -6622,7 +6622,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                         .lambda = e.lambda,
                         .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
                         .g = e.g,
-                        .violation = e.violation,
+                        .row_violation = e.row_violation,
                         .z_lower = map_zl ? Eigen::Ref<const Vec>(zl_caller) : e.z_lower,
                         .z_upper = map_zu ? Eigen::Ref<const Vec>(zu_caller) : e.z_upper,
                         .ipm = e.ipm,
@@ -7365,7 +7365,7 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpMajorRow &expo
         .lambda = event_lambda_scratch_,
         .z = want_vectors ? mj.event_z : no_vector,
         .g = event_g_scratch_,
-        .violation = event_violation_scratch_,
+        .row_violation = event_violation_scratch_,
         .z_lower = z_lower,
         .z_upper = z_upper,
         .ipm = std::nullopt,
@@ -10496,7 +10496,7 @@ void SqpSolverImpl::attach_best_iterate(const SolveState &st, SolveStatus status
     // Into the row space by the event's own maps.
     detail::compose_event_lambda(callback_rows_, st.mb.rows_lambda_e, lambda_i, best.lambda);
     detail::compose_event_rows(callback_rows_, st.mb.rows_ce, st.mb.rows_ci, best.g,
-                               best.violation);
+                               best.row_violation);
     detail::split_bound_multipliers(best.z, best.z_lower, best.z_upper);
 }
 

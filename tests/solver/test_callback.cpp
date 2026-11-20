@@ -1596,10 +1596,10 @@ TEST(Callback, SqpRestorationEventsCarryTheSubProblemsRowsAndADepthOneBlock) {
             EXPECT_GT(e.x.size(), model.n()) << "the feasibility problem adds elastic variables";
             EXPECT_EQ(e.z_lower.size(), e.x.size());
             EXPECT_EQ(e.z_upper.size(), e.x.size());
-            EXPECT_EQ(e.violation.size(), e.g.size());
+            EXPECT_EQ(e.row_violation.size(), e.g.size());
             EXPECT_EQ(e.g.size(), e.lambda.size()) << "the sub-problem's own rows";
-            for (Eigen::Index k = 0; k < e.violation.size(); ++k) {
-                EXPECT_FALSE(e.violation[k] < 0.0);
+            for (Eigen::Index k = 0; k < e.row_violation.size(); ++k) {
+                EXPECT_FALSE(e.row_violation[k] < 0.0);
             }
         }
         EXPECT_GE(depth1, 1) << "premise: restoration rows are delivered";
@@ -3085,7 +3085,7 @@ TEST(CallbackPayload, TheOneArgumentOverloadDeliversTheVectorsAndTheDiagnostics)
         for (const Seen &s : implicit.seen) {
             expect_full_views(s);
             EXPECT_EQ(s.g.size(), 0);
-            EXPECT_EQ(s.violation.size(), 0);
+            EXPECT_EQ(s.row_violation.size(), 0);
             EXPECT_EQ(s.z_lower.size(), 0);
             EXPECT_EQ(s.z_upper.size(), 0);
         }
@@ -3510,7 +3510,7 @@ void expect_same_event(const Seen &a, const Seen &b) {
     EXPECT_TRUE(bit_equal(a.lambda, b.lambda));
     EXPECT_TRUE(bit_equal(a.z, b.z));
     EXPECT_TRUE(bit_equal(a.g, b.g));
-    EXPECT_TRUE(bit_equal(a.violation, b.violation));
+    EXPECT_TRUE(bit_equal(a.row_violation, b.row_violation));
     EXPECT_TRUE(bit_equal(a.z_lower, b.z_lower));
     EXPECT_TRUE(bit_equal(a.z_upper, b.z_upper));
 }
@@ -3798,15 +3798,15 @@ void expect_all_rows_views(const Seen &s, bool exact_sides) {
     const double gl[4] = {-1.0, 4.0, 3.5, -inf};
     const double gu[4] = {2.5, 4.0, inf, inf};
     ASSERT_EQ(s.g.size(), 4);
-    ASSERT_EQ(s.violation.size(), 4);
+    ASSERT_EQ(s.row_violation.size(), 4);
     for (int r = 0; r < 3; ++r) {
         SCOPED_TRACE("row " + std::to_string(r));
         const double want = std::max({gl[r] - s.g[r], s.g[r] - gu[r], 0.0});
-        EXPECT_GE(s.violation[r], 0.0);
-        EXPECT_TRUE(near_rel(s.violation[r], want)) << s.violation[r] << " vs " << want;
+        EXPECT_GE(s.row_violation[r], 0.0);
+        EXPECT_TRUE(near_rel(s.row_violation[r], want)) << s.row_violation[r] << " vs " << want;
     }
     EXPECT_TRUE(std::isnan(s.g[3])) << "a free row is unmeasured, as in SolveResult::g";
-    EXPECT_EQ(s.violation[3], 0.0) << "a free row cannot be violated";
+    EXPECT_EQ(s.row_violation[3], 0.0) << "a free row cannot be violated";
     ASSERT_EQ(s.z.size(), 3);
     ASSERT_EQ(s.z_lower.size(), 3);
     ASSERT_EQ(s.z_upper.size(), 3);
@@ -3890,7 +3890,7 @@ TEST(CallbackPayload, EachNewBitDeliversExactlyItsFields) {
             const Seen &a = all.seen[k];
             expect_full_views(a);
             EXPECT_EQ(a.g.size(), kHs071Me + kHs071Mi);
-            EXPECT_EQ(a.violation.size(), kHs071Me + kHs071Mi);
+            EXPECT_EQ(a.row_violation.size(), kHs071Me + kHs071Mi);
             EXPECT_EQ(a.z_lower.size(), kHs071N);
             EXPECT_EQ(a.z_upper.size(), kHs071N);
 
@@ -3898,7 +3898,7 @@ TEST(CallbackPayload, EachNewBitDeliversExactlyItsFields) {
             EXPECT_TRUE(all_views_empty(c));
             EXPECT_TRUE(all_nan(c));
             EXPECT_TRUE(bit_equal(c.g, a.g));
-            EXPECT_TRUE(bit_equal(c.violation, a.violation));
+            EXPECT_TRUE(bit_equal(c.row_violation, a.row_violation));
             EXPECT_EQ(c.z_lower.size(), 0);
             EXPECT_EQ(c.z_upper.size(), 0);
 
@@ -3906,7 +3906,7 @@ TEST(CallbackPayload, EachNewBitDeliversExactlyItsFields) {
             EXPECT_TRUE(all_views_empty(b));
             EXPECT_TRUE(all_nan(b));
             EXPECT_EQ(b.g.size(), 0);
-            EXPECT_EQ(b.violation.size(), 0);
+            EXPECT_EQ(b.row_violation.size(), 0);
             EXPECT_TRUE(bit_equal(b.z_lower, a.z_lower));
             EXPECT_TRUE(bit_equal(b.z_upper, a.z_upper));
 
@@ -3938,7 +3938,7 @@ TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
         auto hook = [&](const IterationEvent &e) {
             snaps.push_back(hven::snapshot(e));
             sizes.push_back(e.x.size() + e.lambda.size() + e.z.size() + e.g.size() +
-                            e.violation.size() + e.z_lower.size() + e.z_upper.size());
+                            e.row_violation.size() + e.z_lower.size() + e.z_upper.size());
             return CallbackAction::kContinue;
         };
         hven::SolveResult r;
@@ -3959,7 +3959,7 @@ TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
         ASSERT_GT(snaps.size(), 1u);
         for (std::size_t k = 0; k < snaps.size(); ++k) {
             const hven::IterationSnapshot &s = snaps[k];
-            EXPECT_EQ(s.x.size() + s.lambda.size() + s.z.size() + s.g.size() + s.violation.size() +
+            EXPECT_EQ(s.x.size() + s.lambda.size() + s.z.size() + s.g.size() + s.row_violation.size() +
                           s.z_lower.size() + s.z_upper.size(),
                       sizes[k]);
             EXPECT_NE(s.ipm.has_value(), s.sqp.has_value()) << "exactly one engine block";
@@ -4071,10 +4071,10 @@ struct AllFreeRowsNlp final : hven::Nlp {
 
 void expect_all_free_rows_views(const Seen &s) {
     ASSERT_EQ(s.g.size(), 2) << "a problem whose rows are all free still has row views";
-    ASSERT_EQ(s.violation.size(), 2);
+    ASSERT_EQ(s.row_violation.size(), 2);
     for (int r = 0; r < 2; ++r) {
         EXPECT_TRUE(std::isnan(s.g[r])) << "a free row is unmeasured";
-        EXPECT_EQ(s.violation[r], 0.0);
+        EXPECT_EQ(s.row_violation[r], 0.0);
     }
 }
 
@@ -4121,7 +4121,7 @@ TEST(CallbackPayload, AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBes
             ASSERT_NE(ev, nullptr);
             expect_all_free_rows_views(*ev);
             EXPECT_TRUE(bit_equal(best->g, ev->g));
-            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+            EXPECT_TRUE(bit_equal(best->row_violation, ev->row_violation));
         } else {
             SqpSolver solver(quiet_sqp());
             solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
@@ -4146,7 +4146,7 @@ TEST(CallbackPayload, AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBes
             ASSERT_NE(ev, nullptr);
             expect_all_free_rows_views(*ev);
             EXPECT_TRUE(bit_equal(best->g, ev->g));
-            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+            EXPECT_TRUE(bit_equal(best->row_violation, ev->row_violation));
         }
         ASSERT_FALSE(rec.seen.empty());
         for (const Seen &e : rec.seen) {

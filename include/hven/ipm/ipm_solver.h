@@ -250,7 +250,7 @@ class IpmSolver {
     /// equals the iteration count. `IterationEvent::lambda` is in the
     /// problem's row space, as `SolveResult::lambda` is, and costs a compose
     /// per event only under a payload that includes `kVectors` (likewise
-    /// `g`/`violation` under `kConstraints`). `IpmIterationInfo::mu` is at the
+    /// `g`/`row_violation` under `kConstraints`). `IpmIterationInfo::mu` is at the
     /// caller's scale, `regularization_primal`/`regularization_dual` at the
     /// engine's objective scale.
     void set_iteration_callback(IterationCallback cb,

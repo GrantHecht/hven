@@ -176,7 +176,7 @@ void expect_same_best(const hven::SolveResult &a, const hven::SolveResult &b) {
     EXPECT_TRUE(bit_equal(x.lambda, y.lambda));
     EXPECT_TRUE(bit_equal(x.z, y.z));
     EXPECT_TRUE(bit_equal(x.g, y.g));
-    EXPECT_TRUE(bit_equal(x.violation, y.violation));
+    EXPECT_TRUE(bit_equal(x.row_violation, y.row_violation));
     EXPECT_TRUE(bit_equal(x.z_lower, y.z_lower));
     EXPECT_TRUE(bit_equal(x.z_upper, y.z_upper));
 }

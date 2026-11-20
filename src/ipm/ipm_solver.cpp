@@ -2377,7 +2377,7 @@ void hven::detail::IpmSolverImpl::publish_phase_best(bool recorded) {
     snap.x = std::move(pt.x);
     snap.z = std::move(pt.z);
     detail::compose_event_lambda(this->callback_rows_, pt.lambda_e, pt.lambda_i, snap.lambda);
-    detail::compose_event_rows(this->callback_rows_, pt.ce, pt.ci, snap.g, snap.violation);
+    detail::compose_event_rows(this->callback_rows_, pt.ce, pt.ci, snap.g, snap.row_violation);
     snap.z_lower = std::move(pt.z_lower);
     snap.z_upper = std::move(pt.z_upper);
     IpmIterationInfo info = this->best_info_scratch_;
@@ -2753,7 +2753,7 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
         .lambda = event_lambda,
         .z = event_z,
         .g = event_g,
-        .violation = event_violation,
+        .row_violation = event_violation,
         .z_lower = event_z_lower,
         .z_upper = event_z_upper,
         .ipm = info,

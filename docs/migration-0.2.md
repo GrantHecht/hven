@@ -323,12 +323,12 @@ New, no rewrite needed:
   active lower and upper bound sides), `verdict`, `elastic` -- the subproblem solved AT the
   major's point, the row's own columns (caller units on a scaled solve).
 - Exactly one of `ipm`/`sqp` is engaged. Both are delivered under every mask (copies only).
-- `IterationSnapshot` mirrors the event: `violation`, `z_lower`, `z_upper`, `ipm`, `sqp`
+- `IterationSnapshot` mirrors the event: `row_violation`, `z_lower`, `z_upper`, `ipm`, `sqp`
   added; `snapshot(event)` copies every view the mask delivered, `g` included (it is no
   longer left empty). `SolveResult::best_iterate` fills every vector (`x`, `lambda`, `z`,
-  `g`, `violation`, `z_lower`, `z_upper`) and its own event's engine block.
+  `g`, `row_violation`, `z_lower`, `z_upper`) and its own event's engine block.
 
-Two notes on the event rows. The SQP engine composes `g`/`violation` whenever the mask
+Two notes on the event rows. The SQP engine composes `g`/`row_violation` whenever the mask
 asks for them and the point was measured, so a problem whose rows are all free (an Nlp with
 `m > 0` and no bounded row) still gets `m` NaN values and zero violations, as IPM events,
 `SolveResult::g` and `best_iterate` do. `SqpResult::best_iterate.lambda` carries the export
@@ -337,7 +337,7 @@ event.
 
 Where the new views are empty: outside their mask bit; on an interior-point `recovering`
 event (no caller-space evaluation of a restoration iterate exists; `x`, `lambda`, `z` are
-still delivered); on an SQP row with no finite measurement (`g`, `violation`). On an SQP
+still delivered); on an SQP row with no finite measurement (`g`, `row_violation`). On an SQP
 depth-1 event they are the restoration sub-problem's own (its rows, its variables, elastic
 ones included), as `x` and `lambda` already were; on a column-scaled solve the first n
 entries of `z_lower`/`z_upper` are in caller units, as `x` and `z` are.
@@ -361,9 +361,18 @@ Breaks:
 | `IterationEvent::radius` | `IterationEvent::sqp->trust_radius` | as `depth` |
 | (G5 development name) `SqpIterationInfo::dual_regularization` | `SqpIterationInfo::regularization_dual`, the interior-point block's name for the same quantity | rename; never in a tagged release, listed for consumers that tracked `m8` |
 | `IterationSnapshot::{phase, mu, depth, radius}` | `IterationSnapshot::ipm`/`sqp`, as on the event | as on the event |
-| `IterationEvent` member order: `iteration, recovering, phase, depth, f, stationarity, feasibility, complementarity, step_norm, radius, mu, x, lambda, z, elapsed_seconds` | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers in the new order; the seven `Eigen::Ref` views have no default and must all be bound |
-| `IterationSnapshot` member order | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers |
+| `IterationEvent` member order: `iteration, recovering, phase, depth, f, stationarity, feasibility, complementarity, step_norm, radius, mu, x, lambda, z, elapsed_seconds` | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, row_violation, z_lower, z_upper, ipm, sqp` | designated initialisers in the new order; the seven `Eigen::Ref` views have no default and must all be bound |
+| `IterationSnapshot` member order | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, row_violation, z_lower, z_upper, ipm, sqp` | designated initialisers |
 | `best_iterate->lambda`/`g` mapped into the row space by `Problem` from private engine blocks | composed by the engine with the event's own row map, as an event's are | none; an internal (detail) route with no `Problem` now gets the engines' `[lambda_e; lambda_i]` / `[c_E; c_I]` concatenation, as its events do, where it got empty vectors |
+
+Amendment (AP-4 G7): this group introduced the row violation under the name `violation`; the
+name is `row_violation` from AP-4 G7 on, and the text above uses the new one. Before and after:
+
+| before (G5) | after (AP-4 G7) |
+|---|---|
+| `IterationEvent::violation` | `IterationEvent::row_violation` |
+| `IterationSnapshot::violation` (and `SolveResult::best_iterate->violation`) | `IterationSnapshot::row_violation` (and `best_iterate->row_violation`) |
+| `IterationEvent` / `IterationSnapshot` member order `..., g, violation, z_lower, ...` | `..., g, row_violation, z_lower, ...`; designated initialisers by the new name |
 
 ## G6 -- `IpmCounters` and the regrouped `IpmResult`
 
@@ -533,6 +542,23 @@ the one key that is monotone across interior-point phases, restoration and SQP d
 |---|---|
 | a caller counted events itself to order a two-phase or depth-1 stream | `event.event_index` |
 | designated initialisers of `IterationEvent` / `IterationSnapshot` | unchanged by name; a positional initialiser shifts by one after `iteration` (it already could not be positional, see G1) |
+
+### AP-4 G7 -- `violation` becomes `row_violation`
+
+Rename (the AP-4 source break; the last group of the series). The per-row violation view of
+`IterationEvent` and of `IterationSnapshot`, delivered under `IterationPayload::kConstraints`,
+is renamed so it cannot be read as a scalar violation next to `feasibility` and
+`violation_l1`: it is one entry per row.
+
+| before | after |
+|---|---|
+| `event.violation` | `event.row_violation` |
+| `snapshot.violation`, `result.best_iterate->violation` | `snapshot.row_violation`, `result.best_iterate->row_violation` |
+| `IterationEvent{.g = ..., .violation = ..., ...}` | `IterationEvent{.g = ..., .row_violation = ..., ...}` |
+
+Meaning, order and the `kConstraints` mask bit are unchanged. The G5 section above is amended to
+the new name with its own before and after. `violation_l1` (`SqpIterationInfo`) and the
+`SqpResult` violation measures keep their names.
 
 ## G-RB -- one `return_best`, one "best", both engines
 
