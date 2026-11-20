@@ -17,6 +17,7 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <numbers>
 #include <set>
 #include <sstream>
 #include <string>
@@ -42,7 +43,7 @@ namespace {
 
 namespace fs = std::filesystem;
 
-constexpr double kDeg = M_PI / 180.0;
+constexpr double kDeg = std::numbers::pi / 180.0;
 
 // c = L t u(a, b) + y - T = 0, f = w t + |y|^2 / 2; a, b in degrees, b in [-90, 90], t >= 0.
 // The columns of (a, b) are weak (L t is small), so Ruiz's rule amplifies them.
