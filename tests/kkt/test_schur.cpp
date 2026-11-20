@@ -576,7 +576,9 @@ TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
     for (std::size_t p = 1; p < 9; ++p) {
         per_add.add_border(fx.pool[p], fx.diag[p]);
         batched.add_border(fx.pool[p], fx.diag[p]);
-        // Inside the batch no reader may see a stale factorization.
+        // Inside the batch no reader may see a stale factorization, and dim()
+        // counts the recorded adds as the per-add stack does.
+        EXPECT_EQ(batched.dim(), per_add.dim());
         EXPECT_TRUE(batched.needs_refactorization());
         EXPECT_TRUE(std::isinf(batched.cond_estimate()));
         EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::logic_error);
