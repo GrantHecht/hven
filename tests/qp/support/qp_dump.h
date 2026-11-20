@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -211,11 +212,21 @@ inline double qp_dump_objective(const QpDump &d, const Vec &x) {
 /// largest violation); `stationarity` is ||Hx + g + Ae'le + Ai'li - z||_inf over the largest
 /// term in it (scale >= 1); `sign` is the largest wrong-signed multiplier and `complementarity`
 /// the largest |multiplier * slack| on a constraint the point is not on, over the same scale.
+///
+/// `stationarity_beyond_rounding` is the same residual with each component's ROUNDING FLOOR taken
+/// out first: component i is a sum of c_i terms (g_i, z_i and the nonzeros of column i of H, Ae and
+/// Ai) whose magnitudes add to m_i, so evaluating it in double -- and rounding the multipliers it
+/// is formed from -- can leave c_i * eps * m_i even at an exact KKT point (Higham, the gamma_n dot
+/// product bound). It reads max_i max(0, |r_i| - c_i * eps * m_i) / scale. Where the terms do not
+/// cancel it equals `stationarity` to within c_i * eps; where huge terms cancel to a small sum the
+/// normwise figure can sit below what double precision can resolve (C11 SAWPATH: terms of 2.4e13
+/// cancelling to 3.6e2), and only this one is a check a correct answer passes on every build.
 struct QpDumpKkt {
     double eq = 0.0;
     double ineq = 0.0;
     double box = 0.0;
     double stationarity = 0.0;
+    double stationarity_beyond_rounding = 0.0;
     double sign = 0.0;
     double complementarity = 0.0;
     double scale = 1.0;
@@ -283,6 +294,38 @@ inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::detail::QpSolution &s)
         }
     }
     k.stationarity = r.lpNorm<Eigen::Infinity>() / k.scale;
+    {
+        // The rounding floor of each component of r (see QpDumpKkt): term magnitudes m and term
+        // counts c, column by column.
+        const SpMatRM h_abs = qp.H.cwiseAbs();
+        const SpMatRM h_pat = h_abs.cwiseSign();
+        const Vec ones_n = Vec::Ones(n);
+        Vec m = h_abs.selfadjointView<Eigen::Upper>() * s.x.cwiseAbs() + qp.g.cwiseAbs() +
+                s.z.cwiseAbs();
+        Vec c = h_pat.selfadjointView<Eigen::Upper>() * ones_n + Vec::Constant(n, 2.0);
+        if (qp.me() > 0 && s.lambda_e.size() == qp.me()) {
+            const SpMatRM a_abs = qp.Ae.cwiseAbs();
+            m += a_abs.transpose() * s.lambda_e.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
+        }
+        if (qp.mi() > 0 && s.lambda_i.size() == qp.mi()) {
+            const SpMatRM a_abs = qp.Ai.cwiseAbs();
+            m += a_abs.transpose() * s.lambda_i.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
+        }
+        constexpr double kEps = std::numeric_limits<double>::epsilon();
+        double beyond = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            const double excess = std::abs(r(i)) - c(i) * kEps * m(i);
+            // NaN-sticky: a NaN residual is never "within rounding".
+            if (std::isnan(excess)) {
+                beyond = excess;
+                break;
+            }
+            beyond = std::max(beyond, excess);
+        }
+        k.stationarity_beyond_rounding = beyond / k.scale;
+    }
     for (Index i = 0; i < n; ++i) {
         const double zi = s.z(i);
         // z > 0 belongs at the lower bound, z < 0 at the upper one.

@@ -234,7 +234,17 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
     EXPECT_LE(k.eq, 1e-8 * scale);
     EXPECT_LE(k.ineq, 1e-8 * scale);
     EXPECT_LE(k.box, 1e-12 * scale);
-    EXPECT_LE(k.stationarity, 1e-6);
+    // STATIONARITY BEYOND ROUNDING, on every build (qp_dump.h's QpDumpKkt states the measure).
+    // The normwise figure this used to assert, k.stationarity <= 1e-6, is below what double
+    // precision resolves on SAWPATH's rung: one free component sums terms of 2.4e13 to a value
+    // of 3.6e2, so its rounding floor is ~eps * 2.4e13 = 5e-3 absolute (1.5e-5 on k.scale 356),
+    // and the exported pair's residual there -- 1.8e-4 on the box, 3.0e-3 on the Windows lane
+    // (CI run 44806571361: 8.38e-6 scaled) -- is beneath it: the same x on every build (f to 12
+    // digits), certified at zero motion (||p|| 1.4e-11 against step_tol 1e-9), multipliers
+    // that differ by rounding alone. The box itself straddles 1e-6 run to run (5.0e-7 and
+    // 1.00002e-6 measured). A residual past its floor by more than 1e-6 of the scale still fails.
+    EXPECT_LE(k.stationarity_beyond_rounding, 1e-6)
+        << "normwise " << k.stationarity << " on scale " << k.scale;
     EXPECT_LE(k.sign, 1e-8);
     EXPECT_LE(k.complementarity, 1e-8);
 #if HVEN_TEST_ROUTE_REFERENCE
