@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..80b6bf96e 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -380,8 +380,7 @@ void validate(const SqpOptions &opts) {
+                         opts.advanced.ssn_lm_sigma_exponent));
+     }
+     // `restoration_elastic_seed` is a BOOL with no refusable value.
+-    if (!(opts.advanced.elastic_rho0_headroom_rungs >= 1) ||
+-        !(opts.advanced.elastic_rho0_headroom_rungs <= 6)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: advanced.elastic_rho0_headroom_rungs ({}) must be in [1, 6]",
+                         opts.advanced.elastic_rho0_headroom_rungs));

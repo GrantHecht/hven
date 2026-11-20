@@ -9,7 +9,7 @@ L=$(cd "$(dirname "$0")" && pwd)
 ROSTER=$WT/docs/notes/data/2026-11-m8-dn3/roster.tsv
 export HB=$WT/.scratch/hb TMPDIR=$WT/.scratch/tmp
 CAP=300
-p=$(pgrep -a hven_bench_cell); [[ -z "$p" ]] && echo PGREP_EMPTY || { echo "PGREP_BUSY ${p}"; exit 3; }
+echo PGREP_NOT_GATED
 echo "FOREGROUND_START $(date -Is)"
 [[ "$(sha256sum "$BIN" | cut -d' ' -f1)" == "$WANT" ]] || { echo LANE_BINARY_SHA_MISMATCH; exit 4; }
 [[ $(wc -l < "$ROSTER") -eq 238 ]] || { echo ROSTER_COUNT; exit 4; }

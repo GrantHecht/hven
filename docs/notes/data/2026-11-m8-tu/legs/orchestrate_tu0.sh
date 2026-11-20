@@ -5,6 +5,7 @@
 #   Run as: flock /tmp/box-build.lock setsid -w bash orchestrate_tu0.sh ... > ../orchestrate.out 2>&1
 set -o pipefail
 source "$(dirname "$0")/env.sh"
+export PATH="$HOME/.local/bin:$PATH"
 L=$E/legs
 CODE=${1:?code sha}; BASE=${2:?base sha}; CA=${3:?}; CB=${4:?}; LA=${5:?}; LB=${6:?}; NTESTS=${7:?ctest count}; R=${8:-gate}
 D=$E/$R
@@ -22,7 +23,7 @@ echo "corpus B sha256 $(sha256sum "$WT/build/bench/hven_sqp_corpus" | cut -d' ' 
 chk "$WT/.scratch/bin/A/hven_bench_cell" "$LA"; chk "$WT/.scratch/bin/B/hven_bench_cell" "$LB"
 for T in "$WT/build" "$WT/build-debug" "$BASEWT/build"; do
   # the git stamp re-configures a tree whose HEAD moved (docs commits): that relinks the bench executables only; the code paths are checked above
-  echo "pre-ninja $T: $(ninja -C "$T" 2>&1 | tail -n 1)"
+  echo "pre-ninja $T: $(box-lane -- ninja -C "$T" -j4 2>&1 | tail -n 1)"
   ninja -C "$T" 2>&1 | tail -n 1 | grep -q "no work to do" || { echo "BUILD_TREE_STALE $T"; exit 4; }
 done
 echo "build trees up to date: $WT/build $WT/build-debug $BASEWT/build"
@@ -42,17 +43,17 @@ replay_ok() { local bad=0
   return $bad; }
 train_ok() { python3 "$L/train_check.py" "$D/train/B" "$D/train/A" "$WT/docs/notes/data/2026-11-m8-dn3" "$E/movers-train.txt" > "$D/train/train_check.txt" 2>&1; local rc=$?
   grep -E '^(SUMMARY|  FAIL|TU0)' "$D/train/train_check.txt" | head -n 60; return $rc; }
-leg P1-rel bash "$L/ctest.sh" "$WT" build "$D/suites/ctest-rel.log"
+leg P1-rel box-lane -- bash "$L/ctest.sh" "$WT" build "$D/suites/ctest-rel.log"
 leg P1-rel-criterion suites_ok "$D/suites/ctest-rel.log"
-leg P1-dbg bash "$L/ctest.sh" "$WT" build-debug "$D/suites/ctest-dbg.log"
+leg P1-dbg box-lane -- bash "$L/ctest.sh" "$WT" build-debug "$D/suites/ctest-dbg.log"
 leg P1-dbg-criterion suites_ok "$D/suites/ctest-dbg.log"
-leg P2-A bash "$L/replay.sh" "$BASEWT" build "$D/replay" A
-leg P2-B bash "$L/replay.sh" "$WT" build "$D/replay" B
+leg P2-A box-lane -- bash "$L/replay.sh" "$BASEWT" build "$D/replay" A
+leg P2-B box-lane -- bash "$L/replay.sh" "$WT" build "$D/replay" B
 leg P2-criterion replay_ok
-leg P3-A bash "$L/train_enum.sh" "$WT" "$D/train/A" "$WT/.scratch/bin/A/hven_bench_cell" "$LA" default:D never-default:K
-leg P3-B bash "$L/train_enum.sh" "$WT" "$D/train/B" "$WT/.scratch/bin/B/hven_bench_cell" "$LB" default:D never-default:K
+leg P3-A box-lane -- bash "$L/train_enum.sh" "$WT" "$D/train/A" "$WT/.scratch/bin/A/hven_bench_cell" "$LA" default:D never-default:K
+leg P3-B box-lane -- bash "$L/train_enum.sh" "$WT" "$D/train/B" "$WT/.scratch/bin/B/hven_bench_cell" "$LB" default:D never-default:K
 leg P3-criterion train_ok
-leg P5 bash "$L/mutations_tu0.sh" "$D/mutation"
-leg P6 env WT="$WT" bash "$L/install_smoke.sh" "$D/install-smoke"
+leg P5 box-lane -- bash "$L/mutations_tu0.sh" "$D/mutation"
+leg P6 box-lane -- env WT="$WT" bash "$L/install_smoke.sh" "$D/install-smoke"
 echo "ALL_LEGS_PASSED"
 echo "FOREGROUND_END $(date -Is)"

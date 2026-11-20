@@ -28,7 +28,7 @@ BIN=${CELL_BIN:?}
 ARGV=(--lane "${LANE}" --problem "${P}" --options "${LABEL}" --budget-iters 0
       --options-dump "${F}.optdump" --assert-reference)
 case "${THREADS}" in
-1) export MKL_NUM_THREADS=1 OMP_NUM_THREADS=1; PIN=(taskset -c 2) ;;
+1) export MKL_NUM_THREADS=1 OMP_NUM_THREADS=1; PIN=(taskset -c ${BOX_LANE_PHYS%% *}) ;;
 default) unset MKL_NUM_THREADS OMP_NUM_THREADS; PIN=() ;;
 *) echo "THREADS must be 1 or default" >&2; exit 2 ;;
 esac
@@ -43,7 +43,7 @@ stat)
     ;;
 record)
     [[ -n "${PERIOD}" && "${PERIOD}" -ge 400000 ]] || { echo "record needs PERIOD >= 400000" >&2; exit 2; }
-    RPIN=(); [[ ${#PIN[@]} -gt 0 ]] && RPIN=(taskset -c 4)
+    RPIN=(); [[ ${#PIN[@]} -gt 0 ]] && RPIN=(taskset -c $(echo $BOX_LANE_PHYS | cut -d" " -f2))
     "${RPIN[@]}" perf record -q -m 1M -e instructions:u -c "${PERIOD}" \
         --call-graph dwarf,16384 --user-callchains -o "${F}.perf.data" -- \
         "${PIN[@]}" "${BIN}" "${ARGV[@]}" > "${F}.out" 2> "${F}.err" &

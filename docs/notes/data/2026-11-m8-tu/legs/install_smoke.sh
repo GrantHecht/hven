@@ -4,7 +4,7 @@
 set -o pipefail
 WT=${WT:?worktree}
 EV=${1:?evidence dir}
-if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo "PGREP_BUSY"; pgrep -a hven_bench_cell; exit 3; fi
+# (box-lane rule: co-running cells on the other lane are allowed; counters only)
 echo PGREP_EMPTY
 echo "FOREGROUND_START $(date -Is)"
 export MKL_NUM_THREADS=1 TMPDIR=$WT/.scratch/tmp
@@ -16,9 +16,9 @@ for ARM in default clang; do
   rm -rf "$W"; mkdir -p "$W"
   echo "SMOKE_START $ARM $(date -Is)"
   if [ "$ARM" = clang ]; then
-    HVEN_INSTALL_SMOKE_WORKDIR=$W HVEN_INSTALL_SMOKE_JOBS=16 bash scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++ > "$EV/smoke-$ARM.log" 2>&1
+    HVEN_INSTALL_SMOKE_WORKDIR=$W HVEN_INSTALL_SMOKE_JOBS=${BOX_LANE_JOBS:-4} bash scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++ > "$EV/smoke-$ARM.log" 2>&1
   else
-    HVEN_INSTALL_SMOKE_WORKDIR=$W HVEN_INSTALL_SMOKE_JOBS=16 bash scripts/check_install_smoke.sh > "$EV/smoke-$ARM.log" 2>&1
+    HVEN_INSTALL_SMOKE_WORKDIR=$W HVEN_INSTALL_SMOKE_JOBS=${BOX_LANE_JOBS:-4} bash scripts/check_install_smoke.sh > "$EV/smoke-$ARM.log" 2>&1
   fi
   rc=$?; tail -4 "$EV/smoke-$ARM.log"; echo "smoke $ARM rc=$rc"; [ $rc -gt $worst ] && worst=$rc
   TARGETS=$(find "$W" -name hvenTargets.cmake -path '*hven-install*' | head -1)

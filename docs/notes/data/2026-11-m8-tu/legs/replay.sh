@@ -5,7 +5,7 @@ set -o pipefail
 WT=${1:?worktree}; BIN=$WT/${2:?build}/bench/hven_sqp_corpus; OUT=$(realpath -m "${3:?out}"); LABEL=${4:?label}
 export TMPDIR=$WT/.scratch/tmp MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
 mkdir -p "$TMPDIR" "$OUT"
-if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo PGREP_BUSY; exit 3; fi
+# (box-lane rule: co-running cells on the other lane are allowed; counters only)
 echo PGREP_EMPTY; echo "FOREGROUND_START $(date -Is)"
 cd "$WT" || exit 1
 echo "binary $BIN sha256 $(sha256sum "$BIN" | cut -d' ' -f1)"

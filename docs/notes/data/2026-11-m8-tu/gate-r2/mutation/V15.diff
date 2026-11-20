@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..b7379c936 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -386,8 +386,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: advanced.elastic_rho0_headroom_rungs ({}) must be in [1, 6]",
+                         opts.advanced.elastic_rho0_headroom_rungs));
+     }
+-    if (!(opts.advanced.adaptive_dual_regularization_max >= 1e-12) ||
+-        !(opts.advanced.adaptive_dual_regularization_max <= 1.0)) {
++    if (false) {
+         throw std::invalid_argument(fmt::format(
+             "SqpSolver: advanced.adaptive_dual_regularization_max ({}) must be in [1e-12, 1]; it "
+             "is the schedule's ceiling, whose floor is 1e-12",

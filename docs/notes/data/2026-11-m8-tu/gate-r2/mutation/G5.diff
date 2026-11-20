@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..353c62e79 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9794,7 +9794,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+             // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) earns no growth: the
+             // radius it was taken under is the one its subproblem failed at.
+             const double actual_df = st.ev.f - mj.ctx.f_new;
+-            if (trust_region_grows(opts_.advanced.trust_region_growth, mj.failure_step,
++            if (trust_region_grows(SqpTrustRegionGrowth::kRatio, mj.failure_step,
+                                    mj.row.tr_binding, std::isfinite(st.delta), mj.ctx.pred_df,
+                                    actual_df,
+                                    mj.row.verdict == StepVerdict::kAcceptFeasibilityStep)) {

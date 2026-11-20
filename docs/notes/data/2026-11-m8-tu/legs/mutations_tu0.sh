@@ -20,7 +20,7 @@ run_one() { # id
   local id=$1
   [ "$id" = control ] || python3 "$L/mutate_tu0.py" "$id" || return 9
   [ "$id" = control ] || git -C "$WT" diff -- src include > "$OUT/$id.diff"
-  timeout 2400 ninja -C "$B" -j16 hven_sqp_tests hven_qp_tests hven_solver_tests > "$OUT/$id.build.log" 2>&1 || { echo "$id BUILD_FAIL"; python3 "$L/mutate_tu0.py" restore; return 8; }
+  timeout 2400 ninja -C "$B" -j${BOX_LANE_JOBS:-4} hven_sqp_tests hven_qp_tests hven_solver_tests > "$OUT/$id.build.log" 2>&1 || { echo "$id BUILD_FAIL"; python3 "$L/mutate_tu0.py" restore; return 8; }
   timeout 900 "$B/tests/sqp/hven_sqp_tests" --gtest_filter='Tu0*:SqpSolverElasticSeed.*:SqpSolverRestorationSeed.*' > "$OUT/$id.sqp.log" 2>&1; local r1=$?
   timeout 900 "$B/tests/qp/hven_qp_tests" --gtest_filter='SsnEngineLocal.*' > "$OUT/$id.qp.log" 2>&1; local r2=$?
   timeout 900 "$B/tests/solver/hven_solver_tests" --gtest_filter='Options.*:OptionsDump.*' > "$OUT/$id.solver.log" 2>&1; local r3=$?
@@ -33,7 +33,7 @@ run_one() { # id
 verdict=MUTATIONS_AS_DECLARED
 run_one control || verdict=CONTROL_NOT_CLEAN
 for m in $MUST; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
-timeout 2400 ninja -C "$B" -j16 > "$OUT/final.build.log" 2>&1
+timeout 2400 ninja -C "$B" -j${BOX_LANE_JOBS:-4} > "$OUT/final.build.log" 2>&1
 git -C "$WT" diff --quiet --ignore-submodules=all -- src include tests || { echo TREE_NOT_RESTORED; verdict=TREE_NOT_RESTORED; }
 echo "VERDICT $verdict"; echo "FOREGROUND_END $(date -Is)"
 [ "$verdict" = MUTATIONS_AS_DECLARED ]
