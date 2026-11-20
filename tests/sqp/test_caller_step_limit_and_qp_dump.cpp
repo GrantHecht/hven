@@ -244,7 +244,7 @@ TEST(CallerStepLimit, TheLimitHoldsWithoutColumnScalingToo) {
 }
 
 TEST(ColumnScalingFactorMax, ClampsTheColumnFactorsAndLeavesTheRowCapAlone) {
-    EXPECT_EQ(SqpOptions{}.column_scaling_factor_max, SqpOptions{}.column_scaling_factor_max);
+    EXPECT_EQ(SqpOptions{}.column_scaling_factor_max, 1024.0);
     SqpOptions o;
     o.column_scaling_factor_max = 0.5;
     EXPECT_THROW(validate(o), std::invalid_argument);
@@ -269,6 +269,22 @@ TEST(ColumnScalingFactorMax, ClampsTheColumnFactorsAndLeavesTheRowCapAlone) {
     const SqpResult r_row = solve_synth(4.0, rowcap);
     EXPECT_EQ(r_row.scaling.column_max, r_wide.scaling.column_max);
     EXPECT_EQ(r_row.scaling.column_min, r_wide.scaling.column_min);
+
+    // kAuto is untouched: with the gate forced open (threshold 1) its column factors are still
+    // clamped by scaling_factor_max, and the new option is not read.
+    SqpOptions auto_o = synth_options(QpMode::kWalk, SqpColumnScaling::kAuto);
+    auto_o.column_scaling_threshold = 1.0;
+    const SqpResult a0 = solve_synth(4.0, auto_o);
+    ASSERT_TRUE(a0.scaling.columns_active);
+    ASSERT_GT(a0.scaling.column_max, 4.0) << "premise: the factors reach beyond the tried cap";
+    SqpOptions auto_cap = auto_o;
+    auto_cap.column_scaling_factor_max = 4.0;
+    const SqpResult a1 = solve_synth(4.0, auto_cap);
+    EXPECT_EQ(a1.scaling.column_max, a0.scaling.column_max);
+    EXPECT_EQ((a1.x - a0.x).lpNorm<Eigen::Infinity>(), 0.0);
+    SqpOptions auto_row = auto_o;
+    auto_row.scaling_factor_max = 4.0;
+    EXPECT_LE(solve_synth(4.0, auto_row).scaling.column_max, 4.0);
 }
 
 TEST(CallerStepLimit, TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing) {

@@ -846,6 +846,7 @@ template <class Model> Equivalence expect_scaled_equivalence(const Model &model,
     model.eval_jac_e_in_place(x0.cwiseMax(model.lower()).cwiseMin(model.upper()), je);
     ColumnScalingRule rule;
     rule.threshold = 1.0;
+    rule.factor_limit = SqpOptions{}.column_scaling_factor_max; // the driver\'s kAlways clamp
     const ColumnScaling cs = compute_column_scaling(model.n(), je, SpMatRM(0, model.n()), rule);
     EXPECT_TRUE(cs.active);
     Equivalence e;
@@ -1256,6 +1257,7 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     model.eval_jac_e_in_place(x0.cwiseMax(model.lower()).cwiseMin(model.upper()), je);
     ColumnScalingRule rule;
     rule.threshold = 1.0;
+    rule.factor_limit = SqpOptions{}.column_scaling_factor_max; // the driver\'s kAlways clamp
     const ColumnScaling cs = compute_column_scaling(2, je, SpMatRM(0, 2), rule);
     ASSERT_TRUE(cs.active);
     struct Seen {
@@ -1600,6 +1602,8 @@ TEST(ScaledConvergenceGuard, ACallerUnitGradientAColumnFactorHidIsRefused) {
 
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
+    opts.column_scaling_factor_max =
+        1e12; // the premise needs a factor of 2^-26; the default clamp is 2^10 (M8 I17)
     opts.common.start_level = StartLevel::kWarm;
     SqpSolver driver{opts};
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),

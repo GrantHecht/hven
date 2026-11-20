@@ -3267,8 +3267,8 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
     // The carried record is also refused when the scaled start point or scaled warm
     // vectors it would produce are not all finite: a warm start degrades to the rule,
     // it never throws.
-    bool use_carried = warm_point && carried_column_factors_usable(warm.column_factors, n,
-                                                                   opts_.column_scaling_factor_max);
+    bool use_carried =
+        warm_point && carried_column_factors_usable(warm.column_factors, n, column_factor_limit());
     if (use_carried) {
         const Vec &f = warm.column_factors;
         use_carried = x0.cwiseQuotient(f).allFinite() && warm.x.cwiseQuotient(f).allFinite() &&
@@ -3292,7 +3292,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
         at.Ji = SpMatRM(seam.mi(), n);
         seam.jacobians_only(at, x_rule);
         detail::ColumnScalingRule rule;
-        rule.factor_limit = opts_.column_scaling_factor_max;
+        rule.factor_limit = column_factor_limit();
         rule.threshold =
             opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
         cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);

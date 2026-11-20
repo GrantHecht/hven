@@ -613,12 +613,15 @@ struct SqpOptions {
     /// and >= 1. Read only under kAuto.
     double column_scaling_threshold = 67108864.0;
 
-    /// Symmetric clamp on the COLUMN factors alone: each is confined to
-    /// [1/column_scaling_factor_max, column_scaling_factor_max]. `scaling_factor_max` clamps the
-    /// row and objective factors only. A column factor is a unit change of the variable and also
-    /// scales the trust region (|dx_j| <= d_j * radius), so its ceiling bounds how far a
-    /// weakly-coupled column can be amplified. Must be finite and >= 1.
-    double column_scaling_factor_max = 1e12;
+    /// Symmetric clamp on the column factors under `kAlways`: each is confined to
+    /// [1/column_scaling_factor_max, column_scaling_factor_max]. Default 1024 (2^10). A column
+    /// factor is a unit change of the variable and also scales the trust region
+    /// (|dx_j| <= d_j * radius), so its ceiling bounds how far a weakly-coupled column can be
+    /// amplified. `scaling_factor_max` clamps the row and objective factors; under `kAuto` it also
+    /// clamps the column factors, as before, and this option is not read. Must be finite and >= 1.
+    /// The default is the smallest power of two that moved no TRAIN row under kAlways
+    /// (docs/notes/data/2026-11-m8-i17/).
+    double column_scaling_factor_max = 1024.0;
 
     /// Project the start point onto the declared box, or take it verbatim.
     /// Default true.

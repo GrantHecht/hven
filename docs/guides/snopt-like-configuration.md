@@ -83,8 +83,9 @@ the trust region in caller units for that variable (|dx_j| <= d_j * radius). A s
 degrees in one step. Recommended instead: give the model physical caller scales (a variable
 that is O(1) at the solution in its own units), leave `column_scaling` at `kAuto` or set
 `kOff`, and bound steps in caller units if wanted (`caller_step_limit`). If `kAlways` is used,
-`column_scaling_factor_max` bounds the amplification of any one column (it does not touch the
-row and objective factors, which `scaling_factor_max` still clamps).
+`column_scaling_factor_max` (default 1024) bounds the amplification of any one column (it does not
+touch the row and objective factors, which `scaling_factor_max` still clamps, and `kAuto` still
+clamps its column factors with `scaling_factor_max`).
 
 Caller-unit step limit. `caller_step_limit = r` (default 0, off) narrows every QP's variable box
 to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode. The trust

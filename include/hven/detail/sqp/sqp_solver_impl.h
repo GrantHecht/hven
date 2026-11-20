@@ -1850,6 +1850,14 @@ class SqpSolverImpl {
     SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
                                   const detail::SqpWarmState &warm, SolveBudget budget);
 
+    /// The clamp on the column factors: `column_scaling_factor_max` under kAlways, the shared
+    /// `scaling_factor_max` under kAuto (a badly scaled problem's amplification is what kAuto is
+    /// for).
+    double column_factor_limit() const noexcept {
+        return opts_.column_scaling == SqpColumnScaling::kAlways ? opts_.column_scaling_factor_max
+                                                                 : opts_.scaling_factor_max;
+    }
+
     /// @brief The column-scaled solve's answer in the CALLER's units (M7 W2 SCL),
     ///        called by solve_impl before the `sqp.solve.end` emission whenever
     ///        `column_caller_seam_` is set, so the trace, the result and the ledger
