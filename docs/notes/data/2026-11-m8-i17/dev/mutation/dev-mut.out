@@ -1,0 +1,79 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T21:52:46-05:00
+ALL 17 ANCHORS UNIQUE
+PREFLIGHT every mutation applies and restores: [L1 L2 L3 L4 L5 L6 L7 S1 S2 S3 S4 C1 C2 D1 D2 D3 D4]
+MUT control sqp_rc=0 trace_rc=0 killers=0
+APPLIED L1
+MUT L1 sqp_rc=1 trace_rc=1 killers=4
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+   TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+APPLIED L2
+MUT L2 sqp_rc=1 trace_rc=1 killers=3
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+APPLIED L3
+MUT L3 sqp_rc=1 trace_rc=1 killers=3
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho
+APPLIED L4
+MUT L4 sqp_rc=1 trace_rc=1 killers=3
+   SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+   TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+APPLIED L5
+MUT L5 sqp_rc=0 trace_rc=1 killers=3
+   ConsoleMessages.EachTemplateRendersItsOwnLine
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+APPLIED L6
+MUT L6 sqp_rc=0 trace_rc=1 killers=1
+   JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne
+APPLIED L7
+MUT L7 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.RestorationQpsAreRecordedInTheAttachedLedger
+APPLIED S1
+MUT S1 sqp_rc=1 trace_rc=0 killers=3
+   CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+   CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S2
+MUT S2 sqp_rc=1 trace_rc=0 killers=2
+   CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S3
+MUT S3 sqp_rc=1 trace_rc=0 killers=1
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S4
+MUT S4 sqp_rc=1 trace_rc=0 killers=1
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED C1
+MUT C1 sqp_rc=1 trace_rc=0 killers=4
+   ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo
+   ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables
+   ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel
+   ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+APPLIED C2
+MUT C2 sqp_rc=1 trace_rc=0 killers=2
+   ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+   ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused
+APPLIED D1
+MUT D1 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+APPLIED D2
+MUT D2 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+APPLIED D3
+MUT D3 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+APPLIED D4
+MUT D4 sqp_rc=1 trace_rc=0 killers=4
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+   QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory
+   QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T21:59:47-05:00
