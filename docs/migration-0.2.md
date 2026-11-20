@@ -631,6 +631,30 @@ The v1 reader fixtures are three byte-exact streams under `tests/trace/golden/tr
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-tr-e/CATCH-UP.txt`.
 
+## The options registry and the generated options reference (M8 AP-4 G1, G2)
+
+Additive; nothing is renamed or removed and no consumer has to change. Before the registry, the two
+`dump_options` functions were hand-written, one line per field. Each options struct now has one table
+(`include/hven/detail/<layer>/..._options_fields.h`), one row per field in declaration order, and the
+dump, the new metadata and the generated reference are walks over those tables.
+
+- `dump_options(const IpmOptions &, std::ostream &)` and `dump_options(const SqpOptions &, std::ostream &)`:
+  same signatures, byte-identical output for `IpmOptions{}`, every `ipm_preset`, `SqpOptions{}` and an
+  all-fields-perturbed value of each (fixtures captured from the old printers, `tests/solver/fixtures/options_dump/`).
+- New public header `hven/solver/options_reference.h` (also reached through `hven/hven.h`): `OptionTier`
+  (`kUser`, `kAdvanced`), `OptionInfo` (`name`, `type`, `default_value`, `range`, `doc`, `tier`),
+  `ipm_option_info()`, `sqp_option_info()` (every field of the engine's options, in declaration order, names as
+  dumped, defaults the value-initialized struct's) and `write_options_reference(std::ostream &)`.
+- New checked-in `docs/options-reference.md`: the shared `common.` options with each engine's default, each engine's
+  user and advanced options, and the enumerator legend. It is `write_options_reference()`'s output; a test fails when
+  the two differ, and `cmake --build <dir> --target options-reference` regenerates it.
+- Internal, not part of the API: `hven::detail::for_each_option(Options &, F)` walks a (const) `IpmOptions` or
+  `SqpOptions` and calls `f(meta, value)` with typed access, for the bindings. There is no string-to-field setter.
+- Adding an options field now means adding a row to its table: a field without a row, or a row out of declaration
+  order, does not compile, and the field's range and one-line doc are stated where it is declared in the table.
+
+Rebuild: nothing changes size or layout.
+
 ## Include paths (RS) -- the source and test restructure (M8 RS-1, RS-2)
 
 The source tree was reorganised by engine: public headers that lived in the

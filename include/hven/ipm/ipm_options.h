@@ -58,7 +58,7 @@ struct IpmLinearOptions {
     /// Iterative refinement steps per solve. Default 0. Must be >= 0, and 0 on
     /// Accelerate, which performs no refinement.
     int max_refinement_steps = 0;
-    /// Default `kAdaptive`. Pardiso only.
+    /// Default `kAdaptivePartitioning`. Pardiso only.
     IpmSolveParallelism solve_parallelism = IpmSolveParallelism::kAdaptivePartitioning;
     /// Conditional numerical reproducibility: pins the backend to
     /// `common.threads` CNR threads, making the factorization bit-reproducible

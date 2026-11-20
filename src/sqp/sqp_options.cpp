@@ -69,10 +69,12 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 
 #include <hven/detail/solver/common_options_validate.h>
+#include <hven/detail/solver/option_info_builder.h>
 #include <hven/detail/sqp/sqp_options_fields.h>
 #include <hven/qp/qp_types.h>
 #include <hven/sqp/sqp_options.h>
@@ -426,11 +428,11 @@ SqpOptions worker_options(SqpOptions base) {
 }
 
 // =============================================================================
-// The options dump.
+// The options dump, and the options metadata.
 //
-// A walk over the per-struct tables (detail/sqp/sqp_options_fields.h and the QP-layer tables it
-// uses), one row per field in declaration order, so the printer cannot miss a field or print one
-// twice. The contract -- order, prefixes, enumerator
+// Both are walks over the same per-struct tables (detail/sqp/sqp_options_fields.h and the
+// QP-layer tables it uses), one row per field in declaration order, so a field cannot be dumped
+// and missing from the metadata or the reverse. The contract -- order, prefixes, enumerator
 // names, shortest round-trip doubles -- is documented once at dump_options(const IpmOptions &,
 // std::ostream &) in ipm/ipm_options.h and is not restated here. The tables are checked against
 // the structs at compile time, below. (M7 W0 T5(b) wrote the dump by hand, one line per field,
@@ -472,6 +474,18 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     detail::for_each_option(o, [&os](const detail::OptionMeta &m, const auto &value) {
         emit(os, m.name() + " = " + detail::render_option_value(value) + "\n");
     });
+}
+
+const std::vector<OptionInfo> &sqp_option_info() {
+    static const std::vector<OptionInfo> rows = [] {
+        const SqpOptions defaults;
+        std::vector<OptionInfo> out;
+        detail::for_each_option(defaults, [&out](const detail::OptionMeta &m, const auto &value) {
+            out.push_back(detail::describe_option(m, value));
+        });
+        return out;
+    }();
+    return rows;
 }
 
 } // namespace hven

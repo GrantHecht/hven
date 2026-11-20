@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -35,6 +36,7 @@
 #include <hven/detail/ipm/ipm_solver_presets.h>
 #include <hven/detail/model/fixed_variable_treatment.h>
 #include <hven/detail/solver/common_options_validate.h>
+#include <hven/detail/solver/option_info_builder.h>
 #include <hven/ipm/ipm_options.h>
 
 using namespace hven::detail;
@@ -370,10 +372,11 @@ hven::IpmOptions hven::worker_options(IpmOptions base) {
 }
 
 // =============================================================================
-// The options dump.
+// The options dump, and the options metadata.
 //
-// A walk over the per-struct tables (detail/ipm/ipm_options_fields.h), one row per field in
-// declaration order, so the printer cannot miss a field or print one twice. The contract -- order,
+// Both are walks over the same per-struct tables (detail/ipm/ipm_options_fields.h), one row per
+// field in declaration order, so a field cannot be dumped and missing from the metadata or the
+// reverse. The contract -- order,
 // prefixes, enumerator names, shortest round-trip doubles -- is documented once at the declaration
 // in ipm/ipm_options.h and is not restated here. The tables are checked against the structs at
 // compile time, below: a field added without a row, or a row out of declaration order, does not
@@ -427,4 +430,16 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     detail::for_each_option(o, [&os](const detail::OptionMeta &m, const auto &value) {
         emit(os, m.name() + " = " + detail::render_option_value(value) + "\n");
     });
+}
+
+const std::vector<hven::OptionInfo> &hven::ipm_option_info() {
+    static const std::vector<OptionInfo> rows = [] {
+        const IpmOptions defaults;
+        std::vector<OptionInfo> out;
+        detail::for_each_option(defaults, [&out](const detail::OptionMeta &m, const auto &value) {
+            out.push_back(detail::describe_option(m, value));
+        });
+        return out;
+    }();
+    return rows;
 }

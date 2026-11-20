@@ -22,6 +22,7 @@ set(_hven_solver_sources
     test_message_sites.cpp
     test_options.cpp
     test_options_dump.cpp
+    test_options_reference.cpp
     test_solve_result.cpp
     test_solver_move.cpp
     test_stop_token.cpp
@@ -33,7 +34,25 @@ hven_add_test_executable(hven_solver_tests
     RELEASE_O1
     DEFINITIONS
         HVEN_SRC_ROOT="${HVEN_REPO_ROOT}/src"
-        HVEN_OPTIONS_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/options_dump")
+        HVEN_OPTIONS_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/options_dump"
+        HVEN_SOURCE_DIR="${HVEN_REPO_ROOT}")
+
+################################################################################
+# The generated options reference (docs/options-reference.md). `hven_options_reference` writes
+# write_options_reference()'s output to the path it is given (stdout without one); it is a
+# test-side tool, never installed. `cmake --build <dir> --target options-reference` regenerates the
+# checked-in file; OptionsReference.CheckedInFileIsCurrent (test_options_reference.cpp) fails when
+# the file and the generator disagree and prints this command.
+################################################################################
+
+add_executable(hven_options_reference tools/options_reference_main.cpp)
+target_link_libraries(hven_options_reference PRIVATE hven::hven)
+target_compile_options(hven_options_reference PRIVATE ${COMPILE_FLAGS})
+add_custom_target(options-reference
+    COMMAND hven_options_reference "${HVEN_REPO_ROOT}/docs/options-reference.md"
+    DEPENDS hven_options_reference
+    COMMENT "Regenerating docs/options-reference.md"
+    VERBATIM)
 
 ################################################################################
 # Shared-engine seam tests (docs/testing.md, "Seam tests"). Both sources drive BOTH engines through

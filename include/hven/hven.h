@@ -67,6 +67,7 @@
 #include <hven/ipm/ipm_solver_types.h>
 #include <hven/solver/common_options.h>
 #include <hven/solver/iteration_record.h>
+#include <hven/solver/options_reference.h>
 #include <hven/solver/solve_result.h>
 #include <hven/solver/step_verdict.h>
 #include <hven/sqp/sqp_options.h>

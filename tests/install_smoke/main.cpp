@@ -29,6 +29,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <hven/core/ledger.h>
 #include <hven/core/solver_status.h>
@@ -36,6 +37,7 @@
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
+#include <hven/solver/options_reference.h>
 #include <hven/solver/solve_result.h>
 #include <hven/sqp/sqp_solver.h>
 #include <hven/trace/json_lines_trace_sink.h>
@@ -226,7 +228,34 @@ bool solve_pieces_problem() {
 }
 } // namespace
 
+// THE OPTIONS REGISTRY'S PUBLIC SURFACE (M8 AP-4 G2), through the installed header alone: the two
+// metadata functions and the reference writer must resolve at link time and agree with the options
+// dump on the one line every consumer reads (the thread count).
+bool check_options_reference() {
+    const std::vector<hven::OptionInfo> &ipm = hven::ipm_option_info();
+    const std::vector<hven::OptionInfo> &sqp = hven::sqp_option_info();
+    if (ipm.empty() || sqp.empty() || ipm.front().name != "common.optimality_tol") {
+        std::fprintf(stderr, "install smoke: the options metadata is empty or misordered\n");
+        return false;
+    }
+    std::ostringstream dump;
+    hven::dump_options(hven::IpmOptions{}, dump);
+    std::ostringstream reference;
+    hven::write_options_reference(reference);
+    const std::string threads = "common.threads = " + std::to_string(HVEN_DEFAULT_IPM_THREADS);
+    if (dump.str().find(threads) == std::string::npos ||
+        reference.str().find("`advanced.ipqp.barrier_min`") == std::string::npos) {
+        std::fprintf(stderr, "install smoke: the options dump or reference is wrong\n");
+        return false;
+    }
+    return true;
+}
+
 int main() {
+    if (!check_options_reference()) {
+        return 1;
+    }
+
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
