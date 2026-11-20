@@ -586,11 +586,10 @@ class SchurComplement {
     }
 
     // Lands the batch's recorded adds in order (end_batch). Their K0 columns
-    // come from ONE multi-right-hand-side solve; if that throws, from single
-    // solves, up to the first one that throws, whose exception is returned
-    // (nothing is thrown from here). The recorded lists are emptied on every
-    // path. Each landed add leaves a factorization owed, as a per-add add
-    // inside a batch did.
+    // come from ONE multi-right-hand-side solve (two or more adds); if that
+    // throws, or the batch is a single add, from single solves, up to the first one that throws,
+    // whose exception is returned (nothing is thrown from here). The recorded lists are emptied on
+    // every path. Each landed add leaves a factorization owed, as a per-add add inside a batch did.
     std::exception_ptr land_pending() {
         if (pending_v_.empty()) {
             return nullptr;
@@ -610,15 +609,20 @@ class SchurComplement {
         Mat rhs;
         Mat sol;
         bool batched = false;
-        try {
-            rhs.resize(pv[0].size(), k);
-            for (Index j = 0; j < k; ++j) {
-                rhs.col(j) = pv[static_cast<std::size_t>(j)];
+        // A batch of one is solved as the per-add path solves it: a one-column
+        // multi-RHS solve saves nothing (PF-4 measured equal instruction counts)
+        // and would only add the matrix staging.
+        if (k >= 2) {
+            try {
+                rhs.resize(pv[0].size(), k);
+                for (Index j = 0; j < k; ++j) {
+                    rhs.col(j) = pv[static_cast<std::size_t>(j)];
+                }
+                detail::solve_mat(kkt_, rhs, sol);
+                batched = true;
+            } catch (...) {
+                batched = false;
             }
-            detail::solve_mat(kkt_, rhs, sol);
-            batched = true;
-        } catch (...) {
-            batched = false;
         }
         try {
             for (Index j = 0; j < k; ++j) {
