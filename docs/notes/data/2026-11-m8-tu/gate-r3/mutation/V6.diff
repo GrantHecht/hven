@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..8ddf2bda5 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -126,7 +126,7 @@ void validate(const SqpOptions &opts) {
+     }
+     // 0 is legal: a border of dimension 0 is never admitted, so every working-set change
+     // refactorizes (the walk latches on the cap at the first pinned variable).
+-    if (!(opts.qp.max_schur_border_dimension >= 0)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: qp.max_schur_border_dimension ({}) must be >= 0",
+                         opts.qp.max_schur_border_dimension));

@@ -1,0 +1,95 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/tu0/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Options.*:OptionsDump.*
+[==========] Running 35 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from Options
+[ RUN      ] Options.IpmValidateRefusesWhatSettingsValidateRefused
+[       OK ] Options.IpmValidateRefusesWhatSettingsValidateRefused (0 ms)
+[ RUN      ] Options.WorkerOptionsPreparesEitherEngineTheSameWay
+[       OK ] Options.WorkerOptionsPreparesEitherEngineTheSameWay (0 ms)
+[ RUN      ] Options.CommonDefaultsAreEachEnginesOwn
+[       OK ] Options.CommonDefaultsAreEachEnginesOwn (0 ms)
+[ RUN      ] Options.IpmSetOptionsIsTransactional
+[       OK ] Options.IpmSetOptionsIsTransactional (0 ms)
+[ RUN      ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve
+[       OK ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve (4 ms)
+[ RUN      ] Options.IpmSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.IpmSetOptionsDuringASolveThrowsLogicError (0 ms)
+[ RUN      ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (0 ms)
+[ RUN      ] Options.PresetsReturnFullValues
+[       OK ] Options.PresetsReturnFullValues (0 ms)
+[ RUN      ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames
+[       OK ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames (0 ms)
+[ RUN      ] Options.SqpCommonDefaultsAreTheStructsOwn
+[       OK ] Options.SqpCommonDefaultsAreTheStructsOwn (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused
+[       OK ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused (0 ms)
+[ RUN      ] Options.SqpPresetsReturnFullValues
+[       OK ] Options.SqpPresetsReturnFullValues (0 ms)
+[ RUN      ] Options.SqpSetOptionsIsTransactional
+[       OK ] Options.SqpSetOptionsIsTransactional (0 ms)
+[ RUN      ] Options.SqpSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.SqpSetOptionsDuringASolveThrowsLogicError (0 ms)
+[ RUN      ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (0 ms)
+[ RUN      ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence
+[       OK ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence (1 ms)
+[ RUN      ] Options.TheOptionsFingerprintCoversEveryQpOptionsField
+[       OK ] Options.TheOptionsFingerprintCoversEveryQpOptionsField (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_options.cpp:827: Failure
+Failed
+qp.working_set_algebra: expected a refusal
+
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_options.cpp:827: Failure
+Failed
+qp.working_set_algebra: expected a refusal
+
+[  FAILED  ] Options.SqpValidateRefusesTheQpBlocksIllFormedFields (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheTuningLeversOutOfRange
+[       OK ] Options.SqpValidateRefusesTheTuningLeversOutOfRange (0 ms)
+[ RUN      ] Options.SqpTheTuningLeversDefaultToTheirOldConstants
+[       OK ] Options.SqpTheTuningLeversDefaultToTheirOldConstants (0 ms)
+[----------] 20 tests from Options (11 ms total)
+
+[----------] 15 tests from OptionsDump
+[ RUN      ] OptionsDump.IpmDumpsOneLinePerField
+[       OK ] OptionsDump.IpmDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsOneLinePerField
+[       OK ] OptionsDump.SqpDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheCommonDefaults
+[       OK ] OptionsDump.SqpDumpsTheCommonDefaults (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheTu0LeversAtTheirOldConstants
+[       OK ] OptionsDump.SqpDumpsTheTu0LeversAtTheirOldConstants (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheEqualityBasisOn
+[       OK ] OptionsDump.SqpDumpsTheEqualityBasisOn (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheStartPointProjectionOn
+[       OK ] OptionsDump.SqpDumpsTheStartPointProjectionOn (0 ms)
+[ RUN      ] OptionsDump.EnumsPrintEnumeratorNames
+[       OK ] OptionsDump.EnumsPrintEnumeratorNames (0 ms)
+[ RUN      ] OptionsDump.IpmDumpHeadIsVerbatim
+[       OK ] OptionsDump.IpmDumpHeadIsVerbatim (0 ms)
+[ RUN      ] OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames
+[       OK ] OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames (0 ms)
+[ RUN      ] OptionsDump.EngagedLimitsPrintTheirValues
+[       OK ] OptionsDump.EngagedLimitsPrintTheirValues (0 ms)
+[ RUN      ] OptionsDump.IsDeterministic
+[       OK ] OptionsDump.IsDeterministic (0 ms)
+[ RUN      ] OptionsDump.NoTrailingWhitespace
+[       OK ] OptionsDump.NoTrailingWhitespace (0 ms)
+[ RUN      ] OptionsDump.APoisonedStreamProducesTheSameBytes
+[       OK ] OptionsDump.APoisonedStreamProducesTheSameBytes (0 ms)
+[ RUN      ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing
+[       OK ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing (0 ms)
+[ RUN      ] OptionsDump.ReadsTheValueItWasGiven
+[       OK ] OptionsDump.ReadsTheValueItWasGiven (0 ms)
+[----------] 15 tests from OptionsDump (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 35 tests from 2 test suites ran. (11 ms total)
+[  PASSED  ] 34 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+
+ 1 FAILED TEST

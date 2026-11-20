@@ -1,0 +1,144 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/tu0/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SsnEngineLocal.*
+[==========] Running 67 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 67 tests from SsnEngineLocal
+[ RUN      ] SsnEngineLocal.CorrectHintFromExactPrimalIsOneIteration
+[       OK ] SsnEngineLocal.CorrectHintFromExactPrimalIsOneIteration (2 ms)
+[ RUN      ] SsnEngineLocal.ExactPrimalDualSeedCostsNoStep
+[       OK ] SsnEngineLocal.ExactPrimalDualSeedCostsNoStep (0 ms)
+[ RUN      ] SsnEngineLocal.SaddleSeedIsNotCertifiedWithoutInertiaEvidence
+[       OK ] SsnEngineLocal.SaddleSeedIsNotCertifiedWithoutInertiaEvidence (0 ms)
+[ RUN      ] SsnEngineLocal.CorrectHintFromInteriorSeedSnapsOntoTheConstraint
+[       OK ] SsnEngineLocal.CorrectHintFromInteriorSeedSnapsOntoTheConstraint (0 ms)
+[ RUN      ] SsnEngineLocal.WrongHintRecoversWithABulkFlip
+[       OK ] SsnEngineLocal.WrongHintRecoversWithABulkFlip (0 ms)
+[ RUN      ] SsnEngineLocal.BoxQpFromScrambledHint
+[       OK ] SsnEngineLocal.BoxQpFromScrambledHint (4 ms)
+[ RUN      ] SsnEngineLocal.EqualityOnlyIsOneKktSolve
+[       OK ] SsnEngineLocal.EqualityOnlyIsOneKktSolve (0 ms)
+[ RUN      ] SsnEngineLocal.MixedEqualityInequalityAndBoundsMatchesTheWalk
+[       OK ] SsnEngineLocal.MixedEqualityInequalityAndBoundsMatchesTheWalk (0 ms)
+[ RUN      ] SsnEngineLocal.ActivityExportAgreesWithTheWalk
+[       OK ] SsnEngineLocal.ActivityExportAgreesWithTheWalk (2 ms)
+[ RUN      ] SsnEngineLocal.ActivityExportIsPopulatedOnEveryExit
+[       OK ] SsnEngineLocal.ActivityExportIsPopulatedOnEveryExit (0 ms)
+[ RUN      ] SsnEngineLocal.SeededZOnAnAbsentBoundThrows
+[       OK ] SsnEngineLocal.SeededZOnAnAbsentBoundThrows (0 ms)
+[ RUN      ] SsnEngineLocal.ARoundOffPriceOnAnAbsentBoundIsZero
+[       OK ] SsnEngineLocal.ARoundOffPriceOnAnAbsentBoundIsZero (0 ms)
+[ RUN      ] SsnEngineLocal.TheAbsentPriceBandScalesWithTheSeedsOwnMagnitude
+[       OK ] SsnEngineLocal.TheAbsentPriceBandScalesWithTheSeedsOwnMagnitude (0 ms)
+[ RUN      ] SsnEngineLocal.TheBoxCentreIsHonouredAndIsNotTheStartPoint
+[       OK ] SsnEngineLocal.TheBoxCentreIsHonouredAndIsNotTheStartPoint (0 ms)
+[ RUN      ] SsnEngineLocal.ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint
+[       OK ] SsnEngineLocal.ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint (0 ms)
+[ RUN      ] SsnEngineLocal.AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite
+[       OK ] SsnEngineLocal.AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite (0 ms)
+[ RUN      ] SsnEngineLocal.TheStartPointIsTheFirstIterate
+[       OK ] SsnEngineLocal.TheStartPointIsTheFirstIterate (0 ms)
+[ RUN      ] SsnEngineLocal.TrustRegionPinsAreSeparatedFromRealBounds
+[       OK ] SsnEngineLocal.TrustRegionPinsAreSeparatedFromRealBounds (0 ms)
+[ RUN      ] SsnEngineLocal.TrustRegionIsSoftAndTheExitContractSaysSo
+[       OK ] SsnEngineLocal.TrustRegionIsSoftAndTheExitContractSaysSo (0 ms)
+[ RUN      ] SsnEngineLocal.LooseTrustRegionIsBitIdenticalToNoOverride
+[       OK ] SsnEngineLocal.LooseTrustRegionIsBitIdenticalToNoOverride (0 ms)
+[ RUN      ] SsnEngineLocal.TrustRegionRadiusIsNotPartOfTheStructureKey
+[       OK ] SsnEngineLocal.TrustRegionRadiusIsNotPartOfTheStructureKey (0 ms)
+[ RUN      ] SsnEngineLocal.RegularizerOverridesResolveLikeTheWalks
+[       OK ] SsnEngineLocal.RegularizerOverridesResolveLikeTheWalks (0 ms)
+[ RUN      ] SsnEngineLocal.PrimalDeltaOverrideChangesWhetherTheSolveConverges
+[       OK ] SsnEngineLocal.PrimalDeltaOverrideChangesWhetherTheSolveConverges (0 ms)
+[ RUN      ] SsnEngineLocal.OverrideValidationMatchesTheWalksPrecondition
+[       OK ] SsnEngineLocal.OverrideValidationMatchesTheWalksPrecondition (0 ms)
+[ RUN      ] SsnEngineLocal.FbIsEvaluatedWithoutCancellation
+[       OK ] SsnEngineLocal.FbIsEvaluatedWithoutCancellation (0 ms)
+[ RUN      ] SsnEngineLocal.ContradictoryFixedHintRecovers
+[       OK ] SsnEngineLocal.ContradictoryFixedHintRecovers (0 ms)
+[ RUN      ] SsnEngineLocal.FixedVariableHintIsHonouredAsBothRowsActive
+[       OK ] SsnEngineLocal.FixedVariableHintIsHonouredAsBothRowsActive (0 ms)
+[ RUN      ] SsnEngineLocal.SymbolicAnalysisIsPaidOncePerStructure
+[       OK ] SsnEngineLocal.SymbolicAnalysisIsPaidOncePerStructure (0 ms)
+[ RUN      ] SsnEngineLocal.BranchChangeDoesNotChangeThePattern
+[       OK ] SsnEngineLocal.BranchChangeDoesNotChangeThePattern (0 ms)
+[ RUN      ] SsnEngineLocal.PatternIsReusedAcrossSolvesOfTheSameStructure
+[       OK ] SsnEngineLocal.PatternIsReusedAcrossSolvesOfTheSameStructure (0 ms)
+[ RUN      ] SsnEngineLocal.PatternKeyIsExactForUncompressedInput
+[       OK ] SsnEngineLocal.PatternKeyIsExactForUncompressedInput (0 ms)
+[ RUN      ] SsnEngineLocal.PatternKeySeparatesBoundLayoutsOfEqualSize
+[       OK ] SsnEngineLocal.PatternKeySeparatesBoundLayoutsOfEqualSize (0 ms)
+[ RUN      ] SsnEngineLocal.SignFlipAtConstantBoundLayoutForcesRebuild
+[       OK ] SsnEngineLocal.SignFlipAtConstantBoundLayoutForcesRebuild (0 ms)
+[ RUN      ] SsnEngineLocal.BoxQpCountGrowsSlowlyInN
+[       OK ] SsnEngineLocal.BoxQpCountGrowsSlowlyInN (14 ms)
+[ RUN      ] SsnEngineLocal.HardBudgetStopsWithABudgetEscape
+[       OK ] SsnEngineLocal.HardBudgetStopsWithABudgetEscape (0 ms)
+[ RUN      ] SsnEngineLocal.NonFiniteStepIsReportedNotThrown
+[       OK ] SsnEngineLocal.NonFiniteStepIsReportedNotThrown (0 ms)
+[ RUN      ] SsnEngineLocal.DualRegularizationPicksTheMinimumNormMultiplier
+[       OK ] SsnEngineLocal.DualRegularizationPicksTheMinimumNormMultiplier (0 ms)
+[ RUN      ] SsnEngineLocal.FbTolDerivationAndItsBound
+[       OK ] SsnEngineLocal.FbTolDerivationAndItsBound (0 ms)
+[ RUN      ] SsnEngineLocal.CallerErrorsThrow
+[       OK ] SsnEngineLocal.CallerErrorsThrow (0 ms)
+[ RUN      ] SsnEngineLocal.BareModeReproducesTheTask3Trajectories
+[       OK ] SsnEngineLocal.BareModeReproducesTheTask3Trajectories (1 ms)
+[ RUN      ] SsnEngineLocal.ChrCyclingBareCyclesAndSafeguardedConverges
+[       OK ] SsnEngineLocal.ChrCyclingBareCyclesAndSafeguardedConverges (2 ms)
+[ RUN      ] SsnEngineLocal.WeaklyActiveRowFinishesUncertain
+[       OK ] SsnEngineLocal.WeaklyActiveRowFinishesUncertain (0 ms)
+[ RUN      ] SsnEngineLocal.InfeasibleQpIsSuspectedNotCertified
+[       OK ] SsnEngineLocal.InfeasibleQpIsSuspectedNotCertified (1 ms)
+[ RUN      ] SsnEngineLocal.InfeasibilityIsReachedByBothRoutesAndOnBothShapes
+[       OK ] SsnEngineLocal.InfeasibilityIsReachedByBothRoutesAndOnBothShapes (1 ms)
+[ RUN      ] SsnEngineLocal.FeasibleButBadlyScaledIsNeverReportedInfeasible
+[       OK ] SsnEngineLocal.FeasibleButBadlyScaledIsNeverReportedInfeasible (0 ms)
+[ RUN      ] SsnEngineLocal.StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest
+[       OK ] SsnEngineLocal.StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest (0 ms)
+[ RUN      ] SsnEngineLocal.TheVerificationAttemptMovesNoStepCounter
+[       OK ] SsnEngineLocal.TheVerificationAttemptMovesNoStepCounter (0 ms)
+[ RUN      ] SsnEngineLocal.BudgetsAreEnforcedAndCountersAreTruthful
+[       OK ] SsnEngineLocal.BudgetsAreEnforcedAndCountersAreTruthful (0 ms)
+[ RUN      ] SsnEngineLocal.LineSearchExemptsAHintedFirstStepInBothPolarities
+[       OK ] SsnEngineLocal.LineSearchExemptsAHintedFirstStepInBothPolarities (0 ms)
+[ RUN      ] SsnEngineLocal.DualProjectionKeepsMultipliersFeasible
+[       OK ] SsnEngineLocal.DualProjectionKeepsMultipliersFeasible (0 ms)
+[ RUN      ] SsnEngineLocal.IndefiniteHessianEscapesRatherThanCertifyingASaddle
+[       OK ] SsnEngineLocal.IndefiniteHessianEscapesRatherThanCertifyingASaddle (0 ms)
+[ RUN      ] SsnEngineLocal.UncertainBandGeometryAndValidation
+[       OK ] SsnEngineLocal.UncertainBandGeometryAndValidation (0 ms)
+[ RUN      ] SsnEngineLocal.SafeguardsAreFreeOnTheBenignFixtures
+[       OK ] SsnEngineLocal.SafeguardsAreFreeOnTheBenignFixtures (9 ms)
+[ RUN      ] SsnEngineLocal.TheEscapeReasonCensusMatchesTheReportedReason
+[       OK ] SsnEngineLocal.TheEscapeReasonCensusMatchesTheReportedReason (0 ms)
+[ RUN      ] SsnEngineLocal.SafeguardCountersAreLive
+[       OK ] SsnEngineLocal.SafeguardCountersAreLive (0 ms)
+[ RUN      ] SsnEngineLocal.DriverSurfaceIsDeclaredButInert
+[       OK ] SsnEngineLocal.DriverSurfaceIsDeclaredButInert (0 ms)
+[ RUN      ] SsnEngineLocal.DeferredCertificationRelocatesExactlyOneFactorization
+[       OK ] SsnEngineLocal.DeferredCertificationRelocatesExactlyOneFactorization (0 ms)
+[ RUN      ] SsnEngineLocal.DeferredCertificationWithdrawsTheSaddleCertificate
+[       OK ] SsnEngineLocal.DeferredCertificationWithdrawsTheSaddleCertificate (0 ms)
+[ RUN      ] SsnEngineLocal.APendingDeferredCertificationMayNotBeAbandoned
+[       OK ] SsnEngineLocal.APendingDeferredCertificationMayNotBeAbandoned (0 ms)
+[ RUN      ] SsnEngineLocal.TheResidualSigmaRuleIsInertUntilTheLadderArms
+[       OK ] SsnEngineLocal.TheResidualSigmaRuleIsInertUntilTheLadderArms (2 ms)
+[ RUN      ] SsnEngineLocal.TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor
+[       OK ] SsnEngineLocal.TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor (0 ms)
+[ RUN      ] SsnEngineLocal.TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne
+[       OK ] SsnEngineLocal.TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne (0 ms)
+[ RUN      ] SsnEngineLocal.TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap
+[       OK ] SsnEngineLocal.TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap (1 ms)
+[ RUN      ] SsnEngineLocal.TheTu0LeversAreValidatedAtTheEngine
+[       OK ] SsnEngineLocal.TheTu0LeversAreValidatedAtTheEngine (0 ms)
+[ RUN      ] SsnEngineLocal.TheLmSigmaCoefficientSizesTheResidualSigma
+[       OK ] SsnEngineLocal.TheLmSigmaCoefficientSizesTheResidualSigma (0 ms)
+[ RUN      ] SsnEngineLocal.TheLmSigmaExponentSizesTheResidualSigmaWhereTheResidualIsBelowOne
+[       OK ] SsnEngineLocal.TheLmSigmaExponentSizesTheResidualSigmaWhereTheResidualIsBelowOne (0 ms)
+[ RUN      ] SsnEngineLocal.TheFarkasResidualToleranceDecidesWhichDirectionsAreCertificates
+[       OK ] SsnEngineLocal.TheFarkasResidualToleranceDecidesWhichDirectionsAreCertificates (0 ms)
+[----------] 67 tests from SsnEngineLocal (61 ms total)
+
+[----------] Global test environment tear-down
+[==========] 67 tests from 1 test suite ran. (62 ms total)
+[  PASSED  ] 67 tests.

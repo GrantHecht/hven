@@ -1,0 +1,13 @@
+diff --git a/src/qp/ssn/ssn_engine.cpp b/src/qp/ssn/ssn_engine.cpp
+index 32724c23f..1ca4d65a1 100644
+--- a/src/qp/ssn/ssn_engine.cpp
++++ b/src/qp/ssn/ssn_engine.cpp
+@@ -410,7 +410,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
+             const double r = nrm.inf_norm / f_scale;
+             const double rp =
+                 sopts.lm_sigma_exponent == 2.0 ? r * r : std::pow(r, sopts.lm_sigma_exponent);
+-            lm_sigma_ = std::min(std::max(sopts.lm_sigma_c * std::min(r, rp), detail::kSsnProxInit),
++            lm_sigma_ = std::min(std::max(detail::kSsnLmSigmaC * std::min(r, rp), detail::kSsnProxInit),
+                                  detail::kSsnProxMax);
+             // apply_sigma() is the ONE site that combines the ladder floor
+             // with the residual size. Recomputing the max here as well
