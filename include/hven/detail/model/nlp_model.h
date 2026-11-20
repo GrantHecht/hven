@@ -249,7 +249,7 @@ class NlpModel {
         // Same design delegation as the in-place defaults above.
         HVEN_SUPPRESS_DEPRECATED_BEGIN
         cE = me() > 0 ? eval_ce(x) : Vec(0);
-        cI = mi() > 0 ? eval_ci(x) : Vec(0);
+        cI = Vec(0);
         HVEN_SUPPRESS_DEPRECATED_END
     }
 };
