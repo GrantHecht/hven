@@ -78,6 +78,7 @@ hven_add_seam_executable(hven_qp_seam_tests
         seam/test_qp_dense_arm.cpp
         seam/test_qp_flat_face_saddle.cpp
         seam/test_qp_implied_blocker.cpp
+        seam/test_qp_issue18_accuracy_stop.cpp
         seam/test_qp_latch_reason.cpp
         seam/test_qp_platform_retake.cpp
         seam/test_qp_rank_repair.cpp

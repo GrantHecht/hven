@@ -252,16 +252,15 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 // of its own refinement (iterative refinement's a-posteriori quantities;
 // Higham, Accuracy and Stability of Numerical Algorithms, ch. 12), both on the
 // independent working set's walk only and from an iterate that meets its
-// equality rows (solve_bordered_eqp passes `outcome` and `resolution` there and
-// nowhere else, iterate_meets_equality_rows below; null, the loop is exactly the
-// footprint rule above). The footprint rule's premise -- below the footprint, what is
-// left is the face's own conditioning, which the eliminated path carries
-// identically -- is not a theorem: K0 is assembled bound-free, so on a face
-// whose curvature is definite only once its pins are applied ||K0^-1|| ~
-// 1/primal_delta (above), and the bordered answer can be wrong far beyond what
-// the eliminated path leaves. Measured on two ACOPR118 sub-QPs (the BPS
-// fixtures), each a full-step standstill to the minor cap on a face the
-// eliminated path certifies in a handful of minors:
+// equality rows (solve_bordered_eqp passes `outcome` there and nowhere else, and
+// `resolution` with `certify` set, iterate_meets_equality_rows below; null, the loop
+// is exactly the footprint rule above). The footprint rule's premise -- below the footprint, what
+// is left is the face's own conditioning, which the eliminated path carries identically -- is not a
+// theorem: K0 is assembled bound-free, so on a face whose curvature is definite only once its pins
+// are applied ||K0^-1|| ~ 1/primal_delta (above), and the bordered answer can be wrong far beyond
+// what the eliminated path leaves. Measured on two ACOPR118 sub-QPs (the BPS fixtures), each a
+// full-step standstill to the minor cap on a face the eliminated path certifies in a handful of
+// minors:
 //   * TARGET MET (`outcome`). One face's refinement DIVERGES along its soft
 //     direction (contraction ~1.14 per step): the loop stops on stagnation
 //     ABOVE its own target max(footprint, rel_floor), with the answer 0.83 off
@@ -288,10 +287,17 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 //     polish_bordered_unregularized runs, and that polish can move the answer by up
 //     to kEqpPolishStepCap * max(1, |sol|), so the bracket is on the refined answer,
 //     not on the returned step.
+//
+// THE ACCURACY STOP (eqp_solve.h's header section) rides the same struct: passed on
+// the independent working set's walk wherever the iterate stands, it holds the loop
+// until accuracy_resolved once the first step's free-variable correction exceeds the
+// trust-region radius, and keeps a further step it asks for only under
+// accuracy_step_contracts. `certify` says whether STEP RESOLVED is asked as well.
 struct BorderedResolution {
     const Vec *x_k = nullptr;                             // the proximal centre (the iterate)
     const std::vector<BoundState> *bound_state = nullptr; // which variables are free
     double step_tol = 0.0;                                // the walk's zero-motion scale
+    bool certify = true;                                  // STEP RESOLVED asked
 };
 
 struct BorderedRefineOutcome {
@@ -340,12 +346,27 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         return m;
     };
     double last_correction = resolution != nullptr ? free_inf(Vec(best - sol)) : 0.0;
+    bool exceeds_radius = false; // THE ACCURACY STOP's trigger
+    if (resolution != nullptr) {
+        for (Index i = 0; i < var_count; ++i) {
+            if ((*resolution->bound_state)[static_cast<std::size_t>(i)] == BoundState::kFree) {
+                exceeds_radius =
+                    exceeds_radius || std::abs(best(i) - sol(i)) > opts.trust_region_radius;
+            }
+        }
+    }
     const auto step_resolved = [&]() {
         if (resolution == nullptr) {
             return true;
         }
         const double p = free_inf(Vec(best.head(var_count) - *resolution->x_k));
         const double tol = resolution->step_tol;
+        if (exceeds_radius && !accuracy_resolved(last_correction, p, tol)) {
+            return false;
+        }
+        if (!resolution->certify) {
+            return true;
+        }
         return p - last_correction > tol || p + last_correction <= tol;
     };
 
@@ -372,6 +393,10 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         if (on_target &&
             !(candidate_norm <= 0.5 * best_norm && correction_free <= 0.5 * last_correction)) {
             break; // resolving past the footprint: contracting steps only
+        }
+        if (exceeds_radius &&
+            !accuracy_step_contracts(candidate_norm, best_norm, correction_free, last_correction)) {
+            break; // THE ACCURACY STOP's keep rule
         }
         best = candidate;
         best_residual = std::move(candidate_residual);
@@ -720,17 +745,19 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const Vec sol_refined = platform_check ? sol : Vec();
 
     Index refine_steps = 0;
-    // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
-    // independent working set's walk only, so the option-off walk, the declared
+    // THE BORDERED ANSWER'S CERTIFICATE and THE ACCURACY STOP (refine_bordered_solve_iterated)
+    // -- on the independent working set's walk only, so the option-off walk, the declared
     // control arm of every E2 re-take, keeps the footprint rule unchanged.
     BorderedResolution resolution;
     resolution.x_k = &x_k;
     resolution.bound_state = &bound_state;
-    resolution.step_tol = opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
+    resolution.step_tol = eqp_step_tol(x_k, opts);
     BorderedRefineOutcome outcome;
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
+    resolution.certify = certify;
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
-                                         opts, &refine_steps, certify ? &resolution : nullptr,
+                                         opts, &refine_steps,
+                                         opts.independent_working_set ? &resolution : nullptr,
                                          certify ? &outcome : nullptr, k0_shift_scale != nullptr);
     // THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h), the bordered twin of
     // solve_eqp's: the answer refined against the bordered K (the residual loop's,

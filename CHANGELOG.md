@@ -50,6 +50,16 @@ programs are the reference for the new surface, and the full rename table is
   `hven::detail`, `warmstart/warm_start.h` and `drivers/json_lines_trace_sink.h`, and
   `IpmLinearOptions::accelerate_zero_tol` on every platform. Trace keys and strings are unchanged.
 
+## Unreleased — M8 I18 (issue 18: a feasible walk QP ended kNumericalError)
+
+- **The walk's EQP accuracy stop.** Before: the EQP answer was accepted once its residual fell
+  below the regularization's footprint, which on a narrow box (an SQP trust region of 3.8e-6) let an
+  answer off by three radii through, and the walk ended `kNumericalError` on a feasible QP. After: on
+  the independent working set's walk, when the first refinement moves a free variable farther than
+  the trust-region radius, refinement continues until the last correction is at most half the step,
+  keeping only steps that contract tenfold. Both working-set algebras.
+- The test loader (`tests/qp/support/qp_dump.h`) sets `hessian_known_convex` from a dump's `hkc=`.
+
 ## Unreleased — M8 I17 (issue 17: weak columns under `column_scaling = kAlways`)
 
 - **Ladder diagnostics.** Before: an exhausted elastic ladder printed only its rung count, and the

@@ -34,3 +34,6 @@ dump_patch.py on local commit 03393384b): the first walk solve of the TRAIN cell
 same file) during which a REFUSAL-ONLY escalation of the platform-solve response was taken. Its result line reads
 `status=0 minors=131 facts=162 scaled=3 matched=2 retake_refusals=0 hkc=0 maxiter=1360` (scaled / matched: the solve's
 sparse_scaled_retakes / sparse_matched_retakes; hkc = QpOptions::hessian_known_convex).
+I18_qp_m137.txt (issue #18): the library's own D4QP writer (docs/qp-dump-format.md), major 137's main QP of the reporter's SQP
+run at hven 331b31837, verbatim from the issue. Its result line reads `status=3 minors=48 facts=20 hkc=1 maxiter=500`; the
+loader sets QpOptions::hessian_known_convex from `hkc=`.

@@ -119,6 +119,13 @@ inline QpDump load_qp_dump(const std::string &path) {
         }
         if (key == "result") {
             d.result = line;
+            // hkc = QpOptions::hessian_known_convex as the solve ran (absent: false).
+            std::string tok;
+            while (is >> tok) {
+                if (tok.rfind("hkc=", 0) == 0) {
+                    d.opts.hessian_known_convex = tok == "hkc=1";
+                }
+            }
             continue;
         }
         std::vector<long> nums;

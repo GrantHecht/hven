@@ -121,6 +121,15 @@
 // keeping delta WITHOUT the proximal centring degrades them by four decades
 // (E3 §3l, mode 3). The two halves are one change.
 //
+// --- THE ACCURACY STOP (issue #18) ---
+//
+// On the independent working set's walk, both paths: when the mandatory model
+// step moves some free variable farther than the trust-region radius, the
+// answer is refined further, until its last correction is at most
+// kAccuracyStopRatio * max(||p_F||inf, step_tol), each further step kept only if
+// it shrinks both the residual and the free-variable correction by
+// kAccuracyContraction, within kMaxBorderRefineSteps total.
+//
 // --- THE EQP-SITE RESIDUAL CHECK (M7 W2 E4, ruling E4-4) ---
 //
 // A regularized solve can also simply be WRONG: on a face with cond(K) ~ 1e11
@@ -286,15 +295,37 @@ constexpr double kEqpPolishStepCap = 1e-6;
 // end, so every step it takes is one the verdict asked for.
 constexpr Index kMaxVerdictRefineSteps = 10;
 
+// THE ACCURACY STOP (header section): the last correction bound, relative to the step.
+constexpr double kAccuracyStopRatio = 0.5;
+// THE ACCURACY STOP: the per-step contraction a further step must show to be kept.
+constexpr double kAccuracyContraction = 0.1;
+
+// The walk's zero-motion scale at the proximal centre x_k.
+inline double eqp_step_tol(const Vec &x_k, const QpOptions &opts) {
+    return opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
+}
+
+// THE ACCURACY STOP's verdict: last correction `e` against the step `p` (NaN reads unresolved).
+inline bool accuracy_resolved(double e, double p, double step_tol) {
+    return e <= kAccuracyStopRatio * std::max(p, step_tol);
+}
+
+// THE ACCURACY STOP's keep rule for a further step (NaN keeps nothing).
+inline bool accuracy_step_contracts(double res_new, double res_old, double corr_new,
+                                    double corr_old) {
+    return res_new < res_old && res_new <= kAccuracyContraction * res_old &&
+           corr_new <= kAccuracyContraction * corr_old;
+}
+
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
 
     /// Refinement steps this ONE solve kept — deliberately two different
     /// meanings by producer, feeding QpCounters' two fields:
-    /// solve_eqp reports EXTRA steps beyond the mandatory first (identically 0
-    /// on this loop-free path; kept because QpCounters::eqp_refine_steps is
-    /// the invariant it feeds), while solve_bordered_eqp reports TOTAL steps
-    /// including the mandatory first (always >= 1).
+    /// solve_eqp reports EXTRA steps beyond the mandatory first (THE ACCURACY
+    /// STOP's, summed over its solve rounds; 0 unless it fired), while
+    /// solve_bordered_eqp reports TOTAL steps including the mandatory first
+    /// (always >= 1).
     Index refine_steps = 0;
 
     /// THE EQP-SITE RESIDUAL CHECK's three outputs (M7 W2 E4; see the header's
@@ -536,6 +567,55 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // at most three rounds. Every round's residual-check solves are SPENT and
     // counted (residual_refine_iters); the last round's answer is the one
     // returned.
+    // THE ACCURACY STOP (header section), from the answer before the model step
+    // (`before`) to the answer after it (`yy`, refined in place). Returns the steps kept.
+    const auto free_inf_of = [&](const Vec &v) {
+        return n_free > 0 ? detail::nan_sticky_inf_norm(Vec(v.head(n_free))) : 0.0;
+    };
+    const auto refine_to_accuracy = [&](const Vec &before, Vec &yy) -> Index {
+        bool exceeds_radius = false;
+        for (Index k = 0; k < n_free; ++k) {
+            exceeds_radius =
+                exceeds_radius || std::abs(yy(k) - before(k)) > opts.trust_region_radius;
+        }
+        if (!exceeds_radius) {
+            return 0;
+        }
+        const auto free_step = [&](const Vec &v) {
+            double m = 0.0;
+            for (Index k = 0; k < n_free; ++k) {
+                m = detail::nan_sticky_max(
+                    m, std::abs(v(k) - x_k(asm_.free_of_full[static_cast<std::size_t>(k)])));
+            }
+            return m;
+        };
+        const double step_tol = eqp_step_tol(x_k, opts);
+        double last = free_inf_of(Vec(yy - before));
+        Vec res = residual_of(yy);
+        double res_inf = detail::nan_sticky_inf_norm(res);
+        Index kept = 0;
+        for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
+            if (accuracy_resolved(last, free_step(yy), step_tol)) {
+                break;
+            }
+            const Vec corr = detail::solve_vec(kkt, res);
+            const Vec cand = yy + corr;
+            Vec cres = residual_of(cand);
+            const double cres_inf = detail::nan_sticky_inf_norm(cres);
+            const double corr_inf = free_inf_of(corr);
+            if (!accuracy_step_contracts(cres_inf, res_inf, corr_inf, last)) {
+                break;
+            }
+            yy = cand;
+            res = std::move(cres);
+            res_inf = cres_inf;
+            last = corr_inf;
+            ++kept;
+        }
+        return kept;
+    };
+    Index accuracy_steps = 0;
+
     Vec y;
     Vec r_reg;
     bool shifted_refused = false;
@@ -581,7 +661,11 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         }
 
         if (!kkt.dense_shifted) {
+            const Vec y_model = y;
             y = y + detail::solve_vec(kkt, residual_of(y));
+            if (opts.independent_working_set) {
+                accuracy_steps += refine_to_accuracy(y_model, y);
+            }
         } else {
             // A shifted factor answers a different system: the step is kept only
             // if it reduces the proximal residual (a NaN keeps nothing).
@@ -622,7 +706,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
 
     EqpResult out = scatter(y);
     out.polish_steps = polish_kept;
-    out.refine_steps = 0; // no iterated loop on this path -- see the header note
+    out.refine_steps = accuracy_steps;
     out.row_residual = row_residual;
     out.residual_ratio = ratio;
     out.residual_refine_iters = res_spent_rounds;
