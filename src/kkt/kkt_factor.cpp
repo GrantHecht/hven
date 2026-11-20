@@ -300,6 +300,35 @@ Vec solve_vec(const KktFactor &k, const Vec &rhs) {
     return x;
 }
 
+void solve_mat(const KktFactor &k, const Mat &rhs, Mat &x) {
+    x.resize(rhs.rows(), rhs.cols());
+    switch (k.numerics) {
+    case PlatformRetake::kNone:
+        k.factor.solve(rhs, x);
+        break;
+    case PlatformRetake::kScaled: {
+        if (k.retake_scale.size() != rhs.rows()) {
+            throw std::invalid_argument(fmt::format(
+                "solve_mat: right-hand sides have {} rows, the scaled retake's D has size {}",
+                static_cast<long long>(rhs.rows()), static_cast<long long>(k.retake_scale.size())));
+        }
+        // Column by column, the same elementwise products solve_vec forms.
+        Mat scaled(rhs.rows(), rhs.cols());
+        for (Index j = 0; j < rhs.cols(); ++j) {
+            scaled.col(j) = rhs.col(j).cwiseProduct(k.retake_scale);
+        }
+        k.scaled_session->solve(scaled, x);
+        for (Index j = 0; j < x.cols(); ++j) {
+            x.col(j).array() *= k.retake_scale.array();
+        }
+        break;
+    }
+    case PlatformRetake::kMatched:
+        k.matched_session->solve(rhs, x);
+        break;
+    }
+}
+
 hven::linear::InertiaEvidence kkt_inertia(const KktFactor &k) {
     switch (k.numerics) {
     case PlatformRetake::kScaled:

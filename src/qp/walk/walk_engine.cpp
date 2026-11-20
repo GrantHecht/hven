@@ -6138,13 +6138,15 @@ void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderSta
         }
     }
 
-    // THE ADDS ARE ONE BATCH: C is extended per add and factorized once at the
-    // end (SchurComplement::begin_batch). Nothing reads the stack's evidence
-    // between two adds of this sync -- needs_refactorization() and the inertia
-    // are read by border_solve_or_fall_back after it returns -- so the one
-    // factorization is the state the per-add ones would have left. A throw is
-    // answered as the per-add path answers it (end_batch's replay), and the
-    // ledger is trimmed to the stack that survives: it is the stack's prefix.
+    // THE ADDS ARE ONE BATCH: each add is recorded, and the batch lands at the
+    // end with one multi-right-hand-side K0 solve and one factorization
+    // (SchurComplement::begin_batch, BATCHING). Nothing reads the stack between
+    // two adds of this sync -- needs_refactorization() and the inertia are read
+    // by border_solve_or_fall_back after it returns -- so the landed batch is
+    // the state the per-add calls would have left. A throw is answered as the
+    // per-add path answers it (end_batch's single-solve and factorization
+    // replays), and the ledger is trimmed to the stack that survives: it is the
+    // stack's prefix.
     SchurComplement &schur = *border.schur;
     schur.begin_batch();
     const auto close_batch = [&]() {

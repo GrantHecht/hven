@@ -298,6 +298,14 @@ class DenseTallyScope {
 /// session `k.numerics` names).
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 
+/// @brief solve_vec() for every column of `rhs` at once: ONE multi-right-hand-
+/// side solve through the same session (SymmetricFactor's matrix overload).
+/// `x` is resized to rhs's shape. Column j of `x` is what solve_vec() returns
+/// for column j wherever the backend's multi-right-hand-side solve rounds as
+/// its single solve does -- an observation per backend, not a contract (the
+/// Schur border batch, schur_complement.h, rests on it).
+void solve_mat(const KktFactor &k, const Mat &rhs, Mat &x);
+
 /// @brief The inertia evidence of `k`'s current numerics (the session
 /// `k.numerics` names; D K D's inertia is K's, by Sylvester's law).
 hven::linear::InertiaEvidence kkt_inertia(const KktFactor &k);

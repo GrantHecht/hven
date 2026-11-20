@@ -379,9 +379,10 @@ function(hven_add_isolated_test_executable name)
 endfunction()
 
 # The platform's backend session and adapter TUs a seam executable recompiles beside the
-# dense arm's session (the dispatch the adapter does).
+# dense arm's session (the dispatch the adapter does) and the analysis tally (the record the
+# adapter makes).
 function(_hven_seam_backend_sources out)
-    set(_l ${HVEN_SRC_DIR}/linear/dense_session.cpp)
+    set(_l ${HVEN_SRC_DIR}/linear/dense_session.cpp ${HVEN_SRC_DIR}/linear/analysis_tally.cpp)
     if(NOT APPLE)
         list(APPEND _l ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
                        ${HVEN_SRC_DIR}/linear/symmetric_factor_mkl.cpp)

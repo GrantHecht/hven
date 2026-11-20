@@ -601,6 +601,85 @@ TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
                      per_add.solve(probe_rhs(IncrementalFixture::kN0, per_add.dim())));
 }
 
+// The batch lands its columns with ONE multi-right-hand-side K0 solve (PF-4),
+// on the sparse arm and on the dense arm, and the state is the per-add one bit
+// for bit -- the K0 columns included, which the solve below reads through C.
+TEST(Schur, BatchLandsWithOneSolveOnEitherArm) {
+    for (const auto policy :
+         {hven::linear::DensePolicy::kNever, hven::linear::DensePolicy::kAlways}) {
+        SCOPED_TRACE(policy == hven::linear::DensePolicy::kNever ? "sparse arm" : "dense arm");
+        IncrementalFixture fx;
+        QpOptions opts;
+        opts.max_schur_border_dimension = 100;
+        opts.schur_condition_max = 1e300;
+        detail::KktFactor kkt(0, policy);
+        detail::factorize_checked(kkt, fx.K0);
+
+        SchurComplement per_add(kkt, opts);
+        SchurComplement batched(kkt, opts);
+        for (std::size_t p = 0; p < 9; ++p) {
+            per_add.add_border(fx.pool[p], fx.diag[p]);
+        }
+        batched.begin_batch();
+        for (std::size_t p = 0; p < 9; ++p) {
+            batched.add_border(fx.pool[p], fx.diag[p]);
+        }
+        const Index solves_before = kkt.factor.counters().solve_count;
+        batched.end_batch();
+        EXPECT_EQ(kkt.factor.counters().solve_count - solves_before, 1);
+
+        ASSERT_EQ(batched.dim(), per_add.dim());
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(batched.cond_estimate()),
+                  std::bit_cast<std::uint64_t>(per_add.cond_estimate()));
+        EXPECT_EQ(batched.expected_neg_eigs_delta(), per_add.expected_neg_eigs_delta());
+        const Vec rhs = probe_rhs(IncrementalFixture::kN0, batched.dim());
+        expect_same_bits(batched.solve(rhs), per_add.solve(rhs));
+    }
+}
+
+// A K0 that can no longer be solved against (re-analyzed behind the stack's
+// back, so every solve refuses): the per-add path throws at the batch's first
+// add; the batch records every add, its one solve and the single-solve replay
+// both throw, and end_batch() raises that throw with nothing landed -- the
+// stack, the caller's ledger prefix, is the per-add one.
+TEST(Schur, BatchWhoseK0SolveThrowsLeavesThePerAddStack) {
+    IncrementalFixture fx;
+    QpOptions opts;
+    opts.max_schur_border_dimension = 100;
+    opts.schur_condition_max = 1e300;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+    detail::factorize_checked(kkt, fx.K0);
+
+    SchurComplement per_add(kkt, opts);
+    SchurComplement batched(kkt, opts);
+    for (std::size_t p = 0; p < 3; ++p) {
+        per_add.add_border(fx.pool[p], fx.diag[p]);
+        batched.add_border(fx.pool[p], fx.diag[p]);
+    }
+    const double cond = per_add.cond_estimate();
+    kkt.factor.analyze(fx.K0); // the numerics are gone: every solve throws
+
+    EXPECT_THROW(per_add.add_border(fx.pool[3], fx.diag[3]), std::logic_error);
+    batched.begin_batch();
+    for (std::size_t p = 3; p < 7; ++p) {
+        batched.add_border(fx.pool[p], fx.diag[p]);
+    }
+    EXPECT_THROW(batched.end_batch(), std::logic_error);
+
+    EXPECT_EQ(batched.dim(), 3);
+    EXPECT_EQ(batched.dim(), per_add.dim());
+    // C is the pre-batch one, factorized again to the same evidence.
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(batched.cond_estimate()),
+              std::bit_cast<std::uint64_t>(cond));
+    EXPECT_EQ(batched.expected_neg_eigs_delta(), per_add.expected_neg_eigs_delta());
+    // The batch is closed: a drop is accepted and lands on the right border.
+    batched.drop_border(1);
+    per_add.drop_border(1);
+    EXPECT_EQ(batched.dim(), 2);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(batched.cond_estimate()),
+              std::bit_cast<std::uint64_t>(per_add.cond_estimate()));
+}
+
 #if !defined(__APPLE__)
 // A non-finite border inside a batch: the single factorization throws, and the
 // replay leaves the stack where the per-add path leaves it -- the first

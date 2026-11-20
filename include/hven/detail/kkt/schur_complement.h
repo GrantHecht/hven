@@ -47,7 +47,8 @@
 // needs_refactorization() will simply grow C without bound and pay the
 // O(dim()^3) factorization for it.
 //
-// K0^-1 v_i is cached at add_border time (one K0 solve per border) so
+// K0^-1 v_i is cached when border i lands (one K0 solve per border, or one
+// multi-right-hand-side solve per batch -- see BATCHING) so
 // `solve` costs exactly two K0 solves (for w and for x0), independent of
 // dim(). The partial-solve fast path (composing
 // SymmetricFactor::solve_partial's phases to shave one of those two solves
@@ -60,15 +61,23 @@
 // re-indexed after each drop) and deletes its row and column of C.
 //
 // BATCHING. begin_batch()/end_batch() bracket a run of add_border calls whose
-// intermediate factorizations nobody reads (sync_borders): each add then only
-// extends C, and end_batch() factorizes once. Inside a batch the evidence is
-// absent (every reader refuses, as after a failed factorization). end_batch() keeps
-// the per-add contract under a throw: if the one factorization throws, the
-// batch's adds are replayed one at a time with their own factorizations, so
-// the throw and the stack it leaves are exactly the per-add ones.
+// intermediate states nobody reads (sync_borders): each add is only RECORDED,
+// and end_batch() lands them all -- ONE multi-right-hand-side K0 solve for the
+// batch's columns (detail::solve_mat), each border's row and column of C in add
+// order, and ONE factorization. Between two adds of a batch no evidence reader
+// accepts (as after a failed factorization) and nothing may solve. end_batch()
+// keeps the per-add contract under a throw: if the batch solve throws, the
+// columns are solved again one at a time and the batch lands up to the first
+// add whose own solve throws (that throw is end_batch()'s); if the one
+// factorization throws, the landed adds are replayed one at a time with their
+// own factorizations. Either way the throw and the stack it leaves are the
+// per-add ones. Whether the batch solve's columns equal k single solves bit for
+// bit is the backend's rounding, measured per backend (PF-4,
+// docs/notes/data/2026-11-m8-pf4/), not promised here.
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -128,8 +137,8 @@ class SchurComplement {
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
     // one K0 solve (to cache K0^-1 v), the O(dim() * n0) dots of the new row
-    // and column of C, and an O(dim()^3) dense factorization of C (deferred to
-    // end_batch() inside a batch).
+    // and column of C, and an O(dim()^3) dense factorization of C. Inside a
+    // batch it only records (v, d); end_batch() lands it (see BATCHING).
     //
     // ALL-OR-NOTHING ON THE BORDER STACK. If anything below throws -- the K0
     // solve, an allocation, or the dense factorization -- this call leaves
@@ -147,6 +156,20 @@ class SchurComplement {
     // instead, which makes needs_refactorization() true and every evidence
     // reader refuse; the caller must rebuild K0 rather than keep bordering.
     void add_border(const Vec &v, double d) {
+        if (batching_) {
+            // Recorded, landed by end_batch(). Both reservations precede both
+            // pushes, so a bad_alloc leaves the two lists the same length.
+            pending_v_.reserve(pending_v_.size() + 1);
+            pending_d_.reserve(pending_d_.size() + 1);
+            pending_v_.push_back(v);
+            pending_d_.push_back(d);
+            // C is owed a factorization from here on: nothing may read the
+            // old one (end_batch() refactorizes even if nothing lands).
+            singular_ = false;
+            evidence_.reset();
+            factor_pending_ = true;
+            return;
+        }
         Vec k0inv_v = detail::solve_vec(kkt_, v);
 
         // Every allocation the pushes below and the growth of c_ could need is
@@ -162,14 +185,7 @@ class SchurComplement {
         const std::size_t base = v_.size();
         try {
             append_border(v, std::move(k0inv_v), d);
-            if (batching_) {
-                // Factorization deferred: nothing may read C's old one.
-                singular_ = false;
-                evidence_.reset();
-                factor_pending_ = true;
-            } else {
-                factor_c();
-            }
+            factor_c();
         } catch (...) {
             // Shrinking three vectors to a size they already held: no
             // allocation, no reallocation, nothing here can throw.
@@ -180,7 +196,7 @@ class SchurComplement {
         }
     }
 
-    // Opens a batch: until end_batch(), add_border only extends C. No
+    // Opens a batch: until end_batch(), add_border only records its border. No
     // drop_border inside a batch. Not nestable.
     void begin_batch() {
         if (batching_) {
@@ -189,28 +205,39 @@ class SchurComplement {
         batching_ = true;
         factor_pending_ = false;
         batch_base_ = v_.size();
+        pending_v_.clear();
+        pending_d_.clear();
     }
 
-    // Closes the batch and factorizes C once if it grew. The result is the
-    // state the same adds made one at a time would have left, bit for bit.
-    // If the single factorization throws, the batch's adds are replayed with a
-    // factorization each: the throw is then the one the per-add path raises
-    // (the first add whose C cannot be factorized), and the stack is left as
-    // that add's rollback leaves it -- the caller's ledger keeps only its first
-    // dim() entries. If the replay completes, the replay's state stands.
+    // Closes the batch: lands the recorded adds (land_pending) and factorizes
+    // C once if it grew. The result is the state the same adds made one at a
+    // time would have left, given K0 solves that agree column for column.
+    // A K0 solve that throws ends the batch at the first add whose own solve
+    // throws: the adds before it land and C is factorized as below, then that
+    // throw leaves end_batch() -- unless the factorization's replay throws
+    // first, as the per-add path's caller (sync_borders' close) would also
+    // have raised that one. If the single factorization throws, the landed
+    // adds are replayed with a factorization each: the throw is then the one
+    // the per-add path raises (the first add whose C cannot be factorized),
+    // and the stack is left as that add's rollback leaves it -- the caller's
+    // ledger keeps only its first dim() entries. If the replay completes, the
+    // replay's state stands.
     void end_batch() {
         if (!batching_) {
             return;
         }
         batching_ = false;
-        if (!factor_pending_) {
-            return;
+        const std::exception_ptr solve_failure = land_pending();
+        if (factor_pending_) {
+            factor_pending_ = false;
+            try {
+                factor_c();
+            } catch (...) {
+                replay_batch();
+            }
         }
-        factor_pending_ = false;
-        try {
-            factor_c();
-        } catch (...) {
-            replay_batch();
+        if (solve_failure) {
+            std::rethrow_exception(solve_failure);
         }
     }
 
@@ -319,7 +346,9 @@ class SchurComplement {
         return x;
     }
 
-    Index dim() const { return static_cast<Index>(v_.size()); }
+    // Inside a batch, the recorded adds count: dim() is the stack the same
+    // adds made one at a time would have built so far.
+    Index dim() const { return static_cast<Index>(v_.size() + pending_v_.size()); }
 
     // C's two extreme directions, the ends cond_estimate() measures: the one
     // nearest its null space (kConditionDirectionSteps steps of inverse
@@ -556,6 +585,53 @@ class SchurComplement {
         }
     }
 
+    // Lands the batch's recorded adds in order (end_batch). Their K0 columns
+    // come from ONE multi-right-hand-side solve; if that throws, from single
+    // solves, up to the first one that throws, whose exception is returned
+    // (nothing is thrown from here). The recorded lists are emptied on every
+    // path. Each landed add leaves a factorization owed, as a per-add add
+    // inside a batch did.
+    std::exception_ptr land_pending() {
+        if (pending_v_.empty()) {
+            return nullptr;
+        }
+        std::vector<Vec> pv = std::move(pending_v_);
+        std::vector<double> pd = std::move(pending_d_);
+        pending_v_.clear();
+        pending_d_.clear();
+        const auto land = [this](const Vec &v, Vec &&k0inv_v, double d) {
+            reserve_all(v_.size() + 1);
+            append_border(v, std::move(k0inv_v), d); // capacity reserved: no throw
+            singular_ = false;
+            evidence_.reset();
+            factor_pending_ = true;
+        };
+        const auto k = static_cast<Index>(pv.size());
+        Mat rhs;
+        Mat sol;
+        bool batched = false;
+        try {
+            rhs.resize(pv[0].size(), k);
+            for (Index j = 0; j < k; ++j) {
+                rhs.col(j) = pv[static_cast<std::size_t>(j)];
+            }
+            detail::solve_mat(kkt_, rhs, sol);
+            batched = true;
+        } catch (...) {
+            batched = false;
+        }
+        try {
+            for (Index j = 0; j < k; ++j) {
+                const auto sj = static_cast<std::size_t>(j);
+                Vec k0inv_v = batched ? Vec(sol.col(j)) : detail::solve_vec(kkt_, pv[sj]);
+                land(pv[sj], std::move(k0inv_v), pd[sj]);
+            }
+        } catch (...) {
+            return std::current_exception();
+        }
+        return nullptr;
+    }
+
     // After end_batch()'s one factorization threw: undoes the batch's adds and
     // redoes each with its own factorization, exactly as add_border does, so
     // the exception and the stack it leaves are the per-add path's. The cached
@@ -646,6 +722,9 @@ class SchurComplement {
     bool batching_ = false;
     bool factor_pending_ = false;
     std::size_t batch_base_ = 0;
+    // The open batch's recorded adds (column, diagonal), in add order.
+    std::vector<Vec> pending_v_;
+    std::vector<double> pending_d_;
 
     // Bunch-Kaufman factor of C (lower triangle -- see factor_c) and
     // the block evidence read off it. The evidence is absent when singular_

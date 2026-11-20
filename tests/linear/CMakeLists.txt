@@ -8,6 +8,7 @@
 ################################################################################
 
 set(_hven_linear_sources
+    test_analysis_tally.cpp
     test_dense_symmetric_factor.cpp
     test_dense_symmetric_factor_growth.cpp
     test_matching_scaling.cpp

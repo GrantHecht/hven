@@ -1195,4 +1195,47 @@ class Factorization {
     DenseSingularPolicy dense_singular_policy_ = DenseSingularPolicy::kSparseFallback;
 };
 
+// THE ANALYSIS TALLY (PF-4): an exact count, taken at this boundary, of the
+// symbolic analyses the PLATFORM (sparse) backend completes on the calling
+// thread while a tally is open -- every SymmetricFactor instance, including the
+// short-lived ones an engine builds and drops inside one call, which no
+// per-instance Counters can be summed over from outside -- and of the REPEATS
+// among them: analyses whose key an earlier analysis in the same tally already
+// carried. The key is the analyzed matrix's pattern hash (hven::pattern_hash,
+// the structural key factorize()'s own pattern guard uses), its order and
+// stored-entry count, and every Options field that reaches the symbolic phase
+// (decomposition, ordering, weighted matching, matrix scaling, pivot strategy,
+// factorization algorithm, pivot perturbation): an analysis a repeat names
+// could have been skipped by reusing the earlier one's symbolic, so the repeat
+// count bounds what symbolic reuse could save.
+//
+// The dense arm's analyze() runs no symbolic phase and is not counted; nor is a
+// failed analysis (Counters::analyze_count's rule). Tallies nest per thread,
+// and every open tally sees every analysis -- a nested one counts a sub-extent
+// of the enclosing one's. Observation only: opening a tally changes no result.
+// Not shared across threads: an analysis is seen by the tallies open on the
+// thread that ran it.
+class AnalysisTally {
+  public:
+    AnalysisTally();
+    ~AnalysisTally();
+    AnalysisTally(const AnalysisTally &) = delete;
+    AnalysisTally &operator=(const AnalysisTally &) = delete;
+
+    // Platform-backend symbolic analyses completed while this tally was open.
+    Index analyses() const noexcept { return analyses_; }
+    // Of those, the ones whose key an earlier one in this tally carried.
+    Index repeats() const noexcept { return repeats_; }
+
+    // Called by the backend adapters after each completed platform analysis.
+    static void record(std::uint64_t key) noexcept;
+
+  private:
+    struct Seen;
+    AnalysisTally *outer_ = nullptr;
+    Index analyses_ = 0;
+    Index repeats_ = 0;
+    std::unique_ptr<Seen> seen_;
+};
+
 } // namespace hven::linear

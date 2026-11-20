@@ -37,6 +37,7 @@ target_sources(hven PRIVATE
 # the build should not be compiling). The dense arm and the matching/scaling are backend
 # independent.
 target_sources(hven PRIVATE
+    linear/analysis_tally.cpp
     linear/dense_session.cpp
     linear/dense_symmetric_factor.cpp
     linear/matching_scaling.cpp
@@ -253,12 +254,14 @@ endif()
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
 #
-# Current count: 60 (RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
+# Current count: 61 (RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
 # json_lines_trace_sink.cpp; M8 I17 added qp/qp_dump_writer.cpp, a once-per-dump TU kept OUT of
-# the PCH: it runs only when a dump directory is configured). Every source since the 29th has stayed OUT of the PCH on the
+# the PCH: it runs only when a dump directory is configured; M8 PF-4 added
+# linear/analysis_tally.cpp, OUT of the PCH: a dozen lines over <unordered_set> and the public
+# factor header, nothing a PCH would save). Every source since the 29th has stayed OUT of the PCH on the
 # unmeasured-default footing; the per-source history is in docs/build.md, "History: the source
 # count".
-set(_hven_expected_source_count 60)
+set(_hven_expected_source_count 61)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

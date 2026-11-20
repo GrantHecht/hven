@@ -819,4 +819,9 @@ verbatim from `src/CMakeLists.txt`. The current value and the tripwire's purpose
 # 58 as of linear/matching_scaling.cpp (M8 sparse-equil-v4): the maximum-product matching and its
 # symmetric scaling. NOT a PCH source, on the same unmeasured-default footing: it includes its own
 # header, fmt and the standard library, a different set from src/hven_pch.h's prefix.
+# 59 as of RS-R1 (qp/ipqp/ipqp_options.cpp added; trace_writer.cpp renamed json_lines_trace_sink.cpp).
+# 60 as of qp/qp_dump_writer.cpp (M8 I17; recorded here by PF-4).
+# 61 as of linear/analysis_tally.cpp (M8 PF-4): the per-thread analysis tally both platform adapters
+# record into. NOT a PCH source, on the same unmeasured-default footing: it includes the public factor
+# header and <unordered_set> only.
 ```

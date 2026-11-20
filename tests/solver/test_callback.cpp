@@ -2812,7 +2812,9 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(rejection_run_histogram)                                                                     \
     X(sparse_scaled_retakes)                                                                       \
     X(sparse_matched_retakes)                                                                      \
-    X(sparse_retake_refusals)
+    X(sparse_retake_refusals)                                                                      \
+    X(backend_symbolic_analyses)                                                                   \
+    X(backend_symbolic_repeats)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
@@ -2919,8 +2921,9 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // (`optimal_row_gray_exits`); 1240 -> 1248 at M8 AP-5 G7 (`payload_ignored`); 1248 -> 1344 at
     // M8 GL-0 (seven `Index` and the five-`Index` run histogram); 1344 -> 1368 at M8
     // sparse-equil-v4 (`sparse_scaled_retakes`, `sparse_matched_retakes`,
-    // `sparse_retake_refusals`).
-    static_assert(sizeof(hven::SqpCounters) == 1368,
+    // `sparse_retake_refusals`); 1368 -> 1384 at M8 PF-4 (`backend_symbolic_analyses`,
+    // `backend_symbolic_repeats`).
+    static_assert(sizeof(hven::SqpCounters) == 1384,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

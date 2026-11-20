@@ -902,6 +902,8 @@ group; `SqpOptions::hessian_mode`).
 | `sparse_scaled_retakes` | integer | `SqpCounters::sparse_scaled_retakes` | retake factorizations run (taken or not; none is in `factorizations`) of sparse platform KKT factorizations, on the maximum-product-matching scaled D K D after a refined walk answer through them missed `detail::kPlatformSolveFailureTol` (M8 sparse-equil-v4; `detail/kkt/kkt_factor.h`). Folded like `factorizations`. No sentinel. |
 | `sparse_matched_retakes` | integer | `SqpCounters::sparse_matched_retakes` | retake factorizations run on the weighted-matching session: scaled retakes that still perturbed pivots and failed again (backward error or the EQP-site residual check), escalated to the weighted-matching session (Pardiso only; 0 on Accelerate) (M8 sparse-equil-v4). Folded like `factorizations`. No sentinel. |
 | `sparse_retake_refusals` | integer | `SqpCounters::sparse_retake_refusals` | walk answers through retake numerics that the EQP-site residual check refused without an escalation (M8 sparse-equil-v4). Folded like `eqp_residual_refusals`. No sentinel. |
+| `backend_symbolic_analyses` | integer | `SqpCounters::backend_symbolic_analyses` | every symbolic analysis the platform (sparse) backend completed during the solve, on any factor, taken at the factor boundary (`hven::linear::AnalysisTally`); the restoration sub-solve's included by the tally itself, not folded (M8 PF-4). No sentinel. |
+| `backend_symbolic_repeats` | integer | `SqpCounters::backend_symbolic_repeats` | of those, the analyses whose key (pattern hash, order, stored entries, the factor options that reach the symbolic phase) an earlier one in the same solve carried (M8 PF-4). No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -989,6 +991,11 @@ eight, no sentinel, the golden lines re-derived ONCE with a "RE-DERIVED AT M8 GL
 distinct values up by three, no sentinel, both v1 golden `sqp.solve.end` lines
 (`tests/trace/golden/trace_v1/sqp_complete.jsonl`) and the two counters-object goldens of
 `tests/trace/test_json_lines_trace_sink.cpp` re-derived once.
+
+**THE DIRECT COUNTERS M8 PF-4 APPENDED — TWO** (`backend_symbolic_analyses`,
+`backend_symbolic_repeats`, the table rows above), after `sparse_retake_refusals`, the same route:
+two keys before the `ssn` object, the nested tables' distinct values up by two, no sentinel, both v1
+golden `sqp.solve.end` lines and the two counters-object goldens re-derived once.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

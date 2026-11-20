@@ -159,10 +159,13 @@ struct QpCounters {
     /// border-mode cache does not exist.
     bool k0_reused = false;
 
-    /// Number of backend SYMBOLIC-ANALYSIS calls this solve() call paid for --
-    /// the number of times walk_engine.h's rebuild_k0() found the analysis decision
-    /// `needed` before calling `factorize_checked()`. Counted at the call site
-    /// rather than inside the factor, so it stays a QP-engine-level observable.
+    /// Backend SYMBOLIC-ANALYSIS calls this solve() call paid ON THE BORDER/REBUILD
+    /// PATH (and the verdict-site refinement's fresh factor) -- the number of times
+    /// walk_engine.h's rebuild_k0() found the analysis decision `needed` before
+    /// calling `factorize_checked()`. Counted at the call site rather than inside
+    /// the factor, so it stays a QP-engine-level observable. NOT every analysis
+    /// the walk pays: the elimination path's EQP factors (solve_eqp) analyze
+    /// uncounted here; SqpCounters::backend_symbolic_analyses sees them all (PF-4).
     ///
     /// A never-shared solve should read 1 (or 0, if the pattern never needed
     /// rebuilding) regardless of how many `factorizations` it pays; a fixture
@@ -1658,6 +1661,7 @@ struct SqpCounters {
     /// stay small (1, or 0 on an immediate-convergence solve) across the whole
     /// solve regardless of how many factorizations were paid; a large value on an
     /// otherwise-ordinary solve is the regression signal it exists to catch.
+    /// `backend_symbolic_analyses` (below) is the count of every analysis.
     Index symbolic_analyses = 0;
 
     /// The RESOLVED warm-start level this solve actually used -- not the level a
@@ -2433,6 +2437,24 @@ struct SqpCounters {
     Index sparse_scaled_retakes = 0;
     Index sparse_matched_retakes = 0;
     Index sparse_retake_refusals = 0;
+
+    /// @brief Every symbolic analysis the PLATFORM (sparse) backend completed
+    ///        during this solve, taken at the factor boundary
+    ///        (hven::linear::AnalysisTally): the walk's border/rebuild factor
+    ///        AND every factor the engines build and drop inside one call (the
+    ///        elimination path's EQP factors, the SSN's, the IPQP's, the
+    ///        equality basis's, the platform-solve retake sessions), the
+    ///        restoration sub-solve included. `symbolic_analyses` counts the
+    ///        border/rebuild path and the IPQP's only, and so reads far lower on
+    ///        a solve that uses the elimination path (PF-4). The dense arm runs
+    ///        no symbolic phase and adds nothing here. Appended last.
+    Index backend_symbolic_analyses = 0;
+    /// @brief Of `backend_symbolic_analyses`, the ones whose key -- pattern
+    ///        hash, order, stored entries and the factor options that reach the
+    ///        symbolic phase -- an earlier analysis in the same solve already
+    ///        carried: an upper bound on what reusing a symbolic analysis keyed
+    ///        on the identical pattern could have skipped. Appended last.
+    Index backend_symbolic_repeats = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2541,7 +2563,9 @@ struct SqpCounters {
     X(rejection_run_histogram, counter_never_absent)                                               \
     X(sparse_scaled_retakes, counter_never_absent)                                                 \
     X(sparse_matched_retakes, counter_never_absent)                                                \
-    X(sparse_retake_refusals, counter_never_absent)
+    X(sparse_retake_refusals, counter_never_absent)                                                \
+    X(backend_symbolic_analyses, counter_never_absent)                                             \
+    X(backend_symbolic_repeats, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

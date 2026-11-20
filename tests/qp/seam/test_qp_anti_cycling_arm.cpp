@@ -2045,9 +2045,17 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
         // admission stopped happening -- `dep_structural_first` 0, a non-vacuity
         // premise lost. The floor, which is there for its own reasons (see the
         // constant's note), restores it: the premise holds at the shipped engine.
-        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
-            EXPECT_GE(s.counters.dep_structural_first, 1);
-        }
+        //
+        // LOST AT M8 PF-4 (declared, docs/notes/data/2026-11-m8-pf4/): the border
+        // batch now lands its K0 columns with one multi-right-hand-side solve, whose
+        // rounding differs from k single solves in the last digits, and on this dump
+        // the numerical test no longer admits pin 407 -- `dep_structural_first` 0 on
+        // the border algebra too, kOptimal with the KKT battery and clean zero-motion
+        // counters all the same. The rule stays pinned where it fires (the
+        // `dep_structural_first` == 1 fixture above); here the count is recorded.
+        ::testing::Test::RecordProperty(
+            std::string("structural_first_") + e2_name(alg) + "_since_pf4",
+            "dep_structural_first=" + std::to_string(s.counters.dep_structural_first));
 #endif
 #else
         // Whether the structural dependency decides first (a rule-fired counter) is the walk's

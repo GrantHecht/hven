@@ -51,6 +51,7 @@
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/sqp_warm_state.h>
 #include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/linear/symmetric_factor.h>
 #include <hven/trace/console_trace_sink.h>
 
 using namespace hven::detail;
@@ -3656,7 +3657,13 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
             }
         }
     } sub_guard{(ipqp_trace_ != nullptr && is_restoration_sub_driver_) ? ipqp_trace_ : nullptr};
+    // THE ANALYSIS TALLY (PF-4): every platform symbolic analysis the body pays,
+    // on any factor, the restoration sub-solve's included (its own tally nests
+    // inside this one and both see its analyses; nothing is folded up).
+    hven::linear::AnalysisTally analysis_tally;
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
+    out.counters.backend_symbolic_analyses = analysis_tally.analyses();
+    out.counters.backend_symbolic_repeats = analysis_tally.repeats();
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no

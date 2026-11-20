@@ -884,3 +884,20 @@ unchanged and `hven.h` still reaches all of them. The QP engines (`detail/qp/ipq
 now include `qp_options.h` instead of the SQP types, and `validate(const IpqpOptions &)` is declared
 there: it is the code `validate(const SqpOptions &)` runs for `advanced.ipqp`, at the same position,
 with the same messages. No name, enumerator value or field changed.
+
+## The analysis tally and the batched Schur border solve (M8 PF-4)
+
+Additive; no result moves (`docs/notes/data/2026-11-m8-pf4/`).
+
+- `hven::linear::AnalysisTally` (`hven/linear/symmetric_factor.h`): an RAII scope counting, on the calling thread, every
+  symbolic analysis the platform (sparse) backend completes on any `SymmetricFactor` while it is open, and the repeats
+  among them (an earlier analysis in the same tally carried the same key: pattern hash, order, stored entries, the options
+  that reach the symbolic phase). Observation only.
+- New counters `SqpCounters::backend_symbolic_analyses` and `backend_symbolic_repeats` (trace keys after
+  `sparse_retake_refusals`): the tally over one SQP solve. `symbolic_analyses` keeps its meaning -- the border/rebuild
+  path's analyses and the IPQP's -- and reads far lower on a solve that uses the elimination path, whose short-lived EQP
+  factors each pay an analysis the new counter sees.
+- `detail::SchurComplement`'s batch (`begin_batch`/`end_batch`, the walk's `sync_borders`) lands its borders with ONE
+  multi-right-hand-side K0 solve (`detail::solve_mat`) instead of one solve per border.
+
+Rebuild: `SqpCounters` changes size; code built against the old headers needs a rebuild.

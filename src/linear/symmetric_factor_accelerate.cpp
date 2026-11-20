@@ -36,6 +36,7 @@
 #include <hven/core/errors.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/linear/accelerate_session.h>
+#include <hven/detail/linear/analysis_key.h>
 #include <hven/detail/linear/dense_session.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/linear/symmetric_factor.h>
@@ -625,6 +626,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     numerics_refused_ = false;
     refused_epoch_ = 0;
     ++counters_.analyze_count;
+    AnalysisTally::record(detail::analysis_key(pattern_hash_, A, opts_));
 }
 
 void SymmetricFactor::check_factorize_input(const SpMatRM &A, PatternCheck check,
