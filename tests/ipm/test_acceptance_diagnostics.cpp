@@ -40,7 +40,7 @@ using hven::detail::FilterAcceptance;
 using hven::detail::FunnelAcceptance;
 using hven::detail::kFunnelInfeasibilityFactor;
 using hven::detail::ProgressMeasures;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // Bare AcceptanceStrategy: implements only the pure-virtual surface and does
 // NOT override append_diagnostics(), so it exercises the base class's default

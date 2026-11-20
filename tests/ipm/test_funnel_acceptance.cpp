@@ -46,7 +46,7 @@ using hven::detail::FunnelAcceptance;
 using hven::detail::kFunnelBeta;
 using hven::detail::kFunnelInitialUpperBound;
 using hven::detail::kFunnelKappa;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // Priming: run the FIRST is_iterate_acceptable() so the width is derived from
 // θ₀ = current.infeasibility, WITHOUT the priming call mutating the width. The

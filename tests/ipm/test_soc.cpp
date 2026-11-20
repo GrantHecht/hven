@@ -84,7 +84,7 @@ using hven::detail::soc_should_trigger;
 using hven::detail::SocCorrectionOutcome;
 using hven::detail::SocRecovery;
 using hven::detail::SolverContext;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 using Action = RecoveryChain::Action;
 

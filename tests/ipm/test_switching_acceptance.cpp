@@ -44,7 +44,7 @@ using hven::detail::kThetaMinFact;
 using hven::detail::ProgressMeasures;
 using hven::detail::RejectionCause;
 using hven::detail::SwitchingAcceptance;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // Minimal concrete subclass: records every hook call so a test can assert which
 // branch of the template method ran, lets a test script the membership and

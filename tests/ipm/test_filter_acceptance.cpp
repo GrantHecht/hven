@@ -58,7 +58,7 @@ using hven::detail::kFilterGammaTheta;
 using hven::detail::kFilterMaxResets;
 using hven::detail::kFilterResetTrigger;
 using hven::detail::kKappaResto;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // Priming: run the FIRST is_iterate_acceptable() so the base captures θ₀ and
 // calls initialize_bounds(), WITHOUT the priming call touching the filter or

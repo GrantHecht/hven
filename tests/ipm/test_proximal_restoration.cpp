@@ -43,7 +43,7 @@ using hven::detail::kRestoProximityWeight;
 using hven::detail::ProgressMeasures;
 using hven::detail::ProximalSwitchRestoration;
 using hven::detail::SolverContext;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 // -----------------------------------------------------------------------------
 // zeta: frozen at entry mu, not re-derived from a later "live" mu.

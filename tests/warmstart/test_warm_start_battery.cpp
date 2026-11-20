@@ -2130,11 +2130,11 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 // **THE ONE THING THIS CELL CANNOT DO, STATED FIRST BECAUSE IT BOUNDS EVERY
 // NUMBER BELOW: IT DOES NOT USE THE IPM ENGINE'S OWN MULTIPLIERS, BECAUSE THE SHIPPED
 // BRIDGE CANNOT PRODUCE THEM.** the external comparison bridge's run_comparison.py
-// reaches the IPM engine through `tychopy.solvers.OptimizationProblem`, which is
-// tychopy's only route to the IPM engine for a generic NLP, and whose entire Python
+// reaches the IPM engine through the consumer's Python `OptimizationProblem` binding, which is
+// that binding's only route to the IPM engine for a generic NLP, and whose entire Python
 // surface is set_vars / return_vars / add_equal_con / add_inequal_con /
-// add_objective (verified against tycho's own
-// src/bindings/solvers/optimization_problem_bind.cpp at this task's HEAD).
+// add_objective (verified against the consumer's own
+// binding source at this task's HEAD).
 // `return_vars` returns the PRIMAL VECTOR AND NOTHING ELSE; the IPM binding
 // itself exposes settings and run info, never a multiplier vector. So there is
 // no way, today, to get a real IPM dual into a SqpWarmState from Python, and
@@ -2161,7 +2161,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 //     and this cell does not pretend to.
 //
 // THE FINDING IS CARRIED FORWARD, not swallowed: closing the real chain needs
-// either a multiplier accessor on tychopy's OptimizationProblem or a C++-side
+// either a multiplier accessor on the consumer's OptimizationProblem binding or a C++-side
 // IPM bridge. docs/notes/2026-08-04-kseeded-ingest.md records it as an open
 // item.
 // =====================================================================

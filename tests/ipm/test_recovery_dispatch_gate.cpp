@@ -57,7 +57,7 @@ using hven::detail::ProgressMeasures;
 using hven::detail::RecoveryChain;
 using hven::detail::should_dispatch_recovery;
 using hven::detail::SolverContext;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 // Stub AcceptanceStrategy: classic_line_search stamps the configured
 // accept/reject verdict onto Citer.accepted_ (as the real merit variants do at

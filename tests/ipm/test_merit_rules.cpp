@@ -47,7 +47,7 @@ using hven::detail::kSufficientInfeasibilityDecreaseRatio;
 using hven::detail::kWmnoInitPenalty;
 using hven::detail::ModernMeritAcceptance;
 using hven::detail::ProgressMeasures;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // ===========================================================================
 // WMNO — Math. Program. 107 (2006), §3.1.

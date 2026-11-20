@@ -31,7 +31,7 @@ using hven::IpmMeritPenaltyRule;
 using hven::detail::FilterAcceptance;
 using hven::detail::FunnelAcceptance;
 using hven::detail::ModernMeritAcceptance;
-using TychoTest::pm;
+using HvenTest::pm;
 
 // An H-type test (m_f = 0: the switching condition never holds).
 bool RetractHType(hven::detail::AcceptanceStrategy &a, double theta_current, double theta_trial) {

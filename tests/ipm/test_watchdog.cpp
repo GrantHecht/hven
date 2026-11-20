@@ -56,7 +56,7 @@ using hven::detail::RecoveryChain;
 using hven::detail::SolverContext;
 using hven::detail::WatchdogRecovery;
 using hven::detail::WatchdogState;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 using Action = RecoveryChain::Action;
 using Outcome = WatchdogState::Outcome;

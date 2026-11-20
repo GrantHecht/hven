@@ -49,7 +49,7 @@ using hven::detail::kAdaptiveMuKktErrorRedFact;
 using hven::detail::kBarrierTolFactor;
 using hven::detail::MonitoredBarrierGovernor;
 using hven::detail::SolverContext;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 // Build an IpmIterate carrying only the residual scalars the monitor reads.
 IpmIterate MonGovIterate(double kkt_inf, double econ_inf, double icon_inf, double barr_inf) {

@@ -3203,7 +3203,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
 }
 
 TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous) {
-    // TYCHO RIDER 2: one sink, two solves. `seq` is per-SINK, so it runs
+    // Rider 2: one sink, two solves. `seq` is per-SINK, so it runs
     // 1..N across both, and every line of solve k lies inside solve k's own
     // pair -- which is what makes the pair a partition rather than a marker.
     SqpOptions opts;
@@ -3272,7 +3272,7 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
 }
 
 TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
-    // TYCHO RIDER 1. Every event line belongs to the major whose `sqp.major`
+    // Rider 1. Every event line belongs to the major whose `sqp.major`
     // line comes NEXT: the row is pushed at the end of its own major, so the
     // bracket is (previous row, this row].
     //
@@ -3572,7 +3572,7 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     // than that -- the stopped-AT-iterate row, which no subproblem produced.
     EXPECT_EQ(depth1_other, sol.counters.restoration_iters);
     EXPECT_GT(depth1_rows, depth1_other);
-    // THE BALANCE, PINNED DIRECTLY (tycho rider 3) rather than left to
+    // THE BALANCE, PINNED DIRECTLY (rider 3) rather than left to
     // `pop_depth`'s saturation.
     EXPECT_EQ(json.depth(), 0);
 }
