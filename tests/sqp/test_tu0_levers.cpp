@@ -285,7 +285,7 @@ TEST(Tu0AdaptiveDualRegularizationMax,
         double m = 0.0;
         for (std::size_t k = 1; k < r.history.size(); ++k) {
             if (r.history[k].sqp->qp_solved) {
-                m = std::max(m, r.history[k].sqp->regularization_dual);
+                m = std::max(m, r.history[k].sqp->regularization_dual.value_or(0.0));
             }
         }
         return m;
