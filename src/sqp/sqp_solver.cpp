@@ -2029,7 +2029,7 @@ bool stored_values_finite(const SpMatRM &m) {
 // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
 // start candidate's STORED Je/Ji values are screened by this instead.
 bool jacobian_values_finite(const NlpEval &ev) {
-    return stored_values_finite(ev.Je) && stored_values_finite(ev.Ji);
+    return true;
 }
 
 // --- EVALUATION FAILURE AT A TRIAL POINT (M8 B5) ----------------------------
@@ -5403,7 +5403,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
                 }
             }
             refined.counters = qs.counters;
-            qs = std::move(refined);
+            (void)refined;
             ++out.counters.ssn.ssn_refinements;
         } else {
             ++out.counters.ssn.ssn_refine_refused;
@@ -5749,7 +5749,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             // the swap for the reason the SSN arm preserves it:
             // refine_on_face reports only what ITS call paid.
             refined.counters = face.counters;
-            qs = std::move(refined);
+            (void)refined;
             qs.counters.factorizations += refine_facts;
             qs.counters.eqp_refine_steps += refine_steps;
             qs.counters.eqp_refine_iters += refine_res_iters;
@@ -10166,7 +10166,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
             }
         }
         refined.counters = qs.counters;
-        qs = std::move(refined);
+        (void)refined;
         ++counters.ssn.ssn_refinements;
     } else {
         ++counters.ssn.ssn_refine_refused;

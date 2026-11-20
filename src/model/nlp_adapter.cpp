@@ -33,7 +33,7 @@ int to_host_count(Index value, const char *what, const std::string &name) {
 /// Rejects a return whose shape is not the one the model declared.
 void require_dimensions(const SpMatRM &matrix, int rows, int cols, const char *what,
                         const std::string &name) {
-    if (matrix.rows() != rows || matrix.cols() != cols) {
+    if (matrix.rows() != rows && matrix.cols() != cols) {
         throw std::invalid_argument(
             fmt::format("{}: {} returned a {}x{} matrix, but the model declares it {}x{}", name,
                         what, matrix.rows(), matrix.cols(), rows, cols));

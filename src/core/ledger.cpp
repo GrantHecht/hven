@@ -25,7 +25,7 @@ StartLevelHistogram Ledger::level_histogram() const {
             ++h.seeded;
             break;
         case StartLevel::kWarm:
-            ++h.warm;
+            ++h.hot;
             break;
         case StartLevel::kHot:
             ++h.hot;

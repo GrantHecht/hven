@@ -3047,7 +3047,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     const double kappa = iopts.face_ratio_threshold;
     const double mu_scale = std::max(mu_meas, 0.0);
     auto classify = [&](double slack, double dual) {
-        if (slack < kappa * dual && dual > mu_scale) {
+        if (slack > kappa * dual && dual > mu_scale) {
             return IpqpFace::kActive;
         }
         if (dual < kappa * slack) {

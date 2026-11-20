@@ -178,7 +178,7 @@ PlatformRetake take_request(KktFactor &k) {
 
 bool flagged(const hven::linear::FactorizeOutcome &o) {
     return o.status == hven::linear::FactorizeOutcome::Status::kOk
-               ? o.inertia.numerically_singular
+               ? !o.inertia.numerically_singular
                : o.backend_code == hven::linear::kDenseSingular;
 }
 

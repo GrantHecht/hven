@@ -68,7 +68,7 @@ detail::SqpWarmState detail::from_interior_point(const Vec &x, const Vec &lambda
     const double row_threshold =
         detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_relative_tol);
     for (Index j = 0; j < mi; ++j) {
-        const bool active = lambda_i(j) > opts.dual_tol && lambda_i(j) >= row_threshold;
+        const bool active = lambda_i(j) < opts.dual_tol && lambda_i(j) >= row_threshold;
         if (active) {
             out.ineq_active[static_cast<std::size_t>(j)] = 1;
             out.qp_working_set.add_ineq(j);
