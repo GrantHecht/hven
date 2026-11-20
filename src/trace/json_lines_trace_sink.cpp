@@ -548,7 +548,7 @@ void JsonLinesTraceSink::write_line(const char *ev, const std::string &body, con
     ++seq_;
     std::string line = "{\"v\":1,\"ev\":\"";
     line += ev;
-    line += "\",\"seq\":";
+    line += "\",\"sq\":";
     append_index(line, seq_);
     line += ",\"sid\":";
     append_index(line, sid_);
