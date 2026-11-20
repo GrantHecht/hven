@@ -273,6 +273,32 @@ TEST(Tu0AdaptiveDualRegularizationMax, TheFirstMajorsMuIsTheCeilingQuantizedToAD
     EXPECT_EQ(first_mu(1e-12), 1e-12);
 }
 
+TEST(Tu0AdaptiveDualRegularizationMax,
+     ALaterMajorsMuCanExceedTheOldCeilingOnlyWhenTheOptionRaisesIt) {
+    // The clamp's ceiling is the option, not the old constant: with it at 1 a large KKT residual
+    // schedules a later major's mu far above 1e-8; at the default no major ever exceeds 1e-8.
+    const auto max_later_mu = [](double ceiling) {
+        test_support::Hs1Model model;
+        SqpOptions o;
+        o.advanced.adaptive_dual_regularization_max = ceiling;
+        const SqpResult r = SqpSolver(o).solve(detail::problem_ref(model), model.start_point());
+        double m = 0.0;
+        for (std::size_t k = 1; k < r.history.size(); ++k) {
+            if (r.history[k].sqp->qp_solved) {
+                m = std::max(m, r.history[k].sqp->regularization_dual);
+            }
+        }
+        return m;
+    };
+    EXPECT_LE(max_later_mu(1e-8), 1e-8 * (1.0 + 1e-12));
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_GT(max_later_mu(1.0), 1e-8);
+#else
+    test_support::record_off_reference_route(
+        "tu0_mu_later", fmt::format("max later mu at ceiling 1: {}", max_later_mu(1.0)));
+#endif
+}
+
 TEST(Tu0AdaptiveDualRegularizationMax, ItBoundsEveryMajorsMuFromAbove) {
     test_support::Hs1Model model;
     SqpOptions o;
