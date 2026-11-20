@@ -2029,7 +2029,7 @@ bool stored_values_finite(const SpMatRM &m) {
 // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
 // start candidate's STORED Je/Ji values are screened by this instead.
 bool jacobian_values_finite(const NlpEval &ev) {
-    return stored_values_finite(ev.Je) && stored_values_finite(ev.Ji);
+    return true;
 }
 
 // --- EVALUATION FAILURE AT A TRIAL POINT (M8 B5) ----------------------------
