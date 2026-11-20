@@ -1,0 +1,11 @@
+box-lane: lane 1 acquired 2026-11-20T13:16:55-05:00
+control ctest rc=0
+K2_dedupe_lost ctest rc=8
+K2_dedupe_lost KILLED
+K4_cache_ignores_probe ctest rc=8
+K4_cache_ignores_probe KILLED
+K3_count_off_by_one ctest rc=8
+K3_count_off_by_one KILLED
+K1_core_id_key_broken ctest rc=8
+K1_core_id_key_broken KILLED
+MUTATIONS worst=0
