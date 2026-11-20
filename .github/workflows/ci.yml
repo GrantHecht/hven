@@ -300,6 +300,24 @@ jobs:
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++
 
+      # PF-6: the sequential MKL threading layer, end to end through the
+      # installed package (the build records the choice in hvenConfig.cmake, so
+      # the consumer must come out sequential too). Asserts the consumer binary
+      # needs no OpenMP runtime. Separate workdir for the same reason as above.
+      - name: Run hven install smoke, sequential MKL threading (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke-seq
+          HVEN_INSTALL_SMOKE_JOBS: "6"
+        run: |
+          set -euo pipefail
+          ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++ -DHVEN_MKL_THREADING=sequential
+          grep -q 'MKL threading layer = sequential' "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log"
+          if readelf -d "${HVEN_INSTALL_SMOKE_WORKDIR}/smoke-build/hven_install_smoke" | grep -q 'iomp5'; then
+            echo "sequential consumer still needs libiomp5" >&2
+            exit 1
+          fi
+
       # Gated on the smoke step specifically, not `!cancelled()` alone, same
       # reason as the macOS lane: this step inspects the install tree the
       # smoke step produces, so a bare `!cancelled()` would turn a skip into a

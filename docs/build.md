@@ -209,6 +209,43 @@ headers without the PCH — but it does mean a new warning introduced in
 one of those headers will surface from the tests rather than from the
 library build.
 
+## MKL threading layer (PF-6)
+
+`HVEN_MKL_THREADING` selects which MKL threading layer hven links on Linux and
+Windows. It has no effect on Apple (Accelerate has no such choice).
+
+| value | links | OpenMP runtime | `threads > 1` |
+|---|---|---|---|
+| `intel` (default) | `mkl_intel_thread` + `libiomp5` (`libiomp5md` on Windows) | linked, redistributed | multi-threaded Pardiso / LAPACK |
+| `sequential` | `mkl_sequential` | none | **ignored** (runs single-threaded) |
+
+```
+cmake -S . -B build -DHVEN_MKL_THREADING=sequential
+```
+
+**The choice is recorded at install time.** `hvenConfig.cmake` replays it before
+`find_dependency(MKL)`, so a `find_package(hven)` consumer links the layer hven
+was built with; it cannot mix `mkl_sequential` with a hven built for
+`libiomp5` (or the reverse). A consumer using `FindMKL.cmake` directly gets the
+same choice through `MKL_USE_SEQUENTIAL`. Switching the option in an existing
+build tree is safe: `FindMKL.cmake` drops its cached layer-dependent library
+paths when the layer changes. Under `sequential` the `-fopenmp` compile flag is
+not added either, and `libiomp5` is neither searched for, linked, nor placed on
+the rpath (Windows: the OpenMP redistributable is not needed by hven's binaries).
+
+**What `threads > 1` does under `sequential`: it is ignored, not refused.**
+`SymmetricFactor::Options::threads`, `set_threads()`, and the solver options'
+thread fields keep their meaning as a *request*; the backend honours it only if
+it can. That is the contract the field already had ("best-effort-absent on
+backends with no thread control", and Apple stores and applies nothing). Refusing
+at `validate()` would make one options struct valid on one build of the library
+and an error on another, which breaks the one-source-two-builds use (a consumer
+or a test suite that sets `threads = 4` and is then built both ways). MKL itself
+accepts `mkl_set_num_threads_local(n)` under `mkl_sequential` as a no-op, so no
+code path differs and no iparm value changes. `SymmetricFactor::threads()` still
+reports the stored request, not an effective width. A consumer that needs
+multi-threaded Pardiso must build with `intel`.
+
 ## LTO installs (M6 W6 T3, 2026-09-14)
 
 `HVEN_LINK_TIME_OPT` is **OFF by default** and W6 did not move that default.

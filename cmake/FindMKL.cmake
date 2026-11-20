@@ -22,6 +22,12 @@
 #  Everything else is ignored. If MKL is found "-DMKL_ILP64" is added to
 #  CMAKE_C_FLAGS and CMAKE_CXX_FLAGS.
 #
+#  Threading layer: by default the Intel-OpenMP layer (mkl_intel_thread plus
+#  libiomp5) is linked. Set MKL_USE_SEQUENTIAL (ON) before find_package(MKL) to
+#  link mkl_sequential instead; the OpenMP runtime is then neither searched for,
+#  linked, nor put on the rpath. (Windows can also set MKL_USE_TBB; sequential
+#  wins if both are set.) hven's own HVEN_MKL_THREADING option sets this.
+#
 #  Example usage:
 #
 #  find_package(MKL)
@@ -34,6 +40,25 @@ if (MKL_INCLUDE_DIRS AND MKL_LIBRARIES AND MKL_INTERFACE_LIBRARY AND
     MKL_SEQTHR_LIBRARY AND MKL_CORE_LIBRARY)
   #set (MKL_FIND_QUIETLY TRUE)
 endif()
+
+# The find_library() results below are cached. Switching the threading layer in
+# an existing build tree must not keep serving the previous layer's library, so
+# the mode the cache was filled under is recorded and the layer-dependent
+# entries are dropped when it changes.
+if(MKL_USE_SEQUENTIAL)
+  set(_mkl_threading_now "sequential")
+elseif(WIN32 AND MKL_USE_TBB)
+  set(_mkl_threading_now "tbb")
+else()
+  set(_mkl_threading_now "intel")
+endif()
+if(NOT "${_MKL_THREADING_CACHED}" STREQUAL "${_mkl_threading_now}")
+  unset(MKL_SEQTHR_LIBRARY CACHE)
+  unset(MKL_OMP_LIBRARY CACHE)
+  unset(MKL_TBB_LIBRARY CACHE)
+  set(_MKL_THREADING_CACHED "${_mkl_threading_now}" CACHE INTERNAL "MKL threading layer the cached library paths belong to")
+endif()
+unset(_mkl_threading_now)
 
 if(UNIX AND NOT APPLE)  # If Linux
   if(BUILD_SHARED_LIBS)
@@ -100,7 +125,9 @@ find_path(MKL_INCLUDE_DIR NAMES mkl.h
                                 $ENV{ONEAPI_ROOT}/mkl/latest/include
                           PATH_SUFFIXES mkl)
 
-message(STATUS ${OMP_LIB})
+if(NOT MKL_USE_SEQUENTIAL)
+  message(STATUS ${OMP_LIB})
+endif()
 if(WIN32 AND MKL_USE_TBB)
 
   find_path(TBB_INCLUDE_DIR NAMES tbb.h
@@ -140,6 +167,7 @@ find_library(MKL_CORE_LIBRARY
                   $ENV{MKLROOT}/lib/intel64_win
                   $ENV{INTEL}/mkl/lib/intel64_win)
 
+if(NOT MKL_USE_SEQUENTIAL)
 find_library(MKL_OMP_LIBRARY
             NAMES ${OMP_LIB}
             PATHS $ENV{MKLROOT}/lib
@@ -157,6 +185,7 @@ find_library(MKL_OMP_LIBRARY
                   $ENV{ONEAPI_ROOT}/compiler/2022.0.0/mac/compiler/lib
                   /opt/intel/oneapi/compiler/latest/mac/compiler/lib
                   $ENV{INTEL}/compiler/latest/linux/compiler/lib/intel64_lin)  # atrocious
+endif()
 
 
 
@@ -205,8 +234,13 @@ message(STATUS "MKL_SEQTHR_LIBRARY = ${MKL_SEQTHR_LIBRARY}")
 message(STATUS "MKL_CORE_LIBRARY = ${MKL_CORE_LIBRARY}")
 message(STATUS "MKL_TBB_LIBRARY = ${MKL_TBB_LIBRARY}")
 message(STATUS "MKL_OMP_LIBRARY = ${MKL_OMP_LIBRARY}")
+message(STATUS "MKL threading layer = ${_MKL_THREADING_CACHED}")
 
-if(UNIX)
+if(MKL_USE_SEQUENTIAL)
+  # No OpenMP runtime: mkl_sequential has no libiomp5 dependency.
+  set(MKL_LIBRARIES ${MKL_INTERFACE_LIBRARY} ${MKL_SEQTHR_LIBRARY} ${MKL_CORE_LIBRARY})
+  list(APPEND MKL_LIBRARIES_LIST ${MKL_INTERFACE_LIBRARY} " " ${MKL_SEQTHR_LIBRARY} " " ${MKL_CORE_LIBRARY})
+elseif(UNIX)
   set(MKL_LIBRARIES ${MKL_INTERFACE_LIBRARY} ${MKL_SEQTHR_LIBRARY} ${MKL_CORE_LIBRARY} ${MKL_OMP_LIBRARY})
   list(APPEND MKL_LIBRARIES_LIST ${MKL_INTERFACE_LIBRARY} " " ${MKL_SEQTHR_LIBRARY} " " ${MKL_CORE_LIBRARY} " " ${MKL_OMP_LIBRARY})
 elseif(WIN32 AND MKL_USE_TBB)

@@ -91,6 +91,31 @@ option(HVEN_LINK_TIME_OPT
        OFF)
 set(CLANG_MAX_INLINE_DEPTH 225)
 
+# MKL threading layer (Linux/Windows; ignored on Apple, whose Accelerate backend
+# has no such choice).
+#   intel       (default) MKL's Intel-OpenMP layer: mkl_intel_thread + libiomp5.
+#               A positive Options::threads / MKL_NUM_THREADS > 1 runs Pardiso
+#               and LAPACK multi-threaded. The historical configuration.
+#   sequential  mkl_sequential, no OpenMP runtime linked or redistributed. Every
+#               MKL call is single-threaded; a threads > 1 request is IGNORED
+#               (see docs/build.md, "MKL threading layer"). Removes libiomp5's
+#               per-process bring-up and its idle-spin/barrier cost.
+# Installed packages record the choice (hvenConfig.cmake), so find_package(hven)
+# consumers link the same layer.
+set(HVEN_MKL_THREADING "intel" CACHE STRING "MKL threading layer: intel or sequential")
+set_property(CACHE HVEN_MKL_THREADING PROPERTY STRINGS intel sequential)
+if(NOT HVEN_MKL_THREADING STREQUAL "intel" AND NOT HVEN_MKL_THREADING STREQUAL "sequential")
+    message(FATAL_ERROR "HVEN_MKL_THREADING must be 'intel' or 'sequential', got '${HVEN_MKL_THREADING}'")
+endif()
+if(APPLE)
+    set(HVEN_MKL_THREADING "intel")  # no MKL here; keeps the recorded value neutral
+    unset(MKL_USE_SEQUENTIAL)
+elseif(HVEN_MKL_THREADING STREQUAL "sequential")
+    set(MKL_USE_SEQUENTIAL ON)
+else()
+    unset(MKL_USE_SEQUENTIAL)
+endif()
+
 # Floating-point optimization policy.
 # STRICT: no fast-math relaxations
 # SAFER_FAST: all fast-math optimizations except finite-math-only
@@ -169,7 +194,7 @@ else()
     message(STATUS "IEEE 754 compliance: FAST (full fast-math)")
 endif()
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT HVEN_MKL_THREADING STREQUAL "sequential")
     # MKL's threading layer is Intel's libiomp5; the compile flag matches the
     # runtime library resolved by hven_resolve_sparse_backend() below.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -684,6 +709,8 @@ if(APPLE)
 else()
     set(HVEN_SPARSE_SOLVER "MKL")
 endif()
+# hvenConfig.cmake.in replays this before find_dependency(MKL).
+set(HVEN_MKL_THREADING_INSTALLED "${HVEN_MKL_THREADING}")
 
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/hvenConfigVersion.cmake"
