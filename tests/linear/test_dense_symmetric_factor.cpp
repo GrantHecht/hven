@@ -18,6 +18,7 @@
 // not compile.
 #ifndef HVEN_USE_ACCELERATE_LAPACK
 #include <mkl_service.h>
+#include "support/mkl_threading.h"
 #endif
 
 namespace {
@@ -376,6 +377,7 @@ TEST(DenseSymmetricFactor, ThreadCountDefaultsToTheBackendDefaultAndRefusesNegat
 // On Accelerate the count is STORED and applied to nothing -- UNOBSERVED --
 // so this half does not compile there rather than being weakened to pass.
 TEST(DenseSymmetricFactor, ACallScopedThreadCountRestoresTheCallersOwnOverride) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
     constexpr int kHvenThreads = 2;
 

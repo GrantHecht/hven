@@ -19,6 +19,7 @@
 #include <hven/core/pattern_hash.h>
 #include <hven/core/types.h>
 #include <hven/linear/symmetric_factor.h>
+#include "support/mkl_threading.h"
 
 namespace {
 
@@ -646,6 +647,7 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
 // hands control back to the global setting, which is where this test wants
 // the thread left anyway.
 TEST(SymmetricFactor, APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
     constexpr int kHvenThreads = 1;
 

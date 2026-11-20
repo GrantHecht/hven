@@ -175,6 +175,14 @@ add_compile_definitions(HVEN_TEST_REFERENCE_DISPATCH=${_hven_reference_dispatch}
 # compile without it.
 add_compile_definitions(HVEN_TEST_RELEASE_BUILD=$<IF:$<CONFIG:Release>,1,0>)
 
+# PF-6: 1 when hven links mkl_sequential (HVEN_MKL_THREADING=sequential). Tests whose premise is that
+# MKL honours a thread-count override skip themselves under it (support/mkl_threading.h).
+if(HVEN_MKL_THREADING STREQUAL "sequential" AND NOT APPLE)
+    add_compile_definitions(HVEN_TEST_MKL_SEQUENTIAL=1)
+else()
+    add_compile_definitions(HVEN_TEST_MKL_SEQUENTIAL=0)
+endif()
+
 # The include root of every test and bench target that spells a local include from the tests
 # root ("qp/support/ssn_fixtures.h", "support/console_capture.h"). A target opts in with
 # target_include_directories(<t> PRIVATE ${HVEN_TESTS_INCLUDE_ROOT}); the variable is visible in

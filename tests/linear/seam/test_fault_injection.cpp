@@ -40,6 +40,7 @@
 // MKL's own thread state: the only way to read what a call-scoped thread count
 // left behind. Same platform scope as the rest of the MKL half.
 #include <mkl_service.h>
+#include "support/mkl_threading.h"
 #endif
 
 namespace {
@@ -972,6 +973,7 @@ TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutRe
 // implementation that restored a hardcoded 0 fails these assertions instead of
 // passing them.
 TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAfterIt) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
     constexpr int kHvenThreads = 2;
 
@@ -1027,6 +1029,7 @@ TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAft
 // above argues by construction and which no seam in this tree can currently
 // force.
 TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
     constexpr int kHvenThreads = 2;
 
@@ -1084,6 +1087,7 @@ TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsid
 // scope applies (2), so a destructor that restored a hardcoded 0 would fail the
 // AFTER assertions rather than pass them.
 TEST(ThreadScope, TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
     constexpr int kScopeThreads = 2;
 
@@ -1127,6 +1131,7 @@ TEST(ThreadScope, TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope) {
 // `previous_` would still pass the test above, because `previous_` and the
 // caller's override coincide there whenever the scope engaged.
 TEST(ThreadScope, AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     constexpr int kCallerOverride = 3;
 
     const int entry = mkl_set_num_threads_local(kCallerOverride);

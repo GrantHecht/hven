@@ -113,6 +113,7 @@
 
 #include "model/support/hs_problems.h"
 #include "solver/support/iteration_record_eq.h"
+#include "support/mkl_threading.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -855,6 +856,7 @@ TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
 // why the assertions are guarded rather than merely tolerant: an Apple value is
 // UNOBSERVED, not zero.
 TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
 #ifdef HVEN_USE_ACCELERATE_LAPACK
     GTEST_SKIP() << "Accelerate stores the count and applies it to nothing -- UNOBSERVED";
 #else

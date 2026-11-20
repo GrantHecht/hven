@@ -37,6 +37,7 @@
 #include <hven/detail/linear/dense_session.h>
 #include <hven/detail/qp/walk/ws_independence.h>
 #include <hven/linear/symmetric_factor.h>
+#include "support/mkl_threading.h"
 
 namespace {
 
@@ -1278,6 +1279,7 @@ std::vector<std::pair<std::string, int>> mkl_verbose_calls(const std::string &ou
 // THE PREMISE: the observation tells thread counts apart -- a dsytrf issued under a local
 // override of 4 is recorded NThr:4, so a record of 1 below is a measurement, not a constant.
 TEST(DenseArmThreads, TheVerboseRecordSeesALocalThreadOverride) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     const Index n = 300;
     Mat a = indefinite_matrix(n);
     std::vector<lapack_int> ipiv(static_cast<std::size_t>(n));
@@ -1307,6 +1309,7 @@ TEST(DenseArmThreads, TheVerboseRecordSeesALocalThreadOverride) {
 // though the factor is configured for 4 (and still reports 4: the count configures the platform
 // session).
 TEST(DenseArmThreads, EveryDenseLapackCallRunsAtOneThread) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     const Index n = 300;
     const SpMatRM A = upper_csr(indefinite_matrix(n));
     for (const auto policy : {hven::linear::DenseSingularPolicy::kSparseFallback,
@@ -1345,6 +1348,7 @@ TEST(DenseArmThreads, EveryDenseLapackCallRunsAtOneThread) {
 // default alone"), under a GLOBAL MKL count of 4: a dsytrf issued outside the dense arm runs at 4
 // (the premise), every dense-arm call at 1.
 TEST(DenseArmThreads, ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne) {
+    HVEN_SKIP_IF_MKL_SEQUENTIAL();
     const Index n = 300;
     const Mat m = indefinite_matrix(n);
     const SpMatRM A = upper_csr(m);
