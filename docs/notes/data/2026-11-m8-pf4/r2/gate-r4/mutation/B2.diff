@@ -1,0 +1,15 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..d7d1770e6 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -236,9 +236,7 @@ class SchurComplement {
+                 replay_batch();
+             }
+         }
+-        if (solve_failure) {
+-            std::rethrow_exception(solve_failure);
+-        }
++        (void)solve_failure;
+     }
+ 
+     // Removes the k-th added border (0-indexed in add_border call order,

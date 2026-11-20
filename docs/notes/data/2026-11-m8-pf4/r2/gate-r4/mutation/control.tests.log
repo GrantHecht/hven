@@ -1,0 +1,113 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4-r2/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Schur.*
+[==========] Running 16 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 16 tests from Schur
+[ RUN      ] Schur.BorderedSolveMatchesDirectFactorization
+[       OK ] Schur.BorderedSolveMatchesDirectFactorization (2 ms)
+[ RUN      ] Schur.RefactorizationTriggerFires
+[       OK ] Schur.RefactorizationTriggerFires (0 ms)
+[ RUN      ] Schur.DropBorderMatchesDirectFactorizationOfSurvivor
+[       OK ] Schur.DropBorderMatchesDirectFactorizationOfSurvivor (0 ms)
+[ RUN      ] Schur.DropBorderThrowsOnOutOfRange
+[       OK ] Schur.DropBorderThrowsOnOutOfRange (0 ms)
+[ RUN      ] Schur.IndefiniteSchurSolveMatchesDirect
+[       OK ] Schur.IndefiniteSchurSolveMatchesDirect (0 ms)
+[ RUN      ] Schur.AntiDiagonalSchurBlock
+[       OK ] Schur.AntiDiagonalSchurBlock (0 ms)
+[ RUN      ] Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery
+[       OK ] Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery (0 ms)
+[ RUN      ] Schur.NonFiniteBorderNeverLeavesAReadableEvidenceState
+[       OK ] Schur.NonFiniteBorderNeverLeavesAReadableEvidenceState (0 ms)
+[ RUN      ] Schur.InertiaBookkeepingPinnedVariable
+[       OK ] Schur.InertiaBookkeepingPinnedVariable (0 ms)
+[ RUN      ] Schur.NearlySingularOneByOneNeedsRefactorization
+[       OK ] Schur.NearlySingularOneByOneNeedsRefactorization (0 ms)
+[ RUN      ] Schur.IncrementalCMatchesFromScratchAfterAddsAndDrops
+[       OK ] Schur.IncrementalCMatchesFromScratchAfterAddsAndDrops (1 ms)
+[ RUN      ] Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+[       OK ] Schur.BatchedAddsLeaveTheStatePerAddWouldHave (0 ms)
+[ RUN      ] Schur.BatchLandsWithOneSolveOnEitherArm
+[       OK ] Schur.BatchLandsWithOneSolveOnEitherArm (0 ms)
+[ RUN      ] Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+[       OK ] Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack (0 ms)
+[ RUN      ] Schur.BatchOnRetakeNumericsLandsThePerAddColumns
+[       OK ] Schur.BatchOnRetakeNumericsLandsThePerAddColumns (0 ms)
+[ RUN      ] Schur.BatchThatThrowsLeavesThePerAddStack
+[       OK ] Schur.BatchThatThrowsLeavesThePerAddStack (0 ms)
+[----------] 16 tests from Schur (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 16 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4-r2/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = AnalysisTally.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from AnalysisTally
+[ RUN      ] AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+[       OK ] AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem (2 ms)
+[ RUN      ] AnalysisTally.ValuesDoNotMatterThePatternDoes
+[       OK ] AnalysisTally.ValuesDoNotMatterThePatternDoes (0 ms)
+[ RUN      ] AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+[       OK ] AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey (0 ms)
+[ RUN      ] AnalysisTally.TheDenseArmRunsNoSymbolicPhaseAndIsNotCounted
+[       OK ] AnalysisTally.TheDenseArmRunsNoSymbolicPhaseAndIsNotCounted (0 ms)
+[ RUN      ] AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+[       OK ] AnalysisTally.NestedTalliesEachSeeTheirOwnExtent (0 ms)
+[ RUN      ] AnalysisTally.NothingIsCountedWithoutAnOpenTally
+[       OK ] AnalysisTally.NothingIsCountedWithoutAnOpenTally (0 ms)
+[----------] 6 tests from AnalysisTally (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 6 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4-r2/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendAnalysisTally.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from SqpBackendAnalysisTally
+[ RUN      ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+[       OK ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession (5 ms)
+[ RUN      ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis
+[       OK ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis (0 ms)
+[----------] 2 tests from SqpBackendAnalysisTally (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 2 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4-r2/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpPlatformRetake.*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from QpPlatformRetake
+[ RUN      ] QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+[       OK ] QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (4 ms)
+[ RUN      ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+[       OK ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+[ RUN      ] QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform
+[       OK ] QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform (0 ms)
+[ RUN      ] QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+[ retake ] qp26 border status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] qp26 refactorize status=0 minors=23 scaled=1 matched=1 refusals=0
+[       OK ] QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (320 ms)
+[ RUN      ] QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+[       OK ] QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+[ RUN      ] QpPlatformRetake.TheScaledSolveRefusesAMismatchedRightHandSide
+[       OK ] QpPlatformRetake.TheScaledSolveRefusesAMismatchedRightHandSide (0 ms)
+[ RUN      ] QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle
+[       OK ] QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle (0 ms)
+[ RUN      ] QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+[       OK ] QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+[ RUN      ] QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch
+[       OK ] QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch (0 ms)
+[ RUN      ] QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve
+[       OK ] QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve (0 ms)
+[ RUN      ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+[ retake ] LAKES qp0 status=0 minors=131 scaled=3 matched=2 refusals=0
+[       OK ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (97 ms)
+[----------] 11 tests from QpPlatformRetake (424 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (424 ms total)
+[  PASSED  ] 11 tests.
