@@ -1,0 +1,37 @@
+MUT control rc=0 killers=0
+MUT B1 rc=1 killers=1
+   Schur.BatchLandsWithOneSolveOnEitherArm
+MUT B2 rc=1 killers=1
+   Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+MUT B3 rc=1 killers=2
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+   Schur.BatchLandsWithOneSolveOnEitherArm
+MUT B4 rc=1 killers=2
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+   Schur.BatchLandsWithOneSolveOnEitherArm
+MUT B5 rc=1 killers=1
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+MUT B6 rc=0 killers=0
+MUT B7 rc=1 killers=1
+   Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+MUT T2 rc=1 killers=5
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+   AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+   AnalysisTally.ValuesDoNotMatterThePatternDoes
+   SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+MUT T3 rc=1 killers=4
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+   AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+   AnalysisTally.ValuesDoNotMatterThePatternDoes
+MUT T4 rc=1 killers=1
+   AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+MUT T5 rc=1 killers=1
+   AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+MUT T6 rc=1 killers=1
+   SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+R1 rc=1 (recorded); killers: 0
+R2 rc=1 (recorded); killers: 0
+VERDICT MUTATION_SURVIVED_B6
+MUT rc=1

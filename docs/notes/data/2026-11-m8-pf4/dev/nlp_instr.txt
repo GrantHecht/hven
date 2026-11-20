@@ -1,0 +1,38 @@
+rows compared 15; skipped 0 
+TOTAL ALL                rows   15  A 2.021070e+12  B 2.018968e+12  B/A 0.998960
+TOTAL hven-sqp           rows   15  A 2.021070e+12  B 2.018968e+12  B/A 0.998960
+TOTAL hven-sqp.D         rows   15  A 2.021070e+12  B 2.018968e+12  B/A 0.998960
+
+focus rows:
+  nlp-hven-sqp-ACOPP118.D                  A 2.063562e+11 B 4.201247e+11 B/A 2.0359
+  nlp-hven-sqp-ACOPP57.D                   A 7.707848e+08 B 7.127036e+08 B/A 0.9246
+  nlp-hven-sqp-BIGBANK.D                   A 1.957961e+11 B 1.633199e+11 B/A 0.8341
+  nlp-hven-sqp-DALLASM.D                   A 1.179670e+10 B 1.067189e+10 B/A 0.9047
+  nlp-hven-sqp-READING6.D                  A 8.741797e+09 B 5.674812e+09 B/A 0.6492
+  nlp-hven-sqp-SMBANK.D                    A 1.265991e+09 B 1.260800e+09 B/A 0.9959
+  nlp-hven-sqp-STEENBRC.D                  A 3.419388e+11 B 3.014653e+11 B/A 0.8816
+  nlp-hven-sqp-STEENBRG.D                  A 3.242798e+11 B 2.731138e+11 B/A 0.8422
+  nlp-hven-sqp-YORKNET.D                   A 2.034711e+11 B 1.771517e+11 B/A 0.8706
+
+largest savings:
+  nlp-hven-sqp-READING6.D                  A 8.741797e+09 B 5.674812e+09 B/A 0.6492
+  nlp-hven-sqp-STEENBRE.D                  A 2.560531e+11 B 2.132749e+11 B/A 0.8329
+  nlp-hven-sqp-BIGBANK.D                   A 1.957961e+11 B 1.633199e+11 B/A 0.8341
+  nlp-hven-sqp-STEENBRG.D                  A 3.242798e+11 B 2.731138e+11 B/A 0.8422
+  nlp-hven-sqp-YORKNET.D                   A 2.034711e+11 B 1.771517e+11 B/A 0.8706
+  nlp-hven-sqp-STEENBRC.D                  A 3.419388e+11 B 3.014653e+11 B/A 0.8816
+  nlp-hven-sqp-STEENBRD.D                  A 2.442049e+11 B 2.164476e+11 B/A 0.8863
+  nlp-hven-sqp-ZAMB2-8.D                   A 3.369215e+09 B 2.988742e+09 B/A 0.8871
+  nlp-hven-sqp-DALLASM.D                   A 1.179670e+10 B 1.067189e+10 B/A 0.9047
+  nlp-hven-sqp-ACOPP57.D                   A 7.707848e+08 B 7.127036e+08 B/A 0.9246
+largest increases:
+  nlp-hven-sqp-STEENBRC.D                  A 3.419388e+11 B 3.014653e+11 B/A 0.8816
+  nlp-hven-sqp-STEENBRD.D                  A 2.442049e+11 B 2.164476e+11 B/A 0.8863
+  nlp-hven-sqp-ZAMB2-8.D                   A 3.369215e+09 B 2.988742e+09 B/A 0.8871
+  nlp-hven-sqp-DALLASM.D                   A 1.179670e+10 B 1.067189e+10 B/A 0.9047
+  nlp-hven-sqp-ACOPP57.D                   A 7.707848e+08 B 7.127036e+08 B/A 0.9246
+  nlp-hven-sqp-ACOPR57.D                   A 1.860663e+10 B 1.826004e+10 B/A 0.9814
+  nlp-hven-sqp-SAWPATH.D                   A 8.986872e+09 B 8.918203e+09 B/A 0.9924
+  nlp-hven-sqp-SMBANK.D                    A 1.265991e+09 B 1.260800e+09 B/A 0.9959
+  nlp-hven-sqp-STEENBRB.D                  A 1.954323e+11 B 2.055828e+11 B/A 1.0519
+  nlp-hven-sqp-ACOPP118.D                  A 2.063562e+11 B 4.201247e+11 B/A 2.0359

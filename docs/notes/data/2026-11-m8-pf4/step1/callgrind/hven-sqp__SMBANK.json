@@ -1,0 +1,64 @@
+{
+ "calls": {
+  "QpEngine::sync_borders": 712,
+  "SchurComplement::add_border": 321,
+  "SchurComplement::factor_c": 271,
+  "SchurComplement::end_batch": 0,
+  "SchurComplement::replay_batch": 0,
+  "SchurComplement::drop_border": 18,
+  "SchurComplement::solve(": 1652,
+  "QpEngine::rebuild_k0": 29,
+  "SymmetricFactor::analyze": 4,
+  "FactorSession::analyze": 4,
+  "SymmetricFactor::factorize(": 35,
+  "FactorSession::factorize": 35,
+  "FactorSession::solve(": 3699,
+  "SymmetricFactor::solve_single": 3694,
+  "SymmetricFactor::solve(": 1436,
+  "detail::solve_vec": 3631,
+  "factorize_checked": 31,
+  "analyze_if_needed": 0,
+  "take_retake": 0,
+  "retake_on_platform": 0,
+  "QpEngine::run(": 58
+ },
+ "callers": {
+  "SchurComplement::add_border": {
+   "hven::detail::QpEngine::sync_borders": 321
+  },
+  "SchurComplement::factor_c": {
+   "hven::detail::QpEngine::sync_borders": 253,
+   "hven::detail::SchurComplement::drop_border": 18
+  },
+  "SymmetricFactor::analyze": {
+   "hven::detail::factorize_checked": 2,
+   "hven::detail::EqualityBasis::compute": 2
+  },
+  "FactorSession::analyze": {
+   "hven::linear::SymmetricFactor::analyze": 4
+  },
+  "factorize_checked": {
+   "hven::detail::QpEngine::rebuild_k0": 29,
+   "hven::detail::factorize_checked": 1,
+   "hven::detail::solve_eqp": 1
+  },
+  "analyze_if_needed": {},
+  "SymmetricFactor::factorize(": {
+   "hven::detail::factorize_checked": 30,
+   "hven::detail::": 4,
+   "hven::detail::EqualityBasis::compute": 1
+  },
+  "QpEngine::rebuild_k0": {
+   "hven::detail::QpEngine::border_candidate": 29
+  },
+  "take_retake": {},
+  "retake_on_platform": {}
+ },
+ "batch": {
+  "add_border_from_sync": 321,
+  "sync_borders_calls": 712,
+  "factor_c_from_sync (syncs that added >=1)": 253,
+  "mean_adds_per_sync": 0.4508426966292135,
+  "mean_adds_per_adding_sync": 1.2687747035573123
+ }
+}
