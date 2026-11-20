@@ -1,0 +1,9 @@
+box-lane: lane 1 acquired 2026-11-20T12:23:03-05:00
+FOREGROUND_START 2026-11-20T12:23:03-05:00
+
+The following tests FAILED:
+	3949 - BenchStampGuard.SelfTest (Failed)
+Errors while running CTest
+Total Tests: 3959
+ctest rc=8
+FOREGROUND_END 2026-11-20T12:25:44-05:00
