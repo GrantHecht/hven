@@ -26,3 +26,6 @@ head). Read as a Windows run-to-run flip (the WX-R11 amendment: Windows is off-r
 locally the base and the I18 code give byte-identical rows for the test under every MKL code path (`MKL_CBWR` unset, COMPATIBLE,
 SSE4_2, AVX, AVX2, AVX512), and under every forced path the BASE already ends at stationarity 1.00e-6 and fails the same bound --
 the bound is knife-edge off the reference build before this change. The final-head CI run is recorded below.
+
+**Final head:** run 44830464873 (`workflow_dispatch`, head `a253e265b`, code paths == `c9a716eac`): all four lanes green on
+attempt 1 (linux-clang-release, linux-clang-coverage, macos-clang-release, windows-clang-release).
