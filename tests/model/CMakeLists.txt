@@ -29,7 +29,7 @@ set(_hven_model_sources
     test_string_piece.cpp
     test_structure_epoch.cpp
 )
-hven_sources_not_on_windows(_hven_model_sources
+list(APPEND _hven_model_sources
     test_nlp_model.cpp
     test_parametric_families.cpp
     test_scale_problems.cpp

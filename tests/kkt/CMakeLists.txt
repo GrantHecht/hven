@@ -6,7 +6,7 @@
 set(_hven_kkt_sources
     test_kkt_factorization.cpp
 )
-hven_sources_not_on_windows(_hven_kkt_sources
+list(APPEND _hven_kkt_sources
     test_border_ops.cpp
     test_kkt_assembly.cpp
     test_kkt_factor.cpp

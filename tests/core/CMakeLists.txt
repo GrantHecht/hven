@@ -14,7 +14,7 @@ set(_hven_core_sources
     test_type_storage.cpp
     test_version.cpp
 )
-hven_sources_not_on_windows(_hven_core_sources
+list(APPEND _hven_core_sources
     test_ledger.cpp
 )
 

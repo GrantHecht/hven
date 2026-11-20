@@ -1,12 +1,12 @@
 ################################################################################
 # sqp/ tests: hven_sqp_tests: the SQP engine's own contract (the QP dispatch, the lift oracle, the
 # continuation, the predictor, the quasi-Newton models, the HS battery) and the directory's seam
-# executable. Not built on Windows yet (RS-6b).
+# executable.
 # Flags: the project's level.
 ################################################################################
 
 set(_hven_sqp_sources)
-hven_sources_not_on_windows(_hven_sqp_sources
+list(APPEND _hven_sqp_sources
     test_activity_telemetry.cpp
     test_assembly_eval_seam.cpp
     test_column_scaling.cpp
@@ -61,11 +61,9 @@ hven_add_test_executable(hven_sqp_tests
 # timeout. gtest_discover_tests() tests do not exist at configure time (a generated script defines
 # them at ctest time), so set_tests_properties() here would fail to find the test: append a second
 # include file, after gtest_discover_tests()'s own, that raises that one test's TIMEOUT once it is
-# defined. Not under Windows, where hven_sqp_tests does not exist.
-if(NOT WIN32)
-    set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/continuation_probe_budget_timeout.cmake")
-endif()
+# defined.
+set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/continuation_probe_budget_timeout.cmake")
 
 ################################################################################
 # SQP seam tests (docs/testing.md, "Seam tests"): the equality-basis seam and the ladder seam

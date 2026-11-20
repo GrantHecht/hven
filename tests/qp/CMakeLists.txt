@@ -11,7 +11,7 @@
 ################################################################################
 
 set(_hven_qp_sources)
-hven_sources_not_on_windows(_hven_qp_sources
+list(APPEND _hven_qp_sources
     test_dense_oracle.cpp
     test_eqp_refine_ab.cpp
     test_eqp_solve.cpp
