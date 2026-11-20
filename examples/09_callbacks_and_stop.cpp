@@ -185,10 +185,8 @@ int main() {
             },
             IterationPayload::kScalars);
 
-        // The token is the budget's `stop`; the empty WarmStart is the cold start.
-        SolveBudget budget;
-        budget.stop = stop.token();
-        const SqpResult r = sqp.solve(problem, x0, {}, budget);
+        // The token is the budget's `stop`; naming SolveBudget selects the cold-start overload.
+        const SqpResult r = sqp.solve(problem, x0, SolveBudget{.stop = stop.token()});
         button.join();
         std::printf("  -> %s (%s) after %lld iterations, x=%s\n", to_string(r.status),
                     to_string(r.stop_reason), static_cast<long long>(r.iterations),

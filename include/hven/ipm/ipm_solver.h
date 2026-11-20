@@ -13,6 +13,7 @@
 /// trace sink or ledger. A moved-from solver may only be destroyed or
 /// assigned to.
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <string>
@@ -174,6 +175,20 @@ class IpmSolver {
     ///         interrupted solve's result is then `last_result()`.
     IpmResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
+
+    /// A cold solve under a budget: `solve(problem, x0, budget)` is
+    /// `solve(problem, x0, WarmStart{}, budget)`.
+    ///
+    /// Constrained to `SolveBudget` itself, so a bare `{}` as the third argument keeps
+    /// selecting the `WarmStart` overload; spell the type to reach this one:
+    /// `solve(problem, x0, SolveBudget{.stop = token})`, or pass a `SolveBudget`
+    /// lvalue. (Designated initializers need the type name: `{.stop = t}` alone is a
+    /// `WarmStart` initializer and does not compile.)
+    template <class B>
+        requires std::same_as<B, SolveBudget>
+    IpmResult solve(Problem &problem, ConstVecRef x0, const B &budget) {
+        return solve(problem, x0, WarmStart{}, budget);
+    }
 
     /// The partial result of the most recent `solve()` that an exception
     /// escaped -- an argument refusal included: what the interrupted solve

@@ -23,6 +23,7 @@ set(_hven_solver_sources
     test_options.cpp
     test_options_dump.cpp
     test_options_reference.cpp
+    test_solve_overloads.cpp
     test_solve_result.cpp
     test_solver_move.cpp
     test_stop_token.cpp

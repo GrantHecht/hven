@@ -12,6 +12,7 @@
 /// engine, including its QP engines, attached callback, trace sink and ledger.
 /// A moved-from solver may only be destroyed or assigned to.
 
+#include <concepts>
 #include <memory>
 #include <string>
 
@@ -137,6 +138,20 @@ class SqpSolver {
     ///         interrupted solve's result is then `last_result()`.
     SqpResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
+
+    /// A cold solve under a budget: `solve(problem, x0, budget)` is
+    /// `solve(problem, x0, WarmStart{}, budget)`.
+    ///
+    /// Constrained to `SolveBudget` itself, so a bare `{}` as the third argument keeps
+    /// selecting the `WarmStart` overload; spell the type to reach this one:
+    /// `solve(problem, x0, SolveBudget{.stop = token})`, or pass a `SolveBudget`
+    /// lvalue. (Designated initializers need the type name: `{.stop = t}` alone is a
+    /// `WarmStart` initializer and does not compile.)
+    template <class B>
+        requires std::same_as<B, SolveBudget>
+    SqpResult solve(Problem &problem, ConstVecRef x0, const B &budget) {
+        return solve(problem, x0, WarmStart{}, budget);
+    }
 
     /// Warm-start ingest of this engine's native object. SQP-only, labelled.
     ///

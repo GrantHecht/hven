@@ -482,6 +482,25 @@ describe the behaviour before this group.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g7/CATCH-UP.txt`.
 
+## AP-4 -- API friction fixes (before the API lock)
+
+Four small interface changes and their before and after. Each subsection stands alone.
+
+### AP-4 G4 -- `solve(problem, x0, budget)`
+
+Addition; nothing moves. Both `IpmSolver` and `SqpSolver` gain a cold-start overload that takes
+a `SolveBudget` as the third argument:
+
+| before | after |
+|---|---|
+| `solver.solve(problem, x0, {}, budget)` | `solver.solve(problem, x0, budget)` (the old spelling still compiles) |
+| `solver.solve(problem, x0, {}, SolveBudget{.stop = token})` | `solver.solve(problem, x0, SolveBudget{.stop = token})` |
+
+The overload is constrained to `SolveBudget` itself, so a bare `{}` as the third argument still
+selects the `WarmStart` overload, and `{.stop = token}` without the type name is not a
+`SolveBudget` initializer there (spell `SolveBudget{.stop = token}`). A `SolveBudget` lvalue or
+prvalue selects the new overload, which forwards to `solve(problem, x0, WarmStart{}, budget)`.
+
 ## G-RB -- one `return_best`, one "best", both engines
 
 The two engines' return-best options become one `CommonOptions::return_best`, and "best" gets one
