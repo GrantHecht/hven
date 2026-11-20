@@ -335,8 +335,8 @@ struct SolveResult {
     // way, whichever engine produced the result. They are NOT the quantity either
     // engine's convergence test gated on.
     // That quantity stays on the engine's own result (IpmResult::convergence,
-    // SqpResult::convergence), which is engine-specific, because a tolerance comparison must be made
-    // against the number the test actually read.
+    // SqpResult::convergence), which is engine-specific, because a tolerance comparison must be
+    // made against the number the test actually read.
     /// @brief inf-norm dual residual over the measured declared coordinates.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(inf-norm equality residual, inf-norm inequality and bound
