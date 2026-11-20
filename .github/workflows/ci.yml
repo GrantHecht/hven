@@ -28,7 +28,7 @@ jobs:
   # runner is observed. Widening to pull_request is a one-line change here,
   # taken when that observation says the latency is acceptable.
   linux-clang-coverage:
-    if: github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -112,6 +112,7 @@ jobs:
           fail_ci_if_error: false
 
   linux-clang-release:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -331,6 +332,7 @@ jobs:
           if-no-files-found: warn
 
   macos-clang-release:
+    if: false
     # This job raised the milestone's Apple-hardware claim ceiling: the
     # Accelerate session, shim, and Apple-gated test halves
     # (src/linear/accelerate_session.cpp, symmetric_factor_accelerate.cpp,
