@@ -1,0 +1,231 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:10:01-05:00
+code paths == 5ee73653effaa719c102851c3b2633f9284182ad, clean; HEAD 4c9b48f0d05a49110d4280af0c9ee9f01d24a4e4; base 64e384e2a4bf1f80a9dc2d72ee2b0bdf41911ed4
+build trees up to date: /home/ghecht/Projects/hven/.claude/worktrees/i17fix/build /home/ghecht/Projects/hven/.claude/worktrees/i17fix/build-debug /home/ghecht/Projects/hven/.claude/worktrees/i17-base/build
+LEG P1-rel start 2026-11-19T22:10:02-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:10:02-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-19T22:11:19-05:00
+LEG P1-rel rc=0 2026-11-19T22:11:19-05:00
+LEG P1-rel-criterion start 2026-11-19T22:11:19-05:00
+LEG P1-rel-criterion rc=0 2026-11-19T22:11:19-05:00
+LEG P1-dbg start 2026-11-19T22:11:19-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:11:19-05:00
+	1360 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1479 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1570 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1571 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1572 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+ctest rc=0
+FOREGROUND_END 2026-11-19T22:18:48-05:00
+LEG P1-dbg rc=0 2026-11-19T22:18:48-05:00
+LEG P1-dbg-criterion start 2026-11-19T22:18:48-05:00
+LEG P1-dbg-criterion rc=0 2026-11-19T22:18:48-05:00
+LEG P2-A start 2026-11-19T22:18:48-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:18:48-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/i17-base/build/bench/hven_sqp_corpus sha256 bd3d322803b1d98e90e6b622b39901da19a48991cdf1caf2a9673ee28e8c71c9
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-19T22:24:23-05:00
+LEG P2-A rc=0 2026-11-19T22:24:23-05:00
+LEG P2-B start 2026-11-19T22:24:23-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:24:23-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/i17fix/build/bench/hven_sqp_corpus sha256 8391680bcddc3cc44de3f216800f76cedd26fe126d65ce8695fb2a80e3ddee96
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-19T22:29:57-05:00
+LEG P2-B rc=0 2026-11-19T22:29:57-05:00
+LEG P2-criterion start 2026-11-19T22:29:57-05:00
+=== A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_ZERO_DIFFERENCES
+LEG P2-criterion rc=0 2026-11-19T22:29:57-05:00
+LEG P3-A start 2026-11-19T22:29:57-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:29:57-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-19T22:34:29-05:00
+FOREGROUND_END 2026-11-19T22:34:29-05:00
+LEG P3-A rc=0 2026-11-19T22:34:29-05:00
+LEG P3-B start 2026-11-19T22:34:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:34:29-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-19T22:39:01-05:00
+FOREGROUND_END 2026-11-19T22:39:01-05:00
+LEG P3-B rc=0 2026-11-19T22:39:01-05:00
+LEG P3-criterion start 2026-11-19T22:39:01-05:00
+SUMMARY rows 476; movers vs arm A 40; missing/capped 0
+I17_TRAIN_PASS
+LEG P3-criterion rc=0 2026-11-19T22:39:02-05:00
+LEG P4-A start 2026-11-19T22:39:02-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:39:02-05:00
+cells run: 119 labels: always-default:X 2026-11-19T22:40:58-05:00
+FOREGROUND_END 2026-11-19T22:40:58-05:00
+LEG P4-A rc=0 2026-11-19T22:40:58-05:00
+LEG P4-B start 2026-11-19T22:40:58-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T22:40:58-05:00
+cells run: 119 labels: always-default:X default:N cap6-always-default:A6 cap6-default:N6 cap8-always-default:A8 cap8-default:N8 cap10-always-default:A10 cap10-default:N10 cap13-always-default:A13 cap13-default:N13 cap16-always-default:A16 cap16-default:N16 cap20-always-default:A20 cap20-default:N20 2026-11-19T23:09:46-05:00
+FOREGROUND_END 2026-11-19T23:09:46-05:00
+LEG P4-B rc=0 2026-11-19T23:09:46-05:00
+LEG P4-criterion start 2026-11-19T23:09:46-05:00
+C1 cells 119; missing/capped 0; ledger-only movers 17; other movers 0
+C2 Auto at cap 2^6: rows differing from Auto default: 0
+C2 Auto at cap 2^8: rows differing from Auto default: 0
+C2 Auto at cap 2^10: rows differing from Auto default: 0
+C2 Auto at cap 2^13: rows differing from Auto default: 0
+C2 Auto at cap 2^16: rows differing from Auto default: 0
+C2 Auto at cap 2^20: rows differing from Auto default: 0
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-DECONVC: optimal/28 -> optimal/168
+  C4 cap 2^6 WORSE   sd-hven-sqp-DEMBO7: optimal/6 -> numerical_error/17
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-HS84: optimal/11 -> optimal/9
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/29
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-LAUNCH: optimal/11 -> optimal/11
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-NET1: optimal/13 -> optimal/13
+C3 Always at cap 2^6: rows differing from the adopted default: 6 {'BETTER': 0, 'WORSE': 1, 'NEUTRAL': 5}
+  C4 cap 2^8 NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/27
+C3 Always at cap 2^8: rows differing from the adopted default: 1 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 1}
+C3 Always at cap 2^10: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^13: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^16: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^20: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 smallest cap with no moved row: 2^10; declared ADOPT_K 2^10
+I17_ALWAYS_PASS
+LEG P4-criterion rc=0 2026-11-19T23:09:47-05:00
+LEG P5 start 2026-11-19T23:09:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T23:09:47-05:00
+ALL 17 ANCHORS UNIQUE
+PREFLIGHT every mutation applies and restores: [L1 L2 L3 L4 L5 L6 L7 S1 S2 S3 S4 C1 C2 D1 D2 D3 D4]
+MUT control sqp_rc=0 trace_rc=0 killers=0
+APPLIED L1
+MUT L1 sqp_rc=1 trace_rc=1 killers=4
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+   TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+APPLIED L2
+MUT L2 sqp_rc=1 trace_rc=1 killers=3
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+APPLIED L3
+MUT L3 sqp_rc=1 trace_rc=1 killers=3
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+   SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho
+APPLIED L4
+MUT L4 sqp_rc=1 trace_rc=1 killers=3
+   SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+   SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+   TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+APPLIED L5
+MUT L5 sqp_rc=0 trace_rc=1 killers=3
+   ConsoleMessages.EachTemplateRendersItsOwnLine
+   HumanTraceGoldens.TheElasticFixture
+   HumanTraceGoldens.TheRestorationFixture
+APPLIED L6
+MUT L6 sqp_rc=0 trace_rc=1 killers=1
+   JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne
+APPLIED L7
+MUT L7 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.RestorationQpsAreRecordedInTheAttachedLedger
+APPLIED S1
+MUT S1 sqp_rc=1 trace_rc=0 killers=3
+   CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+   CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S2
+MUT S2 sqp_rc=1 trace_rc=0 killers=2
+   CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S3
+MUT S3 sqp_rc=1 trace_rc=0 killers=1
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED S4
+MUT S4 sqp_rc=1 trace_rc=0 killers=1
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+APPLIED C1
+MUT C1 sqp_rc=1 trace_rc=0 killers=4
+   ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo
+   ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables
+   ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel
+   ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+APPLIED C2
+MUT C2 sqp_rc=1 trace_rc=0 killers=2
+   ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+   ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused
+APPLIED D1
+MUT D1 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+APPLIED D2
+MUT D2 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+APPLIED D3
+MUT D3 sqp_rc=1 trace_rc=0 killers=1
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+APPLIED D4
+MUT D4 sqp_rc=1 trace_rc=0 killers=4
+   CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+   QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory
+   QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+   QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T23:16:47-05:00
+LEG P5 rc=0 2026-11-19T23:16:47-05:00
+LEG P6 start 2026-11-19T23:16:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T23:16:47-05:00
+SMOKE_START default 2026-11-19T23:16:47-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-19T23:17:55-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-19T23:18:40-05:00
+LEG P6 rc=0 2026-11-19T23:18:40-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-19T23:18:40-05:00
