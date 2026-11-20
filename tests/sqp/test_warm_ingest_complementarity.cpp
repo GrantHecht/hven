@@ -109,6 +109,7 @@
 // so every assertion in this file is expected to hold on Apple Accelerate
 // unchanged. Nothing here is pinned on a trajectory-sensitive count.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <memory>
@@ -133,6 +134,7 @@
 #include "model/support/hs_problems.h"
 #include "model/support/parametric_families.h"
 #include "sqp/support/nlp_kkt_check.h"
+#include "support/route_reference.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -1667,8 +1669,20 @@ TEST(B1Gate, KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined) {
     // AND THE TWO KERNELS NOW AGREE, stated as a ratio so it cannot be read as
     // a rounding coincidence. Pre-repair this ratio was > 1e3 IN THE OTHER
     // DIRECTION, and the old test asserted exactly that.
+#if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_LT(ssn_r.complementarity, 2.0 * walk_r.complementarity);
     EXPECT_GT(ssn_r.complementarity, 0.5 * walk_r.complementarity);
+#else
+    // RS-6b: both readings are rounding noise (1e-13: the face solve lands on x*), and the ratio
+    // of two noise values is a backend coincidence -- Windows MKL read 6.8e-13 against the walk's
+    // 3.2e-13. By construction instead: the two kernels agree when each is below the noise floor
+    // already asserted above (1e-10), or, if the walk is above it, by the same two-sided ratio.
+    constexpr double kNoiseFloor = 1e-10;
+    EXPECT_LT(ssn_r.complementarity, std::max(2.0 * walk_r.complementarity, kNoiseFloor));
+    if (walk_r.complementarity > kNoiseFloor) {
+        EXPECT_GT(ssn_r.complementarity, 0.5 * walk_r.complementarity);
+    }
+#endif
 }
 
 TEST(B1Gate, ReviewSphereIsRepairedUnderKSsnToo) {
