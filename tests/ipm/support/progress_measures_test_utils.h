@@ -7,15 +7,15 @@
 // Deliberately includes ONLY detail/ipm/globalization/progress_measures.h -- NOT
 // solver_test_utils.h. This hven-side solver_test_utils.h is itself the
 // VF-free half of the old combined header (InertSolverContext only; it
-// includes just solver_context.h and jet.h, not tycho/tycho.h -- see its own
+// includes just solver_context.h and jet.h, not the full ODE-phase umbrella -- see its own
 // header comment) and is cheap on its own, but pm() has no reason to acquire
 // even that dependency. Several of this helper's call sites live in leaf-
 // header test TUs (they test a single globalization component in isolation
 // and include nothing heavier than that component's own header); routing
 // pm() through solver_test_utils.h would still be an unjustified coupling for
 // a helper that only ever touches the plain-data ProgressMeasures type. (The
-// tycho-side copy of solver_test_utils.h, tests/ipm/support/solver_test_utils.h,
-// is the one that pulls the full tycho/tycho.h umbrella, for its SolverTest
+// consumer-side copy of solver_test_utils.h, tests/ipm/support/solver_test_utils.h,
+// is the one that pulls the full ODE-phase umbrella, for its SolverTest
 // fixture and make_brach_solver_phase() -- not this one.)
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -23,7 +23,7 @@
 
 #include <hven/detail/ipm/globalization/progress_measures.h>
 
-namespace TychoTest {
+namespace HvenTest {
 
 /// @brief Build a ProgressMeasures(infeasibility, objective, auxiliary) triple.
 /// `obj` and `aux` default to 0.0 so callers that only care about theta (e.g.
@@ -37,4 +37,4 @@ inline hven::detail::ProgressMeasures pm(double inf, double obj = 0.0, double au
     return p;
 }
 
-} // namespace TychoTest
+} // namespace HvenTest

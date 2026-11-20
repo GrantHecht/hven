@@ -1596,7 +1596,7 @@ TEST(SqpWarmCurrency, ThePayloadPathDeliversThePolishSplitWithoutFlattening) {
     EXPECT_NE(full.counters.ipqp.ipqp_iters, 0);
 }
 
-// FIX ROUND 1, tycho F1(a): SECTION 5.3'S CEILING READ OFF THE ARITHMETIC, not off a fixture's
+// FIX ROUND 1, F1(a): SECTION 5.3'S CEILING READ OFF THE ARITHMETIC, not off a fixture's
 // own knob -- one staged payload, two ceilings, and the ceiling is the ONLY variable.
 // `.superpowers/w1-t10b-fix1-report.md` item C.
 TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
@@ -1634,7 +1634,7 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
     EXPECT_EQ(shipped.counters.ipqp.ipqp_mu_adopted, 0);
 }
 
-// FIX ROUND 1, tycho F1(b): AND THE CEILING IS NOT A BLANKET REFUSAL -- a payload two decades
+// FIX ROUND 1, F1(b): AND THE CEILING IS NOT A BLANKET REFUSAL -- a payload two decades
 // under it is adopted at the SHIPPED default, no fixture-local knob. The seed moves 1e-6, not
 // 0.2, so its own measured complementarity sits BELOW the payload; item C measures both.
 TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {

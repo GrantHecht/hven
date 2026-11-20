@@ -46,7 +46,7 @@ using hven::detail::l1_elastic_slack_init;
 using hven::detail::NestedL1Restoration;
 using hven::detail::ProgressMeasures;
 using hven::detail::SolverContext;
-using TychoTest::InertSolverContext;
+using HvenTest::InertSolverContext;
 
 // =============================================================================
 // (a) Slack-init truth table.

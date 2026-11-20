@@ -8,8 +8,8 @@
 // This is the VF-free half of what used to be a single
 // tests/ipm/support/solver_test_utils.h. The other half -- the SolverTest
 // fixture and make_brach_solver_phase(), which build a real
-// ODEPhase<BrachODE> and therefore need the full tycho/tycho.h umbrella --
-// stays on the Tycho side under its original name and path
+// ODEPhase<BrachODE> and therefore need the full ODE-phase umbrella --
+// lives with the consumer under its original name and path
 // (tests/ipm/support/solver_test_utils.h), since hven has no VectorFunction
 // dependency to build that against.
 ///////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@
 #include <hven/detail/ipm/solver_context.h>
 #include <hven/ipm/ipm_solver_types.h>
 
-namespace TychoTest {
+namespace HvenTest {
 
 using namespace hven;
 using namespace hven::detail;
@@ -41,7 +41,7 @@ using namespace hven::detail;
 // is destroyed at the end of the full expression, taking its members (and
 // every reference ctx() handed out into them) with it. The correct pattern
 // is:
-//   TychoTest::InertSolverContext inert;
+//   HvenTest::InertSolverContext inert;
 //   inert.opts_.econ_tol = 1e-6;        // mutate before calling ctx()
 //   SomeComponent c(inert.ctx());       // `inert` outlives `c`'s use of it
 //
@@ -50,8 +50,8 @@ using namespace hven::detail;
 // real work, only threaded through a signature. Tests that need a specific
 // KKT layout set primal_vars_/slack_vars_/equal_cons_/inequal_cons_/kkt_dim_
 // directly before calling ctx() (see e.g.
-// NestedRestorationMonotoneSchedule in test_feasibility_switch.cpp, on the
-// Tycho side).
+// NestedRestorationMonotoneSchedule in test_feasibility_switch.cpp, in the
+// consumer's own suite).
 ///////////////////////////////////////////////////////////////////////////////
 
 struct InertSolverContext {
@@ -84,4 +84,4 @@ struct InertSolverContext {
     }
 };
 
-} // namespace TychoTest
+} // namespace HvenTest

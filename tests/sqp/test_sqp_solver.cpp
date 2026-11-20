@@ -12181,7 +12181,7 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPoi
     EXPECT_NEAR(bordered.worst_resid, eliminated.worst_resid, 1.0e-10)
         << "neither path can out-refine the other at a dead end any more";
 
-    // AND THE FALLEN-BACK ROUTE IS MODE-PAIRED TOO (fix round 1, R1 + tycho T8): 130 pins past
+    // AND THE FALLEN-BACK ROUTE IS MODE-PAIRED TOO (fix round 1, R1 + T8): 130 pins past
     // the SHIPPED schur_cap = 128 latch border mode onto the elimination path, where T7's first
     // cut refined NEITHER way and left the DEFAULT mode certifying a FEASIBLE problem infeasible.
     const QpProblem padded = w2t7_padded_ill_scaled_qp(1.0e-4, 130);
@@ -12407,7 +12407,7 @@ TEST(QpEngineStructuralViolation, E2Fix4ARealTerminalViolationStillEndsInfeasibl
 }
 
 static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
-    // T6b REGISTERED (tycho): the verdict loop's cost AT SCALE. THE DISTRIBUTION, measured: 0 on
+    // T6b REGISTERED: the verdict loop's cost AT SCALE. THE DISTRIBUTION, measured: 0 on
     // all 27 HS models at kIpm, 0 on the inconsistent-linearization and exhaustion fixtures, and
     // 15 on the T3-A fixture in all three modes and both configs. T7 report section 2, item 10.
     //

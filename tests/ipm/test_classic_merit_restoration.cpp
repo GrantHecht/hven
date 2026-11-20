@@ -13,7 +13,7 @@
 // adaptation) for Ipopt's Min(tol, constr_viol_tol). ClassicMeritAcceptance
 // reads econ_tol_ through its SolverContext, so these tests build a minimal
 // all-zero-dimension context (only opts_.econ_tol is read by this method)
-// via TychoTest::InertSolverContext.
+// via HvenTest::InertSolverContext.
 //
 // Every boundary is hand-computed in the comments.
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,8 +33,8 @@ namespace {
 using hven::detail::ClassicMeritAcceptance;
 using hven::detail::kKappaResto;
 using hven::detail::ProgressMeasures;
-using TychoTest::InertSolverContext;
-using TychoTest::pm;
+using HvenTest::InertSolverContext;
+using HvenTest::pm;
 
 // The relative floor dominates: econ_tol_ = 1e-6, θ_ref = 1.0 ⇒
 // floor = max(0.9·1, 1e-6) = 0.9.

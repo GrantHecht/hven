@@ -479,7 +479,7 @@ TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
         << "index 0 has no upper bound and the upper loop must have skipped it";
 }
 
-// T4c fix round 2 (tycho fold T2/T3): `ipqp_classify_barrier_noise` exercised
+// T4c fix round 2 (fold T2/T3): `ipqp_classify_barrier_noise` exercised
 // as a pure function, apart from any solve. See
 // `.superpowers/w1-t4c-report.md`.
 
