@@ -579,6 +579,52 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
     EXPECT_NEAR(1e12, hven::detail::engine_rows(after).lambda_i(0), 1e-3 * 1e12);
 }
 
+// TR-S1: the history/trace rows carry, beside the caller-unit measures, the quantities the
+// convergence test compares with the tolerances (the scaled problem's units).
+TEST(ProblemScalingAcceptance, TheRowsCarryTheQuantitiesTheConvergenceTestCompares) {
+    ScaledDualModel model(1e12, 5e-7);
+    SqpOptions on;
+    on.common.max_iterations = 60;
+    on.row_scaling = true;
+    SqpSolver driver{on};
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+    ASSERT_TRUE(sol.scaling.active);
+    ASSERT_GT(sol.history.size(), 1U);
+    const double opt_tol = on.common.optimality_tol;
+    const double feas_tol = on.common.feasibility_tol;
+    const auto passes = [&](const hven::IterationRecord &r) {
+        return r.tested_stationarity <= opt_tol && r.tested_feasibility <= feas_tol &&
+               r.tested_complementarity <= opt_tol;
+    };
+    // The solve stopped on the first row whose TESTED values pass, and not before.
+    for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
+        EXPECT_FALSE(passes(sol.history[k])) << "row " << k;
+    }
+    EXPECT_TRUE(passes(sol.history.back()));
+    // The caller-unit twins are the tested ones mapped back through the objective factor
+    // (stationarity and complementarity carry it; the test row-scales feasibility).
+    const double sf = sol.scaling.objective;
+    ASSERT_GT(sf, 0.0);
+    for (const hven::IterationRecord &r : sol.history) {
+        if (!std::isfinite(r.tested_stationarity)) {
+            continue;
+        }
+        EXPECT_NEAR(r.stationarity * sf, r.tested_stationarity,
+                    1e-12 * (1.0 + std::abs(r.tested_stationarity)));
+        EXPECT_NEAR(r.complementarity * sf, r.tested_complementarity,
+                    1e-12 * (1.0 + std::abs(r.tested_complementarity)));
+    }
+    // And the two sets differ: on this cell the caller-unit stationarity is 1e10 times the
+    // tested one wherever it is nonzero, so a trace printing it would not show the test.
+    bool any_differs = false;
+    for (const hven::IterationRecord &r : sol.history) {
+        any_differs = any_differs || (std::isfinite(r.stationarity) && r.stationarity != 0.0 &&
+                                      r.stationarity != r.tested_stationarity);
+    }
+    EXPECT_TRUE(any_differs);
+}
+
 TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell) {
     // The cell's row Jacobian is the constant [1], so the row half of the rule
     // is the identity on it and the objective half carries the whole effect.

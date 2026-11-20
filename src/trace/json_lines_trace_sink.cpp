@@ -408,7 +408,7 @@ static_assert(::hven::detail::kAggregateArity<IpmIterate> == kIpmIterateFieldCou
               "IpmSolverImpl::make_iteration_record and `ipm.phase.exit` reads it here; give the "
               "new field its place there, re-derive the goldens, and update this count.");
 
-static_assert(::hven::detail::kAggregateArity<IterationRecord> == 16,
+static_assert(::hven::detail::kAggregateArity<IterationRecord> == 19,
               "IterationRecord gained or lost a member: give it a key in "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the iter golden lines, and update this count.");
@@ -943,15 +943,18 @@ void JsonLinesTraceSink::on_iter(const IterTraceEvent &event) {
     key_enum(b, first, "tier", to_json(r.tier));
     key_opt_double(b, first, "f", r.f);
     key_opt_double(b, first, "f_recovery", r.f_recovery);
-    key_double(b, first, "stationarity", r.stationarity);
-    key_double(b, first, "feasibility", r.feasibility);
-    key_double(b, first, "complementarity", r.complementarity);
+    key_double(b, first, "stationarity", r.tested_stationarity);
+    key_double(b, first, "feasibility", r.tested_feasibility);
+    key_double(b, first, "complementarity", r.tested_complementarity);
     key_opt_double(b, first, "step", r.step_norm);
     key_opt_bool(b, first, "accepted", r.accepted);
     key_bool(b, first, "soc", r.soc);
     key_bool(b, first, "watchdog", r.watchdog);
     key_bool(b, first, "rolled_back", r.rolled_back);
     key_index(b, first, "factorizations", r.factorizations);
+    key_double(b, first, "stationarity_caller", r.stationarity);
+    key_double(b, first, "feasibility_caller", r.feasibility);
+    key_double(b, first, "complementarity_caller", r.complementarity);
     if (r.ipm) {
         std::string o;
         write_ipm_row(o, *r.ipm);

@@ -15,7 +15,7 @@
 // The verbosity rungs (`CommonOptions::verbosity`), each printing the rungs below it:
 //   kWarnings    warning messages; the footer's `exit` line
 //   kSummary     header; IPM phase lines (multi-phase solves); the rest of the footer
-//   kIterations  legend; column headers; every iteration row, restoration rows included;
+//   kIterations  column headers; every iteration row, restoration rows included;
 //                notice messages
 //   kDetail      one condensed line per QP-tier event; the IPM KKT-analysis and
 //                phase-exit lines
@@ -45,7 +45,6 @@ class ConsoleTraceSink final : public TraceSink {
     struct Format {
         Verbosity verbosity = Verbosity::kIterations;
         ConsoleColor color = ConsoleColor::kAuto;
-        bool legend = true; ///< Print the legend once per solve (kIterations and up).
         bool timing = true; ///< Print the footer's wall-clock line (informational).
     };
 
@@ -95,7 +94,6 @@ class ConsoleTraceSink final : public TraceSink {
     Index open_solves_ = 0;
     TraceEngine engine_ = TraceEngine::kIpm;
     Index ipm_phases_ = 0;
-    bool legend_done_ = false;
     bool header_pending_ = true; ///< The column header precedes the next row.
     Index rows_since_header_ = 0;
 };

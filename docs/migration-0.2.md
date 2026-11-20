@@ -557,7 +557,7 @@ the same four records.
 | `on_ipm_message` | `on_message(const MessageTraceEvent &)` |
 | `on_ipm_restoration_exit_row` | removed; read `message{kind: restoration_exited, s: locally_infeasible}` in `on_message` |
 | `IpmMessageKind::kX` | `MessageKind::kX`; `kRestorationLocallyInfeasible` -> `kRestorationExited` with `s == "locally_infeasible"`; `kInterruptAtIteration`/`kStopRequestedAtIteration` -> `kStopAtIteration` with `s == "callback"`/`"token"` |
-| `ConsoleTraceSink::Format{wide, verbosity}` | `Format{verbosity, color, legend, timing}`; delete the first initializer member |
+| `ConsoleTraceSink::Format{wide, verbosity}` | `Format{verbosity, color, timing}` (the `legend` member was removed in TR-S1; the column reference is docs/trace-schema-v1.md section 8.1); delete the first initializer member |
 | `IpmOptions::wide_console` | removed (one console width) |
 | `format_iteration_table` and its five pieces | removed; attach a `ConsoleTraceSink` (or set `verbosity`) for live rows |
 | `Verbosity` | gains `kDetail` |

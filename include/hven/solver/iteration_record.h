@@ -111,9 +111,19 @@ struct IterationRecord {
     IterationTier tier = IterationTier::kBarrier;
     std::optional<double> f;
     std::optional<double> f_recovery;
+    /// The three measures in the CALLER's units (the objective scale and, on an SQP solve,
+    /// the row/column scaling mapped back). Schema keys `stationarity_caller`,
+    /// `feasibility_caller`, `complementarity_caller`.
     double stationarity = 0.0;
     double feasibility = 0.0;
     double complementarity = 0.0;
+    /// The three measures EXACTLY AS THE CONVERGENCE TEST COMPARES THEM with
+    /// `optimality_tol` / `feasibility_tol` (the scaled problem's units; equal to the caller
+    /// values on an unscaled solve). The console columns `stat feas comp` and the schema
+    /// keys `stationarity`, `feasibility`, `complementarity` print these.
+    double tested_stationarity = 0.0;
+    double tested_feasibility = 0.0;
+    double tested_complementarity = 0.0;
     std::optional<double> step_norm;
     std::optional<bool> accepted;
     bool soc = false;

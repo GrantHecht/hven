@@ -2532,7 +2532,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
 
 TEST(IpmConsole, TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing) {
     // The console the SOLVER attaches for itself, on a live solve. What is
-    // pinned here is the SHAPE -- the header, the legend, the column header, the
+    // pinned here is the SHAPE -- the header, the column header, the
     // rows, the footer -- and that a silent level writes not one byte. The BYTES
     // are pinned in tests/trace/test_console_sink.cpp.
     std::string printed;
@@ -2554,7 +2554,7 @@ TEST(IpmConsole, TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing) {
     EXPECT_NE(printed.find("\nproblem    variables 4 (boxed 4) "), std::string::npos);
     EXPECT_NE(printed.find("\nengine     KKT dim "), std::string::npos);
     EXPECT_NE(printed.find("\ntolerances optimality "), std::string::npos);
-    EXPECT_NE(printed.find("\nlegend  t: B barrier"), std::string::npos);
+    EXPECT_EQ(printed.find("legend"), std::string::npos) << "the legend is gone (TR-S1)";
     EXPECT_NE(printed.find("\n iter t      objective"), std::string::npos);
     EXPECT_NE(printed.find("\nexit        Optimal"), std::string::npos);
     EXPECT_NE(printed.find("\niterations  "), std::string::npos);

@@ -69,18 +69,26 @@ Core, in wire order:
 | `tier` | enum `bar`/`ipqp`/`ssn`/`walk`/`elastic`/`rest` | `bar`, `rest` while recovering | `rest` at depth 1; `elastic` if the elastic tier supplied the step; else the dispatch arm | never |
 | `f` | double | `prim_obj / obj_scale` when the declared objective was measured | `SqpIterate::f` at depth 0 | recovering; phases that never evaluate it |
 | `f_recovery` | double | `prim_obj` while recovering | `SqpIterate::f` at depth 1 | not recovering |
-| `stationarity` | double | `kkt_inf / obj_scale` | `SqpIterate::stationarity` | never (`"nan"` if non-finite) |
-| `feasibility` | double | `max(econ_inf, icon_inf)` | `SqpIterate::feasibility` | never |
-| `complementarity` | double | `barr_inf / obj_scale` | `SqpIterate::complementarity` | never |
+| `stationarity` | double | `kkt_inf` (the scaled problem's units: exactly what `converge_check` compares with `optimality_tol`) | `SqpKkt::stationarity` as measured on the engine's scaled problem (what the convergence test compares with `optimality_tol`) | never (`"nan"` if non-finite) |
+| `feasibility` | double | `max(econ_inf, icon_inf)` (each compared with `feasibility_tol`) | `SqpKkt::feasibility`, engine units (compared with `feasibility_tol`) | never |
+| `complementarity` | double | `barr_inf` (compared with the effective complementarity tolerance) | `SqpKkt::complementarity`, engine units (compared with `optimality_tol`) | never |
 | `step` | double | inf-norm of the primal step leaving the point | `SqpIterate::step_norm` | no step leaves the point (IPM exit rows, non-finite direction; SQP `!qp_solved` or QP not optimal) |
 | `accepted` | bool | `IpmIterate::accepted` | `verdict` is an accept | no step |
 | `soc` | bool | SOC won this iteration's step (`resolved_depth == kRecoveryDepthSoc`) | `soc_applied` | never |
 | `watchdog` | bool | the watchdog **armed** this iteration | the watchdog **restored** this pass | never; the meanings differ by engine |
 | `rolled_back` | bool | a non-finite step rollback happened at this iteration | `rolled_back` | never |
 | `factorizations` | int | the call's running KKT factorization count at the row; each stepped row's count exceeds the previous row's by exactly `1 + inertia_corrections` | the (sub-)solve's running `counters.factorizations` | never |
+| `stationarity_caller` | double | `kkt_inf / obj_scale`: the caller's objective scale | `SqpKkt::stationarity / obj_scale` when row scaling is active, else as `stationarity` | never |
+| `feasibility_caller` | double | `max(econ_inf, icon_inf)` (the IPM scales no rows: equal to `feasibility`) | feasibility of the caller's rows and box (row/column factors removed); equals `feasibility` on an unscaled solve | never |
+| `complementarity_caller` | double | `barr_inf / obj_scale` | `SqpKkt::complementarity / obj_scale` when row scaling is active, else as `complementarity` | never |
 
-The residuals are the ENGINE's convergence measures mapped to the caller's objective scale. They are not
-the number the convergence test gated on under active scaling; `solve.end.convergence` is.
+**`stationarity`, `feasibility`, `complementarity` are the quantities the termination test compares with the
+tolerances** (TR-S1): the scaled problem's own values, so a reader sees convergence against `optimality_tol` /
+`feasibility_tol` (section 3.2) directly in the stream. On an unscaled solve they equal the `_caller` keys. The `_caller`
+keys are the same measures mapped back to the caller's units (the values `IterationRecord`'s unprefixed fields, `history`
+and the callback carry); under scaling they are what the user's own check of the returned point would read, and can be
+orders of magnitude from the tested value (an objective scaled up by 7e4 reads a tested stationarity 7e4 times the
+caller's). `solve.end.convergence` is the engine measure of the returned point.
 
 `ipm` block (`IpmIterationRow`): `phase`; `mu` (engine scale: the barrier parameter the step leaving this point was formed at, i.e. after the governor's update for that iteration; the starting value is `ipm.initial_mu` on `solve.begin` and the callback event for point 0. Row 0 can therefore sit at `barrier_min` (HS071: 1e-12, the adaptive governor's first update clamps there) while row 1 reads about 5.6e-4: both are the values the steps used, and the event for point k+1 carries row k's); `alpha_primal`, `alpha_dual` (the effective
 lengths, `alpha_scale * ` the fraction-to-boundary maxima); `alpha_scale`; `line_search_trials`;
@@ -185,7 +193,7 @@ object (section 3.1), set on `elastic_exhausted` only.
 `ipm.phase.begin`/`ipm.phase.end` lose their `label` key (derivable from `entry`). `ipm.phase.exit` keeps
 its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `stationarity`, `barr_inf` ->
 `complementarity` (the G7 names, docs/migration-0.2.md), all **at engine scale**: the same residuals as the
-`iter` record's `stationarity`/`complementarity`, which are divided by the objective scale. The QP-tier records are v0's.
+`iter` record's `stationarity`/`complementarity` (since TR-S1 those are engine scale too; the `_caller` keys are divided by the objective scale). The QP-tier records are v0's.
 
 ## 4. Identities a v1 stream satisfies (asserted in tests)
 
@@ -197,7 +205,9 @@ its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `station
    `iterations`. A count, not a range: the IPM `iter` index is not contiguous. The IPM non-finite evaluation
    abort used to be the one hole (M7-19, closed in TR-B): it now writes its row and fires its event.
 2. When `returned_best_iterate == false` and scaling is inactive, the final depth-0 `iter` core residuals
-   equal `solve.end.convergence`'s.
+   (`stationarity`, `feasibility`, `complementarity`, and equally the `_caller` keys) equal `solve.end.convergence`'s.
+   A row whose `stationarity <= optimality_tol`, `feasibility <= feasibility_tol` and `complementarity <= tolerance`
+   is the row a converged solve stops on (the test is on these printed values).
 3. `factorizations` on the last row <= `solve.end.work.factorizations`.
 4. The message identities of spec 2.7, and v0's QP-tier identities.
 5. One `IterationEvent` per depth-0 `iter` line. SQP: event extras and row agree row for row. IPM, one-row
@@ -226,6 +236,7 @@ meaning) is v2.
 | none | M8 TR-B | `message` | the SQP kinds and the IPM `restoration_entered` and the other `restoration_exited` values are emitted; every kind, key and enum value was already in the v1 freeze, so no schema change |
 | new trailing key | M8 GL-0 | `iter`, `sqp` block | `switching_ratio` (double or `null`), after `active_upper_sides`; the `sqp` block's arity pin moves 23 -> 24. `solve.end.counters` (SQP) gains eight trailing keys after `payload_ignored`: `reject_funnel_ceiling`, `reject_f_armijo`, `reject_h_funnel`, `reject_qp_failed`, `reject_other`, `accepted_f_type`, `accepted_h_type`, `rejection_run_histogram` (a 5-integer array); the three golden lines are re-derived |
 | new trailing key | M8 I17 | `iter` `sqp` block; `message` | `ladder` (object or `null`), after `switching_ratio`; the `sqp` block's arity pin moves 24 -> 25. `message` gains the same `ladder` key after `expected_n`, `null` on every kind but `elastic_exhausted` (the `MessageTraceEvent` arity pin moves 14 -> 15); the exhausted row's `qp_status` is the main QP's. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
+| meaning change + new trailing keys (pre-tag) | M8 TR-S1 | `iter` | the core keys `stationarity`, `feasibility`, `complementarity` carry the scaled problem's measures, the quantities the termination tests compare with the tolerances (IPM: `kkt_inf`, `max(econ_inf, icon_inf)`, `barr_inf`, previously divided by the objective scale; SQP: the engine-unit `SqpKkt` measures, previously mapped to caller units). New trailing core keys after `factorizations`: `stationarity_caller`, `feasibility_caller`, `complementarity_caller` carry the former values. Equal to the former values on an unscaled solve. The v1 freeze has not been tagged (same ground as the TR-D rider), so this is a pre-tag correction, not a v2. The golden `ipm_complete.jsonl`, `sqp_complete.jsonl` and `ipm_aborted.jsonl` lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map
@@ -244,10 +255,44 @@ meaning) is v2.
 
 ## 8. Human trace
 
-`ConsoleTraceSink` renders the same events as text: header, legend, fixed-width `iter` lines, message lines,
-footer. The formats, the tier/verdict/code letters and the verbosity ladder are in spec section 3 and are
-pinned by `tests/trace/test_console_sink.cpp`. One-solve/one-thread contract: a sink serves one solve at a time on one thread (a restoration sub-solve shares it sequentially); nothing is synchronized. Rulings (TR-A): the legend and phase-line shapes follow spec 3.4's examples; the message folds `restoration_exited{s}` and `stop_at_iteration{s}` stand; the `Max iter` wording stands; the QP-tier `.` lines print at every depth at `kDetail`. Rungs: `kWarnings` warnings and the footer's `exit` line;
-`kSummary` header, IPM phase lines (only on multi-phase solves) and the full footer; `kIterations` legend,
-column headers, rows (restoration rows included) and notices; `kDetail` one condensed `.` line per QP-tier
-event plus the IPM KKT-analysis and phase-exit lines. `Format{color, legend, timing}`: colour applies only
+`ConsoleTraceSink` renders the same events as text: header, fixed-width `iter` lines, message lines,
+footer. (There is no legend: the column reference is section 8.1; the printed `legend` block and `Format::legend` were removed in TR-S1.) The formats, the tier/verdict/code letters and the verbosity ladder are in spec section 3 and are
+pinned by `tests/trace/test_console_sink.cpp`. One-solve/one-thread contract: a sink serves one solve at a time on one thread (a restoration sub-solve shares it sequentially); nothing is synchronized. Rulings (TR-A): the phase-line shapes follow spec 3.4's examples; the message folds `restoration_exited{s}` and `stop_at_iteration{s}` stand; the `Max iter` wording stands; the QP-tier `.` lines print at every depth at `kDetail`. Rungs: `kWarnings` warnings and the footer's `exit` line;
+`kSummary` header, IPM phase lines (only on multi-phase solves) and the full footer; `kIterations` column headers,
+ rows (restoration rows included) and notices; `kDetail` one condensed `.` line per QP-tier
+event plus the IPM KKT-analysis and phase-exit lines. `Format{verbosity, color, timing}`: colour applies only
 to the warning mark and the `exit` line.
+
+### 8.1 Console column reference
+
+The column header is reprinted at the first row, every 20 rows and after a message line. A `-` is a value that does not
+exist at that row (no step leaves the point). Every `stat_scl feas_scl comp_scl` value is **the number the convergence
+test compares with its tolerance**, in the scaled problem's units (`_scl`: the units the solver works in; on an unscaled
+solve they are the caller's units). The tolerances are on the `tolerances` header line; a solve ends `Optimal` when
+every column below that has a tolerance is at or under it (the IPM tests strictly under). Caller-unit values are the
+`*_caller` keys of the JSON `iter` record, not console columns.
+
+Common to both engines:
+
+| column | meaning | tested against |
+|---|---|---|
+| `iter` | iteration index. IPM: restarts at 0 per phase, not contiguous. SQP: history index, restarts at 0 per restoration sub-solve | |
+| `t` | tier that supplied the step. IPM: `B` barrier, `R` restoration. SQP: `I` IPQP, `S` SSN, `W` walk, `E` elastic, `R` restoration | |
+| `objective` | the objective in the caller's units; on a restoration row, the restoration objective | |
+| `stat_scl` | stationarity: the inf-norm of the Lagrangian gradient (IPM: z-form dual infeasibility incl. bound multipliers), scaled units | `optimality_tol` |
+| `feas_scl` | feasibility: IPM `max(equality, inequality residual)`; SQP `max(\|cE\|, max(cI)+, bound violation)`, scaled units. A scaled SQP solve also requires the caller-unit feasibility (`feasibility_caller`) at or under `feasibility_tol` before it ends Optimal; a refusal is a `scaled_convergence_refused` notice | `feasibility_tol` |
+| `comp_scl` | complementarity: IPM `max(s_i * lambda_i)` over slack and bound pairs; SQP `max_j \|lambda_j * cI_j(x)\|`, scaled units | IPM: `complementarity_tol` (default `optimality_tol`); SQP: `optimality_tol` |
+| `step` | inf-norm of the primal step leaving this point (IPM `\|dx\|`, SQP `\|p\|`) | |
+| `codes` | per-row flags; engine-specific, below | |
+
+IPM only: `lgmu` log10 of the barrier parameter the step was formed at; `alpha_pr`, `alpha_du` effective primal and dual
+step lengths; `ls` line-search backtracks; `lg(rg)` log10 of the total primal Hessian shift (`-` when none). Codes: `s`
+second-order correction, `w` watchdog armed, `r` rollback, `k` backtrack, `i` inertia fix, `x` evaluation error, `m` reject.
+
+SQP only: `radius` trust region; `h(l1)` l1 constraint violation (the globalization measure, not `feas_scl`); `qp_it`,
+`qp_fa` QP minor iterations and factorizations; `v` verdict: `F` accept f-type, `H` accept h-type, `J` reject, `Q`
+restore. Codes: `s` SOC, `w` watchdog restored, `r` rollback, `b` trust-region bound, `c` clamp, `d` restoration seed, `n`
+QP not optimal.
+
+Message lines: `!` marks a warning, `-` a notice. The JSON stream's `stationarity`, `feasibility`, `complementarity`
+are the three tested columns; `solve.begin` carries `optimality_tol` and `feasibility_tol`.

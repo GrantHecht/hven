@@ -1902,6 +1902,9 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     rec.stationarity = r.stationarity;
     rec.feasibility = r.feasibility;
     rec.complementarity = r.complementarity;
+    rec.tested_stationarity = r.tested_stationarity;
+    rec.tested_feasibility = r.tested_feasibility;
+    rec.tested_complementarity = r.tested_complementarity;
     const bool stepped = r.qp_solved && r.qp_status == QpStatus::kOptimal;
     const bool accepted = r.verdict == StepVerdict::kAcceptObjectiveStep ||
                           r.verdict == StepVerdict::kAcceptFeasibilityStep;
@@ -7663,6 +7666,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         mj.row.stationarity = mj.kkt.stationarity;
         mj.row.feasibility = mj.kkt.feasibility;
         mj.row.complementarity = mj.kkt.complementarity;
+        mj.row.tested_stationarity = mj.kkt.stationarity;
+        mj.row.tested_feasibility = mj.kkt.feasibility;
+        mj.row.tested_complementarity = mj.kkt.complementarity;
         mj.row.kkt_residual = mj.kkt.residual();
         mj.row.violation_l1 = constraint_violation_l1(st.ev);
         mj.row.tr_radius = st.delta;

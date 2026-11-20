@@ -74,6 +74,11 @@ IterationRecord ipm_row(Index iteration, bool restoration) {
     r.stationarity = 0.5 / static_cast<double>(1 << iteration);
     r.feasibility = 0.25;
     r.complementarity = 0.125;
+    // The engine's scaled units, as the convergence test reads them: the caller values times
+    // the objective scale (8) for the two dual-scaled measures.
+    r.tested_stationarity = 8.0 * r.stationarity;
+    r.tested_feasibility = r.feasibility;
+    r.tested_complementarity = 8.0 * r.complementarity;
     r.step_norm = 0.5;
     r.accepted = true;
     r.factorizations = 3 * (iteration + 1);
@@ -92,6 +97,9 @@ IterationRecord sqp_row(Index iteration, int depth) {
     r.stationarity = 0.0625;
     r.feasibility = 0.25;
     r.complementarity = 0.125;
+    r.tested_stationarity = 4.0 * r.stationarity;
+    r.tested_feasibility = 0.5 * r.feasibility;
+    r.tested_complementarity = 4.0 * r.complementarity;
     r.step_norm = 0.75;
     r.accepted = depth == 0;
     r.factorizations = 7 + iteration;

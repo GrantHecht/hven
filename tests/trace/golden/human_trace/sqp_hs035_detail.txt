@@ -3,17 +3,11 @@ problem    variables 3 (lower 3) · constraints 1 (upper 1) · absent bounds 0
 engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
 tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
       . qp.mode walk optimal at dispatch, 3 iterations
-legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)
-        stat feas comp: engine measures | step: |p|inf from this point | radius: trust region
-        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value
-        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration sub-solve
-        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not optimal
-        messages: '!' warning, '-' notice
- iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+ iter t      objective stat_scl feas_scl comp_scl     step   radius    h(l1) qp_it qp_fa v codes
     0 W  2.2500000e+00 4.00e+00 0.00e+00 0.00e+00 8.33e-01 1.00e+00 0.00e+00     3    1 F
-    1 W  1.1111111e-01 3.61e-16 0.00e+00 0.00e+00        - 1.00e+00 0.00e+00     -    - -
+    1 W  1.1111111e-01 2.78e-16 0.00e+00 0.00e+00        - 1.00e+00 0.00e+00     -    - -
 exit        Optimal (none) -- converged: optimality and feasibility tolerances met
 iterations  1 · restoration entries 0 · factorizations 1
 objective   1.11111111e-01
-diagnostics stationarity 3.6e-16 · feasibility 0.0e+00 · complementarity 0.0e+00   (declared)
+diagnostics stationarity 2.8e-16 · feasibility 0.0e+00 · complementarity 0.0e+00   (declared)
 counters    soc 0 · elastic 0 · qp minors 3 · start level cold · scaling off

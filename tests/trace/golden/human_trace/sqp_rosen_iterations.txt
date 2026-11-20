@@ -2,13 +2,7 @@ hven 0.2.0 -- SQP engine
 problem    variables 2 (boxed 2) · constraints 0 · absent bounds 0
 engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
 tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
-legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)
-        stat feas comp: engine measures | step: |p|inf from this point | radius: trust region
-        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value
-        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration sub-solve
-        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not optimal
-        messages: '!' warning, '-' notice
- iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+ iter t      objective stat_scl feas_scl comp_scl     step   radius    h(l1) qp_it qp_fa v codes
     0 W  2.4200000e+01 2.16e+02 0.00e+00 0.00e+00 3.81e-01 1.00e+00 0.00e+00     2    1 F
     1 W  4.7318843e+00 4.64e+00 0.00e+00 0.00e+00 1.00e+00 1.00e+00 0.00e+00     3    1 J b
     2 W  4.7318843e+00 4.64e+00 0.00e+00 0.00e+00 5.00e-01 5.00e-01 0.00e+00     3    1 F b

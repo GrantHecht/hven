@@ -93,6 +93,11 @@ struct SqpMajorRow {
     /// max_j |lambda_i(j) * cI_j(x)|. GATED at kkt_tol by the convergence test
     /// on every major, beside stationarity and feasibility.
     double complementarity = 0.0;
+    /// The same three measures in the ENGINE's (scaled) units: the quantities the convergence
+    /// test compares with the tolerances. Not mapped on export; the trace prints these.
+    double tested_stationarity = 0.0;
+    double tested_feasibility = 0.0;
+    double tested_complementarity = 0.0;
     /// max(stationarity, feasibility) -- the scalar the contraction test
     /// reads. Complementarity is not in it; the convergence test reads it
     /// separately.

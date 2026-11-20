@@ -29,7 +29,7 @@ enum class Verbosity {
     /// Adds the header, the interior-point phase lines and the full footer. No
     /// iteration rows.
     kSummary,
-    /// Adds the legend, the column headers, every iteration row (restoration rows
+    /// Adds the column headers, every iteration row (restoration rows
     /// included) and notice messages.
     kIterations,
     /// Adds one condensed line per QP-tier event, and the interior-point

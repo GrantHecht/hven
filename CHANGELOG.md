@@ -50,6 +50,21 @@ programs are the reference for the new surface, and the full rename table is
   `hven::detail`, `warmstart/warm_start.h` and `drivers/json_lines_trace_sink.h`, and
   `IpmLinearOptions::accelerate_zero_tol` on every platform. Trace keys and strings are unchanged.
 
+## Unreleased — M8 TR-S1 (the trace prints what the tolerances test)
+
+- **Scaled measures in the trace; no legend.** Before: the console `stat feas comp` columns and the
+  JSON `iter` keys `stationarity`/`feasibility`/`complementarity` printed the measures mapped to the
+  caller's units (IPM: divided by the objective scale; SQP: row/column scaling removed), so under
+  scaling the printout hid why a solve continued (a printed stationarity of 1.4e-11 against an
+  `optimality_tol` of 1e-6, with the objective scaled up 7e4 times). After: those columns and keys are
+  the scaled problem's values, exactly what the convergence test compares with the tolerances; the
+  headers read `stat_scl feas_scl comp_scl`; the caller-unit values are the new trailing `iter` keys
+  `stationarity_caller`, `feasibility_caller`, `complementarity_caller` and the unchanged
+  `IterationRecord::{stationarity, feasibility, complementarity}` (`history`, callback).
+  `IterationRecord` gains `tested_stationarity`, `tested_feasibility`, `tested_complementarity`. The
+  printed `legend` block and `ConsoleTraceSink::Format::legend` are removed; the column reference is
+  `docs/trace-schema-v1.md` section 8.1. Unscaled solves print the same numbers as before.
+
 ## Unreleased — M8 I18 (issue 18: a feasible walk QP ended kNumericalError)
 
 - **The walk's EQP accuracy stop.** Before: the EQP answer was accepted once its residual fell

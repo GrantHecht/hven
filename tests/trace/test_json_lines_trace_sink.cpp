@@ -2334,8 +2334,11 @@ IterationRecord golden_sqp_row(int line) {
         r.tier = IterationTier::kWalk;
         r.f = -2.5;
         r.stationarity = 1e-7;
+        r.tested_stationarity = 1e-7;
         r.feasibility = 0.25;
+        r.tested_feasibility = 0.25;
         r.complementarity = 0.125;
+        r.tested_complementarity = 0.125;
         r.step_norm = 0.75;
         r.factorizations = 31;
         r.sqp->mode = QpTraceMode::kWalk;
@@ -2363,8 +2366,11 @@ IterationRecord golden_sqp_row(int line) {
         r.tier = IterationTier::kSsn;
         r.f = 0.1;
         r.stationarity = -0.0;
+        r.tested_stationarity = -0.0;
         r.feasibility = std::numeric_limits<double>::quiet_NaN();
+        r.tested_feasibility = std::numeric_limits<double>::quiet_NaN();
         r.complementarity = std::numeric_limits<double>::infinity();
+        r.tested_complementarity = std::numeric_limits<double>::infinity();
         r.step_norm = 0.0;
         r.sqp->mode = QpTraceMode::kSsn;
         r.sqp->verdict = StepVerdict::kRestore;
@@ -2389,8 +2395,11 @@ IterationRecord golden_sqp_row(int line) {
         r.tier = IterationTier::kIpqp;
         r.f = 1234.5;
         r.stationarity = 1e-12;
+        r.tested_stationarity = 1e-12;
         r.feasibility = 6.25;
+        r.tested_feasibility = 6.25;
         r.complementarity = 7.5;
+        r.tested_complementarity = 7.5;
         r.step_norm = 12.5;
         r.factorizations = 7;
         r.sqp->mode = QpTraceMode::kIpqp;
@@ -2412,8 +2421,11 @@ IterationRecord golden_sqp_row(int line) {
         r.tier = IterationTier::kElastic;
         r.f = 3.0;
         r.stationarity = 4.0;
+        r.tested_stationarity = 4.0;
         r.feasibility = 5.0;
+        r.tested_feasibility = 5.0;
         r.complementarity = 6.0;
+        r.tested_complementarity = 6.0;
         r.step_norm = 11.0;
         r.factorizations = 14;
         r.sqp->mode = QpTraceMode::kWalk;
@@ -2453,7 +2465,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "\"recovering\":true,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":9."
         "9999999999999995e-08,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":0.75,"
         "\"accepted\":false,\"soc\":true,\"watchdog\":false,\"rolled_back\":true,"
-        "\"factorizations\":31,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":\"accept_f\","
+        "\"factorizations\":31,\"stationarity_caller\":9.9999999999999995e-08,\"feasibility_"
+        "caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\","
+        "\"verdict\":\"accept_f\","
         "\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":1e-08,\"qp_solved\":false,"
         "\"qp_status\":\"max_iter\",\"qp_minor_iterations\":9,\"qp_factorizations\":3,\"tr_"
         "binding\":true,\"elastic\":false,\"elastic_clamped\":true,\"restoration_seed_used\":false,"
@@ -2469,7 +2483,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTh
               "\"recovering\":false,\"tier\":\"ssn\",\"f\":0.10000000000000001,\"f_recovery\":null,"
               "\"stationarity\":-0,\"feasibility\":\"nan\",\"complementarity\":\"inf\",\"step\":0,"
               "\"accepted\":true,\"soc\":true,\"watchdog\":false,\"rolled_back\":false,"
-              "\"factorizations\":0,\"sqp\":{\"depth\":0,\"mode\":\"ssn\",\"verdict\":\"restore\","
+              "\"factorizations\":0,\"stationarity_caller\":-0,\"feasibility_caller\":\"nan\","
+              "\"complementarity_caller\":\"inf\",\"sqp\":{\"depth\":0,\"mode\":\"ssn\","
+              "\"verdict\":\"restore\","
               "\"trust_radius\":1.7976931348623157e+308,\"violation_l1\":1e-300,\"regularization_"
               "dual\":4.9406564584124654e-324,\"qp_solved\":true,\"qp_status\":"
               "\"infeasible\",\"qp_minor_iterations\":0,\"qp_factorizations\":0,\"tr_binding\":"
@@ -2486,7 +2502,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
               "11,\"recovering\":false,\"tier\":\"ipqp\",\"f\":1234.5,\"f_recovery\":null,"
               "\"stationarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7."
               "5,\"step\":12.5,\"accepted\":false,\"soc\":false,\"watchdog\":true,\"rolled_back\":"
-              "true,\"factorizations\":7,\"sqp\":{\"depth\":0,\"mode\":\"ipqp\",\"verdict\":"
+              "true,\"factorizations\":7,\"stationarity_caller\":9.9999999999999998e-13,"
+              "\"feasibility_caller\":6.25,\"complementarity_caller\":7.5,\"sqp\":{\"depth\":0,"
+              "\"mode\":\"ipqp\",\"verdict\":"
               "\"accept_h\",\"trust_radius\":0.03125,\"violation_l1\":9,\"regularization_dual\":9."
               "9999999999999995e-07,\"qp_solved\":true,\"qp_status\":\"numerical_error\",\"qp_"
               "minor_iterations\":21,\"qp_factorizations\":13,\"tr_binding\":true,\"elastic\":"
@@ -2503,6 +2521,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "\"recovering\":false,\"tier\":\"elastic\",\"f\":3,\"f_recovery\":null,"
               "\"stationarity\":4,\"feasibility\":5,\"complementarity\":6,\"step\":11,\"accepted\":"
               "false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":14,"
+              "\"stationarity_caller\":4,\"feasibility_caller\":5,\"complementarity_caller\":6,"
               "\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":\"reject\",\"trust_radius\":9,"
               "\"violation_l1\":8,\"regularization_dual\":10,\"qp_solved\":false,\"qp_status\":"
               "\"optimal\",\"qp_minor_iterations\":13,\"qp_factorizations\":14,\"tr_binding\":"
@@ -2521,8 +2540,11 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
     r.iteration = 5;
     r.f = 2.0;
     r.stationarity = 0.5;
+    r.tested_stationarity = 0.5;
     r.feasibility = 0.25;
+    r.tested_feasibility = 0.25;
     r.complementarity = 0.125;
+    r.tested_complementarity = 0.125;
     r.factorizations = 9;
     r.sqp->trust_radius = 0.5;
     r.sqp->violation_l1 = 0.75;
@@ -2532,7 +2554,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
               "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"iter\":5,"
               "\"recovering\":false,\"tier\":\"walk\",\"f\":2,\"f_recovery\":null,\"stationarity\":"
               "0.5,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":null,\"accepted\":null,"
-              "\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"sqp\":"
+              "\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,"
+              "\"stationarity_caller\":0.5,\"feasibility_caller\":0.25,\"complementarity_caller\":"
+              "0.125,\"sqp\":"
               "{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":0.5,\"violation_"
               "l1\":0.75,\"regularization_dual\":null,\"qp_solved\":false,\"qp_status\":null,\"qp_"
               "minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":"
@@ -2555,8 +2579,11 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
     r.tier = IterationTier::kElastic;
     r.f = 19.0;
     r.stationarity = 0.4;
+    r.tested_stationarity = 0.4;
     r.feasibility = 0.9;
+    r.tested_feasibility = 0.9;
     r.complementarity = 0.02;
+    r.tested_complementarity = 0.02;
     r.step_norm = 0.5;
     r.accepted = true;
     r.factorizations = 11;
@@ -2575,7 +2602,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
               "\"recovering\":false,\"tier\":\"elastic\",\"f\":19,\"f_recovery\":null,"
               "\"stationarity\":0.40000000000000002,\"feasibility\":0.90000000000000002,"
               "\"complementarity\":0.02,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":"
-              "false,\"rolled_back\":false,\"factorizations\":11,\"sqp\":{\"depth\":0,\"mode\":"
+              "false,\"rolled_back\":false,\"factorizations\":11,\"stationarity_caller\":0."
+              "40000000000000002,\"feasibility_caller\":0.90000000000000002,\"complementarity_"
+              "caller\":0.02,\"sqp\":{\"depth\":0,\"mode\":"
               "\"walk\",\"verdict\":\"accept_h\",\"trust_radius\":0.5,\"violation_l1\":1."
               "3999999999999999,\"regularization_dual\":1.0000000000000001e-09,\"qp_solved\":true,"
               "\"qp_status\":\"optimal\",\"qp_minor_iterations\":11,\"qp_factorizations\":3,\"tr_"
@@ -2596,8 +2625,11 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
     r.tier = IterationTier::kRestoration;
     r.f_recovery = 0.02;
     r.stationarity = 0.01;
+    r.tested_stationarity = 0.01;
     r.feasibility = 0.015;
+    r.tested_feasibility = 0.015;
     r.complementarity = 0.0;
+    r.tested_complementarity = 0.0;
     r.step_norm = 0.04;
     r.accepted = true;
     r.factorizations = 2;
@@ -2623,7 +2655,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
         "\"recovering\":true,\"tier\":\"rest\",\"f\":null,\"f_recovery\":0.02,\"stationarity\":0."
         "01,\"feasibility\":0.014999999999999999,\"complementarity\":0,\"step\":0."
         "040000000000000001,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":"
-        "false,\"factorizations\":2,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":\"accept_"
+        "false,\"factorizations\":2,\"stationarity_caller\":0.01,\"feasibility_caller\":0."
+        "014999999999999999,\"complementarity_caller\":0,\"sqp\":{\"depth\":1,\"mode\":\"walk\","
+        "\"verdict\":\"accept_"
         "f\",\"trust_radius\":1,\"violation_l1\":0.02,\"regularization_dual\":0,\"qp_solved\":true,"
         "\"qp_status\":\"optimal\",\"qp_minor_iterations\":3,\"qp_factorizations\":1,\"tr_"
         "binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":"
@@ -2665,9 +2699,14 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
                   std::string(r.sqp->elastic ? "\"elastic\"" : spec_spelling(mode)))
             << line;
     }
-    expect_double_field(line, "stationarity", r.stationarity);
-    expect_double_field(line, "feasibility", r.feasibility);
-    expect_double_field(line, "complementarity", r.complementarity);
+    // TR-S1: the core keys are the tested (scaled) measures; the `_caller` keys are the
+    // caller-unit ones.
+    expect_double_field(line, "stationarity", r.tested_stationarity);
+    expect_double_field(line, "feasibility", r.tested_feasibility);
+    expect_double_field(line, "complementarity", r.tested_complementarity);
+    expect_double_field(line, "stationarity_caller", r.stationarity);
+    expect_double_field(line, "feasibility_caller", r.feasibility);
+    expect_double_field(line, "complementarity_caller", r.complementarity);
     if (stepped) {
         expect_double_field(line, "step", r.step_norm.value_or(0.0));
         const bool accepted = r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
@@ -2785,10 +2824,11 @@ TEST(JsonLinesTraceSink, SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmC
     }
 }
 
-TEST(JsonLinesTraceSink, SqpIterIsInCallerUnitsOnAScaledSolve) {
-    // THE CALLER-UNITS CLAIM, and the only cell that can make it: the emit sits
-    // INSIDE `push_history`, after its scaling map, so the stream must equal
-    // `history` field for field even where the two spaces differ.
+TEST(JsonLinesTraceSink, SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve) {
+    // THE UNITS CLAIM, and the only cell that can make it: the emit sits INSIDE
+    // `push_history`, after its scaling map, so the stream must equal `history` field for
+    // field even where the two spaces differ: `stationarity`/`feasibility`/`complementarity`
+    // are the scaled problem's (the tested) values, `*_caller` the mapped ones (TR-S1).
     SqpOptions opts;
     opts.row_scaling = true;
     opts.common.max_iterations = 60;
@@ -2801,6 +2841,12 @@ TEST(JsonLinesTraceSink, SqpIterIsInCallerUnitsOnAScaledSolve) {
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_TRUE(sol.scaling.active) << "non-vacuous: the solve really scaled";
+    bool any_differs = false;
+    for (const IterationRecord &r : sol.history) {
+        any_differs = any_differs || r.tested_stationarity != r.stationarity ||
+                      r.tested_feasibility != r.feasibility;
+    }
+    EXPECT_TRUE(any_differs) << "non-vacuous: tested and caller values really differ";
     const std::vector<std::string> rows = major_lines(os.str());
     ASSERT_GT(sol.history.size(), 1u);
     ASSERT_EQ(rows.size(), sol.history.size());
@@ -4282,8 +4328,11 @@ IterationRecord golden_ipm_row(int line) {
         r.tier = IterationTier::kBarrier;
         r.f = 1.5;
         r.stationarity = 0.5;
+        r.tested_stationarity = 0.5;
         r.feasibility = 0.0625;
+        r.tested_feasibility = 0.0625;
         r.complementarity = 0.125;
+        r.tested_complementarity = 0.125;
         r.step_norm = 0.375;
         r.accepted = bit(1);
         r.factorizations = 19;
@@ -4318,8 +4367,11 @@ IterationRecord golden_ipm_row(int line) {
         r.tier = IterationTier::kBarrier;
         r.f = 1.25;
         r.stationarity = 3.1e-9;
+        r.tested_stationarity = 3.1e-9;
         r.feasibility = 2.2e-15;
+        r.tested_feasibility = 2.2e-15;
         r.complementarity = 2.5e-9;
+        r.tested_complementarity = 2.5e-9;
         r.factorizations = 20;
         o.phase = 1;
         o.mu = 1e-9;
@@ -4336,8 +4388,11 @@ IterationRecord golden_ipm_row(int line) {
         r.tier = IterationTier::kRestoration;
         r.f_recovery = 0.45;
         r.stationarity = 0.2;
+        r.tested_stationarity = 0.2;
         r.feasibility = 0.9;
+        r.tested_feasibility = 0.9;
         r.complementarity = 0.05;
+        r.tested_complementarity = 0.05;
         r.step_norm = 0.3;
         r.accepted = bit(1);
         r.factorizations = 11;
@@ -4371,7 +4426,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterIpmRowWithEveryOptionalPresent) {
         "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\",\"iter\":7,"
         "\"recovering\":false,\"tier\":\"bar\",\"f\":1.5,\"f_recovery\":null,\"stationarity\":0.5,"
         "\"feasibility\":0.0625,\"complementarity\":0.125,\"step\":0.375,\"accepted\":true,\"soc\":"
-        "false,\"watchdog\":true,\"rolled_back\":false,\"factorizations\":19,\"ipm\":{\"phase\":1,"
+        "false,\"watchdog\":true,\"rolled_back\":false,\"factorizations\":19,\"stationarity_"
+        "caller\":0.5,\"feasibility_caller\":0.0625,\"complementarity_caller\":0.125,\"ipm\":{"
+        "\"phase\":1,"
         "\"mu\":0.25,\"alpha_primal\":0.63,\"alpha_dual\":0.56000000000000005,\"alpha_scale\":0."
         "69999999999999996,\"line_search_trials\":2,\"regularization_primal\":1e-08,"
         "\"regularization_primal_total\":2e-08,\"regularization_dual\":2.9999999999999997e-08,"
@@ -4390,7 +4447,9 @@ TEST(JsonLinesTraceSink, GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls) {
         "\"recovering\":false,\"tier\":\"bar\",\"f\":1.25,\"f_recovery\":null,\"stationarity\":3."
         "1e-09,\"feasibility\":2.1999999999999999e-15,\"complementarity\":2.5000000000000001e-09,"
         "\"step\":null,\"accepted\":null,\"soc\":true,\"watchdog\":true,\"rolled_back\":false,"
-        "\"factorizations\":20,\"ipm\":{\"phase\":1,\"mu\":1.0000000000000001e-09,\"alpha_primal\":"
+        "\"factorizations\":20,\"stationarity_caller\":3.1e-09,\"feasibility_caller\":2."
+        "1999999999999999e-15,\"complementarity_caller\":2.5000000000000001e-09,\"ipm\":{\"phase\":"
+        "1,\"mu\":1.0000000000000001e-09,\"alpha_primal\":"
         "null,\"alpha_dual\":null,\"alpha_scale\":null,\"line_search_trials\":null,"
         "\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_"
         "dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":"
@@ -4421,6 +4480,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterIpmRestorationRow) {
               "\"stationarity\":0.20000000000000001,\"feasibility\":0.90000000000000002,"
               "\"complementarity\":0.050000000000000003,\"step\":0.29999999999999999,\"accepted\":"
               "false,\"soc\":false,\"watchdog\":false,\"rolled_back\":true,\"factorizations\":11,"
+              "\"stationarity_caller\":0.20000000000000001,\"feasibility_caller\":0."
+              "90000000000000002,\"complementarity_caller\":0.050000000000000003,"
               "\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":1,"
               "\"alpha_scale\":1,\"line_search_trials\":0,\"regularization_primal\":0,"
               "\"regularization_primal_total\":0,\"regularization_dual\":null,\"proximal_primal\":"
@@ -5373,7 +5434,7 @@ TEST(SqpConsole, TheLiveConsoleWritesOneRowPerIterLineIncludingTheRestorationRow
     EXPECT_EQ(count_row_lines(written), iter_lines);
     EXPECT_EQ(count_lines_starting(written, "hven "), 1) << "one header";
     EXPECT_EQ(count_lines_starting(written, "exit "), 1) << "one exit line";
-    EXPECT_EQ(count_lines_starting(written, "legend "), 1);
+    EXPECT_EQ(count_lines_starting(written, "legend "), 0);
 }
 
 TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
@@ -5456,10 +5517,10 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: restoration runs";
 
     // The sub-driver is handed the parent's fan-out and no console of its own, so
-    // the parent's console is the one writer: one header, one legend, one exit.
+    // the parent's console is the one writer: one header, one exit.
     EXPECT_EQ(count_lines_starting(written, "hven "), 1)
         << "the restoration sub-driver wrote a header of its own";
-    EXPECT_EQ(count_lines_starting(written, "legend "), 1);
+    EXPECT_EQ(count_lines_starting(written, "legend "), 0);
     EXPECT_EQ(count_lines_starting(written, "exit "), 1);
     // The column header precedes the first row, then every 20 printed rows and the first row
     // after a message line (TR-B: the engine now writes the restoration entry and exit): the

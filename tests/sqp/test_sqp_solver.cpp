@@ -6929,7 +6929,7 @@ TEST(SqpSolverDiagnostics, ConsoleContainsPerIterationRowsAndFinalStatus) {
     }
     EXPECT_EQ(data_rows, sol.history.size()) << table;
     EXPECT_NE(table.find(" iter t "), std::string::npos) << table;
-    EXPECT_NE(table.find("legend  t:"), std::string::npos) << table;
+    EXPECT_EQ(table.find("legend"), std::string::npos) << table;
     EXPECT_NE(table.find("exit        Optimal (none)"), std::string::npos) << table;
     // A plain 2-arg solve starts cold and runs unscaled.
     EXPECT_NE(table.find("start level cold"), std::string::npos) << table;

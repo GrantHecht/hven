@@ -15,6 +15,7 @@
 // The minimizer itself is scale-invariant for a positive scale, so the primals
 // are the control: they were already the same at every scale and stay so.
 
+#include <cmath>
 #include <limits>
 #include <memory>
 #include <string>
@@ -457,4 +458,47 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
         solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
+}
+
+// TR-S1: the printed stat/feas/comp ARE the quantities the termination test compares with the
+// tolerances. With the objective scaled by s the tested stationarity and complementarity are s
+// times the caller-unit ones; a trace that printed the caller-unit values hid why a solve
+// continued (printed 1e-11 while the test read 1e-6 at s = 1e5).
+TEST(ObjectiveScaleReporting, TheRowsCarryTheQuantitiesTheConvergenceTestCompares) {
+    for (double scale : {1.0, 1.0e4, 1.0e-2}) {
+        const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+        IpmSolver solver;
+        {
+            auto o = solver.options();
+            o.common.verbosity = hven::Verbosity::kSilent;
+            o.objective_scale = scale;
+            solver.set_options(std::move(o));
+        }
+        const hven::IpmOptions opts = solver.options();
+        const double opt_tol = opts.common.optimality_tol;
+        const double feas_tol = opts.common.feasibility_tol;
+        const double comp_tol = hven::effective_complementarity_tol(opts);
+
+        const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
+        const hven::IpmResult result = solve_declared(solver, route, x0);
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal) << "scale " << scale;
+        ASSERT_GT(result.history.size(), 1U);
+        const auto passes = [&](const hven::IterationRecord &r) {
+            return r.tested_stationarity < opt_tol && r.tested_feasibility < feas_tol &&
+                   r.tested_complementarity < comp_tol;
+        };
+        // The solve stopped on the first row whose TESTED values pass, and not before.
+        for (std::size_t k = 0; k + 1 < result.history.size(); ++k) {
+            EXPECT_FALSE(passes(result.history[k])) << "scale " << scale << " row " << k;
+        }
+        EXPECT_TRUE(passes(result.history.back())) << "scale " << scale;
+        // The caller-unit twins divide the objective scale out of the two scaled measures.
+        for (const hven::IterationRecord &r : result.history) {
+            EXPECT_NEAR(r.stationarity * scale, r.tested_stationarity,
+                        1e-12 * (1.0 + std::abs(r.tested_stationarity)));
+            EXPECT_NEAR(r.complementarity * scale, r.tested_complementarity,
+                        1e-12 * (1.0 + std::abs(r.tested_complementarity)));
+            EXPECT_DOUBLE_EQ(r.feasibility, r.tested_feasibility);
+        }
+    }
 }

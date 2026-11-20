@@ -2857,6 +2857,9 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     rec.stationarity = r.kkt_inf / scale;
     rec.feasibility = std::max(r.econ_inf, r.icon_inf);
     rec.complementarity = r.barr_inf / scale;
+    rec.tested_stationarity = r.kkt_inf;
+    rec.tested_feasibility = std::max(r.econ_inf, r.icon_inf);
+    rec.tested_complementarity = r.barr_inf;
     if (stepped) {
         rec.step_norm = r.step_norm;
         rec.accepted = r.accepted;

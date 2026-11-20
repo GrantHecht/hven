@@ -569,7 +569,7 @@ class TraceSink {
 
     /// @brief A solve whose `solve.begin` was delivered is leaving by an exception, so
     /// no `solve.end` will follow. NON-EMITTING: a sink unwinds whatever per-solve state
-    /// `on_solve_begin` opened (nesting, header/legend bookkeeping) and writes nothing,
+    /// `on_solve_begin` opened (nesting, header bookkeeping) and writes nothing,
     /// so the next solve on the same sink starts clean with no sink-specific recovery.
     /// Called once per solve level that began, innermost first, on every exceptional
     /// engine exit; must not throw. Default: nothing.

@@ -93,10 +93,10 @@ std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x
     std::FILE *f = std::tmpfile();
     std::string text;
     {
-        ConsoleTraceSink sink(
-            ConsoleTraceSink::Format{
-                .verbosity = v, .color = ConsoleColor::kNever, .legend = true, .timing = false},
-            f);
+        ConsoleTraceSink sink(ConsoleTraceSink::Format{.verbosity = v,
+                                                       .color = ConsoleColor::kNever,
+                                                       .timing = false},
+                              f);
         Problem problem(nlp);
         if (ipm) {
             IpmSolver solver{ipm_options};
@@ -183,8 +183,8 @@ TEST(HumanTraceGoldens, FourProblemsTwoEnginesFourRungs) {
     }
 }
 
-// Rows of a tier in a transcript: `<iter> <tier> ` at the start of a line (the legend's own
-// letters never start a line with a number).
+// Rows of a tier in a transcript: `<iter> <tier> ` at the start of a line (no other line
+// starts with a number).
 bool has_tier_row(const std::string &text, char tier) {
     for (std::size_t at = 0; at < text.size();) {
         std::size_t end = text.find('\n', at);

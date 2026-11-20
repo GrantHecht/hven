@@ -167,31 +167,11 @@ std::string sqp_codes(const IterationRecord &r, const SqpIterationRow &row) {
 }
 
 constexpr const char *kIpmColumns =
-    " iter t      objective     stat     feas     comp     step  lgmu alpha_pr alpha_du ls lg(rg) "
+    " iter t      objective stat_scl feas_scl comp_scl     step  lgmu alpha_pr alpha_du ls lg(rg) "
     "codes";
 constexpr const char *kSqpColumns =
-    " iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v "
+    " iter t      objective stat_scl feas_scl comp_scl     step   radius    h(l1) qp_it qp_fa v "
     "codes";
-
-constexpr const char *kIpmLegend =
-    "legend  t: B barrier, R restoration (obj = restoration objective) | stat feas comp: engine "
-    "measures\n"
-    "        step: |dx|inf leaving this point | alpha_pr/du: step lengths | ls: backtracks\n"
-    "        lgmu, lg(rg): log10 barrier, Hessian shift | '-' = no value | iter restarts at 0 per "
-    "phase\n"
-    "        codes: s SOC  w watchdog armed  r rollback  k backtrack  i inertia fix  x eval err  m "
-    "reject\n"
-    "        messages: '!' warning, '-' notice\n";
-constexpr const char *kSqpLegend =
-    "legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)\n"
-    "        stat feas comp: engine measures | step: |p|inf from this point | radius: trust "
-    "region\n"
-    "        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value\n"
-    "        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration "
-    "sub-solve\n"
-    "        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not "
-    "optimal\n"
-    "        messages: '!' warning, '-' notice\n";
 
 // "variables 4 (boxed 4)": the parenthetical lists the non-empty categories.
 std::string census_text(const char *noun, Index total,
@@ -368,7 +348,6 @@ void ConsoleTraceSink::on_solve_begin(const SolveBeginTraceEvent &event) {
     }
     engine_ = event.engine;
     ipm_phases_ = event.ipm ? event.ipm->phases : 0;
-    legend_done_ = false;
     header_pending_ = true;
     rows_since_header_ = 0;
     if (!at_least(Verbosity::kSummary)) {
@@ -407,7 +386,7 @@ void ConsoleTraceSink::on_solve_begin(const SolveBeginTraceEvent &event) {
                event.optimality_tol, event.feasibility_tol, event.max_iterations);
 }
 
-// --- iter: legend, column header, row -------------------------------------------
+// --- iter: column header, row -------------------------------------------
 
 void ConsoleTraceSink::on_iter(const IterTraceEvent &event) {
     if (!at_least(Verbosity::kIterations)) {
@@ -415,10 +394,6 @@ void ConsoleTraceSink::on_iter(const IterTraceEvent &event) {
     }
     const IterationRecord &r = event.record;
     const bool ipm = r.ipm.has_value();
-    if (fmt_.legend && !legend_done_) {
-        fmt::print(out_, "{}", ipm ? kIpmLegend : kSqpLegend);
-    }
-    legend_done_ = true;
     if (header_pending_ || rows_since_header_ >= 20) {
         fmt::print(out_, "{}\n", ipm ? kIpmColumns : kSqpColumns);
         header_pending_ = false;
@@ -426,9 +401,10 @@ void ConsoleTraceSink::on_iter(const IterTraceEvent &event) {
     }
     ++rows_since_header_;
     const std::optional<double> &obj = r.recovering ? r.f_recovery : r.f;
-    std::string line = fmt::format("{:>5} {} {} {:>8.2e} {:>8.2e} {:>8.2e} {}", r.iteration,
-                                   tier_letter(r.tier), opt_e(obj, 14, 7), r.stationarity,
-                                   r.feasibility, r.complementarity, opt_e(r.step_norm, 8, 2));
+    std::string line =
+        fmt::format("{:>5} {} {} {:>8.2e} {:>8.2e} {:>8.2e} {}", r.iteration, tier_letter(r.tier),
+                    opt_e(obj, 14, 7), r.tested_stationarity, r.tested_feasibility,
+                    r.tested_complementarity, opt_e(r.step_norm, 8, 2));
     std::string codes;
     if (r.ipm) {
         const IpmIterationRow &row = *r.ipm;
