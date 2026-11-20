@@ -253,8 +253,50 @@ std::string message_text(const MessageTraceEvent &e) {
     case MessageKind::kSubproblemFailure:
         return fmt::format("QP subproblem failed ({}); {} in a row",
                            e.s ? *e.s : std::string_view{}, idx(e.k));
-    case MessageKind::kElasticExhausted:
-        return fmt::format("elastic ladder exhausted after {} rungs", idx(e.k));
+    case MessageKind::kElasticExhausted: {
+        std::string t = fmt::format("elastic ladder exhausted after {} rungs", idx(e.k));
+        if (!e.route) {
+            return t;
+        }
+        const auto words = [](std::string_view v) -> std::string {
+            if (v == "verified_infeasible") {
+                return "verified infeasible in trust region";
+            }
+            if (v == "working_set_termination") {
+                return "working-set numerical termination";
+            }
+            if (v == "refused_certificate") {
+                return "refused certificate";
+            }
+            if (v == "ipqp_fallback") {
+                return "IPQP fallback";
+            }
+            if (v == "numerical_error") {
+                return "numerical failure";
+            }
+            if (v == "max_iter") {
+                return "iteration limit";
+            }
+            return std::string(v);
+        };
+        const auto yn = [](const std::optional<bool> &b) { return b && *b ? "yes" : "no"; };
+        t += fmt::format(" (entered: {}", words(*e.route));
+        if (e.main_status) {
+            t += fmt::format("; main QP: {}", words(*e.main_status));
+        }
+        if (e.rung_status) {
+            t += fmt::format("; last rung: {}", words(*e.rung_status));
+            if (e.a) {
+                t += fmt::format(" at rho {:.0e}", *e.a);
+            }
+        }
+        t += fmt::format("; closed {}, reduced {}, promises_f {}", yn(e.closed), yn(e.reduced),
+                         yn(e.promises_f));
+        if (e.b) {
+            t += fmt::format("; slack_l1 {:.1e}", *e.b);
+        }
+        return t + ")";
+    }
     case MessageKind::kInconsistentEqualities:
         return "equality constraints are inconsistent";
     case MessageKind::kStartPointClamped:

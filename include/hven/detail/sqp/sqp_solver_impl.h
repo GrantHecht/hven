@@ -500,6 +500,8 @@ struct ElasticLadderReport {
     double rho_0 = 0.0;
     /// Rungs climbed above the first (`elastic_escalations` for this ladder).
     Index rungs_climbed = 0;
+    /// The penalty of the rung the ladder stopped on (`rho_0` when it never climbed).
+    double rho_final = 0.0;
     /// @brief True iff this ladder's placement was clamped -- by headroom or by
     ///        dual_mu -- i.e. the evidence priced the violation above the rung the
     ///        placement bound allows. Aggregated over a solve by

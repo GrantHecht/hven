@@ -13,6 +13,7 @@
 
 #include <hven/core/types.h>
 #include <hven/qp/qp_types.h>
+#include <hven/solver/iteration_record.h>
 #include <hven/solver/step_verdict.h>
 
 namespace hven {
@@ -184,10 +185,10 @@ struct SqpMajorRow {
     /// the elastic solve, and the row that ended the solve because the ladder was
     /// exhausted. It is the branch input SOC is gated on.
     ///
-    /// ON SUCH A ROW THE qp_* Fields describe the final elastic solve, not the
-    /// kInfeasible one that triggered it, with the escalation re-solves' costs
-    /// folded into SqpCounters' aggregates only. On a rung-A-owned major they are
-    /// the ladder's own counts.
+    /// ON A ROW WHOSE LADDER SUPPLIED THE STEP the qp_* Fields describe the final elastic solve,
+    /// with the escalation re-solves' costs folded into SqpCounters' aggregates only; on an
+    /// EXHAUSTED ladder `qp_status` is the main QP's and the final rung's is in `ladder`. On a
+    /// rung-A-owned major they are the ladder's own counts.
     ///
     /// tr_binding IS STILL MEANINGFUL: the elastic solve gets its trust region as
     /// REAL bounds on the original variables rather than through QpSolveOverrides,
@@ -200,6 +201,9 @@ struct SqpMajorRow {
     /// `elastic_rho0_ceiling_hits` is per-ladder; they agree only because the
     /// retry's override placement can never clamp.
     bool elastic_rho0_ceiling_hit = false;
+    /// The elastic ladder's outcome beside the main QP's status. Present iff the major ran a
+    /// ladder; on an exhausted ladder `qp_status` stays the main QP's.
+    std::optional<ElasticLadderRow> ladder;
     /// True iff THIS row's restoration request started the phase at a CANDIDATE point rather
     /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_solver.h's
     /// RESTORATION PHASE note). False on every other row, INCLUDING a degraded-to-x seed.

@@ -416,7 +416,7 @@ static_assert(::hven::detail::kAggregateArity<IpmIterationRow> == 23,
               "IpmIterationRow gained or lost a member: give it a key in the `ipm` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
-static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 24,
+static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 25,
               "SqpIterationRow gained or lost a member: give it a key in the `sqp` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
@@ -438,7 +438,7 @@ static_assert(
             std::make_index_sequence<2>{}),
     "IterTraceEvent gained or lost a member: update JsonLinesTraceSink::on_iter and "
     "these two counts.");
-static_assert(::hven::detail::kAggregateArity<MessageTraceEvent> == 14,
+static_assert(::hven::detail::kAggregateArity<MessageTraceEvent> == 20,
               "MessageTraceEvent gained or lost a member: give it a key in "
               "JsonLinesTraceSink::on_message, add it to the per-kind table in "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
@@ -837,6 +837,25 @@ void write_sqp_row(std::string &b, const SqpIterationRow &r) {
     key_index(b, f, "active_lower_sides", r.active_lower_sides);
     key_index(b, f, "active_upper_sides", r.active_upper_sides);
     key_opt_double(b, f, "switching_ratio", r.switching_ratio);
+    if (r.ladder) {
+        const ElasticLadderRow &l = *r.ladder;
+        std::string o;
+        bool lf = true;
+        key_enum(o, lf, "entry", to_json(l.entry));
+        key_enum(o, lf, "main_status", to_json(l.main_status));
+        key_enum(o, lf, "rung_status", to_json(l.rung_status));
+        key_double(o, lf, "rho", l.rho);
+        key_index(o, lf, "rungs", l.rungs);
+        key_bool(o, lf, "closed", l.closed);
+        key_bool(o, lf, "reduced", l.reduced);
+        key_bool(o, lf, "promises_f", l.promises_f);
+        key_double(o, lf, "slack_l1", l.slack_l1);
+        key_bool(o, lf, "exhausted", l.exhausted);
+        key(b, f, "ladder");
+        b += "{" + o + "}";
+    } else {
+        key_null(b, f, "ladder");
+    }
 }
 
 } // namespace
@@ -969,6 +988,25 @@ void JsonLinesTraceSink::on_message(const MessageTraceEvent &event) {
     key_opt_index(b, first, "z", event.z);
     key_opt_index(b, first, "expected_p", event.expected_p);
     key_opt_index(b, first, "expected_n", event.expected_n);
+    // `elastic_exhausted`'s six keys are written only when set: no other kind carries them.
+    if (event.route) {
+        key_string(b, first, "route", *event.route);
+    }
+    if (event.main_status) {
+        key_string(b, first, "main_status", *event.main_status);
+    }
+    if (event.rung_status) {
+        key_string(b, first, "rung_status", *event.rung_status);
+    }
+    if (event.closed) {
+        key_bool(b, first, "closed", *event.closed);
+    }
+    if (event.reduced) {
+        key_bool(b, first, "reduced", *event.reduced);
+    }
+    if (event.promises_f) {
+        key_bool(b, first, "promises_f", *event.promises_f);
+    }
     write_line("message", b, engine_name(event.engine));
 }
 

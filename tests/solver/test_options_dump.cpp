@@ -60,9 +60,9 @@ constexpr std::size_t kIpmLinearOptionsFields = 12;
 constexpr std::size_t kIpmOptionsFields = 14;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
 constexpr std::size_t kIpmAdvancedOptionsFields = 24;
-constexpr std::size_t kSqpOptionsFields = 16;
+constexpr std::size_t kSqpOptionsFields = 18;
 constexpr std::size_t kSqpLinearOptionsFields = 2;
-constexpr std::size_t kSqpAdvancedOptionsFields = 27;
+constexpr std::size_t kSqpAdvancedOptionsFields = 29;
 constexpr std::size_t kIpqpOptionsFields = 25;
 constexpr std::size_t kQpOptionsFields = 11;
 constexpr std::size_t kCommonOptionsFields = 10;
@@ -122,10 +122,10 @@ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 608, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 664, "SqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::SqpAdvancedOptions) == 328,
+static_assert(sizeof(hven::SqpAdvancedOptions) == 368,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
@@ -141,7 +141,7 @@ static_assert(sizeof(CommonOptions) == 88, "CommonOptions' layout moved on Linux
 // advanced.ipqp 25 = 86.
 // ---------------------------------------------------------------------------
 constexpr int kIpmDumpLines = 66;
-constexpr int kSqpDumpLines = 86;
+constexpr int kSqpDumpLines = 90;
 
 int count_lines(const std::string &text) {
     int n = 0;

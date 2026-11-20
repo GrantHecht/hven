@@ -55,7 +55,7 @@ legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration ob
    41 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.05e-05 3.05e-05 1.00e+00     2    0 J b
    42 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 1.53e-05 1.53e-05 1.00e+00     2    0 J b
    43 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 7.63e-06 7.63e-06 1.00e+00     2    0 J b
-      ! elastic ladder exhausted after 6 rungs
+      ! elastic ladder exhausted after 6 rungs (entered: verified infeasible in trust region; main QP: infeasible; last rung: optimal at rho 1e+08; closed no, reduced no, promises_f no; slack_l1 1.0e+00)
       - restoration entered at iter 44: h 1.0e+00
  iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
     0 R  1.0030877e+00 1.00e+00 0.00e+00 0.00e+00 1.00e-01 1.00e-01 0.00e+00     4    1 F b
@@ -64,7 +64,7 @@ legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration ob
     3 R  1.0000000e+00 0.00e+00 0.00e+00 0.00e+00        - 2.00e-01 0.00e+00     -    - -
       ! restoration exited at iter 44: locally_infeasible, h 1.0e+00, threshold 1.0e-06
  iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
-   44 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.81e-06 3.81e-06 1.00e+00     2    0 Q d
+   44 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00        - 3.81e-06 1.00e+00     2    0 Q dn
 exit        Infeasible (none) -- locally infeasible (certified: restoration reached a stationary point of the infeasibility measure)
 iterations  45 · restoration entries 1 · factorizations 88
 objective   0.00000000e+00

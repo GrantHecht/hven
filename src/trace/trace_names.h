@@ -110,6 +110,20 @@ inline const char *to_json(QpTraceMode v) {
     return "unknown";
 }
 
+inline const char *to_json(ElasticEntry v) {
+    switch (v) {
+    case ElasticEntry::kVerifiedInfeasible:
+        return "verified_infeasible";
+    case ElasticEntry::kWorkingSetTermination:
+        return "working_set_termination";
+    case ElasticEntry::kRefusedCertificate:
+        return "refused_certificate";
+    case ElasticEntry::kIpqpFallback:
+        return "ipqp_fallback";
+    }
+    return "unknown";
+}
+
 inline const char *to_json(QpTraceModeSite v) {
     switch (v) {
     case QpTraceModeSite::kDispatch:

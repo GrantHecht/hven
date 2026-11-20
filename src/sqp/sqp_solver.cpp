@@ -1452,6 +1452,11 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         // thing and cannot get it from the sentinel, which it resolves to its own
         // radius; its engine is constructed with `tr_radius = +inf` instead.)
         const QpSolveOverrides elastic_overrides;
+        {
+            QpDumpTag rung_tag = engine.dump_tag();
+            rung_tag.site = fmt::format("rung{}", rungs_climbed);
+            engine.set_dump_tag(std::move(rung_tag));
+        }
         qs_e = tier != nullptr ? solve_elastic_rung_on_tier(*tier, elastic, opts, has_prev_rung, qn)
                : qn != nullptr ? qn->solve(engine, elastic.qp, seed_elastic, elastic_overrides)
                                : engine.solve(elastic.qp, seed_elastic, elastic_overrides);
@@ -1631,6 +1636,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     report.rho_0 = rho_0;
     report.rho0_ceiling_hit = rho0_ceiling_hit;
     report.rungs_climbed = rungs_climbed;
+    report.rho_final = rho;
     report.elastic = std::move(elastic);
     report.qs_e = std::move(qs_e);
     return report;
@@ -1744,8 +1750,31 @@ QpSolution detail::certified_feasibility_fallback(
 
 namespace {
 
+// The QP dump configuration the walk engines of a solve are given.
+QpDumpConfig qp_dump_config(const SqpOptions &o) {
+    QpDumpConfig cfg;
+    cfg.dir = o.advanced.qp_dump_dir;
+    cfg.policy = o.advanced.qp_dump_policy == SqpQpDumpPolicy::kAll      ? QpDumpPolicy::kAll
+                 : o.advanced.qp_dump_policy == SqpQpDumpPolicy::kFailed ? QpDumpPolicy::kFailed
+                                                                         : QpDumpPolicy::kOff;
+    return cfg;
+}
+
 // The QpOptions every engine of a solve is built with: the caller's, with the lifted QP's
 // convexity asserted under kLbfgsDamped (ruling C30 AMEND-6). A copy of `o.qp` under kExact.
+// The file-name tag of the next walk solve on `engine`; free when dumping is off.
+void tag_qp_dump(const SqpOptions &o, const QpEngine &engine, bool sub_driver, Index major,
+                 const char *site) {
+    if (o.advanced.qp_dump_policy == SqpQpDumpPolicy::kOff) {
+        return;
+    }
+    QpDumpTag t;
+    t.depth = sub_driver ? 1 : 0;
+    t.major = major;
+    t.site = site;
+    engine.set_dump_tag(std::move(t));
+}
+
 QpOptions engine_qp_options(const SqpOptions &o) {
     QpOptions q = o.qp;
     if (o.hessian_mode == SqpHessianMode::kLbfgsDamped) {
@@ -1842,6 +1871,35 @@ void count_rejection(SqpCounters &c, detail::RejectCause cause, Index run_positi
         static_cast<std::size_t>(std::max<Index>(run_position, 1)) - 1, last)];
 }
 
+// The `message` slots take literals; these spell the ladder row's enums as the trace schema does.
+static std::string_view elastic_entry_literal(ElasticEntry v) {
+    switch (v) {
+    case ElasticEntry::kVerifiedInfeasible:
+        return "verified_infeasible";
+    case ElasticEntry::kWorkingSetTermination:
+        return "working_set_termination";
+    case ElasticEntry::kRefusedCertificate:
+        return "refused_certificate";
+    case ElasticEntry::kIpqpFallback:
+        return "ipqp_fallback";
+    }
+    return "unknown";
+}
+
+static std::string_view qp_status_literal(QpStatus v) {
+    switch (v) {
+    case QpStatus::kOptimal:
+        return "optimal";
+    case QpStatus::kIterationLimit:
+        return "max_iter";
+    case QpStatus::kInfeasible:
+        return "infeasible";
+    case QpStatus::kNumericalError:
+        return "numerical_error";
+    }
+    return "unknown";
+}
+
 IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpTraceMode mode,
                                           Index depth, Index factorizations) {
     IterationRecord rec;
@@ -1904,6 +1962,7 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.active_lower_sides = r.active_lower_sides;
     row.active_upper_sides = r.active_upper_sides;
     row.switching_ratio = r.switching_ratio;
+    row.ladder = r.ladder;
     rec.sqp = row;
     return rec;
 }
@@ -2360,6 +2419,7 @@ void SqpSolverImpl::set_options(SqpOptions o) {
     // options exactly as they were.
     auto fresh = std::make_unique<QpEngine>(engine_qp_options(o), o.common.threads,
                                             o.linear.dense_factorization);
+    fresh->set_dump(qp_dump_config(o));
     if (ledger_ != nullptr) {
         fresh->attach_ledger(ledger_, label_prefix_ + "_qp");
         // The record labels are a per-DRIVER sequence. Carrying the counter is
@@ -2423,13 +2483,17 @@ const SqpOptions &SqpSolverImpl::validated(const SqpOptions &opts) {
 SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts)
     : opts_(validated(opts)),
       engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads,
-                                         opts.linear.dense_factorization)) {}
+                                         opts.linear.dense_factorization)) {
+    engine_->set_dump(qp_dump_config(opts_));
+}
 
 SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts, RestorationSubDriverTag)
     : opts_(validated(opts)),
       engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads,
                                          opts.linear.dense_factorization)),
-      allow_restoration_(false), is_restoration_sub_driver_(true) {}
+      allow_restoration_(false), is_restoration_sub_driver_(true) {
+    engine_->set_dump(qp_dump_config(opts_));
+}
 
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
 // deliberately here rather than in the header: the two `unique_ptr` members'
@@ -3204,7 +3268,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
     // vectors it would produce are not all finite: a warm start degrades to the rule,
     // it never throws.
     bool use_carried = warm_point && carried_column_factors_usable(warm.column_factors, n,
-                                                                   opts_.scaling_factor_max);
+                                                                   opts_.column_scaling_factor_max);
     if (use_carried) {
         const Vec &f = warm.column_factors;
         use_carried = x0.cwiseQuotient(f).allFinite() && warm.x.cwiseQuotient(f).allFinite() &&
@@ -3228,7 +3292,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
         at.Ji = SpMatRM(seam.mi(), n);
         seam.jacobians_only(at, x_rule);
         detail::ColumnScalingRule rule;
-        rule.factor_limit = opts_.scaling_factor_max;
+        rule.factor_limit = opts_.column_scaling_factor_max;
         rule.threshold =
             opts_.column_scaling == SqpColumnScaling::kAuto ? opts_.column_scaling_threshold : 1.0;
         cs = detail::compute_column_scaling(n, at.Je, at.Ji, rule);
@@ -5882,6 +5946,22 @@ void SqpSolverImpl::solve_with_walk(SolveState &st, MajorState &mj,
     }
 }
 
+// SqpOptions::caller_step_limit, folded into the subproblem's variable box (a step p, so the box
+// is centred on 0): |p_j| <= r * (1 + |x_j|) in caller units, i.e. divided by the column factor
+// d_j in the engine's. A variable already outside its box by more than the limit keeps its bound.
+static void apply_caller_step_limit(QpProblem &qp, const Vec &x, const Vec *d, double r) {
+    for (Index j = 0; j < qp.n(); ++j) {
+        const double dj = d != nullptr ? (*d)(j) : 1.0;
+        const double lim = r * (1.0 + std::abs(x(j) * dj)) / dj;
+        const double lo = std::max(qp.lower(j), -lim);
+        const double hi = std::min(qp.upper(j), lim);
+        if (lo <= hi) {
+            qp.lower(j) = lo;
+            qp.upper(j) = hi;
+        }
+    }
+}
+
 QpProblem SqpSolverImpl::build_qn_subproblem(SolveState &st, const SqpKkt &kkt,
                                              AssemblyEvalSeam &seam) {
     if (!st.qn) {
@@ -6364,6 +6444,11 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         }
         SqpSolverImpl sub(phase_opts, SqpSolverImpl::RestorationSubDriverTag{});
         sub.stop_phase_on_qp_failure_ = stop_on_qp_failure;
+        // THE PHASE'S QPs ARE LEDGERED, under a per-entry prefix (labels are unique per driver).
+        if (ledger_ != nullptr) {
+            sub.attach_ledger(ledger_, fmt::format("{}_resto{}", label_prefix_,
+                                                   st.out.counters.restoration_entries));
+        }
         // THE SUB-SOLVE'S OWN QN INSTANCE (ruling C30 AMEND-7) acts on the wrapper's x-block only:
         // its slack columns carry no curvature.
         if (ropts.hessian_mode == SqpHessianMode::kLbfgsDamped) {
@@ -8207,6 +8292,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.qp = build_exact_subproblem(st, seam);
             ++st.out.counters.eval_hess_calls;
         }
+        if (opts_.caller_step_limit > 0.0 && !is_restoration_sub_driver_) {
+            apply_caller_step_limit(st.qp, st.x, column_units_, opts_.caller_step_limit);
+        }
         if (!st.eqb.basis.reduce(st.qp)) {
             ++st.out.equality_basis.lift_refusals;
             ++st.out.equality_basis.lift_refusal_sites.qp_projection;
@@ -8243,6 +8331,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         } else {
             st.qp = build_exact_subproblem(st, seam);
             ++st.out.counters.eval_hess_calls;
+        }
+        if (opts_.caller_step_limit > 0.0 && !is_restoration_sub_driver_) {
+            apply_caller_step_limit(st.qp, st.x, column_units_, opts_.caller_step_limit);
         }
         if (!st.eqb.basis.reduce(st.qp)) {
             ++st.out.equality_basis.lift_refusals;
@@ -8395,6 +8486,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // default kOptimal `qs`.
     // A value outside the enumerators is refused by validate() at construction and
     // at set_options, and qp_mode cannot change during a solve.
+    tag_qp_dump(opts_, *engine_, is_restoration_sub_driver_, iter, "main");
     switch (opts_.qp_mode) {
     case QpMode::kWalk:
         break;
@@ -8540,6 +8632,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         QpSolution retry_seed = mj.qs;
         retry_seed.x.setZero(); // never re-center the radius; see WARM SEEDING
         QpEngine &retry_engine = cap_retry_engine(2 * cap);
+        tag_qp_dump(opts_, retry_engine, is_restoration_sub_driver_, iter, "retry");
         QpSolution retried = st.qn_bridge
                                  ? st.qn_bridge->solve(retry_engine, st.qp, retry_seed, overrides)
                                  : retry_engine.solve(st.qp, retry_seed, overrides);
@@ -8697,8 +8790,16 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
          mj.qs.counters.certificate_row_refusals > 0) &&
         (linearization_violated ||
          !qp_failure_is_retryable(st.qp, mj.qs, opts_.common.feasibility_tol));
+    std::optional<ElasticLadderRow> ladder_row;
     if (mj.qs.status == QpStatus::kInfeasible || e2_termination_to_elastic ||
         bound_refusal_to_elastic) {
+        // THE MAIN QP'S OWN STATUS, kept: the ladder's outcome is reported beside it.
+        const QpStatus main_qp_status = mj.qs.status;
+        const ElasticEntry entry =
+            mj.fallback_report                        ? ElasticEntry::kIpqpFallback
+            : main_qp_status == QpStatus::kInfeasible ? ElasticEntry::kVerifiedInfeasible
+            : bound_refusal_to_elastic                ? ElasticEntry::kRefusedCertificate
+                                                      : ElasticEntry::kWorkingSetTermination;
         // The window the ORIGINAL solve was given, folded into the
         // elastic problem's own box: `delta` is what the driver
         // passed through QpSolveOverrides, and opts_.qp.trust_region_radius is
@@ -8725,16 +8826,39 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         }
 #endif
 
+        ElasticLadderRow lr;
+        lr.entry = entry;
+        lr.main_status = main_qp_status;
+        lr.rung_status = report.qp_status;
+        lr.rho = report.rho_final;
+        lr.rungs = report.rungs_climbed;
+        lr.closed = report.closed;
+        lr.reduced = report.reduced;
+        lr.promises_f = report.promises_f;
+        lr.slack_l1 = report.slack_l1;
+        lr.exhausted = !ladder_usable;
+        ladder_row = lr;
+
         if (!ladder_usable) {
             emit_message([&] {
                 MessageTraceEvent m = make_sqp_message(MessageKind::kElasticExhausted, iter);
                 m.k = report.rungs_climbed;
+                m.a = lr.rho;
+                m.b = lr.slack_l1;
+                m.route = elastic_entry_literal(lr.entry);
+                m.main_status = qp_status_literal(lr.main_status);
+                m.rung_status = qp_status_literal(lr.rung_status);
+                m.closed = lr.closed;
+                m.reduced = lr.reduced;
+                m.promises_f = lr.promises_f;
                 return m;
             });
             mj.row.qp_solved = true;
             mj.row.elastic_applied = true;
             mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
-            mj.row.qp_status = report.qp_status;
+            mj.row.ladder = ladder_row;
+            // The MAIN QP's status; the final rung's is in `ladder`.
+            mj.row.qp_status = main_qp_status;
             mj.row.qp_minor_iters = report.qp_minor_iters;
             mj.row.qp_factorizations = report.qp_factorizations;
             // DIAGNOSTIC ONLY, exactly as on a routed-failure row: no
@@ -8806,6 +8930,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     mj.row.qp_solved = true;
     mj.row.elastic_applied = elastic_applied;
     mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
+    mj.row.ladder = ladder_row;
     mj.row.qp_status = mj.qs.status;
     // THE LADDER'S OWN COUNTS ON A RUNG-A-OWNED MAJOR: the fallback clears `qs.counters` to
     // keep the totals exact, so the report is where this row's two diagnostics live.
@@ -9180,6 +9305,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         QpSolveOverrides soc_overrides;
         soc_overrides.trust_region_radius = st.delta;
         engine_->set_stop_flag(nullptr); // the SOC re-solve is not a safe point (G4)
+        tag_qp_dump(opts_, *engine_, is_restoration_sub_driver_, iter, "soc");
         mj.qs_soc = st.qn_bridge ? st.qn_bridge->solve(*engine_, soc_qp, seed_soc, soc_overrides)
                                  : engine_->solve(soc_qp, seed_soc, soc_overrides);
         engine_->set_stop_flag(qp_stop_);
@@ -10007,6 +10133,7 @@ QpEngine &SqpSolverImpl::cap_retry_engine(Index cap) {
         cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads,
                                                        opts_.linear.dense_factorization);
         cap_retry_engine_cap_ = cap;
+        cap_retry_engine_->set_dump(qp_dump_config(opts_));
         // NO LEDGER, deliberately, and on the lazy tiers' own precedent: the
         // record labels are a per-DRIVER sequence keyed off the PRIMARY
         // engine's solve counter, so a second QpEngine writing into the same

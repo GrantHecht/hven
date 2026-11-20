@@ -256,6 +256,46 @@ TEST(TraceMessagesSqp, RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProb
     EXPECT_EQ(count(sink, MessageKind::kStopAtIteration), 0);
 }
 
+TEST(TraceMessagesSqp, TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict) {
+    Problem problem(std::make_shared<Infeasible>());
+    SqpSolver solver(sqp_quiet());
+    CaptureSink sink;
+    solver.attach_trace(&sink);
+    const SqpResult r = solver.solve(problem, ones2());
+    const auto is_status = [](std::string_view s) {
+        return s == "optimal" || s == "max_iter" || s == "infeasible" || s == "numerical_error";
+    };
+    Index exhausted = 0;
+    for (const MessageTraceEvent &m : sink.messages) {
+        if (m.kind != MessageKind::kElasticExhausted) {
+            continue;
+        }
+        ++exhausted;
+        ASSERT_TRUE(m.route && m.main_status && m.rung_status && m.a && m.b);
+        ASSERT_TRUE(m.closed && m.reduced && m.promises_f);
+        const std::string_view route = *m.route;
+        EXPECT_TRUE(route == "verified_infeasible" || route == "working_set_termination" ||
+                    route == "refused_certificate" || route == "ipqp_fallback")
+            << route;
+        EXPECT_TRUE(is_status(*m.main_status)) << *m.main_status;
+        EXPECT_TRUE(is_status(*m.rung_status)) << *m.rung_status;
+        EXPECT_GT(*m.a, 0.0) << "the final rung's rho";
+        EXPECT_GE(*m.b, 0.0);
+    }
+    ASSERT_GE(exhausted, 1);
+    // The row keeps the MAIN QP's status; the ladder outcome rides beside it.
+    Index rows = 0;
+    for (const IterationRecord &h : r.history) {
+        if (h.sqp && h.sqp->ladder && h.sqp->ladder->exhausted) {
+            ++rows;
+            ASSERT_TRUE(h.sqp->qp_status.has_value());
+            EXPECT_EQ(*h.sqp->qp_status, h.sqp->ladder->main_status);
+            EXPECT_TRUE(h.sqp->elastic);
+        }
+    }
+    EXPECT_GE(rows, 1);
+}
+
 TEST(TraceMessagesSqp, ARefusedEntryWritesOneRefusalNamingTheRule) {
     {
         SqpOptions o = sqp_quiet();

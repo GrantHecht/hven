@@ -9,6 +9,7 @@ set(_hven_sqp_sources)
 list(APPEND _hven_sqp_sources
     test_activity_telemetry.cpp
     test_assembly_eval_seam.cpp
+    test_caller_step_limit_and_qp_dump.cpp
     test_column_scaling.cpp
     test_continuation.cpp
     test_disproved_entry.cpp

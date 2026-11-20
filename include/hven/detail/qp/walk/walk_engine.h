@@ -883,6 +883,7 @@
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_factor.h>
 #include <hven/detail/kkt/schur_complement.h>
+#include <hven/detail/qp/qp_dump_writer.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/qp/walk/eqp_solve.h>
@@ -1909,6 +1910,13 @@ class QpEngine {
     // gets the same label it would have received if the failed solve had not
     // been attempted.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
+
+    // The QP dump (qp_dump_writer.h): off by default. Each solve that qualifies under the policy
+    // writes one file after the walk ends, named by the tag the caller set before it. The
+    // tag is per-call state of a logically const solve, like the hot-start cache.
+    void set_dump(QpDumpConfig cfg) { dump_ = std::move(cfg); }
+    void set_dump_tag(QpDumpTag tag) const { dump_tag_ = std::move(tag); }
+    const QpDumpTag &dump_tag() const noexcept { return dump_tag_; }
 
     // The per-solve record counter this engine has reached, and the way to hand
     // it to a REPLACEMENT engine. Exists for exactly one caller: SqpSolver::
@@ -3120,6 +3128,8 @@ class QpEngine {
     // than read directly by most of the engine.
     const QpOptions opts_;
     Ledger *ledger_ = nullptr;
+    QpDumpConfig dump_;
+    mutable QpDumpTag dump_tag_;
     std::string label_prefix_;
     mutable Index solve_counter_ = 0;
     // The thread count in force, and the options fingerprint derived from it and

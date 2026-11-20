@@ -164,6 +164,25 @@ void validate(const SqpOptions &opts) {
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
             opts.scaling_factor_max));
     }
+    if (!(opts.column_scaling_factor_max >= 1.0) || std::isinf(opts.column_scaling_factor_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: column_scaling_factor_max ({}) must be finite and >= 1; it clamps every "
+            "column factor to [1/limit, limit]",
+            opts.column_scaling_factor_max));
+    }
+    if (!(opts.caller_step_limit >= 0.0) || std::isinf(opts.caller_step_limit)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: caller_step_limit ({}) must be finite and >= 0; 0 is off, and r > 0 bounds "
+            "|dx_j| by r * (1 + |x_j|) in caller units",
+            opts.caller_step_limit));
+    }
+    enum_in_range(opts.advanced.qp_dump_policy, SqpQpDumpPolicy::kAll, "advanced.qp_dump_policy");
+    if (opts.advanced.qp_dump_policy != SqpQpDumpPolicy::kOff &&
+        opts.advanced.qp_dump_dir.empty()) {
+        throw std::invalid_argument(
+            "SqpSolver: advanced.qp_dump_policy is on but advanced.qp_dump_dir is empty; name the "
+            "directory the dump files are written to");
+    }
     // THE COLUMN LAYER (M7 W2 SCL), validated unconditionally for the same reason.
     enum_in_range(opts.column_scaling, SqpColumnScaling::kAuto, "column_scaling");
     if (!(opts.column_scaling_threshold >= 1.0) || std::isinf(opts.column_scaling_threshold)) {
@@ -404,6 +423,17 @@ const char *enum_name(SqpElasticRungEngine v) {
     }
     return "unknown";
 }
+const char *enum_name(SqpQpDumpPolicy v) {
+    switch (v) {
+    case SqpQpDumpPolicy::kOff:
+        return "kOff";
+    case SqpQpDumpPolicy::kFailed:
+        return "kFailed";
+    case SqpQpDumpPolicy::kAll:
+        return "kAll";
+    }
+    return "unknown";
+}
 const char *enum_name(SqpHessianMode v) {
     switch (v) {
     case SqpHessianMode::kExact:
@@ -550,6 +580,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_dbl(os, "trust_region_initial", o.trust_region_initial);
     kv_dbl(os, "trust_region_max", o.trust_region_max);
     kv_dbl(os, "trust_region_min", o.trust_region_min);
+    kv_dbl(os, "caller_step_limit", o.caller_step_limit);
     kv_dbl(os, "qp.primal_regularization", o.qp.primal_regularization);
     kv_dbl(os, "qp.dual_regularization", o.qp.dual_regularization);
     kv_dbl(os, "qp.feasibility_tol", o.qp.feasibility_tol);
@@ -568,6 +599,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);
     kv_str(os, "column_scaling", enum_name(o.column_scaling));
     kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
+    kv_dbl(os, "column_scaling_factor_max", o.column_scaling_factor_max);
     kv_bool(os, "project_start_point", o.project_start_point);
     kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
     kv_int(os, "lbfgs_memory", static_cast<long long>(o.lbfgs_memory));
@@ -610,6 +642,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_str(os, "advanced.ipqp.barrier_initial_rule", enum_name(q.barrier_initial_rule));
     kv_bool(os, "advanced.ipqp.barrier_residual_floor", q.barrier_residual_floor);
     kv_int(os, "advanced.ipqp.ladder_skip_after", static_cast<long long>(q.ladder_skip_after));
+    kv_str(os, "advanced.qp_dump_dir", a.qp_dump_dir.empty() ? "unset" : a.qp_dump_dir.c_str());
+    kv_str(os, "advanced.qp_dump_policy", enum_name(a.qp_dump_policy));
     kv_bool(os, "advanced.ssn_proximal_carry", a.ssn_proximal_carry);
     kv_bool(os, "advanced.ssn_certify_from_face", a.ssn_certify_from_face);
     kv_str(os, "advanced.ssn_sigma_rule", enum_name(a.ssn_sigma_rule));

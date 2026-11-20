@@ -2459,7 +2459,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "binding\":true,\"elastic\":false,\"elastic_clamped\":true,\"restoration_seed_used\":false,"
         "\"ipqp_least_infeasible_primal\":3.25,\"ipqp_farkas_corroborated\":true,\"active_set_"
         "size\":10,\"active_set_delta\":17,\"weak_active_rows\":1,\"near_active_rows\":2,\"active_"
-        "rows\":3,\"active_lower_sides\":5,\"active_upper_sides\":8,\"switching_ratio\":1.25}}\n");
+        "rows\":3,\"active_lower_sides\":5,\"active_upper_sides\":8,\"switching_ratio\":1.25,"
+        "\"ladder\":null}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier) {
@@ -2476,24 +2477,24 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTh
               "\"ipqp_least_infeasible_primal\":\"-inf\",\"ipqp_farkas_corroborated\":true,"
               "\"active_set_size\":6,\"active_set_delta\":6,\"weak_active_rows\":5,\"near_active_"
               "rows\":4,\"active_rows\":3,\"active_lower_sides\":2,\"active_upper_sides\":1,"
-              "\"switching_ratio\":\"inf\"}}\n");
+              "\"switching_ratio\":\"inf\",\"ladder\":null}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
-    EXPECT_EQ(
-        iter_line(golden_sqp_row(2)),
-        "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"iter\":"
-        "11,\"recovering\":false,\"tier\":\"ipqp\",\"f\":1234.5,\"f_recovery\":null,"
-        "\"stationarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7."
-        "5,\"step\":12.5,\"accepted\":false,\"soc\":false,\"watchdog\":true,\"rolled_back\":"
-        "true,\"factorizations\":7,\"sqp\":{\"depth\":0,\"mode\":\"ipqp\",\"verdict\":"
-        "\"accept_h\",\"trust_radius\":0.03125,\"violation_l1\":9,\"regularization_dual\":9."
-        "9999999999999995e-07,\"qp_solved\":true,\"qp_status\":\"numerical_error\",\"qp_"
-        "minor_iterations\":21,\"qp_factorizations\":13,\"tr_binding\":true,\"elastic\":"
-        "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
-        "infeasible_primal\":-1.5,\"ipqp_farkas_corroborated\":false,\"active_set_size\":9,"
-        "\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_rows\":7,\"active_"
-        "rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"switching_ratio\":null}}\n");
+    EXPECT_EQ(iter_line(golden_sqp_row(2)),
+              "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"iter\":"
+              "11,\"recovering\":false,\"tier\":\"ipqp\",\"f\":1234.5,\"f_recovery\":null,"
+              "\"stationarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7."
+              "5,\"step\":12.5,\"accepted\":false,\"soc\":false,\"watchdog\":true,\"rolled_back\":"
+              "true,\"factorizations\":7,\"sqp\":{\"depth\":0,\"mode\":\"ipqp\",\"verdict\":"
+              "\"accept_h\",\"trust_radius\":0.03125,\"violation_l1\":9,\"regularization_dual\":9."
+              "9999999999999995e-07,\"qp_solved\":true,\"qp_status\":\"numerical_error\",\"qp_"
+              "minor_iterations\":21,\"qp_factorizations\":13,\"tr_binding\":true,\"elastic\":"
+              "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
+              "infeasible_primal\":-1.5,\"ipqp_farkas_corroborated\":false,\"active_set_size\":9,"
+              "\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_rows\":7,\"active_"
+              "rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"switching_ratio\":null,"
+              "\"ladder\":null}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) {
@@ -2509,7 +2510,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "\"ipqp_least_infeasible_primal\":12,\"ipqp_farkas_corroborated\":true,\"active_set_"
               "size\":57,\"active_set_delta\":15,\"weak_active_rows\":16,\"near_active_rows\":17,"
               "\"active_rows\":18,\"active_lower_sides\":19,\"active_upper_sides\":20,\"switching_"
-              "ratio\":-0.5}}\n");
+              "ratio\":-0.5,\"ladder\":null}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
@@ -2527,19 +2528,19 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
     r.sqp->violation_l1 = 0.75;
     r.sqp->active_set_size = 1;
     r.sqp->active_rows = 1;
-    EXPECT_EQ(
-        iter_line(r),
-        "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"iter\":5,"
-        "\"recovering\":false,\"tier\":\"walk\",\"f\":2,\"f_recovery\":null,\"stationarity\":"
-        "0.5,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":null,\"accepted\":null,"
-        "\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"sqp\":"
-        "{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":0.5,\"violation_"
-        "l1\":0.75,\"regularization_dual\":null,\"qp_solved\":false,\"qp_status\":null,\"qp_"
-        "minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":"
-        "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
-        "infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":1,"
-        "\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_"
-        "rows\":1,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null}}\n");
+    EXPECT_EQ(iter_line(r),
+              "{\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp\",\"iter\":5,"
+              "\"recovering\":false,\"tier\":\"walk\",\"f\":2,\"f_recovery\":null,\"stationarity\":"
+              "0.5,\"feasibility\":0.25,\"complementarity\":0.125,\"step\":null,\"accepted\":null,"
+              "\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"sqp\":"
+              "{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":0.5,\"violation_"
+              "l1\":0.75,\"regularization_dual\":null,\"qp_solved\":false,\"qp_status\":null,\"qp_"
+              "minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":"
+              "false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_"
+              "infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":1,"
+              "\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_"
+              "rows\":1,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,"
+              "\"ladder\":null}}\n");
     const std::string line = iter_line(r);
     for (const char *k : {"step", "accepted", "verdict", "regularization_dual", "qp_status",
                           "qp_minor_iterations", "qp_factorizations"}) {
@@ -2582,7 +2583,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
               "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,"
               "\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_"
               "rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,"
-              "\"switching_ratio\":null}}\n");
+              "\"switching_ratio\":null,\"ladder\":null}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
@@ -2629,7 +2630,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
         "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_"
         "set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,"
         "\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":"
-        "null}}");
+        "null,\"ladder\":null}}");
     EXPECT_EQ(raw_field(lines[2], "depth"), "1");
     EXPECT_EQ(raw_field(lines[2], "f"), "null");
 }
@@ -2646,7 +2647,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
 void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, Index major,
                              QpTraceMode mode, Index depth) {
     static_assert(
-        ::hven::detail::kAggregateArity<SqpIterationRow> == 24,
+        ::hven::detail::kAggregateArity<SqpIterationRow> == 25,
         "SqpIterationRow gained a field: compare it below, and in the writer's own key list.");
     const bool stepped = r.sqp->qp_solved &&
                          r.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kOptimal;
@@ -2730,6 +2731,9 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
         expect_double_field(line, "switching_ratio", *r.sqp->switching_ratio);
     } else {
         EXPECT_EQ(raw_field(line, "switching_ratio"), "null") << line;
+    }
+    if (!r.sqp->ladder.has_value()) {
+        EXPECT_EQ(raw_field(line, "ladder"), "null") << line;
     }
 }
 
@@ -5146,6 +5150,61 @@ TEST(JsonLinesTraceSink, TheSolverInitializedMessageCarriesNoMillisecondsOnTheWi
     sink.on_message(m);
     EXPECT_EQ(raw_field(os.str(), "a"), "null");
     EXPECT_EQ(raw_field(os.str(), "severity"), "\"notice\"");
+}
+
+TEST(JsonLinesTraceSink, TheElasticExhaustionMessageCarriesItsSixDiagnosticKeysOnlyWhenSet) {
+    MessageTraceEvent m = make_message(TraceEngine::kSqp, MessageKind::kElasticExhausted);
+    m.iter = 3;
+    m.k = 5;
+    m.a = 1e8;
+    m.b = 0.25;
+    m.route = "verified_infeasible";
+    m.main_status = "infeasible";
+    m.rung_status = "numerical_error";
+    m.closed = false;
+    m.reduced = false;
+    m.promises_f = true;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_message(m);
+    const std::string line = os.str();
+    EXPECT_EQ(raw_field(line, "route"), "\"verified_infeasible\"");
+    EXPECT_EQ(raw_field(line, "main_status"), "\"infeasible\"");
+    EXPECT_EQ(raw_field(line, "rung_status"), "\"numerical_error\"");
+    EXPECT_EQ(raw_field(line, "closed"), "false");
+    EXPECT_EQ(raw_field(line, "reduced"), "false");
+    EXPECT_EQ(raw_field(line, "promises_f"), "true");
+    EXPECT_EQ(raw_field(line, "k"), "5");
+    EXPECT_NE(line.find("\"expected_n\":null,\"route\""), std::string::npos) << line;
+}
+
+TEST(JsonLinesTraceSink, ARowsLadderBlockIsAnObjectAndNullWithoutOne) {
+    IterationRecord r;
+    r.iteration = 2;
+    r.sqp.emplace();
+    r.sqp->qp_solved = true;
+    ElasticLadderRow l;
+    l.entry = ElasticEntry::kRefusedCertificate;
+    l.main_status = QpStatus::kNumericalError;
+    l.rung_status = QpStatus::kOptimal;
+    l.rho = 100.0;
+    l.rungs = 4;
+    l.closed = true;
+    l.reduced = true;
+    l.promises_f = false;
+    l.slack_l1 = 0.0;
+    l.exhausted = false;
+    r.sqp->ladder = l;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_iter(IterTraceEvent{r});
+    const std::string line = os.str();
+    EXPECT_NE(
+        line.find("\"ladder\":{\"entry\":\"refused_certificate\",\"main_status\":\"numerical_"
+                  "error\",\"rung_status\":\"optimal\",\"rho\":100,\"rungs\":4,\"closed\":true,"
+                  "\"reduced\":true,\"promises_f\":false,\"slack_l1\":0,\"exhausted\":false}"),
+        std::string::npos)
+        << line;
 }
 
 TEST(JsonLinesTraceSink, TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull) {

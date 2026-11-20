@@ -649,6 +649,21 @@ TEST(ConsoleMessages, EachTemplateRendersItsOwnLine) {
         m.k = 6;
         add(m, "      ! elastic ladder exhausted after 6 rungs\n");
     }
+    {
+        MessageTraceEvent m = message(TraceEngine::kSqp, MessageKind::kElasticExhausted);
+        m.k = 5;
+        m.a = 1e8;
+        m.b = 0.0;
+        m.route = "verified_infeasible";
+        m.main_status = "infeasible";
+        m.rung_status = "numerical_error";
+        m.closed = false;
+        m.reduced = false;
+        m.promises_f = false;
+        add(m, "      ! elastic ladder exhausted after 5 rungs (entered: verified infeasible in "
+               "trust region; main QP: infeasible; last rung: numerical failure at rho 1e+08; "
+               "closed no, reduced no, promises_f no; slack_l1 0.0e+00)\n");
+    }
     add(message(TraceEngine::kSqp, MessageKind::kInconsistentEqualities),
         "      ! equality constraints are inconsistent\n");
     {

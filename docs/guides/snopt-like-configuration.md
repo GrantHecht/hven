@@ -26,7 +26,7 @@ was consulted.
 | QP engine | `qp_mode = QpMode::kWalk` (the default) | `sqp_options.h` |
 | Globalization | funnel + trust region, built in; `make_strategy` replaces it (internal interface) | `sqp_options.h` |
 | Infeasibility | restoration phase plus an elastic ladder; `max_restoration_entries`, `advanced.restoration_proximity` | `sqp_options.h` |
-| Scaling | `column_scaling` (default `kAuto`), `row_scaling` (default false) | `sqp_options.h` |
+| Scaling | `column_scaling` (default `kAuto`), `row_scaling` (default false), `column_scaling_factor_max`, `caller_step_limit` | `sqp_options.h` |
 | Infinite bound | `common.infinite_bound` (default 1e20) | `hven/solver/common_options.h` |
 | Derivative checking | none (see section 4) | |
 
@@ -73,9 +73,40 @@ and objective scaling for that solve) only when the problem is badly scaled
 (column-factor spread above `column_scaling_threshold`). `row_scaling = true`
 forces objective and row scaling from start-point derivatives
 (`scaling_max_gradient`, default 100; `scaling_factor_max`, default 1e12).
-Closest to SNOPT's default "Scale option" is leaving `kAuto` alone; closest to
-"scale all" is `column_scaling = kAlways` plus `row_scaling = true`. Which
-SNOPT Scale option number maps where is "approximate".
+Closest to SNOPT's default "Scale option" is leaving `kAuto` alone. `kAlways` is
+NOT a stand-in for SNOPT's "Scale option 2": SNOPT scales from the caller's own
+`x` scales and the constraint magnitudes, hven's `kAlways` rescales every variable by
+a power-of-two factor equilibrating the start-point Jacobian, and a variable the
+Jacobian barely touches (a weak sensitivity) is amplified hardest, which in turn inflates
+the trust region in caller units for that variable (|dx_j| <= d_j * radius). A shim that maps
+"Scale option 2" to `kAlways` can move a weak variable (an angle, say) by hundreds of
+degrees in one step. Recommended instead: give the model physical caller scales (a variable
+that is O(1) at the solution in its own units), leave `column_scaling` at `kAuto` or set
+`kOff`, and bound steps in caller units if wanted (`caller_step_limit`). If `kAlways` is used,
+`column_scaling_factor_max` bounds the amplification of any one column (it does not touch the
+row and objective factors, which `scaling_factor_max` still clamps).
+
+Caller-unit step limit. `caller_step_limit = r` (default 0, off) narrows every QP's variable box
+to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode. The trust
+region stays in the engine's units.
+
+Console and trace units. With column scaling firing, the console `step` and `radius` columns
+(and `sqp.major`'s `step` and `trust_radius`) are in the engine's SCALED units; the returned
+`x` and the iteration events' `x` are in caller units. `SqpResult::scaling` reports whether the
+columns were scaled and the factors' range.
+
+Elastic-ladder diagnostics. When the elastic ladder is exhausted the console line and the
+`message`/`elastic_exhausted` record state how it was entered (verified infeasible in the trust
+region, working-set numerical termination, refused certificate, IPQP fallback), the main QP's
+status, the final rung's status and penalty, and `closed`/`reduced`/`promises_f`/`slack_l1`; the
+`sqp.major` row keeps the MAIN QP's `qp_status` and carries the ladder in its `ladder` block
+(`docs/trace-schema-v1.md`).
+
+Failed-QP dump. `advanced.qp_dump_dir` plus `advanced.qp_dump_policy` (`kOff` default, `kFailed`,
+`kAll`) write each qualifying walk solve (the major's QP, SOC, cap retry, each ladder rung,
+restoration's included) as a "D4QP 1" text file, `qp<seq>_d<depth>_m<major>_<site>.txt`
+(format: `tests/qp/fixtures/e2-d4/FORMAT.txt`; the loader and replay are
+`tests/qp/support/qp_dump.h` and `docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/runners/qp_replay.cpp`).
 
 ### Complete snippet
 
@@ -186,7 +217,7 @@ in parentheses are from memory and should be verified.
 | Hessian updates (limited memory, 10) | `lbfgs_memory` | Limited-memory only; no equivalent of a "full memory" Hessian that is user-sized, except `max_lbfgs_full_memory_dimension` makes a dense full BFGS automatic at or below that dimension. |
 | Hessian full memory / limited memory | `hessian_mode = kLbfgsDamped` plus `max_lbfgs_full_memory_dimension` (0 forces the window) | Approximate. |
 | Infinite bound (1e20) | `common.infinite_bound` (1e20) | Same convention, applied to variable and row bounds, lower and upper. |
-| Scale option | `column_scaling`, `row_scaling`, `scaling_max_gradient`, `scaling_factor_max` | Not one-to-one; hven scaling is derivative-based from the start point. |
+| Scale option | `column_scaling`, `row_scaling`, `scaling_max_gradient`, `scaling_factor_max`, `column_scaling_factor_max` | Not one-to-one; hven scaling is derivative-based from the start point, and `kAlways` is not "Scale option 2" (see Scaling above). Prefer physical caller scales with `kAuto` or `kOff`. |
 | Verify level | no equivalent | hven has no derivative checker. The shim must check derivatives itself if it wants Verify behaviour. |
 | Elastic weight | no equivalent | Restoration and the elastic ladder are automatic; rho escalation is internal. |
 | Major step limit (2.0) | `trust_region_initial` / `trust_region_max` | Different mechanism: an l-infinity trust-region radius on the step, not a bound on the line-search step relative to the QP direction. Approximate at best. |

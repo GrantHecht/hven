@@ -18,6 +18,28 @@ namespace hven {
 /// @brief Which tier produced the step leaving the row's point.
 enum class QpTraceMode { kIpqp, kWalk, kSsn };
 
+/// @brief How an elastic ladder was entered.
+enum class ElasticEntry {
+    kVerifiedInfeasible,    ///< The main QP was verified infeasible in box and trust region.
+    kWorkingSetTermination, ///< The main QP's working set ended numerically at a violated iterate.
+    kRefusedCertificate,    ///< The main QP's infeasibility certificate was refused.
+    kIpqpFallback,          ///< The certified fallback's rung A (kIpqp escape).
+};
+
+/// @brief One elastic ladder's outcome, beside (never in place of) the main QP's status.
+struct ElasticLadderRow {
+    ElasticEntry entry = ElasticEntry::kVerifiedInfeasible;
+    QpStatus main_status = QpStatus::kOptimal; ///< The main QP's status, before the ladder.
+    QpStatus rung_status = QpStatus::kOptimal; ///< The final rung's status.
+    double rho = 0.0;                          ///< The final rung's penalty.
+    Index rungs = 0;                           ///< Rungs climbed above the first.
+    bool closed = false;
+    bool reduced = false;
+    bool promises_f = false;
+    double slack_l1 = 0.0; ///< l1 of the final rung's violations; 0 unless it is kOptimal.
+    bool exhausted = false;
+};
+
 enum class IterationTier { kBarrier, kIpqp, kSsn, kWalk, kElastic, kRestoration };
 
 /// @brief The interior-point block of an iteration row.
@@ -76,6 +98,8 @@ struct SqpIterationRow {
     /// Present only when the row's QP status is kOptimal (the point the strategy was shown);
     /// nullopt otherwise, so a judged qp_failure_step row is null.
     std::optional<double> switching_ratio;
+    /// The elastic ladder's outcome; present on a row whose major ran one.
+    std::optional<ElasticLadderRow> ladder;
 };
 
 /// @brief One iteration row: the shared core plus exactly one engine block.

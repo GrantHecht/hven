@@ -81,6 +81,7 @@ target_sources(hven PRIVATE
     qp/ipqp/ipqp_engine.cpp
     qp/ipqp/ipqp_kkt_layout.cpp
     qp/ipqp/ipqp_options.cpp     # qp/qp_options.h: validate(const IpqpOptions &)
+    qp/qp_dump_writer.cpp        # detail/qp/qp_dump_writer.h
     qp/ssn/ssn_engine.cpp
     qp/walk/walk_engine.cpp
     qp/walk/ws_independence.cpp
@@ -252,11 +253,12 @@ endif()
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
 #
-# Current count: 59 (RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
-# json_lines_trace_sink.cpp). Every source since the 29th has stayed OUT of the PCH on the
+# Current count: 60 (RS-R1 added qp/ipqp/ipqp_options.cpp and renamed trace_writer.cpp to
+# json_lines_trace_sink.cpp; M8 I17 added qp/qp_dump_writer.cpp, a once-per-dump TU kept OUT of
+# the PCH: it runs only when a dump directory is configured). Every source since the 29th has stayed OUT of the PCH on the
 # unmeasured-default footing; the per-source history is in docs/build.md, "History: the source
 # count".
-set(_hven_expected_source_count 59)
+set(_hven_expected_source_count 60)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

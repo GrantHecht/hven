@@ -2297,7 +2297,15 @@ TEST(SqpSolverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasti
         << "the terminating row must record the subproblem the solve stopped on -- which is now "
            "the ELASTIC re-solve, not a failing one";
     EXPECT_TRUE(last.sqp->elastic) << "this is where the kInfeasible is recorded now";
-    EXPECT_EQ(last.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
+    // M8 I17: the row keeps the MAIN QP's status; the final elastic rung's rides in `ladder`.
+    ASSERT_TRUE(last.sqp->ladder.has_value());
+    EXPECT_TRUE(last.sqp->ladder->exhausted);
+    EXPECT_EQ(last.sqp->qp_status.value_or(hven::QpStatus::kOptimal),
+              last.sqp->ladder->main_status);
+    EXPECT_EQ(last.sqp->ladder->main_status, QpStatus::kInfeasible);
+    EXPECT_EQ(last.sqp->ladder->entry, ElasticEntry::kVerifiedInfeasible)
+        << "a main QP verified infeasible enters by that route";
+    EXPECT_EQ(last.sqp->ladder->rung_status, QpStatus::kOptimal)
         << "the FINAL ELASTIC solve's status";
     EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore)
         << "the elastic tier was exhausted; that is the authoritative Algorithm-5 trigger and "
@@ -9710,6 +9718,16 @@ double w2_final_rho(double rho_0, Index escalations) {
 
 } // namespace
 
+// M8 I17: the report names the penalty of the rung the ladder stopped on.
+TEST(SqpSolverW2Fixtures, TheLadderReportCarriesTheFinalRungsRho) {
+    for (const QpProblem &qp : {w2_box_blocked_qp(0.5), w2_row_blocked_qp()}) {
+        const W2LadderRun run = w2_run_ladder(qp, nullptr);
+        ASSERT_GE(run.report.rungs_climbed, 1) << "premise: the ladder climbed";
+        EXPECT_EQ(run.report.rho_final, w2_final_rho(run.report.rho_0, run.report.rungs_climbed));
+        EXPECT_GT(run.report.rho_final, run.report.rho_0);
+    }
+}
+
 // W5 T5 -- ONE ENGINE INVOCATION PER `w2_escaped` CALL. The observable is the engine's
 // `ipqp.restart` event (one per NON-DECLINED solve, cold included), NOT `IpqpCounters`:
 // `ipqp_solves` counts backend triangular solves and the result's counters are a per-call delta.
@@ -11841,8 +11859,11 @@ TEST(SqpSolverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     ASSERT_FALSE(sol.history.empty());
     const IterationRecord &last = sol.history.back();
     EXPECT_TRUE(last.sqp->elastic);
-    EXPECT_EQ(last.sqp->qp_status.value_or(hven::QpStatus::kOptimal), QpStatus::kOptimal)
-        << "exhausted, not declined";
+    // M8 I17: the row keeps the main QP's status, the consumed ladder's final rung is in `ladder`.
+    ASSERT_TRUE(last.sqp->ladder.has_value());
+    EXPECT_TRUE(last.sqp->ladder->exhausted);
+    EXPECT_EQ(last.sqp->ladder->entry, ElasticEntry::kIpqpFallback);
+    EXPECT_EQ(last.sqp->ladder->rung_status, QpStatus::kOptimal) << "exhausted, not declined";
     EXPECT_EQ(last.sqp->verdict.value_or(hven::StepVerdict::kReject), StepVerdict::kRestore);
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);

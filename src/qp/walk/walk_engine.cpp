@@ -3361,6 +3361,22 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         ++solve_counter_;
     }
 
+    if (qp_dump_wanted(dump_, status)) [[unlikely]] {
+        QpDumpSolve ds;
+        ds.qp = &qp_in;
+        ds.opts = &opts_;
+        ds.threads = threads_;
+        ds.overrides = &overrides;
+        ds.warm = warm;
+        ds.seed = seed;
+        ds.hot = hot != nullptr;
+        ds.status = status;
+        ds.counters = &out.counters;
+        ds.max_iter = eff_max_iter;
+        ds.x_final = &out.x;
+        write_qp_dump(dump_, dump_tag_, ds);
+    }
+
     return out;
 }
 
