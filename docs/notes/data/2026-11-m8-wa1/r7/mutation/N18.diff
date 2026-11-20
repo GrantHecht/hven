@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..9cb4b4eb8 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2281,7 +2281,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                         bool blocked = false;
+                         const double a = reach(d, /*cap_at_unit=*/false, &blocked);
+                         const bool ride_moves = a * d.lpNorm<Eigen::Infinity>() > step_tol;
+-                        if (blocked && ride_moves && !footprint_ride_refused_in &&
++                        if (blocked && ride_moves &&
+                             detail::footprint_rows_within_budget(
+                                 qp, ws,
+                                 {.x = Vec(x + a * d),

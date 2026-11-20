@@ -1,0 +1,14 @@
+100% tests passed, 0 tests failed out of 3925
+
+Total Test time (real) = 465.06 sec
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+	1353 - QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (Skipped)
+	1360 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1493 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1584 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1585 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1586 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)

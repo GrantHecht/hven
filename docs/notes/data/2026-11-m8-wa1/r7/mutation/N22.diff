@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..d28e5825d 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2751,8 +2751,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                      .ai_row_norm1 = ai_row_norm1,
+                      .ae_row_norm1 = ae_row_norm1,
+                      .feasibility_tol = eff_opts.feasibility_tol})) {
+-                --counters.ascent_footprint_rides;
+-                --counters.ascent_rides;
+                 ++counters.ascent_footprint_ride_refusals;
+                 counters.dep_passovers = dep_passovers_in;
+                 footprint_ride_refused = true;
