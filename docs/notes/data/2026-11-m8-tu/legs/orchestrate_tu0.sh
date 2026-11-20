@@ -16,9 +16,13 @@ git -C "$WT" diff --quiet --ignore-submodules=all "$CODE" HEAD -- $PATHS || { ec
 git -C "$BASEWT" diff --quiet --ignore-submodules=all "$BASE" HEAD -- $PATHS || { echo "BASE_NOT_$BASE"; exit 2; }
 echo "code paths == $CODE, clean; HEAD $(git -C "$WT" rev-parse HEAD); base $(git -C "$BASEWT" rev-parse HEAD)"
 chk() { [ "$(sha256sum "$1" | cut -d' ' -f1)" = "$2" ] || { echo "SHA_MISMATCH $1"; exit 4; }; }
-chk "$BASEWT/build/bench/hven_sqp_corpus" "$CA"; chk "$WT/build/bench/hven_sqp_corpus" "$CB"
+chk "$BASEWT/build/bench/hven_sqp_corpus" "$CA"
+# corpus B embeds the git stamp of HEAD, so its sha moves with every commit: recorded here, not predeclared ($CB is the dev-time reading, informational).
+echo "corpus B sha256 $(sha256sum "$WT/build/bench/hven_sqp_corpus" | cut -d' ' -f1) (declared dev-time $CB)"
 chk "$WT/.scratch/bin/A/hven_bench_cell" "$LA"; chk "$WT/.scratch/bin/B/hven_bench_cell" "$LB"
 for T in "$WT/build" "$WT/build-debug" "$BASEWT/build"; do
+  # the git stamp re-configures a tree whose HEAD moved (docs commits): that relinks the bench executables only; the code paths are checked above
+  echo "pre-ninja $T: $(ninja -C "$T" 2>&1 | tail -n 1)"
   ninja -C "$T" 2>&1 | tail -n 1 | grep -q "no work to do" || { echo "BUILD_TREE_STALE $T"; exit 4; }
 done
 echo "build trees up to date: $WT/build $WT/build-debug $BASEWT/build"

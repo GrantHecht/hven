@@ -1,0 +1,5 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:20:18-05:00
+code paths == 0947374fef07c7085f982ecbdcf1aaaa45b6d00f, clean; HEAD 29b640c7f61a0fb75c3e4c97427d67a2f1cdf46f; base 331b3183747b5c1849651706f648de2c337ddf75
+BUILD_TREE_STALE /home/ghecht/Projects/hven/.claude/worktrees/tu0/build
+GATE_RC=4

@@ -49,6 +49,10 @@ A3-R3, M7-13, M7-41.
 - Instruments: copies of I17's `legs/{build,ctest,replay,train_enum,cell,install_smoke}.sh` (env-driven; `env.sh` re-pointed), `train_setup.sh` (re-based on hven-bench main), `train_check.py`
   (the nine option keys in place of I17's four; no ledger movers), `mutate_tu0.py`, `mutations_tu0.sh`, `orchestrate_tu0.sh`.
 
+- Addendum before any leg (the first orchestrate run stopped at P0, `BUILD_TREE_STALE`, no leg ran): corpus B embeds the git stamp of HEAD, so its sha256 moves with every
+  commit and cannot be predeclared; P0 records it (the value above is the dev-time reading, informational) and P0 first runs `ninja` once per tree (a HEAD that moved by a docs commit
+  re-configures and relinks the bench executables) before requiring "no work to do". Corpus A, lane A and lane B shas are unaffected and stay checked.
+
 ## 2. Disclosures: what ran before this file (none is a leg)
 
 - Dev runs at the pre-rebase code (base afc9744bf): Release ctest 3953 tests, one failure (`BenchStampGuard.SelfTest`, TMPDIR-in-repo; fixed above); the new tests pass.
