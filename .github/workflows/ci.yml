@@ -729,7 +729,7 @@ jobs:
       # from the macOS lane -- see its Build step's comment for why).
       - name: Build
         id: build
-        run: cmake --build build-windows
+        run: cmake --build build-windows -- -k 0
 
       - name: Test
         # No HVEN_RIG_MACHINE here, by design -- same reason as the Linux lane:
