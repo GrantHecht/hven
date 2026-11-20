@@ -33,6 +33,7 @@
 #include "qp/support/indefinite_fixtures.h"
 #include "qp/support/ipqp_test_support.h"
 #include "sqp/support/kkt_inversion_cells.h"
+#include "support/route_reference.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -250,7 +251,11 @@ TEST(IpqpAcceptanceA1, TheWindowAtF7sOwnJunctionsIsRecoveredExactly) {
     // RE-DERIVED at T10b's measured `ipqp_init_mu` (0 at the 0.1 placeholder):
     // stopping a decade earlier in `mu` leaves three window rows inside the
     // section 2.3 ratio rule's uncertain band, never forced either way.
-#ifdef USE_ACCELERATE_SPARSE
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // RS-6b: the uncertain count is a margin read at the tier's own tolerance, so it moves with
+    // the backend's last digits: Windows MKL (off-reference) read 1 on the two-block cell where
+    // the reference reads 3. Off the reference build the portable contract is asserted
+    // (misclassified == 0, the counter/verdict agreement below) and the count is RECORDED.
     // M7 WX B1 (design section 2.2; settler C149/C150). The uncertain count is not a route, but
     // the lane's Accelerate value is pinned only once three runs at one thread agree: pinned run
     // 1 of 3 is macOS run 40905599627 (reads 2). Until then the portable contract above
@@ -303,7 +308,8 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
     // THREE tie rows, measured (one at the 0.1 placeholder -- T10b re-derived):
     // rows near the blocks draw margins inside the ratio rule's uncertain band
     // at the tier's own tolerance. Never forced either way -- section 2.3.
-#ifdef USE_ACCELERATE_SPARSE
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // RS-6b: recorded off the reference build (see the window cell above); Windows MKL read 1.
     // M7 WX B1 (design section 2.2; settler C149/C150): pinned run 1 of 3 is macOS run
     // 40905599627 (reads 11); recorded, not pinned, until three pinned runs agree.
     // TODO(register M3-8/WX-R6): tighten to the Apple value after pinned run 3.

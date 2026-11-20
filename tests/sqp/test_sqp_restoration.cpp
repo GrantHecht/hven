@@ -2761,11 +2761,22 @@ run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy
     // change costs is the demonstration that the screen is REACHED on this model,
     // and that is stated rather than hidden.
     if (policy == hven::linear::DensePolicy::kNever) {
+#if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_FALSE(found_refused_signature)
             << "a k in [1, 40) reached the Jacobian screen again (k = " << refused_at_k
             << "): the h guard no longer refuses the candidate first, and the existential "
                "premise above can be reinstated";
         EXPECT_EQ(-1, refused_at_k);
+#else
+        // RS-6b: that no k reaches the screen is a ROUTE absence measured at the reference
+        // dispatch; Windows MKL (off-reference) reached it at k = 20 and refused the candidate,
+        // which is the screen doing its job. Off the reference build the route is recorded and
+        // the safety half (m7_signature false at every k, asserted in the loop) is the contract.
+        hven::test_support::record_off_reference_route(
+            "jacobian_screen_k_sparse",
+            fmt::format("found={} refused_at_k={} refused_count={}", found_refused_signature,
+                        refused_at_k, refused_count));
+#endif
     } else {
         // Dense arm: exactly ONE k reaches the Jacobian screen and sees it refuse the
         // candidate (the existential premise is back, at a config-dependent k); the
