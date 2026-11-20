@@ -1,0 +1,14 @@
+FOREGROUND_START 2026-11-20T11:41:03-05:00
+code paths == 4a256c7a30c4d1953cc3f84fed0fac7b497436c3, clean; HEAD f8efe0379e81e7030bfd62d5fe5f1a6a7c91861d
+LEG P4a start 2026-11-20T11:41:03-05:00
+box-lane: lane 1 acquired 2026-11-20T11:56:39-05:00
+BOX_LANE=1 phys=[4 5 6 7] jobs=4
+FOREGROUND_START 2026-11-20T11:56:39-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=5
+ANALYSIS rc=2
+STOP CONDITION: 81 (round,cell) pairs compared, 37 with a difference or missing -> STOP
+FOREGROUND_END 2026-11-20T12:08:36-05:00
+LEG P4a rc=1 2026-11-20T12:08:36-05:00
+STOP at P4a
+FOREGROUND_END 2026-11-20T12:08:36-05:00
