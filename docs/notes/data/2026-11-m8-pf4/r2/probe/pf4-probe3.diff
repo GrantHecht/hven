@@ -1,0 +1,247 @@
+diff --git a/include/hven/detail/kkt/pf4_probe3.h b/include/hven/detail/kkt/pf4_probe3.h
+new file mode 100644
+index 000000000..fffd65e62
+--- /dev/null
++++ b/include/hven/detail/kkt/pf4_probe3.h
+@@ -0,0 +1,193 @@
++// PF-4 r2 SCRATCH PROBE 3 -- never shipped (branch pf4-probe3 only).
++// Per Schur batch (k >= 2): backward error of every border column, batch vs single solves, on the numerics the
++// solve used (plain / scaled / matched), with the backend's reported refinement steps, plus a one-step
++// residual-refined batch. PF4P3_CSV=<path> enables; PF4P3_LAND=single lands the single solves (arm A trajectory).
++#pragma once
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++#include <hven/core/types.h>
++#include <hven/detail/kkt/kkt_factor.h>
++
++namespace hven::detail::pf4p3 {
++
++inline std::FILE *csv() {
++    static std::FILE *f = [] {
++        const char *p = std::getenv("PF4P3_CSV");
++        std::FILE *g = p ? std::fopen(p, "w") : nullptr;
++        if (g) {
++            std::fprintf(g, "batch,k,n0,tier,pp,ref_b,ref_s,col,eta_b,eta_s,eta_b1,eta_s1,reldiff,resolve_same\n");
++        }
++        return g;
++    }();
++    return f;
++}
++
++inline bool land_single() {
++    static const bool s = [] {
++        const char *p = std::getenv("PF4P3_LAND");
++        return p && std::strcmp(p, "single") == 0;
++    }();
++    return s;
++}
++
++inline double eta(const SpMatRM &K, double kn, const Vec &b, const Vec &x) {
++    Vec r = K.template selfadjointView<Eigen::Upper>() * x - b;
++    return backward_error_of(r.cwiseAbs().maxCoeff(), kn, x.cwiseAbs().maxCoeff(), b.cwiseAbs().maxCoeff());
++}
++
++// sol = the batch solve's answer (as landed). Writes the singles into `singles`.
++inline void measure(const KktFactor &k, const SpMatRM *K0, const Mat &rhs, const Mat &sol, Mat &singles) {
++    static long batch = 0;
++    ++batch;
++    const Index n0 = rhs.rows();
++    const Index kc = rhs.cols();
++    singles.resize(n0, kc);
++    const hven::linear::SymmetricFactor *s = &k.factor;
++    const Vec *d = nullptr;
++    if (k.numerics == PlatformRetake::kScaled) {
++        s = k.scaled_session.get();
++        d = &k.retake_scale;
++    } else if (k.numerics == PlatformRetake::kMatched) {
++        s = k.matched_session.get();
++    }
++    // re-solve the batch to read its refinement count
++    Mat xb(n0, kc);
++    Mat rb = rhs;
++    if (d) {
++        for (Index j = 0; j < kc; ++j) rb.col(j) = rhs.col(j).cwiseProduct(*d);
++    }
++    const auto ib = s->solve(rb, xb);
++    if (d) {
++        for (Index j = 0; j < kc; ++j) xb.col(j).array() *= d->array();
++    }
++    const bool same = std::memcmp(xb.data(), sol.data(), sizeof(double) * static_cast<std::size_t>(n0 * kc)) == 0;
++    long ref_s_max = 0;
++    std::vector<long> ref_s(static_cast<std::size_t>(kc), -1);
++    for (Index j = 0; j < kc; ++j) {
++        Vec rj = rhs.col(j);
++        if (d) rj = rj.cwiseProduct(*d);
++        Vec xj(n0);
++        const auto is = s->solve(rj, xj);
++        if (d) xj.array() *= d->array();
++        singles.col(j) = xj;
++        ref_s[static_cast<std::size_t>(j)] = is.refinement_steps ? static_cast<long>(*is.refinement_steps) : -1;
++        ref_s_max = std::max(ref_s_max, ref_s[static_cast<std::size_t>(j)]);
++    }
++    std::FILE *f = csv();
++    if (!f || K0 == nullptr || K0->rows() != n0) {
++        return;
++    }
++    Vec acc;
++    const double kn = symmetric_inf_norm(*K0, nullptr, acc);
++    // one manual refinement step on each answer, through the same numerics (solve_mat)
++    Mat Rb(n0, kc), Rs(n0, kc);
++    for (Index j = 0; j < kc; ++j) {
++        Rb.col(j) = rhs.col(j) - K0->template selfadjointView<Eigen::Upper>() * Vec(sol.col(j));
++        Rs.col(j) = rhs.col(j) - K0->template selfadjointView<Eigen::Upper>() * Vec(singles.col(j));
++    }
++    Mat Db, Ds;
++    solve_mat(k, Rb, Db);
++    solve_mat(k, Rs, Ds);
++    const auto pp = kkt_inertia(k).perturbed_pivots;
++    for (Index j = 0; j < kc; ++j) {
++        const Vec b = rhs.col(j);
++        const Vec xb1 = sol.col(j);
++        const Vec xs1 = singles.col(j);
++        const double eb = eta(*K0, kn, b, xb1);
++        const double es = eta(*K0, kn, b, xs1);
++        const double eb1 = eta(*K0, kn, b, Vec(xb1 + Db.col(j)));
++        const double es1 = eta(*K0, kn, b, Vec(xs1 + Ds.col(j)));
++        const double den = std::max(1e-300, xs1.cwiseAbs().maxCoeff());
++        const double rd = (xb1 - xs1).cwiseAbs().maxCoeff() / den;
++        std::fprintf(f, "%ld,%ld,%ld,%d,%ld,%ld,%ld,%ld,%.6e,%.6e,%.6e,%.6e,%.6e,%d\n", batch, (long)kc, (long)n0,
++                     static_cast<int>(k.numerics), pp ? static_cast<long>(*pp) : -1L,
++                     ib.refinement_steps ? static_cast<long>(*ib.refinement_steps) : -1L,
++                     ref_s[static_cast<std::size_t>(j)], (long)j, eb, es, eb1, es1, rd, same ? 1 : 0);
++    }
++}
++
++// PF4P3_LAND=guard: the batch's columns with eta > PF4P3_GUARD_T (default 1e-12) get one refinement step on the
++// flagged subset (one solve_mat), each kept iff its eta falls (keep-while-falling).
++inline bool land_guard() {
++    static const bool s = [] {
++        const char *p = std::getenv("PF4P3_LAND");
++        return p && std::strcmp(p, "guard") == 0;
++    }();
++    return s;
++}
++inline double guard_t() {
++    static const double t = [] {
++        const char *p = std::getenv("PF4P3_GUARD_T");
++        return p ? std::strtod(p, nullptr) : 1e-12;
++    }();
++    return t;
++}
++inline void guard(const KktFactor &k, const SpMatRM *K0, const Mat &rhs, Mat &sol) {
++    if (K0 == nullptr || K0->rows() != rhs.rows()) {
++        return;
++    }
++    Vec acc;
++    const double kn = symmetric_inf_norm(*K0, nullptr, acc);
++    std::vector<Index> fl;
++    std::vector<double> e0;
++    Mat R(rhs.rows(), rhs.cols());
++    for (Index j = 0; j < rhs.cols(); ++j) {
++        const Vec b = rhs.col(j);
++        const Vec x = sol.col(j);
++        const double e = eta(*K0, kn, b, x);
++        if (e > guard_t()) {
++            R.col(static_cast<Index>(fl.size())) = b - K0->template selfadjointView<Eigen::Upper>() * x;
++            fl.push_back(j);
++            e0.push_back(e);
++        }
++    }
++    if (fl.empty()) {
++        return;
++    }
++    const Mat Rf = R.leftCols(static_cast<Index>(fl.size()));
++    Mat D;
++    solve_mat(k, Rf, D);
++    for (std::size_t i = 0; i < fl.size(); ++i) {
++        const Index j = fl[i];
++        const Vec x1 = sol.col(j) + D.col(static_cast<Index>(i));
++        if (eta(*K0, kn, Vec(rhs.col(j)), x1) < e0[i]) {
++            sol.col(j) = x1;
++        }
++    }
++}
++
++// PF4P3_JITTER=<seed>: the landed columns get x += K0^-1 delta, delta dense with entries 2^-52 ||b||inf u, u in
++// [-1, 1) from a seeded LCG -- a backward perturbation at the unit roundoff, below both solves' own backward error.
++inline unsigned long long jitter_seed() {
++    static const unsigned long long s = [] {
++        const char *p = std::getenv("PF4P3_JITTER");
++        return p ? std::strtoull(p, nullptr, 10) : 0ULL;
++    }();
++    return s;
++}
++
++inline void jitter(const KktFactor &k, const Mat &rhs, Mat &x) {
++    static unsigned long long state = 0;
++    if (jitter_seed() == 0) {
++        return;
++    }
++    if (state == 0) {
++        state = jitter_seed() * 6364136223846793005ULL + 1442695040888963407ULL;
++    }
++    Mat delta(rhs.rows(), rhs.cols());
++    for (Index j = 0; j < rhs.cols(); ++j) {
++        const double bn = rhs.col(j).cwiseAbs().maxCoeff();
++        for (Index i = 0; i < rhs.rows(); ++i) {
++            state = state * 6364136223846793005ULL + 1442695040888963407ULL;
++            const double u = static_cast<double>(state >> 11) * 0x1.0p-53 * 2.0 - 1.0;
++            delta(i, j) = 0x1.0p-52 * bn * u;
++        }
++    }
++    Mat dx;
++    solve_mat(k, delta, dx);
++    x += dx;
++}
++
++} // namespace hven::detail::pf4p3
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..ac501379d 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -89,6 +89,7 @@
+ #include <hven/core/errors.h>
+ #include <hven/detail/core/inf_norm.h>
+ #include <hven/detail/kkt/kkt_factor.h>
++#include <hven/detail/kkt/pf4_probe3.h>
+ #include <hven/linear/dense_symmetric_factor.h>
+ #include <hven/qp/qp_types.h>
+ 
+@@ -348,6 +349,7 @@ class SchurComplement {
+ 
+     // Inside a batch, the recorded adds count: dim() is the stack the same
+     // adds made one at a time would have built so far.
++    const SpMatRM *probe_k0_ = nullptr; // PF-4 probe 3
+     Index dim() const { return static_cast<Index>(v_.size() + pending_v_.size()); }
+ 
+     // C's two extreme directions, the ends cond_estimate() measures: the one
+@@ -620,6 +622,15 @@ class SchurComplement {
+                 }
+                 detail::solve_mat(kkt_, rhs, sol);
+                 batched = true;
++                Mat singles;
++                pf4p3::measure(kkt_, probe_k0_, rhs, sol, singles);
++                if (pf4p3::land_single()) {
++                    sol = singles;
++                }
++                if (pf4p3::land_guard()) {
++                    pf4p3::guard(kkt_, probe_k0_, rhs, sol);
++                }
++                pf4p3::jitter(kkt_, rhs, sol);
+             } catch (...) {
+                 batched = false;
+             }
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index a596a8963..6ba68b361 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -6129,6 +6129,7 @@ void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderSta
+     // replays), and the ledger is trimmed to the stack that survives: it is the
+     // stack's prefix.
+     SchurComplement &schur = *border.schur;
++    schur.probe_k0_ = &border.k0.K;
+     schur.begin_batch();
+     const auto close_batch = [&]() {
+         try {

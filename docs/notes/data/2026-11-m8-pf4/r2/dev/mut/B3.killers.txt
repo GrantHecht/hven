@@ -1,0 +1,3 @@
+Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+Schur.BatchLandsWithOneSolveOnEitherArm
+Schur.BatchOnRetakeNumericsLandsThePerAddColumns

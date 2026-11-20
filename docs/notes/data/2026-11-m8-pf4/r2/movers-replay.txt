@@ -1,0 +1,4 @@
+# PF-4 declared replay movers (A-vs-B difference count per mode, compare_replay.py exact): the three residual-class columns of f7_n800_path_warm
+walk 3
+ssn 0
+ipm 0

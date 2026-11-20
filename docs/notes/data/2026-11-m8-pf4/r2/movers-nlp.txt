@@ -1,0 +1,15 @@
+# PF-4 declared nlp-35 movers (15 hven-sqp cells, default; directions in DECLARATION-PF-4.md section 3)
+nlp-hven-sqp-ACOPP118.D
+nlp-hven-sqp-ACOPP57.D
+nlp-hven-sqp-ACOPR57.D
+nlp-hven-sqp-DALLASM.D
+nlp-hven-sqp-READING6.D
+nlp-hven-sqp-SAWPATH.D
+nlp-hven-sqp-SMBANK.D
+nlp-hven-sqp-STEENBRB.D
+nlp-hven-sqp-STEENBRC.D
+nlp-hven-sqp-STEENBRD.D
+nlp-hven-sqp-STEENBRE.D
+nlp-hven-sqp-STEENBRG.D
+nlp-hven-sqp-YORKNET.D
+nlp-hven-sqp-ZAMB2-8.D
