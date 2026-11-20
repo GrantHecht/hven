@@ -1,0 +1,36 @@
+{
+ "calls": {
+  "FactorSession::analyze": 4,
+  "FactorSession::factorize": 35,
+  "FactorSession::solve(": 3699,
+  "FactorSession::solve_partial": 0,
+  "DenseSession::factorize": 0,
+  "DenseSession::solve": 0,
+  "QpEngine::run(": 58,
+  "SchurComplement::add_border": 321,
+  "SchurComplement::solve": 1652,
+  "SchurComplement::append_border": 321,
+  "SymmetricFactor::solve_single": 3694,
+  "SymmetricFactor::factorize(": 35,
+  "detail::solve_vec": 3631,
+  "mkl_pds_lp64_pardiso": 7492,
+  "LAPACKE_dsytrf_rook_work": 0,
+  "LAPACKE_dsytrs_rook_work": 0,
+  "LAPACKE_dsytrs_work": 1431,
+  "LAPACKE_dsytrf_work": 540
+ },
+ "callers": {
+  "SchurComplement::add_border": {
+   "hven::detail::QpEngine::sync_borders": 321
+  },
+  "FactorSession::solve(": {
+   "hven::linear::": 3699
+  },
+  "FactorSession::analyze": {
+   "hven::linear::SymmetricFactor::analyze": 4
+  },
+  "FactorSession::factorize": {
+   "hven::linear::SymmetricFactor::factorize": 35
+  }
+ }
+}

@@ -1,0 +1,196 @@
+{
+ "cmd": [
+  ".scratch/build-bench/bench/hven_sqp_ssn_safeguard_probe",
+  "routes"
+ ],
+ "instructions_total": 21774975993,
+ "period": 1814581,
+ "samples": 11986,
+ "est_over_total": 0.9988331501716389,
+ "components": {
+  "proc.loader_startup": 208676815,
+  "setup.library_init": 430055697,
+  "la.sparse_solve": 8818863660,
+  "la.other": 967171673,
+  "la.sparse_factorize": 4512862947,
+  "qp.ssn": 2709169433,
+  "la.sparse_analyze": 3048496080,
+  "proc.main_other": 324809999,
+  "outer.ipm_nlp_core": 397393239,
+  "kkt.factor_glue": 65324916,
+  "unattributed.truncated_unwind": 241339273,
+  "setup.init_teardown": 21774972,
+  "la.dense_factorize": 3629162
+ },
+ "hven_frames_inclusive": [
+  [
+   "hven::detail::SsnEngine::solve",
+   20484804909
+  ],
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   17977053967
+  ],
+  [
+   "hven::detail::solve_vec",
+   9678975054
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   9639054272
+  ],
+  [
+   "hven::linear::",
+   9633610529
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   9593689747
+  ],
+  [
+   "hven::detail::factorize_checked",
+   8100289584
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   4951991549
+  ],
+  [
+   "hven::linear::detail::FactorSession::factorize",
+   4746943896
+  ],
+  [
+   "hven::linear::SymmetricFactor::analyze",
+   3124708482
+  ],
+  [
+   "hven::linear::detail::FactorSession::analyze",
+   3072085633
+  ],
+  [
+   "hven::detail::SsnEngine::residual",
+   1262948376
+  ],
+  [
+   "hven::linear::SymmetricFactor::~SymmetricFactor",
+   647805417
+  ],
+  [
+   "hven::linear::detail::FactorSession::~FactorSession",
+   638732512
+  ],
+  [
+   "hven::pattern_hash",
+   428241116
+  ],
+  [
+   "hven::detail::SsnEngine::trial_point",
+   230451787
+  ],
+  [
+   "hven::detail::SsnEngine::sync_matrix",
+   223193463
+  ],
+  [
+   "hven::detail::analysis_decision",
+   208676815
+  ],
+  [
+   "hven::linear::SymmetricFactor::check_factorize_input",
+   192345586
+  ],
+  [
+   "hven::detail::SsnEngine::structure_hash",
+   59881173
+  ],
+  [
+   "hven::detail::SsnEngine::build_bound_rows",
+   25404134
+  ],
+  [
+   "hven::detail::SsnEngine::export_activity",
+   21774972
+  ],
+  [
+   "hven::detail::QpProblem::~QpProblem",
+   21774972
+  ],
+  [
+   "hven::detail::SsnResult::~SsnResult",
+   21774972
+  ],
+  [
+   "hven::detail::SsnEngine::seed_vector",
+   14516648
+  ],
+  [
+   "hven::detail::SsnEngine::export_uncertain",
+   14516648
+  ],
+  [
+   "hven::linear::detail::FactorSession::FactorSession",
+   12702067
+  ],
+  [
+   "hven::detail::SsnEngine::split_bound_multipliers",
+   12702067
+  ],
+  [
+   "hven::detail::refine_shifted_solve",
+   12702067
+  ],
+  [
+   "hven::detail::SsnEngine::SsnEngine",
+   10887486
+  ],
+  [
+   "hven::detail::SsnEngine::recombine_bound_multipliers",
+   10887486
+  ],
+  [
+   "hven::linear::SymmetricFactor::SymmetricFactor",
+   7258324
+  ],
+  [
+   "hven::detail::SsnEngine::~SsnEngine",
+   7258324
+  ],
+  [
+   "hven::linear::SymmetricFactor::inertia",
+   7258324
+  ],
+  [
+   "hven::detail::kkt_inertia",
+   7258324
+  ],
+  [
+   "hven::detail::QpProblem::QpProblem",
+   5443743
+  ],
+  [
+   "hven::linear::SymmetricFactor::require_solvable",
+   3629162
+  ],
+  [
+   "hven::detail::QpProblem::validate",
+   1814581
+  ],
+  [
+   "hven::linear::detail::validate_dense_options",
+   1814581
+  ],
+  [
+   "hven::linear::detail::dense_selected",
+   1814581
+  ],
+  [
+   "hven::linear::SymmetricFactor::counters",
+   1814581
+  ],
+  [
+   "hven::detail::SsnStart::~SsnStart",
+   1814581
+  ]
+ ],
+ "components_sha256": "cf2986262681602529edde19ffbb7ad380742ef38f5fb6a0f87da15857b14cc3"
+}
