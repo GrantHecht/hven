@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
 #include <string>
 #include <vector>
 
@@ -2844,7 +2845,7 @@ TEST(SsnEngineLocal, UncertainBandGeometryAndValidation) {
         const double rho = 1.0;
         const double a = 1.0 - s / rho;
         const double b = 1.0 - lam / rho;
-        EXPECT_NEAR(std::abs(a - b), std::sqrt(2.0) * std::abs(std::sin(theta - M_PI / 4.0)), 1e-12)
+        EXPECT_NEAR(std::abs(a - b), std::sqrt(2.0) * std::abs(std::sin(theta - std::numbers::pi / 4.0)), 1e-12)
             << "theta = " << theta;
     }
     // The pure states are at 1, so a threshold of 1 would swallow them -- which
