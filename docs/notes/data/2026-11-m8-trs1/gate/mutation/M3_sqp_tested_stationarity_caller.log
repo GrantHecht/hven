@@ -1,0 +1,115 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ProblemScaling*
+[==========] Running 28 tests from 9 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from ProblemScalingRule
+[ RUN      ] ProblemScalingRule.TheObjectiveFactorAimsTheGradientAtMaxGradient
+[       OK ] ProblemScalingRule.TheObjectiveFactorAimsTheGradientAtMaxGradient (0 ms)
+[ RUN      ] ProblemScalingRule.TheObjectiveRuleIsTwoSidedAndScalesASmallGradientUp
+[       OK ] ProblemScalingRule.TheObjectiveRuleIsTwoSidedAndScalesASmallGradientUp (0 ms)
+[ RUN      ] ProblemScalingRule.TheRowRuleIsOneSidedAndNeverAmplifiesARow
+[       OK ] ProblemScalingRule.TheRowRuleIsOneSidedAndNeverAmplifiesARow (0 ms)
+[ RUN      ] ProblemScalingRule.TheClampIsSymmetricAndHonoured
+[       OK ] ProblemScalingRule.TheClampIsSymmetricAndHonoured (0 ms)
+[ RUN      ] ProblemScalingRule.ARowWithNoDataTakesTheIdentityRatherThanTheCeiling
+[       OK ] ProblemScalingRule.ARowWithNoDataTakesTheIdentityRatherThanTheCeiling (0 ms)
+[ RUN      ] ProblemScalingRule.ANonFiniteNormTakesTheIdentityToo
+[       OK ] ProblemScalingRule.ANonFiniteNormTakesTheIdentityToo (0 ms)
+[ RUN      ] ProblemScalingRule.RowExtremesFoldOverBothBlocksAndDefaultToIdentity
+[       OK ] ProblemScalingRule.RowExtremesFoldOverBothBlocksAndDefaultToIdentity (0 ms)
+[----------] 7 tests from ProblemScalingRule (0 ms total)
+
+[----------] 2 tests from ProblemScalingOffPath
+[ RUN      ] ProblemScalingOffPath.TheDefaultIsOffAndReportsTheIdentity
+[       OK ] ProblemScalingOffPath.TheDefaultIsOffAndReportsTheIdentity (3 ms)
+[ RUN      ] ProblemScalingOffPath.SettingTheRuleWithoutTheToggleChangesNothing
+[       OK ] ProblemScalingOffPath.SettingTheRuleWithoutTheToggleChangesNothing (1 ms)
+[----------] 2 tests from ProblemScalingOffPath (4 ms total)
+
+[----------] 1 test from ProblemScalingOptions
+[ RUN      ] ProblemScalingOptions.TheRuleIsValidatedAtTheBoundary
+[       OK ] ProblemScalingOptions.TheRuleIsValidatedAtTheBoundary (0 ms)
+[----------] 1 test from ProblemScalingOptions (0 ms total)
+
+[----------] 4 tests from ProblemScalingAcceptance
+[ RUN      ] ProblemScalingAcceptance.TheS1e12DualScaleCellConvergesWithScalingOn
+[ W0.2 ] S=1e12 OFF: status=0 majors=1 f=-500000 kkt=0
+[ W0.2 ] S=1e12 ON : status=0 majors=1 f=-500000 kkt=0 scaled_kkt=0 sf=1e-10
+[       OK ] ProblemScalingAcceptance.TheS1e12DualScaleCellConvergesWithScalingOn (1 ms)
+[ RUN      ] ProblemScalingAcceptance.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/sqp/test_problem_scaling.cpp:665: Failure
+The difference between r.stationarity * sf and r.tested_stationarity is 999999999900, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * sf evaluates to 100,
+r.tested_stationarity evaluates to 1000000000000, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000000000010001.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/sqp/test_problem_scaling.cpp:676: Failure
+Value of: any_differs
+  Actual: false
+Expected: true
+
+[  FAILED  ] ProblemScalingAcceptance.TheRowsCarryTheQuantitiesTheConvergenceTestCompares (0 ms)
+[ RUN      ] ProblemScalingAcceptance.TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell
+[       OK ] ProblemScalingAcceptance.TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell (0 ms)
+[ RUN      ] ProblemScalingAcceptance.Hs25IsMeasuredWithScalingOn
+[ W0.2 ] HS25 OFF: status=0 majors=0 f=32.8349999996636 kkt=1.99439e-08
+[ W0.2 ] HS25 ON : status=2 majors=100 f=8.14078550430332e-31 kkt=2.32513e-16 scaled_kkt=1.16584e-06 sf=5.01407e+09
+[       OK ] ProblemScalingAcceptance.Hs25IsMeasuredWithScalingOn (31 ms)
+[----------] 4 tests from ProblemScalingAcceptance (34 ms total)
+
+[----------] 4 tests from ProblemScalingRoundTrip
+[ RUN      ] ProblemScalingRoundTrip.TheRowsCarryTheScaledMeasuresTheTestCompares
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/sqp/test_problem_scaling.cpp:785: Failure
+Value of: same(r.stationarity * sf, r.tested_stationarity)
+  Actual: false
+Expected: true
+
+[  FAILED  ] ProblemScalingRoundTrip.TheRowsCarryTheScaledMeasuresTheTestCompares (2 ms)
+[ RUN      ] ProblemScalingRoundTrip.AScaledSolveReportsOnTheCallersScale
+[       OK ] ProblemScalingRoundTrip.AScaledSolveReportsOnTheCallersScale (0 ms)
+[ RUN      ] ProblemScalingRoundTrip.TheMultipliersAreTheCallersNotTheEngines
+[       OK ] ProblemScalingRoundTrip.TheMultipliersAreTheCallersNotTheEngines (1 ms)
+[ RUN      ] ProblemScalingRoundTrip.TheBoundPricesAreTheReMeasurementsNotADivideBack
+[       OK ] ProblemScalingRoundTrip.TheBoundPricesAreTheReMeasurementsNotADivideBack (0 ms)
+[----------] 4 tests from ProblemScalingRoundTrip (5 ms total)
+
+[----------] 4 tests from ProblemScalingWarmStart
+[ RUN      ] ProblemScalingWarmStart.AScaledSolvesExportIsAcceptedByAnUnscaledSolve
+[       OK ] ProblemScalingWarmStart.AScaledSolvesExportIsAcceptedByAnUnscaledSolve (1 ms)
+[ RUN      ] ProblemScalingWarmStart.AScaledExportDropsTheScaledSpaceStateItCannotMap
+[       OK ] ProblemScalingWarmStart.AScaledExportDropsTheScaledSpaceStateItCannotMap (0 ms)
+[ RUN      ] ProblemScalingWarmStart.TheExportedCurrencyIsTheSolutionsOwnMultipliers
+[       OK ] ProblemScalingWarmStart.TheExportedCurrencyIsTheSolutionsOwnMultipliers (1 ms)
+[ RUN      ] ProblemScalingWarmStart.ACallerScaleSeedIsMappedInOnAScaledSolve
+[       OK ] ProblemScalingWarmStart.ACallerScaleSeedIsMappedInOnAScaledSolve (0 ms)
+[----------] 4 tests from ProblemScalingWarmStart (3 ms total)
+
+[----------] 3 tests from ProblemScalingHistory
+[ RUN      ] ProblemScalingHistory.TheExportedRowsAreOnTheCallersScale
+[       OK ] ProblemScalingHistory.TheExportedRowsAreOnTheCallersScale (0 ms)
+[ RUN      ] ProblemScalingHistory.AnUnscaledSolvesHistoryIsUntouched
+[       OK ] ProblemScalingHistory.AnUnscaledSolvesHistoryIsUntouched (0 ms)
+[ RUN      ] ProblemScalingHistory.TheNonFiniteIterateExitStillUnscalesAndReports
+[       OK ] ProblemScalingHistory.TheNonFiniteIterateExitStillUnscalesAndReports (0 ms)
+[----------] 3 tests from ProblemScalingHistory (1 ms total)
+
+[----------] 1 test from ProblemScalingRestoration
+[ RUN      ] ProblemScalingRestoration.TheAdoptedSelectorsAreNotMappedTwice
+[       OK ] ProblemScalingRestoration.TheAdoptedSelectorsAreNotMappedTwice (250 ms)
+[----------] 1 test from ProblemScalingRestoration (250 ms total)
+
+[----------] 2 tests from ProblemScalingSeam
+[ RUN      ] ProblemScalingSeam.ARelayThatChangesARowCountUnderActiveFactorsIsRefused
+[       OK ] ProblemScalingSeam.ARelayThatChangesARowCountUnderActiveFactorsIsRefused (0 ms)
+[ RUN      ] ProblemScalingSeam.AnUnscaledSeamStillAcceptsARowCountChange
+[       OK ] ProblemScalingSeam.AnUnscaledSeamStillAcceptsARowCountChange (0 ms)
+[----------] 2 tests from ProblemScalingSeam (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 28 tests from 9 test suites ran. (299 ms total)
+[  PASSED  ] 26 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ProblemScalingAcceptance.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+[  FAILED  ] ProblemScalingRoundTrip.TheRowsCarryTheScaledMeasuresTheTestCompares
+
+ 2 FAILED TESTS

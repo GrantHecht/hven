@@ -1,0 +1,6 @@
+box-lane: lane 0 acquired 2026-11-20T17:27:23-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/trs1/build-rel/bench/hven_sqp_corpus sha256 973dab923b9cc4b9e8ff3833a4a9fcfa5625bab0b9678375ddb8d7cab286c2db
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0

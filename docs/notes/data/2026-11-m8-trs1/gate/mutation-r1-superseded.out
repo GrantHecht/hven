@@ -1,0 +1,21 @@
+box-lane: lane 1 acquired 2026-11-20T18:07:41-05:00
+control-ipm_tests rc=0 ([  PASSED  ] 7 tests.)
+control-sqp_tests rc=0 ([  PASSED  ] 28 tests.)
+control-trace_tests rc=0 ([  PASSED  ] 0 tests.)
+M1_ipm_tested_stationarity_caller rc=1 ([  PASSED  ] 6 tests.)
+M1_ipm_tested_stationarity_caller KILLED
+M2_ipm_tested_complementarity_caller rc=1 ([  PASSED  ] 6 tests.)
+M2_ipm_tested_complementarity_caller KILLED
+M3_sqp_tested_stationarity_caller rc=1 ([  PASSED  ] 27 tests.)
+M3_sqp_tested_stationarity_caller KILLED
+M4_sqp_tested_feasibility_caller rc=0 ([  PASSED  ] 28 tests.)
+M4_sqp_tested_feasibility_caller SURVIVED
+M5_sqp_tested_complementarity_caller rc=0 ([  PASSED  ] 28 tests.)
+M5_sqp_tested_complementarity_caller SURVIVED
+M6_json_stationarity_from_caller_field rc=1 ([  PASSED  ] 157 tests.)
+M6_json_stationarity_from_caller_field KILLED
+M7_json_caller_key_from_tested_field rc=1 ([  PASSED  ] 157 tests.)
+M7_json_caller_key_from_tested_field KILLED
+M8_console_stat_from_caller_field rc=1 ([  PASSED  ] 160 tests.)
+M8_console_stat_from_caller_field KILLED
+MUTATIONS worst=1

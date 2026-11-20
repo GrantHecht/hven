@@ -1,0 +1,10 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/trs1/build-debug'
+[0/2] Re-checking globbed directories...
+[1/5] Building CXX object CMakeFiles/hven.dir/src/ipm/ipm_solver.cpp.o
+[2/5] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/src/sqp/sqp_solver.cpp:7105:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 7105 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[3/5] Linking CXX static library libhven.a
+[4/5] Linking CXX executable tests/sqp/hven_sqp_tests
