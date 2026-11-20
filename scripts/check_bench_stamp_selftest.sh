@@ -27,7 +27,11 @@ g describe --always --dirty --abbrev=12 > "$stamp"
 expect 0 "re-stamped stamp matches again" bash "$chk" "$stamp" "$t/r"
 mkdir "$t/nogit"
 echo unknown > "$t/unk"
+# The no-git cells must not find a repository ABOVE the temp dir (a TMPDIR inside a checkout
+# would): the ceiling stops git's upward search at $t.
+export GIT_CEILING_DIRECTORIES="$t"
 expect 0 "no git and stamp 'unknown' -> OK" bash "$chk" "$t/unk" "$t/nogit"
 expect 1 "no git but a real stamp -> STALE" bash "$chk" "$stamp" "$t/nogit"
+unset GIT_CEILING_DIRECTORIES
 expect 2 "missing stamp file -> usage error" bash "$chk" "$t/none" "$t/r"
 exit $bad
