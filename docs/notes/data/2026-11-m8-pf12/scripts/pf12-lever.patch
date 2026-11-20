@@ -1,8 +1,8 @@
 diff --git a/bench/corpus_cells.h b/bench/corpus_cells.h
-index 5caa07981..d8ba4b730 100644
+index 5caa07981..f84b4559e 100644
 --- a/bench/corpus_cells.h
 +++ b/bench/corpus_cells.h
-@@ -1362,6 +1362,11 @@ inline SqpOptions corpus_options() {
+@@ -1362,6 +1362,14 @@ inline SqpOptions corpus_options() {
      opts.advanced.adaptive_dual_regularization =
          false; // bench_scale.cpp's own choice, so kHot stays reachable
      opts.advanced.warm_full_step = true;
@@ -10,6 +10,9 @@ index 5caa07981..d8ba4b730 100644
 +    // M6 tree hard-wired at 1.
 +    if (const char *b = std::getenv("HVEN_PF12_QP_FAILURE_BUDGET")) {
 +        opts.advanced.max_consecutive_qp_failures = std::atoi(b);
++    }
++    if (const char *b = std::getenv("HVEN_PF12_IWS")) {
++        opts.qp.independent_working_set = std::atoi(b) != 0;
 +    }
      return opts;
  }

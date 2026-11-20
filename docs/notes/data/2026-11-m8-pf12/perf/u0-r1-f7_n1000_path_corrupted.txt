@@ -1,0 +1,17 @@
+# started on Fri Nov 20 09:52:45 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.claude/worktrees/pf2/.scratch/build-m6-19f7674f/bench/hven_sqp_corpus --internal-run-one f7_n1000_path_corrupted --engine walk --internal-out /home/ghecht/Projects/hven/.claude/worktrees/pf2/docs/notes/data/2026-11-m8-pf12/raw/u0-r1-f7_n1000_path_corrupted.csv':
+
+ 1,510,206,446,016      instructions:u                                                        
+   220,845,538,364      branches:u                                                            
+   622,964,281,051      cycles:u                                                              
+     3,765,790,738      branch-misses:u                                                       
+       158,444,498      L1-icache-load-misses:u                                               
+
+     193.084155653 seconds time elapsed
+
+     185.175631000 seconds user
+       5.675677000 seconds sys
+
+
