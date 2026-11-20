@@ -56,7 +56,7 @@ The full tables (suite, per engine, per set, solver-only and all-in; median per-
 **2.1 Schur-border solves per factorization (CONFIRMED, wider than ~35).** callgrind call counts (`out/callgrind2`, exact): solves per factorization hven-sqp DALLASM **41.5** (18 725 solves / 451 factorizations),
 hs033 (dense) **33.3**, SMBANK **105.7**, hs071 11.8, ACOPP57 9.5; hven-ipm ACOPP57 0.7. Per QP minor: DALLASM 24.7 solves, SMBANK 10.4, ACOPP57 11.2. Every `SchurComplement::add_border` is called from `QpEngine::sync_borders` (100 % of the calls in all five SQP cells). By sampling,
 `add_border` is **43.2 % of all hven-sqp instructions** inclusive (57.6 % of the sparse-solve component; dominant on SPANHYD 86 %, MESH 70 %, DNIEPER 69 %, CRESC50 66 %, READING6 66 %, CRESC100 61 %).
-Batch size (add_border calls per sync_borders call) is not yet read: see open item 7.
+The batch size (add_border calls per sync_borders call) is not yet read: open item 7. Measured average add_border calls per QP: DALLASM 154 (7 529 / 49), SMBANK 5.5, ACOPP57 38.
 
 **2.2 Per-minor cost on minor-heavy cells.** `out/extra.md` (cells with >= 100 minors). On the sparse minor-heavy cells one minor costs 1.0e7 to 2.4e7 instructions (STEENBRB 1.0e7, MSS1 1.0e7, STEENBRD 1.1e7, STEENBRC 1.2e7, STEENBRG 1.4e7, YORKNET 1.5e7, CRESC100 1.6e7, ACOPP118 2.0e7, SPANHYD 2.4e7; BIGBANK 6.1e7 at 3 196 minors, large n).
 Factorizations run at 1.0-1.4 per minor on these (SPANHYD 2.0). A minor on STEENBRC (1.2e7 instructions) splits: sparse solves 57 % (6.9M), analyses 17 % (2.1M), numeric factorization 7.9 % (1.0M), QP logic 9.2 % (1.1M, of which Schur border 2.9 %), KKT assembly and glue the rest. Backend analysis (METIS) is 15-24 % of the cost of a minor on STEENBR*, YORKNET, ACOPP118, BIGBANK, MSS1.
@@ -109,7 +109,7 @@ Not an opportunity (stated so they are not re-asked): the IPM's numeric factoriz
 
 ## 6. Open items
 
-7. The border batch size per `sync_borders` call (the number of right-hand sides a batched solve would carry) is to be read from a callgrind re-run of ACOPP57, SMBANK and DALLASM with `sync_borders` counted (`out/callgrind3`); if that directory is absent the re-run did not get the box.
+7. The border batch size per `sync_borders` call (the number of right-hand sides a batched solve would carry) was not read: the callgrind re-run that counts `sync_borders` waited more than 45 minutes for the box lock behind other agents' gates and was cancelled (my own queued process, no foreign process touched). `tools/pf3_callgrind.py` already counts it; re-running it on ACOPP57, SMBANK and DALLASM (about 80 s under callgrind) gives add_border / sync_borders per cell.
 
 1. **Solo wall leg is pending** (`SOLO-LEG.md`: exact command; box must be quiet). Nothing here is a timing.
 2. Opportunity 3's repeat rate (how often `FactorSession::analyze` sees an already-analysed pattern) needs a probe or counter; not available at this pin.
