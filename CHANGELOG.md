@@ -50,6 +50,18 @@ programs are the reference for the new surface, and the full rename table is
   `hven::detail`, `warmstart/warm_start.h` and `drivers/json_lines_trace_sink.h`, and
   `IpmLinearOptions::accelerate_zero_tol` on every platform. Trace keys and strings are unchanged.
 
+## Unreleased — M8 I17 (issue 17: weak columns under `column_scaling = kAlways`)
+
+- **Ladder diagnostics.** Before: an exhausted elastic ladder printed only its rung count, and the
+  `sqp.major` row's `qp_status` was overwritten by the last rung's. After: the row keeps the main
+  QP's status and carries a `ladder` block; the console line and the `elastic_exhausted` message
+  state the entry route, both statuses, the final penalty and `closed`/`reduced`/`promises_f`/
+  `slack_l1`; restoration QPs are recorded in an attached `Ledger` (`<prefix>_resto<n>_qp_<k>`).
+- **`SqpOptions::caller_step_limit`** (default 0, off): `|dx_j| <= r (1 + |x_j|)` in caller units, folded into every QP box.
+- **`SqpOptions::column_scaling_factor_max`** (default 1024): the clamp on the `kAlways` column
+  factors; `scaling_factor_max` keeps the rows and objective, and `kAuto`'s columns.
+- **`SqpAdvancedOptions::qp_dump_dir` / `qp_dump_policy`**: the walk's QPs as "D4QP 1" files.
+
 ## Unreleased — the M8 AP-5 interface groups
 
 Migration lines for these groups: `docs/migration-0.2.md`.
