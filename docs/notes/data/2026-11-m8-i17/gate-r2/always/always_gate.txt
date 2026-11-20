@@ -1,0 +1,22 @@
+C1 cells 119; missing/capped 0; ledger-only movers 17; other movers 0
+C2 Auto at cap 2^6: rows differing from Auto default: 0
+C2 Auto at cap 2^8: rows differing from Auto default: 0
+C2 Auto at cap 2^10: rows differing from Auto default: 0
+C2 Auto at cap 2^13: rows differing from Auto default: 0
+C2 Auto at cap 2^16: rows differing from Auto default: 0
+C2 Auto at cap 2^20: rows differing from Auto default: 0
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-DECONVC: optimal/28 -> optimal/168
+  C4 cap 2^6 WORSE   sd-hven-sqp-DEMBO7: optimal/6 -> numerical_error/17
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-HS84: optimal/11 -> optimal/9
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/29
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-LAUNCH: optimal/11 -> optimal/11
+  C4 cap 2^6 NEUTRAL sd-hven-sqp-NET1: optimal/13 -> optimal/13
+C3 Always at cap 2^6: rows differing from the adopted default: 6 {'BETTER': 0, 'WORSE': 1, 'NEUTRAL': 5}
+  C4 cap 2^8 NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/27
+C3 Always at cap 2^8: rows differing from the adopted default: 1 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 1}
+C3 Always at cap 2^10: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^13: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^16: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 Always at cap 2^20: rows differing from the adopted default: 0 {'BETTER': 0, 'WORSE': 0, 'NEUTRAL': 0}
+C3 smallest cap with no moved row: 2^10; declared ADOPT_K 2^10
+I17_ALWAYS_PASS

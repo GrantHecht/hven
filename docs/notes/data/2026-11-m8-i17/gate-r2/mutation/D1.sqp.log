@@ -1,0 +1,1224 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpSolverGlobalization.*:SqpSolverCertifiedFallback.*:SqpSolverW2Fixtures.*:CallerStepLimit.*:CallerStepLimitSolve.*:ColumnScalingFactorMax.*:QpDump.*:ColumnScalingDriver.*:ScaledConvergenceGuard.*
+[==========] Running 88 tests from 9 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (4 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (6 ms total)
+
+[----------] 1 test from ColumnScalingFactorMax
+[ RUN      ] ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+[       OK ] ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone (0 ms)
+[----------] 1 test from ColumnScalingFactorMax (0 ms total)
+
+[----------] 7 tests from QpDump
+[ RUN      ] QpDump.RestorationQpsAreRecordedInTheAttachedLedger
+[       OK ] QpDump.RestorationQpsAreRecordedInTheAttachedLedger (13 ms)
+[ RUN      ] QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+[       OK ] QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective (3 ms)
+[ RUN      ] QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00295_d0_m0_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00297_d0_m1_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00298_d0_m1_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00299_d0_m1_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00300_d0_m1_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00301_d0_m1_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00302_d0_m1_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00303_d0_m1_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00304_d0_m2_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00306_d0_m3_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00307_d0_m3_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00308_d0_m3_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00309_d0_m3_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00310_d0_m3_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00311_d0_m3_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00312_d0_m3_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00313_d0_m4_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00314_d0_m5_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00315_d0_m6_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00316_d0_m7_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00319_d0_m8_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00320_d0_m8_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00321_d0_m8_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00322_d0_m8_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00323_d0_m8_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00324_d0_m8_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00325_d0_m8_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00326_d0_m9_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00327_d0_m10_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00329_d0_m11_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00330_d0_m12_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00331_d0_m13_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00334_d0_m14_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00335_d0_m14_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00336_d0_m14_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00337_d0_m14_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00338_d0_m14_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00339_d0_m14_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00340_d0_m14_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00342_d0_m15_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00343_d0_m15_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00344_d0_m15_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00345_d0_m15_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00346_d0_m15_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00347_d0_m15_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00348_d0_m15_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00350_d0_m16_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00351_d0_m16_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00352_d0_m16_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00353_d0_m16_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00354_d0_m16_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00355_d0_m16_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00356_d0_m16_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00358_d0_m17_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00359_d0_m17_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00360_d0_m17_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00361_d0_m17_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00362_d0_m17_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00363_d0_m17_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00364_d0_m17_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00366_d0_m18_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00367_d0_m18_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00368_d0_m18_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00369_d0_m18_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00370_d0_m18_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00371_d0_m18_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00372_d0_m18_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00374_d0_m19_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00375_d0_m19_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00376_d0_m19_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00377_d0_m19_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00378_d0_m19_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00379_d0_m19_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00380_d0_m19_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00382_d0_m20_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00383_d0_m20_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00384_d0_m20_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00385_d0_m20_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00386_d0_m20_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00387_d0_m20_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00388_d0_m20_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00390_d0_m21_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00391_d0_m21_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00392_d0_m21_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00393_d0_m21_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00394_d0_m21_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00395_d0_m21_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00396_d0_m21_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00398_d0_m22_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00399_d0_m22_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00400_d0_m22_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00401_d0_m22_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00402_d0_m22_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00403_d0_m22_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00404_d0_m22_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00406_d0_m23_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00407_d0_m23_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00408_d0_m23_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00409_d0_m23_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00410_d0_m23_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00411_d0_m23_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00412_d0_m23_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00414_d0_m24_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00415_d0_m24_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00416_d0_m24_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00417_d0_m24_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00418_d0_m24_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00419_d0_m24_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00420_d0_m24_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00422_d0_m25_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00423_d0_m25_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00424_d0_m25_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00425_d0_m25_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00426_d0_m25_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00427_d0_m25_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00428_d0_m25_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00430_d0_m26_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00431_d0_m26_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00432_d0_m26_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00433_d0_m26_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00434_d0_m26_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00435_d0_m26_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00436_d0_m26_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00438_d0_m27_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00439_d0_m27_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00440_d0_m27_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00441_d0_m27_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00442_d0_m27_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00443_d0_m27_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00444_d0_m27_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00446_d0_m28_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00447_d0_m28_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00448_d0_m28_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00449_d0_m28_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00450_d0_m28_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00451_d0_m28_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00452_d0_m28_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00454_d0_m29_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00455_d0_m29_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00456_d0_m29_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00457_d0_m29_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00458_d0_m29_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00459_d0_m29_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00460_d0_m29_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00462_d0_m30_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00463_d0_m30_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00464_d0_m30_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00465_d0_m30_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00466_d0_m30_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00467_d0_m30_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00468_d0_m30_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00470_d0_m31_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00471_d0_m31_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00472_d0_m31_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00473_d0_m31_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00474_d0_m31_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00475_d0_m31_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00476_d0_m31_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00478_d0_m32_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00479_d0_m32_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00480_d0_m32_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00481_d0_m32_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00482_d0_m32_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00483_d0_m32_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00484_d0_m32_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00486_d0_m33_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00487_d0_m33_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00488_d0_m33_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00489_d0_m33_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00490_d0_m33_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00491_d0_m33_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00492_d0_m33_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00494_d0_m34_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00495_d0_m34_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00496_d0_m34_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00497_d0_m34_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00498_d0_m34_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00499_d0_m34_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00500_d0_m34_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00502_d0_m35_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00503_d0_m35_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00504_d0_m35_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00505_d0_m35_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00506_d0_m35_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00507_d0_m35_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00508_d0_m35_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00510_d0_m36_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00511_d0_m36_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00512_d0_m36_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00513_d0_m36_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00514_d0_m36_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00515_d0_m36_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00516_d0_m36_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00518_d0_m37_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00519_d0_m37_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00520_d0_m37_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00521_d0_m37_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00522_d0_m37_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00523_d0_m37_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00524_d0_m37_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00526_d0_m38_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00527_d0_m38_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00528_d0_m38_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00529_d0_m38_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00530_d0_m38_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00531_d0_m38_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00532_d0_m38_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00534_d0_m39_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00535_d0_m39_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00536_d0_m39_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00537_d0_m39_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00538_d0_m39_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00539_d0_m39_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00540_d0_m39_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00542_d0_m40_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00543_d0_m40_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00544_d0_m40_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00545_d0_m40_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00546_d0_m40_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00547_d0_m40_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00548_d0_m40_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00550_d0_m41_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00551_d0_m41_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00552_d0_m41_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00553_d0_m41_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00554_d0_m41_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00555_d0_m41_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00556_d0_m41_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00558_d0_m42_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00559_d0_m42_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00560_d0_m42_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00561_d0_m42_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00562_d0_m42_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00563_d0_m42_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00564_d0_m42_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00566_d0_m43_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00567_d0_m43_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00568_d0_m43_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00569_d0_m43_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00570_d0_m43_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00571_d0_m43_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00572_d0_m43_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00574_d0_m44_rung0.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00575_d0_m44_rung1.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00576_d0_m44_rung2.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00577_d0_m44_rung3.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00578_d0_m44_rung4.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00579_d0_m44_rung5.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00580_d0_m44_rung6.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00581_d1_m0_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00582_d1_m1_main.txt"
+
+/home/ghecht/Projects/hven/.claude/worktrees/i17fix/tests/sqp/test_caller_step_limit_and_qp_dump.cpp:518: Failure
+Expected: (dumped_status(test_support::load_qp_dump(f.string()))) != (0), actual: 0 vs 0
+"/home/ghecht/Projects/hven/.claude/worktrees/i17fix/.scratch/tmp/hven_i17_1199441_inf_failed_OffWritesNothingAndFailedWritesOnlyFailedSolves/qp_p1199441_s26_00583_d1_m2_main.txt"
+
+[  FAILED  ] QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves (103 ms)
+[ RUN      ] QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory
+[       OK ] QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory (0 ms)
+[ RUN      ] QpDump.TwoSolversOnTwoThreadsWriteDistinctFilesIntoOneDirectory
+[       OK ] QpDump.TwoSolversOnTwoThreadsWriteDistinctFilesIntoOneDirectory (2 ms)
+[ RUN      ] QpDump.ARerunIntoTheSameDirectoryKeepsEveryEarlierFile
+[       OK ] QpDump.ARerunIntoTheSameDirectoryKeepsEveryEarlierFile (3 ms)
+[ RUN      ] QpDump.AnExistingFileOfTheNextNameIsNeverReplaced
+[       OK ] QpDump.AnExistingFileOfTheNextNameIsNeverReplaced (0 ms)
+[----------] 7 tests from QpDump (127 ms total)
+
+[----------] 10 tests from CallerStepLimitSolve
+[ RUN      ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum
+[       OK ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum (1 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+[       OK ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder
+[       OK ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder (3 ms)
+[ RUN      ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox
+[       OK ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox (0 ms)
+[ RUN      ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit
+[       OK ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit (1 ms)
+[ RUN      ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit
+[       OK ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit
+[       OK ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit (0 ms)
+[ RUN      ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit
+[       OK ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit (3 ms)
+[ RUN      ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits
+[       OK ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits (29 ms)
+[ RUN      ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit
+[       OK ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit (1 ms)
+[----------] 10 tests from CallerStepLimitSolve (45 ms total)
+
+[----------] 21 tests from ColumnScalingDriver
+[ RUN      ] ColumnScalingDriver.AutoSolvesTheBadlyScaledFitInTheCallersUnits
+[       OK ] ColumnScalingDriver.AutoSolvesTheBadlyScaledFitInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.AnActiveBoundsPriceIsReMeasuredInTheCallersUnits
+[       OK ] ColumnScalingDriver.AnActiveBoundsPriceIsReMeasuredInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff
+[       OK ] ColumnScalingDriver.AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleCostsOneJacobianCallAndNothingElse
+[       OK ] ColumnScalingDriver.TheRuleCostsOneJacobianCallAndNothingElse (0 ms)
+[ RUN      ] ColumnScalingDriver.BelowTheGateAutoIsTheOffSolve
+[       OK ] ColumnScalingDriver.BelowTheGateAutoIsTheOffSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheIterationEventCarriesTheCallersPointAndPrices
+[       OK ] ColumnScalingDriver.TheIterationEventCarriesTheCallersPointAndPrices (0 ms)
+[ RUN      ] ColumnScalingDriver.ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve
+[       OK ] ColumnScalingDriver.ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel
+[ SCL ] scaled-model equivalence: status 3 majors 4 resto 4
+[       OK ] ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel (2 ms)
+[ RUN      ] ColumnScalingDriver.ACertifiedExitMapsTheFeasibilityPrice
+[       OK ] ColumnScalingDriver.ACertifiedExitMapsTheFeasibilityPrice (14 ms)
+[ RUN      ] ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo
+[       OK ] ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo (12 ms)
+[ RUN      ] ColumnScalingDriver.TheWarmStartCrossesBothWays
+[ SCL ] warm re-solve: cold majors 1, warm majors 0
+[       OK ] ColumnScalingDriver.TheWarmStartCrossesBothWays (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt
+[       OK ] ColumnScalingDriver.TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleReadsTheStartAsTheSolveDoes
+[       OK ] ColumnScalingDriver.TheRuleReadsTheStartAsTheSolveDoes (1 ms)
+[ RUN      ] ColumnScalingDriver.TheArgumentRefusalsAreSolveImplsOwn
+[       OK ] ColumnScalingDriver.TheArgumentRefusalsAreSolveImplsOwn (0 ms)
+[ RUN      ] ColumnScalingDriver.TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve
+[       OK ] ColumnScalingDriver.TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables
+[       OK ] ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables (19 ms)
+[ RUN      ] ColumnScalingDriver.AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSolve
+[       OK ] ColumnScalingDriver.AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheSsnProxBlockIsNotExportedFromAScaledSolve
+[       OK ] ColumnScalingDriver.TheSsnProxBlockIsNotExportedFromAScaledSolve (1 ms)
+[ RUN      ] ColumnScalingDriver.AnInequalityRowSolvesInTheCallersUnits
+[       OK ] ColumnScalingDriver.AnInequalityRowSolvesInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.ThePayloadRouteCrossesAColumnScaledSolve
+[       OK ] ColumnScalingDriver.ThePayloadRouteCrossesAColumnScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheEngagedRowLayerNeverAmplifiesTheObjective
+[       OK ] ColumnScalingDriver.TheEngagedRowLayerNeverAmplifiesTheObjective (0 ms)
+[----------] 21 tests from ColumnScalingDriver (56 ms total)
+
+[----------] 4 tests from ScaledConvergenceGuard
+[ RUN      ] ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs
+[       OK ] ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs (18 ms)
+[ RUN      ] ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused
+[       OK ] ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused (0 ms)
+[ RUN      ] ScaledConvergenceGuard.ACallerUnitGradientAColumnFactorHidIsRefused
+[       OK ] ScaledConvergenceGuard.ACallerUnitGradientAColumnFactorHidIsRefused (0 ms)
+[ RUN      ] ScaledConvergenceGuard.TheCeilingDividesByTheObjectiveFactorOnTheDefaultPath
+[       OK ] ScaledConvergenceGuard.TheCeilingDividesByTheObjectiveFactorOnTheDefaultPath (0 ms)
+[----------] 4 tests from ScaledConvergenceGuard (19 ms total)
+
+[----------] 5 tests from SqpSolverGlobalization
+[ RUN      ] SqpSolverGlobalization.FunnelIsMonotoneInFOnHs1
+[       OK ] SqpSolverGlobalization.FunnelIsMonotoneInFOnHs1 (0 ms)
+[ RUN      ] SqpSolverGlobalization.FunnelKeepsIteratesInsideItsWidth
+[       OK ] SqpSolverGlobalization.FunnelKeepsIteratesInsideItsWidth (0 ms)
+[ RUN      ] SqpSolverGlobalization.Hs5ConvergesFromATooLargeRadiusAfterShrinking
+[       OK ] SqpSolverGlobalization.Hs5ConvergesFromATooLargeRadiusAfterShrinking (0 ms)
+[ RUN      ] SqpSolverGlobalization.Hs7AtTheDefaultRadiusNowConvergesByGrowingIt
+[       OK ] SqpSolverGlobalization.Hs7AtTheDefaultRadiusNowConvergesByGrowingIt (0 ms)
+[ RUN      ] SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+[       OK ] SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier (0 ms)
+[----------] 5 tests from SqpSolverGlobalization (2 ms total)
+
+[----------] 2 tests from SqpSolverW2Fixtures
+[ RUN      ] SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho
+[       OK ] SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho (2 ms)
+[ RUN      ] SqpSolverW2Fixtures.TheEscapeHelperInvokesTheTierExactlyOncePerCall
+[       OK ] SqpSolverW2Fixtures.TheEscapeHelperInvokesTheTierExactlyOncePerCall (0 ms)
+[----------] 2 tests from SqpSolverW2Fixtures (2 ms total)
+
+[----------] 33 tests from SqpSolverCertifiedFallback
+[ RUN      ] SqpSolverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+[       OK ] SqpSolverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+[       OK ] SqpSolverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+[       OK ] SqpSolverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+[       OK ] SqpSolverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+[       OK ] SqpSolverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+[       OK ] SqpSolverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+[       OK ] SqpSolverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+[       OK ] SqpSolverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+[       OK ] SqpSolverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+[       OK ] SqpSolverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations (3 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+[       OK ] SqpSolverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+[       OK ] SqpSolverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow (7 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+[       OK ] SqpSolverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs (17 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+[       OK ] SqpSolverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+[       OK ] SqpSolverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes (2 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+[       OK ] SqpSolverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce (2 ms)
+[ RUN      ] SqpSolverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+[       OK ] SqpSolverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+[       OK ] SqpSolverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+[       OK ] SqpSolverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+[       OK ] SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+[       OK ] SqpSolverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+[       OK ] SqpSolverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO (11 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+[       OK ] SqpSolverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor (16 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+[       OK ] SqpSolverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+[       OK ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (66 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm
+[       OK ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm (15 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+[       OK ] SqpSolverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+[       OK ] SqpSolverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[       OK ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (6 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm
+[       OK ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+[       OK ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (3 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm
+[       OK ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis
+[       OK ] SqpSolverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis (0 ms)
+[----------] 33 tests from SqpSolverCertifiedFallback (172 ms total)
+
+[----------] Global test environment tear-down
+[==========] 88 tests from 9 test suites ran. (433 ms total)
+[  PASSED  ] 87 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+
+ 1 FAILED TEST
