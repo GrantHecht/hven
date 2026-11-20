@@ -149,3 +149,37 @@ is single-process).
 `out/` (per-cell JSON, aggregate CSVs, the routes census, the callgrind extracts), `RESULTS-PF-3.md` (attribution tables suite /
 per lane / per set, the ranked behaviour-neutral opportunity list with instruction share, dominating cells, fix idea and neutrality
 class, the escape disposition, open items), `SOLO-LEG.md` (pending wall leg, exact command).
+
+## Addendum 1 (committed before the small-dense leg; amends sections 2, 3 and 4; nothing was measured differently on the 90 cells)
+
+**What happened on the 90-cell leg, and the amendments it forced** (the first four legs are retained, not discarded):
+
+- Leg 1 ran with `perf record` per-CPU buffers: five trunc30 cells and every `full` cell lost their pass B (the sample buffers do not
+  fit 6 concurrent recorders; zero samples), while pass A (the instruction totals) was intact. Kept as `out/leg1-passB-failed/`.
+  Amendments: `--per-thread -m 4M`; a pass-B failure is now an error row, not a silent zero.
+- Leg 2 (`out/run1-cells`) and legs 4-5 (`out/run2-cells`, `out/run3-cells`) lost samples to the ring buffer at sample periods below
+  ~250 000 instructions (est/total 0.06-0.99). Amendment: `P = max(500 000, total / 12 000)`. The final 90-cell leg is `out/cells`.
+  The pass-A instruction totals of all four runs are compared in `out/determinism.txt` (the cross-run check of "instructions are
+  scheduling-invariant", with every status/iteration/factorization counter equal across runs).
+- Exit code 3 of `hven_bench_cell` is the harness's `--assert-reference` verdict (the three known REFERENCE FAILURE cells hs025 on both
+  lanes and hs033 hven-sqp, identical to the pin-48e1 run); it does not invalidate the sample and is accepted.
+- **Sample-count criterion (amends section 3):** `est_over_total` within 1 % is required of cells with at least 200 samples; for the
+  tiny HS cells (13-17 samples each at the 500 000 floor) it is bounded by one period over the total, and their shares are reported
+  only as aggregates over the 22 cells of a lane.
+- **Truncated unwinds (amends section 4).** DWARF unwinding stops inside MKL assembly BLAS kernels (no CFI): 7.3 % of all instructions
+  are samples with a chain of at most 3 frames whose leaf is a BLAS-2/3 kernel (`dger`, `dgemm`, `dgemv`, `dsyr`). They are
+  redistributed, per cell, over components in proportion to the same cell's fully-unwound samples whose chain holds a frame of the
+  same BLAS family (`components.blas_family`); a family with no such evidence stays `unattributed.unresolved`. Raw figures are kept in
+  every JSON (`components_raw` is recomputable) and the aggregate reports raw and unresolved shares.
+- Two further per-sample records were added before the final leg and change no attribution: the first hven frame above the
+  linear/KKT glue for each backend sample (`backend_callers`), and the non-hven leaf by nearest hven frame (`leaf_by_hven_caller`).
+- The routes-census attribution run is repeated with the amended tool (`out/routes-attrib.json`).
+
+**The small-dense set joins the profile.** The owner's population "CUTEst TRAIN" includes `cutest-small-dense v1` TRAIN (97
+problems; its roster is in the binary and its decoded instances are those of the hven-bench-sd checkout, linked into
+`.scratch/h3/decoded` next to the 35 of `cutest-nlp-35`): `cells-sd.csv`, 97 x 2 lanes = 194 `full` cells, all `optimal` or a
+terminating status inside 21 s at the frozen baseline (`runs/2026-11-m8-corun-cutest/sd97/serial-A`), same instrument, same
+co-run protocol (width 6, cpus 0-5, one flock acquisition, longest-first order from that baseline). The dense arm lives in this
+set, so the "fixed overhead on small problems" and the factorization pathologies (SPANHYD, CRESC100, MSS1 are all small-dense TRAIN
+cells) are read from it. HOLDOUT problems of the set (42) are not named anywhere. Pass A and pass B each run under a `timeout`
+(600 s and 900 s); a cell that trips it is an error row, to be re-run as `trunc30`, never a silent zero.

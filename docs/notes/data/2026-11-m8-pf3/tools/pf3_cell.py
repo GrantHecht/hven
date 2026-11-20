@@ -12,7 +12,7 @@ mode trunc30: DEADLINE-CLASS cell (dnf at the 60 s wall in the frozen baseline).
               total is deadline-dependent (CLAUDE.md section 7) and is never asserted or summed into an asserted figure.
 
 Pass A  perf stat -e instructions:u            -> exact instruction total (deterministic at MKL_NUM_THREADS=1)
-Pass B  perf record -e instructions:u -c P      -> P = max(2000, total // 12000); dwarf callchains, user only
+Pass B  perf record -e instructions:u -c P      -> P = max(500000, total // 12000); dwarf callchains, user only
 Both passes run the SAME argv the serial runner builds, pinned with taskset to <cpu>.
 """
 import collections, hashlib, json, os, re, subprocess, sys, time
@@ -62,7 +62,7 @@ def main():
         fields, total, period = {}, None, 20_000_000
     else:
         t0 = time.monotonic()
-        a = subprocess.run(base + ["perf", "stat", "-x,", "-e", "instructions:u", "--"] + cell_argv(lane, problem, K, dump),
+        a = subprocess.run(base + ["timeout", "600", "perf", "stat", "-x,", "-e", "instructions:u", "--"] + cell_argv(lane, problem, K, dump),
                            capture_output=True, text=True, env=env)
         wallA = time.monotonic() - t0
         fields = parse_cell(a.stdout)
@@ -74,19 +74,26 @@ def main():
         if total is None or not fields:
             json.dump({"cell": tag, "error": "passA", "rc": a.returncode, "stderr": a.stderr[-2000:]}, open(f"{outdir}/{tag}.json", "w"))
             return 1
-        period = max(2000, total // 12000)
+        period = max(500_000, total // 12000)
     data = os.path.join(scratch, "perf.data")
     evsel = ["-e", "cpu-clock", "-F", "499"] if solo else ["-e", "instructions:u", "-c", str(period)]
-    rec = ["perf", "record", "-q"] + evsel + ["--user-callchains",
+    rec = ["perf", "record", "-q", "--per-thread", "-m", "4M"] + evsel + ["--user-callchains",
            "--call-graph", "dwarf,16384", "-o", data, "--"] + cell_argv(lane, problem, K, dump)
     if trunc:
         rec = ["timeout", "-s", "INT", "30"] + rec
     if solo:
         rec = ["timeout", "-s", "INT", "300"] + rec
+    if not trunc and not solo:
+        rec = ["timeout", "-s", "INT", "900"] + rec
     b = subprocess.run(base + rec, capture_output=True, text=True, env=env)
     fieldsB = parse_cell(b.stdout)
+    if (b.returncode not in (0, 3, 124, 130)) or not os.path.exists(data):
+        json.dump({"cell": tag, "error": "passB", "rc": b.returncode, "stderr": b.stderr[-2000:]}, open(f"{outdir}/{tag}.json", "w"))
+        return 1
     sp = subprocess.Popen(["perf", "script", "-i", data, "-F", "ip,sym,dso", "--no-inline"],
                           stdout=subprocess.PIPE, text=True, errors="replace")
+    bcall = collections.defaultdict(collections.Counter); lparent = collections.Counter()
+    famcomp = collections.defaultdict(collections.Counter); trunc_fam = collections.Counter()
     comp = collections.Counter(); leafs = collections.Counter(); leaf_comp = {}
     hfr = collections.Counter(); ov = collections.Counter(); n = 0; depth_sum = 0
     frame_re = re.compile(r"^\s*[0-9a-f]+ (.*) \((.*)\)$")
@@ -107,7 +114,26 @@ def main():
         n += 1; depth_sum += len(fr)
         c = C.classify(fr)
         comp[c] += 1
+        if c.startswith("unattributed"):
+            fam = C.blas_family(fr[0][0])
+            if fam:
+                trunc_fam[fam] += 1
+        else:
+            fams = {C.blas_family(s) for s, d in fr} - {None}
+            for fam in fams:
+                famcomp[fam][c] += 1
         lsym = fr[0][0][:120]
+        # who drives the backend: the first hven:: frame above the linear/KKT glue (backend components only)
+        if c.startswith("la."):
+            i0 = next((i for i, (s, d) in enumerate(fr) if re.search(r"FactorSession::|DenseSession::|DenseSymmetricFactor::", s)), None)
+            if i0 is not None:
+                for s, d in fr[i0:]:
+                    if s.startswith("hven::") and not re.search(r"hven::linear::|solve_vec|KktFactor|factorize_checked|DenseShiftSite|hven::detail::solve_", s):
+                        bcall[c][re.sub(r"\(.*", "", s)[:100]] += 1
+                        break
+        if not fr[0][0].startswith("hven::"):
+            h = next((re.sub(r"\(.*", "", s)[:90] for s, d in fr if s.startswith("hven::")), "-")
+            lparent[(re.sub(r"(_lp64)?_(def|avx2|avx512\w*)_", "_", fr[0][0])[:70], h)] += 1
         leafs[(lsym, fr[0][1])] += 1
         leaf_comp[(lsym, fr[0][1])] = c
         if C.ALLOC_RE.match(fr[0][0]):
@@ -132,6 +158,9 @@ def main():
             buf.append(line)
     flush()
     sp.wait()
+    if n == 0:
+        json.dump({"cell": tag, "error": "zero samples", "rc": b.returncode, "stderr": b.stderr[-2000:]}, open(f"{outdir}/{tag}.json", "w"))
+        return 1
     if solo:
         period = 1.0 / 499.0   # values are seconds
     est = n * period
@@ -150,6 +179,10 @@ def main():
         "components": {k: v * period for k, v in comp.items()},
         "overlays": {k: v * period for k, v in ov.items() if not k.startswith("unattr_leaf:")},
         "unattributed_leafs": {k[len("unattr_leaf:"):]: v * period for k, v in ov.items() if k.startswith("unattr_leaf:")},
+        "blas_family_attributed": {f: {k: v * period for k, v in cc.items()} for f, cc in famcomp.items()},
+        "blas_family_truncated": {f: v * period for f, v in trunc_fam.items()},
+        "backend_callers": {k: {a: v * period for a, v in cc.most_common(30)} for k, cc in bcall.items()},
+        "leaf_by_hven_caller": [[a, b, v * period] for (a, b), v in lparent.most_common(80)],
         "top_leaf": [[s, d, leaf_comp[(s, d)], v * period] for (s, d), v in leafs.most_common(60)],
         "hven_frames_inclusive": [[k, v * period] for k, v in hfr.most_common(80)],
         "components_sha256": sha256_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), "components.py")),

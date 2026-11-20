@@ -99,3 +99,14 @@ def classify(frames):
             return comp
     # chains cut short inside MKL assembly kernels (no CFI): the owner cannot be recovered.
     return "unattributed.truncated_unwind" if len(frames) <= 3 else "unattributed.other"
+
+
+BLAS_FAMILY_RE = re.compile(r"mkl_blas\w*?_?x?d(ger|gemv|gemm|syrk|syr|trsm|trsv|trmv|scal|swap|axpy|copy|dot|symv|symm)")
+
+
+def blas_family(sym):
+    """BLAS routine family of an MKL BLAS frame (None if not one).  Used ONLY to redistribute chains truncated inside MKL
+    assembly kernels (see DECLARATION-PF-3.md section 4): a truncated leaf in family F is split in proportion to the component
+    split of the same cell's fully-unwound samples whose chain contains a family-F MKL BLAS frame."""
+    m = BLAS_FAMILY_RE.search(sym)
+    return m.group(1) if m else None
