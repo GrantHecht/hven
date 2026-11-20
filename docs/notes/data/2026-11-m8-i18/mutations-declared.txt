@@ -1,0 +1,9 @@
+A1 must-kill
+A2 must-kill
+A3 must-kill
+A4 must-kill
+A5 must-kill
+A6 recorded  # no seam fixture takes a triggered bordered step that falls but contracts less than tenfold; the eliminated twins A4/A5 are killed
+A7 must-kill
+A8 must-kill
+L1 must-kill

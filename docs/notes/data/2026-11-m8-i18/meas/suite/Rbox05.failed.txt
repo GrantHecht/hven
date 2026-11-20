@@ -1,0 +1,6 @@
+[  FAILED  ] QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible
+[  FAILED  ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+[  FAILED  ] QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy
+[  FAILED  ] QpNc4ConvexCertificate.BritgasRestorationLpQp4
+[  FAILED  ] QpW1AscentGuard.BritgasElasticQp1Border
+[  FAILED  ] QpW1AscentGuard.BritgasElasticQp1Refactorize

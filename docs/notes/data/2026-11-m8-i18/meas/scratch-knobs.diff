@@ -1,0 +1,371 @@
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index 6a738e70a..9b4268225 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -64,6 +64,8 @@
+ // KNOWN exactly and it makes the two paths agree on pinned components by
+ // construction rather than by the refinement's good behavior.
+ 
++#include <cstdio>
++#include <cstdlib>
+ #include <algorithm>
+ #include <cmath>
+ #include <limits>
+@@ -292,6 +294,9 @@ struct BorderedResolution {
+     const Vec *x_k = nullptr;                             // the proximal centre (the iterate)
+     const std::vector<BoundState> *bound_state = nullptr; // which variables are free
+     double step_tol = 0.0;                                // the walk's zero-motion scale
++    const Vec *lower = nullptr; // I18 scratch
++    const Vec *upper = nullptr;
++    bool asked = true; // I18 scratch: the production gate's answer
+ };
+ 
+ struct BorderedRefineOutcome {
+@@ -340,12 +345,47 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
+         return m;
+     };
+     double last_correction = resolution != nullptr ? free_inf(Vec(best - sol)) : 0.0;
++    [[maybe_unused]] bool i18_trig = false;
++#ifdef HVEN_TESTING
++    if (resolution != nullptr && resolution->lower != nullptr) {
++        const int tg = i18_knobs().trig;
++        bool tbox = false, ttr = false;
++        for (Index i = 0; i < var_count; ++i) {
++            if ((*resolution->bound_state)[static_cast<std::size_t>(i)] != BoundState::kFree) {
++                continue;
++            }
++            const double c = std::abs(best(i) - sol(i));
++            tbox = tbox || c > (*resolution->upper)(i) - (*resolution->lower)(i);
++            ttr = ttr || c > opts.trust_region_radius;
++        }
++        if (i18_knobs().stop != 0) {
++            i18_trig = tg == 3 || (tg == 1 && tbox) || (tg == 2 && ttr);
++        }
++        const int m = i18_knobs().n1p;
++        i18_site_flag = m == 2 || (m == 3 && tbox) || (m == 4 && ttr);
++    }
++#endif
+     const auto step_resolved = [&]() {
+         if (resolution == nullptr) {
+             return true;
+         }
+         const double p = free_inf(Vec(best.head(var_count) - *resolution->x_k));
+         const double tol = resolution->step_tol;
++#ifdef HVEN_TESTING
++        if (i18_knobs().stop != 0) {
++            if (i18_trig) {
++                const bool done = i18_knobs().stop == 1
++                                      ? last_correction <= tol
++                                      : last_correction <= i18_knobs().kappa * std::max(p, tol);
++                if (!done) {
++                    return false;
++                }
++            }
++        }
++        if (!resolution->asked) {
++            return true;
++        }
++#endif
+         return p - last_correction > tol || p + last_correction <= tol;
+     };
+ 
+@@ -355,9 +395,17 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
+ 
+     Vec best_residual = residual_of(best);
+     double best_norm = detail::nan_sticky_inf_norm(best_residual);
+-    for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
++    const Index i18_max = detail::kMaxBorderRefineSteps;
++    for (Index step = 1; step < i18_max; ++step) {
+         const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
+         const bool on_target = !(best_norm > std::max(footprint, rel_floor));
++#ifdef HVEN_TESTING
++        if (i18_knobs().trace) {
++            std::fprintf(stderr, "I18   BREFINE step=%ld res=%.3e footprint=%.3e rel_floor=%.3e on_target=%d certify=%d resolved=%d last_corr=%.3e pF=%.6e tol=%.1e\n",
++                (long)step, best_norm, footprint, rel_floor, (int)on_target, (int)(resolution != nullptr), (int)step_resolved(), last_correction,
++                resolution != nullptr ? free_inf(Vec(best.head(var_count) - *resolution->x_k)) : -1.0, resolution != nullptr ? resolution->step_tol : -1.0);
++        }
++#endif
+         if (on_target && step_resolved()) {
+             break; // the first step did its job (or NaN, which no step can mend)
+         }
+@@ -373,6 +421,13 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
+             !(candidate_norm <= 0.5 * best_norm && correction_free <= 0.5 * last_correction)) {
+             break; // resolving past the footprint: contracting steps only
+         }
++#ifdef HVEN_TESTING
++        if (i18_trig && i18_knobs().contract < 1.0 &&
++            !(candidate_norm <= i18_knobs().contract * best_norm &&
++              correction_free <= i18_knobs().contract * last_correction)) {
++            break;
++        }
++#endif
+         best = candidate;
+         best_residual = std::move(candidate_residual);
+         best_norm = candidate_norm;
+@@ -451,7 +506,13 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
+         const Vec delta = schur.solve(res);
+         const double cap =
+             detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(sol));
+-        if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
++#ifdef HVEN_TESTING
++        const double i18_meas = (i18_knobs().n1p == 1 || (i18_knobs().n1p >= 2 && i18_site_flag)) ? detail::nan_sticky_inf_norm(Vec(delta.head(var_count)))
++                                                : detail::nan_sticky_inf_norm(delta);
++#else
++        const double i18_meas = detail::nan_sticky_inf_norm(delta);
++#endif
++        if (!(i18_meas <= cap)) {
+             break; // not a polish: see eqp_solve.h's kEqpPolishStepCap
+         }
+         const Vec candidate = sol + delta;
+@@ -728,10 +789,49 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+     resolution.bound_state = &bound_state;
+     resolution.step_tol = opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
+     BorderedRefineOutcome outcome;
+-    const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
++    bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
++    bool resolve = certify;
++#ifdef HVEN_TESTING
++    if (i18_knobs().n1g && opts.independent_working_set && !certify) {
++        // rows met within row_tolerance, the footprint read off this solve's multipliers
++        const double xmag = detail::nan_sticky_inf_norm(x_k);
++        bool met = true;
++        for (Index j = 0; j < me && met; ++j) {
++            double row_norm1 = 0.0;
++            double ax = 0.0;
++            for (SpMatRM::InnerIterator it(qp.Ae, j); it; ++it) {
++                row_norm1 += std::abs(it.value());
++                ax += it.value() * x_k(it.col());
++            }
++            const double row_scale = std::max({1.0, std::abs(qp.be(j)), row_norm1 * xmag});
++            const double tolj = std::max(opts.feasibility_tol * row_scale,
++                                         std::min(opts.dual_regularization * std::abs(sol(n + j)), 1e-6 * row_scale));
++            met = std::abs(ax - qp.be(j)) <= tolj;
++        }
++        certify = met;
++        resolve = met;
++    }
++    resolution.asked = certify;
++    i18_site_flag = i18_knobs().n1p == 2 && opts.independent_working_set;
++    resolution.lower = &qp.lower;
++    resolution.upper = &qp.upper;
++    if ((i18_knobs().stop != 0 || i18_knobs().n1p >= 2) && opts.independent_working_set) {
++        resolve = true;
++    }
++    if (i18_knobs().trace) {
++        double worst = 0.0;
++        for (Index j = 0; j < qp.me(); ++j) worst = std::max(worst, std::abs(qp.Ae.row(j).dot(x_k) - qp.be(j)));
++        std::fprintf(stderr, "I18 BORDER-EQP certify=%d eq_res=%.6e feas=%.1e\n", (int)certify, worst, opts.feasibility_tol);
++    }
++#endif
+     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
+-                                         opts, &refine_steps, certify ? &resolution : nullptr,
++                                         opts, &refine_steps, resolve ? &resolution : nullptr,
+                                          certify ? &outcome : nullptr, k0_shift_scale != nullptr);
++#ifdef HVEN_TESTING
++    if (i18_knobs().trace) {
++        std::fprintf(stderr, "I18 BORDER-EQP-END refine_steps=%ld target_met=%d pinf=%.6e\n", (long)refine_steps, (int)outcome.target_met, (sol.head(n) - x_k).template lpNorm<Eigen::Infinity>());
++    }
++#endif
+     // THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h), the bordered twin of
+     // solve_eqp's: the answer refined against the bordered K (the residual loop's,
+     // or at dual_mu = 0 the refinement's), judged on the bordered system in K0's
+@@ -752,6 +852,9 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
+     const Index polish_kept =
+         polish_bordered_unregularized(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, x_k,
+                                       opts, detail::kEqpPolishSteps, sol);
++#ifdef HVEN_TESTING
++    i18_site_flag = false;
++#endif
+ 
+     EqpResult res;
+     res.polish_steps = polish_kept;
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index e219fdfca..5ade79fd5 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -158,6 +158,9 @@
+ // counterpart here, which is why that path's loop is unconditional and this
+ // one has none.
+ 
++#include <cstdio>
++#include <cstdlib>
++#include <string>
+ #include <algorithm>
+ #include <cmath>
+ #include <stdexcept>
+@@ -176,6 +179,49 @@
+ 
+ namespace hven::detail {
+ 
++#ifdef HVEN_TESTING
++// I18 SCRATCH knobs (measurement only).
++struct I18Knobs {
++    int n1p = 0;        // polish cap reads the x part only: 1 all, 2 EQP site, 3 site+box trigger, 4 site+tr trigger
++    bool n1g = false;   // border certify gate absorbs mu*|lambda|
++    int trig = 0;       // 0 none, 1 box width, 2 trust radius, 3 always
++    int stop = 0;       // 0 off, 1 correction <= step_tol, 2 correction <= kappa*max(p, step_tol)
++    double kappa = 0.1;
++    double contract = 1.0; // triggered extra steps kept only if residual and correction contract by this
++    bool trace = false;
++};
++inline const I18Knobs &i18_knobs() {
++    static const I18Knobs k = [] {
++        I18Knobs r;
++        if (const char *e = std::getenv("I18_N1P")) {
++            const std::string v = e;
++            r.n1p = v == "site" ? 2 : v == "box" ? 3 : v == "tr" ? 4 : 1;
++        }
++        r.n1g = std::getenv("I18_N1G") != nullptr;
++        if (const char *e = std::getenv("I18_TRIG")) {
++            const std::string v = e;
++            r.trig = v == "box" ? 1 : v == "tr" ? 2 : v == "all" ? 3 : 0;
++        }
++        if (const char *e = std::getenv("I18_STOP")) {
++            const std::string v = e;
++            if (v == "tol") {
++                r.stop = 1;
++            } else if (v.rfind("rel", 0) == 0) {
++                r.stop = 2;
++                r.kappa = std::atof(v.c_str() + 3);
++            }
++        }
++        if (const char *e = std::getenv("I18_CONTRACT")) {
++            r.contract = std::atof(e);
++        }
++        r.trace = std::getenv("I18_TRACE") != nullptr;
++        return r;
++    }();
++    return k;
++}
++inline thread_local bool i18_site_flag = false; // the EQP-site polish may read the x part only
++#endif
++
+ // THE SHARED REFINEMENT BUDGET AND FLOOR. Both EQP paths refine under one
+ // rule, so both read one pair of constants; they live in the header
+ // bordered_eqp.h includes (the reverse would be circular).
+@@ -374,6 +420,30 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
+         const Vec delta = detail::solve_vec(kkt, res);
+         const double cap =
+             detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(y));
++#ifdef HVEN_TESTING
++        if (i18_knobs().n1p == 1 || (i18_knobs().n1p >= 2 && i18_site_flag)) {
++            const Vec cand_ = y + delta;
++            if (!(detail::nan_sticky_inf_norm(Vec(delta.head(n_free))) <= cap)) {
++                break;
++            }
++            Vec cres_ = residual_of(cand_);
++            const double cres_inf_ = detail::nan_sticky_inf_norm(cres_);
++            if (!(cres_inf_ < res_inf)) {
++                break;
++            }
++            y = cand_;
++            res = std::move(cres_);
++            res_inf = cres_inf_;
++            ++kept;
++            continue;
++        }
++        if (std::getenv("I18_TRACE")) {
++            const Vec cand_ = y + delta;
++            std::fprintf(stderr, "I18   POLISH step=%ld res=%.3e delta_inf=%.3e delta_x=%.3e cap=%.3e cand_res=%.3e\n", (long)step, res_inf,
++                detail::nan_sticky_inf_norm(delta), n_free > 0 ? delta.head(n_free).template lpNorm<Eigen::Infinity>() : 0.0, cap,
++                detail::nan_sticky_inf_norm(residual_of(cand_)));
++        }
++#endif
+         if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
+             break; // not a polish: see kEqpPolishStepCap
+         }
+@@ -581,7 +651,54 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+         }
+ 
+         if (!kkt.dense_shifted) {
++#ifdef HVEN_TESTING
++            const Vec y_pre = y;
++#endif
+             y = y + detail::solve_vec(kkt, residual_of(y));
++#ifdef HVEN_TESTING
++            {
++                const auto free_p = [&](const Vec &yy) {
++                    double m = 0.0;
++                    for (Index k = 0; k < n_free; ++k)
++                        m = std::max(m, std::abs(yy(k) - x_k(asm_.free_of_full[static_cast<std::size_t>(k)])));
++                    return m;
++                };
++                const auto free_c = [&](const Vec &c) { return n_free > 0 ? c.head(n_free).template lpNorm<Eigen::Infinity>() : 0.0; };
++                double last_corr = free_c(Vec(y - y_pre));
++                const double tol = opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
++                Vec res = residual_of(y);
++                double res_inf = detail::nan_sticky_inf_norm(res);
++                const bool tr = i18_knobs().trace;
++                if (tr) std::fprintf(stderr, "I18 ELIM-EQP step=1 res=%.3e last_corr=%.3e pF=%.6e footprint=%.3e\n", res_inf, last_corr, free_p(y), detail::nan_sticky_inf_norm(reg.cwiseProduct(y)));
++                const I18Knobs &kn = i18_knobs();
++                bool trig = false, tbox = false, ttr = false;
++                for (Index kk = 0; kk < n_free; ++kk) {
++                    const Index i = asm_.free_of_full[static_cast<std::size_t>(kk)];
++                    const double c = std::abs(y(kk) - y_pre(kk));
++                    tbox = tbox || c > qp.upper(i) - qp.lower(i);
++                    ttr = ttr || c > opts.trust_region_radius;
++                }
++                if (kn.stop != 0 && opts.independent_working_set) {
++                    trig = kn.trig == 3 || (kn.trig == 1 && tbox) || (kn.trig == 2 && ttr);
++                }
++                i18_site_flag = opts.independent_working_set &&
++                                (kn.n1p == 2 || (kn.n1p == 3 && tbox) || (kn.n1p == 4 && ttr));
++                if (trig) {
++                    for (Index st = 1; st < kMaxBorderRefineSteps; ++st) {
++                        const bool done = kn.stop == 1 ? last_corr <= tol : last_corr <= kn.kappa * std::max(free_p(y), tol);
++                        if (done) break;
++                        const Vec corr = detail::solve_vec(kkt, res);
++                        const Vec cand = y + corr;
++                        Vec cres = residual_of(cand);
++                        const double cn = detail::nan_sticky_inf_norm(cres);
++                        if (!(cn < res_inf)) break;
++                        if (kn.contract < 1.0 && !(cn <= kn.contract * res_inf && free_c(corr) <= kn.contract * last_corr)) break;
++                        y = cand; res = std::move(cres); res_inf = cn; last_corr = free_c(corr);
++                        if (tr) std::fprintf(stderr, "I18 ELIM-EQP step=%ld res=%.3e last_corr=%.3e pF=%.6e\n", (long)(st + 1), res_inf, last_corr, free_p(y));
++                    }
++                }
++            }
++#endif
+         } else {
+             // A shifted factor answers a different system: the step is kept only
+             // if it reduces the proximal residual (a NaN keeps nothing).
+@@ -619,6 +736,9 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+     }
+     const Index polish_kept =
+         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
++#ifdef HVEN_TESTING
++    i18_site_flag = false;
++#endif
+ 
+     EqpResult out = scatter(y);
+     out.polish_steps = polish_kept;
+diff --git a/tests/qp/CMakeLists.txt b/tests/qp/CMakeLists.txt
+index 1329559e4..1d2b4d17a 100644
+--- a/tests/qp/CMakeLists.txt
++++ b/tests/qp/CMakeLists.txt
+@@ -66,6 +66,7 @@ hven_add_test_executable(hven_qp_tests
+ hven_add_seam_executable(hven_qp_seam_tests
+     WHOLE_LIBRARY
+     SOURCES
++        seam/i18_probe.cpp
+         seam/test_dense_solve_wound_seams.cpp
+         seam/test_ipqp_seams.cpp
+         seam/test_qp_anti_cycling_arm.cpp
+diff --git a/tests/qp/support/qp_dump.h b/tests/qp/support/qp_dump.h
+index 7dc1c0887..85b980441 100644
+--- a/tests/qp/support/qp_dump.h
++++ b/tests/qp/support/qp_dump.h
+@@ -119,6 +119,13 @@ inline QpDump load_qp_dump(const std::string &path) {
+         }
+         if (key == "result") {
+             d.result = line;
++            // hkc = QpOptions::hessian_known_convex as the solve ran (absent: false).
++            std::string tok;
++            while (is >> tok) {
++                if (tok.rfind("hkc=", 0) == 0) {
++                    d.opts.hessian_known_convex = tok == "hkc=1";
++                }
++            }
+             continue;
+         }
+         std::vector<long> nums;

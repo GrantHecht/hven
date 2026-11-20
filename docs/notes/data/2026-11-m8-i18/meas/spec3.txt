@@ -1,0 +1,4 @@
+base2 -
+N1Psite I18_N1P=site
+N1Pbox I18_N1P=box
+N1Ptr I18_N1P=tr

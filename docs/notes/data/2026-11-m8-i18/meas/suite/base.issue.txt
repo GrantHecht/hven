@@ -1,0 +1,4 @@
+ISSUE border 1e-10 RES status=3 minors=57 facts=11 f=-1.764573160421e-06 eq=7.683e-09 ineq=0.000e+00 box=0.000e+00 stat_abs=1.000e+02 sign=0.000e+00 compl=8.242e-09
+ISSUE border 1e-9 RES status=3 minors=48 facts=20 f=-1.764565266652e-06 eq=7.681e-09 ineq=0.000e+00 box=0.000e+00 stat_abs=1.000e+02 sign=0.000e+00 compl=8.242e-09
+ISSUE refac 1e-10 RES status=3 minors=53 facts=53 f=-1.239007310702e-06 eq=6.549e-09 ineq=0.000e+00 box=0.000e+00 stat_abs=1.000e+02 sign=0.000e+00 compl=8.242e-09
+ISSUE refac 1e-9 RES status=3 minors=47 facts=47 f=-1.764566558048e-06 eq=7.681e-09 ineq=0.000e+00 box=0.000e+00 stat_abs=1.000e+02 sign=0.000e+00 compl=8.242e-09

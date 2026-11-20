@@ -1,0 +1,6 @@
+99% tests passed, 5 tests failed out of 3958
+	1770 - WarmStartBattery.Corpus (Failed)
+	3433 - SqpSolverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm (Failed)
+	3458 - SqpSolverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm (Failed)
+	3460 - SqpSolverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatusDenseArm (Failed)
+	3627 - SqpSolverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum (Failed)
