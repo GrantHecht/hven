@@ -50,7 +50,7 @@ if(NOT WIN32)
         HVEN_SQP_IPM_BASELINE_CSV="${_hven_bench_baselines}/2026-09-02-t10b-ipm/ipm_baseline.csv"
         HVEN_SQP_INTERIOR_BASELINE_CSV="${_hven_bench_baselines}/2026-11-m8-ap5-gs-ipm-leg/interior_baseline.csv")
 else()
-    hven_test_sources_absent("not yet built on Windows (RS-6b)" ${_hven_bench_unix_sources})
+    hven_test_sources_absent("Windows: the corpus/crossover runner binaries are POSIX fork/exec, not built there" ${_hven_bench_unix_sources})
 endif()
 
 # The SNOPT bridge's referee gate: the source and the hven_sqp_snopt link only when the root-level

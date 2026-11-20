@@ -39,8 +39,11 @@ in that directory's `hven_add_seam_executable` (`WHOLE_LIBRARY` takes the librar
 `LIBRARY_SOURCES`). The configure refuses a seam source outside `seam/`, an ordinary source inside
 it, a seam that links `hven::hven`, and an ordinary executable that defines `HVEN_TESTING`.
 
-**Which list to edit.** Ordinary test: the `_hven_<dir>_sources` list (or its
-`hven_sources_not_on_windows(...)` block while the suite is not built on Windows yet, RS-6b).
+**Which list to edit.** Ordinary test: the `_hven_<dir>_sources` list. Every
+ordinary suite builds and runs on Windows; the one exclusion is `tests/bench`'s three runner-driving
+sources (`test_bench_dump`, `test_corpus_cells`, `test_crossover_legs`), recorded absent there with
+the reason: the bench binaries they drive (`hven_sqp_corpus`, `hven_sqp_crossover`) are POSIX
+fork/exec/waitpid/prctl programs that are not built on Windows (RS-6b).
 Seam test: the `hven_add_seam_executable` call. Header self-containment needs no list: every header
 under `include/hven` gets a generated TU (`HeaderSelfContained`). Layering (`Layering.*`,
 `tests/core/test_layering.cpp`): a new directory is placed in `classify()`; an upward include is a

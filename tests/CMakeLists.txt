@@ -274,17 +274,6 @@ function(hven_test_sources_absent reason)
     _hven_claim_test_sources("(absent: ${reason})" ${ARGN})
 endfunction()
 
-# Appends the sources to the list variable <out> except on Windows, where each is recorded absent.
-# The one reason, true of every such source: the suites have not yet been built or derived on
-# Windows (RS-6b lifts this gate).
-function(hven_sources_not_on_windows out)
-    if(NOT WIN32)
-        set(${out} ${${out}} ${ARGN} PARENT_SCOPE)
-    else()
-        hven_test_sources_absent("not yet built on Windows (RS-6b)" ${ARGN})
-    endif()
-endfunction()
-
 # Seam sources live in tests/<dir>/seam/ and nowhere else; ordinary executables never take one.
 # <want_seam> is TRUE for a seam executable's sources, FALSE for an ordinary one's. Sources outside
 # tests/ (a library or bench source compiled in) are not test sources and are not checked.
@@ -625,8 +614,8 @@ add_subdirectory(golden_rig)
 ################################################################################
 # The per-component executables, one directory each (see the block comment above). The
 # order is the dependency order the old file used; sqp and bench are added on every
-# platform because their seam sources and test_model_surface_kkt are built everywhere,
-# while their former-SQP sources are gated off Windows inside their own CMakeLists.
+# platform. The one source set a platform does not build is bench's corpus-runner-driving
+# tests (POSIX fork/exec; argued in tests/bench/CMakeLists.txt).
 ################################################################################
 
 add_subdirectory(core)

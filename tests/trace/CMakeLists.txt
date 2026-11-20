@@ -15,7 +15,7 @@ set(_hven_trace_sources
     test_trace_v1_contract.cpp
     test_trace_v1_fixtures.cpp
 )
-hven_sources_not_on_windows(_hven_trace_sources
+list(APPEND _hven_trace_sources
     test_json_lines_trace_sink.cpp
 )
 

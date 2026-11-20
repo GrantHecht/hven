@@ -20,7 +20,7 @@ if(NOT APPLE)
 else()
     hven_test_sources_absent("Apple (MKL-only suite)" test_symmetric_factor.cpp)
 endif()
-hven_sources_not_on_windows(_hven_linear_sources
+list(APPEND _hven_linear_sources
     test_accelerate_probes.cpp
     test_backend_scaffold.cpp
     test_sparse_backend_link.cpp

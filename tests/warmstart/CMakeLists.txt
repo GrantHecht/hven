@@ -13,7 +13,7 @@ set(_hven_warmstart_sources
     test_warm_protocol.cpp
     test_warm_start_data.cpp
 )
-hven_sources_not_on_windows(_hven_warmstart_sources
+list(APPEND _hven_warmstart_sources
     test_mesh_transfer.cpp
     test_sqp_warm_currency.cpp
     test_warm_start.cpp
