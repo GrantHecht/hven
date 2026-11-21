@@ -49,5 +49,42 @@ TEST(SqpBackendAnalysisTally, TheDenseArmPaysNoPlatformAnalysis) {
                                                           sol.counters.dense_platform_retakes);
 }
 
+// THE SOLVE TALLY (PF-2b): the twelve backend_solve* counters partition the solve's backend solves
+// by issuing component. Invariants every solve carries: a call carries at least one column, the
+// ordinary bucket is never empty on a solve that factored anything, and the polish bucket is
+// reached by any walk solve (the polish loop issues its first solve whenever an EQP was solved).
+TEST(SqpBackendSolveTally, PartitionsTheSolvesAndEveryComponentIsReachable) {
+    Index detector = 0;
+    Index polish = 0;
+    Index border = 0;
+    for (const int hs : {14, 43, 76, 79}) {
+        for (const auto algebra :
+             {QpWorkingSetAlgebra::kRefactorize, QpWorkingSetAlgebra::kSchurBorder}) {
+            SCOPED_TRACE(hs);
+            SqpOptions opts;
+            opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+            opts.common.max_iterations = 60;
+            opts.qp.working_set_algebra = algebra;
+            const HsProblem p = make_hs(hs);
+            SqpSolver driver(opts);
+            const SqpResult sol =
+                driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
+            const SqpCounters &c = sol.counters;
+            EXPECT_GT(c.backend_solves_ordinary, 0);
+            EXPECT_GE(c.backend_solve_rhs_ordinary, c.backend_solves_ordinary);
+            EXPECT_GE(c.backend_solve_rhs_detector, c.backend_solves_detector);
+            EXPECT_GE(c.backend_solve_rhs_polish, c.backend_solves_polish);
+            EXPECT_GE(c.backend_solve_rhs_border_refine, c.backend_solves_border_refine);
+            EXPECT_GE(c.backend_solve_refine_ordinary, 0);
+            detector += c.backend_solves_detector;
+            polish += c.backend_solves_polish;
+            border += c.backend_solves_border_refine;
+        }
+    }
+    EXPECT_GT(detector, 0);
+    EXPECT_GT(polish, 0);
+    EXPECT_GT(border, 0);
+}
+
 } // namespace
 } // namespace hven

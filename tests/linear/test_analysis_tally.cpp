@@ -148,4 +148,96 @@ TEST(AnalysisTally, NothingIsCountedWithoutAnOpenTally) {
     EXPECT_EQ(tally.analyses(), 0);
 }
 
+// ---------------------------------------------------------------------------
+// hven::linear::SolveTally / SolveContextScope (PF-2b): the boundary count of
+// backend solves, their right-hand-side columns, split by the open context.
+// ---------------------------------------------------------------------------
+
+using hven::linear::SolveContext;
+using hven::linear::SolveContextScope;
+using hven::linear::SolveTally;
+
+SymmetricFactor factored(DensePolicy policy) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = policy;
+    SymmetricFactor f(o);
+    const SpMatRM a = laplacian(6, false);
+    f.analyze(a);
+    f.factorize(a);
+    return f;
+}
+
+TEST(SolveTally, CountsCallsAndColumnsInTheOrdinaryContext) {
+    for (const DensePolicy policy : {DensePolicy::kNever, DensePolicy::kAlways}) {
+        SCOPED_TRACE(static_cast<int>(policy));
+        SymmetricFactor f = factored(policy);
+        SolveTally tally;
+        const hven::Vec b = hven::Vec::Ones(6);
+        hven::Vec x(6);
+        f.solve(b, x);
+        const hven::Mat B = hven::Mat::Ones(6, 3);
+        hven::Mat X(6, 3);
+        f.solve(B, X);
+        EXPECT_EQ(tally.solves(SolveContext::kOrdinary), 2);
+        EXPECT_EQ(tally.rhs_columns(SolveContext::kOrdinary), 4);
+        for (const SolveContext c :
+             {SolveContext::kDetector, SolveContext::kPolish, SolveContext::kBorderRefine}) {
+            EXPECT_EQ(tally.solves(c), 0);
+            EXPECT_EQ(tally.rhs_columns(c), 0);
+        }
+    }
+}
+
+TEST(SolveTally, ScopesLabelSolvesAndNestAndRestore) {
+    SymmetricFactor f = factored(DensePolicy::kNever);
+    SolveTally tally;
+    const hven::Vec b = hven::Vec::Ones(6);
+    hven::Vec x(6);
+    {
+        SolveContextScope detector(SolveContext::kDetector);
+        f.solve(b, x);
+        {
+            SolveContextScope polish(SolveContext::kPolish);
+            f.solve(b, x);
+            f.solve(b, x);
+        }
+        f.solve(b, x); // back in the enclosing scope
+    }
+    f.solve(b, x); // and back to ordinary
+    EXPECT_EQ(tally.solves(SolveContext::kDetector), 2);
+    EXPECT_EQ(tally.solves(SolveContext::kPolish), 2);
+    EXPECT_EQ(tally.solves(SolveContext::kBorderRefine), 0);
+    EXPECT_EQ(tally.solves(SolveContext::kOrdinary), 1);
+}
+
+TEST(SolveTally, ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts) {
+    SymmetricFactor f = factored(DensePolicy::kNever);
+    auto handle = f.share();
+    SolveTally tally;
+    const hven::Vec b = hven::Vec::Ones(6);
+    hven::Vec x(6);
+    {
+        SolveContextScope scope(SolveContext::kBorderRefine);
+        handle->solve(b, x);
+    }
+    EXPECT_EQ(tally.solves(SolveContext::kBorderRefine), 1);
+    EXPECT_EQ(tally.rhs_columns(SolveContext::kBorderRefine), 1);
+    EXPECT_EQ(tally.solves(SolveContext::kOrdinary), 0);
+}
+
+TEST(SolveTally, NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne) {
+    SymmetricFactor f = factored(DensePolicy::kNever);
+    const hven::Vec b = hven::Vec::Ones(6);
+    hven::Vec x(6);
+    f.solve(b, x); // no tally open
+    SolveTally outer;
+    f.solve(b, x);
+    {
+        SolveTally inner;
+        f.solve(b, x);
+        EXPECT_EQ(inner.solves(SolveContext::kOrdinary), 1);
+    }
+    EXPECT_EQ(outer.solves(SolveContext::kOrdinary), 2);
+}
+
 } // namespace

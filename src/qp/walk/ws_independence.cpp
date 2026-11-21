@@ -13,6 +13,7 @@
 #include <hven/detail/core/inf_norm.h>
 #include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/qp/walk/ws_independence.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::detail {
 
@@ -220,6 +221,8 @@ namespace {
 // (<= 0: refine until a step stops lowering the residual or the steps run out).
 DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                            const Vec &a, const QpOptions &opts, double target) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     const Index n = qp.n();
     const std::vector<Index> &aw = ws.active_ineq();
     DepTest t;
@@ -369,6 +372,8 @@ double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, cons
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const QpOptions &opts) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     EntryDetection d;
     // STRUCTURAL: a member row whose nonzeros all sit at pinned columns is
     // spanned by those pins. Exact, no solve.
@@ -628,6 +633,8 @@ bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const De
                              const Vec &x, const QpOptions &opts,
                              const std::function<bool(const Vec &, const Vec &)> &accept,
                              Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     if (!f.usable()) {
         return false;
     }
@@ -706,6 +713,8 @@ bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const De
 
 Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
                const QpOptions &opts, Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     if (!f.usable() || ws.num_free() == 0) {
         return Vec();
     }
@@ -750,6 +759,8 @@ Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f
 
 Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                             const QpOptions &opts, double curvature_tol, Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     const Index n = qp.n();
     if (!f.usable() || ws.num_free() == 0) {
         return Vec();
@@ -856,6 +867,8 @@ Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
                        const QpOptions &opts, int threads, double block_cap,
                        hven::linear::DensePolicy dense) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     RankRepair out;
     const Index n = qp.n();
     const Index me = qp.me();

@@ -999,6 +999,7 @@ Additive; no result moves (`docs/notes/data/2026-11-m8-pf4/`).
   `sparse_retake_refusals`): the tally over one SQP solve. `symbolic_analyses` keeps its meaning -- the border/rebuild
   path's analyses and the IPQP's -- and reads far lower on a solve that uses the elimination path, whose short-lived EQP
   factors each pay an analysis the new counter sees.
+- New counters `SqpCounters::backend_solves_*`, `backend_solve_rhs_*`, `backend_solve_refine_*` (each over `ordinary`, `detector`, `polish`, `border_refine`; M8 PF-2b): the backend solves of one SQP solve split by the component that issued them (`hven::linear::SolveTally`, `SolveContextScope`). Measurement only; twelve trace keys after `backend_symbolic_repeats`.
 - `detail::SchurComplement`'s batch (`begin_batch`/`end_batch`, the walk's `sync_borders`) lands its borders with ONE
   multi-right-hand-side K0 solve (`detail::solve_mat`) instead of one solve per border.
 

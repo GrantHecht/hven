@@ -3667,9 +3667,27 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
     // on any factor, the restoration sub-solve's included (its own tally nests
     // inside this one and both see its analyses; nothing is folded up).
     hven::linear::AnalysisTally analysis_tally;
+    hven::linear::SolveTally solve_tally; // PF-2b: the backend solves, by issuing component
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
     out.counters.backend_symbolic_analyses = analysis_tally.analyses();
     out.counters.backend_symbolic_repeats = analysis_tally.repeats();
+    {
+        using hven::linear::SolveContext;
+        const auto &t = solve_tally;
+        auto &c = out.counters;
+        c.backend_solves_ordinary = t.solves(SolveContext::kOrdinary);
+        c.backend_solves_detector = t.solves(SolveContext::kDetector);
+        c.backend_solves_polish = t.solves(SolveContext::kPolish);
+        c.backend_solves_border_refine = t.solves(SolveContext::kBorderRefine);
+        c.backend_solve_rhs_ordinary = t.rhs_columns(SolveContext::kOrdinary);
+        c.backend_solve_rhs_detector = t.rhs_columns(SolveContext::kDetector);
+        c.backend_solve_rhs_polish = t.rhs_columns(SolveContext::kPolish);
+        c.backend_solve_rhs_border_refine = t.rhs_columns(SolveContext::kBorderRefine);
+        c.backend_solve_refine_ordinary = t.refinement_steps(SolveContext::kOrdinary);
+        c.backend_solve_refine_detector = t.refinement_steps(SolveContext::kDetector);
+        c.backend_solve_refine_polish = t.refinement_steps(SolveContext::kPolish);
+        c.backend_solve_refine_border_refine = t.refinement_steps(SolveContext::kBorderRefine);
+    }
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no

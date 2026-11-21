@@ -391,6 +391,7 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
     if (max_steps <= 0 || y.size() == 0) {
         return 0;
     }
+    const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kPolish);
     Vec reg = Vec::Zero(y.size());
     reg.head(n_free).setConstant(opts.primal_regularization);
     reg.segment(n_free, n_rows).setConstant(-opts.dual_regularization);

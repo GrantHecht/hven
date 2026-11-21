@@ -399,6 +399,8 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     record_config_thread_count(session);
 #endif
     session.solve(rhs_buffer.data(), target, static_cast<Index>(X.cols()));
+    const Index refined = static_cast<Index>(session.refinement_iters());
+    SolveTally::record(static_cast<Index>(X.cols()), refined);
 
     if (!x_contiguous) {
         X = scratch;
@@ -429,6 +431,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     record_config_thread_count(session);
 #endif
     session.solve(rhs_buffer.data(), x.data(), 1);
+    SolveTally::record(1, static_cast<Index>(session.refinement_iters()));
 
     SolveInfo info;
     info.refinement_steps = session.refinement_iters();
@@ -997,6 +1000,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     Vec rhs_buffer = rhs;
     backend_call([&] { session_->solve_partial(backend_phase, rhs_buffer.data(), x.data()); });
     ++counters_.partial_solve_count;
+    SolveTally::record(1, 0);
 
     SolveInfo info;
     info.refinement_steps = session_->refinement_iters();

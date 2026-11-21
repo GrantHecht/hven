@@ -311,6 +311,7 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
                                Index *steps_out = nullptr,
                                const BorderedResolution *resolution = nullptr,
                                BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
+    const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kBorderRefine);
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
     };
@@ -456,6 +457,7 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
     if (max_steps <= 0) {
         return 0;
     }
+    const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kPolish);
     const Index n0 = K0.rows();
     // The rhs of the face's own exact system: the bordered rhs with the proximal
     // term removed from the variable rows it was added to.

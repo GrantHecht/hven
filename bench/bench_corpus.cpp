@@ -1635,6 +1635,17 @@ void run_internal_one(const std::string &cell_id, const std::string &engine,
     if (levers.score_model_surface) {
         write_model_surface_sidecar(out_path + ".ms", outcome.row);
     }
+    if (std::getenv("HVEN_BENCH_SOLVE_TALLY") != nullptr) {
+        // M8 PF-2b: the solve tally, one line, family order ordinary/detector/polish/border_refine.
+        std::ofstream tally(out_path + ".tally");
+        tally << "solves_ordinary,solves_detector,solves_polish,solves_border_refine,"
+                 "rhs_ordinary,rhs_detector,rhs_polish,rhs_border_refine,"
+                 "refine_ordinary,refine_detector,refine_polish,refine_border_refine\n";
+        for (std::size_t i = 0; i < outcome.row.solve_tally.size(); ++i) {
+            tally << (i == 0 ? "" : ",") << outcome.row.solve_tally[i];
+        }
+        tally << "\n";
+    }
 }
 
 CorpusRow read_internal_row(const std::string &path, const CorpusCell &cell) {

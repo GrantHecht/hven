@@ -2458,6 +2458,60 @@ struct SqpCounters {
     ///        carried: an upper bound on what reusing a symbolic analysis keyed
     ///        on the identical pattern could have skipped. Appended last.
     Index backend_symbolic_repeats = 0;
+
+    /// @brief THE SOLVE TALLY (M8 PF-2b), taken at the factor boundary
+    ///        (hven::linear::SolveTally) over this solve, the restoration
+    ///        sub-solve included: every backend solve, sparse or dense, full or
+    ///        partial, split by the component that issued it. `backend_solves_*`
+    ///        counts backend calls (a batched multi-RHS solve is ONE),
+    ///        `backend_solve_rhs_*` the right-hand-side columns they carried,
+    ///        `backend_solve_refine_*` the iterative-refinement steps the backend
+    ///        reports having run INSIDE those calls (Pardiso's iparm[6]; the dense
+    ///        arm and Accelerate report none). The four contexts partition every
+    ///        solve, so the sum of a family is the solve's total. Measurement
+    ///        only: nothing reads these. Appended last.
+    /// backend_solves_ordinary: calls -- every solve no component scope covers: the EQP's first
+    /// solves and residual-check loops, the verdict-site replays, the SSN/IPQP/restoration engines,
+    /// the equality basis, everything else.
+    Index backend_solves_ordinary = 0;
+    /// backend_solves_detector: calls -- the independent working set's solves (ws_independence.cpp:
+    /// the dependency tests, the entry detector, the certificate coefficients, the face probes and
+    /// the rank repair).
+    Index backend_solves_detector = 0;
+    /// backend_solves_polish: calls -- the unregularized polish loops (polish_eqp_core,
+    /// polish_bordered_unregularized).
+    Index backend_solves_polish = 0;
+    /// backend_solves_border_refine: calls -- the bordered answer's refinement
+    /// (refine_bordered_solve_iterated: the mandatory first step and the sweeps after it).
+    Index backend_solves_border_refine = 0;
+    /// backend_solve_rhs_ordinary: columns -- every solve no component scope covers: the EQP's
+    /// first solves and residual-check loops, the verdict-site replays, the SSN/IPQP/restoration
+    /// engines, the equality basis, everything else.
+    Index backend_solve_rhs_ordinary = 0;
+    /// backend_solve_rhs_detector: columns -- the independent working set's solves
+    /// (ws_independence.cpp: the dependency tests, the entry detector, the certificate
+    /// coefficients, the face probes and the rank repair).
+    Index backend_solve_rhs_detector = 0;
+    /// backend_solve_rhs_polish: columns -- the unregularized polish loops (polish_eqp_core,
+    /// polish_bordered_unregularized).
+    Index backend_solve_rhs_polish = 0;
+    /// backend_solve_rhs_border_refine: columns -- the bordered answer's refinement
+    /// (refine_bordered_solve_iterated: the mandatory first step and the sweeps after it).
+    Index backend_solve_rhs_border_refine = 0;
+    /// backend_solve_refine_ordinary: steps -- every solve no component scope covers: the EQP's
+    /// first solves and residual-check loops, the verdict-site replays, the SSN/IPQP/restoration
+    /// engines, the equality basis, everything else.
+    Index backend_solve_refine_ordinary = 0;
+    /// backend_solve_refine_detector: steps -- the independent working set's solves
+    /// (ws_independence.cpp: the dependency tests, the entry detector, the certificate
+    /// coefficients, the face probes and the rank repair).
+    Index backend_solve_refine_detector = 0;
+    /// backend_solve_refine_polish: steps -- the unregularized polish loops (polish_eqp_core,
+    /// polish_bordered_unregularized).
+    Index backend_solve_refine_polish = 0;
+    /// backend_solve_refine_border_refine: steps -- the bordered answer's refinement
+    /// (refine_bordered_solve_iterated: the mandatory first step and the sweeps after it).
+    Index backend_solve_refine_border_refine = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2568,7 +2622,19 @@ struct SqpCounters {
     X(sparse_matched_retakes, counter_never_absent)                                                \
     X(sparse_retake_refusals, counter_never_absent)                                                \
     X(backend_symbolic_analyses, counter_never_absent)                                             \
-    X(backend_symbolic_repeats, counter_never_absent)
+    X(backend_symbolic_repeats, counter_never_absent)                                              \
+    X(backend_solves_ordinary, counter_never_absent)                                               \
+    X(backend_solves_detector, counter_never_absent)                                               \
+    X(backend_solves_polish, counter_never_absent)                                                 \
+    X(backend_solves_border_refine, counter_never_absent)                                          \
+    X(backend_solve_rhs_ordinary, counter_never_absent)                                            \
+    X(backend_solve_rhs_detector, counter_never_absent)                                            \
+    X(backend_solve_rhs_polish, counter_never_absent)                                              \
+    X(backend_solve_rhs_border_refine, counter_never_absent)                                       \
+    X(backend_solve_refine_ordinary, counter_never_absent)                                         \
+    X(backend_solve_refine_detector, counter_never_absent)                                         \
+    X(backend_solve_refine_polish, counter_never_absent)                                           \
+    X(backend_solve_refine_border_refine, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
