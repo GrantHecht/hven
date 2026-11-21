@@ -22,7 +22,7 @@ Gate: P1 ctest rel and dbg 4042/4042; P2 replay x3 (27 cells x walk/ssn/ipm) A v
 **1.000106**; P4 **26 of 26 mutations killed**, control clean; P5 install smoke and export contract pass (default and clang). First
 CI (run 44880880598): linux-clang-release, linux-clang-coverage, windows-clang-release green; macos red on the new fixture only
 (Accelerate reports 0 refinement steps -- the first observed Accelerate reading of the counters); fixed in r1 (test-only).
-R1/CI: see section 5.
+r1 (ctest rel and dbg 4042/4042, mutation control clean and M3 killed, `gate-r1/`) passed; CI run 44886852960 at head `9aa8d442f`: **all four lanes green** (linux-clang-release, linux-clang-coverage, macos-clang-release, windows-clang-release).
 
 ## 2. The PF-2 table now (instructions:u / qp_minors; U0 = M6 19f7674f6, new = ae2e6729f + PF-12 levers, off = same binary, independent_working_set off)
 
