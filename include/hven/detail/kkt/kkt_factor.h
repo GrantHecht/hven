@@ -9,10 +9,12 @@
 // The two families are distinct on purpose; their unification is registered (RS-7).
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include <Eigen/SparseCore>
 
@@ -87,6 +89,52 @@ enum class PlatformRetake : std::uint8_t {
     kMatched, ///< K on the weighted-matching session (Pardiso iparm[12] = 1)
 };
 
+/// THE RETAINED ANALYSES (M8 PF-5). A walk's QP solve returns its working set
+/// to faces it has already factorized (A, B, A, C, B ...) on one long-lived
+/// factor, and a factor that remembers only its current pattern re-analyzes
+/// every one of them. A KktFactor therefore keeps up to kRetainedAnalyses
+/// analyzed sessions besides its current one, most recently used first. When
+/// the analysis decision says K's pattern changed, factorize_checked() looks K
+/// up there: on a hit the retained session is swapped into `factor` and
+/// refactorized into its existing symbolic (SymmetricFactor::factorize(), no
+/// backend analysis); on a miss K is analyzed on a fresh session. Either way the
+/// outgoing session becomes the most recently used entry and the least recently
+/// used one past the cap is freed.
+///
+/// THE KEY is the pattern hash with the order and the stored-entry count, and a
+/// hit is CONFIRMED by an exact comparison of K's outer and inner index arrays
+/// against the copy the entry keeps, so a hash collision can never select
+/// another pattern's symbolic. Nothing else reaches the symbolic phase of a
+/// KktFactor's session: its options are fixed at construction (the per-factor
+/// list cannot mix them), weighted matching and scaling are off (the analysis
+/// reads the pattern only), and the thread count is applied at call scope. The
+/// retake sessions (scaled_session, matched_session) are not retained.
+///
+/// LIFETIME. The list is freed at every QP solve's exit (the walk's K0 factor and
+/// the SSN engine's factor; release_retained_analyses()); the walk's per-solve
+/// factors die with the solve. A swapped-in session whose refactorization does
+/// not commit is DISCARDED -- `factor` becomes a fresh unanalyzed session -- so a
+/// retained (session_id, epoch) pair is never live again without numerics
+/// committed after it (EliminatedFace::holds and the hot-start reuse gate compare
+/// that pair). Because a swap moves `factor` onto another session object, `factor.epoch()`
+/// alone no longer runs forward across pattern changes -- each session's epoch sequence is
+/// its own -- so it identifies numerics only paired with `factor.session_id()`, which is how
+/// every holder reads it.
+///
+/// COUNTS. Every session's SymmetricFactor::Counters stay with the KktFactor
+/// across swaps (kkt_counters(); dense_response_tally() reads it), and every hit
+/// is recorded on the open AnalysisReuseTally scopes (QpCounters /
+/// SqpCounters::symbolic_analysis_reuses).
+inline constexpr std::size_t kRetainedAnalyses = 8;
+
+/// One retained analyzed session and the pattern it was analyzed on.
+struct RetainedAnalysis {
+    std::uint64_t pattern_hash = 0;
+    std::vector<SpMatRM::StorageIndex> outer; ///< K.rows() + 1 entries
+    std::vector<SpMatRM::StorageIndex> inner; ///< K.nonZeros() entries
+    hven::linear::SymmetricFactor factor;
+};
+
 struct KktFactor {
     /// @param threads The owning engine's thread count; 0 (what every
     ///                pre-T8.8 construction site passed) leaves the
@@ -109,11 +157,24 @@ struct KktFactor {
     ///                No default for either: a construction site that leaves a
     ///                factor on the platform session says kNever.
     explicit KktFactor(int threads, hven::linear::DensePolicy dense)
-        : factor(sqp_kkt_options(threads, dense)) {}
+        : factor(sqp_kkt_options(threads, dense)), options(sqp_kkt_options(threads, dense)) {}
 
     hven::linear::SymmetricFactor factor;
+    /// The options `factor` was built with: every session this KktFactor
+    /// analyzes (a retained-analysis miss, a discard) is built from them.
+    hven::linear::SymmetricFactor::Options options;
     std::uint64_t analyzed_pattern = 0;
     bool analyzed = false;
+    /// The pattern `factor` was analyzed on (empty while `!analyzed`): what a
+    /// retained entry is compared against once `factor` is retained.
+    std::vector<SpMatRM::StorageIndex> analyzed_outer;
+    std::vector<SpMatRM::StorageIndex> analyzed_inner;
+    /// THE RETAINED ANALYSES (above), most recently used first, at most
+    /// kRetainedAnalyses.
+    std::vector<RetainedAnalysis> retained;
+    /// The counters of every session that has left `factor`, less what each
+    /// had when it entered: kkt_counters() = factor.counters() + this.
+    hven::linear::SymmetricFactor::Counters departed_counters;
     /// True iff the current numerics are a dense shift response:
     /// a solve then answers a shifted system, so refinement against K is
     /// kept only while its residual falls, and `dense_scale` holds the
@@ -259,8 +320,12 @@ struct DenseResponseTally {
     Index refactors = 0;
     Index retakes = 0;
 };
+/// @brief The cumulative SymmetricFactor::Counters of every session `k` has
+/// driven (THE RETAINED ANALYSES: a swap moves no count).
+hven::linear::SymmetricFactor::Counters kkt_counters(const KktFactor &k);
+
 inline DenseResponseTally dense_response_tally(const KktFactor &k) {
-    const auto &c = k.factor.counters();
+    const hven::linear::SymmetricFactor::Counters c = kkt_counters(k);
     return DenseResponseTally{c.dense_factorize_count + c.dense_singular_count,
                               c.dense_flagged_count + c.dense_singular_count -
                                   k.shifted_exact_singular,
@@ -665,5 +730,32 @@ inline void clear_platform_retake_request(KktFactor &k) {
 /// @brief Frees the retake sessions `k`'s current numerics do not live in (and
 /// the scaled session's analysis record with it).
 void release_idle_retake_sessions(KktFactor &k);
+
+/// @brief Frees every retained analysis of `k` (THE RETAINED ANALYSES); the
+/// current session and its numerics are untouched. Called at QP-solve exit.
+void release_retained_analyses(KktFactor &k) noexcept;
+
+/// @brief Counts retained-analysis hits (THE RETAINED ANALYSES) on the calling
+/// thread while it is open: every hit on any KktFactor is recorded on every
+/// open tally, innermost to outermost -- the shape of hven::linear::AnalysisTally,
+/// so a tally scoped like that one counts the hits that replaced the analyses
+/// that one no longer sees. Observation only.
+class AnalysisReuseTally {
+  public:
+    AnalysisReuseTally() noexcept;
+    ~AnalysisReuseTally();
+    AnalysisReuseTally(const AnalysisReuseTally &) = delete;
+    AnalysisReuseTally &operator=(const AnalysisReuseTally &) = delete;
+
+    /// Retained sessions swapped in while this tally was open.
+    Index reuses() const noexcept { return reuses_; }
+
+    /// Called by factorize_checked() on each hit.
+    static void record() noexcept;
+
+  private:
+    AnalysisReuseTally *outer_ = nullptr;
+    Index reuses_ = 0;
+};
 
 } // namespace hven::detail

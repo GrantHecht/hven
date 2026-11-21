@@ -3130,7 +3130,9 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     //
     // 106 -> 108 at M8 PF-4, `backend_symbolic_analyses` and `backend_symbolic_repeats`, the same
     // route, by two keys.
-    EXPECT_EQ(kSqpCountersFieldCount, 108u);
+    //
+    // 108 -> 109 at M8 PF-5, `symbolic_analysis_reuses`, the same route, by one key.
+    EXPECT_EQ(kSqpCountersFieldCount, 109u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -3770,30 +3772,30 @@ std::string distinct_counters_json() {
            "nnel\":98,\"reject_qp_failed\":99,\"reject_other\":100,\"accepted_f_type\":101,\""
            "accepted_h_type\":102,\"rejection_run_histogram\":[103,104,105,106,107],\"sparse"
            "_scaled_retakes\":108,\"sparse_matched_retakes\":109,\"sparse_retake_refusals\":"
-           "110,\"backend_symbolic_analyses\":111,\"backend_symbolic_repeats\":112,\"ssn\":{"
-           "\"ssn_iters\":113,\"ssn_bulk_flips\":114,\"ssn_backtracks\":115,\"ssn_prox_updat"
-           "es\":116,\"ssn_escapes\":117,\"ssn_uncertain_peak\":118,\"ssn_refinements\":119,"
-           "\"ssn_refine_refused\":120,\"ssn_refine_factorizations\":121,\"ssn_refine_neg_du"
-           "als\":122,\"ssn_sign_swept\":123,\"ssn_sign_sweep_max\":124,\"ssn_escape_budget\""
-           ":125,\"ssn_escape_singular\":126,\"ssn_escape_no_contraction\":127,\"ssn_escape_"
-           "infeasible_suspect\":128,\"ssn_escape_indefinite\":129,\"ssn_escape_gate_refused"
-           "\":130},\"ipqp\":{\"ipqp_iters\":131,\"ipqp_factorizations\":132,\"ipqp_symbolic"
-           "_analyses\":133,\"ipqp_solves\":134,\"ipqp_pattern_verifies\":135,\"ipqp_rho_dem"
-           "anded_max\":136,\"ipqp_rho_demanded_last\":137,\"ipqp_inertia_retries\":138,\"ip"
-           "qp_iters_at_elevated_rho\":139,\"ipqp_ladder_reclimbs\":140,\"ipqp_pivot_reroute"
-           "_primal\":141,\"ipqp_pivot_reroute_dual_fallback\":142,\"ipqp_iters_ladder_armed"
-           "_no_advance\":143,\"ipqp_final_inertia_read\":144,\"ipqp_reg_decreases\":145,\"i"
-           "pqp_reg_increases\":146,\"ipqp_prox_center_updates\":147,\"ipqp_restart_repairs\""
-           ":148,\"ipqp_restart_shift_max\":149,\"ipqp_mu_adopted\":150,\"ipqp_warm_restart_"
-           "abandoned\":151,\"ipqp_declined_pinned\":152,\"ipqp_tier_retired_after\":153,\"i"
-           "pqp_face_uncertain\":154,\"ipqp_refine_accepted\":155,\"ipqp_refine_refused\":15"
-           "6,\"ipqp_to_refine\":157,\"ipqp_to_ssn\":158,\"ipqp_to_walk\":159,\"ipqp_escapes"
-           "\":160,\"ipqp_escape_budget\":161,\"ipqp_escape_stall\":162,\"ipqp_escape_indefi"
-           "nite\":163,\"ipqp_escape_numerical\":164,\"ipqp_escape_infeasible_suspect\":165,"
-           "\"ipqp_alpha_p_min\":166,\"ipqp_alpha_d_min\":167,\"ipqp_read_kept_tight_sides\""
-           ":168,\"ipqp_read_barrier_noise_sides\":169,\"ipqp_mu0_derived\":170,\"ipqp_mu0_f"
-           "allbacks\":171,\"ipqp_mu_floor_binds\":172,\"ipqp_ladder_zero_trial_skips\":173}"
-           "}";
+           "110,\"backend_symbolic_analyses\":111,\"backend_symbolic_repeats\":112,\"symboli"
+           "c_analysis_reuses\":113,\"ssn\":{\"ssn_iters\":114,\"ssn_bulk_flips\":115,\"ssn_"
+           "backtracks\":116,\"ssn_prox_updates\":117,\"ssn_escapes\":118,\"ssn_uncertain_pe"
+           "ak\":119,\"ssn_refinements\":120,\"ssn_refine_refused\":121,\"ssn_refine_factori"
+           "zations\":122,\"ssn_refine_neg_duals\":123,\"ssn_sign_swept\":124,\"ssn_sign_swe"
+           "ep_max\":125,\"ssn_escape_budget\":126,\"ssn_escape_singular\":127,\"ssn_escape_"
+           "no_contraction\":128,\"ssn_escape_infeasible_suspect\":129,\"ssn_escape_indefini"
+           "te\":130,\"ssn_escape_gate_refused\":131},\"ipqp\":{\"ipqp_iters\":132,\"ipqp_fa"
+           "ctorizations\":133,\"ipqp_symbolic_analyses\":134,\"ipqp_solves\":135,\"ipqp_pat"
+           "tern_verifies\":136,\"ipqp_rho_demanded_max\":137,\"ipqp_rho_demanded_last\":138"
+           ",\"ipqp_inertia_retries\":139,\"ipqp_iters_at_elevated_rho\":140,\"ipqp_ladder_r"
+           "eclimbs\":141,\"ipqp_pivot_reroute_primal\":142,\"ipqp_pivot_reroute_dual_fallba"
+           "ck\":143,\"ipqp_iters_ladder_armed_no_advance\":144,\"ipqp_final_inertia_read\":"
+           "145,\"ipqp_reg_decreases\":146,\"ipqp_reg_increases\":147,\"ipqp_prox_center_upd"
+           "ates\":148,\"ipqp_restart_repairs\":149,\"ipqp_restart_shift_max\":150,\"ipqp_mu"
+           "_adopted\":151,\"ipqp_warm_restart_abandoned\":152,\"ipqp_declined_pinned\":153,"
+           "\"ipqp_tier_retired_after\":154,\"ipqp_face_uncertain\":155,\"ipqp_refine_accept"
+           "ed\":156,\"ipqp_refine_refused\":157,\"ipqp_to_refine\":158,\"ipqp_to_ssn\":159,"
+           "\"ipqp_to_walk\":160,\"ipqp_escapes\":161,\"ipqp_escape_budget\":162,\"ipqp_esca"
+           "pe_stall\":163,\"ipqp_escape_indefinite\":164,\"ipqp_escape_numerical\":165,\"ip"
+           "qp_escape_infeasible_suspect\":166,\"ipqp_alpha_p_min\":167,\"ipqp_alpha_d_min\""
+           ":168,\"ipqp_read_kept_tight_sides\":169,\"ipqp_read_barrier_noise_sides\":170,\""
+           "ipqp_mu0_derived\":171,\"ipqp_mu0_fallbacks\":172,\"ipqp_mu_floor_binds\":173,\""
+           "ipqp_ladder_zero_trial_skips\":174}}";
 }
 
 /// The `counters` object for a default-constructed `SqpCounters`.
@@ -3833,28 +3835,28 @@ std::string default_counters_json() {
            "ect_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0"
            ",\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_ma"
            "tched_retakes\":0,\"sparse_retake_refusals\":0,\"backend_symbolic_analyses\":0,\""
-           "backend_symbolic_repeats\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn"
-           "_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":"
-           "0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0"
-           ",\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_"
-           "escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ss"
-           "n_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_re"
-           "fused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_"
-           "analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_m"
-           "ax\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_e"
-           "levated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipq"
-           "p_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipq"
-           "p_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipq"
-           "p_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":"
-           "0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned"
-           "\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_ac"
-           "cepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ip"
-           "qp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\""
-           ":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeas"
-           "ible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read"
-           "_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0"
-           ",\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_ski"
-           "ps\":0}}";
+           "backend_symbolic_repeats\":0,\"symbolic_analysis_reuses\":0,\"ssn\":{\"ssn_iters"
+           "\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_esca"
+           "pes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,"
+           "\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,"
+           "\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn"
+           "_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_inde"
+           "finite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_fact"
+           "orizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_ver"
+           "ifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inerti"
+           "a_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp"
+           "_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_la"
+           "dder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0"
+           ",\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\""
+           ":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abando"
+           "ned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_"
+           "uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_ref"
+           "ine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_bu"
+           "dget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_nume"
+           "rical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_"
+           "alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_si"
+           "des\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":"
+           "0,\"ipqp_ladder_zero_trial_skips\":0}}";
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSolveEndSqpBlockWithEveryCounterDistinct) {

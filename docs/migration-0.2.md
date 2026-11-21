@@ -1003,3 +1003,19 @@ Additive; no result moves (`docs/notes/data/2026-11-m8-pf4/`).
   multi-right-hand-side K0 solve (`detail::solve_mat`) instead of one solve per border.
 
 Rebuild: `SqpCounters` changes size; code built against the old headers needs a rebuild.
+
+## Symbolic-analysis reuse (M8 PF-5)
+
+No trajectory moves; one counter is added (`docs/notes/data/2026-11-m8-pf5/`).
+
+- A QP-side KKT factor (`detail::KktFactor`) keeps up to eight analyzed backend sessions besides its current one and,
+  when its pattern returns to one of them within a QP solve, refactorizes into that session's existing symbolic instead
+  of paying a new analysis. A hit is keyed on the pattern hash, order and stored entries and confirmed by an exact
+  comparison of the index arrays. The list is freed at every QP solve's exit; a swapped-in session whose
+  refactorization fails is discarded. Nothing in `hven::linear` changes.
+- New counters `QpCounters::symbolic_analysis_reuses` and `SqpCounters::symbolic_analysis_reuses` (trace key after
+  `backend_symbolic_repeats`): the hits, over one QP solve and over one SQP solve (the latter over the same scope as
+  `backend_symbolic_analyses`, which no longer counts the analyses the hits replaced and falls by exactly that many).
+  `symbolic_analyses` keeps its meaning.
+
+Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.

@@ -49,27 +49,40 @@ void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
     solve_counter_ = 0;
 }
 
+namespace {
+
+// QpCounters::symbolic_analysis_reuses: every retained-analysis hit of one QP
+// solve, on any of its factors (detail::AnalysisReuseTally).
+template <class Run> QpSolution tally_reuses(Run &&run_solve) {
+    const detail::AnalysisReuseTally reuses;
+    QpSolution s = run_solve();
+    s.counters.symbolic_analysis_reuses = reuses.reuses();
+    return s;
+}
+
+} // namespace
+
 QpSolution QpEngine::solve(const QpProblem &qp) const {
-    return run(qp, nullptr, false, QpSolveOverrides{});
+    return tally_reuses([&] { return run(qp, nullptr, false, QpSolveOverrides{}); });
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed) const {
-    return run(qp, &seed, true, QpSolveOverrides{});
+    return tally_reuses([&] { return run(qp, &seed, true, QpSolveOverrides{}); });
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolveOverrides &overrides) const {
-    return run(qp, nullptr, false, overrides);
+    return tally_reuses([&] { return run(qp, nullptr, false, overrides); });
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed,
                            const QpSolveOverrides &overrides) const {
-    return run(qp, &seed, true, overrides);
+    return tally_reuses([&] { return run(qp, &seed, true, overrides); });
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed,
                            const QpSolveOverrides &overrides,
                            const std::shared_ptr<const HotState> &hot) const {
-    return run(qp, &seed, true, overrides, hot);
+    return tally_reuses([&] { return run(qp, &seed, true, overrides, hot); });
 }
 
 std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
@@ -454,6 +467,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             if (border != nullptr) {
                 detail::clear_platform_retake_request(border->kkt);
                 detail::release_idle_retake_sessions(border->kkt);
+                // THE RETAINED ANALYSES (kkt_factor.h) never outlive the QP solve.
+                detail::release_retained_analyses(border->kkt);
             }
         }
     } border_retake_exit(border_);

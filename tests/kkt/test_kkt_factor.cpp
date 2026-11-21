@@ -211,8 +211,10 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     EXPECT_EQ(after_pattern_change.negative, 1);
 
     EXPECT_EQ(symbolic_analyses, 2);
-    EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
-    EXPECT_EQ(k.factor.counters().factorize_count, 3);
+    // M8 PF-5: the changed pattern is analyzed on a fresh session (the first one is
+    // retained), so the counts are the KktFactor's cumulative ones (kkt_counters()).
+    EXPECT_EQ(kkt_counters(k).analyze_count, symbolic_analyses);
+    EXPECT_EQ(kkt_counters(k).factorize_count, 3);
 }
 
 // M6 W2 T7, and the measurement that says NO decline exists on the eliminated

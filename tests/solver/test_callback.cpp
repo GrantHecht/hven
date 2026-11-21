@@ -2814,7 +2814,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(sparse_matched_retakes)                                                                      \
     X(sparse_retake_refusals)                                                                      \
     X(backend_symbolic_analyses)                                                                   \
-    X(backend_symbolic_repeats)
+    X(backend_symbolic_repeats)                                                                    \
+    X(symbolic_analysis_reuses)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
@@ -2922,8 +2923,8 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // M8 GL-0 (seven `Index` and the five-`Index` run histogram); 1344 -> 1368 at M8
     // sparse-equil-v4 (`sparse_scaled_retakes`, `sparse_matched_retakes`,
     // `sparse_retake_refusals`); 1368 -> 1384 at M8 PF-4 (`backend_symbolic_analyses`,
-    // `backend_symbolic_repeats`).
-    static_assert(sizeof(hven::SqpCounters) == 1384,
+    // `backend_symbolic_repeats`); 1384 -> 1392 at M8 PF-5 (`symbolic_analysis_reuses`).
+    static_assert(sizeof(hven::SqpCounters) == 1392,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");
@@ -3959,8 +3960,8 @@ TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
         ASSERT_GT(snaps.size(), 1u);
         for (std::size_t k = 0; k < snaps.size(); ++k) {
             const hven::IterationSnapshot &s = snaps[k];
-            EXPECT_EQ(s.x.size() + s.lambda.size() + s.z.size() + s.g.size() + s.row_violation.size() +
-                          s.z_lower.size() + s.z_upper.size(),
+            EXPECT_EQ(s.x.size() + s.lambda.size() + s.z.size() + s.g.size() +
+                          s.row_violation.size() + s.z_lower.size() + s.z_upper.size(),
                       sizes[k]);
             EXPECT_NE(s.ipm.has_value(), s.sqp.has_value()) << "exactly one engine block";
             EXPECT_EQ(s.ipm.has_value(), interior);

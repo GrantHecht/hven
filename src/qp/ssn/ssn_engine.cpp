@@ -79,6 +79,22 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
     validate_options(sopts);
     validate_overrides(overrides);
 
+    // THE RETAINED ANALYSES (detail/kkt/kkt_factor.h): this solve's hits are counted
+    // into `out`, and its retained sessions are freed at its exit, whichever way it
+    // leaves -- the walk's rule for K0's factor, here for kkt_.
+    struct RetainedExit {
+        detail::KktFactor &kkt;
+        SsnResult *out;
+        detail::AnalysisReuseTally reuses;
+        RetainedExit(detail::KktFactor &k, SsnResult *o) : kkt(k), out(o) {}
+        RetainedExit(const RetainedExit &) = delete;
+        RetainedExit &operator=(const RetainedExit &) = delete;
+        ~RetainedExit() {
+            out->symbolic_analysis_reuses = reuses.reuses();
+            detail::release_retained_analyses(kkt);
+        }
+    } retained_exit(kkt_, out);
+
     // Resolved once, exactly like QpEngine::run()'s own resolution. The
     // BASE pair is what the caller asked for; eff_* carries the proximal
     // increment on top of it and is what for_each_entry emits.

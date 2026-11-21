@@ -665,6 +665,13 @@ struct QpCounters {
     // and that did not escalate (on Accelerate, where there is no matched tier,
     // every refused retake answer).
     Index sparse_retake_refusals = 0;
+    // THE RETAINED ANALYSES (M8 PF-5; detail/kkt/kkt_factor.h): symbolic analyses this
+    // solve() call did NOT pay because one of its KKT factors still held a session
+    // analyzed on the same pattern earlier in the call (pattern hash, order, stored
+    // entries, then the exact pattern) and refactorized into it. Every factor of the call
+    // counts, the per-solve elimination factors included; `symbolic_analyses` keeps its
+    // meaning (the border/rebuild path's analysis DECISIONS, taken before the lookup).
+    Index symbolic_analysis_reuses = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2458,6 +2465,17 @@ struct SqpCounters {
     ///        carried: an upper bound on what reusing a symbolic analysis keyed
     ///        on the identical pattern could have skipped. Appended last.
     Index backend_symbolic_repeats = 0;
+    /// @brief Symbolic analyses NOT paid because a KKT factor refactorized into a
+    ///        session it had already analyzed on the same pattern in the same QP
+    ///        solve (M8 PF-5; detail/kkt/kkt_factor.h, THE RETAINED ANALYSES), on
+    ///        any factor, the restoration sub-solve's included -- taken over the
+    ///        same scope as `backend_symbolic_analyses` (detail::AnalysisReuseTally),
+    ///        not folded from QpCounters. Each such hit would otherwise have been a
+    ///        backend analysis (and a repeat), so `backend_symbolic_analyses +
+    ///        symbolic_analysis_reuses` is what `backend_symbolic_analyses` read
+    ///        before PF-5 on the same trajectory. `symbolic_analyses` does not move.
+    ///        Appended last.
+    Index symbolic_analysis_reuses = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2568,7 +2586,8 @@ struct SqpCounters {
     X(sparse_matched_retakes, counter_never_absent)                                                \
     X(sparse_retake_refusals, counter_never_absent)                                                \
     X(backend_symbolic_analyses, counter_never_absent)                                             \
-    X(backend_symbolic_repeats, counter_never_absent)
+    X(backend_symbolic_repeats, counter_never_absent)                                              \
+    X(symbolic_analysis_reuses, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

@@ -486,9 +486,13 @@ TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     EXPECT_EQ(h2->kkt_epoch, h1_epoch)
         << "hot_state() must emit the COMMITTED epoch, not a live re-read off the "
            "possibly-shared object -- THE PIN for the forged-handle scenario";
-    EXPECT_NE(h2->border->kkt.factor.epoch(), h1_epoch)
-        << "precondition of the pin: C's rebuild really did advance the shared object's live "
-           "epoch, so committed-vs-live is a real distinction here";
+    // M8 PF-5: the identity is the (session_id, epoch) PAIR. A KktFactor now analyzes a changed
+    // pattern on a fresh session (or swaps a retained one in, THE RETAINED ANALYSES), whose
+    // epoch sequence is its own, so the live epoch alone may coincide with h1's; the pair cannot.
+    EXPECT_TRUE(h2->border->kkt.factor.session_id() != h1_session ||
+                h2->border->kkt.factor.epoch() != h1_epoch)
+        << "precondition of the pin: C's rebuild really did move the shared object's live "
+           "identity, so committed-vs-live is a real distinction here";
 }
 
 } // namespace

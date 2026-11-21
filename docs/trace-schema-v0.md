@@ -904,6 +904,7 @@ group; `SqpOptions::hessian_mode`).
 | `sparse_retake_refusals` | integer | `SqpCounters::sparse_retake_refusals` | walk answers through retake numerics that the EQP-site residual check refused without an escalation (M8 sparse-equil-v4). Folded like `eqp_residual_refusals`. No sentinel. |
 | `backend_symbolic_analyses` | integer | `SqpCounters::backend_symbolic_analyses` | every symbolic analysis the platform (sparse) backend completed during the solve, on any factor, taken at the factor boundary (`hven::linear::AnalysisTally`); the restoration sub-solve's included by the tally itself, not folded (M8 PF-4). No sentinel. |
 | `backend_symbolic_repeats` | integer | `SqpCounters::backend_symbolic_repeats` | of those, the analyses whose key (pattern hash, order, stored entries, the factor options that reach the symbolic phase) an earlier one in the same solve carried (M8 PF-4). No sentinel. |
+| `symbolic_analysis_reuses` | integer | `SqpCounters::symbolic_analysis_reuses` | symbolic analyses not paid because a QP-side KKT factor refactorized into a session it had already analyzed on the same pattern in the same QP solve (`detail/kkt/kkt_factor.h`, THE RETAINED ANALYSES); over the same scope as `backend_symbolic_analyses`, which no longer counts them (M8 PF-5). No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -996,6 +997,11 @@ distinct values up by three, no sentinel, both v1 golden `sqp.solve.end` lines
 `backend_symbolic_repeats`, the table rows above), after `sparse_retake_refusals`, the same route:
 two keys before the `ssn` object, the nested tables' distinct values up by two, no sentinel, both v1
 golden `sqp.solve.end` lines and the two counters-object goldens re-derived once.
+
+**THE DIRECT COUNTER M8 PF-5 APPENDED — ONE** (`symbolic_analysis_reuses`, the table row above), after
+`backend_symbolic_repeats`, the same route: one key before the `ssn` object, the nested tables' distinct
+values up by one, no sentinel, both v1 golden `sqp.solve.end` lines and the two counters-object goldens
+re-derived once.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

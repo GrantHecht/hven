@@ -929,6 +929,7 @@ QpSolution detail::ssn_result_to_qp_solution(const SsnResult &res) {
     qs.tr_active = res.tr_active;
     qs.counters.factorizations = res.factorizations;
     qs.counters.symbolic_analyses = res.symbolic_analyses;
+    qs.counters.symbolic_analysis_reuses = res.symbolic_analysis_reuses;
     qs.counters.dense_platform_retakes = res.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = res.dense_flagged_factorizations;
     qs.counters.dense_factorizations = res.dense_factorizations;
@@ -3667,9 +3668,13 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
     // on any factor, the restoration sub-solve's included (its own tally nests
     // inside this one and both see its analyses; nothing is folded up).
     hven::linear::AnalysisTally analysis_tally;
+    // THE REUSE TALLY (PF-5), over the same scope: the analyses retained sessions
+    // replaced, which the analysis tally above therefore no longer sees.
+    const detail::AnalysisReuseTally reuse_tally;
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
     out.counters.backend_symbolic_analyses = analysis_tally.analyses();
     out.counters.backend_symbolic_repeats = analysis_tally.repeats();
+    out.counters.symbolic_analysis_reuses = reuse_tally.reuses();
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
