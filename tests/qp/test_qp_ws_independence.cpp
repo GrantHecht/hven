@@ -698,6 +698,28 @@ TEST(WsIndependenceCalibration, AConvergedRhoBetweenKDepTolAndKDepUndecidableIsI
     }
 }
 
+// PF-2d L2: a converged independent test keeps its first solve only inside the re-read band
+// (kDepRereadBandLo, kDepRereadBandHi]: above it no re-read follows, so there is nothing to reuse.
+TEST(WsIndependenceCalibration, ATestKeepsItsFirstSolveOnlyInsideTheReReadBand) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 0, 0, 0, 1, 0;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView rv(qp, 1e-8, {}, {0}, border);
+        const detail::DepTest inside = rv.test(vec_of({1.0, 3e-5, 0.0}));
+        EXPECT_EQ(inside.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_TRUE(detail::in_reread_band(inside.rho));
+        EXPECT_TRUE(inside.has_first);
+        const detail::DepTest above = rv.test(vec_of({1.0, 5e-4, 0.0}));
+        EXPECT_EQ(above.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_FALSE(detail::in_reread_band(above.rho));
+        EXPECT_FALSE(above.has_first);
+    }
+}
+
 // R-E (E2 fix6, settler S33): the grey re-read never flips a candidate farther than kDepTol from
 // the span, and it certifies a grey dependent. For EVERY coefficient vector v, rho(v) = ||(a -
 // A_W^T v)_free|| / ||a|| >= the true relative distance, so the re-read rho' (plus its rounding
