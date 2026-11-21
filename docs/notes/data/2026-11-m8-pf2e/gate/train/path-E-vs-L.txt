@@ -1,0 +1,7 @@
+PATH_MOVER sd-hven-sqp-NET1.D: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 13 -> 13, qp_minor_iters 853 -> 787, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.dense_factorizations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_blocker_terminations
+PATH_MOVER sd-hven-sqp-NET1.K: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 13 -> 13, qp_minor_iters 784 -> 841, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_residual_refusals,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_blocker_terminations
+SUMMARY rows 476; status movers 0; path movers 2; counter-only movers 65; missing/capped 0
+INSTR hven-sqp all    REF 1.146192e+12 NEW 1.133988e+12 NEW/REF 0.989353
+INSTR hven-sqp stable REF 1.132221e+12 NEW 1.120146e+12 NEW/REF 0.989335

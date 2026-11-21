@@ -1,0 +1,29 @@
+PATH_MOVER sd-hven-sqp-CRESC100.K: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 38 -> 38, qp_minor_iters 15948 -> 16202, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_inertia_rereads
+PATH_MOVER sd-hven-sqp-DEMBO7.D: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 15 -> 23, qp_minor_iters 1354 -> 2135, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total
+PATH_MOVER sd-hven-sqp-DEMBO7.K: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 17 -> 20, qp_minor_iters 1374 -> 1618, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_total,side.backend_symbolic_analyses
+PATH_MOVER sd-hven-sqp-HS111LNP.D: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 25 -> 25, qp_minor_iters 253 -> 257, keys factorizations,side.border_refine_steps,side.dense_flagged_factorizations,side.dense_singular_refactors,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent
+PATH_MOVER sd-hven-sqp-HS111LNP.K: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 25 -> 25, qp_minor_iters 253 -> 257, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent
+PATH_MOVER sd-hven-sqp-HS99EXP.K: NO SOLUTION either side (status max_iter); objective -4.22669e+07 -> -78452.5, primal infeas 4e+05 -> 4e+05 (feasibility worse; higher objective)
+    iterations 50 -> 1, qp_minor_iters 9478 -> 1483, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total,side.backend_symbolic_analyses
+PATH_MOVER sd-hven-sqp-LAKES.D: SAME objective to 1e-6 rel, status numerical_error both, primal 9.6e+02 -> 9.6e+02
+    iterations 11 -> 11, qp_minor_iters 6380 -> 6910, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qp_ledger_solves
+PATH_MOVER sd-hven-sqp-LAKES.K: SAME objective to 1e-6 rel, status numerical_error both, primal 9.6e+02 -> 9.6e+02
+    iterations 11 -> 11, qp_minor_iters 6380 -> 6910, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qp_ledger_solves
+PATH_MOVER sd-hven-sqp-MESH.D: SAME objective to 1e-6 rel, status max_iter both, primal 8.7e-11 -> 8.7e-11
+    iterations 273 -> 273, qp_minor_iters 4065 -> 4072, keys eval_g,eval_jac,factorizations,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.dense_factorizations,side.eqp_polish_steps,side.eqp_refine_iters
+PATH_MOVER sd-hven-sqp-MESH.K: NO SOLUTION either side (status numerical_error); objective -56.7157 -> -576185, primal infeas 1.5e-07 -> 5.1e-07 (feasibility worse; lower objective)
+    iterations 93 -> 59, qp_minor_iters 1127 -> 1728, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,kkt_complementarity,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_total
+PATH_MOVER sd-hven-sqp-MSS1.K: NO SOLUTION either side (status numerical_error); objective -15.0041 -> -3.00637, primal infeas 0.019 -> 5.1e-07 (feasibility better; higher objective)
+    iterations 31 -> 9, qp_minor_iters 11519 -> 6833, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps
+PATH_MOVER sd-hven-sqp-NET1.D: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 13 -> 13, qp_minor_iters 853 -> 787, keys factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.dense_factorizations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_blocker_terminations
+PATH_MOVER sd-hven-sqp-NET1.K: SAME local solution (both optimal, objective equal to 1e-6 rel)
+    iterations 13 -> 14, qp_minor_iters 784 -> 1116, keys eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total,side.backend_symbolic_analyses
+SUMMARY rows 476; status movers 0; path movers 13; counter-only movers 87; missing/capped 0
+INSTR hven-sqp all    REF 1.146153e+12 NEW 1.067309e+12 NEW/REF 0.931210
+INSTR hven-sqp stable REF 6.948297e+11 NEW 6.841444e+11 NEW/REF 0.984622

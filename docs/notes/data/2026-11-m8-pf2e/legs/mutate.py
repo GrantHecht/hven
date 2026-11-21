@@ -30,7 +30,9 @@ MUT = {
     "P7": (WE, "detail::grey_reread(qp, ws, view, a, opts, t);",
            "detail::certificate_coefficients(qp, ws, view, a, opts, &t);", 1),
     # P8: the test probe also on screen tests
-    "P8": (WS, "probe == DepProbe::kTest && target > 0.0 && !t.screen;", "probe == DepProbe::kTest && target > 0.0;", 1),
+    "P8": (WS, "probe == DepProbe::kTest && target > 0.0 && !t.screen &&", "probe == DepProbe::kTest && target > 0.0 &&", 1),
+    # P9 (r1): the border exclusion removed (both probes)
+    "P9": (WS, " && !sys.bordered;", ";", 2),
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()

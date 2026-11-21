@@ -10,6 +10,7 @@ mq_flip = []; mq_test = []
 for rec in records(sys.argv[1:]):
     C = rec['C']; T = rec.get('test'); K = rec.get('cert')
     if T is None: continue
+    if os.environ.get('ELIM_ONLY') == '1' and T['bord'] == '1': continue
     tr = flist(T['rhos']); ress = flist(T['ress'])
     if T['brk'] == '1': tr = tr[:-1]; ress = ress[:-1]
     target = float(T['target'])

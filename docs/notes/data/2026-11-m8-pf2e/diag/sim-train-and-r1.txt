@@ -1,0 +1,47 @@
+### TRAIN hven-sqp rows (238 x D/K), old rule (pf2d L + event log, scratch lane binary pin adf11f94c), rule v1 (both paths)
+stag 0.5
+flips                        1493
+greys                        5003
+refining_tests               35923
+reread_cut_LOST_FLIP         8
+reread_cuts                  3059
+reread_new_solves_old        13032
+reread_saved_L1b             368
+reread_saved_probe           4747
+test_cut_stall_flag_flip     4697
+test_cuts                    13658
+test_solves_saved            21469
+BAD ('reread', 'train/NET1.D.3003618', '0.4995,3.347e-06', '0.4995,3.347e-06,3.403e-06,4.563e-11', {'id': '82', 'ineq': '0', 'idx': '64', 'rho0': '3.34655e-06', 'grey': '1', 'flip': '1', 'rcert': '4.563e-11', 'floor': '4.326e-10', 'struct': '0', 'verdict': '1'
+BAD ('reread', 'train/NET1.D.3003618', '0.9902,6.62e-06', '0.9902,6.62e-06,6.748e-06,9.039e-11', {'id': '83', 'ineq': '0', 'idx': '66', 'rho0': '6.61998e-06', 'grey': '1', 'flip': '1', 'rcert': '9.039e-11', 'floor': '4.706e-10', 'struct': '0', 'verdict': '1', 
+BAD ('reread', 'train/NET1.D.3003618', '1.057,7.8e-06', '1.057,7.8e-06,7.242e-06,1.016e-10', {'id': '84', 'ineq': '0', 'idx': '69', 'rho0': '7.79951e-06', 'grey': '1', 'flip': '1', 'rcert': '1.016e-10', 'floor': '5.113e-10', 'struct': '0', 'verdict': '1', 'sta
+BAD ('reread', 'train/NET1.D.3003618', '0.4995,3.342e-06', '0.4995,3.342e-06,3.404e-06,4.551e-11', {'id': '86', 'ineq': '0', 'idx': '64', 'rho0': '3.34169e-06', 'grey': '1', 'flip': '1', 'rcert': '4.551e-11', 'floor': '4.326e-10', 'struct': '0', 'verdict': '1'
+BAD ('reread', 'train/NET1.K.3003619', '0.4995,3.347e-06', '0.4995,3.347e-06,3.403e-06,4.563e-11', {'id': '82', 'ineq': '0', 'idx': '64', 'rho0': '3.34655e-06', 'grey': '1', 'flip': '1', 'rcert': '4.563e-11', 'floor': '4.326e-10', 'struct': '0', 'verdict': '1'
+BAD ('reread', 'train/NET1.K.3003619', '0.9902,6.62e-06', '0.9902,6.62e-06,6.748e-06,9.039e-11', {'id': '83', 'ineq': '0', 'idx': '66', 'rho0': '6.61998e-06', 'grey': '1', 'flip': '1', 'rcert': '9.039e-11', 'floor': '4.706e-10', 'struct': '0', 'verdict': '1', 
+BAD ('reread', 'train/NET1.K.3003619', '1.057,7.8e-06', '1.057,7.8e-06,7.242e-06,1.016e-10', {'id': '84', 'ineq': '0', 'idx': '69', 'rho0': '7.79951e-06', 'grey': '1', 'flip': '1', 'rcert': '1.016e-10', 'floor': '5.113e-10', 'struct': '0', 'verdict': '1', 'sta
+BAD ('reread', 'train/NET1.K.3003619', '0.4995,3.342e-06', '0.4995,3.342e-06,3.404e-06,4.551e-11', {'id': '86', 'ineq': '0', 'idx': '64', 'rho0': '3.34169e-06', 'grey': '1', 'flip': '1', 'rcert': '4.551e-11', 'floor': '4.326e-10', 'struct': '0', 'verdict': '1'
+
+### the same, rule r1 (eliminated path only)
+stag 0.5
+flips                        1332
+greys                        4245
+refining_tests               20294
+reread_cuts                  2623
+reread_new_solves_old        11264
+reread_saved_L1b             213
+reread_saved_probe           4102
+test_cut_stall_flag_flip     1008
+test_cuts                    6232
+test_solves_saved            9862
+
+### suites + replay + fixtures + f7, rule r1
+stag 0.5
+flips                        404
+greys                        14843
+refining_tests               21231
+reread_cuts                  14315
+reread_new_solves_old        43950
+reread_saved_L1b             513
+reread_saved_probe           28441
+test_cut_stall_flag_flip     1866
+test_cuts                    12570
+test_solves_saved            23007

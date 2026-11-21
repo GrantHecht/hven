@@ -4,6 +4,8 @@ import sys, os, collections
 sys.path.insert(0, os.path.dirname(__file__))
 from parse import records, flist
 STAG = 0.5; TOL = 1e-6; UND = 1e-3; STEPS = 3
+import os as _os
+ELIM_ONLY = _os.environ.get('ELIM_ONLY') == '1'
 args = sys.argv[1:]
 if args and args[0] == '--stag': STAG = float(args[1]); args = args[2:]
 def kept(T):
@@ -20,7 +22,7 @@ for rec in records(args):
     tr = kept(T); target = float(T['target'])
     ress = flist(T['ress'])
     if T['brk'] == '1': ress = ress[:-1]
-    if T['screen'] == '0' and len(flist(T['rhos'])) > 1:
+    if T['screen'] == '0' and len(flist(T['rhos'])) > 1 and not (ELIM_ONLY and T['bord'] == '1'):
         st['refining_tests'] += 1
         cut_at = None
         for j in range(1, len(tr)):
@@ -34,11 +36,11 @@ for rec in records(args):
             st['test_solves_saved'] += full_solves - (cut_at + 1)
             # outcome under the cut: independent stall admit; compare with final
             orig_v = C['verdict']; orig_grey = C['grey']
-            if orig_v != '0' or orig_grey == '1':
+            if (orig_v != '0' and C['struct'] != '1') or orig_grey == '1':
                 st['test_cut_VERDICT_CHANGE'] += 1; bad.append(('test', f, T['rhos'], C))
             if C['stall'] == '0': st['test_cut_stall_flag_flip'] += 1
     # ---- re-read probe
-    if C['grey'] == '1' and K is not None:
+    if C['grey'] == '1' and K is not None and not (ELIM_ONLY and T['bord'] == '1'):
         st['greys'] += 1; st['flips'] += int(C['flip'])
         k = int(T['solves']) - 1  # test steps (converged tests never broke)
         kr = flist(K['rhos']); kbrk = K['brk'] == '1'

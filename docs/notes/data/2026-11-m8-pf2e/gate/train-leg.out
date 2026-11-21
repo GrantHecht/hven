@@ -1,0 +1,17 @@
+box-lane: lane 0 acquired 2026-11-21T15:59:45-05:00
+FOREGROUND_START 2026-11-21T15:59:45-05:00 lane=0 phys=0 1 2 3
+enum rc=0 2026-11-21T16:02:35-05:00
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-E-vs-L.txt:SUMMARY rows 476; status movers 0; path movers 2; counter-only movers 65; missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-E-vs-L.txt:INSTR hven-sqp all    REF 1.146192e+12 NEW 1.133988e+12 NEW/REF 0.989353
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-E-vs-L.txt:INSTR hven-sqp stable REF 1.132221e+12 NEW 1.120146e+12 NEW/REF 0.989335
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-L-retake-vs-pf2dL.txt:SUMMARY rows 476; status movers 0; path movers 0; counter-only movers 0; missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-L-retake-vs-pf2dL.txt:INSTR hven-sqp all    REF 1.146153e+12 NEW 1.146192e+12 NEW/REF 1.000034
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-L-retake-vs-pf2dL.txt:INSTR hven-sqp stable REF 1.146153e+12 NEW 1.146192e+12 NEW/REF 1.000034
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dF-vs-pf2dL.txt:SUMMARY rows 476; status movers 0; path movers 13; counter-only movers 87; missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dF-vs-pf2dL.txt:INSTR hven-sqp all    REF 1.146153e+12 NEW 1.067309e+12 NEW/REF 0.931210
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dF-vs-pf2dL.txt:INSTR hven-sqp stable REF 6.948297e+11 NEW 6.841444e+11 NEW/REF 0.984622
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dG-vs-pf2dL.txt:SUMMARY rows 476; status movers 0; path movers 22; counter-only movers 78; missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dG-vs-pf2dL.txt:INSTR hven-sqp all    REF 1.146153e+12 NEW 9.782545e+11 NEW/REF 0.853511
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/gate/train/path-pf2dG-vs-pf2dL.txt:INSTR hven-sqp stable REF 2.683217e+11 NEW 2.609349e+11 NEW/REF 0.972471
+P2_AS_DECLARED
+FOREGROUND_END 2026-11-21T16:02:36-05:00
