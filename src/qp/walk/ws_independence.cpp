@@ -335,8 +335,10 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
         res_norm = nan_sticky_inf_norm(res);
         t.solves = 1;
     }
-    const bool test_probe = probe == DepProbe::kTest && target > 0.0 && !t.screen;
-    const bool reread_probe = probe == DepProbe::kReread && resumed;
+    // The probe reads the eliminated path only: on the border path a stagnant step can precede a
+    // collapse (kDepStagnation).
+    const bool test_probe = probe == DepProbe::kTest && target > 0.0 && !t.screen && !sys.bordered;
+    const bool reread_probe = probe == DepProbe::kReread && resumed && !sys.bordered;
     if (test_probe && res_norm > target) {
         read_out(y);
         rho_cur = t.rho;

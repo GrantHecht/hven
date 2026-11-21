@@ -95,7 +95,10 @@ constexpr Index kDepRefineSteps = 3;
 // contraction at kDepStagnation per remaining step could not carry rho to the reading that would
 // change the verdict: kDepTol for the grey re-read, kDepUndecidable for a non-screen test (which
 // then stands as a stall admission, its rho at or above kDepUndecidable). An EVIDENCE rule, not a
-// certificate: it assumes a stagnant refinement does not turn into a fast one.
+// certificate: it assumes a stagnant refinement does not turn into a fast one -- which the BORDER
+// path breaks (NET1, TRAIN: rho 3.35e-6 -> 3.40e-6 -> 4.6e-11 and the mu-free residual with it, a
+// stagnant step before a collapse, on the Schur complement's solve), so the probe runs on the
+// eliminated path only; a bordered test and re-read refine to the budget as before.
 constexpr double kDepStagnation = 0.5;
 constexpr double kDepCoeffTol = 1e-6;
 constexpr Index kEntryDetectSolves = 4;
