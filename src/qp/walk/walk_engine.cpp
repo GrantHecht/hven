@@ -5215,11 +5215,13 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     }
     // R-E (E2 fix6): a CONVERGED "independent" in the grey band is re-read with
     // the refinement run to its end on the same factor; a certified rho' makes it
-    // dependent with the re-read's coefficients (walk_engine.h, Degeneracy).
+    // dependent with the re-read's coefficients (walk_engine.h, Degeneracy). The re-read
+    // resumes from the test's final iterate and stops on a stagnant step that cannot reach
+    // kDepTol (PF-2e, kDepStagnation): a cut re-read leaves the "independent" standing.
     if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
         t.rho < detail::kDepUndecidable) {
         ++counters.dep_grey_rereads;
-        detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts, &t);
+        detail::DepTest r = detail::grey_reread(qp, ws, view, a, opts, t);
         const Index solves = t.solves + r.solves;
         const double rho_floor =
             r.rho <= detail::kDepTol ? detail::dependency_rounding_floor(qp, ws, r, a) : 0.0;
@@ -5231,9 +5233,9 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
         }
         t.solves = solves;
     }
-    t.has_first = false;
-    t.first_y = Vec();
-    t.first_res = Vec();
+    t.has_resume = false;
+    t.resume_y = Vec();
+    t.resume_res = Vec();
     // The screen alone decided, with the mandatory rows dependent: possibly a
     // false dependent (the safe direction), counted.
     if (t.screen && !(t.rho <= detail::kDepTol) && counters.mandatory_dependent_entries > 0) {

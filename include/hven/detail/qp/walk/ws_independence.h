@@ -87,6 +87,16 @@ namespace hven::detail {
 constexpr double kDepTol = 1e-6;
 constexpr double kDepUndecidable = 1e-3;
 constexpr Index kDepRefineSteps = 3;
+// THE CONTRACTION PROBE (PF-2e). A rho that is regularization error (a dependent candidate read
+// through K_mu) contracts geometrically under the mu-free refinement while a rho that is distance
+// stays put (q = rho_{j+1} / rho_j ~ 1); MEASURED (qp suites, replay, f7 cells; PF-2e): wherever
+// this rule could stop, every refinement whose outcome needed the rest of its steps read q <= 0.11.
+// A refinement step with q >= kDepStagnation is STAGNANT, and the refinement stops when even
+// contraction at kDepStagnation per remaining step could not carry rho to the reading that would
+// change the verdict: kDepTol for the grey re-read, kDepUndecidable for a non-screen test (which
+// then stands as a stall admission, its rho at or above kDepUndecidable). An EVIDENCE rule, not a
+// certificate: it assumes a stagnant refinement does not turn into a fast one.
+constexpr double kDepStagnation = 0.5;
 constexpr double kDepCoeffTol = 1e-6;
 constexpr Index kEntryDetectSolves = 4;
 // A detector support member is offered for removal only when the null vector certifies it:
@@ -198,12 +208,18 @@ struct DepTest {
     Vec v_e;   // per equality row
     Vec v_w;   // per ws.active_ineq() entry
     Vec v_pin; // size n; nonzero only at pinned columns
-    // First solve of a converged independent test in the re-read band, kept so that
-    // certificate_coefficients can resume from it instead of repeating the same backend solve.
-    bool has_first = false;
-    Vec first_y;
-    Vec first_res;
-    double first_res_norm = 0.0;
+    // The final iterate of a converged independent test in the re-read band (its solve and the
+    // resume_steps refinement steps that reached it), kept so that the re-read resumes from it
+    // instead of repeating those backend solves; resume_rho_prev is rho before the last of those
+    // steps (NaN when there was none).
+    bool has_resume = false;
+    Vec resume_y;
+    Vec resume_res;
+    double resume_res_norm = 0.0;
+    Index resume_steps = 0;
+    double resume_rho_prev = std::numeric_limits<double>::quiet_NaN();
+    // The contraction probe ended the refinement before its budget (kDepStagnation).
+    bool probe_cut = false;
 
     bool dependent() const { return verdict != DepVerdict::kIndependent; }
 };
@@ -215,11 +231,18 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 /// The same test with the refinement run to its end (until a step stops lowering the mu-free
 /// residual, at most kDepRefineSteps): the Farkas certificate's multipliers, mu-free up to
 /// rounding (settler S25'). Only the coefficients are meant to be read. `first`, when it holds a
-/// first solve (DepTest::has_first, from dependency_test of the same `a` on the same factor), is
-/// resumed from rather than solved again; `solves` still counts it.
+/// test's final iterate (DepTest::has_resume, from dependency_test of the same `a` on the same
+/// factor), is resumed from rather than recomputed: the refinement is deterministic, so the
+/// iterates up to it are the test's own, bit for bit; `solves` still counts them.
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const Vec &a, const QpOptions &opts,
                                  const DepTest *first = nullptr);
+
+/// R-E's grey re-read of the converged test `t` (t.has_resume): certificate_coefficients resumed
+/// from t, with the contraction probe (kDepStagnation) ending the refinement once it cannot reach
+/// kDepTol. A cut re-read (probe_cut) reads above kDepTol, so it never certifies a dependent.
+DepTest grey_reread(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &a,
+                    const QpOptions &opts, const DepTest &t);
 
 /// R-E's rounding floor (kDepRereadKappa): the bound on the rounding carried by a computed rho for
 /// the coefficients `t` holds (t.v_e, t.v_w) of the candidate `a`.

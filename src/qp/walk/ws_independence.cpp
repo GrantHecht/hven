@@ -217,11 +217,14 @@ Index ws_rows(const QpProblem &qp, const WorkingSet &ws) {
 
 namespace {
 
+// How dependency_test_to may end its refinement before the budget (kDepStagnation).
+enum class DepProbe : std::uint8_t { kNone, kTest, kReread };
+
 // The dependency test's body; `target` is the refinement's stopping residual
 // (<= 0: refine until a step stops lowering the residual or the steps run out).
 DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                            const Vec &a, const QpOptions &opts, double target,
-                           const DepTest *first = nullptr) {
+                           const DepTest *first = nullptr, DepProbe probe = DepProbe::kNone) {
     const hven::linear::SolveContextScope solve_context(
         hven::linear::SolveContext::kDetector); // PF-2b
     const Index n = qp.n();
@@ -268,30 +271,89 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
             rhs(p) = a(i);
         }
     }
+    // Coefficients on the rows of `yy`; pins absorb what is left at pinned columns. Sets t.rho.
+    const auto read_out = [&](const Vec &yy) {
+        t.v_e.setZero();
+        t.v_w.setZero();
+        t.v_pin.setZero();
+        for (std::size_t k = 0; k < sys.comp.size(); ++k) {
+            const WsMember &m = sys.comp[k];
+            const double yk = yy(sys.comp_pos[k]);
+            if (m.kind == WsMember::Kind::kEq) {
+                t.v_e(m.idx) = yk;
+            } else if (m.kind == WsMember::Kind::kRow) {
+                const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
+                if (it != aw.end() && *it == m.idx) {
+                    t.v_w(static_cast<Index>(it - aw.begin())) = yk;
+                }
+            }
+        }
+        Vec w = a;
+        if (qp.me() > 0) {
+            w -= qp.Ae.transpose() * t.v_e;
+        }
+        if (qp.mi() > 0) {
+            // t.v_w is indexed by aw's (ascending) positions already.
+            if (sys.rows_w->rows() == aw) {
+                sys.rows_w->add_t(w, t.v_w, /*subtract=*/true);
+            } else {
+                RowSubset(qp.Ai, aw).add_t(w, t.v_w, /*subtract=*/true);
+            }
+        }
+        double free_sq = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
+                free_sq += w(i) * w(i);
+            } else {
+                t.v_pin(i) = w(i);
+            }
+        }
+        t.rho = std::sqrt(free_sq) / a_norm;
+    };
+
     Vec y;
     Vec res;
     double res_norm;
-    if (first != nullptr && first->has_first) {
-        // The same factor and right-hand side as the test that produced `first`: its first solve
-        // is this one's, bit for bit.
-        y = first->first_y;
-        res = first->first_res;
-        res_norm = first->first_res_norm;
+    Index steps = 0; // refinement steps taken (kept) since the first solve
+    // rho before the last kept step and at the current iterate (the probe's readings; NaN unread).
+    double rho_prev = std::numeric_limits<double>::quiet_NaN();
+    double rho_cur = std::numeric_limits<double>::quiet_NaN();
+    const bool resumed = first != nullptr && first->has_resume;
+    if (resumed) {
+        // The same factor, right-hand side and refinement as the test that produced `first`: its
+        // iterates are this one's, bit for bit, up to and including its final one.
+        y = first->resume_y;
+        res = first->resume_res;
+        res_norm = first->resume_res_norm;
+        steps = first->resume_steps;
+        rho_prev = first->resume_rho_prev;
+        rho_cur = first->rho;
+        t.solves = 1 + steps;
     } else {
         y = sys.solve(rhs);
         res = sys.residual(qp, rhs, y, opts);
         res_norm = nan_sticky_inf_norm(res);
+        t.solves = 1;
     }
-    ++t.solves;
-    const bool keep_first = first == nullptr && target > 0.0;
-    Vec y0;
-    Vec res0;
-    const double res_norm0 = res_norm;
-    if (keep_first) {
-        y0 = y;
-        res0 = res;
+    const bool test_probe = probe == DepProbe::kTest && target > 0.0 && !t.screen;
+    const bool reread_probe = probe == DepProbe::kReread && resumed;
+    if (test_probe && res_norm > target) {
+        read_out(y);
+        rho_cur = t.rho;
     }
-    for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
+    // THE CONTRACTION PROBE (kDepStagnation): after a kept step that read rho_prev -> rho_cur,
+    // with `left` steps of the budget remaining.
+    const auto stagnant_cut = [&](Index left) {
+        if (!(rho_prev > 0.0) || !(rho_cur >= kDepStagnation * rho_prev)) {
+            return false; // no step read, or the step contracted
+        }
+        const double reach = rho_cur * std::pow(kDepStagnation, static_cast<double>(left));
+        return reread_probe ? reach > kDepTol : reach >= kDepUndecidable;
+    };
+    if (reread_probe && steps < kDepRefineSteps && stagnant_cut(kDepRefineSteps - steps)) {
+        t.probe_cut = true; // the test's own last step was stagnant: no re-read solve at all
+    }
+    while (!t.probe_cut && steps < kDepRefineSteps && res_norm > target) {
         const Vec cand = y + sys.solve(res);
         ++t.solves;
         Vec cres = sys.residual(qp, rhs, cand, opts);
@@ -302,42 +364,18 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
         y = cand;
         res = std::move(cres);
         res_norm = cn;
-    }
-
-    // Coefficients on the rows; pins absorb what is left at pinned columns.
-    for (std::size_t k = 0; k < sys.comp.size(); ++k) {
-        const WsMember &m = sys.comp[k];
-        const double yk = y(sys.comp_pos[k]);
-        if (m.kind == WsMember::Kind::kEq) {
-            t.v_e(m.idx) = yk;
-        } else if (m.kind == WsMember::Kind::kRow) {
-            const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
-            if (it != aw.end() && *it == m.idx) {
-                t.v_w(static_cast<Index>(it - aw.begin())) = yk;
-            }
+        ++steps;
+        if ((test_probe || reread_probe) && steps < kDepRefineSteps && res_norm > target) {
+            read_out(y);
+            rho_prev = rho_cur;
+            rho_cur = t.rho;
+            t.probe_cut = stagnant_cut(kDepRefineSteps - steps);
+        } else if (target > 0.0) {
+            rho_prev = rho_cur; // the test's last step's reading, for the re-read's probe
+            rho_cur = std::numeric_limits<double>::quiet_NaN();
         }
     }
-    Vec w = a;
-    if (qp.me() > 0) {
-        w -= qp.Ae.transpose() * t.v_e;
-    }
-    if (qp.mi() > 0) {
-        // t.v_w is indexed by aw's (ascending) positions already.
-        if (sys.rows_w->rows() == aw) {
-            sys.rows_w->add_t(w, t.v_w, /*subtract=*/true);
-        } else {
-            RowSubset(qp.Ai, aw).add_t(w, t.v_w, /*subtract=*/true);
-        }
-    }
-    double free_sq = 0.0;
-    for (Index i = 0; i < n; ++i) {
-        if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
-            free_sq += w(i) * w(i);
-        } else {
-            t.v_pin(i) = w(i);
-        }
-    }
-    t.rho = std::sqrt(free_sq) / a_norm;
+    read_out(y);
     const bool converged = res_norm <= std::max(target, 0.0);
     // The landed contract (header, S23): a converged rho above kDepTol is
     // independent, including kDepTol < rho < kDepUndecidable; a stall below
@@ -352,11 +390,13 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
     } else {
         t.verdict = DepVerdict::kIndependent;
         t.stall_admit = !converged;
-        if (keep_first && converged && t.rho < kDepUndecidable) {
-            t.has_first = true;
-            t.first_y = std::move(y0);
-            t.first_res = std::move(res0);
-            t.first_res_norm = res_norm0;
+        if (first == nullptr && target > 0.0 && converged && t.rho < kDepUndecidable) {
+            t.has_resume = true;
+            t.resume_y = std::move(y);
+            t.resume_res = std::move(res);
+            t.resume_res_norm = res_norm;
+            t.resume_steps = steps;
+            t.resume_rho_prev = steps > 0 ? rho_prev : std::numeric_limits<double>::quiet_NaN();
         }
     }
     return t;
@@ -366,12 +406,18 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
 
 DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                         const Vec &a, const QpOptions &opts) {
-    return dependency_test_to(qp, ws, f, a, opts, 0.1 * kDepTol * a.lpNorm<Eigen::Infinity>());
+    return dependency_test_to(qp, ws, f, a, opts, 0.1 * kDepTol * a.lpNorm<Eigen::Infinity>(),
+                              nullptr, DepProbe::kTest);
 }
 
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const Vec &a, const QpOptions &opts, const DepTest *first) {
     return dependency_test_to(qp, ws, f, a, opts, 0.0, first);
+}
+
+DepTest grey_reread(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &a,
+                    const QpOptions &opts, const DepTest &t) {
+    return dependency_test_to(qp, ws, f, a, opts, 0.0, &t, DepProbe::kReread);
 }
 
 double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, const DepTest &t,
