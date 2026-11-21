@@ -21,11 +21,11 @@ def tally(p):
     return [int(x) for x in ls[1].split(',')]
 CNT = ['status', 'factorizations', 'qp_minors', 'escapes', 'qp_subproblems', 'qp_fact_per_qp']
 NAMES = [f + '_' + b for f in ('solves', 'rhs', 'refine') for b in ('ordinary', 'detector', 'polish', 'border')]
-cells = sorted({re.match(r'(?:u0|prev|new|off)-r\d-(.*)\.csv$', os.path.basename(f)).group(1) for f in glob.glob(D + '/raw/*.csv')})
+cells = sorted({re.match(r'(?:u0|prev|newG|new|off)-r\d-(.*)\.csv$', os.path.basename(f)).group(1) for f in glob.glob(D + '/raw/*.csv')})
 res = {}
 print('## determinism and baseline checks')
 for c in cells:
-    for arm in ('u0', 'prev', 'new', 'off'):
+    for arm in ('u0', 'prev', 'new', 'off', 'newG'):
         rs, pf, ty = [], [], []
         for r in (1, 2, 3):
             f = f'{D}/raw/{arm}-r{r}-{c}.csv'
@@ -86,3 +86,9 @@ for c in cells:
     print(f'\n{c}: solves/minor prev -> new (ordinary, detector, polish, border; total)')
     tp = [p['tally'][bi] / p['minors'] for bi in range(4)]; tn = [n['tally'][bi] / n['minors'] for bi in range(4)]
     print('  ' + ' | '.join(f'{b} {x:.3f}->{y:.3f}' for b, x, y in zip(('ord', 'det', 'pol', 'bor'), tp, tn)) + f' | total {sum(tp):.3f}->{sum(tn):.3f}')
+
+print('\n## PF-2d: newG (F + the literal L2 band, evidence arm) vs new')
+for c in cells:
+    if (c, 'newG') in res and (c, 'new') in res and (c, 'u0') in res:
+        g, n, u = res[(c, 'newG')], res[(c, 'new')], res[(c, 'u0')]
+        print(f"{c} | newG/U0 {g['ipm']/u['ipm']:.3f} | new/U0 {n['ipm']/u['ipm']:.3f} | newG minors {g['minors']} status {g['status']} | new minors {n['minors']} status {n['status']} | detector solves/minor newG {g['tally'][1]/g['minors']:.3f} new {n['tally'][1]/n['minors']:.3f}")
