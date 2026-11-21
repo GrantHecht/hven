@@ -87,6 +87,10 @@ namespace hven::detail {
 constexpr double kDepTol = 1e-6;
 constexpr double kDepUndecidable = 1e-3;
 constexpr Index kDepRefineSteps = 3;
+// A non-screen test whose first-solve rho1 >= this is independent without refinement; 0 verdict
+// changes at 1e-2 (2-14 per cell at 3e-3).
+constexpr double kDepDecideFirstRho = 1e-2;
+constexpr bool decides_at_first_solve(double rho1) { return rho1 >= kDepDecideFirstRho; }
 constexpr double kDepCoeffTol = 1e-6;
 constexpr Index kEntryDetectSolves = 4;
 // A detector support member is offered for removal only when the null vector certifies it:

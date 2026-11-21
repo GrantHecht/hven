@@ -291,53 +291,68 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
         y0 = y;
         res0 = res;
     }
-    for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
-        const Vec cand = y + sys.solve(res);
-        ++t.solves;
-        Vec cres = sys.residual(qp, rhs, cand, opts);
-        const double cn = nan_sticky_inf_norm(cres);
-        if (!(cn < res_norm)) {
-            break;
-        }
-        y = cand;
-        res = std::move(cres);
-        res_norm = cn;
-    }
-
-    // Coefficients on the rows; pins absorb what is left at pinned columns.
-    for (std::size_t k = 0; k < sys.comp.size(); ++k) {
-        const WsMember &m = sys.comp[k];
-        const double yk = y(sys.comp_pos[k]);
-        if (m.kind == WsMember::Kind::kEq) {
-            t.v_e(m.idx) = yk;
-        } else if (m.kind == WsMember::Kind::kRow) {
-            const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
-            if (it != aw.end() && *it == m.idx) {
-                t.v_w(static_cast<Index>(it - aw.begin())) = yk;
+    // Coefficients on the rows of `yy`; pins absorb what is left at pinned columns. Sets t.rho.
+    const auto read_out = [&](const Vec &yy) {
+        t.v_e.setZero();
+        t.v_w.setZero();
+        t.v_pin.setZero();
+        for (std::size_t k = 0; k < sys.comp.size(); ++k) {
+            const WsMember &m = sys.comp[k];
+            const double yk = yy(sys.comp_pos[k]);
+            if (m.kind == WsMember::Kind::kEq) {
+                t.v_e(m.idx) = yk;
+            } else if (m.kind == WsMember::Kind::kRow) {
+                const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
+                if (it != aw.end() && *it == m.idx) {
+                    t.v_w(static_cast<Index>(it - aw.begin())) = yk;
+                }
             }
         }
-    }
-    Vec w = a;
-    if (qp.me() > 0) {
-        w -= qp.Ae.transpose() * t.v_e;
-    }
-    if (qp.mi() > 0) {
-        // t.v_w is indexed by aw's (ascending) positions already.
-        if (sys.rows_w->rows() == aw) {
-            sys.rows_w->add_t(w, t.v_w, /*subtract=*/true);
-        } else {
-            RowSubset(qp.Ai, aw).add_t(w, t.v_w, /*subtract=*/true);
+        Vec w = a;
+        if (qp.me() > 0) {
+            w -= qp.Ae.transpose() * t.v_e;
         }
-    }
-    double free_sq = 0.0;
-    for (Index i = 0; i < n; ++i) {
-        if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
-            free_sq += w(i) * w(i);
-        } else {
-            t.v_pin(i) = w(i);
+        if (qp.mi() > 0) {
+            // t.v_w is indexed by aw's (ascending) positions already.
+            if (sys.rows_w->rows() == aw) {
+                sys.rows_w->add_t(w, t.v_w, /*subtract=*/true);
+            } else {
+                RowSubset(qp.Ai, aw).add_t(w, t.v_w, /*subtract=*/true);
+            }
         }
+        double free_sq = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
+                free_sq += w(i) * w(i);
+            } else {
+                t.v_pin(i) = w(i);
+            }
+        }
+        t.rho = std::sqrt(free_sq) / a_norm;
+    };
+    // L3 (PF-2d): a non-screen test that would refine but whose first solve already reads rho1
+    // clear of the grey band is independent; the refinement cannot change that verdict.
+    bool decided_at_first = false;
+    if (target > 0.0 && !t.screen && res_norm > target) {
+        read_out(y);
+        decided_at_first = decides_at_first_solve(t.rho);
     }
-    t.rho = std::sqrt(free_sq) / a_norm;
+    if (!decided_at_first) {
+        for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
+            const Vec cand = y + sys.solve(res);
+            ++t.solves;
+            Vec cres = sys.residual(qp, rhs, cand, opts);
+            const double cn = nan_sticky_inf_norm(cres);
+            if (!(cn < res_norm)) {
+                break;
+            }
+            y = cand;
+            res = std::move(cres);
+            res_norm = cn;
+        }
+
+        read_out(y);
+    }
     const bool converged = res_norm <= std::max(target, 0.0);
     // The landed contract (header, S23): a converged rho above kDepTol is
     // independent, including kDepTol < rho < kDepUndecidable; a stall below

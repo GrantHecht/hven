@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <initializer_list>
+#include <limits>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -593,8 +594,58 @@ TEST(WsIndependenceCalibration, AStalledRefinementAboveTheUndecidableBandIsAdmit
         EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
         EXPECT_TRUE(t.stall_admit) << "the refinement converged: the fixture no longer stalls";
         EXPECT_GE(t.rho, detail::kDepUndecidable);
-        EXPECT_EQ(t.solves, 1 + detail::kDepRefineSteps);
+        // PF-2d L3: rho1 >= kDepDecideFirstRho is decided at the first solve, so the stalled
+        // refinement is never run; the certificate mode still refines to its end.
+        EXPECT_EQ(t.solves, 1);
+        EXPECT_EQ(rv.reread(vec_of({0.0, 1.0, 1.0})).solves, 1 + detail::kDepRefineSteps);
     }
+}
+
+// PF-2d L3: a non-screen test decides at its first solve exactly when rho1 >= kDepDecideFirstRho.
+// Working row (1, 0, 0), mu = 1e-4 (the first solve's residual ~mu is above the target, so the
+// refinement WOULD run); candidate (1, e, 0) has rho ~ e. e = 5e-3 refines (more than one solve,
+// converges), e = 2e-2 is decided at once (one solve, not converged: stall_admit). The screen case
+// (n = 2 columns, two working rows) never skips: its verdict is the integer screen's, but the
+// coefficients are read from the refined solve.
+TEST(WsIndependenceCalibration, ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDepDecideFirstRho) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 0, 0, 0, 1, 0;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    Eigen::MatrixXd Ai2(2, 2);
+    Ai2 << 1, 0, 0, 1;
+    const QpProblem screen_qp =
+        make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Eigen::MatrixXd(0, 2), Vec(0), Ai2,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView rv(qp, 1e-4, {}, {0}, border);
+        const detail::DepTest below = rv.test(vec_of({1.0, 5e-3, 0.0}));
+        EXPECT_EQ(below.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_LT(below.rho, detail::kDepDecideFirstRho);
+        EXPECT_GT(below.solves, 1);
+        EXPECT_FALSE(below.stall_admit);
+        const detail::DepTest above = rv.test(vec_of({1.0, 2e-2, 0.0}));
+        EXPECT_EQ(above.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_GE(above.rho, detail::kDepDecideFirstRho);
+        EXPECT_EQ(above.solves, 1);
+        EXPECT_TRUE(above.stall_admit);
+        EXPECT_GT(rv.reread(vec_of({1.0, 2e-2, 0.0})).solves, 1);
+
+        const RowsView sv(screen_qp, 1e-4, {}, {0, 1}, border);
+        const detail::DepTest scr = sv.test(vec_of({1.0, 2e-2}));
+        EXPECT_TRUE(scr.screen);
+        EXPECT_EQ(scr.verdict, detail::DepVerdict::kDependent);
+        EXPECT_GT(scr.solves, 1);
+    }
+}
+
+TEST(WsIndependenceCalibration, TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho) {
+    EXPECT_EQ(detail::kDepDecideFirstRho, 1e-2);
+    EXPECT_TRUE(detail::decides_at_first_solve(detail::kDepDecideFirstRho));
+    EXPECT_FALSE(detail::decides_at_first_solve(std::nextafter(detail::kDepDecideFirstRho, 0.0)));
+    EXPECT_FALSE(detail::decides_at_first_solve(std::numeric_limits<double>::quiet_NaN()));
 }
 
 // S23 end to end: seeded with rows 0 and 1 active at x = 0, the step on their
