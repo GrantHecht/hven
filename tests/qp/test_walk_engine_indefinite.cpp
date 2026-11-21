@@ -2960,7 +2960,22 @@ TEST(QpGreyReread, TheReReadSavesTheTestsFirstBackendSolve) {
     const detail::DepTest t = fx.candidate(counters);
     EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
     EXPECT_EQ(counters.dep_grey_rereads, 1);
-    EXPECT_FALSE(t.has_first); // never carried out of test_candidate
+    EXPECT_FALSE(t.has_resume); // never carried out of test_candidate
     // logical solves = the test's + the re-read's; the re-read's first is not a backend call.
     EXPECT_EQ(counters.dep_test_solves - tally.solves(hven::linear::SolveContext::kDetector), 1);
+}
+
+// PF-2e end to end: test_candidate's grey re-read takes the contraction probe. The fixture's grey
+// candidate is independent (q = 1), so the re-read stops after one probe step: two backend detector
+// solves in all (the test's and the probe's), the verdict independent.
+TEST(QpGreyReread, TheReReadStopsOnAStagnantProbeStep) {
+    const GreyBandFixture fx(3e-4);
+    QpCounters counters;
+    hven::linear::SolveTally tally;
+    const detail::DepTest t = fx.candidate(counters);
+    EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+    EXPECT_EQ(counters.dep_grey_rereads, 1);
+    EXPECT_EQ(counters.dep_grey_reread_dependent, 0);
+    EXPECT_EQ(tally.solves(hven::linear::SolveContext::kDetector), 2);
+    EXPECT_EQ(counters.dep_test_solves, 3); // logical: the test, the reused solve, the probe
 }

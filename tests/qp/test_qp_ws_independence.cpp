@@ -593,7 +593,11 @@ TEST(WsIndependenceCalibration, AStalledRefinementAboveTheUndecidableBandIsAdmit
         EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
         EXPECT_TRUE(t.stall_admit) << "the refinement converged: the fixture no longer stalls";
         EXPECT_GE(t.rho, detail::kDepUndecidable);
-        EXPECT_EQ(t.solves, 1 + detail::kDepRefineSteps);
+        // PF-2e: its first refinement step is stagnant (rho does not fall) and rho stays far above
+        // kDepUndecidable, so the contraction probe ends the refinement there (a declared pin move:
+        // 1 + kDepRefineSteps solves before PF-2e).
+        EXPECT_TRUE(t.probe_cut);
+        EXPECT_EQ(t.solves, 2);
     }
 }
 
@@ -695,11 +699,11 @@ TEST(WsIndependenceCalibration, AGreyReReadNeverFlipsACandidateAboveKDepTol) {
     }
 }
 
-// PF-2d L1: the re-read resumes from the test's own first solve. Two grey fixtures: the stiff one,
-// whose test converges at its first solve, and a large-mu one whose test needs a refinement step
-// before it converges (so the kept first solve differs from the final solve). The re-read from the
-// kept solve equals the stand-alone re-read bit for bit and issues fewer backend solves (one fewer
-// on the eliminated path, one bordered solve fewer on the border path); `solves` stays logical.
+// PF-2d L1, PF-2e: the re-read resumes from the test's final iterate. Two grey fixtures: the stiff
+// one, whose test converges at its first solve, and a large-mu one whose test needs a refinement
+// step before it converges. The re-read from the kept iterate equals the stand-alone re-read bit
+// for bit and issues fewer backend solves (the test's solve and its refinement steps on the
+// eliminated path; fewer bordered solves on the border path); `solves` stays logical.
 TEST(WsIndependenceCalibration, AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead) {
     Eigen::MatrixXd Ai_stiff(2, 3);
     Ai_stiff << 1, 1, 0, 0, 0, 1;
@@ -726,7 +730,7 @@ TEST(WsIndependenceCalibration, AReReadResumedFromTheTestsFirstSolveEqualsAFresh
             const RowsView sv(*c.qp, c.mu, {}, {0}, border);
             const detail::DepTest t = sv.test(c.a);
             ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
-            ASSERT_TRUE(t.has_first);
+            ASSERT_TRUE(t.has_resume);
             EXPECT_EQ(t.solves > 1, c.refines);
             hven::linear::SolveTally fresh_tally;
             const detail::DepTest fresh = sv.reread(c.a);
@@ -745,9 +749,138 @@ TEST(WsIndependenceCalibration, AReReadResumedFromTheTestsFirstSolveEqualsAFresh
             EXPECT_GE(fresh_solves, 1);
             EXPECT_LT(resumed_solves, fresh_solves);
             if (!border) {
-                EXPECT_EQ(resumed_solves, fresh_solves - 1);
+                // PF-2e: the resumed re-read skips the test's solve AND its refinement steps.
+                EXPECT_EQ(resumed_solves, fresh_solves - t.solves);
             }
         }
+    }
+}
+
+// PF-2e, THE CONTRACTION PROBE (kDepStagnation). The working row (1, 0, 0) of a unit-Hessian QP and
+// the candidate (1, e, 0): independent at distance e. Through K_mu the coefficient's error is
+// m = mu / (1 + mu), contracted by m per refinement step, so rho_j ~ sqrt(m^(2j+2) + e^2) / |a| and
+// the mu-free residual ~ m^(j+1) against the target 1e-7: at mu = 1e-8 the test converges at its
+// first solve, at mu = 1e-4 after one step, at mu = 1e-2 after three; a step is stagnant once e
+// dominates m^(j+1).
+namespace {
+QpProblem unit_rows_qp() {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 0, 0, 0, 1, 0;
+    return make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0), Ai,
+                   vec_of({1.0, 1.0}), -10.0, 10.0);
+}
+} // namespace
+
+// A grey test that converged at its first solve: the re-read takes ONE refinement step, reads it
+// stagnant, and stops (two steps short of the budget), the test's rho and "independent" standing.
+TEST(WsIndependenceProbe, AStagnantGreyReReadStopsAfterOneStep) {
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView sv(unit_rows_qp(), 1e-8, {}, {0}, border);
+        const Vec a = vec_of({1.0, 3e-4, 0.0});
+        const detail::DepTest t = sv.test(a);
+        ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        ASSERT_TRUE(t.has_resume);
+        ASSERT_EQ(t.resume_steps, 0);
+        hven::linear::SolveTally tally;
+        const detail::DepTest r = detail::grey_reread(sv.qp, sv.ws, sv.view(), a, sv.o, t);
+        EXPECT_TRUE(r.probe_cut);
+        EXPECT_EQ(r.solves, 2); // the reused first solve and the one probe step
+        EXPECT_GT(r.rho, detail::kDepTol);
+        EXPECT_NEAR(r.rho, t.rho, 1e-12);
+        if (!border) {
+            EXPECT_EQ(tally.solves(hven::linear::SolveContext::kDetector), 1);
+        }
+        const detail::DepTest full =
+            detail::certificate_coefficients(sv.qp, sv.ws, sv.view(), a, sv.o, &t);
+        EXPECT_FALSE(full.probe_cut);
+        EXPECT_GT(full.solves, r.solves);
+    }
+}
+
+// A grey test whose own refinement step was already stagnant: the re-read is decided before any
+// solve (the test's last step is the probe), and reads exactly the test's coefficients.
+TEST(WsIndependenceProbe, AGreyTestWithAStagnantStepNeedsNoReReadSolve) {
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView sv(unit_rows_qp(), 1e-4, {}, {0}, border);
+        const Vec a = vec_of({1.0, 3e-4, 0.0}); // rho 3.2e-4 -> 3.0e-4 over the test's one step
+        const detail::DepTest t = sv.test(a);
+        ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        ASSERT_TRUE(t.has_resume);
+        ASSERT_EQ(t.resume_steps, 1);
+        ASSERT_GE(t.rho, detail::kDepStagnation * t.resume_rho_prev);
+        hven::linear::SolveTally tally;
+        const detail::DepTest r = detail::grey_reread(sv.qp, sv.ws, sv.view(), a, sv.o, t);
+        EXPECT_EQ(tally.solves(hven::linear::SolveContext::kDetector), 0);
+        EXPECT_TRUE(r.probe_cut);
+        EXPECT_EQ(r.solves, t.solves);
+        EXPECT_EQ(r.rho, t.rho);
+        EXPECT_EQ(r.v_w, t.v_w);
+    }
+}
+
+// A contracting grey re-read (the stiff fixture: (3, 3, 0) = 3 x the working row, read grey through
+// K_mu) is never cut: it runs to the budget and certifies the dependent, bit for bit the full
+// re-read.
+TEST(WsIndependenceProbe, AContractingGreyReReadRunsToItsEnd) {
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 1, 1, 0, 0, 0, 1;
+    const QpProblem stiff =
+        make_qp(1e4 * Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
+                Ai, vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView sv(stiff, 1e-8, {}, {0}, border);
+        const Vec a = vec_of({3.0, 3.0, 0.0});
+        const detail::DepTest t = sv.test(a);
+        ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        ASSERT_GT(t.rho, detail::kDepTol);
+        const detail::DepTest r = detail::grey_reread(sv.qp, sv.ws, sv.view(), a, sv.o, t);
+        const detail::DepTest full =
+            detail::certificate_coefficients(sv.qp, sv.ws, sv.view(), a, sv.o, &t);
+        EXPECT_FALSE(r.probe_cut);
+        EXPECT_LE(r.rho, detail::kDepTol);
+        EXPECT_EQ(r.rho, full.rho);
+        EXPECT_EQ(r.solves, full.solves);
+        EXPECT_EQ(r.v_w, full.v_w);
+    }
+}
+
+// The test's probe reaches only for kDepUndecidable: a test stagnant at a GREY rho (mu = 1e-2,
+// e = 5e-4: rho 1e-2 -> 5.1e-4 -> 5.0e-4, the second step stagnant with one step left) is refined
+// to its end (it converges at the third step and is re-read), never cut to an undecidable.
+TEST(WsIndependenceProbe, AStagnantTestInTheGreyBandIsNotCut) {
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView sv(unit_rows_qp(), 1e-2, {}, {0}, border);
+        const detail::DepTest t = sv.test(vec_of({1.0, 5e-4, 0.0}));
+        EXPECT_FALSE(t.probe_cut);
+        EXPECT_EQ(t.solves, 1 + detail::kDepRefineSteps);
+        EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_FALSE(t.stall_admit);
+        EXPECT_TRUE(t.has_resume);
+        EXPECT_LT(t.rho, detail::kDepUndecidable);
+    }
+}
+
+// The probe never cuts a SCREEN test (its coefficients are read): rows (1, 0) and (1, 1e-5) and the
+// candidate (0, 1) on n = 2 (me + |W| + 1 > n), whose refinement contracts by only ~1 - 5e-3 per
+// step (sigma_min^2 ~ 5e-11 < mu), runs the whole budget.
+TEST(WsIndependenceProbe, AScreenTestIsNeverCut) {
+    Eigen::MatrixXd Ai(2, 2);
+    Ai << 1, 0, 1, 1e-5;
+    const QpProblem qp =
+        make_qp(Eigen::MatrixXd::Identity(2, 2), Vec::Zero(2), Eigen::MatrixXd(0, 2), Vec(0), Ai,
+                vec_of({1.0, 1.0}), -10.0, 10.0);
+    for (const bool border : {false, true}) {
+        SCOPED_TRACE(border ? "border" : "eliminated");
+        const RowsView sv(qp, 1e-8, {0}, {1}, border);
+        const detail::DepTest t = sv.test(vec_of({0.0, 1.0}));
+        ASSERT_TRUE(t.screen);
+        EXPECT_EQ(t.verdict, detail::DepVerdict::kDependent);
+        EXPECT_FALSE(t.probe_cut);
+        EXPECT_EQ(t.solves, 1 + detail::kDepRefineSteps);
     }
 }
 
