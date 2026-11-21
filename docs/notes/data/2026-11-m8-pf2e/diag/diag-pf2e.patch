@@ -1,0 +1,180 @@
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -2,6 +2,10 @@
+ // (see LICENSE).
+ 
+ #include <algorithm>
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++#include <unistd.h>
+ #include <cmath>
+ #include <cstddef>
+ #include <limits>
+@@ -17,6 +21,17 @@
+ 
+ namespace hven::detail {
+ 
++long long g_pf2e_id = -1;
++std::FILE *pf2e_log() {
++    static std::FILE *f = [] {
++        const char *p = std::getenv("PF2E_LOG");
++        if (p == nullptr) return static_cast<std::FILE *>(nullptr);
++        std::string path = std::string(p) + "." + std::to_string(::getpid());
++        return std::fopen(path.c_str(), "a");
++    }();
++    return f;
++}
++
+ namespace {
+ 
+ // The pass's solve system, labelled: where each variable and each live
+@@ -283,6 +298,47 @@
+         res_norm = nan_sticky_inf_norm(res);
+     }
+     ++t.solves;
++    // PF2E DIAG: rho of an iterate
++    const auto diag_rho = [&](const Vec &yy) {
++        Vec ve = Vec::Zero(qp.me());
++        Vec vw = Vec::Zero(static_cast<Index>(aw.size()));
++        for (std::size_t k = 0; k < sys.comp.size(); ++k) {
++            const WsMember &m = sys.comp[k];
++            const double yk = yy(sys.comp_pos[k]);
++            if (m.kind == WsMember::Kind::kEq) {
++                ve(m.idx) = yk;
++            } else if (m.kind == WsMember::Kind::kRow) {
++                const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
++                if (it != aw.end() && *it == m.idx) vw(static_cast<Index>(it - aw.begin())) = yk;
++            }
++        }
++        Vec ww = a;
++        if (qp.me() > 0) ww -= qp.Ae.transpose() * ve;
++        if (qp.mi() > 0) RowSubset(qp.Ai, aw).add_t(ww, vw, true);
++        double fs = 0.0;
++        for (Index i = 0; i < n; ++i)
++            if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) fs += ww(i) * ww(i);
++        return std::sqrt(fs) / a_norm;
++    };
++    std::FILE *dlog = pf2e_log();
++    std::string drhos, dress;
++    double d_au = 0.0, d_un = 0.0, d_rc = 0.0, d_rx = 0.0, d_v1 = 0.0, d_vmaxsc = 0.0;
++    if (dlog != nullptr) {
++        char b[64];
++        std::snprintf(b, sizeof b, "%.4g", diag_rho(y)); drhos += b;
++        std::snprintf(b, sizeof b, "%.4g", res_norm); dress += b;
++        for (Index i = 0; i < n; ++i) {
++            const Index p = sys.var_pos[static_cast<std::size_t>(i)];
++            if (p >= 0) { d_au += a(i) * y(p); d_un += y(p) * y(p); d_rx = std::max(d_rx, std::abs(res(p))); }
++        }
++        d_un = std::sqrt(d_un);
++        for (std::size_t k = 0; k < sys.comp.size(); ++k) {
++            d_rc = std::max(d_rc, std::abs(res(sys.comp_pos[k])));
++            d_v1 += std::abs(y(sys.comp_pos[k]));
++            d_vmaxsc = std::max(d_vmaxsc, std::abs(y(sys.comp_pos[k])) * member_norm(qp, sys.comp[k]));
++        }
++    }
++    int d_brk = 0;
+     const bool keep_first = first == nullptr && target > 0.0;
+     Vec y0;
+     Vec res0;
+@@ -296,7 +352,13 @@
+         ++t.solves;
+         Vec cres = sys.residual(qp, rhs, cand, opts);
+         const double cn = nan_sticky_inf_norm(cres);
++        if (dlog != nullptr) {
++            char b[64];
++            std::snprintf(b, sizeof b, ",%.4g", diag_rho(cand)); drhos += b;
++            std::snprintf(b, sizeof b, ",%.4g", cn); dress += b;
++        }
+         if (!(cn < res_norm)) {
++            d_brk = 1;
+             break;
+         }
+         y = cand;
+@@ -359,6 +421,20 @@
+             t.first_res_norm = res_norm0;
+         }
+     }
++    if (dlog != nullptr) {
++        double amax = 0.0, aall = 0.0;
++        for (std::size_t k = 0; k < sys.comp.size(); ++k) aall = std::max(aall, member_norm(qp, sys.comp[k]));
++        (void)amax;
++        std::fprintf(dlog,
++                     "T id=%lld mode=%s bord=%d n=%ld nc=%zu nfree=%ld target=%.3g solves=%ld brk=%d conv=%d "
++                     "screen=%d verdict=%d rho=%.6g rhos=%s ress=%s au=%.4g un=%.4g rc=%.4g rx=%.4g v1=%.4g "
++                     "vmaxsc=%.4g anorm=%.4g amemmax=%.4g resumed=%d mu=%.3g delta=%.3g\n",
++                     g_pf2e_id, target > 0.0 ? "test" : "cert", int(sys.bordered), long(n), sys.comp.size(),
++                     long(ws.num_free()), target, long(t.solves), d_brk, int(converged), int(t.screen),
++                     int(t.verdict), t.rho, drhos.c_str(), dress.c_str(), d_au, d_un, d_rc, d_rx, d_v1,
++                     d_vmaxsc, a_norm, aall, int(first != nullptr && first->has_first), opts.dual_regularization,
++                     opts.primal_regularization);
++    }
+     return t;
+ }
+ 
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -5200,8 +5200,13 @@
+     } else {
+         a(idx) = 1.0; // the side does not change dependence
+     }
++    static long long pf2e_next = 0;
++    detail::g_pf2e_id = pf2e_next++;
+     detail::DepTest t = detail::dependency_test(qp, ws, view, a, opts);
+     ++counters.dep_tests;
++    const double pf2e_rho0 = t.rho;
++    int pf2e_grey = 0, pf2e_flip = 0, pf2e_struct = 0;
++    double pf2e_rc = -1.0, pf2e_floor = -1.0;
+     // R-A (E2 fix3): an exact structural dependency overrules a numerical
+     // "independent" at every growth site (walk_engine.h, Degeneracy).
+     if (t.verdict == detail::DepVerdict::kIndependent) {
+@@ -5210,6 +5215,7 @@
+             const Index solves = t.solves;
+             t = sd.test;
+             t.solves = solves;
++            pf2e_struct = 1;
+             ++counters.dep_structural_first;
+         }
+     }
+@@ -5223,6 +5229,8 @@
+         const Index solves = t.solves + r.solves;
+         const double rho_floor =
+             r.rho <= detail::kDepTol ? detail::dependency_rounding_floor(qp, ws, r, a) : 0.0;
++        pf2e_grey = 1; pf2e_rc = r.rho; pf2e_floor = rho_floor;
++        pf2e_flip = r.rho + rho_floor <= detail::kDepTol ? 1 : 0;
+         if (r.rho + rho_floor <= detail::kDepTol) {
+             t = std::move(r);
+             t.verdict = detail::DepVerdict::kDependent;
+@@ -5256,6 +5264,12 @@
+     if (t.unrun) {
+         ++counters.dep_unrun_tests;
+     }
++    if (std::FILE *dl = detail::pf2e_log()) {
++        std::fprintf(dl, "C id=%lld ineq=%d idx=%ld rho0=%.6g grey=%d flip=%d rcert=%.4g floor=%.4g struct=%d verdict=%d stall=%d\n",
++                     detail::g_pf2e_id, int(is_ineq), long(idx), pf2e_rho0, pf2e_grey, pf2e_flip, pf2e_rc, pf2e_floor,
++                     pf2e_struct, int(t.verdict), int(t.stall_admit));
++    }
++    detail::g_pf2e_id = -1;
+     return t;
+ }
+ 
+--- a/include/hven/detail/qp/walk/ws_independence.h
++++ b/include/hven/detail/qp/walk/ws_independence.h
+@@ -69,6 +69,7 @@
+ // uses it where the test is undecidable (dep_structural_exact).
+ 
+ #include <cstdint>
++#include <cstdio>
+ #include <functional>
+ #include <limits>
+ #include <utility>
+@@ -84,6 +85,9 @@
+ 
+ namespace hven::detail {
+ 
++extern long long g_pf2e_id;
++std::FILE *pf2e_log();
++
+ constexpr double kDepTol = 1e-6;
+ constexpr double kDepUndecidable = 1e-3;
+ constexpr Index kDepRefineSteps = 3;

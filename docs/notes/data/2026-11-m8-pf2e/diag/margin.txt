@@ -1,0 +1,28 @@
+### REACH factor 1
+flip re-reads 91 largest step q at a probe point:
+   q=0.105 rhos=0.0001431,1.508e-05,1.671e-06,5.502e-07 suite/seam.2955639
+   q=0.105 rhos=0.0001431,1.508e-05,1.671e-06,5.502e-07 suite/seam.2955639
+   q=0.0794 rhos=0.001311,9.393e-05,7.461e-06,5.932e-07 f7/f7_n800_path_neutral.2956408
+   q=0.073 rhos=0.001288,8.499e-05,6.203e-06,4.532e-07 f7/f7_n800_path_neutral.2956408
+   q=0.0668 rhos=0.001264,7.643e-05,5.102e-06,3.409e-07 f7/f7_n800_path_neutral.2956408
+   q=0.0607 rhos=0.001239,6.827e-05,4.147e-06,2.522e-07 f7/f7_n800_path_neutral.2956408
+non-stall tests 4 largest step q at a probe point:
+   q=0.0825 rhos=0.07545,0.006223,0.0005672,0.0002463 suite/seam.2955639
+   q=0.0825 rhos=0.07545,0.006223,0.0005672,0.0002463 suite/seam.2955639
+   q=0.00844 rhos=5.409,0.04567,0.0003855,3.254e-06 suite/seam.2955639
+   q=0.00844 rhos=5.409,0.04567,0.0003855,3.254e-06 britgas.2951595
+### REACH factor 0.1
+flip re-reads 276 largest step q at a probe point:
+   q=0.158 rhos=9.574e-05,2.201e-06,3.481e-07,3.412e-07 f7/f7_n750_path_neutral_control.2957105
+   q=0.145 rhos=6.652e-05,2.596e-06,3.777e-07,3.645e-07 suite/seam.2955639
+   q=0.145 rhos=6.652e-05,2.596e-06,3.777e-07,3.645e-07 suite/seam.2955639
+   q=0.138 rhos=9.059e-05,1.915e-06,2.634e-07,2.59e-07 f7/f7_n750_path_neutral_control.2957105
+   q=0.123 rhos=0.0003277,2.774e-06,3.425e-07,3.414e-07 f7/f7_n750_path_neutral_control.2957105
+   q=0.111 rhos=0.0001431,1.508e-05,1.671e-06,5.502e-07 suite/seam.2955639
+non-stall tests 173 largest step q at a probe point:
+   q=1.01 rhos=0.0008847,0.0008928,0.0008904,0.0008906 suite/seam.2955639
+   q=1.01 rhos=0.0008847,0.0008928,0.0008904,0.0008906 suite/seam.2955639
+   q=1 rhos=0.0009756,0.0009796,0.0009966 suite/seam.2955639
+   q=1 rhos=0.0009756,0.0009796,0.0009966 suite/seam.2955639
+   q=1 rhos=0.000924,0.0008888,0.0008914,0.0008913 suite/seam.2955639
+   q=1 rhos=0.000924,0.0008888,0.0008914,0.0008913 suite/seam.2955639

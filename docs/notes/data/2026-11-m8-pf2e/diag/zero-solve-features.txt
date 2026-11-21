@@ -1,0 +1,5 @@
+# grey re-reads whose test converged at its first solve (k = 0): flips vs non-flips, zero-solve features
+cancellation max|v_k|.||a_k||/||a||    flips 420: min 0.991 med 7.24 max 2.38e+03 | non-flips 16037: min 0.0405 med 1.85 max 570
+||v||_1                                flips 420: min 0.216 med 4.78 max 191 | non-flips 16037: min 0.00202 med 97.5 max 642
+mu-free constraint residual / ||a||    flips 420: min 7.2e-10 med 1e-08 max 9.54e-08 | non-flips 16037: min 9.15e-12 med 1.75e-08 max 3e-08
+test rho                               flips 420: min 1.05e-06 med 0.000115 max 0.000959 | non-flips 16037: min 1.38e-06 med 0.000709 max 0.000997
