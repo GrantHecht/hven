@@ -34,8 +34,7 @@ train_ok() { export PF2D_IGNORE_TALLY=1; local bad=0
     python3 $L/instr_compare.py $D/train/A/cells $D/train/$X/cells > $D/train/instr-$X.txt 2>&1; grep '^TOTAL' $D/train/instr-$X.txt
   done
   grep -q "^SUMMARY rows 476; movers vs arm A 0 .*missing/capped 0" $D/train/train_check-L.txt || { echo P3_L_ROWS_DIFFER_OR_MISSING; bad=1; }
-  grep -q "^MOVERS_SUMMARY rows 476; status movers 0;" $D/train/movers-F.txt || { echo P3_F_STATUS_MOVERS; bad=1; }
-  grep -q "^SUMMARY .*missing/capped 0" $D/train/train_check-F.txt || { echo P3_F_MISSING; bad=1; }
+  # F and G are evidence arms (declaration r2): their movers are reported above, not asserted.
   python3 - $D/train/instr-L.txt <<'PY'
 import re, sys
 t = open(sys.argv[1]).read()

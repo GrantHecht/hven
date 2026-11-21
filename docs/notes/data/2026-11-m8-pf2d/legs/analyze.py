@@ -21,11 +21,11 @@ def tally(p):
     return [int(x) for x in ls[1].split(',')]
 CNT = ['status', 'factorizations', 'qp_minors', 'escapes', 'qp_subproblems', 'qp_fact_per_qp']
 NAMES = [f + '_' + b for f in ('solves', 'rhs', 'refine') for b in ('ordinary', 'detector', 'polish', 'border')]
-cells = sorted({re.match(r'(?:u0|prev|newG|new|off)-r\d-(.*)\.csv$', os.path.basename(f)).group(1) for f in glob.glob(D + '/raw/*.csv')})
+cells = sorted({re.match(r'(?:u0|prev|newL|newF|newG)-r\d-(.*)\.csv$', os.path.basename(f)).group(1) for f in glob.glob(D + '/raw/*.csv')})
 res = {}
 print('## determinism and baseline checks')
 for c in cells:
-    for arm in ('u0', 'prev', 'new', 'off', 'newG'):
+    for arm in ('u0', 'prev', 'newL', 'newF', 'newG'):
         rs, pf, ty = [], [], []
         for r in (1, 2, 3):
             f = f'{D}/raw/{arm}-r{r}-{c}.csv'
@@ -41,54 +41,17 @@ for c in cells:
         res[(c, arm)] = dict(ipm=st.median(ipm), minors=m, fact=int(rs[0]['factorizations']), status=rs[0]['status'],
                              instr=st.median(p['instructions'] for p in pf), tally=ty[0] if ty else None)
         print(f"{c} | {arm} | {rs[0]['status']} fact {rs[0]['factorizations']} minors {m} | instr/minor {st.median(ipm):.1f} | spread {(max(ipm)-min(ipm))/st.median(ipm)*100:.3f}% | rounds identical {ident}({len(rs)}) | = U0 baseline {mb}")
-print('\n## PF-2 per-minor instruction ratio vs U0 (instructions:u / qp_minors, medians)')
-print('cell | U0 | new | new/U0 | off | off/U0 | new status fact minors | off status fact minors')
+print('\n## PF-2d: per-minor instruction ratio vs U0 (instructions:u / qp_minors, medians), bar 1.15 on tier A')
+print('cell | prev/U0 | newL/U0 | newF/U0 | newG/U0 | newL/prev | newL bar | minors prev/newL/newF/newG | status prev/newL/newF/newG')
 for c in cells:
-    if (c, 'u0') in res and (c, 'new') in res:
-        a, b = res[(c, 'u0')], res[(c, 'new')]; o = res.get((c, 'off'))
-        print(f"{c} | {a['ipm']:.4g} | {b['ipm']:.4g} | {b['ipm']/a['ipm']:.3f} | " + (f"{o['ipm']:.4g} | {o['ipm']/a['ipm']:.3f}" if o else '- | -') +
-              f" | {b['status']} {b['fact']} {b['minors']} | " + (f"{o['status']} {o['fact']} {o['minors']}" if o else '-'))
-print('\n## solve tally per qp minor (designated solve only), off (U0-equivalent work) vs new')
+    if all((c, k) in res for k in ('u0', 'prev', 'newL', 'newF', 'newG')):
+        u, p, l, f, g = (res[(c, k)] for k in ('u0', 'prev', 'newL', 'newF', 'newG'))
+        print(f"{c} | {p['ipm']/u['ipm']:.3f} | {l['ipm']/u['ipm']:.3f} | {f['ipm']/u['ipm']:.3f} | {g['ipm']/u['ipm']:.3f} | {l['ipm']/p['ipm']:.3f} | {'MET' if l['ipm']/u['ipm'] <= 1.15 else 'not met'} | {p['minors']}/{l['minors']}/{f['minors']}/{g['minors']} | {p['status']}/{l['status']}/{f['status']}/{g['status']}")
+print('\n## solves per qp minor by bucket (ordinary, detector, polish, border; total), designated solve only')
 for c in cells:
-    if (c, 'new') not in res or (c, 'off') not in res: continue
-    n, o = res[(c, 'new')], res[(c, 'off')]
-    print(f'\n{c}: new minors {n["minors"]}, off minors {o["minors"]}')
-    print('  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new')
-    tot = [0, 0]
-    for bi, b in enumerate(('ordinary', 'detector', 'polish', 'border')):
-        vals = []
-        for fi in range(3):
-            i = fi * 4 + bi
-            vals.append((o['tally'][i] / o['minors'], n['tally'][i] / n['minors']))
-        print(f"  {b} | {vals[0][0]:.3f} | {vals[0][1]:.3f} | {vals[0][1]-vals[0][0]:+.3f} | {vals[1][0]:.3f} | {vals[1][1]:.3f} | {vals[2][0]:.3f} | {vals[2][1]:.3f}")
-    to = [sum(o['tally'][f*4:(f+1)*4]) / o['minors'] for f in range(3)]
-    tn = [sum(n['tally'][f*4:(f+1)*4]) / n['minors'] for f in range(3)]
-    print(f"  total | {to[0]:.3f} | {tn[0]:.3f} | {tn[0]-to[0]:+.3f} | {to[1]:.3f} | {tn[1]:.3f} | {to[2]:.3f} | {tn[2]:.3f}")
-    d_i = n['ipm'] - o['ipm']
-    ds = tn[0] - to[0]
-    print(f"  instr/minor new-off = {d_i:.4g} ; extra solves/minor {ds:.3f} ; implied instr per extra solve {d_i/ds if ds else float('nan'):.4g}")
-    # share of the excess per component, by extra solve-columns (rhs) and by extra refinement steps
-    ex = [(n['tally'][4+bi] / n['minors'] - o['tally'][4+bi] / o['minors']) if False else (n['tally'][4 + bi] / n['minors'] - o['tally'][4 + bi] / o['minors']) for bi in range(4)]
-    exs = [(n['tally'][bi] / n['minors'] - o['tally'][bi] / o['minors']) for bi in range(4)]
-    tots = sum(exs) or float('nan')
-    print('  extra-solve share (of the sum of per-bucket deltas): ' + ', '.join(f'{b} {e/tots*100:.1f}%' for b, e in zip(('ordinary', 'detector', 'polish', 'border'), exs)))
-
-print('\n## PF-2d: prev (pf2b head) vs new (levers) -- instr/minor ratios vs U0 and per-bucket solves per minor')
-print('cell | new/U0 | prev/U0 | off/U0 | new/prev | bar(1.15) | new minors | prev minors | new status | prev status')
-for c in cells:
-    if (c, 'u0') in res and (c, 'new') in res and (c, 'prev') in res:
-        a, b, p = res[(c, 'u0')], res[(c, 'new')], res[(c, 'prev')]; o = res.get((c, 'off'))
-        print(f"{c} | {b['ipm']/a['ipm']:.3f} | {p['ipm']/a['ipm']:.3f} | " + (f"{o['ipm']/a['ipm']:.3f}" if o else '-') +
-              f" | {b['ipm']/p['ipm']:.3f} | {'MET' if b['ipm']/a['ipm'] <= 1.15 else 'not met'} | {b['minors']} | {p['minors']} | {b['status']} | {p['status']}")
-for c in cells:
-    if (c, 'new') not in res or (c, 'prev') not in res: continue
-    n, p = res[(c, 'new')], res[(c, 'prev')]
-    print(f'\n{c}: solves/minor prev -> new (ordinary, detector, polish, border; total)')
-    tp = [p['tally'][bi] / p['minors'] for bi in range(4)]; tn = [n['tally'][bi] / n['minors'] for bi in range(4)]
-    print('  ' + ' | '.join(f'{b} {x:.3f}->{y:.3f}' for b, x, y in zip(('ord', 'det', 'pol', 'bor'), tp, tn)) + f' | total {sum(tp):.3f}->{sum(tn):.3f}')
-
-print('\n## PF-2d: newG (F + the literal L2 band, evidence arm) vs new')
-for c in cells:
-    if (c, 'newG') in res and (c, 'new') in res and (c, 'u0') in res:
-        g, n, u = res[(c, 'newG')], res[(c, 'new')], res[(c, 'u0')]
-        print(f"{c} | newG/U0 {g['ipm']/u['ipm']:.3f} | new/U0 {n['ipm']/u['ipm']:.3f} | newG minors {g['minors']} status {g['status']} | new minors {n['minors']} status {n['status']} | detector solves/minor newG {g['tally'][1]/g['minors']:.3f} new {n['tally'][1]/n['minors']:.3f}")
+    if not all((c, k) in res for k in ('prev', 'newL', 'newF', 'newG')): continue
+    print(f'\n{c}:')
+    for k in ('prev', 'newL', 'newF', 'newG'):
+        r = res[(c, k)]
+        t = [r['tally'][bi] / r['minors'] for bi in range(4)]
+        print(f"  {k:5s} " + ' | '.join(f'{b} {x:.3f}' for b, x in zip(('ord', 'det', 'pol', 'bor'), t)) + f' | total {sum(t):.3f}')

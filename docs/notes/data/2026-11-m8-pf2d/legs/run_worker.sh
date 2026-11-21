@@ -11,11 +11,12 @@ CORE=$1; shift
 P2B=/home/ghecht/Projects/hven/.claude/worktrees/pf2b
 BIN_u0=$P2B/.scratch/build-u0/bench/hven_sqp_corpus
 BIN_prev=$P2B/.scratch/build-measB/bench/hven_sqp_corpus
-BIN_new=$R/.scratch/build-measD/bench/hven_sqp_corpus
+BIN_newL=$R/.scratch/build-measL/bench/hven_sqp_corpus
+BIN_newF=$R/.scratch/build-measD/bench/hven_sqp_corpus
 BIN_newG=$R/.scratch/build-measG/bench/hven_sqp_corpus
 run() { # arm round cell
   local arm=$1 r=$2 c=$3 bin extra=()
-  case $arm in u0) bin=$BIN_u0;; prev) bin=$BIN_prev; extra=(HVEN_BENCH_SOLVE_TALLY=1);; new) bin=$BIN_new; extra=(HVEN_BENCH_SOLVE_TALLY=1);; newG) bin=$BIN_newG; extra=(HVEN_BENCH_SOLVE_TALLY=1);; off) bin=$BIN_new; extra=(HVEN_BENCH_SOLVE_TALLY=1 HVEN_PF12_IWS=0);; esac
+  case $arm in u0) bin=$BIN_u0;; prev) bin=$BIN_prev; extra=(HVEN_BENCH_SOLVE_TALLY=1);; newL) bin=$BIN_newL; extra=(HVEN_BENCH_SOLVE_TALLY=1);; newF) bin=$BIN_newF; extra=(HVEN_BENCH_SOLVE_TALLY=1);; newG) bin=$BIN_newG; extra=(HVEN_BENCH_SOLVE_TALLY=1);; esac
   local tag=$arm-r$r-$c
   [ -s $DD/raw/$tag.csv ] && { echo "SKIP $tag"; return; }
   echo "RUN $(date -u +%T) core=$CORE $tag"
@@ -25,10 +26,10 @@ run() { # arm round cell
     > $DD/raw/$tag.stdout 2> $DD/raw/$tag.stderr
   echo "DONE $(date -u +%T) $tag rc=$?"
 }
-for bin in $BIN_u0 $BIN_prev $BIN_new $BIN_newG; do
+for bin in $BIN_u0 $BIN_prev $BIN_newL $BIN_newF $BIN_newG; do
   env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c $CORE $bin --internal-run-one f7_n800_path_warm --engine walk --internal-out /dev/null >/dev/null 2>&1
 done
-ORD=("u0 prev new off newG" "prev new off newG u0" "newG u0 prev new off")
+ORD=("u0 prev newL newF newG" "prev newL newF newG u0" "newL newF newG u0 prev")
 for c in "$@"; do
   for r in 1 2 3; do
     for a in ${ORD[$((r-1))]}; do run $a $r $c; done
