@@ -35,7 +35,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/kkt/kkt_assembly.h>
+#include <hven/detail/qp/walk/eqp_solve.h>
 #include <hven/detail/qp/walk/walk_engine.h>
+#include <hven/detail/qp/walk/ws_independence.h>
 
 #include "qp/support/dense_oracle.h"
 #include "qp/support/indefinite_fixtures.h"
@@ -62,6 +64,12 @@ struct QpEngineTestAccess {
                                  const QpOptions &opts, detail::InertiaVerdict &verdict) {
         return QpEngine::convex_overrules_wrong_inertia(qp, ws, x, lambda_e, lambda_i, counters,
                                                         opts, verdict);
+    }
+    // PF-2d: the dependency test on one candidate, counted (the grey re-read lives here).
+    static detail::DepTest candidate(const QpProblem &qp, const WorkingSet &ws,
+                                     const detail::DepFactorView &view, bool is_ineq, Index idx,
+                                     QpCounters &counters, const QpOptions &opts) {
+        return QpEngine::test_candidate(qp, ws, view, is_ineq, idx, counters, opts);
     }
 };
 } // namespace hven::detail
@@ -2905,4 +2913,54 @@ TEST(QpEngineIndefinite, KnownConvexFlagStandsInForTheStructuralConvexTest) {
         EXPECT_TRUE(diag.gate(o, c, v));
         EXPECT_EQ(c.convex_certificates, 1);
     }
+}
+
+// ===========================================================================
+// PF-2d L1 end to end: QpEngine::test_candidate's grey re-read resumes from the test's own first
+// solve. Working row (1, 0, 0); the candidate row (1, e, 0) has rho = e / sqrt(1 + e^2) and the
+// test converges at its first solve. e = 3e-4 is a grey reading (re-read: dep_grey_rereads 1), and
+// the backend detector solves are the logical `dep_test_solves` minus the one reused solve.
+// ===========================================================================
+namespace {
+struct GreyBandFixture {
+    QpProblem qp;
+    QpOptions o;
+    WorkingSet ws;
+    detail::KktFactor kkt{0, hven::linear::DensePolicy::kNever};
+
+    explicit GreyBandFixture(double e) : ws(3, 2) {
+        Eigen::MatrixXd Ai(2, 3);
+        Ai << 1, 0, 0, 1, e, 0;
+        const Eigen::MatrixXd H = Eigen::MatrixXd::Identity(3, 3);
+        qp.H = H.sparseView();
+        qp.g = Vec::Zero(3);
+        qp.Ae = Eigen::MatrixXd(0, 3).sparseView();
+        qp.be = Vec(0);
+        qp.Ai = Ai.sparseView();
+        qp.bi = Vec::Constant(2, 1.0);
+        qp.lower = Vec::Constant(3, -10.0);
+        qp.upper = Vec::Constant(3, 10.0);
+        o.dual_regularization = 1e-8;
+        ws.add_ineq(0);
+        (void)solve_eqp(qp, ws, Vec::Zero(3), kkt, o);
+    }
+
+    detail::DepTest candidate(QpCounters &c) const {
+        detail::DepFactorView v;
+        v.eliminated = &kkt;
+        return detail::QpEngineTestAccess::candidate(qp, ws, v, /*is_ineq=*/true, 1, c, o);
+    }
+};
+} // namespace
+
+TEST(QpGreyReread, TheReReadSavesTheTestsFirstBackendSolve) {
+    const GreyBandFixture fx(3e-4);
+    QpCounters counters;
+    hven::linear::SolveTally tally;
+    const detail::DepTest t = fx.candidate(counters);
+    EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+    EXPECT_EQ(counters.dep_grey_rereads, 1);
+    EXPECT_FALSE(t.has_first); // never carried out of test_candidate
+    // logical solves = the test's + the re-read's; the re-read's first is not a backend call.
+    EXPECT_EQ(counters.dep_test_solves - tally.solves(hven::linear::SolveContext::kDetector), 1);
 }
