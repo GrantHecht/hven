@@ -1,0 +1,6 @@
+# frozen binaries of DECLARATION-PF-2e, sha256, recorded before the first leg
+lane L (hven_bench_cell, pf2d frozen) 33183386bed750fba23ec49ec976411b8828b226d9716dd76d28c54068e9be09
+lane E (hven_bench_cell, pin 13d4c541d) ea25c159a5c73663d8bccb7b8183ed6c107732c8eba21d26af4cbf9d776e5065
+measL (pf2d frozen, 21ae792ce + pf12 lever patch) 430e71e09a398f0ac1063cc5bf46233914acda197a254f6eb2af49aeb6b5b55b
+measE (13d4c541d + pf12 lever patch) 40fd00248e5d2e5e70ef159325396cb75535a4b195a76fd2fc4d501d6f61cc92
+arms: L = pf2d ship head (code 21ae792ce); E = pf2e 334085b67 (rule) + 13d4c541d (tests), lane pin 13d4c541d (private hven-bench clone fc0bf24 off e03cbad, NEVER=1)
