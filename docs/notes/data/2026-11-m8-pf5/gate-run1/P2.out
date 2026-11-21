@@ -1,0 +1,35 @@
+box-lane: lane 0 acquired 2026-11-21T04:31:04-05:00
+BOX_LANE=0 phys=[0 1 2 3] jobs=4
+FOREGROUND_START 2026-11-21T04:31:04-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/bin/A/hven_sqp_corpus sha256 f4c987298a21420543e7e90a708bebdf4b29aa109febb48ee492b0fdcc364f92
+RUN A k=1 mode=walk 2026-11-21T04:31:04-05:00
+run rc=0
+RUN A k=1 mode=ssn 2026-11-21T04:35:56-05:00
+run rc=0
+RUN A k=1 mode=ipm 2026-11-21T04:36:16-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-21T04:36:42-05:00
+BOX_LANE=0 phys=[0 1 2 3] jobs=4
+FOREGROUND_START 2026-11-21T04:36:42-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/bin/B/hven_sqp_corpus sha256 5d7c634138dd007e8f96c60bb20d1def1f68491309203b083e2f32da5d5667ec
+RUN B k=1 mode=walk 2026-11-21T04:36:43-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-21T04:41:28-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-21T04:41:49-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-21T04:42:15-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-21T04:47:01-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-21T04:47:22-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-21T04:47:48-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-21T04:52:35-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-21T04:52:56-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-21T04:53:22-05:00

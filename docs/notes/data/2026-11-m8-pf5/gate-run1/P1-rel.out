@@ -1,0 +1,17 @@
+box-lane: lane 1 acquired 2026-11-21T03:45:33-05:00
+BOX_LANE=1 phys=[4 5 6 7] jobs=4
+FOREGROUND_START 2026-11-21T03:45:33-05:00
+[22/27] Linking CXX executable bench/hven_sqp_crossover
+[23/27] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[24/27] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+rc=0
+FOREGROUND_END 2026-11-21T03:46:03-05:00
+BOX_LANE=1 phys=[4 5 6 7] jobs=4
+FOREGROUND_START 2026-11-21T03:46:03-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	876 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	877 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-21T03:47:54-05:00
