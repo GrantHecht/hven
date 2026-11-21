@@ -1,0 +1,34 @@
+== primary (declared, for reference)
+  hs: median cell hs010 (rank 11/22 by instr_median=7062033) (B_sym+B_fac)=0.4189 rho=0.0423571 neg_agree=1.0 DN1_condition=True
+      init share of solver on this cell 0.5452 (frozen rule filed it: B_fac 0.2292, B_eng 0.3150, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 20/22 cells
+  sd: median cell HS100MOD (rank 49/97 by instr_median=8694896) (B_sym+B_fac)=0.4210 rho=0.0847818 neg_agree=1.0 DN1_condition=True
+      init share of solver on this cell 0.3279 (frozen rule filed it: B_fac 0.1420, B_eng 0.1849, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 45/97 cells
+  IPM DN-1 under this reading: True
+== A: init as B_setup
+  hs: median cell hs010 (rank 11/22 by instr_median=7062033) (B_sym+B_fac)=0.1897 rho=0.0423571 neg_agree=1.0 DN1_condition=False shares B_sym=0.000 B_fac=0.190 B_kkt=0.015 B_eval=0.024 B_setup=0.710 B_eng=0.060 dominant=B_setup DN2=False
+      init share of solver on this cell 0.5452 (frozen rule filed it: B_fac 0.2292, B_eng 0.3150, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 0/22 cells
+  sd: median cell HS100MOD (rank 49/97 by instr_median=8694896) (B_sym+B_fac)=0.2789 rho=0.0847818 neg_agree=1.0 DN1_condition=False shares B_sym=0.000 B_fac=0.279 B_kkt=0.010 B_eval=0.088 B_setup=0.558 B_eng=0.064 dominant=B_setup DN2=False
+      init share of solver on this cell 0.3279 (frozen rule filed it: B_fac 0.1420, B_eng 0.1849, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 18/97 cells
+  IPM DN-1 under this reading: False
+== B: steady state, init excluded
+  hs: median cell hs010 (rank 11/22 by ss_per_run=1086267) (B_sym+B_fac)=0.4172 rho=0.0423571 neg_agree=1.0 DN1_condition=True shares B_sym=0.000 B_fac=0.417 B_kkt=0.033 B_eval=0.054 B_setup=0.363 B_eng=0.133 dominant=B_fac DN2=False
+      init share of solver on this cell 0.5452 (frozen rule filed it: B_fac 0.2292, B_eng 0.3150, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 16/22 cells
+  sd: median cell HS100MOD (rank 49/97 by ss_per_run=2622062) (B_sym+B_fac)=0.4150 rho=0.0847818 neg_agree=1.0 DN1_condition=True shares B_sym=0.000 B_fac=0.415 B_kkt=0.015 B_eval=0.132 B_setup=0.343 B_eng=0.096 dominant=B_fac DN2=False
+      init share of solver on this cell 0.3279 (frozen rule filed it: B_fac 0.1420, B_eng 0.1849, B_setup 0.0010); population: (B_sym+B_fac)>=0.40 on 41/97 cells
+  IPM DN-1 under this reading: True
+
+== gdb probes (tools/init_probe_gdb_bt.sh, tools/init_probe_gdb_count.sh; RECORD binary; post-hoc, after every leg)
+-- backtrace at __kmp_serial_initialize (SMBANK, non-population):
+#0  __kmp_serial_initialize (str=<optimized out>) at ../../src/kmp_runtime.cpp:8735
+#1  0x00007ffff7aaa318 in __kmp_api_omp_get_num_procs () at ../../src/kmp_ftn_entry.h:749
+#2  0x00000000006aee92 in MKL_Read_ThreadENV_Count_Cores ()
+#3  0x00000000006ae417 in mkl_serv_domain_get_max_threads ()
+#4  ... std::call_once<hven::detail::ensure_solver_initialized()::$_0> ... __invoke() ()
+#5  __pthread_once_slow.isra.0 () from /lib64/libc.so.6
+#6  pthread_once@GLIBC_2.2.5 () from /lib64/libc.so.6
+#7  hven::detail::ensure_solver_initialized() ()
+#8  hven::detail::IpmSolverImpl::run_phase_sequence(...)
+#9  hven::detail::IpmSolverImpl::solve(...)
+#10 hven::IpmSolver::solve(...)
+#11 main ()
+-- call counts in one process (hs071): MKL_Read_ThreadENV_Count_Cores 1 (caller mkl_serv_domain_get_max_threads <- ensure_solver_initialized's call_once), __kmp_serial_initialize 1, pardiso 22

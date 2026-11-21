@@ -1,0 +1,32 @@
+# VERDICTS-r3 (extracted from the evidence; code head 07ef800e7cb6e66af6bc7114defde83b745cfc69, arm B3 sha256 8c530207b47180f7baf6ad53109bed8ea252a4d3b1348a37923603ef2fb2bb78, arm A sha256 91f4ee0066b990a2ebf74f38b73fbfb8aa7e7c7251b811eed63107c1fe39a0d9)
+P1 rel: 100% tests passed, 0 tests failed out of 3712
+P1 dbg: 100% tests passed, 0 tests failed out of 3712
+P2a interior: MODE interior FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2a ipm: MODE ipm FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2a ssn: MODE ssn FILTERED B/A = 1.000002 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2a walk: MODE walk FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2b interior-att-all: MODE interior FILTERED B/A = 1.000204 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2b interior-att-scalars: MODE interior FILTERED B/A = 1.000217 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2b interior leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+P2b   unattached         A=2.484540e+05 B=2.484540e+05 B/A=1.000000
+P2b   attached kAll      A=2.495720e+05 B=2.496230e+05 B/A=1.000204
+P2b   attached kScalars  A=2.484730e+05 B=2.485270e+05 B/A=1.000217
+P2b   attach cost at kAll      arm A: +0.4500%   arm B: +0.4705%   (B minus A: +0.0205%)
+P2b   attach cost at kScalars  arm A: +0.0076%   arm B: +0.0294%   (B minus A: +0.0217%)
+P3 === g3-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-walk === cells compared: 27  columns compared: 75  differences: 0
+P4 === interior-armed === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+P5 default: == hven install smoke: PASSED; == export contract OK for platform=linux, align=32
+P5 clang: == hven install smoke: PASSED; == export contract OK for platform=linux, align=32
+P8: [==========] 91 tests from 8 test suites ran. (1418 ms total); reports=0
+M (mutation-r3/mutation-table.csv): control: NONE
+M killed: a b c d e f g h i j k l m n o p q r s t u v w x y z B
+M survive: A
+M other: []
+CRITERIA_NOT_MET: P8 (the TSan-instrumented drivers binary exits 1: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot compares the best's mu and the event's mu bit for bit; under the TSan build the two arithmetic sites round 1 ulp apart, 8.0175348548365961e-05 vs 8.0175348548365948e-05; reports=0). Every other criterion met (P0, P1 3712 x2, P2a, P2b, P3, P4, P5, M: control clean, all must-kill killed, A survives as declared). A test-flaw, not a counter or runtime fault; successor r4 follows.

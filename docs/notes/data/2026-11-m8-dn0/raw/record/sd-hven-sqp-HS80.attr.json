@@ -1,0 +1,248 @@
+{
+ "samples": 536,
+ "period": 1000003,
+ "instr_sampled_all": 605833608,
+ "instr_sampled_solver": 429897140,
+ "bucket_instr": {
+  "B_sym": 1119003,
+  "B_fac": 370567984,
+  "B_kkt": 2273006,
+  "B_eval": 4574012,
+  "B_setup": 20597054,
+  "B_eng": 30766081,
+  "B_proc": 175936468
+ },
+ "share_of_solver": {
+  "B_sym": 0.002602955209239122,
+  "B_fac": 0.8619922058564986,
+  "B_kkt": 0.005287325242498706,
+  "B_eval": 0.010639782344213781,
+  "B_setup": 0.047911586478570196,
+  "B_eng": 0.0715661448689796
+ },
+ "proc_share_of_all": 0.29040394206720865,
+ "rule_instr": 587390560,
+ "fallback_instr": 12890033,
+ "fallback_by_bucket": {
+  "B_fac": 12890033
+ },
+ "unmatched_instr": 5553015,
+ "unmatched_share_of_solver": 0.012917078257371054,
+ "chains_reaching_main": 0.06716417910447761,
+ "init_instr": 0,
+ "steady_state_instr": 429897140,
+ "steady_state_share": {
+  "B_sym": 0.002602955209239122,
+  "B_fac": 0.8619922058564986,
+  "B_kkt": 0.005287325242498706,
+  "B_eval": 0.010639782344213781,
+  "B_setup": 0.047911586478570196,
+  "B_eng": 0.0715661448689796
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   354264942
+  ],
+  [
+   "<no hven::linear frame>",
+   12890033
+  ],
+  [
+   "hven::linear::detail::FactorSession::FactorSession",
+   1259003
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   1154003
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 27423072,
+ "kmp_instr": 243272648,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   3210009
+  ],
+  [
+   "__brk",
+   1273003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "hven::linear::SymmetricFactor::analyze",
+    1119003
+   ]
+  ],
+  "B_fac": [
+   [
+    "__kmp_fork_call",
+    21086057
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    18422048
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    18275048
+   ],
+   [
+    "__strcmp_avx2",
+    16079042
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    13372036
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    12330033
+   ],
+   [
+    "__kmpc_for_static_init_4",
+    11442030
+   ],
+   [
+    "__kmp_serialized_parallel",
+    11302030
+   ]
+  ],
+  "B_kkt": [
+   [
+    "malloc",
+    1147003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1126003
+   ]
+  ],
+  "B_eval": [
+   [
+    "elfun_",
+    2413006
+   ],
+   [
+    "hven::{anon}::adopt_pattern",
+    1084003
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1077003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    3329009
+   ],
+   [
+    "void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > >, Eigen::SparseMatrix<double, 1, int>, Eigen::internal::scalar_sum_op<double, double> >",
+    1245003
+   ],
+   [
+    "hven::detail::NlpProblemModel::build_jacobian_pattern",
+    1210003
+   ],
+   [
+    "cutest_cshp_threadsafe_",
+    1203003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1189003
+   ],
+   [
+    "_gfortrani_set_fpu_rounding_mode",
+    1182003
+   ],
+   [
+    "_gfortrani_read_f",
+    1175003
+   ],
+   [
+    "__GI_____strtod_l_internal",
+    1168003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::QpEngine::run",
+    3602009
+   ],
+   [
+    "hven::detail::SqpSolverImpl::run_major",
+    3252009
+   ],
+   [
+    "__internal_syscall_cancel",
+    3210009
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    2406006
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    2378006
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    2266006
+   ],
+   [
+    "__brk",
+    1273003
+   ],
+   [
+    "hven::detail::SqpSolverImpl::SolveState::SolveState",
+    1252003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    62238165
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    41417111
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    21954057
+   ],
+   [
+    "strcmp",
+    10428027
+   ],
+   [
+    "check_match",
+    10148027
+   ],
+   [
+    "__printf_buffer",
+    2301006
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2266006
+   ],
+   [
+    "mprotect",
+    2252006
+   ]
+  ]
+ }
+}

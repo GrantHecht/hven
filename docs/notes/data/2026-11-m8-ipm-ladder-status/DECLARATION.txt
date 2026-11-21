@@ -1,0 +1,121 @@
+M8 IPM ladder status (register item under ruling C288: the interior-point engine threw when its inertia-correction
+ladder ended without numerics) -- DECLARATION
+(committed before the first identity leg; never edited afterwards; a failed or void leg is answered by DECLARATION-r2,
+this file and its outputs kept; criteria are never changed after data; every invocation below uses ABSOLUTE paths)
+================================================================================
+Base        a4d687cd0 (origin/m8).
+Code head   78af82e2d -- one commit on the base. Evidence commits (this directory) follow and touch no source.
+Arm A       the base: `git archive a4d687cd0` exported to build-ipmlad/base-src (dep/eigen, dep/fmt copied from the
+            worktree's submodules at bc3b39870/407c905e4), built Release by legs/build.sh in build-ipmlad/armA-rel (target
+            hven_sqp_corpus), frozen to build-ipmlad/armAbin/hven_sqp_corpus, sha256
+            a93ae7f94e2ccb5fdafa4e1453e6f60a4d9b486284e98a46fb94365c61b64d01. (Its source path differs from arm B's; only
+            embedded path strings can differ from a same-tree build, never code.)
+Arm B       the code head: build-ipmlad/rel (Release), hven_sqp_corpus sha256
+            973b7e732fc818b8033e0740986cf898c7a092de6bf09db9471740f88bd7366e, frozen by runtime/run_all.sh to
+            build-ipmlad/armBbin. build-ipmlad/dbg (Debug) at the head.
+Toolchain   clang 22.1.8, HVEN_FP_MODE=SAFER_FAST (Release: -O3 -march=native -ffast-math -fno-finite-math-only), Eigen
+            5.0.1 (dep/eigen bc3b3987), MKL 2026.2, MKL_NUM_THREADS=1. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf
+            7.2.12. Apple/Accelerate and Windows: UNOBSERVED (macOS CI is the settler's).
+Scratch     build-ipmlad/ (git-ignored).
+Instruments legs/build.sh, legs/ctest.sh, legs/replay.sh, legs/interior.sh = ../2026-11-m8-nan-gates/legs/'s, copied
+            and re-pointed in code lines (worktree ipmlad, build-ipmlad/, this directory; replay outputs lad-*);
+            runtime/ = ../2026-11-m8-nan-gates/runtime-r2/, re-pointed (runtime/DECLARATION.txt, which records the
+            path-depth check); legs/failproof.sh (modelled on the NaN round's) and legs/chain.sh new. No pch leg: no
+            include list changed.
+
+THE DEFECT
+--------------------------------------------------------------------------------
+When an iteration's inertia ladder (factor_impl) ended on a factorization that left no numerics, alg_impl solved on it
+unchecked: IpmSolver::solve threw std::logic_error ("SymmetricFactor::solve: called before a successful factorize()").
+Reproduced on Linux by the dense fault injector: IpmDenseGuardSeam's pass search hit it at passes 1 and 2 (which the
+test skipped). The init path (init_impl) already returned kNumericalError for the same condition (M8 B5 riders).
+
+INVENTORY (every IPM read of a factorization that can follow one that left no numerics; lines at the code head)
+--------------------------------------------------------------------------------
+site                                                        reachable before?            action
+ipm_solver.cpp:3800-3815 factor_impl -> info() check        -                             NEW: kkt_no_numerics
+ipm_solver_globalization.cpp:1243 PROBE predictor solve     YES (barrier mode kProbe;     guarded: the governor call
+  (ClassicAdaptiveGovernor::update_barrier; the monitored     runs before the step solve)  at ipm_solver.cpp:3905 is
+  governor delegates to it)                                                                 skipped on kkt_no_numerics
+ipm_solver.cpp:3975 the step solve (the reported throw)     YES                           guarded (3974); phase ends
+ipm_solver.cpp:2162-2171 dense step guard's re-run          guarded already (breaks       its failure now ends the
+                                                              before solving, DN-1b F8)    phase too (3996-4004)
+                                                                                           instead of the exhausted-
+                                                                                           inertia dispatch
+ipm_solver_globalization.cpp:1454 SOC correction solve      only after the step solve on  unreachable now: the phase
+                                                              the same factorization        ends before the line search
+recovery chain / restoration entry / elastic re-center      run no solve                  unchanged
+restoration phases (nested, proximal)                       the same alg_impl loop        covered by the same check
+ipm_solver.cpp:4993 init_impl multiplier solve              guarded (B5 riders)           unchanged
+ipm_solver.cpp:5020-5027 init_impl dense guard re-run       guarded                       unchanged
+phase re-initialization (init_impl again)                   guarded                       unchanged
+
+THE CHANGE (78af82e2d)
+--------------------------------------------------------------------------------
+After factor_impl, kkt_sol_.info() != Success sets kkt_no_numerics: stop_detail_ = "the inertia-correction ladder at
+iteration <i> ended on a failed KKT factorization (numerical issue|backend error); no step can be computed"; the
+governor is not run; the step solve and dense guard are skipped; DXSL is zeroed, alpha = 0, GoodStep = false (no line
+search, no recovery chain, no exhausted-inertia dispatch); at the loop tail ExitCode = kNumericalError and
+last_stop_reason_ = kNone (decisive over the !GoodStep kDiverging override), and the existing terminal block records
+the row and returns (return_best substitution as on every other kNumericalError exit). The dense guard's failed re-run
+sets the same flag with its own detail ("the dense step guard's refactorization at iteration <i> failed (...)").
+STATUS CHOICE: kNumericalError with stop reason kNone and the message carrying what failed -- the init path's exact
+convention (a failed initial factorization), and the status singular_abort (SINGULAR_KKT, Ipopt
+Error_In_Step_Computation) already uses for an inertia-correction failure. No new status or stop reason.
+Docs: result_message.cpp's kNone comment, core/errors.h's exception contract line, docs/testing.md's injector consumers.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above. Behaviour differs ONLY when an iteration's last factorization reports info() != Success; before,
+    that solve threw (no numerics) or -- on a session holding a previous success's numerics, which no fixture reaches --
+    solved on them; the dense guard's failed re-run previously went to the exhausted-inertia dispatch.
+D1  ENGINES AT THE DEFAULTS: NO MOVERS -- replay P2, interior P3, runtime counter identity P5.
+D2  API: no new public name, status or stop reason. The message wording is new (PROVISIONAL text):
+    "numerical error: the inertia-correction ladder at iteration <i> ended on a failed KKT factorization (<kind>); no
+    step can be computed" and "numerical error: the dense step guard's refactorization at iteration <i> failed
+    (<kind>); no step can be computed".
+D3  TESTS: 3585 registered (base 3582 + 3): IpmNoNumericsSeam.{ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration,
+    ALadderEndingWithoutNumericsIsAStatusMidSolve, ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor}
+    (hven_sqp_seam_tests). IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep changed: every injected pass
+    must return kNumericalError without throwing (passes 1 and 2 were skipped as throws), and the route is selected by
+    the guard's message instead of "returned with a trigger" (which passes 1 and 2 now also satisfy, through the init
+    guard's trigger); it records the route as a test property -- on this box still scale 1.76, pass 3 (P4).
+D4  No iparm change, no IPARM-SURFACE label; no notices/ change; no trace key; no include list change.
+
+PROOFS AND PASS CRITERIA (legs/, runtime/; each under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` empty first)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-ipmlad/rel) and Debug (build-ipmlad/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3583" in both (3585 registered minus the two pre-existing DISABLED tests
+    EqpRefinementAb.FootprintRuleProbe and EqpRefinementAb.FullBattery, which ctest's summary excludes); skips
+    identical in kind to the NaN round's (Release: FailByDesignControl only; Debug: that plus the YORKNET/STEENBRB/
+    ACOPP118 fixtures) (legs/ctest.sh; logs suites/).
+P2  27-cell replay x (walk, ssn, ipm) on arm B's tree: EXACT against docs/notes/data/2026-10-m7-wx2-gates/gates/replay/
+    head-*.csv via scripts/compare_replay.py, 0 differences each (x3) (legs/replay.sh; replay/).
+P3  interior: arm A vs arm B, 27 cells, compare_replay.py EXACT 0 differences (unmoved); arm B under the promoted
+    baseline's invocation against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences
+    (promoted) (legs/interior.sh; interior/).
+P4  THE FALSIFIER (legs/failproof.sh; three mutations of the code head's `git archive` export, each fail closed unless
+    its site occurs exactly once; Release, hven_sqp_seam_tests; filter IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:
+    BackendErrorSeam.*, 7 tests; failproof/): FAILPROOF_AS_DECLARED -- the head runs 7 and fails none, its route
+    property reads "scale 1.76 pass 3"; each mutation fails EXACTLY:
+      revert-all (ipm_solver.cpp := the base's; the fix reverted, the tests kept): 4 --
+        IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep,
+        IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration,
+        IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor,
+        IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusMidSolve (each by the std::logic_error escaping solve);
+      no-probe-guard (the governor runs on a factorization without numerics): 1 --
+        IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor;
+      no-guard-site (the guard's failed re-run not read as no numerics): 1 --
+        IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep.
+    The three BackendErrorSeam tests pass under every arm. (Measured on a dev run before this declaration:
+    build-ipmlad/dev-fp, exactly these sets.)
+P5  runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode (interior, ipm, ssn, walk),
+    THROTTLE 0, filtered B/A in [0.995, 1.005] per mode; perf record period 400000. Run because the change adds a
+    branch to the interior-point engine's per-iteration loop. Run FIRST and alone.
+NOT RUN (proportionate): census, S/T legs, objects/flags diffs, install smoke, pch neutrality, Accelerate sweep. They are
+run only if P2, P3 or P5 fails identity.
+ORDER: P5 alone first, then legs/chain.sh (P1, P2, P3, P4):
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/ipmlad/docs/notes/data/2026-11-m8-ipm-ladder-status/runtime/run_all.sh 973b7e732fc818b8033e0740986cf898c7a092de6bf09db9471740f88bd7366e
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/ipmlad/docs/notes/data/2026-11-m8-ipm-ladder-status/legs/chain.sh 78af82e2d 973b7e732fc818b8033e0740986cf898c7a092de6bf09db9471740f88bd7366e
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data. If identity (P2, P3, P5 counters)
+moves any cell: STOP and hand back with the diagnosis.

@@ -1,0 +1,44 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-10T12:51:14-05:00
+policy-off sites 1 expected 1
+44c44
+<         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+---
+>         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
+policy-off hven_tests rc=0
+policy-off walk_seam rc=1
+policy-off drivers rc=1
+detector-off sites 1 expected 1
+305c305
+<             flagged = !(rcond_estimate(anorm) >= kDenseConditionSingular);
+---
+>             flagged = false;
+detector-off hven_tests rc=1
+detector-off walk_seam rc=1
+detector-off drivers rc=1
+shift-off sites 1 expected 1
+121c121
+<         for (int attempt = 0; attempt < 2 && !done; ++attempt) {
+---
+>         for (int attempt = 0; attempt < 0 && !done; ++attempt) {
+shift-off hven_tests rc=0
+shift-off walk_seam rc=1
+shift-off drivers rc=1
+equil-off sites 1 expected 1
+118c118
+<         Vec d = equilibration_scale(K);
+---
+>         Vec d = Vec::Ones(K.rows());
+equil-off hven_tests rc=0
+equil-off walk_seam rc=1
+equil-off drivers rc=1
+head hven_tests rc=0
+head walk_seam rc=0
+head drivers rc=0
+head     : 55 tests, failed none
+policy-off  : 55 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified', 'QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken', 'QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization', 'QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+detector-off: 55 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics', 'DenseArmReport.RefusedUnderNeverAndCarriedByHandles', 'DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses', 'DenseArmReport.TheDetectorBracketsBothThresholds', 'DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+shift-off   : 55 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified', 'QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken', 'QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+equil-off   : 55 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-10T12:57:23-05:00

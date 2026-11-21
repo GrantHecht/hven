@@ -1,0 +1,5 @@
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1084 - IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage (Disabled)
+	2471 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2472 - EqpRefinementAb.FullBattery (Disabled)

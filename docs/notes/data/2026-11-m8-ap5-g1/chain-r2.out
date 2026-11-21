@@ -1,0 +1,16 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:22:28-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:22:29-05:00
+[82/82] Linking CXX executable tests/drivers/hven_drivers_tests
+[----------] 2 tests from StopTokenSolve (20 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (21 ms total)
+[  PASSED  ] 4 tests.
+tsan rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-13T15:23:31-05:00
+STEP tsan-r2 rc=0 2026-11-13T15:23:31-05:00
+worst=0
+FOREGROUND_END 2026-11-13T15:23:31-05:00

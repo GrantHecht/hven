@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:04:09-05:00
+decode_cutest: WATER            8089 bytes of OUTSDIF.d
+decode_cutest: ZECEVIC3         1382 bytes of OUTSDIF.d
+decode_cutest: ZECEVIC4         1352 bytes of OUTSDIF.d
+decode_cutest: ZY2              1527 bytes of OUTSDIF.d
+decode_cutest: 97 decoded, 0 already current, 0 FAILED, under /home/ghecht/Projects/hven-bench-dn1/.scratch/h3/decoded
+GNU Fortran (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2)
+rc=0
+FOREGROUND_END 2026-11-13T18:04:26-05:00

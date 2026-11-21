@@ -1,0 +1,17 @@
+cell      status          batches mean_k  k1_instr single_k2+  multi_k2+   m/s    saving %cell cols_ident cols_diff max_rel analyses repeats rep%
+ACOPP118  optimal            1322   47.2  7.93e+08  7.630e+10  3.260e+10 0.427  4.37e+10  21.2          0     61728 3.9e-06     8950    7520   84
+          probe2: repeats on the same SymmetricFactor instance 7491; analyses inside a QpEngine::run 8949, of which repeats within the same run 7503
+CRESC100  optimal           16314   46.8  2.98e+09  2.089e+11  1.503e+11 0.720  5.86e+10  15.5     683687     71282 2.1e-05    17092    8399   49
+          probe2: repeats on the same SymmetricFactor instance 2842; analyses inside a QpEngine::run 17092, of which repeats within the same run 368
+CRESC50   max_iter          12547   34.7  7.04e+08  5.528e+10  3.174e+10 0.574  2.35e+10  25.7     385934     43499 2.2e-04     3969    1459   37
+          probe2: repeats on the same SymmetricFactor instance 1421; analyses inside a QpEngine::run 3969, of which repeats within the same run 55
+MESH      max_iter           4689   25.3  1.54e+08  2.303e+10  9.425e+09 0.409  1.36e+10  40.4      41942     74165 8.4e-09      132      73   55
+          probe2: repeats on the same SymmetricFactor instance 73; analyses inside a QpEngine::run 131, of which repeats within the same run 6
+MSS1      numerical_error    3124   10.7  1.60e+09  1.980e+10  9.581e+09 0.484  1.02e+10  10.3       1383     29147 2.7e-06     9371    1039   11
+          probe2: repeats on the same SymmetricFactor instance 349; analyses inside a QpEngine::run 9363, of which repeats within the same run 418
+SPANHYD   numerical_error   16654   72.6  0.00e+00  3.836e+11  1.613e+11 0.421  2.22e+11  51.1          0   1209785 1.1e-04      596     337   57
+          probe2: repeats on the same SymmetricFactor instance 27; analyses inside a QpEngine::run 594, of which repeats within the same run 46
+STEENBRC  optimal             538   93.5  7.15e+08  8.951e+10  4.900e+10 0.547  4.05e+10  11.8        668     49237 1.1e-03    34889    3031    9
+          probe2: repeats on the same SymmetricFactor instance 1137; analyses inside a QpEngine::run 34887, of which repeats within the same run 1437
+YORKNET   numerical_error     885   34.2  1.01e+09  4.471e+10  1.806e+10 0.404  2.66e+10  13.1          7     29497 1.2e-06    14520    8219   57
+          probe2: repeats on the same SymmetricFactor instance 7697; analyses inside a QpEngine::run 14519, of which repeats within the same run 7797

@@ -1,0 +1,63 @@
+# VERDICTS (extracted from the evidence; code head efe57fb24f725177d5e6496297962e5709d548df, arm B sha256 bbc3f9470262cfdfd7abe622c116b444fc9888b300342461e5b082b306e7b32e, arm A sha256 663b1138968b6b82811b730dc49d278e868b5dad56fd8ccf7b8700bcbc199a77; DECLARATION.md c113e013f)
+P1 rel: 100% tests passed, 0 tests failed out of 3753
+P1 dbg: 100% tests passed, 0 tests failed out of 3753
+P2a interior: MODE interior FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2a ipm: MODE ipm FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2a ssn: MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2a walk: MODE walk FILTERED B/A = 0.999999 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b interior-att-scalars: MODE interior FILTERED B/A = 0.999992 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b interior-att-default: MODE interior FILTERED B/A = 1.000008 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b interior-att-all: MODE interior FILTERED B/A = 1.000985 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]  (reported, not banded)
+P2b ipm-att-scalars: MODE ipm FILTERED B/A = 1.000002 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b ipm-att-default: MODE ipm FILTERED B/A = 1.000003 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b ipm-att-all: MODE ipm FILTERED B/A = 1.000067 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]  (reported, not banded)
+P2b ssn-att-scalars: MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b ssn-att-default: MODE ssn FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]
+P2b ssn-att-all: MODE ssn FILTERED B/A = 1.000085 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]  [COUNTER IDENTITY HOLDS]  (reported, not banded)
+P2b interior leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+P2b   unattached         A=2.484480e+05 B=2.484480e+05 B/A=1.000000
+P2b   attached kScalars  A=2.485280e+05 B=2.485260e+05 B/A=0.999992
+P2b   attached default   A=2.496220e+05 B=2.496240e+05 B/A=1.000008
+P2b   attached kAll      A=2.496200e+05 B=2.498660e+05 B/A=1.000985
+P2b   attach cost at kScalars  arm A: +0.0322%   arm B: +0.0314%   (B minus A: -0.0008%)
+P2b   attach cost at default   arm A: +0.4725%   arm B: +0.4733%   (B minus A: +0.0008%)
+P2b   attach cost at kAll      arm A: +0.4717%   arm B: +0.5707%   (B minus A: +0.0990%)
+P2b   new kAll cost on arm B (attached kAll / attached default): +0.0969%
+P2b ipm leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+P2b   unattached         A=5.947930e+05 B=5.947920e+05 B/A=0.999998
+P2b   attached kScalars  A=5.954300e+05 B=5.954310e+05 B/A=1.000002
+P2b   attached default   A=5.957480e+05 B=5.957500e+05 B/A=1.000003
+P2b   attached kAll      A=5.957480e+05 B=5.957880e+05 B/A=1.000067
+P2b   attach cost at kScalars  arm A: +0.1071%   arm B: +0.1074%   (B minus A: +0.0003%)
+P2b   attach cost at default   arm A: +0.1606%   arm B: +0.1611%   (B minus A: +0.0005%)
+P2b   attach cost at kAll      arm A: +0.1606%   arm B: +0.1675%   (B minus A: +0.0069%)
+P2b   new kAll cost on arm B (attached kAll / attached default): +0.0064%
+P2b ssn leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+P2b   unattached         A=4.099470e+05 B=4.099470e+05 B/A=1.000000
+P2b   attached kScalars  A=4.105810e+05 B=4.105810e+05 B/A=1.000000
+P2b   attached default   A=4.109070e+05 B=4.109060e+05 B/A=0.999998
+P2b   attached kAll      A=4.109070e+05 B=4.109420e+05 B/A=1.000085
+P2b   attach cost at kScalars  arm A: +0.1547%   arm B: +0.1547%   (B minus A: +0.0000%)
+P2b   attach cost at default   arm A: +0.2342%   arm B: +0.2339%   (B minus A: -0.0002%)
+P2b   attach cost at kAll      arm A: +0.2342%   arm B: +0.2427%   (B minus A: +0.0085%)
+P2b   new kAll cost on arm B (attached kAll / attached default): +0.0088%
+P3 === g5-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g5-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g5-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+P3 === g5-vs-g4r4-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g5-vs-g4r4-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g5-vs-g4r4-walk === cells compared: 27  columns compared: 75  differences: 0
+P4 === interior-armed === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+P5 default: install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+P5 clang: install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+P5 export contract default: == export contract OK for platform=linux, align=32 (.scratch/g5-install-smoke/export-contract-default.log, in MANIFEST.txt)
+P5 export contract clang: == export contract OK for platform=linux, align=32 (.scratch/g5-install-smoke/export-contract-clang.log, in MANIFEST.txt)
+P5 note: install-smoke/export-contract-summary.txt is EMPTY -- chain.sh's extraction grep ('PASS|FAIL|rc=|TU', inherited from G4) matches no line of
+P5 note: the contract script's output; an extraction miss, not a result. Both contract logs read OK and both smoke legs exited 0 (STEP install-smoke rc=0).
+P8: [==========] 97 tests from 8 test suites ran. (1528 ms total) + seam [==========] 18 tests from 1 test suite ran. (479 ms total); reports=0
+M (mutation/mutation-table.csv): control: NONE
+M killed: a b c d e f g i j k l m n o p q r s t u v 
+M survive: h 
+CRITERIA_MET_ALL (P0; P1 3753 x2; P2a 4 modes in band; P2b scalars/default in band on interior, ipm, ssn, attached-all reported; P3 0 x3 + ARMED 0 x3 vs G4 r4; P4 0/0/0; P5 both arms + export contract; P8 0 reports; M control clean, every must-kill a..g i..v killed, h survives as declared; expected movers none, none moved)

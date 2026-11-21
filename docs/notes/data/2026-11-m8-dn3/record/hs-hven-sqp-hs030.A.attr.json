@@ -1,0 +1,11 @@
+{
+ "samples": 730,
+ "repeats": 40,
+ "sampled_period_total": 330109800,
+ "init_period": 51145547,
+ "proc_period": 181311667,
+ "s_init": 0.1549349549755869,
+ "s_proc": 0.5492465446345428,
+ "se_share": 0.01689367538546357,
+ "rd_share": 0.003999969101189968
+}

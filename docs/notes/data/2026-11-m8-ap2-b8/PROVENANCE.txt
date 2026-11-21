@@ -1,0 +1,69 @@
+M8 AP-2 group B8 (the rename sweep, the last group of the break) -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt + runtime/DECLARATION.txt (95ff322f), committed before the first leg. No
+               leg failed; no successor declaration. No criterion changed.
+Code head      2f00a6ff (m8-b8) refactor; d09c15a1 docs (naming note, CHANGELOG, page pointer). Base: m8 fa727270.
+Arms           A = fa727270: this worktree's own Release build at build-b8/psym, made before any B8 edit;
+               corpus binary build-b8/armAbin/hven_sqp_corpus sha256
+               273e09c6c777493788316661ffc54a998b4e2531606061fdb438ff4f1b658e98, compile database sha256
+               b9fd684dd75560162b9721d487556296fc6579f66991083fbf6e611f6da62258 (chain/arma.out). B = 2f00a6ff,
+               build-b8/armBbin sha256 258120669404bf3d2c8374c9f5eea89925d8c4303cd5c603ee1934c93e38ce7d
+               (checked by run_all.sh, interior.sh and census.sh).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-05 17:42 EST (arm A build) / 19:56 (runtime gate start) to 2026-11-06 03:23 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths, chain1's fail-closed pre-flight (PREFLIGHT_OK; its negative case -- a copy with two
+               planted stale paths -- refused, rc 9, before the declaration). The runtime gate ran alone first
+               (runtime/run_all.log), then chain1 (chain/chain1.log).
+
+RESULTS (criteria as declared)
+P0  arm A       both sha256 as declared, ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release 3473/3473, Debug 3473/3473 (suites/). PASS.
+P2  examples    8/8 exit 0, each including only <hven/hven.h> (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       15 configurations BYTE-IDENTICAL to B7 riders' dump (iparm/iparm-b8.txt; chain/iparm.out). PASS.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches; serial-confirm list empty (census/). PASS. (D1)
+P6  smoke       default and clang arms PASSED (37 standalone-include TUs, a pieces solve, both engines);
+                export contract OK on both (linux, align 32): no public header includes a detail/ header, no
+                allow-list; the umbrella hven.h includes every public header (install-smoke/). PASS.
+P7  PCH         PASS: 4 TUs engaged, 57 artifacts byte-identical (pch/pch-neutrality.txt).
+P8  off-ref     clean build rc 0, 26 warning lines, ctest Release 3473/3473 (offref/). PASS.
+P9  Accelerate  pass A OTHER 0 and EQUAL to B7 riders' pass A after the declared normalization (32 files);
+                pass B equal the same way (accelerate/, chain/accelerate.out). PASS. Apple UNOBSERVED.
+P10 flags       60 library TUs both arms, same set; 56 differ, each ONLY by -DHVEN_VERSION_STRING 0.1.0 ->
+                0.2.0: FLAGS_AS_DECLARED (flags/). PASS. (D7)
+P11 runtime     VERDICT PASS: filtered B/A interior 0.999823, ipm 1.000000, ssn 1.000000, walk 1.000000 (both
+                arms at the defaults); THROTTLE 0 in all 492 processes; counter identity on every (round,
+                cell) pair (interior 3, ipm/ssn/walk 81 each). PASS.
+P12 interior    unmoved: 27 cells, 43 rows x 30 columns, 0 differences; promoted: arm B under the baseline's
+                invocation reproduces bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv, 0
+                differences (interior/). PASS. (D2)
+P13 P-SYM       PASS (psym/compare.txt.gz; sha256 of the uncompressed files in psym/sha256-before-gzip.txt):
+                178 objects -- 12 byte-identical, 6 within the noise class, 0 with unclassified differences;
+                82541 symbols matched (30624 through the generated map: 14266 lines, 36 of them
+                raw-mangled pairs, 0 unpaired), 0 only-before, 0 only-after, 49 excepted, 0 collisions, 0 stale
+                exceptions, 0 stale map entries; 699 local label families matched, 0 differing. The library's
+                only differing functions are the five declared (E1). The rebuild of build-b8/psym was a
+                no-op (built at the code head in the dev check, psym/psym-rebuild.log); the before capture's
+                digest is in chain/psym.out.
+P14 manifest    51 patterns, 0 hits outside the allowed residual (chain/manifest.out). PASS.
+
+DECLARED DIFFERENCES matched: D1 (no SQP corpus row moved: replay x3, census), D2 (no interior row moved;
+the promoted baseline reproduced), D3-D5 (API, behaviour off the corpus, tests 3472 -> 3473: suites and
+P-SYM's E1/E3), D6 (no trace key or golden line moved: the suites' golden tests pass unchanged), D7 (flags:
+the version define only; objects: names, through the map), D8 (iparm byte-identical, no IPARM-SURFACE
+label), D9 (smoke 37, the umbrella rule), D10 (Accelerate normalized equality).
+
+DEVIATIONS (disclosed)
+- The AP-1 page's inverse-manifest revert test is not run (declared in DECLARATION.txt, with the reason);
+  P13 and P14 carry what it would show.
+- Analysis-only tools ran outside the box lock during development: nm / c++filt / llvm-cxxfilt over the
+  P-SYM captures (gen_maps.py), python over compile databases (flags_diff) and the tree (manifest_check,
+  the exception generator). No hven build, test, bench or binary ran outside the lock.
+- The rename was applied by scripted tools (manifest/) plus a few hand edits made with sed in the same
+  session (the enum bodies, the two flattened utility namespaces, type_storage.h's namespace, two member
+  initializer lists, the ConstraintModel/ObjectiveModel member name `piece` -- chosen because `data`
+  collided with the raw protocol's `data` parameter, which the compiler caught -- the version, and the
+  stale-prose fixes). All are in 2f00a6ff and inside P13's account.

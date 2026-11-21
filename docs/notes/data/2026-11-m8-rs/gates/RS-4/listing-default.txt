@@ -1,0 +1,2 @@
+baseline 957 -> 957 after map; after 957
+LISTING_EQUALS_BASELINE_WITH_MAP

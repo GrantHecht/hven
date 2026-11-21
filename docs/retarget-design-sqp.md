@@ -1,5 +1,7 @@
 # SQP linear-solver retarget design (M3 phase B)
 
+> Historical record (M3-era retarget design). Names in this document are the API of that time; the current names are in `docs/notes/2026-11-m8-ap2-b8-naming.md`.
+
 > **SURFACE VERDICT (adjudicated by the M3 plan rev B §4; two additional
 > gaps found by this note's own source verification, each with a proposed
 > disposition awaiting the same review):** the SQP engine's consumed
@@ -39,7 +41,7 @@
 > 3. **`DenseSymmetricFactor` cannot host the Schur border as-is (gap
 >    found here, not in the plan).** The border factors `C` with
 >    `LAPACKE_dsytrf(..., 'L', ...)` — the LOWER triangle
->    (`include/hven/detail/sqp/schur_complement.h:307`; the solve side's
+>    (`include/hven/detail/kkt/schur_complement.h:307`; the solve side's
 >    `dsytrs` uses `'L'` likewise, `schur_complement.h:174`) — while
 >    `DenseSymmetricFactor` is upper-triangle-only
 >    (`include/hven/linear/dense_symmetric_factor.h:24-35`); Bunch-Kaufman
@@ -247,7 +249,7 @@ mechanism exists to configure (row above).
 
 Modeled directly on
 `BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero`
-(`tests/linear/test_fault_injection.cpp`; argued at
+(`tests/linear/seam/test_fault_injection.cpp`; argued at
 `docs/testing.md:478-503`): the same commit that grows the don't-write
 states adds a canary asserting, from the post-`pardisoinit` capture
 point (`pardiso_session.cpp:219-226` — the only point that answers
@@ -301,9 +303,9 @@ become a `SymmetricFactor` (move-only, like the class it replaces —
 
 | Owner | Site | Notes |
 | --- | --- | --- |
-| `BorderState::kkt` (border mode's persistent K0 factor) | `qp_engine.h:2063` | By value, inside the non-copyable, non-movable `BorderState` (`qp_engine.h:2053-2058`) — the shared-ownership/Pardiso-handle-safety argument (`qp_engine.h:2093-2121`) transfers verbatim: `SymmetricFactor`'s destructor releases the backend session exactly once, `shared_ptr<BorderState>` still guarantees it runs after the last holder. |
+| `BorderState::kkt` (border mode's persistent K0 factor) | `walk_engine.h:2063` | By value, inside the non-copyable, non-movable `BorderState` (`walk_engine.h:2053-2058`) — the shared-ownership/Pardiso-handle-safety argument (`walk_engine.h:2093-2121`) transfers verbatim: `SymmetricFactor`'s destructor releases the backend session exactly once, `shared_ptr<BorderState>` still guarantees it runs after the last holder. |
 | `SsnEngine::kkt_` (held across solves) | `ssn_engine.h:3560` | The "one symbolic analysis per structure" property (`ssn_engine.h:228-229`) is preserved by §3.2's explicit-analyze mechanic. |
-| Per-run elimination-path locals | `qp_engine.h:2502,2944` | Constructed per `run()` / per tier-3 refine, reused across iterations within it. |
+| Per-run elimination-path locals | `walk_engine.h:2502,2944` | Constructed per `run()` / per tier-3 refine, reused across iterations within it. |
 | Predictor per-call local | `predictor.h:961-963` | One analyze+factorize ("THE one factorization"), then a `SchurComplement` over it. |
 
 There is NO separate assembly-buffer change (unlike the IPM retarget's
@@ -332,14 +334,14 @@ differs from the last analyzed matrix (`kkt_system.h:291-298`, via
 `pattern_matches`, `kkt_system.h:197-203`), and `QpCounters::
 symbolic_analyses` is counted at the call sites by probing
 `pattern_matches` BEFORE `factorize()` (`types.h:269-286`;
-`qp_engine.h:4509-4516`; `ssn_engine.h:2154-2156,2512-2514`). hven's
+`walk_engine.h:4509-4516`; `ssn_engine.h:2154-2156,2512-2514`). hven's
 contract is deliberately different: `factorize()` NEVER re-analyzes and
 throws on a foreign pattern (`symmetric_factor.h:672-683`), and
 `SymmetricFactor` exposes no `pattern_matches` probe.
 
 The retarget therefore carries the decision to the consumer side, as a
 small engine-owned lifecycle helper — proposed as a struct plus three
-free functions in a new header `include/hven/detail/sqp/kkt_calls.h`
+free functions in a new header `include/hven/detail/sqp/kkt_factor.h`
 (name and placement are implementer-adjustable at execution review;
 phase C's restructure will re-home it):
 
@@ -374,7 +376,7 @@ deterministic in the pattern, so equal patterns compare equal under
 either). No pin asserts a hash value — that standing belief is §5 of
 the plan's survey obligation, re-confirmed for these sites at execution.
 Phase B does NOT re-key `detail::structural_hash`/`values_hash`
-(`qp_engine.h:1991-2007`) or the SSN structure key
+(`walk_engine.h:1991-2007`) or the SSN structure key
 (`ssn_engine.h:2951-3019`) — those are phase-C §5 work and stay
 byte-identical here.
 
@@ -384,7 +386,7 @@ byte-identical here.
 > `factorize_checked(k, K, decision)`. `KktFactor`, `needs_analysis`,
 > `factorize_checked(k, K)` and `solve_vec` are unchanged, and the
 > `symbolic_analyses` call-site counting contract is unchanged — the
-> three counting call sites (`ssn_engine.h` ×2, `qp_engine.h`'s
+> three counting call sites (`ssn_engine.h` ×2, `walk_engine.h`'s
 > `rebuild_k0`) still take the decision BEFORE the factorize and still
 > count off it; they now hand it in instead of letting
 > `factorize_checked` retake it. **Reason:** as designed above, steady
@@ -411,8 +413,8 @@ consumers' control flow is built on that: `SsnEngine` catches around
 `factorize` and routes `kNumericalError`/`kSingular`
 (`ssn_engine.h:2153-2187,2511-2524`), border mode's fallback
 discriminates singular-C throws from genuine backend throws
-(`qp_engine.h:4020-4051`), and `rebuild_k0`'s throw path is what the
-engine's invalidation policy is written against (`qp_engine.h:4489-4506`).
+(`walk_engine.h:4020-4051`), and `rebuild_k0`'s throw path is what the
+engine's invalidation policy is written against (`walk_engine.h:4489-4506`).
 hven instead RETURNS a backend failure in `FactorizeOutcome`
 (`symmetric_factor.h:177-195`). `factorize_checked` restores parity:
 `Status::kBackendError` becomes a thrown `std::runtime_error` carrying
@@ -420,7 +422,7 @@ hven instead RETURNS a backend failure in `FactorizeOutcome`
 `"pardiso phase 22 failed: error {}"` names a phase that no longer
 exists at this layer); no test or census pins that text (verified: the
 suite's `escape_detail` assertions match engine-authored substrings
-only, e.g. `tests/sqp/test_ssn_engine.cpp:224,2065,2840`), and §11
+only, e.g. `tests/qp/test_ssn_engine.cpp:224,2065,2840`), and §11
 records the residual exposure for the gate.
 
 `analyze()` failures already throw on both sides
@@ -451,7 +453,7 @@ can skip the question.
 
 ### 4.1 The two verdict helpers, rewritten
 
-`detail::inertia_verdict` (`qp_engine.h:1679-1695`) and
+`detail::inertia_verdict` (`walk_engine.h:1679-1695`) and
 `detail::ssn_inertia_verdict` (`ssn_engine.h:996-1007`) are the same
 function restated (`ssn_engine.h:980-989` says so and why); both test
 perturbed pivots FIRST. Rewritten signature:
@@ -486,11 +488,11 @@ This preserves every verdict on BOTH backends:
 
   [Folded per the execution review (2026-08-14), §2.2. This bullet
   previously argued that `kSuspect` "DOES NOT ACT anywhere in either
-  engine", citing `qp_engine.h:4133-4137` and `ssn_engine.h:2215-2220`.
+  engine", citing `walk_engine.h:4133-4137` and `ssn_engine.h:2215-2220`.
   **That claim is false as stated** and is withdrawn: those two sites are
   places kSuspect deliberately doesn't act, not the whole engine. The
   section-4b **suspect-stall gate DOES act on kSuspect at certification
-  time** (archived tag, `qp_engine.h:3287-3345`): a kSuspect verdict
+  time** (archived tag, `walk_engine.h:3287-3345`): a kSuspect verdict
   triggers the free-block stationarity check, and on failure escalates
   `primal_delta` by `kSuspectDeltaFactor`, rebuilds K0, and counts
   `counters.suspect_escalations` — a PINNED counter with per-backend arms
@@ -534,15 +536,15 @@ handled as its own branch.
 
 | Site | Today | Classification |
 | --- | --- | --- |
-| `qp_engine.h:1681,1684-1685` | verdict helper body | rewritten per §4.1 (route-explicit via rule 1) |
+| `walk_engine.h:1681,1684-1685` | verdict helper body | rewritten per §4.1 (route-explicit via rule 1) |
 | `ssn_engine.h:998,1001-1002` | verdict helper body | rewritten per §4.1 |
-| `qp_engine.h:3970` | `border.kkt.num_perturbed_pivots() != 0` gates K0 rebuild, deliberately reading the PREVIOUS solve's factorization (`qp_engine.h:383-385`) | short-circuit already guarantees a successful factorization exists (`border.schur.has_value()` implies `rebuild_k0` completed). Rewrite: read `border.kkt.factor.inertia()`; rebuild if `state != kObserved` (defensive, unreachable today) or perturbed present-and-nonzero or (natively-observed) `n_zero != 0` — the Accelerate twin's zero-pivot trust signal, preserved through the honest channel. Assert-observed in spirit, route-explicit in code. |
-| `qp_engine.h:2506` (via `inertia_verdict` after `solve_eqp`) | reachable only after `solve_eqp`'s factorize returned | assert-observed (a throw upstream already aborted the path) |
-| `qp_engine.h:3930-3931` (`eliminated_candidate`) | same shape | assert-observed |
-| `qp_engine.h:4093-4094` (`border_inertia_verdict` tail) | reads `border.kkt` after `needs_refactorization()` screening | assert-observed (same guarantee as `qp_engine.h:3970`) |
+| `walk_engine.h:3970` | `border.kkt.num_perturbed_pivots() != 0` gates K0 rebuild, deliberately reading the PREVIOUS solve's factorization (`walk_engine.h:383-385`) | short-circuit already guarantees a successful factorization exists (`border.schur.has_value()` implies `rebuild_k0` completed). Rewrite: read `border.kkt.factor.inertia()`; rebuild if `state != kObserved` (defensive, unreachable today) or perturbed present-and-nonzero or (natively-observed) `n_zero != 0` — the Accelerate twin's zero-pivot trust signal, preserved through the honest channel. Assert-observed in spirit, route-explicit in code. |
+| `walk_engine.h:2506` (via `inertia_verdict` after `solve_eqp`) | reachable only after `solve_eqp`'s factorize returned | assert-observed (a throw upstream already aborted the path) |
+| `walk_engine.h:3930-3931` (`eliminated_candidate`) | same shape | assert-observed |
+| `walk_engine.h:4093-4094` (`border_inertia_verdict` tail) | reads `border.kkt` after `needs_refactorization()` screening | assert-observed (same guarantee as `walk_engine.h:3970`) |
 | `ssn_engine.h:2222-2223` (in-loop gate), `2525` (deferred certification) | immediately after a successful `factorize` | assert-observed |
 | `ssn_engine.h:2250-2251,2266,2536-2537` | diagnostic `escape_detail` prints of the counts | assert-observed; print `e.n_pos`/`e.n_neg` from the same evidence object the verdict consumed, so message and verdict can never describe different factorizations |
-| `tests/sqp/test_kkt_inertia_probe.cpp` (20 reads), `test_kkt_system.cpp:14-27`, `test_qp_engine_indefinite.cpp` (13 reads), `test_qp_engine_border.cpp`, `test_ssn_engine.cpp`, `test_qp_engine.cpp` | fixture-level reads | retargeted mechanically onto `FactorizeOutcome`/`inertia()`; the inertia-probe pins keep pinning the findings-doc behavior (fabricated-looking counts under perturbation) through the evidence type |
+| `tests/kkt/test_kkt_inertia_probe.cpp` (20 reads), `test_kkt_system.cpp:14-27`, `test_walk_engine_indefinite.cpp` (13 reads), `test_walk_engine_border.cpp`, `test_ssn_engine.cpp`, `test_walk_engine.cpp` | fixture-level reads | retargeted mechanically onto `FactorizeOutcome`/`inertia()`; the inertia-probe pins keep pinning the findings-doc behavior (fabricated-looking counts under perturbation) through the evidence type |
 | `tests/golden_rig/seam_sqp.cpp:225-229` | the OLD-SEAM adapter's unguarded reads | UNTOUCHED — it compiles against the pinned sibling tag, not this tree, and its refusal to smooth is load-bearing (docket, "the rig's adapter is deliberately not protecting anyone from this") |
 
 ### 4.3 Accelerate deltas are licensed, docket-named, Mac-proven
@@ -630,7 +632,7 @@ on hven's internals.
 calls the partial solves or the gate — `SchurComplement` deliberately
 uses the two-full-solve variant and the partial-solve fast path was
 never implemented (`schur_complement.h:52-64`); the callers are the
-test suite (`tests/sqp/test_kkt_partial_solve.cpp`,
+test suite (`tests/kkt/test_kkt_partial_solve.cpp`,
 `test_accelerate_probes.cpp:118,146`) and the golden rig's old-seam
 adapter. M2 recorded hven's partial-solve path as untested by the IPM
 migration (vacuous mapping); the migrated SQP SUITE is its first real
@@ -651,7 +653,7 @@ factorization kept, `needs_refactorization()` reports it, `solve()` and
 matrix and `ipiv` producing per-block `|eigenvalue|`s and the negative
 count (`schur_complement.h:330-359`), which feed `cond_estimate()`,
 `nearly_singular()`, and the border inertia gate
-(`qp_engine.h:4057-4095`).
+(`walk_engine.h:4057-4095`).
 
 ### 6.2 Why `DenseSymmetricFactor` cannot host this today (the gap)
 
@@ -667,7 +669,7 @@ Three mismatches, each independently blocking:
    `std::runtime_error` on `info > 0` (`dense_symmetric_factor.h:30-34`);
    the border needs the completed-but-singular factorization as a
    reportable state (its callers read `needs_refactorization()` and
-   degrade — `qp_engine.h:3987-4018`).
+   degrade — `walk_engine.h:3987-4018`).
 3. **Evidence.** The block walk reads the factored matrix and the pivot
    array — the state `DenseSymmetricFactor` holds as its private
    `factors_`/`ipiv_` members (`dense_symmetric_factor.h:59-60`); no
@@ -743,10 +745,10 @@ With this, `schur_complement.h` drops both LAPACKE includes
 (`schur_complement.h:81-85` — the `#ifdef USE_ACCELERATE_SPARSE` switch
 and the MKL header) and the SQP `lapacke_shim.h` loses its last
 in-tree engine consumer. Its OTHER includer is
-`tests/sqp/test_accelerate_probes.cpp:29` (the phase-A carry's second
+`tests/linear/test_accelerate_probes.cpp:29` (the phase-A carry's second
 inventory item): the shim-consuming probes retarget onto
 `hven::linear::detail`'s shim or retire with the twin they probe (§10),
-and `include/hven/detail/sqp/lapacke_shim.h` is deleted. The global-scope
+and `include/hven/detail/linear/lapacke_shim.h` is deleted. The global-scope
 duplication with `include/hven/detail/linear/lapacke_shim.h` (which is
 namespaced under `hven::linear::detail` and guard-hardened —
 `lapacke_shim.h:41-43,59-64,66`) ends with it.
@@ -757,15 +759,15 @@ namespaced under `hven::linear::detail` and guard-hardened —
 
 The kHot reuse key today is conditions (a)-(d) — `structural_hash`,
 exit working set, `values_hash`, effective `(delta, mu)` — plus (e),
-the `BorderState::generation` stamp (`qp_engine.h:3006-3013`; fields
-`qp_engine.h:2217-2230`; emission `qp_engine.h:2333-2341` — the plan
-quotes this note-plus-function as `qp_engine.h:2307-2333`; at HEAD the
+the `BorderState::generation` stamp (`walk_engine.h:3006-3013`; fields
+`walk_engine.h:2217-2230`; emission `walk_engine.h:2333-2341` — the plan
+quotes this note-plus-function as `walk_engine.h:2307-2333`; at HEAD the
 FIX ROUND 2 note spans 2307-2332 and `hot_state()` runs to 2341, a
 9-line drift, content identical). `generation` is bumped once per
 `rebuild_k0()` — the sole site that changes what K0 is
-(`qp_engine.h:4477-4486,4506`) — and exists because (a)-(d) describe
+(`walk_engine.h:4477-4486,4506`) — and exists because (a)-(d) describe
 the PROBLEM, never WHICH OBJECT `border_` names
-(`qp_engine.h:2067-2080`).
+(`walk_engine.h:2067-2080`).
 
 hven names one set of numerics by the triple
 `(pattern_hash, session_id, epoch)` (`symmetric_factor.h:222-233` — the
@@ -779,15 +781,15 @@ triple through `HotState`:
 
 - `HotState` gains `kkt_session_id` and `kkt_epoch`, captured in
   `hot_state()` from `border_->kkt.factor` alongside the committed
-  fingerprints (`qp_engine.h:2337-2340`), and drops `generation`.
+  fingerprints (`walk_engine.h:2337-2340`), and drops `generation`.
 - Condition (e) becomes: `border_->kkt.factor.session_id() ==
   <committed session_id> && border_->kkt.factor.epoch() == <committed
   epoch>` — a live read off the shared object on every solve, exactly
   as today's live `border_->generation` read is
-  (`qp_engine.h:2986-2998`). The pattern member of the triple is
+  (`walk_engine.h:2986-2998`). The pattern member of the triple is
   carried by condition (a)'s `structural_hash` (equivalent for this
   purpose: K0's pattern is a function of the raw patterns it hashes,
-  `qp_engine.h:1986-1990`); adding a redundant third conjunct is not
+  `walk_engine.h:1986-1990`); adding a redundant third conjunct is not
   proposed.
 - `BorderState::generation` and `border_generation_` are deleted;
   `rebuild_k0` no longer stamps anything — `factorize()` advancing the
@@ -797,7 +799,7 @@ triple through `HotState`:
 ### 7.2 The one semantic gap the mapping opens, and its closure
 
 `generation` is bumped BEFORE the mutations that can throw —
-bump-before-mutate is deliberate defense (`qp_engine.h:4489-4506`) — so
+bump-before-mutate is deliberate defense (`walk_engine.h:4489-4506`) — so
 a FAILED rebuild on a shared object leaves every other holder's (e)
 mismatching. The epoch, by contrast, does NOT advance on a failed
 factorize (`symmetric_factor.h:771-773`): after another holder's failed
@@ -833,10 +835,10 @@ single-session driver — `analyze()` on `border.kkt` happens only inside
 consumer holds a second `SymmetricFactor` on the same pattern — which
 is exactly why the conjunct is cheap now and expensive after a second
 session exists (plan §4.3). The forged-handle tests (the R3 probe
-family around `hot_state()`, `qp_engine.h:2307-2341`;
-`tests/sqp/test_qp_warm_start.cpp`) re-derive against the triple:
+family around `hot_state()`, `walk_engine.h:2307-2341`;
+`tests/qp/test_qp_warm_start.cpp`) re-derive against the triple:
 emission captures committed values, adoption copies them
-(`qp_engine.h:2760-2766`), the live-vs-committed discrimination
+(`walk_engine.h:2760-2766`), the live-vs-committed discrimination
 argument transfers with epoch playing generation's role. **Declared
 pin-review if any counter moves; none is expected** — every scenario
 those tests stage maps one rebuild to one epoch advance.
@@ -852,26 +854,26 @@ line named. "H" = the §3.2 helper (`KktFactor` /
 
 | Site | Replacement |
 | --- | --- |
-| `eqp_solve.h:102`, `qp_engine.h:1502`, `predictor.h:358`, `ssn_engine.h:558` | `hven/linear/symmetric_factor.h` + the helper header |
+| `eqp_solve.h:102`, `walk_engine.h:1502`, `predictor.h:358`, `ssn_engine.h:558` | `hven/linear/symmetric_factor.h` + the helper header |
 | `schur_complement.h:87` | same |
 | `schur_complement.h:81-85` (`lapacke_shim.h` / `mkl_lapacke.h` switch) | `hven/linear/dense_symmetric_factor.h`, unconditional — the platform `#if` dissolves |
 | `kkt_system.h:5-7` (platform dispatch to the Accelerate twin) | file deleted |
-| `tests/sqp/test_accelerate_probes.cpp:28-29` | see §10 (probe disposition) |
-| `tests/sqp/test_kkt_system.cpp:2`, `test_kkt_partial_solve.cpp:2`, `test_kkt_inertia_probe.cpp:2`, `test_border_ops.cpp:9`, `test_qp_engine_border.cpp:9`, `test_qp_engine_indefinite.cpp:36` | `hven/linear/symmetric_factor.h` (+ helper) per §10 |
-| `tests/sqp/test_schur.cpp:2` (via `schur_complement.h`), `test_eqp_solve.cpp:3` and `test_eqp_refine_ab.cpp:50` (via `eqp_solve.h`) | no direct include of a dissolving file — these reach `KktSystem` TRANSITIVELY, which is why an includes-only sweep misses them; their live constructions are inventoried at §8.6 |
+| `tests/linear/test_accelerate_probes.cpp:28-29` | see §10 (probe disposition) |
+| `tests/sqp/test_kkt_system.cpp:2`, `test_kkt_partial_solve.cpp:2`, `test_kkt_inertia_probe.cpp:2`, `test_border_ops.cpp:9`, `test_walk_engine_border.cpp:9`, `test_walk_engine_indefinite.cpp:36` | `hven/linear/symmetric_factor.h` (+ helper) per §10 |
+| `tests/kkt/test_schur.cpp:2` (via `schur_complement.h`), `test_eqp_solve.cpp:3` and `test_eqp_refine_ab.cpp:50` (via `eqp_solve.h`) | no direct include of a dissolving file — these reach `KktSystem` TRANSITIVELY, which is why an includes-only sweep misses them; their live constructions are inventoried at §8.6 |
 
 ### 8.2 `KktSystem` lifecycle and solve touches
 
 | Site | Current touch | Replacement |
 | --- | --- | --- |
-| `qp_engine.h:2063` | `BorderState::kkt` member | `KktFactor kkt` (H), constructed from `sqp_kkt_options()` |
-| `qp_engine.h:2502,2944` | elimination-path locals `KktSystem kkt{eff_opts}` | `KktFactor` locals; `eff_opts` no longer feeds the factor (it never did — §1) |
+| `walk_engine.h:2063` | `BorderState::kkt` member | `KktFactor kkt` (H), constructed from `sqp_kkt_options()` |
+| `walk_engine.h:2502,2944` | elimination-path locals `KktSystem kkt{eff_opts}` | `KktFactor` locals; `eff_opts` no longer feeds the factor (it never did — §1) |
 | `predictor.h:961-963` | local + `kkt.factorize(k0.K)` + `SchurComplement schur(kkt, ...)` | `KktFactor` + `factorize_checked` + `SchurComplement` over it |
 | `eqp_solve.h:167` | `solve_eqp(..., KktSystem &kkt, ...)` signature | `KktFactor &` |
 | `eqp_solve.h:211-212,241` | `kkt.factorize(asm_.K)`, `kkt.solve(rhs)`, `kkt.solve(residual_of(y))` | `factorize_checked`, `solve_vec` ×2 — preserve the assign-then-refine order exactly |
-| `qp_engine.h:3890,3905,3941,3983,4108,4160,4338` | `KktSystem &kkt` parameters through the candidate/probe/repair chain | `KktFactor &` (mechanical) |
-| `qp_engine.h:4509-4517` | `pattern_matches` probe for `symbolic_analyses`, then `border.kkt.factorize(border.k0.K)` | `needs_analysis` probe (same before-factorize position, `types.h:269-286` contract preserved), then `factorize_checked` |
-| `qp_engine.h:4506` | `++border.generation` | deleted; epoch/session are the stamp (§7) |
+| `walk_engine.h:3890,3905,3941,3983,4108,4160,4338` | `KktSystem &kkt` parameters through the candidate/probe/repair chain | `KktFactor &` (mechanical) |
+| `walk_engine.h:4509-4517` | `pattern_matches` probe for `symbolic_analyses`, then `border.kkt.factorize(border.k0.K)` | `needs_analysis` probe (same before-factorize position, `types.h:269-286` contract preserved), then `factorize_checked` |
+| `walk_engine.h:4506` | `++border.generation` | deleted; epoch/session are the stamp (§7) |
 | `ssn_engine.h:3560` | `KktSystem kkt_` member | `KktFactor kkt_` |
 | `ssn_engine.h:2154-2160` | `pattern_matches` probe, `factorize`, `solve` | `needs_analysis`, `factorize_checked`, `solve_vec` — the surrounding `try/catch` keeps working via §3.3's throw parity |
 | `ssn_engine.h:2512-2516` | same pair on the deferred-certification path | same |
@@ -882,7 +884,7 @@ line named. "H" = the §3.2 helper (`KktFactor` /
 
 Classified in §4.2; the rows there are the inventory. Additional
 comment-only references that must be re-aimed mechanically:
-`qp_engine.h:16,119,128,505-522,645,1918,1929,2025-2037,2069,2094,2111,
+`walk_engine.h:16,119,128,505-522,645,1918,1929,2025-2037,2069,2094,2111,
 3033-3060,3314,4027,4512`; `ssn_engine.h:183,228-229,509-518,982,
 1564-1569,2886-2894,2963-2965`; `types.h:269-286`;
 `sqp_solver_types.h:1244-1255`; `warm_start.h:24-29,205,423-425`;
@@ -901,17 +903,17 @@ retarget to `SymmetricFactor`/the helper; none carries code.)
 | `schur_complement.h:330-359` | Bunch-Kaufman block walk over `factored_`/`ipiv_` | consume the factor's block evidence (§6.3), arithmetic migrated verbatim |
 | `schur_complement.h:172-179` | in-place `LAPACKE_dsytrs` on `y` | `DenseSymmetricFactor::solve` (pre-sized destination; same factors, same `dsytrs`, float-identical) |
 | `schur_complement.h:362-375` | members `factored_`, `ipiv_`, `singular_`, `block_abs_eigs_`, `neg_count_` | `DenseSymmetricFactor` member + `singular_` + the evidence copy; `block_abs_eigs_`/`neg_count_` read from evidence |
-| `include/hven/detail/sqp/lapacke_shim.h` (whole file: shim at 44-83) | Apple-only LAPACKE source for the above | DELETED; `hven/detail/linear/lapacke_shim.h` serves the dense factor internally (`dense_symmetric_factor.h:10-14`) |
+| `include/hven/detail/linear/lapacke_shim.h` (whole file: shim at 44-83) | Apple-only LAPACKE source for the above | DELETED; `hven/detail/linear/lapacke_shim.h` serves the dense factor internally (`dense_symmetric_factor.h:10-14`) |
 
 ### 8.5 Hot-handle sites (§7)
 
 | Site | Current touch | Replacement |
 | --- | --- | --- |
-| `qp_engine.h:2217-2230` | `HotState` fields incl. `generation` | `kkt_session_id`/`kkt_epoch` replace `generation` |
-| `qp_engine.h:2333-2341` | `hot_state()` emits committed `border_generation_` | emits committed session/epoch (captured at the same exit-commit point that sets the fingerprints today) |
-| `qp_engine.h:2760-2766` | adoption copies `hot->generation` | copies the pair |
-| `qp_engine.h:3006-3013` | condition (e) live `border_->generation` read | live `session_id()`/`epoch()` reads + the usable-numerics conjunct (§7.2) |
-| `qp_engine.h:4489-4506` | bump-before-mutate note + `++border.generation` | deleted; the §7.2 conjunct carries the defensive role |
+| `walk_engine.h:2217-2230` | `HotState` fields incl. `generation` | `kkt_session_id`/`kkt_epoch` replace `generation` |
+| `walk_engine.h:2333-2341` | `hot_state()` emits committed `border_generation_` | emits committed session/epoch (captured at the same exit-commit point that sets the fingerprints today) |
+| `walk_engine.h:2760-2766` | adoption copies `hot->generation` | copies the pair |
+| `walk_engine.h:3006-3013` | condition (e) live `border_->generation` read | live `session_id()`/`epoch()` reads + the usable-numerics conjunct (§7.2) |
+| `walk_engine.h:4489-4506` | bump-before-mutate note + `++border.generation` | deleted; the §7.2 conjunct carries the defensive role |
 
 ### 8.6 Transitive test consumers (no direct include of a dissolving file)
 
@@ -921,10 +923,10 @@ rows do not surface them. Every construction line, named:
 
 | Site | Current touch | Replacement |
 | --- | --- | --- |
-| `tests/sqp/test_schur.cpp:20,46,70,101,122,177,225,247,270` | `KktSystem kkt(opts)` locals backing the `SchurComplement` unit suite | `KktFactor` locals; factorization through `factorize_checked` where the fixture factorizes K0 |
-| `tests/sqp/test_schur.cpp:22,48,72,103,124,187,232,249,277,281` | `SchurComplement schur(kkt, opts)` constructions (including the `healthy`/`sick` pair at 277/281) | the ctor's retargeted reference (§8.2). Assertions unchanged — this suite becomes the FLOAT-PARITY WITNESS for §6.3's dense-factor growth: `cond_estimate()`, `expected_neg_eigs_delta()`, `nearly_singular()` and the exact-singular behavior must come back bit-identical through `DenseSymmetricFactor` |
-| `tests/sqp/test_eqp_solve.cpp:73,84,119` | `KktSystem kkt{QpOptions{}}` locals fed to `solve_eqp` | `KktFactor` locals matching `eqp_solve.h:167`'s retargeted signature |
-| `tests/sqp/test_eqp_refine_ab.cpp:540` | `KktSystem kkt{on}` inside the A/B probe lambda, fed to `solve_eqp` | same |
+| `tests/kkt/test_schur.cpp:20,46,70,101,122,177,225,247,270` | `KktSystem kkt(opts)` locals backing the `SchurComplement` unit suite | `KktFactor` locals; factorization through `factorize_checked` where the fixture factorizes K0 |
+| `tests/kkt/test_schur.cpp:22,48,72,103,124,187,232,249,277,281` | `SchurComplement schur(kkt, opts)` constructions (including the `healthy`/`sick` pair at 277/281) | the ctor's retargeted reference (§8.2). Assertions unchanged — this suite becomes the FLOAT-PARITY WITNESS for §6.3's dense-factor growth: `cond_estimate()`, `expected_neg_eigs_delta()`, `nearly_singular()` and the exact-singular behavior must come back bit-identical through `DenseSymmetricFactor` |
+| `tests/qp/test_eqp_solve.cpp:73,84,119` | `KktSystem kkt{QpOptions{}}` locals fed to `solve_eqp` | `KktFactor` locals matching `eqp_solve.h:167`'s retargeted signature |
+| `tests/qp/test_eqp_refine_ab.cpp:540` | `KktSystem kkt{on}` inside the A/B probe lambda, fed to `solve_eqp` | same |
 
 ## 9. Migration hazards
 
@@ -950,7 +952,7 @@ rows do not surface them. Every construction line, named:
    attempted in phase B.
 5. **Throw-type discrimination in border fallback.** The
    singular-C-vs-backend-throw discriminator
-   (`qp_engine.h:4027-4034`) relies on `needs_refactorization()` state,
+   (`walk_engine.h:4027-4034`) relies on `needs_refactorization()` state,
    not message text — unaffected by §3.3's message change. Do not
    "improve" it to match on strings.
 6. **The golden rig's old-seam adapter is out of bounds.**
@@ -1000,15 +1002,15 @@ enumerated in the gate report):
    `ConstraintUnsupported<T>`, with a compile-fail probe asserting the
    AUTHORED constraint-route message fires and the raw member-lookup
    diagnostic does not — modeled on the existing probe family
-   (`tests/interior/CMakeLists.txt:64-131`,
-   `tests/interior/compile_fail/`). ONE fixture, not a matrix:
+   (`tests/ipm/CMakeLists.txt:64-131`,
+   `tests/model/compile_fail/`). ONE fixture, not a matrix:
    compile-fail probes cost ~90 s serial per ctest run and nested
    builds are unthrottled under `ctest -j` (the M2 t55f2-m1 cost note,
    carried by the plan). **DISCHARGED 2026-08-15 (phase-C C0.4):**
    `adapter_fixture::StubMixinObjectiveOnly` in
-   `tests/interior/adapter_fixture_functions.h`, registered through
+   `tests/model/support/adapter_fixture_functions.h`, registered through
    `ConstraintUnsupported<T>`, with the sixth family probe
-   `tests/interior/compile_fail/constraint_unsupported_mixin.cpp`
+   `tests/model/compile_fail/constraint_unsupported_mixin.cpp`
    inheriting the family's `FORBIDDEN_REGEX`, `EXPECT_SINGLE_ERROR` and
    shared `RESOURCE_LOCK` unchanged. It landed with the family rather
    than under `tests/sqp/` because forking the family would fork the
@@ -1020,7 +1022,7 @@ enumerated in the gate report):
    both pinned behaviors are covered at
    `tests/linear/test_symmetric_factor.cpp` by
    `AnalyzeOnceFactorizeManyOnAFixedPattern`/`FactorizeRejectsAForeignPattern`
-   and the inertia pins); `test_qp_engine_border.cpp:625`'s
+   and the inertia pins); `test_walk_engine_border.cpp:625`'s
    `KktSystemMoveKeepsFactorizationUsable` retargets onto
    `SymmetricFactor` move semantics or is declared covered by the
    `tests/linear` move/share pins. `test_kkt_inertia_probe.cpp`
@@ -1054,8 +1056,8 @@ Anything old-vs-new not on this list blocks gate B.
 | Namespace/include paths; backend-error MESSAGE TEXT (`"pardiso phase 22 failed: error N"` → hven-authored, backend code preserved) reaching `escape_detail` (§3.3) | mechanical; no pin or census row asserts the old text (verified §3.3) — if gate B finds one, it is a declared re-derivation, not a silent break |
 | Dense-border can't-happen throw types: `std::invalid_argument` → `std::runtime_error` for dsytrs `info != 0` and dsytrf illegal-argument (`src/linear/dense_symmetric_factor.cpp`) | both throw paths are unreachable with valid state (LAPACK contract: `info != 0`/illegal-argument cannot fire on well-formed input); no test pins the old exception type; the predictor's degradation net catches `std::exception` by phase for exactly this reason, so the type change is not observable through that consumer [added at B4 fix round, per task review I-1] |
 | `SymmetricFactor::analyze()` validates at the analyze boundary what the dissolved seam forwarded to the backend unvalidated. The full validation set is `validate_upper_csr` (`src/linear/symmetric_factor_mkl.cpp:253-292`): compressed, square, **non-empty (a 0x0 matrix is rejected)**, **no entry below the diagonal**, and a structural diagonal in every row | unreachable from engine assemblies, which are square, non-empty, upper-triangle-only and emit the diagonal unconditionally (§3.1); reachable only from hand-built matrices — five test fixtures needed an explicit zero diagonal added to stay valid; solver behavior on well-formed input is unchanged, no counter moves [added at B4 fix round, per task review I-1; the empty-matrix and below-diagonal siblings named explicitly at gate-B dual review] |
-| The retargeted path writes **`iparm[17] = -1` (the factor-nonzero-count request) on every analyze**, where the dissolved seam never touched `iparm[17]` at all. Unconditional, gated by no `Options` field — `collect_factor_mflops` gates only `iparm[18]` (§1) | delta-free, not merely unreachable: `pardisoinit`'s own mtype = −2 initialization already sets this entry to −1 on every MKL version checked (`pardiso_session.cpp:361-370`), so the write changes nothing Pardiso computes — it only makes hven's request explicit rather than riding a backend default; the dissolved seam read neither `iparm[17]` nor `iparm[18]` (audit `consumed-surface-audit.md:104`), so no consumer can observe it. ~~Unlike `iparm[7]`/`iparm[9]` it carries **no `pardisoinit` canary**, so a future backend-default drift would be silent; extending `BackendDefaultPremise` to `iparm[17]` is a phase-C item, recorded in the gate note's addendum~~ **CLOSED at phase C, task C0.1:** the canary now exists — `BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount` (`tests/linear/test_fault_injection.cpp`) asserts the −1 default from the post-`pardisoinit` capture point, so a backend-default drift fails this row loudly instead of silently. Value observed, not assumed: −1 on MKL 2026.0.1 (build 20260612), from hven's own session and from a standalone `pardisoinit()` probe outside hven's session code, mtype = −2 and mtype = 11 alike. The "every MKL version checked" phrasing above stands as written, now with a running check behind it [added at gate-B dual review; canary landed at phase-C C0.1] |
-| Probe-side throw site moves: `needs_analysis(fresh_factor, uncompressed_K)` short-circuits on `!k.analyzed` and returns `true` where the old `pattern_matches` threw `std::invalid_argument("KktSystem: matrix must be compressed …")` from the probe itself (`src/sqp/kkt_calls.cpp:10`; old seam `kkt_system.h:170-174,197`) | unreachable from engine assemblies, which hand a compressed matrix at every call site; and delta-free even off that path, because the throw still fires one call later inside `analyze()` — no invalid matrix reaches a backend, no probe-then-factorize consumer can tell the difference, and no test asserts on the probe-side throw (searched at B3 review; none found). Only the throwing site and the message text change, the latter already licensed by §3.3 for `factorize` [added at gate-B dual review, per B3 task review M4] |
+| The retargeted path writes **`iparm[17] = -1` (the factor-nonzero-count request) on every analyze**, where the dissolved seam never touched `iparm[17]` at all. Unconditional, gated by no `Options` field — `collect_factor_mflops` gates only `iparm[18]` (§1) | delta-free, not merely unreachable: `pardisoinit`'s own mtype = −2 initialization already sets this entry to −1 on every MKL version checked (`pardiso_session.cpp:361-370`), so the write changes nothing Pardiso computes — it only makes hven's request explicit rather than riding a backend default; the dissolved seam read neither `iparm[17]` nor `iparm[18]` (audit `consumed-surface-audit.md:104`), so no consumer can observe it. ~~Unlike `iparm[7]`/`iparm[9]` it carries **no `pardisoinit` canary**, so a future backend-default drift would be silent; extending `BackendDefaultPremise` to `iparm[17]` is a phase-C item, recorded in the gate note's addendum~~ **CLOSED at phase C, task C0.1:** the canary now exists — `BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount` (`tests/linear/seam/test_fault_injection.cpp`) asserts the −1 default from the post-`pardisoinit` capture point, so a backend-default drift fails this row loudly instead of silently. Value observed, not assumed: −1 on MKL 2026.0.1 (build 20260612), from hven's own session and from a standalone `pardisoinit()` probe outside hven's session code, mtype = −2 and mtype = 11 alike. The "every MKL version checked" phrasing above stands as written, now with a running check behind it [added at gate-B dual review; canary landed at phase-C C0.1] |
+| Probe-side throw site moves: `needs_analysis(fresh_factor, uncompressed_K)` short-circuits on `!k.analyzed` and returns `true` where the old `pattern_matches` threw `std::invalid_argument("KktSystem: matrix must be compressed …")` from the probe itself (`src/sqp/kkt_factor.cpp:10`; old seam `kkt_system.h:170-174,197`) | unreachable from engine assemblies, which hand a compressed matrix at every call site; and delta-free even off that path, because the throw still fires one call later inside `analyze()` — no invalid matrix reaches a backend, no probe-then-factorize consumer can tell the difference, and no test asserts on the probe-side throw (searched at B3 review; none found). Only the throwing site and the message text change, the latter already licensed by §3.3 for `factorize` [added at gate-B dual review, per B3 task review M4] |
 
 Explicitly NOT licensed: any float, counter, status, or census delta
 not named above — including any refinement-cap effect change (§2's
@@ -1163,7 +1165,7 @@ the items that remain genuinely undecided are unmarked and stay open.]
 [Folded per the execution review (2026-08-14), §2.4 — recorded so the
 answers are on file where the questions would otherwise have no home.]
 
-- **§4.2's rebuild-gate rewrite** (`qp_engine.h:3970`): **APPROVED** —
+- **§4.2's rebuild-gate rewrite** (`walk_engine.h:3970`): **APPROVED** —
   the "natively-observed `n_zero != 0`" qualifier does the work; inert
   on MKL where the zero class is derived, and it preserves the
   Accelerate twin's zero-pivot trust signal through the honest channel.

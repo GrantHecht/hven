@@ -1,0 +1,84 @@
+MOVER LEDGER sd-hven-sqp-BT7.D: side.harness_qp_ledger_solves: 714 -> 733; side.harness_qpsum_dep_dependent: 327 -> 335; side.harness_qpsum_dep_inertia_rereads: 66 -> 81; side.harness_qpsum_dep_test_solves: 4362 -> 4543; side.harness_qpsum_dep_tests: 650 -> 695; side.harness_qpsum_ws_exchanges: 124 -> 132
+MOVER LEDGER sd-hven-sqp-BT7.K: side.harness_qp_ledger_solves: 714 -> 733; side.harness_qpsum_dep_dependent: 321 -> 329; side.harness_qpsum_dep_inertia_rereads: 66 -> 81; side.harness_qpsum_dep_stall_admits: 26 -> 27; side.harness_qpsum_dep_test_solves: 4346 -> 4531; side.harness_qpsum_dep_tests: 644 -> 689
+MOVER LEDGER sd-hven-sqp-BURKEHAN.D: side.harness_qp_ledger_solves: 421 -> 422; side.harness_qpsum_dep_test_solves: 2114 -> 2115; side.harness_qpsum_dep_tests: 476 -> 477
+MOVER LEDGER sd-hven-sqp-BURKEHAN.K: side.harness_qp_ledger_solves: 421 -> 422; side.harness_qpsum_dep_test_solves: 2114 -> 2115; side.harness_qpsum_dep_tests: 476 -> 477
+MOVER LEDGER sd-hven-sqp-CRESC100.D: side.harness_qp_ledger_solves: 48 -> 118; side.harness_qpsum_border_uncertified_fallbacks: 9 -> 2968; side.harness_qpsum_dep_blocker_terminations: 1 -> 9; side.harness_qpsum_dep_border_retreats: 15 -> 17; side.harness_qpsum_dep_deferred_adds: 0 -> 1; side.harness_qpsum_dep_dependent: 1698 -> 14299
+MOVER LEDGER sd-hven-sqp-CRESC100.K: side.harness_qp_ledger_solves: 37 -> 83; side.harness_qpsum_border_uncertified_fallbacks: 10 -> 1978; side.harness_qpsum_convex_certificates: 0 -> 1; side.harness_qpsum_dep_blocker_terminations: 9 -> 12; side.harness_qpsum_dep_border_retreats: 28 -> 33; side.harness_qpsum_dep_deferred_adds: 0 -> 27
+MOVER LEDGER sd-hven-sqp-CRESC4.D: side.harness_qp_ledger_solves: 109 -> 114; side.harness_qpsum_border_uncertified_fallbacks: 4 -> 31; side.harness_qpsum_dep_grey_rereads: 1 -> 3; side.harness_qpsum_dep_stall_admits: 2 -> 13; side.harness_qpsum_dep_test_solves: 1448 -> 1560; side.harness_qpsum_dep_tests: 574 -> 620
+MOVER LEDGER sd-hven-sqp-CRESC4.K: side.harness_qp_ledger_solves: 60 -> 79; side.harness_qpsum_border_uncertified_fallbacks: 22 -> 76; side.harness_qpsum_dep_dependent: 176 -> 196; side.harness_qpsum_dep_grey_rereads: 2 -> 11; side.harness_qpsum_dep_stall_admits: 27 -> 81; side.harness_qpsum_dep_test_solves: 964 -> 1337
+MOVER LEDGER sd-hven-sqp-CRESC50.D: side.harness_qp_ledger_solves: 429 -> 506; side.harness_qpsum_ascent_rides: 2 -> 4; side.harness_qpsum_border_uncertified_fallbacks: 49 -> 749; side.harness_qpsum_dep_dependent: 631 -> 4464; side.harness_qpsum_dep_grey_reread_dependent: 18 -> 534; side.harness_qpsum_dep_grey_rereads: 29 -> 680
+MOVER LEDGER sd-hven-sqp-CRESC50.K: side.harness_qp_ledger_solves: 171 -> 201; side.harness_qpsum_border_uncertified_fallbacks: 140 -> 932; side.harness_qpsum_dep_dependent: 615 -> 703; side.harness_qpsum_dep_grey_rereads: 18 -> 26; side.harness_qpsum_dep_inertia_rereads: 97 -> 98; side.harness_qpsum_dep_passovers: 74 -> 85
+MOVER LEDGER sd-hven-sqp-DEMBO7.D: side.harness_qp_ledger_solves: 16 -> 56; side.harness_qpsum_ascent_rides: 1 -> 3; side.harness_qpsum_border_uncertified_fallbacks: 1 -> 3; side.harness_qpsum_dep_dependent: 199 -> 421; side.harness_qpsum_dep_grey_reread_dependent: 7 -> 9; side.harness_qpsum_dep_grey_rereads: 8 -> 10
+MOVER LEDGER sd-hven-sqp-DEMBO7.K: side.harness_qp_ledger_solves: 16 -> 56; side.harness_qpsum_ascent_rides: 1 -> 3; side.harness_qpsum_border_uncertified_fallbacks: 1 -> 3; side.harness_qpsum_dep_dependent: 199 -> 422; side.harness_qpsum_dep_grey_reread_dependent: 7 -> 9; side.harness_qpsum_dep_grey_rereads: 9 -> 11
+MOVER LEDGER sd-hven-sqp-HS101.D: side.harness_qp_ledger_solves: 56 -> 86; side.harness_qpsum_border_uncertified_fallbacks: 2 -> 4; side.harness_qpsum_dep_dependent: 64 -> 94; side.harness_qpsum_dep_inertia_rereads: 24 -> 42; side.harness_qpsum_dep_recheck_removals: 2 -> 8; side.harness_qpsum_dep_stall_admits: 5 -> 40
+MOVER LEDGER sd-hven-sqp-HS101.K: side.harness_qp_ledger_solves: 55 -> 72; side.harness_qpsum_border_uncertified_fallbacks: 2 -> 8; side.harness_qpsum_dep_dependent: 64 -> 85; side.harness_qpsum_dep_inertia_rereads: 23 -> 28; side.harness_qpsum_dep_stall_admits: 5 -> 190; side.harness_qpsum_dep_test_solves: 569 -> 1163
+MOVER LEDGER sd-hven-sqp-HS74.D: side.harness_qp_ledger_solves: 317 -> 335; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 6; side.harness_qpsum_dep_dependent: 151 -> 152; side.harness_qpsum_dep_stall_admits: 67 -> 72; side.harness_qpsum_dep_test_solves: 1939 -> 2057; side.harness_qpsum_dep_tests: 353 -> 392
+MOVER LEDGER sd-hven-sqp-HS74.K: side.harness_qp_ledger_solves: 317 -> 335; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 7; side.harness_qpsum_dep_dependent: 152 -> 153; side.harness_qpsum_dep_stall_admits: 68 -> 74; side.harness_qpsum_dep_test_solves: 2067 -> 2191; side.harness_qpsum_dep_tests: 354 -> 393
+MOVER LEDGER sd-hven-sqp-HS75.D: side.harness_qp_ledger_solves: 316 -> 334; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 5; side.harness_qpsum_dep_dependent: 149 -> 150; side.harness_qpsum_dep_stall_admits: 70 -> 74; side.harness_qpsum_dep_test_solves: 2013 -> 2132; side.harness_qpsum_dep_tests: 351 -> 390
+MOVER LEDGER sd-hven-sqp-HS75.K: side.harness_qp_ledger_solves: 316 -> 334; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 5; side.harness_qpsum_dep_dependent: 150 -> 151; side.harness_qpsum_dep_stall_admits: 70 -> 75; side.harness_qpsum_dep_test_solves: 2033 -> 2155; side.harness_qpsum_dep_tests: 352 -> 391
+MOVER LEDGER sd-hven-sqp-HS88.D: side.harness_qp_ledger_solves: 116 -> 117; side.harness_qpsum_dep_test_solves: 635 -> 636; side.harness_qpsum_dep_tests: 87 -> 88
+MOVER LEDGER sd-hven-sqp-HS88.K: side.harness_qp_ledger_solves: 116 -> 117; side.harness_qpsum_dep_test_solves: 629 -> 630; side.harness_qpsum_dep_tests: 87 -> 88
+MOVER LEDGER sd-hven-sqp-HS92.D: side.harness_qp_ledger_solves: 292 -> 293; side.harness_qpsum_dep_test_solves: 1663 -> 1664; side.harness_qpsum_dep_tests: 411 -> 412
+MOVER LEDGER sd-hven-sqp-HS92.K: side.harness_qp_ledger_solves: 292 -> 293; side.harness_qpsum_dep_test_solves: 2220 -> 2221; side.harness_qpsum_dep_tests: 401 -> 402
+MOVER LEDGER sd-hven-sqp-HS99EXP.D: side.harness_qp_ledger_solves: 400 -> 770; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 2; side.harness_qpsum_dep_dependent: 547 -> 2257; side.harness_qpsum_dep_grey_rereads: 307 -> 1037; side.harness_qpsum_dep_inertia_rereads: 100 -> 469; side.harness_qpsum_dep_stall_admits: 135 -> 152
+MOVER LEDGER sd-hven-sqp-HS99EXP.K: side.harness_qp_ledger_solves: 376 -> 751; side.harness_qpsum_dep_dependent: 545 -> 2279; side.harness_qpsum_dep_grey_rereads: 291 -> 1031; side.harness_qpsum_dep_inertia_rereads: 94 -> 468; side.harness_qpsum_dep_stall_admits: 314 -> 1055; side.harness_qpsum_dep_test_solves: 6774 -> 21041
+MOVER LEDGER sd-hven-sqp-LAKES.D: side.harness_qp_ledger_solves: 82 -> 94; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 1; side.harness_qpsum_dep_blocker_terminations: 2 -> 10; side.harness_qpsum_dep_dependent: 993 -> 1759; side.harness_qpsum_dep_grey_rereads: 253 -> 289; side.harness_qpsum_dep_passovers: 50 -> 742
+MOVER LEDGER sd-hven-sqp-LAKES.K: side.harness_qp_ledger_solves: 82 -> 94; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 1; side.harness_qpsum_dep_blocker_terminations: 2 -> 10; side.harness_qpsum_dep_dependent: 993 -> 1759; side.harness_qpsum_dep_grey_rereads: 253 -> 289; side.harness_qpsum_dep_passovers: 50 -> 742
+MOVER LEDGER sd-hven-sqp-LEWISPOL.D: side.harness_qp_ledger_solves: 11 -> 13; side.harness_qpsum_dep_grey_rereads: 8 -> 14; side.harness_qpsum_dep_test_solves: 166 -> 209; side.harness_qpsum_dep_tests: 40 -> 52
+MOVER LEDGER sd-hven-sqp-LEWISPOL.K: side.harness_qp_ledger_solves: 11 -> 13; side.harness_qpsum_dep_grey_rereads: 8 -> 14; side.harness_qpsum_dep_test_solves: 196 -> 239; side.harness_qpsum_dep_tests: 39 -> 51
+MOVER LEDGER sd-hven-sqp-LOOTSMA.D: side.harness_qp_ledger_solves: 16 -> 17; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 1; side.harness_qpsum_dep_test_solves: 73 -> 75; side.harness_qpsum_dep_tests: 3 -> 5
+MOVER LEDGER sd-hven-sqp-LOOTSMA.K: side.harness_qp_ledger_solves: 16 -> 17; side.harness_qpsum_dep_test_solves: 82 -> 84; side.harness_qpsum_dep_tests: 12 -> 14
+MOVER LEDGER sd-hven-sqp-MESH.D: side.harness_qp_ledger_solves: 302 -> 329; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 32; side.harness_qpsum_dep_dependent: 1387 -> 1641; side.harness_qpsum_dep_grey_reread_dependent: 0 -> 213; side.harness_qpsum_dep_grey_rereads: 1 -> 426; side.harness_qpsum_dep_implied_passovers: 33 -> 256
+MOVER LEDGER sd-hven-sqp-MESH.K: side.harness_qp_ledger_solves: 20 -> 80; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 122; side.harness_qpsum_dep_border_retreats: 1 -> 3; side.harness_qpsum_dep_dependent: 85 -> 246; side.harness_qpsum_dep_grey_reread_dependent: 0 -> 9; side.harness_qpsum_dep_grey_rereads: 0 -> 11
+MOVER LEDGER sd-hven-sqp-MSS1.D: side.harness_qp_ledger_infeasible: 2 -> 7; side.harness_qp_ledger_solves: 22 -> 71; side.harness_qpsum_ascent_rides: 85 -> 189; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 41; side.harness_qpsum_dep_blocker_terminations: 9 -> 11; side.harness_qpsum_dep_border_retreats: 9 -> 10
+MOVER LEDGER sd-hven-sqp-MSS1.K: side.harness_qp_ledger_infeasible: 2 -> 7; side.harness_qp_ledger_solves: 49 -> 127; side.harness_qpsum_ascent_rides: 353 -> 536; side.harness_qpsum_border_uncertified_fallbacks: 20 -> 105; side.harness_qpsum_dep_blocker_terminations: 36 -> 38; side.harness_qpsum_dep_border_retreats: 34 -> 36
+MOVER LEDGER sd-hven-sqp-NET1.D: side.harness_qp_ledger_solves: 14 -> 34; side.harness_qpsum_ascent_rides: 0 -> 1; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 1; side.harness_qpsum_dep_dependent: 184 -> 361; side.harness_qpsum_dep_grey_rereads: 1 -> 3; side.harness_qpsum_dep_implied_passovers: 39 -> 49
+MOVER LEDGER sd-hven-sqp-NET1.K: side.harness_qp_ledger_solves: 14 -> 34; side.harness_qpsum_ascent_rides: 0 -> 1; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 1; side.harness_qpsum_dep_dependent: 234 -> 411; side.harness_qpsum_dep_grey_rereads: 1 -> 3; side.harness_qpsum_dep_implied_passovers: 39 -> 49
+MOVER LEDGER sd-hven-sqp-SPANHYD.D: side.harness_qp_ledger_solves: 65 -> 75; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 264; side.harness_qpsum_dep_test_solves: 30141 -> 31099; side.harness_qpsum_dep_tests: 22015 -> 22933
+MOVER LEDGER sd-hven-sqp-SPANHYD.K: side.harness_qp_ledger_solves: 58 -> 68; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 287; side.harness_qpsum_dep_test_solves: 26766 -> 27724; side.harness_qpsum_dep_tests: 19733 -> 20651
+MOVER LEDGER sd-hven-sqp-WATER.D: side.harness_qp_ledger_solves: 255 -> 269; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 8; side.harness_qpsum_dep_test_solves: 2426 -> 2622; side.harness_qpsum_dep_tests: 933 -> 1073
+MOVER LEDGER sd-hven-sqp-WATER.K: side.harness_qp_ledger_solves: 258 -> 272; side.harness_qpsum_border_uncertified_fallbacks: 0 -> 14; side.harness_qpsum_dep_test_solves: 2548 -> 2757; side.harness_qpsum_dep_tests: 1032 -> 1185
+
+SUMMARY rows 476; movers vs arm A 40; missing/capped 0
+residual values equal within the gate but not byte-equal: 0
+  FAIL UNDECLARED_MOVER sd-hven-sqp-BT7.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-BT7.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-BURKEHAN.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-BURKEHAN.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC100.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC100.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC4.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC4.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC50.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-CRESC50.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-DEMBO7.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-DEMBO7.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS101.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS101.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS74.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS74.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS75.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS75.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS88.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS88.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS92.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS92.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS99EXP.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-HS99EXP.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LAKES.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LAKES.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LEWISPOL.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LEWISPOL.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LOOTSMA.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-LOOTSMA.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-MESH.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-MESH.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-MSS1.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-MSS1.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-NET1.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-NET1.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-SPANHYD.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-SPANHYD.K
+  FAIL UNDECLARED_MOVER sd-hven-sqp-WATER.D
+  FAIL UNDECLARED_MOVER sd-hven-sqp-WATER.K
+I17_TRAIN_FAIL

@@ -1,0 +1,17 @@
+RS-1e gate result (cumulative against the RS-0 baseline; final run of each step; the 1e head = all five moves applied)
+G1 clean configure CCACHE_DISABLE=1 + Release build: rc 0
+G2' P-SYM, generated object map (39 library objects renamed/moved in total; 1 deleted): 198 objects, 186 byte-identical, 3 noise-class, 0 unclassified, 0 missing.
+    Exceptions: the design-mandated test edits of 1a/1c/1d only (test_core_layering, test_message_sites, test_trace_off_path, test_qp_mode_sites); 1e's own test edit
+    (test_trace_off_path's scanned directory list) produced no finding beyond those.
+    warm_start -> crossover passes per symbol, identical.
+G3' flags diff 363 TUs: IDENTICAL
+G4  check_pch_neutrality.sh: PASS (PCH sources unchanged in 1e; re-run as cheap evidence)
+G5' ctest Release 3869/3869; Debug 3869/3869; gtest lists raw-identical; ctest -N identical modulo the declared byte-dump class (133 = 133; DECLARATION-r3)
+G6  test_trace_off_path scans {ipm, sqp, solver, qp, warmstart} (recursive), site count EXACTLY 130 == RS-0, passes; message-sites, qp-mode-sites, core layering (17 headers) pass
+G7  install smoke default + clang PASS, export contract OK (no public header includes detail/, umbrella includes every public header); installed listing == baseline-with-map
+    for both arms; public headers 55 (54 + hven.h); include/hven/{drivers,globalization,interior,kkt} and detail/{drivers,globalization,interior} and core/detail ABSENT from the
+    install tree; hvenConfig sentinel resolves
+G8  golden rig NATIVE arm: in ctest, pass. THREE-SEAM arms: configure OK (both pins verified) but the two old-seam adapters do not compile at ALL against this tree's
+    linear::InertiaEvidence (no members n_pos/n_neg/n_zero): rig3/build-errors.txt. This is PRE-EXISTING at origin/m8 abfa51b04 (the header and both adapters are untouched
+    by RS); the adapters are slated for deletion when the engine migrations close (CLAUDE.md section 1). Not an RS finding; reported as an open item.
+G9  27-cell replay x walk/ssn/ipm: 0 differences x3

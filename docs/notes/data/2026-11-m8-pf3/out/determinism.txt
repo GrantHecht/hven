@@ -1,0 +1,9 @@
+runs: 5; cells in all: 75; status/iterations/factorizations identical in all runs for 75 cells; max relative instruction spread 1.175e-02; cells with spread 0: 0
+  1.175e-02 hven-sqp__hs007 [8751882, 8650271, 8751893, 8750929, 8750880] stat_same=True
+  3.279e-03 hven-ipm__hs007 [6715753, 6707857, 6704672, 6715724, 6693807] stat_same=True
+  2.366e-03 hven-sqp__hs005 [6864737, 6880156, 6880979, 6877404, 6870110] stat_same=True
+  2.295e-03 hven-ipm__hs003 [6560555, 6567605, 6558953, 6573153, 6558100] stat_same=True
+  2.280e-03 hven-ipm__hs071 [6809610, 6799405, 6814728, 6814910, 6814733] stat_same=True
+  2.208e-03 hven-sqp__hs006 [8417491, 8403732, 8414053, 8417190, 8422287] stat_same=True
+  2.159e-03 hven-ipm__hs039 [7024002, 7023172, 7023830, 7037878, 7038333] stat_same=True
+  2.147e-03 hven-sqp__hs026 [9316534, 9296577, 9308858, 9312836, 9313422] stat_same=True

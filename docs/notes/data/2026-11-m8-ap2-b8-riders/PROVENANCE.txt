@@ -1,0 +1,62 @@
+M8 AP-2 B8 RIDERS (C242/C243) -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt + runtime/DECLARATION.txt (r1, 0eda225e); DECLARATION-r2.txt +
+               runtime/DECLARATION-r2.txt (r2, 60f298a1), each committed before its first leg, never edited.
+               r1 FAILED at P9 (the Accelerate sweep: renamed linear-layer members in test branches Linux does
+               not compile); its owner stopped its chain during the next leg; every r1 output is kept in run1/
+               (its runtime gate PASSED at fe2125e0, run1/runtime/). r2 = the fix 2a19cfc3 (+ ee659396, comment
+               text) and every leg run again. No criterion changed.
+Base / head    base f0a1c95a (merge of origin/m8 cf164dcf into m8-b8 50c3b9f8). r2 code head ee659396; commits
+               98056b7d 32a8b394 13efeff3 857bed8d fe2125e0 2a19cfc3 35f20826 ee659396 (code/docs), 0eda225e
+               60f298a1 + this commit (evidence).
+Arms           A = cf164dcf (legs/prebuild.sh: git-archive export build-b8r/armA-src, built before any rider edit):
+               build-b8r/armAbin/hven_sqp_corpus sha256 d2c9a99f14396554fc8753f102a316004f731b4333d55d9fc12ff5b3aeb90515,
+               compile database sha256 5e3264a519b8d4d55ba00657e003c1a3f612f6b3b68469300deed3ce4915af4a
+               (chain/arma.out). B = the r2 head: build-b8r/armBbin sha256
+               6ce4028f0ab574d5189d5716bb4fec1000190d4ac891167dc358ecb36010c7b9 (fresh build at 35f20826, rebuilt
+               incrementally at ee659396, unchanged; checked by run_all.sh, interior.sh and census.sh).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-06 03:37 EST (pre-edit builds) / 07:43 (r2 runtime gate start) to 2026-11-06 15:13 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY inside
+               it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence paths, chain1's
+               fail-closed pre-flight (PREFLIGHT_OK; a planted copy with two stale paths refused before r1). The r2
+               runtime gate ran alone first (runtime/run_all.log); build-b8r/after_gate.sh started chain1 when the
+               gate's pid ended with VERDICT PASS (chain/chain1.log).
+
+RESULTS (r2; criteria as declared)
+P0  arm A       both sha256 as declared, ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release 3473/3473, Debug 3473/3473 (suites/). PASS.
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       15 configurations BYTE-IDENTICAL to B7 riders' dump (iparm/iparm-b8r.txt, sha256 34bb45c0...).
+                PASS. (D8)
+P5  census      57 baseline cells, 57 fresh, 0 mismatches; serial-confirm list empty (census/; 09:09 -> 15:13).
+                PASS. (D1)
+P6  smoke       default and clang arms PASSED (36 standalone-include TUs, a pieces solve, both engines); export
+                contract OK on both (install-smoke/). PASS. (D9)
+P7  PCH         PASS: 4 TUs engaged, 57 artifacts byte-identical (pch/pch-neutrality.txt).
+P8  off-ref     fresh build rc 0, 26 warning lines, ctest Release 3473/3473 (offref/). PASS.
+P9  Accelerate  pass A PASS_A_AS_DECLARED: every file's classes as B8's; tests/drivers/test_options_dump.cpp's
+                KNOWN-SIZEOF lines gone and the file (and src/drivers/ipm_options.cpp) no longer mention the macro
+                (LEFT, reported); OTHER 0 (accelerate/). PASS. Pass B (reported, not a criterion): 44 OTHER lines,
+                the stub's gaps, the same count as B8's pass B; none names a renamed member. Apple UNOBSERVED.
+P10 flags       60 library TUs both arms, same set; 56 differ, each ONLY by D7's defines
+                (HVEN_DEFAULT_QP_THREADS -> HVEN_DEFAULT_IPM_THREADS, and B8's version define): FLAGS_AS_DECLARED
+                (flags/). PASS. (D7)
+P11 runtime     VERDICT PASS: filtered B/A interior 0.999819, ipm 1.000000, ssn 1.000000, walk 0.999999; THROTTLE 0
+                in every process (6/162/162/162); counter identity on every (round, cell) pair. PASS.
+P12 interior    unmoved: 27 cells (43 rows) x 30 columns, 0 differences; promoted: 0 differences (interior/). PASS.
+P13 P-SYM       step 1 (the renames: psym-before vs psym-mid through the generated map, 57 exceptions): PASS;
+                step 2 (the layout: psym-mid vs psym-after): 25 objects with findings, every one sees
+                drivers/ipm_options.h: STEP2_AS_DECLARED (psym/compare-step1.txt.gz, compare-step2.txt.gz,
+                step2-check.txt; the sha256 of the three gzipped listings before gzip in
+                psym/sha256-before-gzip.txt). PASS.
+P14 manifest    207 patterns, 0 hits (24 inside C++ string literals: frozen labels, listed) (chain/manifest.out).
+                PASS.
+DEVIATIONS     the inverse-manifest revert test not run (declared); the dev P-SYM compares and the dev Accelerate
+               sweep's analysis ran outside the lock (no hven binary), as B8 accepted; the Sonnet helper that
+               rewrote the public-header comments worked comment-only and its token-identity check passed (21 files).
+RECORDS        run1/ holds r1's outputs unchanged except run1/runtime.tar.gz (r1's runtime gate directory, tarred
+               and gzipped for size; r1's gate PASSED at fe2125e0: interior 0.999859, ipm/ssn 1.000000, walk 1.000000).
+               build-b8r/ (scratch) holds the dev trees and the capture snapshots; nothing is pushed.

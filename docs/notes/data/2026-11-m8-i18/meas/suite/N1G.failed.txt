@@ -1,0 +1,2 @@
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+[  FAILED  ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted

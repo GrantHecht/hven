@@ -1,0 +1,4 @@
+AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+AnalysisTally.ValuesDoNotMatterThePatternDoes

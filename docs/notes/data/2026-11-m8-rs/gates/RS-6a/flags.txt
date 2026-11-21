@@ -1,0 +1,14 @@
+keys in both: 496 (before 496, after 498)
+declared token classes applied (per TU or per distinct list):
+  def+              17
+  def-             884
+  inc+              13
+  seam:def+         64
+  seam:def-         11
+  seam:inc+         31
+  seam:seamdef+     96
+  seam:seamdef-      4
+  snopt+             3
+  snopt-           204
+violations: 0
+RESULT: IDENTICAL_MODULO_DECLARED

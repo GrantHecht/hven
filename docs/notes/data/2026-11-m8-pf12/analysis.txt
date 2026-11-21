@@ -1,0 +1,27 @@
+cell | arm | status fact minors | instr/minor (median) | spread | rounds identical | matches baseline
+f7_n1000_path_corrupted | u0 | Optimal 2976 4049 | 372982573.8 | 0.000% | True(3) | True
+f7_n1000_path_corrupted | m8 | Optimal 3590 4762 | 489700762.8 | 0.000% | True(3) | False
+f7_n1000_path_neutral | u0 | Optimal 9951 11043 | 108772227.5 | 0.000% | True(3) | True
+f7_n1000_path_neutral | m8 | Optimal 11401 12593 | 140466000.8 | 0.000% | True(3) | True
+f7_n2000_path_activity | u0 | Optimal 8 1505 | 186522550.7 | 0.000% | True(3) | True
+f7_n2000_path_activity | m8 | Optimal 18 1881 | 379120544.9 | 0.000% | True(3) | True
+f7_n2000_path_physics | u0 | Optimal 9 1396 | 199254072.4 | 0.000% | True(3) | True
+f7_n2000_path_physics | m8 | Optimal 12 1638 | 479669059.1 | 0.000% | True(3) | True
+f7_n750_path_neutral_control | u0 | Optimal 7865 9297 | 76067197.5 | 0.000% | True(3) | True
+f7_n750_path_neutral_control | m8 | Optimal 8779 10298 | 104704378.1 | 0.000% | True(3) | True
+f7_n800_path_corrupted | u0 | Optimal 14 1795 | 451402782.3 | 0.000% | True(3) | True
+f7_n800_path_corrupted | m8 | Optimal 14 2310 | 587976698.3 | 0.000% | True(3) | True
+f7_n800_path_neutral | u0 | Optimal 29222 30165 | 86098694.1 | 0.000% | True(3) | True
+f7_n800_path_neutral | m8 | Optimal 9637 10822 | 112094941.9 | 0.000% | True(3) | True
+f7_n825_path_neutral_control | u0 | Optimal 7605 9561 | 95482136.7 | 0.000% | True(3) | True
+f7_n825_path_neutral_control | m8 | Optimal 10440 10589 | 110900788.7 | 0.000% | True(3) | True
+
+cell | U0 instr/minor | m8 instr/minor | ratio | total instr ratio | minors ratio
+f7_n1000_path_corrupted | 372982573.8 | 489700762.8 | 1.313 | 1.544 | 1.176
+f7_n1000_path_neutral | 108772227.5 | 140466000.8 | 1.291 | 1.473 | 1.140
+f7_n2000_path_activity | 186522550.7 | 379120544.9 | 2.033 | 2.540 | 1.250
+f7_n2000_path_physics | 199254072.4 | 479669059.1 | 2.407 | 2.825 | 1.173
+f7_n750_path_neutral_control | 76067197.5 | 104704378.1 | 1.376 | 1.525 | 1.108
+f7_n800_path_corrupted | 451402782.3 | 587976698.3 | 1.303 | 1.676 | 1.287
+f7_n800_path_neutral | 86098694.1 | 112094941.9 | 1.302 | 0.467 | 0.359
+f7_n825_path_neutral_control | 95482136.7 | 110900788.7 | 1.161 | 1.286 | 1.108

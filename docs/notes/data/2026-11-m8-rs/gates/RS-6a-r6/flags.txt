@@ -1,0 +1,18 @@
+library TUs compiled with HVEN_TESTING in the shared object library after: 58 (each exactly once)
+keys in both: 501 (before 501, after 503)
+declared token classes applied (per TU or per distinct list):
+  def+              17
+  def-             887
+  inc+              14
+  seam:def+         41
+  seam:def-          3
+  seam:inc+         16
+  seam:seamdef+     78
+  seam:seamlib-gtest-   118
+  seam:seamlib-pic+    59
+  seam:seamlib-pie-    59
+  seam:snopt-      118
+  snopt+             3
+  snopt-           204
+violations: 0
+RESULT: IDENTICAL_MODULO_DECLARED

@@ -1,0 +1,32 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T19:06:30-05:00
+mutation site count 1
+85,89c85,93
+<             Block2x2 block;
+<             bool det_zero = false;
+<             if (!decode_2x2(a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + (k + 1)], block,
+<                             det_zero) ||
+<                 det_zero) {
+---
+>             const double a11 = a[k * n + k];
+>             const double a21 = a[(k + 1) * n + k];
+>             const double a22 = a[(k + 1) * n + (k + 1)];
+>             const double trace = a11 + a22;
+>             const double det = a11 * a22 - a21 * a21;
+>             const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
+>             const double e1 = (trace + disc) / 2.0;
+>             const double e2 = (trace - disc) / 2.0;
+>             if (!std::isfinite(e1) || !std::isfinite(e2)) {
+93,94c97,98
+<             out.negative += block.neg;
+<             out.positive += 2 - block.neg;
+---
+>             out.negative += (e1 < 0.0 ? 1 : 0) + (e2 < 0.0 ? 1 : 0);
+>             out.positive += (e1 > 0.0 ? 1 : 0) + (e2 > 0.0 ? 1 : 0);
+head rc=0
+mutant rc=1
+head  : 19 tests all OK
+mutant: 19 tests, failed ['DenseArm.LakesMatrixCountsTheReferenceNegatives', 'DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative', 'DenseArmBlockWalk.NonFiniteIsSingular', 'DenseArmBlockWalk.ZeroDeterminantIsSingular']
+mutant LAKES negative reads 72: True
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-08T19:07:34-05:00

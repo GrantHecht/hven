@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..fe94102f1 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -368,7 +368,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: advanced.ssn_uncertain_tol ({}) must be in [0, 1)",
+                         opts.advanced.ssn_uncertain_tol));
+     }
+-    if (!(opts.advanced.ssn_lm_sigma_c > 0.0) || std::isinf(opts.advanced.ssn_lm_sigma_c)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: advanced.ssn_lm_sigma_c ({}) must be finite and > 0",
+                         opts.advanced.ssn_lm_sigma_c));

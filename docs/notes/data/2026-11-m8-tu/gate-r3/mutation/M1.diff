@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..9d37bd0e5 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8476,7 +8476,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+     if (adaptive_mu_active) {
+         const double mu_raw =
+             (iter == 0)
+-                ? opts_.advanced.adaptive_dual_regularization_max
++                ? kAdaptiveMuMax
+                 : std::clamp(kAdaptiveMuKappa * std::pow(mj.kkt.residual(), 1.5), kAdaptiveMuMin,
+                              opts_.advanced.adaptive_dual_regularization_max);
+         overrides.dual_regularization = std::pow(10.0, std::round(std::log10(mu_raw)));

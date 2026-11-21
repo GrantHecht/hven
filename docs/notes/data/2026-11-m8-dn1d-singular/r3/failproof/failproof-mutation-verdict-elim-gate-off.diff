@@ -1,0 +1,4 @@
+3607c3607
+<     if (detail::shifted_solve_refused(assembly.K, rhs, fac, best)) {
+---
+>     if (false && detail::shifted_solve_refused(assembly.K, rhs, fac, best)) {

@@ -1,0 +1,24 @@
+=== interior r1 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r2 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r3 === cells compared: 43  columns compared: 30  differences: 0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+F1-a FILTER LIVENESS arm A: excluded samples over all processes and rounds = 53279 -> LIVE
+F1-b SPIN ABSENT arm B: 3 processes, spin samples per process [0, 0, 0] -> ABSENT
+     (arm B excluded samples, clock_gettime-class included, over all processes and rounds = 0)
+
+mode interior, 1 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over rounds, summed
+  filtered samples (CRITERION)     A=4.968670e+05 B=4.968530e+05 B/A=0.999972
+  all samples                      A=5.146330e+05 B=4.968530e+05 B/A=0.965451
+  excluded (wall-clock) samples    A=1.775700e+04 B=0.000000e+00 B/A=0.000000
+  raw perf-stat instructions:u     A=1.029292e+11 B=9.937368e+10 B/A=0.965457
+
+per-round filtered B/A (informational):
+  round 1: B/A=0.999974
+  round 2: B/A=0.999954
+  round 3: B/A=0.999968
+worst per-cell filtered ratio: 0.99997 (all)
+largest within-arm round-to-round filtered spread: 0.00002
+MODE interior FILTERED B/A = 0.999972 -> WITHIN [0.995, 1.005]
+F1-c MODE interior ALL-SAMPLES B/A = 0.965451 -> IMPROVED (<= 0.995)
+F1 interior reading: AS DECLARED

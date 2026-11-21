@@ -40,7 +40,7 @@ default is still byte-exact for every invocation the acceptance protocols make
 
 With the flag, the FLOATING MEASURE columns relax.  The set is the corpus
 schema's, BY INDEX, and is the same set as
-tests/sqp/test_corpus_cells.cpp:974 (`is_residual_column`, which keeps its name
+tests/bench/test_corpus_cells.cpp:974 (`is_residual_column`, which keeps its name
 there because the RULE is unchanged), carried here with its schema comment
 (:937-973).  The cite was :944 until M6 W6 T6b's own second commit moved the
 predicate down by 60 lines; repaired at T6 fix1, with every other cite below it
@@ -90,7 +90,7 @@ fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
 
     |a - b| <= max(rel * max(|a|, |b|), 1e-13)
 
--- which is tests/sqp/test_corpus_cells.cpp:981-1037, `residual_columns_agree`,
+-- which is tests/bench/test_corpus_cells.cpp:981-1037, `residual_columns_agree`,
 with the derivation of 1e-5 at :908-935 and the floor's own derivation in
 `CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse` (cited by
 TEST NAME because the :NNN cite for it, :3607-3617/:3618-3623 here until M7 W2 E4
@@ -114,7 +114,7 @@ only when the flag is given, counting gated COLUMNS.
 """
 import csv, sys
 
-# tests/sqp/test_corpus_cells.cpp:974 and :3618.  RENAMED at M6 W6 T6b from
+# tests/bench/test_corpus_cells.cpp:974 and :3618.  RENAMED at M6 W6 T6b from
 # `RESIDUAL_COLUMNS` / `is_residual_column`: the set is no longer only the
 # residual class, so the name would mislead.  A plain rename, NO alias -- nothing
 # outside this file calls either (the whole repository was grepped; the only

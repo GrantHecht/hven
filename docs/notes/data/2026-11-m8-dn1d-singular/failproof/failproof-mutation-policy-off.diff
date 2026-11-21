@@ -1,0 +1,4 @@
+44c44
+<         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+---
+>         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;

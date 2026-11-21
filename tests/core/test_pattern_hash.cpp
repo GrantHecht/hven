@@ -10,8 +10,8 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include "hven/core/pattern_hash.h"
-#include "hven/core/types.h"
+#include <hven/core/pattern_hash.h>
+#include <hven/core/types.h>
 
 namespace {
 

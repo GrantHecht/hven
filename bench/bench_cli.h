@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/bench_cli.h — BENCH-LOCAL ONLY. The two argument-parsing helpers both
+// BENCH-LOCAL ONLY. The two argument-parsing helpers both
 // bench binaries need, factored here in Phase-5 Task 3's second fix round
 // because bench_scale.cpp and bench_f7_cold.cpp had grown byte-identical
 // copies of them.
@@ -13,7 +13,7 @@
 // never installed, and it exists only so two throwaway measurement binaries
 // share one implementation of "parse this argument or throw with the usage
 // text attached". It follows the same precedent as
-// tests/sqp/support/*.h — support code that lives next to its only consumers.
+// tests/*/support/*.h — support code that lives next to its only consumers.
 //
 // T6 (the project's error rule) is what the helpers exist to get right, and
 // they get it right in ONE place: every rejection throws std::invalid_argument
@@ -37,7 +37,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::bench_cli {
+namespace hven::bench_cli {
 
 // Throw std::invalid_argument carrying `detail` followed by `usage`. The
 // [[noreturn]] is load-bearing at both call sites: it is what lets the parse
@@ -85,7 +85,7 @@ inline double parse_double(const char *usage, const std::string &what, const std
 // PHASE-5 TASK 9 (the IPM bridge). The two helpers behind
 // bench_scale.cpp's --dump-solution flag, here rather than there for the same
 // reason the parse helpers are: they are the part a TEST can reach
-// (tests/test_bench_dump.cpp), since bench_scale.cpp is a main() with no
+// (tests/bench/test_bench_dump.cpp), since bench_scale.cpp is a main() with no
 // library surface. Nothing about the CSV schema is touched by either.
 
 // Open `path` for writing or throw with the caller's usage text folded in
@@ -102,7 +102,7 @@ inline std::ofstream open_output_or_throw(const char *usage, const std::string &
 }
 
 // THE SOLUTION-DUMP FORMAT, and it is a cross-language contract: the reader is
-// prototypes/psiopt_bridge/run_comparison.py, which parses the `# key: value`
+// the external comparison bridge's run_comparison.py, which parses the `# key: value`
 // header with a split on ": " and reads the body with numpy.loadtxt(comments =
 // '#'). Hence: every metadata line is a COMMENT, the body is one value per
 // line and nothing else, and values are printed at {:.17g} (round-trip exact
@@ -137,7 +137,7 @@ inline void write_solution_dump(std::ostream &os, const std::string &family, lon
 // re-solve the dumped subproblem WARM as the driver entered it. v1's writer is
 // untouched: its reader is an out-of-tree tool pinned to that byte format.
 
-// Round-tripped by tests/sqp/test_bench_dump.cpp; `.superpowers/w1-t9-report.md`.
+// Round-tripped by tests/bench/test_bench_dump.cpp; `.superpowers/w1-t9-report.md`.
 
 /// One dumped subproblem. The three dual blocks are the SQP major's state at
 /// the point the subproblem was built, empty when the producer had none.
@@ -147,7 +147,7 @@ struct QpDumpV2 {
     long long n_flag = 0;
     long long major = 0;
     double p = 0.0;
-    hven::solvers::QpProblem qp;
+    hven::detail::QpProblem qp;
     hven::Vec lambda_e, lambda_i, z;
 };
 
@@ -363,4 +363,4 @@ inline QpDumpV2 read_qp_dump_v2(std::istream &is) {
     return d;
 }
 
-} // namespace hven::solvers::bench_cli
+} // namespace hven::bench_cli

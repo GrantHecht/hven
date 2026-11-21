@@ -6,19 +6,11 @@
 #include <string>
 #include <vector>
 
-// This header does not use fmt any more, but the include below is kept
-// deliberately: dropping it changes the preprocessed input of every TU that
-// includes this header, which is nearly the whole SQP tree, and that is
-// exactly the kind of include-order perturbation the PCH measurement table in
-// src/CMakeLists.txt records as moving emission order. Removing it is a fine
-// separate change with its own P-SYM run.
-#include <fmt/core.h>
-
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// A single QP-engine solve event: label, warm-start flag, status, and
 /// performance counters.
@@ -98,10 +90,10 @@ struct SqpSolveRecord {
     /// READING, not a missing measurement: a cold solve pays its
     /// factorization by construction, and a kWarm resolution -- whether no
     /// hot handle was offered or one was offered and the engine's own reuse
-    /// gate (qp_engine.h's conditions (a)-(e)) refused it -- always paid a
+    /// gate (walk_engine.h's conditions (a)-(e)) refused it -- always paid a
     /// real refactorization on its first subproblem. Bounded by 1 today
     /// because a hot-start reuse is only ever OFFERED for a solve's FIRST
-    /// subproblem (warm_start.h's `hot` handle is consumed once, at ingest);
+    /// subproblem (sqp_warm_state.h's `hot` handle is consumed once, at ingest);
     /// every later major builds its subproblem fresh from a new
     /// linearization and was never a reuse candidate.
     Index factorizations_saved = 0;
@@ -142,15 +134,13 @@ struct SqpSolveRecord {
 
 /// One record per WHOLE INTERIOR-POINT SOLVE -- the interior-point engine's
 /// counterpart to SqpSolveRecord above, written by
-/// IpmSolver::attach_ledger (see drivers/ipm_solver.h),
+/// IpmSolver::attach_ledger (see ipm/ipm_solver.h),
 /// one per public solve() call that RETURNS. A call that leaves by an
 /// exception writes nothing, which is the honest record of one.
 ///
-/// UNLIKE SqpSolveRecord THIS CARRIES NO `counters` OBJECT, because the
-/// interior-point engine has none: its measurements live on IpmResult, a
-/// value the caller already holds. The nine fields below are the ones a
-/// cross-run comparison groups or sums by, and each names exactly what it
-/// was read from -- see the per-field notes.
+/// `counters` is the solve's IpmCounters, as on IpmResult. The scalar fields
+/// below are the ones a cross-run comparison groups or sums by, and each is read
+/// from it or from the result -- see the per-field notes.
 ///
 /// THE ENGINE'S NESTED FEASIBILITY RESTORATION WRITES NO RECORD OF ITS OWN.
 /// It runs inside this solve rather than as a separate solver object, and
@@ -177,18 +167,17 @@ struct IpmSolveRecord {
     /// the total would charge this record for the previous call's work.
     ///
     /// That accessor is differenced rather than the linear engine's own
-    /// `Counters::factorize_count` (M6 W5 T8.7 fix1) because that counter is
-    /// per ENGINE INSTANCE and starts again at zero when the solver replaces
-    /// the engine -- which a solve of a second, DIFFERENT program does, so the
-    /// difference of two such readings is negative there. This field is never
-    /// negative.
+    /// `Counters::factorize_count` because that counter is per engine instance
+    /// and starts again at zero when the solver replaces the engine -- which a
+    /// solve of a second, different program does, so the difference of two such
+    /// readings would be negative there. This field is never negative.
     Index factorizations = 0;
-    /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
+    /// @brief `counters.symbolic_analyses` -- symbolic analyses paid by
     ///        THIS call (the engine's own per-call counter).
     Index analyses = 0;
-    /// @brief IpmResult::soc_steps_taken. 0 when SOC is off.
+    /// @brief `counters.soc_steps`. 0 when SOC is off.
     Index soc_steps_taken = 0;
-    /// @brief IpmResult::watchdog_activations. 0 when the watchdog is off.
+    /// @brief `counters.watchdog_activations`. 0 when the watchdog is off.
     Index watchdog_activations = 0;
     /// Wall-clock seconds this ONE public solve() call took, measured by the
     /// entry's own clock (IpmResult::wall_seconds).
@@ -197,6 +186,8 @@ struct IpmSolveRecord {
     /// never asserted on a value by any test, and no counter or regression
     /// contract may depend on it.
     double wall_seconds = 0.0;
+    /// @brief IpmResult::counters.
+    IpmCounters counters;
 };
 
 /// Instrumentation ledger for cold-vs-warm solve tracking (QP-level, via
@@ -262,11 +253,11 @@ class Ledger {
     // this file, and every one of those is a core/ header.
     //
     // THIS HEADER'S INCLUDE CLOSURE IS core/ HEADERS PLUS <string>, <vector>,
-    // fmt AND EIGEN, AND NOTHING ELSE. DO NOT ADD AN INCLUDE OF drivers/,
-    // qp/, model/, kkt/, interior/, linear/, globalization/, warmstart/ OR
+    // fmt AND EIGEN, AND NOTHING ELSE. DO NOT ADD AN INCLUDE OF solver/,
+    // ipm/, sqp/, trace/, qp/, model/, kkt/, linear/, warmstart/ OR
     // detail/ TO THIS OR ANY OTHER core/ HEADER: core/ is the bottom tier of
     // the project's layer map and depends on nothing above it. ENFORCED, not
-    // merely asked for: tests/core/test_core_layering.cpp scans every header
+    // merely asked for: tests/core/test_layering.cpp scans every header
     // in include/hven/core/ and fails the suite on any such include, naming
     // the file and the line.
 
@@ -275,4 +266,4 @@ class Ledger {
     std::vector<IpmSolveRecord> ipm_records_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

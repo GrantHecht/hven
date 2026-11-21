@@ -47,7 +47,7 @@ fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
 
     |a - b| <= max(rel * max(|a|, |b|), 1e-13)
 
--- which is `tests/sqp/test_corpus_cells.cpp:981-1037` (`residual_columns_agree`,
+-- which is `tests/bench/test_corpus_cells.cpp:981-1037` (`residual_columns_agree`,
 which carried only the relative half until M7 W2 E4 fix round 4 and now applies
 the whole rule; its derivation of 1e-5 at :908-935) together with the floor's own
 derivation in `CorpusTask6bRepair.TheKSsnArmMovesTheFourCrashingCellsAndNothingElse`
@@ -88,7 +88,7 @@ import sys
 ASSERTED = 13  # cell_id .. kkt_residual; wall_s (14th) excluded
 
 # The corpus schema's floating-point measure columns, by index -- a SUBSET of
-# tests/sqp/test_corpus_cells.cpp:974 (`is_residual_column`), carried here with
+# tests/bench/test_corpus_cells.cpp:974 (`is_residual_column`), carried here with
 # its schema comment (:937-973).  The cite was :944/:937-943 until M6 W6 T6b
 # moved the predicate down by 60 lines; repaired at M6 W6 T6 fix1:
 #   12 kkt_residual
@@ -112,7 +112,7 @@ ASSERTED = 13  # cell_id .. kkt_residual; wall_s (14th) excluded
 # input metadata and column 50 is categorical.
 RESIDUAL_COLUMNS = frozenset([12, 15, 16, 17, 18, 19, 20])
 
-# tests/sqp/test_corpus_cells.cpp:3618 (was :3558 before T6b's insertion).
+# tests/bench/test_corpus_cells.cpp:3618 (was :3558 before T6b's insertion).
 RESIDUAL_ABS_FLOOR = 1e-13
 
 
@@ -123,7 +123,7 @@ def is_residual_column(i):
 def residual_columns_agree(a, b, rel):
     """True when two spellings are byte-equal or agree to within the gate.
 
-    Mirrors tests/sqp/test_corpus_cells.cpp:981-1037, which as of M7 W2 E4 fix
+    Mirrors tests/bench/test_corpus_cells.cpp:981-1037, which as of M7 W2 E4 fix
     round 4 carries the same absolute floor rather than the relative half alone.
     A column that does not parse as a finite number is NOT quietly
     waved through: it falls back to the byte comparison the caller reports.

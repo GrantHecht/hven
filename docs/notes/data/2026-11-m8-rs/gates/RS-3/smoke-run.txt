@@ -1,0 +1,22 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T14:14:12-05:00
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/rs3/.scratch/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/rs3/.scratch/smoke-default/hven-configure.log
+smoke default rc=0
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+installed files default: 957; include/hven/drivers present: 0
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/rs3/.scratch/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/rs3/.scratch/smoke-clang/hven-configure.log
+smoke clang rc=0
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+installed files clang: 957; include/hven/drivers present: 0
+worst rc=0
+FOREGROUND_END 2026-11-18T14:15:53-05:00

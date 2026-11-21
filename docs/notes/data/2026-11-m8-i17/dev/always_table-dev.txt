@@ -1,0 +1,28 @@
+hven-sqp TRAIN cells: 119
+curAlways                    optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+always_1024                  optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+A6                           optimal 104  other  15  iters(optimal)   1803  qp_minors   122016  {'optimal': 104, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 6}
+A8                           optimal 105  other  14  iters(optimal)   1669  qp_minors   116374  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+A10                          optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+A13                          optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+A16                          optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+A20                          optimal 105  other  14  iters(optimal)   1668  qp_minors   116382  {'optimal': 105, 'max_iter': 5, 'infeasible': 4, 'numerical_error': 5}
+--- always_1024 vs curAlways: rows differing in status or iterations
+  tally {}
+--- A6 vs curAlways: rows differing in status or iterations
+  NEUTRAL sd-hven-sqp-DECONVC: optimal/28 -> optimal/168
+  WORSE   sd-hven-sqp-DEMBO7: optimal/6 -> numerical_error/17
+  NEUTRAL sd-hven-sqp-HS84: optimal/11 -> optimal/9
+  NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/29
+  tally {'NEUTRAL': 3, 'WORSE': 1}
+--- A8 vs curAlways: rows differing in status or iterations
+  NEUTRAL sd-hven-sqp-HS99EXP: optimal/26 -> optimal/27
+  tally {'NEUTRAL': 1}
+--- A10 vs curAlways: rows differing in status or iterations
+  tally {}
+--- A13 vs curAlways: rows differing in status or iterations
+  tally {}
+--- A16 vs curAlways: rows differing in status or iterations
+  tally {}
+--- A20 vs curAlways: rows differing in status or iterations
+  tally {}

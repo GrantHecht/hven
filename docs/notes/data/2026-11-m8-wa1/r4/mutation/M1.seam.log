@@ -1,0 +1,117 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpWa1AscentFootprint.*:QpW1AscentGuard.*:QpYrkRefusedExchange.*
+[==========] Running 14 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from QpW1AscentGuard
+[ RUN      ] QpW1AscentGuard.BritgasElasticQp1Border
+[ w1 ] C11_BRITGAS_qp1 border status=0 minors=1564 facts=1606 f=4665.05166676 redH_min=nan ascent_rides=4 in_face_ordinary=26 rose=0 worst_rise=0.000e+00 rides=4 rides_not_down=0 eq=4.44e-16 stat=7.11e-17 comp=7.55e-14
+[       OK ] QpW1AscentGuard.BritgasElasticQp1Border (3769 ms)
+[ RUN      ] QpW1AscentGuard.BritgasElasticQp1Refactorize
+[ w1 ] C11_BRITGAS_qp1 refactorize status=0 minors=1564 facts=1599 f=4665.05166676 redH_min=nan ascent_rides=4 in_face_ordinary=26 rose=0 worst_rise=0.000e+00 rides=4 rides_not_down=0 eq=4.44e-16 stat=7.11e-17 comp=7.55e-14
+[       OK ] QpW1AscentGuard.BritgasElasticQp1Refactorize (3634 ms)
+[ RUN      ] QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide
+[ w1 ] option-off border status=1 minors=6980
+[ w1 ] option-off refactorize status=1 minors=6980
+[       OK ] QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide (9241 ms)
+[----------] 3 tests from QpW1AscentGuard (16645 ms total)
+
+[----------] 7 tests from QpWa1AscentFootprint
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+[ wa1 ] YRK_YORKNET_qp26_m42 border status=1 minors=8240 facts=8241 f=-1443.19524836 ascent_rides=7 footprint_rides=0 on_rows_ordinary=1505 rose=1502 worst_rise=1.362e+01 eq_drift=1710 eq=6.45e-07 stat=4.84e-12 comp=1.48e-02
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:154: Failure
+Expected equality of these values:
+  s.counters.eq_drift_violations
+    Which is: 1710
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:155: Failure
+Expected: (static_cast<int>(s.status)) != (static_cast<int>(QpStatus::kIterationLimit)), actual: 1 vs 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:157: Failure
+Expected equality of these values:
+  t.ordinary_rose
+    Which is: 1502
+  0
+an ordinary step from an iterate on its rows ascended, by up to 13.619012039251402
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:160: Failure
+Expected: (t.footprint_rides) >= (1), actual: 0 vs 1
+the regularization-footprint branch did not fire
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:161: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 1
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+
+[  FAILED  ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder (9191 ms)
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+[ wa1 ] YRK_YORKNET_qp26_m42 refactorize status=1 minors=8240 facts=8240 f=-1443.19524836 ascent_rides=7 footprint_rides=0 on_rows_ordinary=1505 rose=1502 worst_rise=1.362e+01 eq_drift=1710 eq=6.45e-07 stat=4.84e-12 comp=1.48e-02
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:154: Failure
+Expected equality of these values:
+  s.counters.eq_drift_violations
+    Which is: 1710
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:155: Failure
+Expected: (static_cast<int>(s.status)) != (static_cast<int>(QpStatus::kIterationLimit)), actual: 1 vs 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:157: Failure
+Expected equality of these values:
+  t.ordinary_rose
+    Which is: 1502
+  0
+an ordinary step from an iterate on its rows ascended, by up to 13.619012039251402
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:160: Failure
+Expected: (t.footprint_rides) >= (1), actual: 0 vs 1
+the regularization-footprint branch did not fire
+
+/home/ghecht/Projects/hven/.claude/worktrees/wa1/tests/qp/test_qp_ascent_footprint.cpp:161: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 1
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+
+[  FAILED  ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize (9030 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise
+[       OK ] QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionRidesWhenTheMeritIsConcaveAlongP
+[       OK ] QpWa1AscentFootprint.DecisionRidesWhenTheMeritIsConcaveAlongP (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst
+[       OK ] QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+[       OK ] QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker (0 ms)
+[ RUN      ] QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+[       OK ] QpWa1AscentFootprint.DecisionStopsAtTheRowBudget (0 ms)
+[----------] 7 tests from QpWa1AscentFootprint (18221 ms total)
+
+[----------] 4 tests from QpYrkRefusedExchange
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp26Border
+[ yrk ] YRK_YORKNET_qp26.txt border status=0 minors=23 facts=61 f=0.133368173127 refused_exchanges=4 refusals=10 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=19 min_curvature=-1.543e-22
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp26Border (452 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp26Refactorize
+[ yrk ] YRK_YORKNET_qp26.txt refactorize status=0 minors=23 facts=60 f=0.133368173127 refused_exchanges=4 refusals=10 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=19 min_curvature=-1.543e-22
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp26Refactorize (331 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[ yrk ] YRK_YORKNET_qp25.txt border status=0 minors=83 facts=125 f=-1398.63412864 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-4.973e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Border (764 ms)
+[ RUN      ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+[ yrk ] YRK_YORKNET_qp25.txt refactorize status=0 minors=83 facts=122 f=-1398.63412864 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-4.973e-17
+[       OK ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (397 ms)
+[----------] 4 tests from QpYrkRefusedExchange (1945 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 3 test suites ran. (36812 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+[  FAILED  ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+
+ 2 FAILED TESTS

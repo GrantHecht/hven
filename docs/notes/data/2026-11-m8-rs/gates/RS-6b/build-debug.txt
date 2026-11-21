@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T23:55:47-05:00
+[394/397] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[395/397] Linking CXX executable tests/sqp/hven_sqp_tests
+[396/397] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+build rc=0
+FOREGROUND_END 2026-11-19T23:58:27-05:00

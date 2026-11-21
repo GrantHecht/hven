@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_scale.cpp — PHASE-5 TASK 2: the bench harness and wall-time
+// PHASE-5 TASK 2: the bench harness and wall-time
 // instrumentation, the measurement instrument the rest of Phase 5 (Tasks 3,
 // 4, 5, 9) reads. This is NOT a new algorithm: every number it reports comes
 // from a Ledger (ledger.h) attached to an ordinary SqpSolver, exactly as
-// tests/test_warm_start_battery.cpp's corpus does -- see that file's own
+// tests/warmstart/test_warm_start_battery.cpp's corpus does -- see that file's own
 // EVERY COUNT IN THIS FILE COMES OFF A LEDGER note, which this harness
 // deliberately follows rather than re-deriving its own counters.
 //
@@ -20,7 +20,7 @@
 //          N == 1 solves only at p1).
 //   hot    ONE SqpSolver, constructed with SqpOptions::common.start_level = kHot,
 //          walking the SAME evenly-spaced grid as `cold` but feeding each
-//          solve's own SqpWarmStart (primal/dual point AND the retained
+//          solve's own SqpWarmState (primal/dual point AND the retained
 //          factorization handle) into the next -- "chained solves on one
 //          driver feeding warm+hot back". The first grid point is always a
 //          plain 2-arg (cold) solve, since there is nothing to warm from yet.
@@ -40,11 +40,11 @@
 //          (the tangential predictor, Task 9).
 //
 // ---------------------------------------------------------------------
-// THE TWO FAMILIES (tests/sqp/support/{parametric_families,scale_problems}.h):
+// THE TWO FAMILIES (tests/model/support/{parametric_families,scale_problems}.h):
 //
 //   F3   F3SpringChain(n, /*p_act=*/0.5, /*p0=*/0.25) swept over p: 0.25 ->
 //        0.75 -- the SAME construction and range
-//        tests/test_warm_start_battery.cpp's "F3n1000"/"F3n50" cells use, so
+//        tests/warmstart/test_warm_start_battery.cpp's "F3n1000"/"F3n50" cells use, so
 //        a bench run at --n 1000 is directly comparable to that corpus.
 //   F7   F7CollocationChain(n, 3, 2, 0.68, 1.0) (n = node count) swept over
 //        p: 0.3 -> 0.9 -- inside the family's design range (0, R = 1) and
@@ -64,7 +64,7 @@
 //                 timed record -- the harness does not need to (and does
 //                 not) time the whole continuation call to get a per-row
 //                 number.
-//   peak_rss_mib  tests/sqp/support/scale_problems.h's peak_rss_mib() (moved
+//   peak_rss_mib  tests/model/support/scale_problems.h's peak_rss_mib() (moved
 //                 there from test_scale_problems.cpp by this same task so
 //                 the /proc/self/status parser is not duplicated): the
 //                 WHOLE-PROCESS high-water mark (-1 off Linux or if
@@ -112,7 +112,7 @@
 // -- F3SpringChain(1000, 0.5, 0.25) swept p: 0.25 -> 0.75, warm arm, full_step
 // ON, ContinuationOptions{} DEFAULTS (dp_init = 0.1, NOT derived from any
 // --sweep flag) -- and compares its ledger-summed counters against the
-// pinned reference in tests/test_warm_start_battery.cpp's
+// pinned reference in tests/warmstart/test_warm_start_battery.cpp's
 // kPins["F3n1000"].arm[kArmWarm] row ({6, 30, 84, 25, 0, 22, 1, 5, 0, 0, 84,
 // 0}; cell[0], i.e. warm_full_step ON): steps, majors, minors,
 // factorizations, factorizations_saved, full_step_majors, the resolved-level
@@ -128,7 +128,7 @@
 // PHASE-5 TASK 3 ADDITION -- THE DIAGNOSTIC FLAGS AND THE QP-LEVEL CSV.
 //
 // Task 3's first job is diagnosing the F7 N=200 wall-time cliff recorded in
-// tests/test_scale_problems.cpp's CARRY 2. The columns above could not
+// tests/model/test_scale_problems.cpp's CARRY 2. The columns above could not
 // discriminate its candidate causes (minor-iteration blow-up vs factorization
 // cost vs cycling) for two reasons, both of them OBSERVATION gaps on this
 // side of the library rather than anything missing from the engine:
@@ -183,7 +183,7 @@
 // PHASE-5 TASK 9 ADDITION -- --dump-solution, THE CROSS-SOLVER REFEREE HOOK.
 //
 // Task 9 puts this SQP engine head to head with the IPM engine (now
-// hven::solvers::IpmSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
+// hven::IpmSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
 // both solvers must land on x*(p) = ( y*(t_k) ; u*(t_k) )_k with
 // y*(t) = min(p(1 + sin pi t), R) e, or the comparison is between two
 // different problems. Checking that needs the CONVERGED POINT, which the CSV
@@ -232,42 +232,43 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
-#include <hven/detail/warmstart/continuation.h>
-#include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
 #include "bench_cli.h"
-
-#include "support/parametric_families.h"
-#include "support/scale_problems.h"
+#include "model/support/parametric_families.h"
+#include "model/support/scale_problems.h"
 
 namespace {
 
 using hven::Index;
+using hven::Ledger;
+using hven::QpMode;
+using hven::QpOptions;
+using hven::QpStatus;
+using hven::QpWorkingSetAlgebra;
+using hven::SolveRecord;
+using hven::SolveStatus;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::SqpSolveRecord;
+using hven::StartLevel;
 using hven::Vec;
-using hven::solvers::ContinuationOptions;
-using hven::solvers::ContinuationResult;
-using hven::solvers::ContinuationStep;
-using hven::solvers::Ledger;
-using hven::solvers::ParametricNlpModel;
-using hven::solvers::QpMode;
-using hven::solvers::QpOptions;
-using hven::solvers::QpStatus;
-using hven::solvers::run_continuation;
-using hven::solvers::SolveRecord;
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::SqpSolveRecord;
-using hven::solvers::SqpWarmStart;
-using hven::solvers::StartLevel;
-using hven::solvers::WorkingSetLinearAlgebra;
-using hven::solvers::test_support::F3SpringChain;
-using hven::solvers::test_support::F7CollocationChain;
-using hven::solvers::test_support::peak_rss_mib;
+using hven::detail::ContinuationOptions;
+using hven::detail::ContinuationResult;
+using hven::detail::ContinuationStep;
+using hven::detail::ParametricNlpModel;
+using hven::detail::run_continuation;
+using hven::detail::SqpWarmState;
+using hven::test_support::F3SpringChain;
+using hven::test_support::F7CollocationChain;
+using hven::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_bench --family F3|F7 --n <int> --arm cold|warm|pred|hot "
@@ -358,7 +359,7 @@ constexpr const char *kUsage =
 // reads exactly as it did before the Task-3 fix-round dedupe -- this file's own
 // kUsage is the only thing they add.
 [[noreturn]] void throw_usage(const std::string &detail) {
-    hven::solvers::bench_cli::throw_usage(kUsage, detail);
+    hven::bench_cli::throw_usage(kUsage, detail);
 }
 
 // ---------------------------------------------------------------------
@@ -403,7 +404,7 @@ const char *qp_status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "Optimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "MaxIter";
     case QpStatus::kInfeasible:
         return "Infeasible";
@@ -466,7 +467,7 @@ std::vector<double> linspace(double p0, double p1, std::size_t steps) {
 }
 
 // The one SqpOptions every arm shares apart from start_level -- mirrors
-// tests/test_warm_start_battery.cpp's battery_options() exactly (same
+// tests/warmstart/test_warm_start_battery.cpp's battery_options() exactly (same
 // tolerances, same adaptive_mu = false so a kHot resolution stays reachable
 // -- see that function's own note on why adaptive_mu is off everywhere).
 //
@@ -498,12 +499,12 @@ struct Tuning {
 
 SqpOptions bench_options(StartLevel level, const Tuning &tuning) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = tuning.max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = tuning.max_iter;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
-    opts.warm_full_step = true;
+    opts.advanced.warm_full_step = true;
     opts.qp = tuning.qp;
     opts.qp_mode = tuning.qp_mode;
     return opts;
@@ -518,7 +519,7 @@ void run_cold(ParametricNlpModel &model, const std::string &family, Index n, dou
         SqpSolver driver(bench_options(StartLevel::kCold, tuning));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         rows.push_back(
             Row{family, n, "cold", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -532,12 +533,14 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
     const std::vector<double> grid = linspace(p0, p1, sweep);
     SqpSolver driver(bench_options(StartLevel::kHot, tuning));
     driver.attach_ledger(&ledger, "hot");
-    SqpWarmStart warm; // default-constructed: valid == false, i.e. cold
+    hven::detail::SqpWarmState warm; // default-constructed: valid == false, i.e. cold
     for (std::size_t i = 0; i < grid.size(); ++i) {
         model.set_parameters(Vec::Constant(1, grid[i]));
         const SqpResult sol =
-            (i == 0) ? driver.solve(model, model.start_point()) : driver.solve(model, warm.x, warm);
-        warm = sol.warm_start;
+            (i == 0) ? driver.solve(hven::detail::problem_ref(model), model.start_point())
+                     : driver.solve(hven::detail::problem_ref(model), warm.x,
+                                    hven::detail::SqpWarmAccess::wrap(warm));
+        warm = hven::detail::SqpWarmAccess::state(sol.sqp_warm_start);
         rows.push_back(
             Row{family, n, "hot", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -617,12 +620,12 @@ struct ExpectedCounts {
     Index n_cold, n_seeded, n_warm, n_hot, predictor_calls, border_refine, elastic_activations;
 };
 
-// tests/test_warm_start_battery.cpp, kPins[] "F3n1000" row, arm[kArmWarm]
+// tests/warmstart/test_warm_start_battery.cpp, kPins[] "F3n1000" row, arm[kArmWarm]
 // (index 1), cell[0] (warm_full_step ON): {6, 30, 89, 25, 0, 22, 1, 5, 0, 0,
 // 89, 0}.
 // RE-MEASURED AT M7 W2 E4 FIX ROUND 2 (a declared event, and the grep-sweep
 // convention's own instance: this row is a HARD-CODED COPY of
-// tests/sqp/test_warm_start_battery.cpp's `F3n1000` warm-arm pin, and that file's
+// tests/warmstart/test_warm_start_battery.cpp's `F3n1000` warm-arm pin, and that file's
 // THE E4 RE-MEASUREMENT OF THE THREE F3 FAMILIES note carries the measurement, the
 // cause and the cap search). `minors` 84 -> 89, and `border_refine` with it in the
 // test's own copy; MAJORS, steps, factorizations, fact_saved, full_step_majors and
@@ -651,7 +654,7 @@ constexpr ExpectedCounts kF3n1000WarmPin{/*steps=*/6,
                                          /*predictor_calls=*/0,
 // 84 -> 89 (E4 fix round 2, stale by then) -> 91 Release /
 // 93 Debug (M7 W2 BPS: the bordered certificate's extra
-// refinement; follows tests/sqp/test_warm_start_battery.cpp's
+// refinement; follows tests/warmstart/test_warm_start_battery.cpp's
 // F3n1000 warm-arm pin).
 #ifdef NDEBUG
                                          /*border_refine=*/91,
@@ -666,12 +669,12 @@ bool run_self_check() {
     const Vec p1 = Vec::Constant(1, 0.75);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kWarm;
-    opts.warm_full_step = true;
+    opts.advanced.warm_full_step = true;
 
     SqpSolver driver(opts);
     Ledger ledger;
@@ -719,7 +722,7 @@ bool run_self_check() {
                     elastic_activations == want.elastic_activations;
 
     fmt::print("self-check: F3 n=1000 arm=warm (full_step ON) vs "
-               "tests/test_warm_start_battery.cpp kPins[\"F3n1000\"].arm[kArmWarm]\n");
+               "tests/warmstart/test_warm_start_battery.cpp kPins[\"F3n1000\"].arm[kArmWarm]\n");
     fmt::print("  reached_p1={} (want true)\n", res.reached_p1);
     fmt::print("  steps={} (want {})  majors={} (want {})  minors={} (want {})\n", res.steps.size(),
                want.steps, majors, want.majors, minors, want.minors);
@@ -769,11 +772,11 @@ struct Args {
 };
 
 double parse_double(const std::string &flag, const std::string &value) {
-    return hven::solvers::bench_cli::parse_double(kUsage, flag, value);
+    return hven::bench_cli::parse_double(kUsage, flag, value);
 }
 
 long long parse_ll(const std::string &flag, const std::string &value) {
-    return hven::solvers::bench_cli::parse_ll(kUsage, flag, value);
+    return hven::bench_cli::parse_ll(kUsage, flag, value);
 }
 
 Args parse_args(int argc, char **argv) {
@@ -897,10 +900,10 @@ int main(int argc, char **argv) {
             tuning.max_iter = *args.max_iter;
         }
         if (args.qp_max_iter) {
-            tuning.qp.max_iter = *args.qp_max_iter;
+            tuning.qp.max_iterations = *args.qp_max_iter;
         }
         if (args.schur_cap) {
-            tuning.qp.schur_cap = *args.schur_cap;
+            tuning.qp.max_schur_border_dimension = *args.schur_cap;
         }
         if (args.probe_budget) {
             tuning.controller.probe_budget = static_cast<int>(*args.probe_budget);
@@ -912,9 +915,9 @@ int main(int argc, char **argv) {
             tuning.qp_mode = (*args.qp_mode == "ssn") ? QpMode::kSsn : QpMode::kWalk;
         }
         if (args.ws_algebra) {
-            tuning.qp.ws_algebra = (*args.ws_algebra == "refactorize")
-                                       ? WorkingSetLinearAlgebra::kRefactorize
-                                       : WorkingSetLinearAlgebra::kSchurBorder;
+            tuning.qp.working_set_algebra = (*args.ws_algebra == "refactorize")
+                                                ? QpWorkingSetAlgebra::kRefactorize
+                                                : QpWorkingSetAlgebra::kSchurBorder;
         }
 
         SolutionDump dump;
@@ -958,12 +961,12 @@ int main(int argc, char **argv) {
                 throw_usage(fmt::format("--dump-solution: the '{}' arm produced no solve to dump",
                                         *args.arm));
             }
-            std::ofstream dump_out = hven::solvers::bench_cli::open_output_or_throw(
+            std::ofstream dump_out = hven::bench_cli::open_output_or_throw(
                 kUsage, "--dump-solution", *args.dump_solution);
-            hven::solvers::bench_cli::write_solution_dump(
-                dump_out, *args.family, static_cast<long long>(n), *args.arm, dump.p,
-                to_string(dump.status), dump.f, dump.x.data(),
-                static_cast<std::size_t>(dump.x.size()));
+            hven::bench_cli::write_solution_dump(dump_out, *args.family, static_cast<long long>(n),
+                                                 *args.arm, dump.p, to_string(dump.status), dump.f,
+                                                 dump.x.data(),
+                                                 static_cast<std::size_t>(dump.x.size()));
             fmt::print("wrote solution dump ({} component(s), p = {:.17g}, status {}) to {}\n",
                        dump.x.size(), dump.p, to_string(dump.status), *args.dump_solution);
         }

@@ -1,0 +1,14 @@
+DECLARATION.md (r1), code head 0423a7562 over origin/m8 7c70be63a -- RESULT: FAIL on the mutation leg only (M); every other leg met its criterion.
+P0  arm A c9ee5a82...8010 / arm B 7b1f8681...729c verified by replay.sh and interior.sh.                                      MET
+P1  ctest Release and Debug: 100% passed, 3769 (suites/ctest-*-summary.txt).                                                   MET
+P3  replay 27 cells x walk/ssn/ipm, arm A vs arm B EXACT: differences 0 x3; ARMED leg 0 x3 (replay/*comparison*).             MET
+P4  interior 43 cells: unmoved 0, promoted 0, armed 0; multi_phase_and_restoration = 0 (interior/).                            MET
+P5  install smoke default and clang, export contract OK linux align=32 x2 (install-smoke/).                                    MET
+G   goldens_rename_check: pairs 4, failures 0 (goldens-rename-check.txt).                                                      MET
+M   mutation-table.csv: control clean. KILLED: m1, m2 (BUILD_FAIL, accepted by the declaration), c1, c2, c5-c10, p2-p16 except p1.
+    SURVIVED must-kills: c3 (soc_steps/watchdog crossed), c4 (watchdog_activations dropped), c11 (restoration_entries sum dropped),
+    c12 (restoration_iters sum dropped) -- no test fixture drives SOC or the watchdog through a real solve, nor reads the whole-solve
+    restoration counters. p1 BUILD_FAIL: instrument fault (the mutation text did not compile), not a kill.
+    Reported (not must-kill): c1b, c13 survive as declared.
+NEXT  DECLARATION-r2.md: tests that kill c3/c4/c11/c12, the p1 mutation text fixed; P1 re-run, mutations re-run; P3/P4/P5/G carried on a
+      source-identity proof (src/include/bench unchanged since the r1 code head).

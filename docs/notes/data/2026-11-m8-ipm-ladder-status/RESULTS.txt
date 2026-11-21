@@ -1,0 +1,18 @@
+M8 IPM ladder status -- RESULTS (against DECLARATION.txt; written after the legs; criteria unchanged)
+================================================================================
+Code head 78af82e2d; arm A a93ae7f9... (origin/m8 a4d687cd0), arm B 973b7e73...; declaration 2badd8c57.
+P5 runtime/run_all.log; chain legs/chain.sh -> chain.out (worst=0).
+
+P5  runtime/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 0.999992, ipm 1.000000,
+    ssn 0.999998, walk 0.999996. Run first and alone.
+P1  MET: "100% tests passed, 0 tests failed out of 3583" in both trees (suites/ctest-rel.log, suites/ctest-dbg.log;
+    3585 registered, the two pre-existing DISABLED EqpRefinementAb tests excluded from the summary). Skips as declared:
+    Release FailByDesignControl only; Debug that plus the six YORKNET/STEENBRB/ACOPP118 fixtures.
+P2  MET: replay walk / ssn / ipm: 27 cells x 75 columns, 0 differences each (replay/lad-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior/; the
+    comparator counts 43 rows over the 27 cells' treatments, as in the NaN round).
+P4  MET: FAILPROOF_AS_DECLARED -- head 7/7 pass, route property "scale 1.76 pass 3"; revert-all fails exactly the
+    declared 4 (each by the std::logic_error "SymmetricFactor::solve: called before a successful factorize()" escaping
+    solve), no-probe-guard exactly the PROBE test, no-guard-site exactly the dense guard test (failproof/).
+No identity movement anywhere. No re-run.

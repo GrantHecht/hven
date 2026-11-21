@@ -1,0 +1,25 @@
+== gate RS-1d head f9727bf28 steps: build psym flags lists ctest smoke replay pch debug 2026-11-17T21:58:31-05:00
+build-release rc=0 2026-11-17T22:02:14-05:00
+objmap-gen rc=0 2026-11-17T22:02:15-05:00
+psym-compare rc=1 2026-11-17T22:02:51-05:00
+flags-diff rc=1 2026-11-17T22:02:51-05:00
+== gate RS-1d head f9727bf28 steps: psym flags lists ctest smoke replay pch debug 2026-11-17T22:03:31-05:00
+objmap-gen rc=0 2026-11-17T22:03:32-05:00
+psym-compare rc=0 2026-11-17T22:04:08-05:00
+flags-diff rc=0 2026-11-17T22:04:09-05:00
+lists-identical rc=1 2026-11-17T22:04:52-05:00
+ctest-release rc=0 2026-11-17T22:06:26-05:00
+100% tests passed, 0 tests failed out of 3869
+install-smoke rc=0 2026-11-17T22:08:08-05:00
+listing-default rc=0 2026-11-17T22:08:08-05:00
+listing-clang rc=0 2026-11-17T22:08:08-05:00
+replay rc=0 2026-11-17T22:13:42-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-17T22:14:55-05:00
+build-debug rc=0 2026-11-17T22:17:28-05:00
+ctest-debug rc=0 2026-11-17T22:25:35-05:00
+100% tests passed, 0 tests failed out of 3869
+== gate RS-1d done 2026-11-17T22:25:35-05:00
+lists-identical rc=0 (normalised compare, tools/lists_compare.py; the in-gate raw diff of this run flagged the declared byte-dump class in ctest -N names)

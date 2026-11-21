@@ -1,0 +1,17 @@
+box-lane: lane 0 acquired 2026-11-20T12:02:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T12:02:17-05:00
+[294/299] Linking CXX executable tests/sqp/hven_sqp_seam_tests
+[295/299] Linking CXX executable tests/sqp/hven_sqp_tests
+[296/299] Linking CXX executable tests/bench/hven_bench_tests
+build rc=0
+FOREGROUND_END 2026-11-20T12:09:08-05:00
+echo FOREGROUND_START 2026-11-20T12:09:08-05:00
+	284 - ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope (Skipped)
+	285 - ThreadScope.AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+	2288 - Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration (Skipped)
+ctest rc=0
+FOREGROUND_END 2026-11-20T12:10:37-05:00
+finished

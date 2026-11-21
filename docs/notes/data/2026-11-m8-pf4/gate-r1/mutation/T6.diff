@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 83c9e674e..7dcc505d3 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -3618,7 +3618,6 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
+     // inside this one and both see its analyses; nothing is folded up).
+     hven::linear::AnalysisTally analysis_tally;
+     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
+-    out.counters.backend_symbolic_analyses = analysis_tally.analyses();
+     out.counters.backend_symbolic_repeats = analysis_tally.repeats();
+     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+     //

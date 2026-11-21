@@ -1,0 +1,9 @@
+library TUs before: 58, after: 60, in both: 58
+only before: none
+only after:  ['src/drivers/callback_rows.cpp', 'src/drivers/result_message.cpp']
+TUs whose flag list differs: 0
+added TU src/drivers/callback_rows.cpp: flags identical to the library baseline TU: True
+added TU src/drivers/result_message.cpp: flags identical to the library baseline TU: True
+distinct flag lists among library TUs: before 5, after 5
+RESULT: IDENTICAL
+rc=0

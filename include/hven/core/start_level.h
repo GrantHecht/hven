@@ -9,10 +9,10 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // `Index` below is `hven::Index`, reached by ordinary enclosing-namespace
-// lookup out of `hven::solvers`; there is no SQP-side index alias.
+// lookup out of `hven`; there is no SQP-side index alias.
 
 /// How much of a previous solve's state a caller intends to feed into the
 /// next one. THE ORDER IS LOAD-BEARING AND THE ENUM IS COMPARED BY IT:
@@ -50,7 +50,7 @@ namespace hven::solvers {
 ///       (mesh_transfer.h section 4 declines to transfer funnel_width;
 ///       kSeeded extends the refusal to tr_radius, which MeshTransfer does
 ///       carry). The destination solve seeds its funnel from Eq. (9) at its
-///       own first measured h0 and starts at SqpOptions::tr_init, exactly as
+///       own first measured h0 and starts at SqpOptions::trust_region_initial, exactly as
 ///       a cold solve does.
 ///     * THE KUNGURTSEV-DIEHL FULL-STEP WINDOW (SqpOptions::warm_full_step):
 ///       the full-step-first rule presumes local convergence of a warm start
@@ -59,7 +59,7 @@ namespace hven::solvers {
 ///   (sqp_solver.h's THE SEEDED DUAL CLAMP). Every other route into the
 ///   ingest is hash-gated and the producers that clear a hash gate are
 ///   non-negative by construction; kSeeded admits objects a FOREIGN solver
-///   or a caller's own hand assembled -- the input class warm_start.h's SIGN
+///   or a caller's own hand assembled -- the input class sqp_warm_state.h's SIGN
 ///   CONVENTIONS paragraph states as a PRECONDITION and sqp_solver.h's THE
 ///   INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note itemizes as ungated.
 ///   At the seeded level a small negative price is CLAMPED to zero and
@@ -106,4 +106,4 @@ struct StartLevelHistogram {
     Index total() const { return cold + seeded + warm + hot; }
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -1,0 +1,3 @@
+The per-process perf symbol tables (syms/, 66 MB), perf-stat files (stat/), throttle counts (throttle/) and child CSVs (raw/)
+of this leg were committed in 4f7edc027 and removed in the next commit (the WA-1 / TR-B convention keeps the analysis only),
+so a squash merge does not carry them. Copies: the worktree's .scratch/gate-r1-runtime-walk/; analysis.txt is the leg's reading.

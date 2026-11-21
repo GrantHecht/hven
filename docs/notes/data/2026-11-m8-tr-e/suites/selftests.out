@@ -1,0 +1,75 @@
+1ddbf2bb0459ce54f75edf636cfbebbacd97c8ba
+== TR-E suites ==
+test_a_count_gets_no_gate (tests.test_compare_side.CompareSideTests.test_a_count_gets_no_gate) ... ok
+test_a_counter_moved_by_one_is_a_difference (tests.test_compare_side.CompareSideTests.test_a_counter_moved_by_one_is_a_difference) ... ok
+test_a_double_spelled_two_ways_is_not_a_difference (tests.test_compare_side.CompareSideTests.test_a_double_spelled_two_ways_is_not_a_difference) ... ok
+test_a_map_that_points_at_the_wrong_column_is_caught_by_the_values (tests.test_compare_side.CompareSideTests.test_a_map_that_points_at_the_wrong_column_is_caught_by_the_values) ... ok
+test_a_mapped_column_missing_from_the_new_file_is_a_difference (tests.test_compare_side.CompareSideTests.test_a_mapped_column_missing_from_the_new_file_is_a_difference) ... ok
+test_a_nan_against_a_number_is_a_difference (tests.test_compare_side.CompareSideTests.test_a_nan_against_a_number_is_a_difference) ... ok
+test_a_renamed_column_is_compared_under_its_new_name (tests.test_compare_side.CompareSideTests.test_a_renamed_column_is_compared_under_its_new_name) ... ok
+test_a_residual_inside_the_gate_passes_and_outside_fails (tests.test_compare_side.CompareSideTests.test_a_residual_inside_the_gate_passes_and_outside_fails) ... ok
+test_an_unmapped_column_keeps_its_name_and_is_compared (tests.test_compare_side.CompareSideTests.test_an_unmapped_column_keeps_its_name_and_is_compared) ... ok
+test_identical_values_under_the_map_are_clean_and_added_columns_are_not_differences (tests.test_compare_side.CompareSideTests.test_identical_values_under_the_map_are_clean_and_added_columns_are_not_differences) ... ok
+test_missing_and_extra_cells_are_reported_and_fail (tests.test_compare_side.CompareSideTests.test_missing_and_extra_cells_are_reported_and_fail) ... ok
+test_null_against_a_value_is_a_difference (tests.test_compare_side.CompareSideTests.test_null_against_a_value_is_a_difference) ... ok
+test_order_changes_are_information_not_a_difference (tests.test_compare_side.CompareSideTests.test_order_changes_are_information_not_a_difference) ... ok
+test_the_maps_are_injective_and_their_targets_are_not_old_names (tests.test_compare_side.CompareSideTests.test_the_maps_are_injective_and_their_targets_are_not_old_names) ... ok
+test_the_sqp_ssn_columns_map_into_the_nested_block (tests.test_compare_side.CompareSideTests.test_the_sqp_ssn_columns_map_into_the_nested_block) ... ok
+test_two_old_columns_mapping_to_one_new_name_are_refused (tests.test_compare_side.CompareSideTests.test_two_old_columns_mapping_to_one_new_name_are_refused) ... ok
+test_hvens_complete_streams_are_clean (tests.test_trace_v1.FixtureTests.test_hvens_complete_streams_are_clean) ... ok
+test_the_aborted_stream_is_an_aborted_solve_and_not_an_error (tests.test_trace_v1.FixtureTests.test_the_aborted_stream_is_an_aborted_solve_and_not_an_error) ... ok
+test_the_fixtures_carry_the_rows_they_claim (tests.test_trace_v1.FixtureTests.test_the_fixtures_carry_the_rows_they_claim) ... ok
+test_every_fixture_matches_the_sha_recorded_in_its_provenance_file (tests.test_trace_v1.ProvenanceTests.test_every_fixture_matches_the_sha_recorded_in_its_provenance_file) ... ok
+test_a_bare_nan_is_refused_as_malformed (tests.test_trace_v1.RefusalTests.test_a_bare_nan_is_refused_as_malformed) ... ok
+test_a_foreign_version_is_refused_outright (tests.test_trace_v1.RefusalTests.test_a_foreign_version_is_refused_outright) ... ok
+test_a_repeated_seq_is_an_error (tests.test_trace_v1.RefusalTests.test_a_repeated_seq_is_an_error) ... ok
+test_a_row_after_the_end_is_an_error (tests.test_trace_v1.RefusalTests.test_a_row_after_the_end_is_an_error) ... ok
+test_a_row_for_an_unbegun_sid_is_an_error (tests.test_trace_v1.RefusalTests.test_a_row_for_an_unbegun_sid_is_an_error) ... ok
+test_a_second_end_is_an_error (tests.test_trace_v1.RefusalTests.test_a_second_end_is_an_error) ... ok
+test_a_seq_gap_is_an_error (tests.test_trace_v1.RefusalTests.test_a_seq_gap_is_an_error) ... ok
+test_an_end_with_no_begin_is_an_error (tests.test_trace_v1.RefusalTests.test_an_end_with_no_begin_is_an_error) ... ok
+test_sid_must_rise_by_one (tests.test_trace_v1.RefusalTests.test_sid_must_rise_by_one) ... ok
+test_the_schemas_own_spellings_are_accepted (tests.test_trace_v1.RefusalTests.test_the_schemas_own_spellings_are_accepted) ... ok
+test_the_wrong_absence_and_non_finite_spellings_are_errors (tests.test_trace_v1.RefusalTests.test_the_wrong_absence_and_non_finite_spellings_are_errors) ... ok
+test_two_solves_one_aborted_and_one_complete (tests.test_trace_v1.RefusalTests.test_two_solves_one_aborted_and_one_complete) ... ok
+test_v0_streams_are_refused (tests.test_trace_v1.RefusalTests.test_v0_streams_are_refused) ... ok
+test_a_malformed_line_before_the_end_is_an_error (tests.test_trace_v1.ToleranceTests.test_a_malformed_line_before_the_end_is_an_error) ... ok
+test_a_missing_envelope_key_is_an_error (tests.test_trace_v1.ToleranceTests.test_a_missing_envelope_key_is_an_error) ... ok
+test_an_empty_stream_is_clean_and_empty (tests.test_trace_v1.ToleranceTests.test_an_empty_stream_is_clean_and_empty) ... ok
+test_one_truncated_final_line_is_tolerated (tests.test_trace_v1.ToleranceTests.test_one_truncated_final_line_is_tolerated) ... ok
+test_unknown_keys_unknown_ev_and_key_order_are_ignored (tests.test_trace_v1.ToleranceTests.test_unknown_keys_unknown_ev_and_key_order_are_ignored) ... ok
+test_a_counter_moved_by_one_is_a_mismatch (tests.test_compare.ComparatorTest.test_a_counter_moved_by_one_is_a_mismatch) ... ok
+test_a_difference_just_past_the_absolute_floor_is_a_mismatch (tests.test_compare.ComparatorTest.test_a_difference_just_past_the_absolute_floor_is_a_mismatch) ... ok
+test_a_foreign_header_is_refused_rather_than_compared (tests.test_compare.ComparatorTest.test_a_foreign_header_is_refused_rather_than_compared) ... ok
+test_a_legacy_header_reads_as_untraced_and_compares_clean_against_an_untraced_run (tests.test_compare.ComparatorTest.test_a_legacy_header_reads_as_untraced_and_compares_clean_against_an_untraced_run) ... ok
+test_a_measure_moved_by_1e_minus_4_relative_is_a_mismatch (tests.test_compare.ComparatorTest.test_a_measure_moved_by_1e_minus_4_relative_is_a_mismatch) ... ok
+test_a_measure_moved_by_1e_minus_7_relative_is_clean (tests.test_compare.ComparatorTest.test_a_measure_moved_by_1e_minus_7_relative_is_clean) ... ok
+test_a_missing_cell_is_reported_and_fails (tests.test_compare.ComparatorTest.test_a_missing_cell_is_reported_and_fails) ... ok
+test_a_moved_pin_is_a_mismatch_however_small (tests.test_compare.ComparatorTest.test_a_moved_pin_is_a_mismatch_however_small) ... ok
+test_a_nan_on_one_side_is_a_mismatch (tests.test_compare.ComparatorTest.test_a_nan_on_one_side_is_a_mismatch) ... ok
+test_a_tiny_measure_passes_on_the_absolute_floor (tests.test_compare.ComparatorTest.test_a_tiny_measure_passes_on_the_absolute_floor) ... ok
+test_a_traced_row_against_an_untraced_row_is_a_pin_mismatch (tests.test_compare.ComparatorTest.test_a_traced_row_against_an_untraced_row_is_a_pin_mismatch) ... ok
+test_an_extra_cell_is_reported_and_fails (tests.test_compare.ComparatorTest.test_an_extra_cell_is_reported_and_fails) ... ok
+test_an_inf_on_one_side_never_passes_the_gate (tests.test_compare.ComparatorTest.test_an_inf_on_one_side_never_passes_the_gate) ... ok
+test_byte_identical_pair_is_clean (tests.test_compare.ComparatorTest.test_byte_identical_pair_is_clean) ... ok
+test_filled_columns_pass_null_to_a_value_and_nothing_else (tests.test_compare.ComparatorTest.test_filled_columns_pass_null_to_a_value_and_nothing_else) ... ok
+test_moved_columns_are_counted_and_do_not_decide_the_verdict (tests.test_compare.ComparatorTest.test_moved_columns_are_counted_and_do_not_decide_the_verdict) ... ok
+test_the_cli_exit_code_survives_the_process_boundary (tests.test_compare.ComparatorTest.test_the_cli_exit_code_survives_the_process_boundary) ... ok
+test_two_infs_agree_because_byte_equality_comes_first (tests.test_compare.ComparatorTest.test_two_infs_agree_because_byte_equality_comes_first) ... ok
+test_wall_s_is_excluded (tests.test_compare.ComparatorTest.test_wall_s_is_excluded) ... ok
+test_a_missing_lane_binary_is_refused_not_skipped (tests.test_compare.RunnerWrapperFoldTest.test_a_missing_lane_binary_is_refused_not_skipped) ... ok
+test_an_unknown_lane_is_refused (tests.test_compare.RunnerWrapperFoldTest.test_an_unknown_lane_is_refused) ... ok
+test_holdout_is_refused_by_name_and_names_m8 (tests.test_compare.RunnerWrapperFoldTest.test_holdout_is_refused_by_name_and_names_m8) ... ok
+
+----------------------------------------------------------------------
+Ran 60 tests in 0.174s
+
+OK
+Ran 60 tests in 0.170s
+
+OK
+== whole discover (informational: the corun wall tests need a quiet-box binary set) ==
+OK /tmp/tmp8x3s3uu2/o.csv
+FAIL: test_the_set_pin_agrees_with_the_set_the_binary_carries (test_hs_set.PinTest.test_the_set_pin_agrees_with_the_set_the_binary_carries)
+Ran 164 tests in 23.262s
+FAILED (failures=1, skipped=5)

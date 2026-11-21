@@ -1,0 +1,61 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRowContractPolish.*:QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from QpCertificateSign
+[ RUN      ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:658: Failure
+Expected equality of these values:
+  s.counters.optimal_row_gray_exits
+    Which is: 0
+  gray
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:655: k=1.500000
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:658: Failure
+Expected equality of these values:
+  s.counters.optimal_row_gray_exits
+    Which is: 0
+  gray
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:655: k=9.500000
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:658: Failure
+Expected equality of these values:
+  s.counters.optimal_row_gray_exits
+    Which is: 0
+  gray
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:655: k=1.500000
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:658: Failure
+Expected equality of these values:
+  s.counters.optimal_row_gray_exits
+    Which is: 0
+  gray
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/qp/test_qp_certificate_sign.cpp:655: k=9.500000
+
+[  FAILED  ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (3 ms)
+[----------] 1 test from QpCertificateSign (3 ms total)
+
+[----------] 3 tests from QpRowContractPolish
+[ RUN      ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen
+[       OK ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen (0 ms)
+[ RUN      ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve
+[       OK ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve (0 ms)
+[ RUN      ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity
+[       OK ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity (0 ms)
+[----------] 3 tests from QpRowContractPolish (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (3 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+
+ 1 FAILED TEST

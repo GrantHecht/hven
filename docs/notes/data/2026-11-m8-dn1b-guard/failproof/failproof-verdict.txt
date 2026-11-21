@@ -1,0 +1,5 @@
+head   : 9 tests, failed none
+off    : 9 tests, failed ['DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor']
+ungated: 9 tests, failed ['DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations']
+off: dense status differs from sparse: True
+FAILPROOF_AS_DECLARED

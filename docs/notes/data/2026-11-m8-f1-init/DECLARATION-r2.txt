@@ -1,0 +1,26 @@
+M8 F1 -- DECLARATION-r2 (successor of DECLARATION.txt for P11, the runtime gate, ONLY; committed before the r2 gate's
+first leg; never edited. DECLARATION.txt, runtime/DECLARATION.txt and run 1's outputs in runtime/ are kept unedited.
+Every other proof, difference and criterion is DECLARATION.txt's, unchanged.)
+================================================================================
+WHY. Run 1 of the runtime gate (runtime/run_all.log, commit 44101adf) went VOID by its own validity rule: one perf THROTTLE
+event in mode ssn, round 1, arm B, cell f7_n20000_bound_neutral (runtime/ssn/throttle/). ssn is an SQP mode, which never
+reaches the changed code (DECLARATION.txt P5). Interior read AS DECLARED (filtered B/A 0.999972, all-samples B/A 0.965451,
+F1-a LIVE, F1-b ABSENT in 3/3 arm B processes) and ipm read 1.000000 with counter identity before the void; those
+readings are reported, not carried: r2 re-runs all four modes.
+CAUSE (environmental, recorded before r2): the kernel log of this boot reads "Nov 07 18:46:34 fedora kernel: perf:
+interrupt took too long (2508 > 2500), lowering kernel.perf_event_max_sample_rate to 79000" -- before run 1 started
+(20:18), and after PF-1's gate (which ran at the default rate and recorded THROTTLE 0). At 79000 samples/s (79 per 1 ms
+tick) a period of 200000 instructions throttles whenever the measured process retires more than ~1.6e10 instructions/s,
+which the n20000 SQP cells reach. The sysctl is not this agent's to change.
+THE ONE CHANGE (runtime-r2/, copies of runtime/'s scripts): the sampling period 200000 -> 400000 instructions
+(runtime-r2/runtime_leg.sh: perf record -c 400000, its LEG_START note and header comment), throttling only above
+~3.2e10 instructions/s; the evidence directory runtime -> runtime-r2 (run_all.sh's EV) and the perf scratch directory
+build-f1/runtime-perf -> build-f1/runtime-perf-r2. analyze_f1.py, analyze_r5.py and the fixture are byte copies of
+runtime/'s. The period enters the criterion only as a common scale of both arms' sample counts in the same run; the
+band, the filter, the F1-a/F1-b/F1-c reading, THROTTLE == 0, counter identity as the STOP condition, the arms and their
+sha256 values (A ef3f2682...0baa6, B e48c2e34...c0e3), the rounds, core and order are runtime/DECLARATION.txt's verbatim.
+P11 (r2)  `flock /tmp/box-build.lock bash runtime-r2/run_all.sh e48c2e34205b408a1616ef33c5f2bdf8b401a70aad04c355311ab744d8efc0e3`:
+          VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in [0.995, 1.005] in every mode;
+          interior F1-a LIVE, F1-b ABSENT, F1-c all-samples B/A <= 0.995.
+ORDER: the r2 gate alone first, then chain1 (unchanged).
+ON FAIL: stop, commit the evidence, report; a further successor is DECLARATION-r3.

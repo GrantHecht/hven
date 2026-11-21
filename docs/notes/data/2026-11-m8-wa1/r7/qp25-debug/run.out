@@ -1,0 +1,28 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:26:49-05:00
+PREFLIGHT every mutation applies and restores: MUST=[ N23] REC=[]
+MUT control rc=0 killers=0
+APPLIED N23
+MUT N23 rc=1 killers=5
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T18:28:31-05:00
+N23_EXIT 0
+code rc=0
+[  PASSED  ] 3 tests.
+APPLIED N15
+N15 rc=1
+[  FAILED  ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted (7 ms)
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Border (20585 ms)
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (3213 ms)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Border
+[  FAILED  ] QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+TREE_RESTORED
+QP25_EXIT 0

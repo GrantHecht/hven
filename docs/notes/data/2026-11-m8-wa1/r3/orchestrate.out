@@ -1,0 +1,148 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T06:34:03-05:00
+code paths == 879d52bd43e13da863f402a47c0c78bba1f6e38a, clean; HEAD f4f50dab10d45151cfd7142b4fa3a0ded9581aef
+LEG P1-rel start 2026-11-19T06:34:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T06:34:04-05:00
+
+The following tests did not run:
+	870 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2555 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2556 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T06:35:21-05:00
+LEG P1-rel rc=0 2026-11-19T06:35:21-05:00
+LEG P1-rel-criterion start 2026-11-19T06:35:21-05:00
+LEG P1-rel-criterion rc=0 2026-11-19T06:35:21-05:00
+LEG P1-dbg start 2026-11-19T06:35:21-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T06:35:21-05:00
+	611 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	612 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	870 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2555 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2556 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T06:43:25-05:00
+LEG P1-dbg rc=0 2026-11-19T06:43:25-05:00
+LEG P1-dbg-criterion start 2026-11-19T06:43:25-05:00
+LEG P1-dbg-criterion rc=0 2026-11-19T06:43:25-05:00
+LEG P2 start 2026-11-19T06:43:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T06:43:25-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_sqp_corpus sha256 9fb4b726ce6af4df290b1ba9cc86bc1ee2279529b0dc9b320927e4af260a31e9
+RUN B k=1 mode=walk 2026-11-19T06:43:25-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-19T06:48:14-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-19T06:48:35-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-19T06:49:00-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-19T06:53:50-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-19T06:54:10-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-19T06:54:36-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-19T06:59:25-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-19T06:59:46-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T07:00:11-05:00
+LEG P2 rc=0 2026-11-19T07:00:11-05:00
+LEG P2-criterion start 2026-11-19T07:00:11-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-19T07:00:12-05:00
+LEG P3 start 2026-11-19T07:00:12-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:00:12-05:00
+cells run: 238 2026-11-19T07:04:47-05:00
+FOREGROUND_END 2026-11-19T07:04:47-05:00
+LEG P3 rc=0 2026-11-19T07:04:47-05:00
+LEG P3-criterion start 2026-11-19T07:04:47-05:00
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.K
+MOVER NEUTRAL  sd-hven-sqp-HS101.D
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+SUMMARY rows 476; movers vs arm A 8 (better 0, worse 0, neutral 8); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-19T07:04:47-05:00
+LEG P4 start 2026-11-19T07:04:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:04:47-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126646e+06 B=7.126661e+06 B/A=1.000002
+  all samples                      A=7.126646e+06 B=7.126661e+06 B/A=1.000002
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850664e+12 B=2.850669e+12 B/A=1.000002
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000002
+  round 3: B/A=1.000000
+MODE walk FILTERED B/A = 1.000002 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-19T07:38:31-05:00
+LEG P4 rc=0 2026-11-19T07:38:31-05:00
+LEG P5 start 2026-11-19T07:38:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:38:31-05:00
+MUT control rc=0 killers=0
+APPLIED M1
+RESTORED
+MUT M1 rc=1 killers=2
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED M2
+RESTORED
+MUT M2 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise
+APPLIED M3
+RESTORED
+MUT M3 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+APPLIED M4
+RESTORED
+MUT M4 rc=1 killers=4
+   QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst
+   QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+MUTATION_DOES_NOT_APPLY include/hven/detail/qp/walk/walk_engine.h (count 0): '        d.move = -a_merit;'
+APPLIED M8
+RESTORED
+MUT M8 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+M6 rc=1 (recorded); killers: 0
+M7 rc=1 (recorded); killers: 0
+VERDICT MUTATION_SURVIVED_M5
+FOREGROUND_END 2026-11-19T07:45:26-05:00
+LEG P5 rc=1 2026-11-19T07:45:26-05:00
+STOP at P5
+FOREGROUND_END 2026-11-19T07:45:26-05:00

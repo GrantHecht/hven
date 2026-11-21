@@ -1,0 +1,163 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..2d7a68621 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -35,6 +35,8 @@
+ #include <exception>
+ #include <optional>
+ #include <utility>
++#include <cstdio>
++#include <cstdlib>
+ 
+ #include <hven/detail/core/inf_norm.h>
+ #include <hven/detail/qp/walk/walk_engine.h>
+@@ -817,6 +819,36 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+     // given up on footprint rungs (a rung that read kSuspect is reverted once).
+     double footprint_rung_from = 0.0;
+     bool footprint_rungs_off = false;
++    static const bool wa1r = std::getenv("HVEN_WA1_MEAS") != nullptr;
++    static long wa1r_solves = 0;
++    const long wa1r_id = wa1r ? ++wa1r_solves : 0;
++    const auto wa1r_hash = [&](const WorkingSet &w) {
++        std::size_t h = 1469598103934665603ull;
++        for (const Index r : w.active_ineq()) { h = (h ^ static_cast<std::size_t>(r + 7)) * 1099511628211ull; }
++        for (std::size_t i = 0; i < w.bound_state().size(); ++i) {
++            h = (h ^ (static_cast<std::size_t>(w.bound_state()[i]) + 3 * i)) * 1099511628211ull;
++        }
++        return h | 1u;
++    };
++    const auto wa1r_f = [&](const Vec &y) { return qp.g.dot(y) + 0.5 * y.dot(qp.H.selfadjointView<Eigen::Upper>() * y); };
++    const auto wa1r_res = [&](const Vec &y) {
++        return working_row_residual(qp, ws, y, Vec(qp.Ai * y), ai_row_norm1, ae_row_norm1, eff_opts).largest;
++    };
++    bool wa1r_in = false;
++    long wa1r_n = 0, wa1r_iter0 = 0, wa1r_last = -10;
++    std::size_t wa1r_h = 0;
++    int wa1r_follow = -2;
++    double wa1r_f0 = 0, wa1r_fnr = 0, wa1r_r0 = 0, wa1r_fl = 0, wa1r_rl = 0;
++    const auto wa1r_end = [&](const char *why, long it) {
++        const double fe = wa1r_f(x);
++        std::fprintf(stderr,
++                     "WA1R chain solve=%ld iter0=%ld n=%ld end=%s end_iter=%ld follow=%d ws_same=%d "
++                     "f0=%.15g fnr=%.15g fl=%.15g fe=%.15g r0=%.3e rl=%.3e re=%.3e mu=%.1e\n",
++                     wa1r_id, wa1r_iter0, wa1r_n, why, it, wa1r_follow, wa1r_hash(ws) == wa1r_h ? 1 : 0,
++                     wa1r_f0, wa1r_fnr, wa1r_fl, fe, wa1r_r0, wa1r_rl, wa1r_res(x),
++                     eff_opts.dual_regularization);
++        wa1r_in = false;
++    };
+     // THE STOP POLL (M8 AP-5 G4), hoisted: null unless the SQP driver armed it.
+     const std::atomic<bool> *const stop = stop_flag_;
+     detail::poll_stop_begin_solve(stop, detail::StopPollSite::kWalk);
+@@ -825,6 +857,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             break; // status is still kIterationLimit: the cap's exit
+         }
+         ++counters.minor_iters;
++        if (wa1r && wa1r_in) {
++            if (iter == wa1r_last + 1) {
++                wa1r_fl = wa1r_f(x);
++                wa1r_rl = wa1r_res(x);
++            } else if (iter == wa1r_last + 2) {
++                wa1r_end("next", static_cast<long>(iter));
++            }
++        }
+         const Index standstill_steps_in = standstill_steps;
+         standstill_steps = 0;
+         const Index stagnation_idle_in = stagnation_idle;
+@@ -2220,6 +2260,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+         // along -p inside the row budget, else a dual_mu rung; on a kOk face whose merit
+         // rises along p, the ordinary step along the regularized answer.
+         Vec footprint_ride_dir; // non-empty: the footprint ride's direction (-p)
++        int wa1r_code = 0; // 0 not asked, 1 ride, 2 rung, 3 decline, 4 degenerate, 5 merit falls, 6 reg step, 7 guard ride
+         if (eff_opts.independent_working_set && !ride_blocked) {
+             const Vec gx = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+             const double slope = gx.dot(p);
+@@ -2271,12 +2312,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                             ++counters.ascent_footprint_rides;
+                             footprint_ride_dir = std::move(d);
+                             guard = true;
++                            wa1r_code = 1;
+ #ifdef HVEN_TESTING
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kRide;
+ #endif
+                         } else if (!ride_moves &&
+                                    !(reach(p, /*cap_at_unit=*/true, nullptr) * p_inf > step_tol)) {
++                            wa1r_code = 4;
+ #ifdef HVEN_TESTING
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kDegenerate;
+@@ -2285,6 +2328,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                                                                detail::kMaxDualRegDecreases) {
+                             ++counters.dual_regularization_decreases;
+                             ++counters.ascent_footprint_rungs;
++                            if (wa1r && wa1r_in && iter == wa1r_last + 1) { wa1r_follow = 2; }
+                             footprint_rung_from = eff_opts.dual_regularization;
+                             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
+                             discard_factor_state();
+@@ -2297,6 +2341,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                             continue;
+                         } else {
+                             ++counters.ascent_footprint_declines;
++                            wa1r_code = 3;
+ #ifdef HVEN_TESTING
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kDeclined;
+@@ -2305,6 +2350,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                     } else if (const detail::FootprintSlope along_p = detail::footprint_merit_slope(
+                                    qp, ws, x, Aix, gx, p, eff_opts.dual_regularization);
+                                !(along_p.slope > along_p.tol)) {
++                        wa1r_code = 5;
+ #ifdef HVEN_TESTING
+                         walk_obs.record().ascent_footprint =
+                             detail::testing::QpWalkFootprint::kMeritFalls;
+@@ -2322,6 +2368,25 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                         }
+                         if (pu_descends) {
+                             ++counters.ascent_footprint_regularized_steps;
++                            wa1r_code = 6;
++                            if (wa1r) {
++                                const std::size_t h = wa1r_hash(ws);
++                                if (!(wa1r_in && h == wa1r_h && iter == wa1r_last + 1)) {
++                                    if (wa1r_in) { wa1r_end("restart", static_cast<long>(iter)); }
++                                    bool bl = false;
++                                    const double ap = reach(p, /*cap_at_unit=*/true, &bl);
++                                    wa1r_in = true;
++                                    wa1r_n = 0;
++                                    wa1r_iter0 = static_cast<long>(iter);
++                                    wa1r_h = h;
++                                    wa1r_f0 = wa1r_f(x);
++                                    wa1r_r0 = wa1r_res(x);
++                                    wa1r_fnr = wa1r_f(ap >= 1.0 ? eqp.x : Vec(x + ap * p));
++                                }
++                                ++wa1r_n;
++                                wa1r_last = static_cast<long>(iter);
++                                wa1r_follow = -2;
++                            }
+                             p = std::move(pu);
+                             landing = &eqp.x_regularized;
+ #ifdef HVEN_TESTING
+@@ -2330,6 +2395,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+ #endif
+                         } else {
+                             ++counters.ascent_footprint_declines;
++                            wa1r_code = 3;
+ #ifdef HVEN_TESTING
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kDeclined;
+@@ -2338,6 +2404,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                     }
+                 }
+             }
++            if (guard && wa1r_code == 0) { wa1r_code = 7; }
++            if (wa1r && wa1r_in && iter == wa1r_last + 1) { wa1r_follow = wa1r_code; }
+             if (guard) {
+                 ++counters.ascent_rides;
+ #ifdef HVEN_TESTING
+@@ -3207,6 +3275,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             }
+         }
+     }
++    if (wa1r && wa1r_in) { wa1r_end(status == QpStatus::kOptimal ? "solve_end_opt" : "solve_end_other", -1); }
+ #ifdef HVEN_TESTING
+     detail::testing::QpWalkObserver::end_solve(static_cast<int>(status));
+ #endif

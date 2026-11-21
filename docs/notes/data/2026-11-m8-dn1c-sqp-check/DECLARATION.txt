@@ -1,0 +1,188 @@
+M8 DN-1c -- the SQP's dense-arm condition check, plus the DN-1b review riders -- DECLARATION (committed before the
+first leg; never edited afterwards; a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs
+kept; criteria are never changed after data)
+================================================================================
+Spec        settler ruling C275 (Grant: the SQP gets a dense solve check before SQP auto-selection; DN-1b riders F1, F2,
+            F4, F5, the PROBE comment and the proximal-mode test ride this round), ledger C273-C275; DN-1b's evidence
+            ../2026-11-m8-dn1b-guard/ whose instruments are copied here and re-pointed.
+Base        2199d1a2f (origin/m8).
+Code head   5da042122d89cc29c22a7de00aaeec2fe27f73ef (one commit on the base: feat(linear,sqp) DN-1c). Evidence commits
+            (this directory) follow and touch no source.
+Arm A       2199d1a2f, built by legs/prebuild.sh from its `git archive` export build-dn1ce/armA-src (dep/eigen bc3b3987,
+            dep/fmt 407c905e) at build-dn1ce/armA, Release, legs/build.sh's flags: corpus binary
+            build-dn1ce/armAbin/hven_sqp_corpus sha256 97858340114a40e76b6e911253ca983ae95754925116701749fef31e789db673,
+            compile database build-dn1ce/armA-compile_commands.json sha256
+            fd8a469215940597c261a14e9af89cdb544a4c724d24fb1b656d3491d891a50a; build log build-dn1ce/armA.build.log.
+Arm B       the code head: build-dn1ce/rel (fresh, legs/build.sh, no source modification; log build-dn1ce/build-rel.out)
+            -> frozen by runtime/run_all.sh to build-dn1ce/armBbin, hven_sqp_corpus sha256
+            65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823. build-dn1ce/dbg fresh at the head (Debug).
+Lane binary the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed), branch dn1c-legs = DN-1b's
+            commit C 1b03c78 (branch dn1b-legs) + commit D 17f177c (pin -> the code head, sl/hb_patch_d.py's one SQP side column
+            dn1c_dense_condition_fallbacks), built by sl/hb_setup_d.sh against the pin's own install:
+            build-dn1ce/dn1cbin/hven_bench_cell sha256 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc. After the S and T legs sl/hb_restore.sh puts the
+            clone's HEAD back on dn1b-legs (as found).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1 unless a leg says
+            otherwise. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED (the
+            Accelerate shim's dsycon wrapper is compiled by the macOS CI lane only; the settler's).
+Scratch     build-dn1ce/ (evidence trees, git-ignored); build-dn1c/ (dev and probe trees: not evidence; the pre-flight
+            refuses it).
+Instruments legs/, runtime/, sl/ = ../2026-11-m8-dn1b-guard/ legs/, runtime/, sl/ (sl/t_run.sh from t_run-r2.sh) copied
+            and re-pointed (worktree dn1c, this directory, build-dn1ce/, arm A 2199d1a2f); amended: legs/objects.sh
+            (P16), legs/failproof.sh (P14, rewritten for DN-1c's three mutations), legs/chain1.sh (pre-flight patterns
+            also refuse build-dn1c/, build-dn1be/, worktree dn1b; scans sl/), sl/s_analyze.py (the SQP column, S1 below),
+            NEW sl/hb_setup_d.sh, sl/hb_patch_d.py, sl/hb_restore.sh; runtime/DECLARATION.txt.
+
+THE CHANGE
+- SymmetricFactor::Options::dense_condition_check (bool, default false; refused under kNever). Under kAlways/kAuto, after
+  dsytrf and the block walk accept a factorization, the dense session estimates its reciprocal condition number with
+  LAPACK dsycon (1-norm; ||A||_1 from the stored upper CSR; workspace sized at analyze()). rcond < 2^-53
+  (kDenseConditionSingular: LAPACK xSYSVX's test, RCOND < DLAMCH('Epsilon'), "singular to working precision"; LAPACK
+  documentation only) or NaN -> the factorization is refused and the platform session retakes it within the same
+  factorize() through the existing exactly-singular fallback (evidence, status and arm kSparse are the platform's).
+  Counters::dense_condition_fallback_count (appended last) counts these; each also counts in dense_fallback_count, so
+  factorize_count = dense_factorize_count + dense_fallback_count + sparse-selected factorizations still holds. A
+  platform-session handle carries the flag to its adopter. The Accelerate shim gains LAPACKE_dsycon_work.
+- SQP wiring: sqp_kkt_options(threads, dense) sets the check iff dense != kNever (every KktFactor: the walk's K0 /
+  BorderState, the eliminated EQP factors, refine_on_face's and polish's temporaries, the SSN); the IPQP tiers set it at
+  reconfigure (dense policy only); the rank repair's Gram factor keeps it off (its shift t = 1e-6*omega bounds rcond
+  near 1e-6, and its inverse iteration solves with a near-singular G on purpose). The IPM never sets it (its DN-1b guard
+  stands).
+- Counting: QpCounters::dense_condition_fallbacks and SqpCounters::dense_condition_fallbacks (appended last; trace: one
+  additive key, the two golden lines re-derived), SsnResult / IpqpResult::dense_condition_fallbacks; fed by factor
+  counter deltas at the walk's four factorization sites and the SSN's two, and by the IPQP's counter delta; folded
+  beside eqp_polish_steps at every SQP fold (6 + 3 + 4 sites) and beside factorizations in the SSN/IPQP conversions and
+  charges.
+- DN-1b riders: F1 the step guard's re-solve runs only when the re-run left numerics (info() == Success), else the loop
+  ends; F2 the init guard's failed refactor records result_.last_kkt_info; F4 factor_dc_applied_ removed, factor_impl's
+  out-parameter (threaded through dense_step_singularity_guard); F5 the strip comment; the PROBE predictor solve's
+  unguarded note; DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal.
+
+THE MEASUREMENT THE DESIGN WAS CHOSEN FROM (before this declaration; scratch build-dn1c/, not evidence)
+- Probe: a scratch copy of the base (dense_session.cpp, env-gated, never committed) recording per dense factorization
+  rcond (dsycon), the residual ratio of a fixed +-1 rhs, the min pivot ratio, and per solve ||K x - b||/||b|| split into
+  LARGE solves (||b|| >= 1e-6 x the largest ||b|| on that factorization) and SMALL (refinement-like) ones; the 119 SQP
+  cells at dense-default: 98,356 dense factorizations, 2,775,708 solves (the DN-1b probe's totals, reproduced).
+  * IPOPT's 1e-5 on the actual solves is NOT supported for the SQP: 14,167 factorizations (14 %) carry a LARGE solve
+    above it, in 14 cells, 7 of them optimal on both arms with no harm and no catastrophic solve (HS74 38, HS75 31,
+    HS84 19, HS101 14, CRESC100 38, BT2 4, DEMBO7 2 factorizations); SMALL (refinement-like) solves above it: 12,473
+    solves, in CRESC4 and ACOPP30 (optimal) among others.
+  * The catastrophic class (a solve with ratio > 0.1) is 105 factorizations in MESH, MSS1 and HS90 only (ratios to
+    4e67); every benign high-ratio factorization stays <= 3.7e-2 (SPANHYD), a gap of > 2.7x.
+  * rcond < 2^-53 flags 174 factorizations in 5 cells: all 105 catastrophic ones (largest catastrophic rcond 8.8e-18),
+    plus 70 whose actual solves were accurate: MESH 25, ALLINITC 21, SPANHYD 24 (all kNever non-success cells). No
+    kNever success cell other than HS90 (its one catastrophic factorization) has one. The next decade (< 1e-15) adds
+    HS92 20, LAKES 6, HS99EXP 1 and 285 more SPANHYD.
+  * rcond does not separate ALLINITC's accurate factorizations (rcond down to 2e-35) from the catastrophic ones (HS90
+    5.6e-35): only a rhs test could, and no rhs exists at factorize(), where the remedy keeps the inertia and the
+    numerics from one backend. Rejected: the 1e-5 actual-solve test (unsupported, above); a solve-time remedy (solve()
+    is const and the consumer has already read the dense inertia); the min-pivot ratio (not scale-invariant, design
+    sec. 1.4); a random-rhs residual test (an invented threshold).
+  * Backtraces of every flagged factorization: all at KktFactor sites (solve_eqp under eliminated_candidate:
+    reread_wrong_inertia, saddle_direction, refine_terminal_mu_free, polish_terminal_point, border paths; rebuild_k0).
+    None in the SSN, the IPQP tiers or the Gram factor.
+- Dev roster (a dev build whose behaviour code equals the code head's -- the counter plumbing and the tests came after
+  it -- behind a scratch copy of the lane at commit C; all 238 DN-0 cells, default and dense-default, MKL=1, core 2):
+  S1 212/215, misses exactly IPM ALLINITC, IPM CRESC100, SQP HS91 (DN-1b's set); IPM ACOPP30 and SQP HS90 kept. S2
+  against DN-1b's kAlways: SQP ALLINITC optimal -> numerical_error (its kNever status; the rhs-blind check's cost),
+  SQP MESH numerical_error -> max_iter (kNever infeasible); every other row as DN-1b's. IPM rows as DN-1b's.
+- Dev suites (build-dn1c/rel, build-dn1c/dbg at the code head's content): "100% tests passed, 0 tests failed out of
+  3529" both. Dev falsifier (legs/failproof.sh re-pointed to build-dn1c/fpdev): FAILPROOF_AS_DECLARED (head 39 tests pass; guard-off, check-off, unwired fail exactly the sets of P14); a first dev run without hven_qp_walk_seam_tests (where QpDenseArm lives) missed the unwired QpDenseArm failure, so the leg runs that binary too.
+- Dry pre-flight / objects / flags (on build-dn1ce/rel and armA, outputs scratch): objects 57/57, 20 differing (listed
+  in P16), every other ./src/linear/ object (dense_symmetric_factor, pardiso_session) byte-identical; flags 0 differing
+  TUs.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above.
+D1  ENGINE AT kNever: NO MOVERS. Every counter, status, iterate column and residual is EXACT against arm A: replay x
+    walk/ssn/ipm (P3), interior unmoved and promoted (P12), the census (P5, PF-1's two declared movers only), the
+    runtime gate's counter identity in all four modes (P11). At kNever the check is never configured; the new counters
+    read 0.
+D2  API (names for owner approval): SymmetricFactor::Options::dense_condition_check,
+    SymmetricFactor::Counters::dense_condition_fallback_count, QpCounters::dense_condition_fallbacks,
+    SqpCounters::dense_condition_fallbacks; detail: DenseFactorizeResult, kDenseConditionSingular,
+    SsnResult/IpqpResult::dense_condition_fallbacks, detail::condition_fallbacks(KktFactor).
+D3  TESTS: 3524 -> 3529: DenseArmConditionCheck.SingularToWorkingPrecisionFallsBack,
+    DenseArmConditionCheck.RefusedUnderNeverAndCarriedByAFallbackHandle (hven_tests),
+    QpDenseArm.SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly (hven_qp_walk_seam_tests),
+    DenseArmEngines.SqpConditionCheckRetakesASingularToWorkingPrecisionKkt,
+    DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (hven_drivers_tests); the two
+    sqp.solve.end golden lines re-derived; three counter-shape asserts moved by one field.
+D4  TRACE: one key, `dense_condition_fallbacks`, last in the sqp.solve.end counters object before `ssn`
+    (docs/trace-schema-v0.md row + paragraph). Nothing else.
+D5  OBJECTS: the same 57 objects; ./src/linear/dense_session.cpp.o and symmetric_factor_mkl.cpp.o differ; every other
+    ./src/linear/ object BYTE-IDENTICAL; the other differing objects are listed, not judged.
+D6  COMPILE FLAGS: no TU differs, none added or removed.
+D7  No iparm change and no IPARM-SURFACE label (dsycon is LAPACK, not Pardiso).
+D8  INSTALL SMOKE and export contract unchanged.
+D9  ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A (no new file mentions USE_ACCELERATE_SPARSE).
+
+PROOFS AND PASS CRITERIA, THE N SET (legs/; each its own script under the box lock; criteria as DN-1b's DECLARATION.txt
+unless stated)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above: ARM_A_OK.
+P1  suites: ctest Release (build-dn1ce/rel) and Debug (build-dn1ce/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3529" in both (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each.
+P4  iparm: BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations (legs/iparm.sh).
+P5  walk census, 57 rows, on the frozen arm B binary (legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: legs/census_check.py with
+    ../2026-11-m8-dn1-impl/census-movers.csv (PF-1's two rows, read only) prints CENSUS_AS_DECLARED.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass.
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (fresh build-dn1ce/offref, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF) then ctest: build rc
+    0, "0 tests failed out of 3529" (legs/offref.sh); AND arm B's Release warning set equals arm A's: legs/warnings.sh
+    on build-dn1ce/armA.build.log vs build-dn1ce/build-rel.out prints WARNINGS_SET_EQUAL.
+P9  Accelerate syntax sweep (legs/misc.sh accelerate): PASS_A_AS_DECLARED. Pass B reported. macOS CI is the settler's.
+P10 compile-flags diff (legs/flags.sh, legs/flags_check.py): FLAGS_AS_DECLARED (D6).
+P11 runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in
+    [0.995, 1.005] in every mode; perf record period 400000.
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT; promoted EXACT.
+P14 THE FALSIFIER (legs/failproof.sh): FAILPROOF_AS_DECLARED -- head: every test of hven_tests 'DenseArm*',
+    hven_qp_walk_seam_tests 'QpDenseArm.*' and hven_drivers_tests 'DenseArmEngines.*' passes; guard-off (DN-1b's two guard gates -> false): exactly the two
+    IpmResidualGuardRecovers... tests (classic, proximal) fail, each on the dense status; check-off (the session's
+    check never refuses): exactly DenseArmConditionCheck.SingularToWorkingPrecisionFallsBack,
+    DenseArmConditionCheck.RefusedUnderNeverAndCarriedByAFallbackHandle and
+    DenseArmEngines.SqpConditionCheckRetakesASingularToWorkingPrecisionKkt fail; unwired (sqp_kkt_options never sets
+    it): exactly QpDenseArm.SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly and
+    DenseArmEngines.SqpConditionCheckRetakesASingularToWorkingPrecisionKkt fail.
+P16 OBJECTS (legs/objects.sh): OBJECTS_AS_DECLARED (D5).
+PRE-FLIGHT (legs/chain1.sh, fail closed): every script under legs/, runtime/ and sl/ names this worktree, build-dn1ce/
+and this directory only (build-dn1c/, build-dn1be/, DN-1b's worktree and other evidence trees refused), except the
+read-only pins.
+ORDER: the runtime gate alone first (runtime/run_all.sh 65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823), then
+`ARMB_SHA=65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823 CODE_HEAD=5da042122d89cc29c22a7de00aaeec2fe27f73ef bash legs/chain1.sh > chain/chain1.out`.
+
+THE S AND T LEGS (sl/; each its own flock)
+--------------------------------------------------------------------------------
+S   flock /tmp/box-build.lock bash sl/s_run.sh sl/out/s 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc
+    DN-0's 238 cells (../2026-11-m8-dn0/raw/roster.tsv), per cell `default` (kNever) then `dense-default` (kAlways), the
+    same binary, THREADS=1 (MKL_NUM_THREADS=1, core 2), CAP 300 s; sl/s_analyze.py -> sl/out/s/s-analysis.txt.
+S1  both engines, kAlways vs kNever on the same build: every kNever success (optimal or acceptable) keeps its status and
+    objective within 1e-8*max(1,|f|) -- EXCEPT the movers DECLARED IN ADVANCE, each with its argument, DN-1b's set
+    (ledger C273, DN-1b DECLARATION S1), which the dev roster above reproduces and to which it adds none:
+      IPM CRESC100 (sd-hven-ipm-CRESC100): trajectory sensitivity; the dense arm is the more accurate arm; untouched by
+        DN-1c (the IPM never sets the check).
+      IPM ALLINITC (sd-hven-ipm-ALLINITC): a Pardiso-perturbation artifact in the kNever run; dense is better.
+      SQP HS91 (sd-hven-sqp-HS91): a path difference within tolerance (both optimal, objective rel 1.30e-8 vs 1e-8); the
+        probe finds no factorization of HS91 below 2^-53, so the check does not fire there.
+    IPM ACOPP30 (sd-hven-ipm-ACOPP30) MUST keep status and objective. Any other mover = NOT MET (SQP HS90, the one kNever
+    success with a factorization below 2^-53, is NOT declared: it must keep). Verdict line S1_AS_DECLARED / S1_NOT_MET.
+S2  every kNever non-success cell's kAlways status reported (not gating). Expected from the dev roster: SQP ALLINITC
+    numerical_error (DN-1b: optimal), SQP MESH max_iter (DN-1b: numerical_error).
+S3  per-cell counters both arms, as DN-1b's S3 plus dn1c_dense_condition_fallbacks (reported).
+TRIG trigger counts per cell, both arms, both engines (IPM dn1b_dense_residual_ratio_triggers, SQP
+    dn1c_dense_condition_fallbacks), reported; kNever must read 0 on every row of both engines, the column present on
+    every uncapped row: TRIGGERS_KNEVER_ZERO. Expected kAlways SQP fallbacks nonzero in MESH, MSS1, HS90, ALLINITC,
+    SPANHYD (reported, not gating).
+T   flock /tmp/box-build.lock bash sl/t_run.sh sl/out/t 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc 5da042122d89cc29c22a7de00aaeec2fe27f73ef
+    CUTEst TRAIN (23, hven-sqp, default options = kNever, PF-1's invocation, the frozen lane binary via --binary; the
+    clone made clean as DN-1b's r2 runner did): >= 16/23 optimal and no cell lost against PF-1's reading (hven-bench
+    runs/2026-11-m8-pf1-train/default): T_PASS. HOLDOUT is never run.
+RESTORE flock /tmp/box-build.lock bash sl/hb_restore.sh (after T): the clone's HEAD on dn1b-legs, no tracked change.
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; `pgrep -a hven_bench_cell` empty before the lock (own
+command) and PGREP_EMPTY inside; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid;
+FOREGROUND_START/END.
+ON FAIL: the failing leg's outputs are committed; a failure is answered by DECLARATION-r2, never by editing this file.

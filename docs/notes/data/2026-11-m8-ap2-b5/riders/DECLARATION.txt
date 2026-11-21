@@ -1,0 +1,155 @@
+M8 AP-2 group B5, settler riders R1-R11 -- DECLARATION (committed before the first proof leg; never
+edited afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and the failed
+record is kept; criteria never change after data)
+================================================================================
+Base        m8-b5 at 65f01b68 (B5 code head 2142af0a + the B5 evidence, ../).
+Code head   f45ca070 (m8-b5). Commits after the B5 evidence head, oldest first:
+              f288bc23 fix: settler riders R1-R10 (code and the header contract text)
+              38d1329b test: rider pins (+24) and the R8/R10 re-pins
+              f45ca070 docs: testing.md -- the linear injectors through the public handles
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B5.
+Scratch     build trees under build-b5/ (git-ignored): rel, dbg, offref-r, smoke-*, pch-check,
+            iparm-build, riA (configure-only, from the detached worktree build-b5/riA-src at 2142af0a),
+            armAr, armBr, census-run-r, runtime-perf-r.
+
+THE CHANGE UNDER TEST (the settler's rulings R1-R11; every premise was checked in code first)
+--------------------------------------------------------------------------------
+R1  AcceptanceStrategy::retract_last_acceptance() (default no-op), called on the IPM rollback path.
+    Funnel: the width saved before register_accepted_step. Filter: the filter and its three
+    reset-heuristic fields (an H-type accept augments it and any accept runs the reset heuristic, so
+    the filter DOES register state for the step). Modern merit: pi_l and the smallest-known tracker
+    (both move only on an accept; nu and pi_u move on every trial and are kept). Armed by an accept,
+    disarmed by the next acceptance test, reset() and a phase switch.
+R2  step_cap resets only when a step that moved the point (alpha > 0) is followed by a clean screen of
+    the point it reached. TERMINATION, restated: a rollback sets cap <- cap_k * alpha_k /
+    backtrack_divisor (cap_k, alpha_k the rolled-back step's), so each rollback divides the cap by at
+    least backtrack_divisor; alpha = 0 iterations leave it alone; it returns to 1 only after a clean
+    screen of a moved-to point. Hence a run of rollbacks with no such screen between them crosses the
+    floor backtrack_divisor^-line_search_max_backtracks within line_search_max_backtracks rollbacks, and
+    the failure that would take it below the floor ends the phase kNonFiniteIterate (at the failed point,
+    R7) instead of rolling back. Every iteration still counts against max_iterations.
+R3  init_impl screens the kInit evaluation (objective, gradient, KKT values, right-hand side) BEFORE
+    compute()/refactorize(); a failure skips the factorization and the multiplier solve, hands a claimed
+    analysis back, and the phase's first iterate ends kNumericalError (kNonFiniteStart at the start
+    point; kNonFiniteIterate at a re-initialization between phases, where an EvaluationError is the same
+    failure instead of propagating). The initial factorization's outcome (KktFactorization::info()) is
+    read before the solve: a failure is kNumericalError, stop reason kNone, a message naming the initial
+    KKT factorization, last_kkt_info recorded -- never SymmetricFactor's precondition error. Both
+    init_impl call sites (solve entry and the between-phase re-init) share the one code path.
+R4  rollback_valid = false at the restoration entry continue and the four restoration-exit continues.
+R5  SQP: SolveState::at_start (cleared at the first commit and at a restoration return) replaces the
+    value comparison with x0.
+R6  SQP: st.derivative_failure written where a bundle becomes st.ev (commit, promoted SOC point, box
+    projection, restoration resume, best-iterate restore); the QN-on-reject refresh and the restoration
+    candidate upgrade use their own strings.
+R7  CHOICE: both engines return the point P whose evaluation failed, multipliers (row and bound) cleared,
+    on every kNonFiniteStart / kNonFiniteIterate exit. JUSTIFICATION: the last finite point exists only
+    on the floor exit -- at the start point, a phase's first iterate and inside restoration there is no
+    snapshot -- so "the last finite point" cannot be one rule; P with cleared multipliers is the rule
+    every exit can keep, it is what the SQP's non-finite evaluation exit already returned, and the
+    message names the quantity and where. Changed to fit: the IPM floor exit (no longer restores then
+    exits), the IPM no-rollback exits (multipliers were the committed step's), and the SQP non-finite
+    SUBPROBLEM exit (it kept the multipliers). The residual fields report what P's evaluation measured,
+    NaN where it measured nothing. Docs: the ipm_solver.cpp block comment, core/solver_status.h (both
+    enums), core/errors.h.
+R8  last_result() holds only the partial of a solve an exception escaped (argument refusals included);
+    cleared at solve entry, not written on a returned solve. Docs on both handles and impls.
+R9  finish_interrupted_result (both handles) sets status kInterrupted and the fixed message before any
+    fallible call.
+R10 std::logic_error: SymmetricFactor factorize-before-analyze, require_solvable (solve/solve_partial/
+    share before a successful factorize; stale adopted numerics) on both adapters;
+    DenseSymmetricFactor::solve before factorize and its pivot-data guard; SchurComplement::
+    expected_neg_eigs_delta; SsnEngine's three structure-map invariants; IpqpKktLayout's three; the SQP
+    IPQP kNone invariant. BackendError (still a std::runtime_error, so every catch that degrades on it
+    keeps degrading): SchurComplement::solve on an exactly singular C (the QP engine's border path
+    catches it as its singular-C signal), Factorization::solve on a session a co-owner's failed
+    factorize left without numerics (the holder saw no outcome to check). Audited catch sites that read
+    std::runtime_error (equality_basis.cpp x7, qp_engine.cpp x8, kkt_factorization.cpp x1): each guards a
+    BackendError or a status-gated call; none relied on a precondition throw. Session files untouched.
+    errors.h: hven throws no other std::runtime_error.
+R11 the tests below. Also found and fixed while writing the R11 thread-pool pin: a foreign exception
+    thrown by the DISPATCHING thread's own partition was rethrown only when no pool lane threw, so a pool
+    EvaluationError hid it; DispatchContext::rethrow_if_exception now takes it and applies the
+    documented preference across all lanes. And: the kNone kNumericalError message carries its detail
+    (empty on every exit but R3's), and a successful rollback no longer writes stop_detail_.
+FIXTURE REACHABILITY: SqpStopReason::kRestorationNonFinite IS reachable without a seam (pinned:
+    RiderRestorationStop -- the objective NaN near the violation's stationary point). kRestorationNoClaim
+    stays ARGUED: a sub-solve must converge kOptimal at a violation in (feas_tol, 2 feas_tol]; the
+    minimal fixture (least violation 1.5 feas_tol, four start scales) ends inside the sub-solve instead
+    (a refused nested request, reported kRestorationFailed) or at the iteration cap, and forcing it
+    would need a new seam.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  API: AcceptanceStrategy::retract_last_acceptance() (detail/); SwitchingAcceptance save/restore hooks
+    (detail/); DispatchContext::rethrow_if_exception(std::exception_ptr = nullptr) (detail/). sizeof of
+    FunnelAcceptance, FilterAcceptance, ModernMeritAcceptance, IpmSolverImpl and the SQP's internal
+    SolveState/MajorState moves. No new library TU (the PCH source count is unchanged).
+X2  Exception types: the R10 sites throw std::logic_error (precondition/invariant) or BackendError
+    instead of a plain std::runtime_error. Messages unchanged.
+X3  last_result(): empty after a returned solve (was: a copy of the returned value).
+X4  BEHAVIOUR, FAULT PATHS ONLY (a model that throws or returns non-finite values, a failed initial
+    factorization, a throwing callback): R1-R7, R9 and the thread-pool fix as above. A finite,
+    non-throwing model's path is unchanged: no retraction is called (no rollback), step_cap stays 1, the
+    init screen passes, the factorization outcome is Success. Added per-iteration work on that path: one
+    bool store (cap_reset_pending); per accepted generic-path trial: the strategy's save (a double for
+    the funnel, the filter copy-assigned into a reused member for the filter, two doubles for the merit)
+    and two bool stores; per solve: the init screen (one pass over objective, gradient, KKT values,
+    right-hand side) and one copy of the gradient block.
+X5  Messages: an IPM kNumericalError with stop reason kNone carries a detail when one was recorded (only
+    the R3 initial-factorization failure records one). Every other message unchanged.
+X6  Tests: 3375 -> 3399 (+24 ctest entries: test_evaluation_failure.cpp +15, test_acceptance_retraction.cpp
+    +6, test_backend_error_seams.cpp +3). Re-pinned: ForeignException.PropagatesUnchanged... (last_result()
+    empty after the second solve), the precondition-type pins in test_dense_symmetric_factor(.cpp,
+    _growth.cpp), test_symmetric_factor.cpp, test_fault_injection.cpp, test_kkt_factorization.cpp,
+    test_schur.cpp (logic_error), the golden rig's T4b stale-adoption pin (std::exception).
+CORPUS (measured before this declaration on the riders code, dev runs under the lock, not evidence):
+    27-cell replay walk/ssn/ipm 0 differences each; the interior top-level leg 43 cells x 30 columns 0
+    differences against the B4-riders arm-B CSV; walk census tier 1 -- 41 of its 42 rows, 0 mismatches
+    against the baseline (the 42nd, f7_n2000_path_warm, whose process spends ~29 minutes in its untimed
+    setup solve -- 1763 s in B5's census -- was stopped at 12 minutes, not measured; the leg runs all
+    57). Release suite 3399 tests with one failure (a Schur pin still reading std::runtime_error),
+    re-pinned in the tests commit and re-run green by filter; Debug suite 3399/3399 after it.
+    EXPECTED: no corpus row moves. A moved row at a leg is a failed leg, not a declared difference.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b5/rel) and Debug (build-b5/dbg), full, -j4 under setsid: every test
+    passes (3399 expected; legs/ctest.sh).
+P2  examples: all 8 build and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P4  iparm (legs/iparm.sh): the dumper (byte copy of B5's, iparm/) against an install of the riders head:
+    BYTE-IDENTICAL to ../iparm/iparm-b5.txt, 15 configurations. symmetric_factor_mkl.cpp is touched
+    (R10 exception types only); no iparm field is touched and no IPARM-SURFACE label is claimed.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on arm B.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass,
+    the detail-include rule armed and NO allow-list.
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh directory (build-b5/offref-r),
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass (legs/offref.sh; the evidence directory passed ABSOLUTE).
+P9  Accelerate syntax sweep, pass A as B5 (legs/accelerate_sweep.py; its worktree root is derived from
+    its own location, SIX levels above riders/legs/ -- checked before this commit, the one change to the
+    copy): no OTHER; no class beyond B5's (KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED.
+P10 compile-flags diff (legs/flags.sh, B5's instrument): library TUs of the B5 code head (2142af0a,
+    build-b5/riA, configure-only by legs/riA_configure.sh, already run once before this commit to produce
+    the compile database; the detached worktree build-b5/riA-src carries dep/eigen and dep/fmt copied
+    from this worktree's checkouts, at the SAME submodule commits bc3b3987 / 407c905e that 2142af0a
+    records) vs the riders head (build-b5/rel): IDENTICAL flags, the same library TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = the 2142af0a binary, arm B = f45ca070 (build-b5/rel
+    re-configured at the head, stamp f45ca070552b, sha256
+    34984713d1183945d38cb5f7c0144985be6bc2f73bac8808cb1fa4ed930544da; P5's census reads the same frozen
+    binary, build-b5/armBr); band
+    0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm order
+    alternated.
+PATH CHECK (B5's r1 failed on a stale path): every copied script was read for its paths before this
+    commit; the worktree, the build directory (build-b5) and the evidence directory (.../riders) are
+    THIS worktree's; accelerate_sweep.py and analyze_r5.py derive the root from their own depth (six).
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock); `pgrep -a hven_bench_cell` empty before the lock
+and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under
+setsid; FOREGROUND_START/END markers; ABSOLUTE evidence paths.

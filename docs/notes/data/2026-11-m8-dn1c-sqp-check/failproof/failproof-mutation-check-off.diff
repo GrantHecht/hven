@@ -1,0 +1,4 @@
+206c206
+<     if (opts_.dense_condition_check && !condition_ok(A)) {
+---
+>     if (false) {

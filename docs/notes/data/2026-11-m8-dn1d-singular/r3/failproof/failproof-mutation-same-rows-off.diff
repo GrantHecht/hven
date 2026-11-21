@@ -1,0 +1,4 @@
+3831c3831
+<         if (!(border.kkt.dense_shifted && border.k0_rows == ws.active_ineq())) {
+---
+>         if (true || !(border.kkt.dense_shifted && border.k0_rows == ws.active_ineq())) {

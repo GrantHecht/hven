@@ -1,0 +1,180 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-ipm-sqp-threshold/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseAuto.*:DenseArmEngines.*:Limits.*
+[==========] Running 46 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsEveryPolicyAndNoThreshold
+[       OK ] DenseArmEngines.IpmValidateAcceptsEveryPolicyAndNoThreshold (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold
+[       OK ] DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm
+[       OK ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate
+[       OK ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate (0 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+[       OK ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK (0 ms)
+[----------] 15 tests from DenseArmEngines (21 ms total)
+
+[----------] 12 tests from DenseAuto
+[ RUN      ] DenseAuto.EachEngineHasItsOwnThreshold
+[       OK ] DenseAuto.EachEngineHasItsOwnThreshold (0 ms)
+[ RUN      ] DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder
+[       OK ] DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder (0 ms)
+[ RUN      ] DenseAuto.TheWalkKeySeparatesThePolicies
+[       OK ] DenseAuto.TheWalkKeySeparatesThePolicies (0 ms)
+[ RUN      ] DenseAuto.IpmBelowItsThresholdIsTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:143: Failure
+Expected equality of these values:
+  a.f
+    Which is: 60.766943822892074
+  b.f
+    Which is: 60.766943822892046
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:144: Failure
+Expected equality of these values:
+  a.x
+    Which is: { 0.93431184024085634, 0.76221781468185668, 0.37086548281085024, -0.19493920570757883, -0.22465237573071739, 0.36415148183015489, 1.1208421250841987, 1.4332494649109131, 1.0908115235514593, 0.51966920107674597, -0.76949587451376034, -0.30806529281082246, 0.57232424823171646, 1.1856969551687302, 1.0409836193543751, 0.3578197998944983, -0.15341841612282514, 0.063086949281282001, 0.8843401536967771, 1.6667520938098885, 0.67650937087634166, 0.10741421324266535, -0.42471258653221267, -0.30718497583628723, 0.42480530733239696, 1.1848566179678686, 1.3564596921843439, 0.8676313791154745, 0.24385646637101965, 0.17009803777504651, -0.30029821694048936, 0.54852548510834676, ... }
+  b.x
+    Which is: { 0.93431184024085634, 0.76221781468185634, 0.37086548281084997, -0.19493920570757839, -0.22465237573071628, 0.36415148183015456, 1.1208421250841982, 1.4332494649109131, 1.0908115235514582, 0.51966920107674652, -0.76949587451376034, -0.30806529281082257, 0.57232424823171624, 1.1856969551687304, 1.040983619354376, 0.35781979989449786, -0.15341841612282547, 0.063086949281281668, 0.8843401536967761, 1.666752093809889, 0.67650937087634144, 0.10741421324266533, -0.42471258653221289, -0.30718497583628701, 0.42480530733239796, 1.1848566179678679, 1.3564596921843437, 0.86763137911547361, 0.24385646637101899, 0.17009803777504628, -0.3002982169404893, 0.54852548510834664, ... }
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:146: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 0
+  b.dense_factorizations
+    Which is: 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:150: Failure
+Expected equality of these values:
+  a.kkt_factor_counters.dense_factorize_count
+    Which is: 0
+  b.kkt_factor_counters.dense_factorize_count
+    Which is: 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:245: Failure
+Expected: (automatic.dense_factorizations) > (0), actual: 0 vs 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-ipm-sqp-threshold/tests/drivers/test_dense_auto.cpp:246: Failure
+Expected equality of these values:
+  automatic.dense_factorizations
+    Which is: 0
+  automatic.work.factorizations
+    Which is: 2
+
+[  FAILED  ] DenseAuto.IpmBelowItsThresholdIsTheDenseArm (1 ms)
+[ RUN      ] DenseAuto.IpmAboveItsThresholdIsThePlatformSession
+[       OK ] DenseAuto.IpmAboveItsThresholdIsThePlatformSession (2 ms)
+[ RUN      ] DenseAuto.IpmCountsTheDenseArmsFactorizations
+[       OK ] DenseAuto.IpmCountsTheDenseArmsFactorizations (1 ms)
+[ RUN      ] DenseAuto.IpmCountsPerCall
+[       OK ] DenseAuto.IpmCountsPerCall (0 ms)
+[ RUN      ] DenseAuto.SqpBelowItsThresholdIsTheDenseArm
+[       OK ] DenseAuto.SqpBelowItsThresholdIsTheDenseArm (2 ms)
+[ RUN      ] DenseAuto.SqpAboveItsThresholdIsThePlatformSession
+[       OK ] DenseAuto.SqpAboveItsThresholdIsThePlatformSession (27 ms)
+[ RUN      ] DenseAuto.TheWalkSelectsByTheSqpThreshold
+[       OK ] DenseAuto.TheWalkSelectsByTheSqpThreshold (1 ms)
+[ RUN      ] DenseAuto.TheSsnTierSelectsByTheSqpThreshold
+[       OK ] DenseAuto.TheSsnTierSelectsByTheSqpThreshold (0 ms)
+[ RUN      ] DenseAuto.TheIpqpTierSelectsByTheSqpThreshold
+[       OK ] DenseAuto.TheIpqpTierSelectsByTheSqpThreshold (0 ms)
+[----------] 12 tests from DenseAuto (39 ms total)
+
+[----------] 19 tests from Limits
+[ RUN      ] Limits.IpmValidateRefusesTheNewCommonValues
+[       OK ] Limits.IpmValidateRefusesTheNewCommonValues (0 ms)
+[ RUN      ] Limits.SqpValidateRefusesTheNewCommonValues
+[       OK ] Limits.SqpValidateRefusesTheNewCommonValues (0 ms)
+[ RUN      ] Limits.BothEnginesRefuseACommonValueWithTheSameText
+[       OK ] Limits.BothEnginesRefuseACommonValueWithTheSameText (0 ms)
+[ RUN      ] Limits.AnEngagedQpMaxIterBelowOneIsRefused
+[       OK ] Limits.AnEngagedQpMaxIterBelowOneIsRefused (0 ms)
+[ RUN      ] Limits.RelaxBoundsNeedsAPositiveRelaxFactor
+[       OK ] Limits.RelaxBoundsNeedsAPositiveRelaxFactor (0 ms)
+[ RUN      ] Limits.IpmValidateRefusesTheTerminationAndLinearValues
+[       OK ] Limits.IpmValidateRefusesTheTerminationAndLinearValues (0 ms)
+[ RUN      ] Limits.ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines
+[       OK ] Limits.ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines (1 ms)
+[ RUN      ] Limits.IpmWorkLimitStopsAtTheBoundaryWithTheCurrentPoint
+[       OK ] Limits.IpmWorkLimitStopsAtTheBoundaryWithTheCurrentPoint (1 ms)
+[ RUN      ] Limits.AnIpmWorkLimitEndsThePhaseSequence
+[       OK ] Limits.AnIpmWorkLimitEndsThePhaseSequence (0 ms)
+[ RUN      ] Limits.ANeverBindingIpmLimitIsTheUnlimitedSolveBitForBit
+[       OK ] Limits.ANeverBindingIpmLimitIsTheUnlimitedSolveBitForBit (1 ms)
+[ RUN      ] Limits.SqpWorkLimitStopsAtTheBoundaryWithTheCurrentPoint
+[       OK ] Limits.SqpWorkLimitStopsAtTheBoundaryWithTheCurrentPoint (2 ms)
+[ RUN      ] Limits.ANeverBindingSqpLimitIsTheUnlimitedSolveBitForBit
+[       OK ] Limits.ANeverBindingSqpLimitIsTheUnlimitedSolveBitForBit (3 ms)
+[ RUN      ] Limits.TheSqpMinorBudgetReportsWorkLimit
+[       OK ] Limits.TheSqpMinorBudgetReportsWorkLimit (0 ms)
+[ RUN      ] Limits.AnUnmeetableTimeLimitReportsTimeLimitOnBothEngines
+[       OK ] Limits.AnUnmeetableTimeLimitReportsTimeLimitOnBothEngines (0 ms)
+[ RUN      ] Limits.AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere
+[       OK ] Limits.AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere (3 ms)
+[ RUN      ] Limits.ALimitExitIgnoresReturnBest
+[       OK ] Limits.ALimitExitIgnoresReturnBest (14 ms)
+[ RUN      ] Limits.SetOptionsBetweenSolvesRearmsTheIpmLimit
+[       OK ] Limits.SetOptionsBetweenSolvesRearmsTheIpmLimit (0 ms)
+[ RUN      ] Limits.SetOptionsBetweenSolvesRearmsTheSqpLimit
+[       OK ] Limits.SetOptionsBetweenSolvesRearmsTheSqpLimit (3 ms)
+[ RUN      ] Limits.AnIpmCapAndLimitTieReportsTheLimit
+[       OK ] Limits.AnIpmCapAndLimitTieReportsTheLimit (2 ms)
+[----------] 19 tests from Limits (36 ms total)
+
+[----------] Global test environment tear-down
+[==========] 46 tests from 3 test suites ran. (97 ms total)
+[  PASSED  ] 45 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseAuto.IpmBelowItsThresholdIsTheDenseArm
+
+ 1 FAILED TEST
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-ipm-sqp-threshold/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsRankRepair.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from WsRankRepair
+[ RUN      ] WsRankRepair.InconsistentRowIsReleasedByItsOrientation
+[       OK ] WsRankRepair.InconsistentRowIsReleasedByItsOrientation (0 ms)
+[ RUN      ] WsRankRepair.ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale
+[       OK ] WsRankRepair.ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale (0 ms)
+[ RUN      ] WsRankRepair.NineNullDirectionsDoubleTheBlock
+[       OK ] WsRankRepair.NineNullDirectionsDoubleTheBlock (11 ms)
+[ RUN      ] WsRankRepair.ABlockPastTheCapRefuses
+[       OK ] WsRankRepair.ABlockPastTheCapRefuses (2 ms)
+[ RUN      ] WsRankRepair.InconsistentWithNoAdmissibleMemberIsStuck
+[       OK ] WsRankRepair.InconsistentWithNoAdmissibleMemberIsStuck (0 ms)
+[ RUN      ] WsRankRepair.ConsistentRowIsReleasedUnlessShiftDriven
+[       OK ] WsRankRepair.ConsistentRowIsReleasedUnlessShiftDriven (0 ms)
+[ RUN      ] WsRankRepair.PinsCarryTheRowsDependencyAndItsOrientation
+[       OK ] WsRankRepair.PinsCarryTheRowsDependencyAndItsOrientation (0 ms)
+[ RUN      ] WsRankRepair.MandatoryOnlyDependenceReleasesNothing
+[       OK ] WsRankRepair.MandatoryOnlyDependenceReleasesNothing (0 ms)
+[ RUN      ] WsRankRepair.BlockPathFindsTwoInconsistentDirections
+[       OK ] WsRankRepair.BlockPathFindsTwoInconsistentDirections (2 ms)
+[ RUN      ] WsRankRepair.TheGramFactorCountsItsDenseFactorization
+[       OK ] WsRankRepair.TheGramFactorCountsItsDenseFactorization (34 ms)
+[----------] 10 tests from WsRankRepair (51 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (51 ms total)
+[  PASSED  ] 10 tests.

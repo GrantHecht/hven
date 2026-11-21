@@ -1,0 +1,5 @@
+# DN-0 KKT dump sd-hven-sqp-BURKEHAN/mat_0007.bin (docs/notes/data/2026-11-m8-dn0): upper CSR, 0-based, hex floats
+2 3
+0 2 3
+0 1 1
+0x1.0000002af31dcp+0 0x0.0p+0 -0x0.0p+0

@@ -1,0 +1,45 @@
+M8 AP-2 group B5 -- tycho catch-up note (a registered catch-up item, NOT a gate; nothing waits on
+tycho; no tycho file was edited or read for this note beyond what the AP-1 page already states)
+================================================================================
+What a tycho model or driver must change, or check, when it consumes a hven head that contains B5:
+
+T1  "Cannot evaluate here" is hven::solvers::EvaluationError (<hven/core/errors.h>), or a NaN/Inf in the
+    returned value. A tycho model that throws a standard exception for it (for example
+    std::domain_error, std::runtime_error) was absorbed as a rejected trial by the interior-point
+    engine before B5; after B5 that exception PROPAGATES out of IpmSolver::solve (it always did on
+    the SQP engine). Audit every throw reachable from a model callback: an evaluation failure throws
+    EvaluationError (or returns non-finite values); a contract violation stays std::invalid_argument.
+
+T2  Non-finite values are failed trials on BOTH engines, at every trial point and at the derivatives
+    of a point a step reached (the step is rolled back). At the start point a non-finite value ends
+    the solve kNumericalError with a message naming the quantity (IpmStopReason / SqpStopReason
+    kNonFiniteStart) -- the interior-point engine used to report kDiverging there.
+
+T3  The interior-point engine's "line search failed ... the NLP could not be evaluated at the trial
+    steps" std::runtime_error is gone: that exit is now SolveStatus::kNumericalError with
+    IpmStopReason::kEvaluationFailure and the same facts in SolveResult::message. A tycho catch
+    clause written for it no longer fires.
+
+T4  A foreign exception propagates unchanged, and the solver keeps the interrupted solve:
+    IpmSolver::last_result() / SqpSolver::last_result() hold status kInterrupted, the iterations,
+    the last committed iterate and its multipliers (row space), the work and a message; the stop
+    reason reads kException. A tycho driver that reconstructed progress after a throw can read it
+    from there.
+
+T5  hven's thread-pool dispatch (detail/interior/utils/thread_pool.h) no longer composes several
+    worker exceptions into one std::runtime_error: it rethrows ONE captured exception unchanged,
+    preferring one that is not an EvaluationError. A tycho caller that parsed the composite
+    "[hven] dispatch: N concurrent worker exception(s)" message gets the original exception instead.
+
+T6  New enumerators: IpmStopReason gains kNonFiniteStart, kNonFiniteIterate, kEvaluationFailure,
+    kException (values 7-10); SqpStopReason is new (SqpSolver::last_stop_reason()). A tycho switch
+    over IpmStopReason without a default needs the four cases (-Wswitch).
+
+T7  SolveResult::evaluation_errors (count, last_message) is on the shared base now, so both engines
+    report it; IpmResult::evaluation_errors still reads the same field. IpmResult gains
+    nonfinite_step_rollbacks.
+
+T8  Backend failures surface as hven::solvers::BackendError (still a std::runtime_error): a symbolic
+    analysis or solve error from Pardiso/Accelerate, a factorization backend error, a LAPACK dsytrf or dsytrs
+    failure. Every runtime failure the contract (core/errors.h) names derives from
+    hven::solvers::Error.

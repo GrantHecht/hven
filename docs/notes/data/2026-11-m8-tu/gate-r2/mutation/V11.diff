@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..c2077abdd 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -363,7 +363,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: advanced.ssn_farkas_residual_tol ({}) must be in (0, 1)",
+                         opts.advanced.ssn_farkas_residual_tol));
+     }
+-    if (!(opts.advanced.ssn_uncertain_tol >= 0.0) || !(opts.advanced.ssn_uncertain_tol < 1.0)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: advanced.ssn_uncertain_tol ({}) must be in [0, 1)",
+                         opts.advanced.ssn_uncertain_tol));

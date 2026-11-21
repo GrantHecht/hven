@@ -1,0 +1,40 @@
+== primary (process total, one-time init included)
+hven-ipm/hs: median cell hs026 (rank 11/22 by instr_median=3977255146), status optimal
+    B_sym=0.000 B_fac=0.001 B_kkt=0.000 B_eval=0.000 B_setup=0.999 B_eng=0.000
+    (B_sym+B_fac)=0.0005706600312791624 rho=0.04111664970037579 rho_incl_densify=0.042606372801745604 rho_engine_weighted=0.21688705497329763 neg_agree=1.0 replayed=20
+    DN1=False DN2=False dominant=B_setup 
+hven-ipm/sd: median cell HS67 (rank 49/97 by instr_median=4013089481), status optimal
+    B_sym=0.000 B_fac=0.001 B_kkt=0.000 B_eval=0.000 B_setup=0.998 B_eng=0.000
+    (B_sym+B_fac)=0.0013440860215053765 rho=0.16389724241483303 rho_incl_densify=0.16925815018198162 rho_engine_weighted=0.6845494801266705 neg_agree=1.0 replayed=12
+    DN1=False DN2=False dominant=B_setup CUTEst derivative check: undiagnosed mismatch
+hven-sqp/hs: median cell hs043 (rank 11/22 by instr_median=16639434), status optimal
+    B_sym=0.000 B_fac=0.877 B_kkt=0.019 B_eval=0.009 B_setup=0.012 B_eng=0.082
+    (B_sym+B_fac)=0.8773270006376198 rho=0.06055384766931674 rho_incl_densify=0.062390976888126386 rho_engine_weighted=0.13922333344373503 neg_agree=1.0 replayed=7
+    DN1=True DN2=False dominant=B_fac 
+hven-sqp/sd: median cell HS84 (rank 49/97 by instr_median=34122244), status optimal
+    B_sym=0.006 B_fac=0.857 B_kkt=0.028 B_eval=0.008 B_setup=0.017 B_eng=0.084
+    (B_sym+B_fac)=0.8628387999936307 rho=0.04633741402896847 rho_incl_densify=0.04793186745016478 rho_engine_weighted=0.10087685825876092 neg_agree=1.0 replayed=50
+    DN1=True DN2=False dominant=B_fac 
+engines: {"hven-ipm": {"DN1": false, "DN2_provisional": false}, "hven-sqp": {"DN1": true, "DN2_provisional": false}}
+OUTCOME: DN-1
+
+== secondary (steady state, process-once solver init excluded)
+hven-ipm/hs: median cell hs010 (rank 11/22 by ss_instr=2007006), status optimal
+    B_sym=0.000 B_fac=0.500 B_kkt=0.251 B_eval=0.000 B_setup=0.000 B_eng=0.249
+    (B_sym+B_fac)=0.5 rho=0.042416358947606495 rho_incl_densify=0.043831355179965927 rho_engine_weighted=0.17834043356406096 neg_agree=1.0 replayed=10
+    DN1=True DN2=True dominant=B_fac 
+hven-ipm/sd: median cell HS75 (rank 49/97 by ss_instr=4000012), status optimal
+    B_sym=0.000 B_fac=0.500 B_kkt=0.000 B_eval=0.000 B_setup=0.250 B_eng=0.250
+    (B_sym+B_fac)=0.5 rho=0.09755269989975106 rho_incl_densify=0.10007731230016946 rho_engine_weighted=0.37345448654966157 neg_agree=1.0 replayed=12
+    DN1=True DN2=False dominant=B_fac 
+hven-sqp/hs: median cell hs043 (rank 11/22 by ss_instr=11758731), status optimal
+    B_sym=0.000 B_fac=0.877 B_kkt=0.019 B_eval=0.009 B_setup=0.012 B_eng=0.082
+    (B_sym+B_fac)=0.8773270006376198 rho=0.06055384766931674 rho_incl_densify=0.062390976888126386 rho_engine_weighted=0.13922333344373503 neg_agree=1.0 replayed=7
+    DN1=True DN2=False dominant=B_fac 
+hven-sqp/sd: median cell HS63 (rank 49/97 by ss_instr=29115327), status optimal
+    B_sym=0.000 B_fac=0.897 B_kkt=0.017 B_eval=0.000 B_setup=0.017 B_eng=0.069
+    (B_sym+B_fac)=0.8967388233632168 rho=0.046643849714695915 rho_incl_densify=0.04831541598137454 rho_engine_weighted=0.11873140416690788 neg_agree=1.0 replayed=14
+    DN1=True DN2=False dominant=B_fac 
+engines: {"hven-ipm": {"DN1": true, "DN2_provisional": false}, "hven-sqp": {"DN1": true, "DN2_provisional": false}}
+OUTCOME: DN-1
+

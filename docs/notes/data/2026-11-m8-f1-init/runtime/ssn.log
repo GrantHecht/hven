@@ -1,0 +1,48 @@
+LEG_START mode=ssn core=2 period=200000 event=instructions:u 2026-11-07T20:26:03-05:00
+ef3f2682008580cf1b10988a9cf8aa9ce41542fc3852095f1b6e3e8f5bd0baa6  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/armAbin/hven_sqp_corpus
+e48c2e34205b408a1616ef33c5f2bdf8b401a70aad04c355311ab744d8efc0e3  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/armBbin/hven_sqp_corpus
+WARMUP arm=A rc=0 2026-11-07T20:26:03-05:00
+WARMUP arm=B rc=0 2026-11-07T20:26:03-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n1000_bound_neutral 2026-11-07T20:26:03-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n1000_bound_neutral 2026-11-07T20:26:04-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n1000_bound_physics 2026-11-07T20:26:05-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n1000_bound_physics 2026-11-07T20:26:06-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n1000_bound_corrupted 2026-11-07T20:26:07-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n1000_bound_corrupted 2026-11-07T20:26:08-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n1000_bound_activity 2026-11-07T20:26:09-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n1000_bound_activity 2026-11-07T20:26:10-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n1000_bound_warm 2026-11-07T20:26:11-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n1000_bound_warm 2026-11-07T20:26:12-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n2000_bound_neutral 2026-11-07T20:26:13-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n2000_bound_neutral 2026-11-07T20:26:14-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n2000_bound_physics 2026-11-07T20:26:15-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n2000_bound_physics 2026-11-07T20:26:16-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n2000_bound_corrupted 2026-11-07T20:26:17-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n2000_bound_corrupted 2026-11-07T20:26:18-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n2000_bound_activity 2026-11-07T20:26:19-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n2000_bound_activity 2026-11-07T20:26:20-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n2000_bound_warm 2026-11-07T20:26:21-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n2000_bound_warm 2026-11-07T20:26:22-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n5000_bound_neutral 2026-11-07T20:26:23-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n5000_bound_neutral 2026-11-07T20:26:25-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n5000_bound_physics 2026-11-07T20:26:27-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n5000_bound_physics 2026-11-07T20:26:29-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n5000_bound_corrupted 2026-11-07T20:26:31-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n5000_bound_corrupted 2026-11-07T20:26:33-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n5000_bound_activity 2026-11-07T20:26:35-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n5000_bound_activity 2026-11-07T20:26:37-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n5000_bound_warm 2026-11-07T20:26:39-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n5000_bound_warm 2026-11-07T20:26:41-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n10000_bound_neutral 2026-11-07T20:26:43-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n10000_bound_neutral 2026-11-07T20:26:45-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n10000_bound_physics 2026-11-07T20:26:47-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n10000_bound_physics 2026-11-07T20:26:49-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n10000_bound_corrupted 2026-11-07T20:26:51-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n10000_bound_corrupted 2026-11-07T20:26:53-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n10000_bound_activity 2026-11-07T20:26:55-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n10000_bound_activity 2026-11-07T20:26:57-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n10000_bound_warm 2026-11-07T20:26:59-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n10000_bound_warm 2026-11-07T20:27:02-05:00
+RUN mode=ssn round=1 arm=A tag=f7_n20000_bound_neutral 2026-11-07T20:27:04-05:00
+RUN mode=ssn round=1 arm=B tag=f7_n20000_bound_neutral 2026-11-07T20:27:07-05:00
+THROTTLED mode=ssn round=1 arm=B tag=f7_n20000_bound_neutral events=1 -- LEG VOID 2026-11-07T20:27:09-05:00

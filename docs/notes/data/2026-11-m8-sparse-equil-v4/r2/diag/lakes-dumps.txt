@@ -1,0 +1,4 @@
+SEQDUMP seq=0 status=0 minors=131 scaled=3 matched=2 refusal_only=2
+SEQDUMP seq=1 status=0 minors=136 scaled=1 matched=1 refusal_only=1
+SEQDUMP seq=0 status=0 minors=131 scaled=3 matched=2 refusal_only=2
+SEQDUMP seq=1 status=0 minors=136 scaled=1 matched=1 refusal_only=1

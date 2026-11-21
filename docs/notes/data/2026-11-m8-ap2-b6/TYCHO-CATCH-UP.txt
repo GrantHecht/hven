@@ -1,0 +1,40 @@
+M8 AP-2 group B6 -- tycho catch-up note (a registered catch-up item, NOT a gate; nothing waits on
+tycho; no tycho file was edited; tycho's tree was only searched for the include paths below)
+================================================================================
+What a tycho piece or transcription must change, or may simplify, when it consumes a hven head that
+contains B6:
+
+T1  The piece protocol's headers left detail/ (no shims, C201). Include paths:
+      hven/detail/interior/indexing_data.h          -> hven/model/indexing_data.h
+      hven/detail/interior/sizing_specs.h           -> hven/model/sizing_specs.h
+      hven/detail/interior/solver_function_base.h   -> hven/model/solver_function_base.h
+      hven/detail/interior/objective_function.h     -> hven/model/objective_function.h
+      hven/detail/interior/constraint_function.h    -> hven/model/constraint_function.h
+      hven/detail/interior/threading_flags.h        -> hven/model/threading_flags.h
+      hven/detail/interior/parsed_io_flags.h        -> hven/model/parsed_io_flags.h
+      hven/detail/solvers/solver_interface_specs.h  -> hven/model/solver_interface_specs.h
+      hven/detail/interior/utils/type_storage.h     -> hven/core/type_storage.h
+    or one include for all of them: hven/model/pieces.h. A search of tycho's include/ and src/ on
+    2026-11-04 found 30 include lines of these paths (22 of them type_storage.h). The moved headers no
+    longer include the detail/interior/utils/ headers and fmt they used to pull in transitively; a
+    tycho TU that relied on that (for example for hven::utils::get_core_count or thread_pool) names its
+    own include.
+T2  The objective handle forwards the objective surface only. ObjectiveInterface has no constraints*
+    members and its stored model no constraint vtable entries: an objective piece needs name,
+    input_rows, thread_safe, get_kkt_space, num_kkt_elements and the three objective members. A tycho
+    objective that carries constraint stubs still compiles (the stubs are no longer called or
+    required) and may drop them; a pack_into_objective_interface payload is stored the same way.
+T3  SolverInterfaceAdapter's primary template is now the DEFAULT: a type with a
+    pack_into_constraint_interface / pack_into_objective_interface hook is forwarded to it, any other
+    type is stored directly. tycho's explicit specializations keep working unchanged; the ones that
+    only inherit DirectFunctionModel<T> may be deleted. A type with no specialization no longer fails
+    to compile -- it is stored as itself, so an erased handle without the hooks would silently pay
+    two dispatches: give every erased handle its hooks (GenericFunction's are reached through
+    func_.get(); a one-line member forwarding to them lets the default find them).
+T4  AssemblyDeclaration gains a builder (add_objective / add_equality / add_inequality / set_bounds /
+    set_partitions) that derives the row counts and overcounts. The raw field route is unchanged; the
+    builder is optional for tycho's existing transcription.
+T5  The local-block layer (hven/model/local_blocks.h) is available for new pieces; the raw protocol
+    tycho implements is specified in docs/assembly-protocol.md, including one stated hazard (§5):
+    Jacobian writes take no lock (unique_constraints_ is always true), so two partitions must not
+    write one Jacobian entry through a shared row.

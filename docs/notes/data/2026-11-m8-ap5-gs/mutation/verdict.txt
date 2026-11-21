@@ -1,0 +1,7 @@
+control: fails nothing
+g1   must-kill KILLED by IpmTrace.TheLocallyInfeasibleDoorWritesRestorationExitedWithSourceLocallyInfeasible ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1 interior rc=1
+g2   must-kill KILLED by ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1
+g3   must-kill KILLED by IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch SolveStatus.IpmPhaseResolutionSplitsTheCapExitByStopReason drivers rc=1 interior rc=1
+g4   must-kill KILLED by ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1
+g5   must-kill KILLED by ReturnBestForcedExits.TheIpmRestorationLocallyInfeasibleExitIsInfeasibleAndNeverSubstitutes drivers rc=1
+MUTATION_VERDICT PASS

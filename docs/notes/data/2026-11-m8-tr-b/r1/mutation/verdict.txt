@@ -1,0 +1,15 @@
+control: fails nothing
+i1   must-kill KILLED by TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired drivers rc=1
+i2   must-kill KILLED by IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit drivers rc=1 interior rc=1
+i3   must-kill KILLED by IpmTrace.ACallbackStopWritesOneStopAtIterationMessageWithSourceCallback TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit drivers rc=1 interior rc=1
+i4   must-kill KILLED by TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+s1   must-kill KILLED by TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters drivers rc=1
+s2   must-kill KILLED by TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem drivers rc=1
+s3   must-kill KILLED by TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo drivers rc=1
+s4   must-kill KILLED by TraceMessageSites.TheSqpMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+s5   must-kill SURVIVES
+s6   must-kill KILLED by ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs TraceMessageSites.TheSqpSourceConstructsExactlyTheDeclaredSites drivers rc=1 sqp rc=1
+a1   must-kill KILLED by ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1
+a2   must-kill KILLED by ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1
+g1   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+MUTATION_VERDICT FAIL

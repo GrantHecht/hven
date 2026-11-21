@@ -1,0 +1,3 @@
+QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+QpWa1AscentFootprint.MeritSlopeSignCases
+QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep

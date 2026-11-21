@@ -1,0 +1,27 @@
+M8 DN-1 r2 -- runtime neutrality gate on the review-fix code head (../../DECLARATION-r2.txt P11) -- DECLARATION
+(../../runtime/'s instrument, copied and re-pointed; committed before the first leg; never edited; a failed leg is
+answered by a successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../../runtime/ verbatim (run_all.sh, runtime_leg.sh, analyze_r5.py, analyze_r11.py, fixture/): the evidence
+directory (this one), arm B's tree (build-dn1e -> build-dn1r2: build-dn1r2/rel, build-dn1r2/armBbin), the perf scratch
+directory (build-dn1r2/runtime-perf) and the analyzers' root depth (+1) replaced; arm A's paths and sha256 unchanged;
+one provenance comment line added to each. The sampling period stays 400000. The analyzer is analyze_r11.py.
+
+ARMS
+  A  02065dac (origin/m8): build-dn1e/armAbin/hven_sqp_corpus (DECLARATION.txt's prebuild, reused read only), sha256
+     4ee3af3ba96395333eeb433a2f3ee1155cc01ceb443659075f16c0552741041c.
+  B  the code head 2171f8dd4: build-dn1r2/rel/bench/hven_sqp_corpus copied by run_all.sh to build-dn1r2/armBbin/,
+     sha256 8931420f4803d564cafb8d49f34ff5f37400c3d7b3a69fb59dc45671b31461e7. run_all.sh refuses to start on a
+     mismatch for either.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase
+alignment, period 400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition,
+band 0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults (DensePolicy::kNever) in every mode. VERDICT
+PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY at kNever: ../../runtime/DECLARATION.txt's list, plus the review fixes' one policy test per
+sparse factorize() on an engine with no dense session and two option fields copied per share()/adopt() of a
+platform-session handle (no library caller shares or adopts).
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh 8931420f4803d564cafb8d49f34ff5f37400c3d7b3a69fb59dc45671b31461e7`,
+serial, alone; `pgrep -a hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it.
+Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2;
+Apple/Windows UNOBSERVED.

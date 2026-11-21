@@ -1,0 +1,284 @@
+{
+ "samples": 2184,
+ "period": 250007,
+ "instr_sampled_all": 718009920,
+ "instr_sampled_solver": 259674451,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 93502091,
+  "B_kkt": 662768,
+  "B_eval": 6552683,
+  "B_setup": 74007804,
+  "B_eng": 84949105,
+  "B_proc": 458335469
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.36007428008387315,
+  "B_kkt": 0.0025523034609207665,
+  "B_eval": 0.025234222984840352,
+  "B_setup": 0.2850022546114866,
+  "B_eng": 0.3271369388588791
+ },
+ "proc_share_of_all": 0.6383414159514677,
+ "rule_instr": 581127122,
+ "fallback_instr": 54201754,
+ "fallback_by_bucket": {
+  "B_fac": 53788993,
+  "B_proc": 412761
+ },
+ "unmatched_instr": 82681044,
+ "unmatched_share_of_solver": 0.3184026910679788,
+ "chains_reaching_main": 0.20833333333333334,
+ "init_instr": 652268,
+ "steady_state_instr": 259022183,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.36098101682665534,
+  "B_kkt": 0.0025587306551269396,
+  "B_eval": 0.025297767643321884,
+  "B_setup": 0.28320175187466473,
+  "B_eng": 0.3279607330002311
+ },
+ "fac_split": [
+  [
+   "<no hven::linear frame>",
+   54394009
+  ],
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   38214557
+  ],
+  [
+   "hven::linear::SymmetricFactor::operator=",
+   306009
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   306009
+  ],
+  [
+   "hven::linear::detail::FactorSession::factorize",
+   281507
+  ]
+ ],
+ "mkl_serv_instr": 14960419,
+ "kmp_instr": 156422581,
+ "top_unmatched_leaf": [
+  [
+   "__strcmp_avx2",
+   42868188
+  ],
+  [
+   "__internal_syscall_cancel",
+   12804109
+  ],
+  [
+   "__printf_buffer",
+   2556570
+  ],
+  [
+   "<empty>",
+   2264561
+  ],
+  [
+   "syscall",
+   2254061
+  ],
+  [
+   "__printf_buffer_write",
+   1932302
+  ],
+  [
+   "msort_with_tmp.part.0",
+   1921804
+  ],
+  [
+   "__memmove_avx_unaligned_erms",
+   1862302
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    20678573
+   ],
+   [
+    "_strnlen_s_chk",
+    6241175
+   ],
+   [
+    "_int_malloc",
+    3443344
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    2378319
+   ],
+   [
+    "__intel_avx_rep_memset",
+    2143807
+   ],
+   [
+    "syscall",
+    2005808
+   ],
+   [
+    "mem_prim_move",
+    1811550
+   ],
+   [
+    "__kmp_serialized_parallel",
+    1761051
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NlpConstraintPiece::get_kkt_space",
+    346259
+   ],
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    316509
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    2464069
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    689018
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    643518
+   ],
+   [
+    "hven::detail::nlp_require_claimed_pattern",
+    407511
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_g",
+    391761
+   ],
+   [
+    "elfun_",
+    374261
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    353259
+   ],
+   [
+    "hven::{anon}::adopt_pattern",
+    323509
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    9513015
+   ],
+   [
+    "__memchr_avx2",
+    5893415
+   ],
+   [
+    "__internal_syscall_cancel",
+    5557154
+   ],
+   [
+    "isspace",
+    4209366
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    3901360
+   ],
+   [
+    "hven::detail::get_core_count",
+    3819106
+   ],
+   [
+    "formatted_transfer_scalar_read",
+    2733326
+   ],
+   [
+    "__GI_____strtod_l_internal",
+    2647574
+   ]
+  ],
+  "B_eng": [
+   [
+    "__strcmp_avx2",
+    42868188
+   ],
+   [
+    "__internal_syscall_cancel",
+    12804109
+   ],
+   [
+    "__printf_buffer",
+    2556570
+   ],
+   [
+    "<empty>",
+    2264561
+   ],
+   [
+    "syscall",
+    2254061
+   ],
+   [
+    "__printf_buffer_write",
+    1932302
+   ],
+   [
+    "msort_with_tmp.part.0",
+    1921804
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1862302
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    157367356
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    118188777
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    61505457
+   ],
+   [
+    "strcmp",
+    39454104
+   ],
+   [
+    "check_match",
+    22769635
+   ],
+   [
+    "mprotect",
+    6546933
+   ],
+   [
+    "_dl_addr",
+    5382646
+   ],
+   [
+    "syscall",
+    3532349
+   ]
+  ]
+ }
+}

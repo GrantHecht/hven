@@ -1,0 +1,4 @@
+8591c8591
+<         mj.row.step_norm <= qp_no_motion_tol(opts_.qp.feasibility_tol, mj.row.step_norm);
+---
+>         mj.row.step_norm <= kZeroStepScale * std::max(1.0, st.x.lpNorm<Eigen::Infinity>());

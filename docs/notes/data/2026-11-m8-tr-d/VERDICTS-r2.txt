@@ -1,0 +1,8 @@
+M8 TR-D rider (naming) verdicts, addendum to VERDICTS.txt. DECLARATION-r2.md committed 0de59f73a before any run. Code: f065ef1ff (SqpIterationRow::dual_regularization -> regularization_dual, JSON key likewise) on tr-d 00e199d28. Arm A = origin/m8 70b5d42be (Release hven_sqp_corpus sha256 d6a5858ea229220c3afbf2557eee84a9ba355065587dd1cdd365d5161b8ac700). Arm B = f065ef1ff (sha256 36ba04f69ebc06c847d75eb58b6cfab96d20da6b991167f133cdcacdd627e366). One run, no r3.
+P1  ctest Release 3843 tests and Debug 3843 tests: 100% passed at f065ef1ff (r2/ctest-*-summary.txt).
+P3  replay 27 cells x walk/ssn/ipm, A vs B: differences 0 x3 (75 columns); armed B vs B: 0 x3 (r2/trd-comparison-*.txt).
+P5  install smoke default and clang rc 0; export contract OK x2 (r2/).
+G   golden rename proof (legs-r2/goldens_rename_check_r2.py 00e199d28 f065ef1ff): 10 changed golden/key-list string runs in tests/sqp/test_trace_writer.cpp, 3 schema-doc key lines, all equal map(old) byte for byte, 0 failures; the one other added schema line is the freeze-table row (r2/goldens-rename-check.txt).
+hven-bench: grep over /home/ghecht/Projects/hven-bench outside runs/ finds no dual_regularization (no reader of the field); runs/ holds only frozen option dumps of the QP option qp.dual_regularization, untouched.
+Not re-run, declared in DECLARATION-r2: runtime (RT), mutations (M), interior (P4): a same-length rename is trajectory-free; VERDICTS.txt carries over.
+Caveats: wall-clock informational; Windows/Accelerate UNOBSERVED.

@@ -1,0 +1,4 @@
+MUT control rc=0 killers=0
+MUT B6 rc=1 killers=1
+   Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+VERDICT MUTATIONS_AS_DECLARED

@@ -1,0 +1,7 @@
+== gate RS-1a head 830ad67b0 steps: build psym flags lists 2026-11-17T20:30:52-05:00
+build-release rc=0 2026-11-17T20:34:34-05:00
+objmap-gen rc=0 2026-11-17T20:34:35-05:00
+psym-compare rc=1 2026-11-17T20:34:57-05:00
+flags-diff rc=2 2026-11-17T20:34:57-05:00
+lists-identical rc=0 2026-11-17T20:35:40-05:00
+== gate RS-1a done 2026-11-17T20:35:40-05:00

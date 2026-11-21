@@ -1,0 +1,4 @@
+golden distinct MATCH
+golden zero     MATCH
+rest of the file (outside the two literals and the declared comment/count lines) UNCHANGED
+pairs 2, failures 0

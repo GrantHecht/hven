@@ -1,0 +1,194 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T17:35:13-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T17:35:13-05:00
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1084 - IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage (Disabled)
+	2481 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2482 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T17:36:26-05:00
+STEP ctest-rel rc=0 2026-11-16T17:36:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T17:36:27-05:00
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1084 - IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage (Disabled)
+	2481 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2482 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T17:43:20-05:00
+STEP ctest-dbg rc=0 2026-11-16T17:43:20-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T17:43:20-05:00
+8ad4cc11eb5ea78b9988bdd7fa5cbb01e4f4993ed7151c187420adef97b3e477  /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/armAbin/hven_sqp_corpus
+c661694c1aaace8e7365a205523c023f5008bfa16a1a1dd43090c4efca1dd9d2  /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-16T17:43:20-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-16T17:48:09-05:00
+run rc=0
+compare A vs B rc=0
+=== tra-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-16T17:52:59-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-16T17:53:19-05:00
+run rc=0
+compare A vs B rc=0
+=== tra-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-16T17:53:39-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-16T17:54:05-05:00
+run rc=0
+compare A vs B rc=0
+=== tra-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-16T17:54:31-05:00
+run rc=0
+compare armed rc=0
+=== tra-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-16T17:59:19-05:00
+run rc=0
+compare armed rc=0
+=== tra-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-16T17:59:39-05:00
+run rc=0
+compare armed rc=0
+=== tra-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-16T18:00:05-05:00
+STEP replay rc=0 2026-11-16T18:00:05-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T18:00:05-05:00
+8ad4cc11eb5ea78b9988bdd7fa5cbb01e4f4993ed7151c187420adef97b3e477  /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/armAbin/hven_sqp_corpus
+c661694c1aaace8e7365a205523c023f5008bfa16a1a1dd43090c4efca1dd9d2  /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/tr-a/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-16T18:00:50-05:00
+STEP interior rc=0 2026-11-16T18:00:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T18:00:50-05:00
+SMOKE_START default 2026-11-16T18:00:50-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-16T18:01:19-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-16T18:01:40-05:00
+STEP install-smoke rc=0 2026-11-16T18:01:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T18:01:40-05:00
+control build rc=0
+CONTROL failures: []
+APPLIED w1 src/drivers/trace_writer.cpp
+MUT w1: JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1 
+APPLIED w2 src/drivers/trace_writer.cpp
+MUT w2: JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1 
+APPLIED w3 src/drivers/trace_writer.cpp
+MUT w3: IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve drivers rc=1 interior rc=1 sqp rc=1 
+APPLIED w4 src/drivers/trace_writer.cpp
+MUT w4: JsonLinesTraceSink.GoldenLineMessageOnePerKind sqp rc=1 
+APPLIED c1 src/drivers/console_trace_sink.cpp
+MUT c1: ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime drivers rc=1 
+APPLIED c2 src/drivers/console_trace_sink.cpp
+MUT c2: ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmConsole.TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing drivers rc=1 interior rc=1 
+APPLIED c3 src/drivers/console_trace_sink.cpp
+MUT c3: ConsoleLadder.ASqpSolveClimbsOneRungAtATime drivers rc=1 
+APPLIED o1 src/drivers/ipm_solver.cpp
+MUT o1: TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+APPLIED o2 src/drivers/sqp_solver.cpp
+MUT o2: TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1 
+APPLIED v2 src/drivers/ipm_solver.cpp
+MUT v2: CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot drivers rc=1 interior rc=1 
+APPLIED v3 src/drivers/ipm_solver.cpp
+MUT v3: TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon drivers rc=1 
+APPLIED v4 src/drivers/ipm_solver.cpp
+MUT v4: TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections drivers rc=1 
+APPLIED t1 src/drivers/sqp_solver.cpp
+MUT t1: ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1 
+APPLIED t2 src/drivers/ipm_solver.cpp
+MUT t2: TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind drivers rc=1 
+APPLIED p1a src/drivers/ipm_solver_handle.cpp
+MUT p1a: TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 
+APPLIED p1b src/drivers/sqp_solver_handle.cpp
+MUT p1b: JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 sqp rc=1 
+APPLIED p1c src/drivers/sqp_solver.cpp
+MUT p1c: TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 
+APPLIED p2 src/drivers/ipm_solver.cpp
+MUT p2: TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce drivers rc=1 
+APPLIED p3 src/drivers/ipm_solver.cpp
+MUT p3: TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1 
+APPLIED p4 src/drivers/ipm_solver.cpp
+MUT p4: TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1 
+APPLIED p5 src/drivers/console_trace_sink.cpp
+MUT p5: ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1 
+APPLIED p11a src/drivers/sqp_solver.cpp
+MUT p11a: ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung drivers rc=1 
+APPLIED p11b src/drivers/ipm_solver.cpp
+MUT p11b: ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung drivers rc=1 
+FOREGROUND_END 2026-11-16T18:10:47-05:00
+STEP mutations rc=0 2026-11-16T18:10:47-05:00
+control: fails nothing
+w1   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w2   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w3   must-kill KILLED by IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve drivers rc=1 interior rc=1 sqp rc=1
+w4   must-kill KILLED by JsonLinesTraceSink.GoldenLineMessageOnePerKind sqp rc=1
+c1   must-kill KILLED by ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime drivers rc=1
+c2   must-kill KILLED by ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmConsole.TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing drivers rc=1 interior rc=1
+c3   must-kill KILLED by ConsoleLadder.ASqpSolveClimbsOneRungAtATime drivers rc=1
+o1   must-kill KILLED by TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+o2   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+v2   must-kill KILLED by CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot drivers rc=1 interior rc=1
+v3   must-kill KILLED by TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon drivers rc=1
+v4   must-kill KILLED by TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections drivers rc=1
+t1   must-kill KILLED by ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1
+t2   must-kill KILLED by TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind drivers rc=1
+p1a  must-kill KILLED by TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1
+p1b  must-kill KILLED by JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 sqp rc=1
+p1c  must-kill KILLED by TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1
+p2   must-kill KILLED by TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce drivers rc=1
+p3   must-kill KILLED by TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1
+p4   must-kill KILLED by TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1
+p5   must-kill KILLED by ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1
+p11a must-kill INSTRUMENT FAULT ( not the problem)
+p11b must-kill INSTRUMENT FAULT ( not the problem)
+MUTATION_VERDICT FAIL
+STEP mutation-verdict rc=1 2026-11-16T18:10:47-05:00
+CHAIN_STOPPED_AT mutation-verdict
+FOREGROUND_END 2026-11-16T18:10:47-05:00

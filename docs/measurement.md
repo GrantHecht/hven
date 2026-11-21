@@ -23,9 +23,9 @@ that determinism" because MKL's kernels are address-sensitive, and cross-process
 on them "is asserted by a calibrated near-ulp gate rather than by byte equality — counters
 and statuses remain exact." The gate's two numbers, derived at source, with byte equality
 checked FIRST and the gate engaging only on digits that provably vary
-(`tests/sqp/test_corpus_cells.cpp:932-934`):
+(`tests/bench/test_corpus_cells.cpp:932-934`):
 
-- **1e-5 relative** — `tests/sqp/test_corpus_cells.cpp:935`, derived at `:908-934` as "~5.6x
+- **1e-5 relative** — `tests/bench/test_corpus_cells.cpp:935`, derived at `:908-934` as "~5.6x
   the largest spread on record, taken from the worst regime rather than the quietest because
   this pin runs wherever the suite runs, threaded and CI included" (readings 1.0e-7 serial /
   8.6e-7 CI cross-runner / 1.63e-6 CI / 1.79e-6 MKL-threaded).
@@ -40,7 +40,7 @@ is `compare_replay.py`'s, at M6 W6 T6b — `scripts/census_compare.py:35-43` sta
 the census comparator the gate reaches "EXACTLY ONE COLUMN -- index 12, `kkt_residual`",
 while `scripts/compare_replay.py`, "which compares the whole 76-column schema, gates ALL
 TWELVE of its floating measure columns". The twelve are enumerated by index at
-`tests/sqp/test_corpus_cells.cpp:938-951`. `wall_s` is a thirteenth float, excluded for a
+`tests/bench/test_corpus_cells.cpp:938-951`. `wall_s` is a thirteenth float, excluded for a
 different reason — "timing noise, never a regression contract".
 
 **Both comparators are byte-exact by default; the gate is opt-in.** `census_compare.py`
@@ -385,7 +385,10 @@ It has since bitten twice more, in the trap's two directions, both in M7 W0:
   (`docs/notes/2026-09-m7-ledger.md:100-101`); the brief's is "the harness checks CLEAN
   before a sweep" (`docs/notes/2026-09-m7-brief.md:215-216`). That the configure-time stamp
   is stale once a commit lands is the observed consequence of the trap, not a fourth
-  trigger.
+  trigger. The hven half of M7-16 (M8 EX-3) guards it: the configure re-runs when git's
+  HEAD, ref or index moves, and `scripts/check_bench_stamp.sh` (target
+  `hven_bench_stamp_check`) exits 1 with a STALE message when the configured stamp
+  differs from a live `git describe` (an unstaged edit moves none of the watched files).
 - **A `-dirty` stamp "fails the gate's provenance requirement"**, and the census runner
   checks before starting a multi-hour sweep, with the preflight command spelled out
   (`scripts/run_walk_census.sh:51-61`; the M6 close gate's clean reading at
@@ -409,7 +412,7 @@ binaries' checksums (`…/2026-09-m6-w6-attached-cost/PROVENANCE.txt:37-92`).
 **And the option fields the run's TRAJECTORY depends on, whether or not the leg set them**
 (M7 W2 D1, 2026-09-18). The list above names toolchain, hardware and flags and no solver
 option, and that gap has a cost: when the IPM default event moved
-`IpmOptions::acceptance_strategy` and `::barrier_governor`, not one committed artifact in
+`IpmOptions::acceptance_mode` and `::barrier_governor_mode`, not one committed artifact in
 the tree recorded which values it had been measured under — the dependence was recoverable
 only from the producing driver's source. A leg stamps the fields it SETS, as the interior
 leg always did for its caps and tolerances, and now also the ones it INHERITS from the

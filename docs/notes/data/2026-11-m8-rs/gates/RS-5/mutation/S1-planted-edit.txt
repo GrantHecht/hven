@@ -1,0 +1,33 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/rs5/build
+    Start 843: HeaderSelfContained
+1/1 Test #843: HeaderSelfContained ..............***Failed    4.03 sec
+[0/2] Re-checking globbed directories...
+[1/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp.o
+FAILED: [code=1] tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp.o 
+/usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_TEST_REFERENCE_DISPATCH=1 -I/home/ghecht/Projects/hven/.claude/worktrees/rs5/include -I/opt/intel/oneapi/mkl/latest/include -isystem /home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen -isystem /home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -MD -MT tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp.o -MF tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp.o.d -o tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/rs5/build/tests/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rs5/build/tests/header_selfcheck/hven_detail_sqp_nlp_eval.h.cpp:1:
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/sqp/nlp_eval.h:26:5: error: unknown type name 'Vec'
+   26 |     Vec grad, ce, ci;
+      |     ^
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen/Eigen/src/SparseCore/SparseMatrixBase.h:57:3: note: unnamed type used in template argument was declared here
+   57 |   enum {
+      |   ^
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen/Eigen/src/SparseCore/SparseMatrixBase.h:57:3: note: unnamed type used in template argument was declared here
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen/Eigen/src/SparseCore/SparseMatrixBase.h:57:3: note: unnamed type used in template argument was declared here
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen/Eigen/src/SparseCore/SparseMatrixBase.h:57:3: note: unnamed type used in template argument was declared here
+1 error generated.
+[2/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_globalization_restoration.h.cpp.o
+[3/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_globalization_soc.h.cpp.o
+[4/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_assembly_eval_seam.h.cpp.o
+[5/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_sqp_solver_impl.h.cpp.o
+[6/7] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_sqp_continuation.h.cpp.o
+ninja: build stopped: subcommand failed.
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   4.11 sec
+
+The following tests FAILED:
+	843 - HeaderSelfContained (Failed)
+Errors while running CTest

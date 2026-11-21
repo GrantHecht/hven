@@ -1,0 +1,13 @@
+diff --git a/src/sqp/problem_scaling.cpp b/src/sqp/problem_scaling.cpp
+index d0389ca3a..25f32a3d9 100644
+--- a/src/sqp/problem_scaling.cpp
++++ b/src/sqp/problem_scaling.cpp
+@@ -120,7 +120,7 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
+     s.eq_rows.resize(e_norms.size());
+     for (Index i = 0; i < e_norms.size(); ++i) {
+         s.eq_rows(i) = factor_for(e_norms(i), rule, /*two_sided=*/false);
+-        if (rule.power_of_two_rows) {
++        if (false) {
+             s.eq_rows(i) = power_of_two_factor(s.eq_rows(i), rule.factor_limit);
+         }
+     }

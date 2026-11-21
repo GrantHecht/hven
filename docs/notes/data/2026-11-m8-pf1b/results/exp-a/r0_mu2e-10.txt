@@ -1,0 +1,5 @@
+PF1R status=0 minors=4945 facts=3756 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4783 stag_drops=0 stag_stops=0 shift_adds=19 wall=69.831 q=-3.231904984786683e-03 pins=0 tr=0 active=97 mu=2e-10
+PF1D result status=1 minors=20000 facts=19871 hkc=0
+PF1A records=4945 truncated=0 a4=1651 a7=1 a10=892 a11=2401 | verdict ok=3219 suspect=1726 wrong=0 none=0 perturbed_passes=1726 perturbed_total=2804
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=2.118e-18 sign=0.000e+00 compl=3.782e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=5.128e-15 |lam_exact-lam|inf=5.028e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03

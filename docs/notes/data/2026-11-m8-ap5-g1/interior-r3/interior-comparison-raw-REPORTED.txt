@@ -1,0 +1,3 @@
+=== interior-raw === cells compared: 43  columns compared: 30  differences: 2
+    f7_n1000_bound_neutral/MakeParameter/cap1 stop_reason                        A=iteration_cap  B=none
+    hs071_x1_fixed/MakeParameter/cap1 stop_reason                        A=iteration_cap  B=none

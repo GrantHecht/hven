@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 5c2c7f077..816572f29 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2255,7 +2255,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                 if (ride_stays_in_working_set(qp, ws, p)) {
+                     guard = either_moves();
+                 } else if (eff_opts.dual_regularization > 0.0 &&
+-                           verdict != detail::InertiaVerdict::kSuspect) {
++                           true) {
+                     // p holds its pins exactly here: both EQP producers write a pinned entry at
+                     // its bound, and the walk puts x on a pin whenever one joins.
+                     if (verdict == detail::InertiaVerdict::kWrong) {

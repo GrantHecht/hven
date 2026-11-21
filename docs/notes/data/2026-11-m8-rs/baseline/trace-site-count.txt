@@ -1,0 +1,24 @@
+0	drivers/assembly_eval_seam.cpp
+0	drivers/callback_rows.cpp
+0	drivers/common_options.cpp
+0	drivers/counters_dump.cpp
+0	drivers/equality_basis.cpp
+0	drivers/ipm_options.cpp
+47	drivers/ipm_solver.cpp
+0	drivers/ipm_solver_globalization.cpp
+0	drivers/ipm_solver_handle.cpp
+0	drivers/problem_scaling.cpp
+0	drivers/result_message.cpp
+0	drivers/solve_result.cpp
+0	drivers/solve_status.cpp
+0	drivers/solver_init.cpp
+0	drivers/sqp_options.cpp
+0	drivers/sqp_print.cpp
+59	drivers/sqp_solver.cpp
+0	drivers/sqp_solver_handle.cpp
+24	qp/ipqp_engine.cpp
+0	qp/ipqp_kkt_layout.cpp
+0	qp/qp_engine.cpp
+0	qp/ssn_engine.cpp
+0	qp/ws_independence.cpp
+TOTAL sites 130 files 23

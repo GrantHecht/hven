@@ -1,0 +1,1 @@
+=== WX2 record HEAD-walk vs M8-B1 b1-walk (EXACT) === cells compared: 27  columns compared: 75  differences: 0

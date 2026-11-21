@@ -1,0 +1,6 @@
+MOVED options_digest: 0 cells differ, declared
+FILLED eval_f: 0 cells null in the base, a value in the fresh run
+FILLED eval_g: 0 cells null in the base, a value in the fresh run
+FILLED eval_jac: 0 cells null in the base, a value in the fresh run
+FILLED eval_hess: 0 cells null in the base, a value in the fresh run
+10 baseline cells, 10 fresh cells, 0 mismatches

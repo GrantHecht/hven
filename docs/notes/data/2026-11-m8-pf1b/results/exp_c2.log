@@ -1,0 +1,16 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T16:09:19-05:00
+== qp6_full rc=0 [HVEN_PF1B_TRACE=1  | --maxiter 200000 --exact ]
+PF1R status=0 minors=23431 facts=22643 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=20076 stag_drops=0 stag_stops=0 shift_adds=647 wall=700.420 q=-3.534059099469760e-03 pins=0 tr=0 active=147 mu=1e-08
+PF1A records=23431 truncated=0 a0=73 a4=6876 a7=1 a10=6026 a11=10455 | verdict ok=15934 suspect=7497 wrong=0 none=0 perturbed_passes=7497 perturbed_total=58712
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=2.958e-18 sign=0.000e+00 compl=1.876e-20 scale=1.000e+00
+PF1E nf=10000 mw=6147 kkt_rel_res=2.776e-17 |x_exact-x|inf=1.394e-14 |lam_exact-lam|inf=1.708e-14 |lam|inf=8.583e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.534059099469758e-03
+rungs_traced=1
+== qp6_norung rc=0 [HVEN_PF1B_RUNGS=0  | --exact ]
+PF1R status=1 minors=20000 facts=19872 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=16554 stag_drops=0 stag_stops=0 shift_adds=647 wall=563.786 q=3.900647080401609e-02 pins=589 tr=0 active=134 mu=1e-08
+PF1A records=20000 truncated=0 a0=73 a4=5701 a10=5427 a11=8799 | verdict ok=20000 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=6.224e-15 ineq=8.452e-15 box=0.000e+00 stat=9.310e-10 sign=2.554e-02 compl=5.002e-04 scale=1.000e+00
+PF1E nf=9411 mw=6134 kkt_rel_res=2.776e-17 |x_exact-x|inf=1.861e-06 |lam_exact-lam|inf=3.048e-10 |lam|inf=3.959e-02 exact_neg_rows=3 exact_inactive_viol=0.000e+00 q_exact=3.900647080407205e-02
+rungs_traced=0
+rc=1
+FOREGROUND_END 2026-11-07T16:30:23-05:00

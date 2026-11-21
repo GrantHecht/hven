@@ -1,0 +1,149 @@
+M8 AP-2 group B6 (the pieces layer) -- DECLARATION (committed before the first proof leg; never edited
+afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and the failed record
+is kept; criteria are never changed after data)
+================================================================================
+Base        m8 at 1c94174e (B5 landed, riders-r2 evidence).
+Code head   2a0392b9 (m8-b6). Commits after the base, oldest first:
+              f9744088 feat: the pieces layer -- the local-block layer, the declaration builder, the
+                       raw protocol public
+              1053d6ec test: the pieces pins
+              f611d323 examples: example 4 on the local-block layer; the install smoke solves a pieces
+                       problem
+              20358240 docs: docs/assembly-protocol.md; concurrency.md
+              54043063 fix: local blocks check only a DECLARED pattern (+ its pin)
+              2a0392b9 docs: the docs index names assembly-protocol.md
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B5.
+Scratch     build trees under build-b6/ (git-ignored): rel, dbg, offref, smoke-*, pch-check,
+            iparm-build, armA (+ armA-src, a detached worktree at 1c94174e), armAbin, armBbin.
+
+THE CHANGE UNDER TEST (AP-1 §9 and §13 B6; owner decision 7 approved: the local-block layer, about two
+tasks; the engine-side model-contract rework is M9's and is not started)
+--------------------------------------------------------------------------------
+C1  The local-block layer, model/local_blocks.h: LocalConstraintPiece / LocalObjectivePiece (kInputs,
+    kOutputs; value, jacobian, hessian into zeroed stack buffers; optional compile-time
+    kJacobianPattern / kHessianPattern, a declared one checked by static_assert for range, lower
+    triangle and uniqueness; kNoHessian for a linear piece), and
+    LocalConstraintBlock<P> / LocalObjectiveBlock<P>, one generic raw-protocol adapter: claims, slot
+    writes, the lock protocol and eliminated (-1) slots exactly as the raw pieces write them. They
+    enter the handles by a constrained partial specialization of SolverInterfaceAdapter.
+C2  The declaration builder: AssemblyDeclaration(Index), add_objective / add_equality /
+    add_inequality (local-block or raw pieces), set_bounds (one index or an inclusive range),
+    set_partitions (the one place the count is given; the clamp rule documented there and on
+    Problem::partitions()). Row counts and shared-row overcounts derived from the row maps; a new
+    field rows_derived_ makes validate() also refuse a derived row no application names. Refusals by
+    name.
+C3  The raw protocol public: indexing_data.h, sizing_specs.h, solver_function_base.h,
+    objective_function.h, constraint_function.h, threading_flags.h, parsed_io_flags.h and
+    solver_interface_specs.h move from detail/interior/ and detail/solvers/ to model/; type_storage.h
+    to core/ (git renames). The moved headers include nothing from detail/ and not fmt: five throw
+    messages move, text unchanged, into cold functions in src/model/validation_errors.cpp. New
+    model/pieces.h includes everything. docs/assembly-protocol.md specifies the protocol.
+C4  The objective handle forwards the objective surface only (#19): ObjectiveBase / ObjectiveModel /
+    ObjectiveInterface lose the constraints* family and output_rows (the handle reports 1);
+    NLPObjectivePiece drops its five unreachable throwing stubs; the assembly concepts follow.
+C5  The adapter default by detection (#20): SolverInterfaceAdapter's primary template forwards to a
+    pack_into_*_interface hook, else stores the type directly (an unregistered type compiled to an
+    authored error before). Explicit specializations and the half-policies are unchanged.
+C6  SqpSolver's refusal of a pieces problem keeps its text and adds "or state the problem as an Nlp
+    (model/nlp.h), which both engines solve".
+C7  ipm_solver.cpp names get_core_count.h (indexing_data.h had supplied it transitively); hven_pch.h
+    gains the same line at the same place, so the PCH list stays in step with the TU.
+Notes in this directory: TYCHO-CATCH-UP.txt (a registered catch-up item, not a gate).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  API: new public headers model/local_blocks.h and model/pieces.h; nine headers moved out of detail/
+    (C3) with no forwarding header; new public names BlockEntry, kNoHessian, LocalConstraintPiece,
+    LocalObjectivePiece, LocalConstraintBlock, LocalObjectiveBlock, PieceIdentity, PieceClaimSurface,
+    ConstraintPackHook, ObjectivePackHook; AssemblyDeclaration gains the Index constructor, the five
+    builder members, set_partitions and the rows_derived_ field (its sizeof moves); ObjectiveInterface
+    loses its constraints* members and ObjectiveBase its constraint vtable entries; AssemblyPiece no
+    longer requires output_rows and ObjectiveAssemblyPiece no longer requires the constraint surface;
+    an unregistered piece type now compiles (stored directly). No new TU (the PCH source count and
+    the library TU set are unchanged).
+X2  BEHAVIOUR: none on any existing path. The interior-point engine evaluates every existing piece
+    (the Nlp bridge's, the fixed-variable rows, tests' raw pieces) through the same claims, slots and
+    arithmetic; the objective handle's one virtual call per evaluation now lands in a smaller vtable.
+    validate()'s new row-coverage check runs only on a builder-derived declaration. The new code
+    (the local-block adapters and the builder) is reached only by the new tests, example 4 and the
+    install smoke.
+X3  Messages: the SQP pieces refusal (C6); the DirectFunctionModel / default-adapter static_assert
+    texts (compile time). The five moved throw messages are byte-for-byte the old texts.
+X4  Tests: 3402 -> 3425 (+23): tests/model/test_pieces.cpp 17; test_solver_interface_adapter.cpp +3
+    (AnUnregisteredPlainTypeIsStoredAsItself, AnObjectiveWithoutAConstraintSurfaceIsStoredAsItself,
+    AHookTypeStillSingleDispatches); compile-fail probes +3 net (unregistered_constraint removed --
+    the default now accepts that type; no_constraint_surface, constraint_hook_as_objective,
+    local_jacobian_pattern_out_of_range and local_hessian_pattern_upper added, each pinned to one
+    authored error). One test renamed in place with its pins re-derived to #19:
+    AggregatePieceConcept.TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne ->
+    .TheObjectiveKindCarriesNoConstraintSurface (and its file's static_asserts).
+    The 17 in test_pieces.cpp: PiecesExample4.BothFormsAgree;
+    PiecesLocalBlocks.{TheDenseReferenceMatchesCentralDifferences, ALargeDenseBlockNeedsNoPattern,
+    AssemblyMatchesTheDenseReferenceOnOnePartition, AssemblyMatchesTheDenseReferenceOnSeveralPartitions,
+    TheBuilderDerivesTheRowCounts, APiecesProblemSolvesAsTheEquivalentNlpDoes,
+    ARowSpaceResultOnAPiecesProblem, AWarmStartRoundTripsOnAPiecesProblem};
+    PiecesEvaluationFailure.{ARejectedTrialOnAPiece, AForeignExceptionFromAPiecePropagates};
+    PiecesProblem.TheSqpRefusesAPiecesProblemByName; PiecesBuilder.{RefusesAMapOfTheWrongShape,
+    RefusesAnIndexOutsideTheDeclaration, RefusesARowNoApplicationNames,
+    RefusesBadBoundsAndPartitionCounts, TakesRawProtocolPieces} (1 + 8 + 2 + 1 + 5 = 17).
+X5  Examples: example 4 rewritten to the local-block layer (its printed lines change; it still exits 0
+    and still prints OK). Install smoke: 23 -> 35 standalone-include TUs; main.cpp also solves a
+    two-variable pieces problem and checks the SQP refusal.
+CORPUS (measured before this declaration on the B6 code, dev runs under the lock, not evidence):
+    27-cell replay walk/ssn/ipm 0 differences each (dev, on the code of 20358240 built before the
+    commits, stamp 1c94174eed30-dirty; 54043063 changes only compile-time checks of local-block
+    patterns, which no corpus binary instantiates).
+    EXPECTED: no corpus row moves. If one moves at a leg it is a failed leg (stop, keep the record,
+    successor declaration), not a declared difference.
+EXAMPLE 4 IN BOTH FORMS (the page's B6 proof), pinned inside P1 by PiecesExample4.BothFormsAgree at 1
+and at 4 requested partitions: the same status (kOptimal), objective within 1e-10 relative, x within
+1e-8, the same claim and slot multiset (KKT claims; objective-gradient, adjoint-gradient and residual
+slots; num_user_kkt_elems_), the same adopted partition count; iteration counts EQUAL (measured in
+dev: 4 and 4 at both counts; asserted equal, so no iteration difference is declared).
+PLAIN TYPE AND HOOK TYPE (the page's B6 proof), pinned inside P1: SolverInterfaceAdapter.
+AnUnregisteredPlainTypeIsStoredAsItself (no specialization; stored dynamic type ConstraintModel<T>)
+and .AHookTypeStillSingleDispatches (the stored dynamic type is the concrete payload's model on both
+routes; the handle exposes no piece surface, so no evaluation dispatches through it).
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b6/rel) and Debug (build-b6/dbg), full, -j4 under setsid: every test
+    passes (3425 expected; legs/ctest.sh).
+P2  examples: all 8 build and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P4  iparm (legs/iparm.sh): the dumper (byte copy of the B5 riders', iparm/) against an install of the
+    B6 head: BYTE-IDENTICAL to docs/notes/data/2026-11-m8-ap2-b5/riders/iparm/iparm-riders.txt, 15
+    configurations. (B6 touches no linear/ file and no options field; no IPARM-SURFACE label is
+    claimed or needed.)
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on arm B.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh:
+    pass, the detail-include rule armed and NO allow-list (none exists; none may be added).
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh directory (build-b6/offref),
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass (legs/offref.sh; the evidence directory is passed ABSOLUTE).
+P9  Accelerate syntax sweep, pass A as B5 (legs/accelerate_sweep.py): no OTHER; no class beyond the B5
+    riders' (CLEAN, KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED.
+P10 compile-flags diff (legs/flags.sh, B5's instrument): library TUs of arm A (1c94174e,
+    build-b6/armA) vs the B6 head (build-b6/rel): IDENTICAL flags, the same TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = the 1c94174e binary, arm B = 2a0392b9; band
+    0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm order
+    alternated.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock); `pgrep -a hven_bench_cell` empty before the lock
+and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under
+setsid; FOREGROUND_START/END markers; ABSOLUTE evidence paths. Every copied script's paths were checked
+to point at this worktree (/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe) and
+at build-b6/ before this commit.
+DEV CHECKS before this declaration (not evidence), all under the lock: Release and Debug full suites
+3424/3424 (Debug at the source state before the NLPObjectivePiece stub removal and the PCH line;
+Release after); the dev replay above; a dev chain of the legs below on 20358240's code into a scratch
+directory: examples 8/8, install smoke both arms rc 0 with the export contract OK (35 standalone TUs,
+the pieces solve), PCH PASS (4 TUs, 57 artifacts byte-identical), Accelerate pass A byte-identical to
+the B5 riders' sweep (OTHER 0), flags IDENTICAL (60/60), iparm BYTE-IDENTICAL, off-reference clean
+build rc 0 and ctest 3424/3424; at 54043063 the 60 pieces/adapter/probe tests in Release (60/60).
+The census and the runtime gate were not run before this declaration.

@@ -1,0 +1,16 @@
+B3 proof 6 -- the 57-cell walk census (DECLARATION.txt proof 6 and X2). VERDICT: AS DECLARED.
+Binary build-b3/armB/hven_sqp_corpus (sha256 3810b645..., the B3 code head's), parallel-tiered v1 at
+the script's defaults (T1 6-wide pinned / T2 solo / T3 5-wide full budget), against
+bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv, compared by scripts/census_compare.py.
+  * Against the frozen baseline: 57/57 rows, exactly 2 mismatches -- f7_n2000_path_neutral and
+    f7_n2000_path_corrupted, the two rows the declaration counted before the first leg -- each in
+    the status column only (MaxIter -> WorkLimit); the other 12 asserted columns EXACT on both;
+    the other 55 rows EXACT on all 13 (compare.txt).
+  * Both mismatching cells are tier-2 cells: they ran SOLO, alone on the machine, which is the
+    serial confirmation CLAUDE.md section 7 asks of a co-run deviation (serial_confirm_list.txt
+    lists them by the script's own rule).
+  * Against the re-derived baseline (walk_baseline_rederived.csv = the frozen baseline with
+    exactly those two status strings changed): 57 baseline cells, 57 fresh cells, 0 mismatches
+    (compare-rederived.txt).
+The frozen baseline under bench/baselines/ is NOT edited by B3; the re-derived file is evidence.
+Wall-clock informational only.

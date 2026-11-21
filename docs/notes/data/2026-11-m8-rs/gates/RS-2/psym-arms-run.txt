@@ -1,0 +1,10 @@
+PGREP_EMPTY
+== arm base @ 3edf5ede4 2026-11-18T09:44:05-05:00
+build base rc=0
+[376/376] Linking CXX executable tests/sqp/hven_sqp_tests
+capture base rc=0
+== arm after @ 9df4425ee 2026-11-18T09:47:48-05:00
+build after rc=0
+[376/377] Linking CXX executable tests/sqp/hven_sqp_tests
+capture after rc=0
+worst=0 2026-11-18T09:51:32-05:00

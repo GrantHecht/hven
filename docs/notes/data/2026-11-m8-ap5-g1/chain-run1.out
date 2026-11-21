@@ -1,0 +1,143 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T14:59:35-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T14:59:35-05:00
+
+The following tests did not run:
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2328 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2329 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T15:01:04-05:00
+STEP ctest-rel rc=0 2026-11-13T15:01:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:01:04-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2328 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2329 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T15:07:42-05:00
+STEP ctest-dbg rc=0 2026-11-13T15:07:42-05:00
+          Start  841: GoldenRigAudit.StaticScanSelfTest
+ 851/3647 Test  #841: GoldenRigAudit.StaticScanSelfTest ..................................................................................................................................................................................   Passed    0.09 sec
+          Start  984: SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide
+ 982/3647 Test  #984: SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide ...................................................................................................................................................   Passed    0.01 sec
+          Start 1223: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts
+1221/3647 Test #1223: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts ......................................................................................................................................   Passed    0.00 sec
+          Start 1701: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions
+1678/3647 Test #1701: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions ................................................................................................................................................   Passed    0.01 sec
+STEP golden-rig-listing rc=0 2026-11-13T15:07:42-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:07:42-05:00
+54d8216068f25d69fe5f4bc1e9d082f209071a1c88ae9ecdf4cc9255d4ac9ce6  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/armAbin/hven_sqp_corpus
+3d845bf861888ccef9b09d718d72285bb0cdf3c39a373bce90e367bdf01be837  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-13T15:07:43-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-13T15:12:30-05:00
+run rc=0
+compare rc=0
+=== g1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-13T15:17:17-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-13T15:17:38-05:00
+run rc=0
+compare rc=0
+=== g1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-13T15:17:58-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-13T15:18:24-05:00
+run rc=0
+compare rc=0
+=== g1-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-13T15:18:50-05:00
+STEP replay rc=0 2026-11-13T15:18:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:18:50-05:00
+54d8216068f25d69fe5f4bc1e9d082f209071a1c88ae9ecdf4cc9255d4ac9ce6  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/armAbin/hven_sqp_corpus
+3d845bf861888ccef9b09d718d72285bb0cdf3c39a373bce90e367bdf01be837  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+0752d9c807d4952330970f189f40a54ccb78acb4a1bd9aa93eea1b6c27349b31  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv
+49da7fc8aa36838241af37aa8980329feb6307d6773622d1d761678ecdb3ef5d  /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/legs/stop_reason_map.py
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/interior/interior-A.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/interior/interior-A-mapped.csv: 2 value(s) rewritten
+map arm A rc=0
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/interior/flip-baseline-mapped.csv: 2 value(s) rewritten
+map flip baseline rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-derived === cells compared: 43  columns compared: 30  differences: 0
+compare derived rc=0
+raw (reported) rc=1     hs071_x1_fixed/MakeParameter/cap1 stop_reason                        A=iteration_cap  B=none
+worst=0
+FOREGROUND_END 2026-11-13T15:19:23-05:00
+STEP interior rc=0 2026-11-13T15:19:23-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:19:23-05:00
+SMOKE_START default 2026-11-13T15:19:23-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-13T15:20:27-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-13T15:21:09-05:00
+STEP install-smoke rc=0 2026-11-13T15:21:09-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T15:21:09-05:00
+CONFIGURE_FAIL
+    
+    Run Build Command(s): /usr/bin/ninja-build -v cmTC_446ee
+    [1/2] /usr/bin/cc   -DMKL_LP64 -m64  -fPIE -o CMakeFiles/cmTC_446ee.dir/testCCompiler.c.o -c /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g1/tsan/CMakeFiles/CMakeScratch/TryCompile-rS8mvD/testCCompiler.c
+    [2/2] : && /usr/bin/cc -DMKL_LP64 -m64 -fsanitize=thread CMakeFiles/cmTC_446ee.dir/testCCompiler.c.o -o cmTC_446ee   && :
+    FAILED: [code=1] cmTC_446ee 
+    : && /usr/bin/cc -DMKL_LP64 -m64 -fsanitize=thread CMakeFiles/cmTC_446ee.dir/testCCompiler.c.o -o cmTC_446ee   && :
+    /usr/bin/ld.bfd: cannot find /usr/lib64/libtsan.so.2.0.0: No such file or directory
+    collect2: error: ld returned 1 exit status
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  build-g1/tsan/_deps/googletest-src/CMakeLists.txt:6 (project)
+
+
+-- Configuring incomplete, errors occurred!
+STEP tsan rc=1 2026-11-13T15:21:12-05:00
+worst=1
+FOREGROUND_END 2026-11-13T15:21:12-05:00

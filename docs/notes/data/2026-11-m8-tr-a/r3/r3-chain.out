@@ -1,0 +1,24 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T16:26:42-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T16:26:42-05:00
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1084 - IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage (Disabled)
+	2480 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2481 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T16:27:58-05:00
+STEP ctest-rel rc=0 2026-11-16T16:27:58-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T16:27:58-05:00
+The following tests FAILED:
+	1570 - HumanTraceGoldens.FourProblemsTwoEnginesFourRungs (Failed)
+	1571 - HumanTraceGoldens.TheRestorationFixture (Failed)
+	1572 - HumanTraceGoldens.TheElasticFixture (Failed)
+Errors while running CTest
+rc=8
+FOREGROUND_END 2026-11-16T16:35:16-05:00
+STEP ctest-dbg rc=1 2026-11-16T16:35:16-05:00
+CHAIN_STOPPED_AT ctest-dbg
+FOREGROUND_END 2026-11-16T16:35:16-05:00

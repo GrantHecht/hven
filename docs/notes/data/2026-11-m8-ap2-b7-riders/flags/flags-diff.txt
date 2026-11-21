@@ -1,0 +1,6 @@
+library TUs before: 60, after: 60, in both: 60
+only before: none
+only after:  none
+TUs whose flag list differs: 0
+distinct flag lists among library TUs: before 5, after 5
+RESULT: IDENTICAL

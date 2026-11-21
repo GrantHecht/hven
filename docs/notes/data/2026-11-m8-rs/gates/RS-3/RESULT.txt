@@ -1,0 +1,15 @@
+RS-3 gate result (prose and literals; comments-only stage). Declarations: DECLARATION-RS3.md, DECLARATION-RS3-r2.md (P-SYM capture-tool stamp).
+Commits under test: 54996885e (comments, banners, #error texts, recipe strings), cbcc9fa07 (CLAUDE.md 1-2, migration note, blame-ignore, docs); gate run 1 on cbcc9fa07, the P-SYM re-run on 4915418c0 (docs/instrument-only successor).
+Before arm = origin/m8 aa1330cad (the RS-2 head). Reduced gate per DECLARATION-RS3.md (no moves: flags, replay, Debug ctest and PCH neutrality not re-run; the flags check was run anyway).
+G1  clean configure, CCACHE_DISABLE=1 (linux-clang-release flags + bench + examples), library + tests + bench: rc 0 (build-release.txt). [dep/ submodules initialised in the fresh worktree; the first launch
+    stopped at configure on the missing dep/eigen, recorded nowhere else: no build ran]
+G2  P-SYM, both arms with `__FILE__` neutralised (neutral_flags.py, one flag list, same build path build-n), no object map, no symbol map, no exceptions: 198 objects, 195 byte-identical,
+    3 noise-class (bench_corpus, bench_crossover, ipqp_e1_arm: the same three RS-2 recorded), 0 UNCLASSIFIED, 0 missing, 0 only-before/after, 0 collisions (psym.txt).
+    Run 1 (psym-run1/) stopped at `compare` by design: psym_compare.sh stamps captures with its own sha and RS-3 edits one comment line of it; -r2 captured both arms with the after-version script.
+    The golden_rig target is not in P-SYM's object set, so the declared recipe-string literal change is not observable here; its source diff is string-literal-only (verified by a comment-stripped
+    token compare of every changed C++ file: only recipes.cpp, #error texts and one static_assert message differ outside comments).
+G3  compile commands flags diff (the two arms' compile_commands.json, empty map): IDENTICAL, 0 TUs differ (flags.txt).
+G4  ctest Release 3869/3869 (ctest-release.log); sorted gtest lists RAW-identical to the committed RS-0 lists (12 executables), ctest -N identical modulo the byte-dump class 133 = 133 (lists-diff-rs0.txt).
+G5  check_install_smoke default + clang++ PASS, check_export_contract OK both arms; installed listing (957 files) equals the RS-2 listing (listing-default.txt); include/hven/drivers absent.
+G6  CI: see CI.txt.
+Wall-clock informational. Not run (declared): 27-cell replay, Debug ctest, check_pch_neutrality (no include set or source moved or changed outside comments).

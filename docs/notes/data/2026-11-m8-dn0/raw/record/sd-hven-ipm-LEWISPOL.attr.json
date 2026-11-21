@@ -1,0 +1,227 @@
+{
+ "samples": 2149,
+ "period": 1000003,
+ "instr_sampled_all": 2149006447,
+ "instr_sampled_solver": 2143006429,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 90000270,
+  "B_kkt": 5000015,
+  "B_eval": 24000072,
+  "B_setup": 2013006039,
+  "B_eng": 11000033,
+  "B_proc": 6000018
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.041997200186654225,
+  "B_kkt": 0.0023331777881474567,
+  "B_eval": 0.011199253383107793,
+  "B_setup": 0.9393373775081661,
+  "B_eng": 0.005132991133924405
+ },
+ "proc_share_of_all": 0.002791996277338297,
+ "rule_instr": 2146006438,
+ "fallback_instr": 1000003,
+ "fallback_by_bucket": {
+  "B_fac": 1000003
+ },
+ "unmatched_instr": 2000006,
+ "unmatched_share_of_solver": 0.0009332711152589828,
+ "chains_reaching_main": 0.9837133550488599,
+ "init_instr": 2012006036,
+ "steady_state_instr": 131000393,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.6870229007633588,
+  "B_kkt": 0.03816793893129771,
+  "B_eval": 0.183206106870229,
+  "B_setup": 0.007633587786259542,
+  "B_eng": 0.08396946564885496
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   89000267
+  ],
+  [
+   "<no hven::linear frame>",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 2020006060,
+ "kmp_instr": 53000159,
+ "top_unmatched_leaf": [
+  [
+   "__log10_finite",
+   2000006
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    7000021
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    7000021
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    6000018
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_pardiso",
+    4000012
+   ],
+   [
+    "mkl_pds_lp64_dsytf2_pardiso",
+    4000012
+   ],
+   [
+    "[unknown]",
+    4000012
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    4000012
+   ],
+   [
+    "__kmp_fork_call",
+    3000009
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    1000003
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    1000003
+   ],
+   [
+    "hven::detail::augment_bound_complementarity",
+    1000003
+   ],
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    1000003
+   ],
+   [
+    "hven::detail::nlp_scatter_hessian_block",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    7000021
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    4000012
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    3000009
+   ],
+   [
+    "elfun_",
+    3000009
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    2000006
+   ],
+   [
+    "hven::ObjectiveModel<hven::detail::NlpObjectivePiece>::objective",
+    1000003
+   ],
+   [
+    "hven::ConstraintModel<hven::detail::NlpConstraintPiece>::constraints",
+    1000003
+   ],
+   [
+    "hven::detail::NlpProblemModel::sync_x",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1291003873
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    541001623
+   ],
+   [
+    "__vdso_time",
+    93000279
+   ],
+   [
+    "difftime@plt",
+    83000249
+   ],
+   [
+    "time@plt",
+    4000012
+   ],
+   [
+    "hven::detail::NonLinearProgram::materialize_declaration_bounds",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__log10_finite",
+    2000006
+   ],
+   [
+    "__ieee754_log_fma",
+    2000006
+   ],
+   [
+    "hven::detail::MonitoredBarrierGovernor::update_barrier",
+    2000006
+   ],
+   [
+    "hven::detail::BacktrackingLineSearch::generic_line_search",
+    2000006
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1000003
+   ],
+   [
+    "[unknown]",
+    1000003
+   ],
+   [
+    "hven::detail::IpmSolverImpl::fill_residual_info",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3000009
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "check_match",
+    1000003
+   ],
+   [
+    "__printf_buffer",
+    1000003
+   ]
+  ]
+ }
+}

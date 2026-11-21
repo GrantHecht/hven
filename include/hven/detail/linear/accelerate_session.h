@@ -43,8 +43,8 @@
 
 #include <Accelerate/Accelerate.h>
 
-#include "hven/core/types.h"
-#include "hven/detail/linear/session_id.h"
+#include <hven/core/types.h>
+#include <hven/detail/linear/session_id.h>
 
 namespace hven::linear::detail {
 

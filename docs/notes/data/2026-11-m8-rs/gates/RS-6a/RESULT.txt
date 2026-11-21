@@ -1,0 +1,39 @@
+RS-6a gate result (one test executable per tests/ directory). Declarations: DECLARATION-RS6a.md (frozen), -r2 (pre-run: SNOPT premise, include-root class, Q9 prebuild), -r3 (pre-run: snopt/seamdef token classes, unity-class membership), -r4 (instrument defects of gate run 1), -r5 (path-literal-length objects: litproof + exceptions).
+Code under test: 3c20f7c53 (the implementation) + 185586a41 (tests/sqp: continuation-timeout include not under Windows; the -r3 instruments). Gate run 1 ran on 185586a41; every later commit changes only docs/notes/data/2026-11-m8-rs/{tools,legs,*.md,gates} (tests/, src/, include/, bench/, scripts/, CMake are byte-identical from 185586a41 on).
+Before arm = origin/m8 44f74446f + the declaration commit 2f43fee5e (no code difference), measured by legs/baseline2.sh in the separate detached worktree rs6a-base (lists, replay, ctest; builds by psym_arms.sh for P-SYM/flags). Gate runs: gate6a.sh from a copy outside the tree (VERDICTS.txt is the append-only log of all three runs).
+Run 1 = all steps on 185586a41; run 2 = steps psymcmp membership mutation q9base (-r4); run 3 = steps litproof psymexc mutation (-r5). Wall-clock informational. Serial, under /tmp/box-build.lock; co-run: none.
+
+EXECUTABLES (ordinary, one per tests/ directory; test counts from the gtest lists, 3404 names in all, equal to the base's 3404):
+  hven_core_tests 44, hven_linear_tests 146, hven_model_tests 476, hven_kkt_tests 53, hven_qp_tests 450, hven_warmstart_tests 364, hven_solver_tests 363, hven_trace_tests 158, hven_ipm_tests 451, hven_sqp_tests 751, hven_bench_tests 148.
+  seam: hven_linear_seam_tests 29, hven_kkt_seam_tests 7, hven_qp_seam_tests 301, hven_solver_seam_tests 21, hven_ipm_seam_tests 19, hven_sqp_seam_tests 31 (410 names with hven_linear_alloc_tests 2, equal to the base's seam+alloc union of 410).
+  Retired: hven_tests, hven_interior_tests, hven_drivers_tests, hven_fault_injection_tests, hven_ipqp_seam_tests, hven_qp_walk_seam_tests, hven_dense_alloc_tests. 186 test sources, each in exactly one executable (membership-after.txt == declared-membership.txt).
+
+G1  clean configure, CCACHE_DISABLE=1, library + tests + bench + examples, Release: rc 0 (build-release.txt; 4 min 38 s at -j16).
+G2  P-SYM, both arms `__FILE__`-neutralised, same build path (psym.txt run-2 output, psym-r5.txt final): object map generated from the two manifests EQUALS the declared map (declared r1 88 lines + r2 1 line = 89; objmap-check.txt). Non-unity objects: 194, 185 byte-identical, 3 NOISE-ONLY (bench_corpus, bench_crossover, ipqp_e1_arm: the three pad-noise objects every RS gate has recorded), 0 missing,
+    0 unaccounted for, 89 matched through the map; EVERY library (`hven`) object and every bench-binary object byte-identical. 5 test objects differ in psym.txt (test_corpus_cells; trace/{test_human_trace_goldens,test_trace_off_path,test_trace_v1_fixtures}; solver/test_message_sites): all findings are the length of a path literal a moved -D define carries.
+    litproof (litproof-run.txt): each of the five recompiled with the BASE value of the declared path defines is BYTE_IDENTICAL to the base arm's object x5. exceptions.txt (32 entries, only those five objects) -> psym-r5.txt: 0 UNCLASSIFIED, 0 missing, 0 only-before, 0 only-after outside the exceptions, 0 stale exceptions. PASS.
+    Unity class (the 4 interior unity objects vs the 3 ipm unity batches + the model batch + the two plain objects test_type_storage/test_kkt_factorization; psym-union.txt): test-defined symbol set equal (4311 symbols both sides), registration multiset equal (1450 initialiser-entry calls both sides); bodies: 4136 identical, 169 differ beyond numeric
+    operands (listed in psym-union-detail.txt: the same sources compiled in a different unity neighbourhood get different inlining/register allocation), 12 template/inline-function symbols present on one side only (informational). The class is not instruction-identical; G5 is its behavioural evidence.
+G3  flags diff (flags.txt, base vs after compilation databases, 496 TU keys, same build path): library, bench, golden-rig, examples, install-smoke and header-selfcheck TUs identical; violations 0 modulo the declared classes: def (moved -D path defines: -884/+17), inc (+13 TUs and +31 seam lists: the tests include root), seamdef (narrow qp seam TUs of ssn_engine.cpp and test_dense_solve_wound_seams.cpp lack
+    the two hven-target definitions the whole-library seams carry), snopt (-204/+3: hven_sqp_snopt's interface moved from hven_sqp_tests to hven_bench_tests); two sources individually compiled (were unity batch members), one whole-library seam flag list vanished (the wound-seam source moved narrow). Effective -O level per TU asserted equal (0 violations).
+G4  check_pch_neutrality.sh PASS (pch-neutrality.txt).
+G5  ctest Release 3890/3890 and Debug 3890/3890 (ctest-release.log, ctest-debug.log; ctest -N lists 3892 incl. 2 disabled); HeaderSelfContained and Layering.* pass in both. lists-verdict.txt: union of the ordinary executables' names == base (3404), seam+alloc union == base (410), no name in two new executables, golden-rig lists identical,
+    ctest -N name set identical to the base (3892 = 3892, added [], removed [], byte-dump class 133 = 133).
+G6  check_install_smoke default + clang++ PASS, check_export_contract OK; the installed listing is byte-identical to RS-5's 958 files (listing-default.txt, smoke/).
+G7  27-cell replay x (walk, ssn, ipm) against the base replay: 0 differences x3, 75 columns each (comparison-*.txt).
+G8  Mutation proofs (mutation/MUTATION-VERDICTS.txt, run 3): M1 a tests/core source in no executable -> configure fails ("is in no test executable"); M2 core/test_version.cpp also in hven_linear_tests -> fails ("is built by two executables"); M3 hven_ipm_seam_tests linked to hven::hven -> fails; M3b hven_ipm_tests defining HVEN_TESTING -> fails;
+    M4 the compile_fail probe loop reading the stale tests/ipm/compile_fail -> fails at generate. 5/5 killed, every restore passes. (Run 2's M3 "survived" only because the check's regex did not join CMake's wrapped message lines; the configure had failed; fixed in -r5.)
+G9  header sweep: PASS 169, FAIL 3 (the Apple-only headers), as RS-5 (header-sweep-after.txt).
+G10 CI: CI.txt.
+
+Q9 seam-executable build cost (gates/RS-6a/q9/*.json; clean configure per arm, library + gtest prebuilt, then `ninja -j16` of the seam targets alone; this 16-core box, quoted single-machine, wall-clock informational; box otherwise idle):
+                                  before (4 seam targets)   after (6 seam targets)
+  parallel wall-clock                 73.7 s                    132.8 s          (+59 s, 1.8x)
+  compile commands                    116                       229              (+113)
+  CPU user+sys                        1028 s                    1953 s           (1.9x)
+  peak concurrent RSS (summed tree)   7816 MiB                  7703 MiB         (unchanged: the 16-job limit bounds it)
+  largest single process RSS          716 MiB                   716 MiB
+  rest of the tree (everything else)  126.8 s / 166 compiles   130.4 s / 168 compiles
+  whole clean test+bench+example tree 200.5 s                   263.2 s          (+31%)
+  The after set recompiles the whole library THREE times (solver, ipm, sqp seams; before: once, in hven_sqp_seam_tests) plus the narrow qp seam (one merged target instead of two) and two narrow linear/kkt seams. Peak memory does not move; the cost is CPU/wall (+59 s on 16 cores). Not implemented, per the brief:
+  the single-fallback hven_seam_tests (one whole-library recompile for every whole-library seam source) would bring the seam leg back to about the base cost; a shared OBJECT library of the HVEN_TESTING library TUs linked into the three whole-library seam executables would do the same without merging executables. The owner decides.

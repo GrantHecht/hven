@@ -1,0 +1,10 @@
+control: fails nothing
+d1   must-kill KILLED by ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1
+d2   must-kill KILLED by BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm drivers rc=1 sqp rc=1
+d3   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+d4   must-kill KILLED by Callback.SqpEventRowsEqualHistoryInCallerUnits JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1
+d5   must-kill KILLED by TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork drivers rc=1
+d6i  must-kill KILLED by IterationHistory.HistoryExistsWithNoSinkAndIsTheSameWithOne drivers rc=1
+d6s  must-kill KILLED by Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1
+d7   must-kill KILLED by ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmTrace.EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder drivers rc=1 interior rc=1
+MUTATION_VERDICT PASS

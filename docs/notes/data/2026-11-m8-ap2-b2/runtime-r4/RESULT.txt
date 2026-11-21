@@ -1,0 +1,10 @@
+B2-runtime-r4 -- what ran and what it read (DECLARATION.txt committed f3ebfb56 before the first leg)
+================================================================================
+FIXTURE PRE-FLIGHT: PASS (total=38909 excluded=21354 filtered=17555).
+interior (fresh): identity 3/3, 6 processes 0 THROTTLE. filtered B/A = 1.000817 (rounds 1.000780 /
+  1.000862 / 1.000817) WITHIN. all-samples 0.995098; raw perf-stat 0.995107; excluded A=21018 B=17886.
+ipm: leg ran to completion (162 processes, 0 THROTTLE, counter identity 81/81 holds) but the declared
+  per-mode per-arm filter-liveness guard VOIDED it: arm A excluded samples over all processes and all
+  rounds = 0 (every ipm process has excluded count 0; analyzer exit 4 before any verdict). ipm has no
+  reading. ssn and walk NOT run. Nothing re-run; criterion/analyzer unchanged.
+GATE VERDICT: FAIL (VOID ipm leg).

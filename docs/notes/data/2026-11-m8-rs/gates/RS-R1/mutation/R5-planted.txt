@@ -1,0 +1,24 @@
+clang++: warning: argument unused during compilation: '-c' [-Wunused-command-line-argument]
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rsr1/build/tests/header_selfcheck/hven_qp_qp_options.h.cpp:1:
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:97:19: error: use of undeclared identifier 'Index'
+   97 |     std::optional<Index> max_iterations;
+      |                   ^~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:105:5: error: unknown type name 'Index'
+  105 |     Index hard_max_iterations = 60;
+      |     ^
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:114:19: error: use of undeclared identifier 'Index'
+  114 |     std::optional<Index> max_factorizations;
+      |                   ^~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:205:5: error: unknown type name 'Index'
+  205 |     Index max_warm_iterations = 15;
+      |     ^
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:220:5: error: unknown type name 'Index'
+  220 |     Index stall_window = 5;
+      |     ^
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:228:5: error: unknown type name 'Index'
+  228 |     Index max_consecutive_escapes = 3;
+      |     ^
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/include/hven/qp/qp_options.h:272:5: error: unknown type name 'Index'
+  272 |     Index ladder_skip_after = 3;
+      |     ^
+7 errors generated.

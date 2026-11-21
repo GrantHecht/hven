@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="0" disabled="0" errors="0" time="0.008" timestamp="2026-11-12T04:34:07.745" name="AllTests">
+  <testsuite name="IpmDenseGuardSeam" tests="2" failures="0" disabled="0" skipped="0" errors="0" time="0.008" timestamp="2026-11-12T04:34:07.745">
+    <testcase name="AFailedGuardReRunEndsTheSolveWithoutItsStep" file="/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/tests/sqp/test_ipm_dense_guard_seams.cpp" line="388" status="run" result="completed" time="0.005" timestamp="2026-11-12T04:34:07.745" classname="IpmDenseGuardSeam">
+      <properties>
+        <property name="route" value="scale 1.76 pass 3"/>
+      </properties>
+    </testcase>
+    <testcase name="AFailedGuardReRunUnderRestorationDiscardsItsStep" file="/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/tests/sqp/test_ipm_dense_guard_seams.cpp" line="761" status="run" result="completed" time="0.003" timestamp="2026-11-12T04:34:07.750" classname="IpmDenseGuardSeam" />
+  </testsuite>
+</testsuites>

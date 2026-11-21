@@ -1,0 +1,201 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T16:43:14-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T16:43:14-05:00
+
+The following tests did not run:
+	828 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2422 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2423 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T16:44:28-05:00
+STEP ctest-rel rc=0 2026-11-15T16:44:28-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T16:44:28-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	828 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2422 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2423 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T16:51:18-05:00
+STEP ctest-dbg rc=0 2026-11-15T16:51:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T16:51:18-05:00
+959a15707aff4786bc42f7be7930a4c3c45896a28571e66e3140244547284999  /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/armAbin/hven_sqp_corpus
+91b3f9cb66c54319b86e17abbe440fd98873255e6309ebca0bdf1c8033710ea7  /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-15T16:51:19-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-15T16:56:08-05:00
+run rc=0
+compare A vs B rc=0
+=== g5r2-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-15T17:00:58-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-15T17:01:18-05:00
+run rc=0
+compare A vs B rc=0
+=== g5r2-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-15T17:01:39-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-15T17:02:04-05:00
+run rc=0
+compare A vs B rc=0
+=== g5r2-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-15T17:02:30-05:00
+run rc=0
+compare armed rc=0
+=== g5-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-15T17:07:19-05:00
+run rc=0
+compare armed rc=0
+=== g5-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-15T17:07:39-05:00
+run rc=0
+compare armed rc=0
+=== g5-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-15T17:08:05-05:00
+STEP replay rc=0 2026-11-15T17:08:05-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T17:08:05-05:00
+959a15707aff4786bc42f7be7930a4c3c45896a28571e66e3140244547284999  /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/armAbin/hven_sqp_corpus
+91b3f9cb66c54319b86e17abbe440fd98873255e6309ebca0bdf1c8033710ea7  /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/g5/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-15T17:08:50-05:00
+STEP interior rc=0 2026-11-15T17:08:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T17:08:50-05:00
+SMOKE_START default 2026-11-15T17:08:50-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-15T17:09:33-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g5/build-g5/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-15T17:10:04-05:00
+STEP install-smoke rc=0 2026-11-15T17:10:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T17:10:04-05:00
+ninja: no work to do.
+[----------] 10 tests from StopRecovery (378 ms total)
+
+[----------] Global test environment tear-down
+[==========] 100 tests from 8 test suites ran. (1549 ms total)
+[  PASSED  ] 100 tests.
+[----------] 18 tests from StopPollSeam (480 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test suite ran. (480 ms total)
+[  PASSED  ] 18 tests.
+tsan rc=0 seam rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-15T17:10:06-05:00
+STEP tsan rc=0 2026-11-15T17:10:06-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T17:10:06-05:00
+control build rc=0
+CONTROL failures: []
+applied a src/drivers/ipm_solver.cpp
+MUT a: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate CallbackPayload.EachNewBitDeliversExactlyItsFields CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve StopRecovery.T12IpmRecoveringEventsCarryNoRowsAndNoBoundSides drivers rc=1 
+applied b src/drivers/ipm_solver.cpp
+MUT b: StopRecovery.T12IpmRecoveringEventsCarryNoRowsAndNoBoundSides drivers rc=1 
+applied c src/drivers/ipm_solver.cpp
+MUT c: BestIterate.AnAcceptableReturnBestSolvePublishesTheBestItSubstituted BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve drivers rc=1 
+applied d src/drivers/ipm_solver.cpp
+MUT d: CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint drivers rc=1 
+applied e src/drivers/ipm_solver.cpp
+MUT e: CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint drivers rc=1 
+applied f src/drivers/ipm_solver.cpp
+MUT f: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot drivers rc=1 
+applied g src/drivers/ipm_solver.cpp
+MUT g: BestIterate.AnAcceptableReturnBestSolvePublishesTheBestItSubstituted BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate StopRecovery.G3AStopReturnBestOnARecoveringEventReturnsTheBestNotTheShownPoint StopRecovery.G3BestIterateOnARestorationSolveIsAnIterateFromOutsideRestoration drivers rc=1 
+applied h src/drivers/ipm_solver.cpp
+MUT h: CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1 
+applied i src/drivers/sqp_solver.cpp
+MUT i: BestIterate.SqpScaledBestIterateEqualsItsEventsSnapshot CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate CallbackPayload.EachNewBitDeliversExactlyItsFields CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve Callback.SqpRestorationEventsCarryTheSubProblemsRowsAndADepthOneBlock drivers rc=1 
+applied j src/drivers/sqp_solver.cpp
+MUT j: CallbackPayload.EachNewBitDeliversExactlyItsFields drivers rc=1 
+applied k src/drivers/sqp_solver.cpp
+MUT k: CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver CallbackScope.TheDefaultStreamIsTheFullStreamFilteredToDepthZero Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration Callback.SqpRestorationEventsCarryTheSubProblemsRowsAndADepthOneBlock Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict Callback.SqpStopInsideRestorationLatchesAndReachesTheParent Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes Callback.SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit Callback.SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint Callback.SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate Callback.SqpStopReturnBestOnTheCertifyingRestorationReturnsTheBestAndNoCertificate Callback.SqpTokenRequestedOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables RiderForeignException.ThrownInsideRestorationPropagatesUnchangedOnBothEngines SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop StopPollSeam.T4AStopInsideARestorationSubproblemReturnsTheEntryPoint StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideAnIpqpTierElasticRungReturnsXk seam rc=1 drivers rc=1 sqp rc=1 
+applied l src/drivers/sqp_solver.cpp
+MUT l: BestIterate.SqpScaledBestIterateEqualsItsEventsSnapshot drivers rc=1 
+applied m src/drivers/sqp_solver.cpp
+MUT m: Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1 
+applied n src/drivers/sqp_solver.cpp
+MUT n: BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit BestIterate.SqpScaledBestIterateEqualsItsEventsSnapshot BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem drivers rc=1 
+applied o src/drivers/callback_rows.cpp
+MUT o: BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve CallbackPayload.TheFixedVariableMakeConstraintArmSplitsItsPriceIntoTheBoundSides drivers rc=1 
+applied p src/model/problem.cpp
+MUT p: CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines drivers rc=1 
+applied q src/model/problem.cpp
+MUT q: CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines drivers rc=1 
+applied r src/model/problem.cpp
+MUT r: CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate drivers rc=1 
+applied s src/drivers/solve_result.cpp
+MUT s: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot BestIterate.SqpScaledBestIterateEqualsItsEventsSnapshot CallbackPayload.AllDeliversTheRowsAndTheBoundSidesInTheRowSpaceOnBothEngines CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate CallbackPayload.EachNewBitDeliversExactlyItsFields CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve Callback.SqpRestorationEventsCarryTheSubProblemsRowsAndADepthOneBlock drivers rc=1 
+applied t src/drivers/solve_result.cpp
+MUT t: BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot BestIterate.T12ASnapshotOfAScalarsOnlyEventHasNoVectors BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase Callback.IpmStopEndsThePhaseSequence CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint CallbackPayload.SnapshotOwnsEveryViewAfterTheSolve drivers rc=1 
+applied u include/hven/drivers/solve_result.h
+MUT u: BestIterate.T12ASnapshotOutlivesTheEventAndTheSolveAndMatchesTheEvent CallbackPayload.TheOneArgumentOverloadDeliversTheVectorsAndTheDiagnostics drivers rc=1 
+applied v src/drivers/sqp_solver.cpp
+MUT v: F7ColdScaleSmoke.TheBestIteratesFacePricesAreSignRepaired sqp rc=1 
+applied w src/drivers/sqp_solver.cpp
+MUT w: CallbackPayload.AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate drivers rc=1 
+applied x src/drivers/sqp_solver.cpp
+MUT x: SURVIVES
+applied y src/drivers/sqp_solver.cpp
+MUT y: ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables sqp rc=1 
+applied z src/drivers/ipm_solver.cpp
+MUT z: CallbackPayload.TheFixedVariableMakeConstraintArmSplitsItsPriceIntoTheBoundSides drivers rc=1 
+applied A src/drivers/sqp_solver.cpp
+MUT A: Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1 
+applied B src/drivers/sqp_solver.cpp
+MUT B: Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1 
+applied C src/drivers/sqp_solver.cpp
+MUT C: Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1 
+applied D src/drivers/ipm_solver.cpp
+MUT D: CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1 
+applied E src/drivers/ipm_solver.cpp
+MUT E: CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1 
+FOREGROUND_END 2026-11-15T18:09:35-05:00
+STEP mutations rc=0 2026-11-15T18:09:35-05:00
+worst=0
+FOREGROUND_END 2026-11-15T18:09:35-05:00

@@ -1,0 +1,11 @@
+# I18 dev: the six nlp-35 hven-sqp cells whose QP minors moved, under five codes (co-run, MKL_NUM_THREADS=1, label default).
+# A = base 331b31837; B = the code commit c9a716eac (trigger: correction > radius, kappa 0.5); VBOX = 9e7bb7748 (trigger: correction > box width);
+# V2X = scratch a67be7c18 (trigger: correction > 2 radius); VK01 = scratch a1948af68 (kappa 0.1). Scratch commits on local branches i18-scratch-*, never pushed.
+# cell  qp_minor_iters: A B VBOX V2X VK01  (majors in parentheses)
+STEENBRB 19099(67) 22871(81) 22871(81) 18755(73) 18088(73)
+STEENBRC 27973(88) 32554(91) 21301(73) 21301(73) 26394(101)
+STEENBRD 21336(85) 24844(77) 26169(95) 44681(150) 22335(52)
+STEENBRE 14948(80) 17935(82) 17015(71) 17015(71) 14797(76)
+STEENBRG 23432(72) 28710(116) 22057(81) 42209(123) 27717(117)
+ACOPR57 2296(16) 2461(16) 2461(16) 2461(16) 2461(16)
+# sums: A 109084, B 129375 (+18.6%), VBOX 111874 (+2.6%), V2X 146422 (+34.2%), VK01 111792 (+2.5%); every row optimal.

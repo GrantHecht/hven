@@ -4,11 +4,12 @@
 #pragma once
 
 // qp_dump.h -- the loader for the M7 W2 E2-D4 QP dump corpus (format "D4QP 1", the contract in
-// tests/qp/fixtures/e2-d4/FORMAT.txt; the full 32-dump corpus is under
-// docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/). A dump is one walk solve as a cell
-// made it: the QP, the engine's QpOptions, the solve's SolveOverrides, and the warm seed. The
-// in-cell outcome line is kept verbatim (`result`). Replaying a dump on a fresh QpEngine
-// reproduced the in-cell status and minors on every dump (E2-D4 REPORT).
+// tests/qp/fixtures/e2-d4/FORMAT.txt) and for the library's own dumps (docs/qp-dump-format.md,
+// whose optional `infinite_bound` line it reads; absent, the library default holds). The full
+// 32-dump corpus is under docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/. A dump is one
+// walk solve as a cell made it: the QP, the engine's QpOptions, the solve's QpSolveOverrides, and
+// the warm seed. The in-cell outcome line is kept verbatim (`result`). Replaying a dump on a fresh
+// QpEngine reproduced the in-cell status and minors on every dump (E2-D4 REPORT).
 //
 // Also here: the KKT residuals of a returned point, recomputed from the QP (not from the
 // engine's counters), against the EFFECTIVE box -- the real bounds intersected with the
@@ -22,24 +23,25 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/qp/walk/walk_engine.h>
 
 namespace hven::test_support {
 
 struct QpDump {
-    solvers::QpProblem qp;
-    solvers::QpOptions opts;
+    hven::detail::QpProblem qp;
+    hven::QpOptions opts;
     int threads = 0;
-    solvers::SolveOverrides overrides;
+    hven::QpSolveOverrides overrides;
     bool has_seed = false;
-    solvers::QpSolution seed;
+    hven::detail::QpSolution seed;
     std::string result; // the in-cell outcome line, verbatim
     Vec x_final;        // the in-cell solve's final iterate
 };
@@ -68,6 +70,12 @@ inline QpDump load_qp_dump(const std::string &path) {
             is >> n >> me >> mi;
             continue;
         }
+        if (key == "infinite_bound") {
+            std::string v;
+            is >> v;
+            d.qp.infinite_bound = num(v);
+            continue;
+        }
         if (key == "opts") {
             std::vector<std::string> t;
             std::string w;
@@ -77,17 +85,20 @@ inline QpDump load_qp_dump(const std::string &path) {
             if (t.size() != 11) {
                 throw std::runtime_error("load_qp_dump: bad opts line in " + path);
             }
-            d.opts.primal_delta = num(t[0]);
-            d.opts.dual_mu = num(t[1]);
-            d.opts.feas_tol = num(t[2]);
-            d.opts.opt_tol = num(t[3]);
-            d.opts.max_iter = std::stol(t[4]);
-            d.opts.schur_cap = std::stol(t[5]);
-            d.opts.schur_cond_max = num(t[6]);
-            d.opts.ws_algebra = std::stoi(t[7]) == 0
-                                    ? solvers::WorkingSetLinearAlgebra::kRefactorize
-                                    : solvers::WorkingSetLinearAlgebra::kSchurBorder;
-            d.opts.tr_radius = num(t[8]);
+            d.opts.primal_regularization = num(t[0]);
+            d.opts.dual_regularization = num(t[1]);
+            d.opts.feasibility_tol = num(t[2]);
+            d.opts.optimality_tol = num(t[3]);
+            // The dump records the derived cap as 0 (or less): that is "empty" now.
+            if (const long cap = std::stol(t[4]); cap > 0) {
+                d.opts.max_iterations = cap;
+            }
+            d.opts.max_schur_border_dimension = std::stol(t[5]);
+            d.opts.schur_condition_max = num(t[6]);
+            d.opts.working_set_algebra = std::stoi(t[7]) == 0
+                                             ? hven::QpWorkingSetAlgebra::kRefactorize
+                                             : hven::QpWorkingSetAlgebra::kSchurBorder;
+            d.opts.trust_region_radius = num(t[8]);
             d.opts.independent_working_set = std::stoi(t[9]) != 0;
             d.threads = std::stoi(t[10]);
             continue;
@@ -95,9 +106,9 @@ inline QpDump load_qp_dump(const std::string &path) {
         if (key == "overrides") {
             std::string a, b, c;
             is >> a >> b >> c;
-            d.overrides.tr_radius = num(a);
-            d.overrides.primal_delta = num(b);
-            d.overrides.dual_mu = num(c);
+            d.overrides.trust_region_radius = num(a);
+            d.overrides.primal_regularization = num(b);
+            d.overrides.dual_regularization = num(c);
             continue;
         }
         if (key == "warm") {
@@ -109,6 +120,13 @@ inline QpDump load_qp_dump(const std::string &path) {
         }
         if (key == "result") {
             d.result = line;
+            // hkc = QpOptions::hessian_known_convex as the solve ran (absent: false).
+            std::string tok;
+            while (is >> tok) {
+                if (tok.rfind("hkc=", 0) == 0) {
+                    d.opts.hessian_known_convex = tok == "hkc=1";
+                }
+            }
             continue;
         }
         std::vector<long> nums;
@@ -171,7 +189,7 @@ inline QpDump load_qp_dump(const std::string &path) {
     if (d.has_seed) {
         d.seed.x = vec["seed_x"];
         for (const long b : ivec["seed_bound_state"]) {
-            d.seed.bound_state.push_back(static_cast<solvers::BoundState>(b));
+            d.seed.bound_state.push_back(static_cast<hven::BoundState>(b));
         }
         for (const long a : ivec["seed_ineq_active"]) {
             d.seed.ineq_active.push_back(a != 0);
@@ -181,8 +199,8 @@ inline QpDump load_qp_dump(const std::string &path) {
 }
 
 /// Re-solve the dump on a fresh engine, with the dumped options except those the caller changed.
-inline solvers::QpSolution solve_qp_dump(const QpDump &d, const solvers::QpOptions &opts) {
-    const solvers::QpEngine engine(opts, d.threads);
+inline hven::detail::QpSolution solve_qp_dump(const QpDump &d, const hven::QpOptions &opts) {
+    const hven::detail::QpEngine engine(opts, d.threads, hven::linear::DensePolicy::kNever);
     return d.has_seed ? engine.solve(d.qp, d.seed, d.overrides) : engine.solve(d.qp, d.overrides);
 }
 
@@ -194,24 +212,35 @@ inline double qp_dump_objective(const QpDump &d, const Vec &x) {
 /// largest violation); `stationarity` is ||Hx + g + Ae'le + Ai'li - z||_inf over the largest
 /// term in it (scale >= 1); `sign` is the largest wrong-signed multiplier and `complementarity`
 /// the largest |multiplier * slack| on a constraint the point is not on, over the same scale.
+///
+/// `stationarity_beyond_rounding` is the same residual with each component's ROUNDING FLOOR taken
+/// out first: component i is a sum of c_i terms (g_i, z_i and the nonzeros of column i of H, Ae and
+/// Ai) whose magnitudes add to m_i, so evaluating it in double -- and rounding the multipliers it
+/// is formed from -- can leave c_i * eps * m_i even at an exact KKT point (Higham, the gamma_n dot
+/// product bound). It reads max_i max(0, |r_i| - c_i * eps * m_i) / scale. Where the terms do not
+/// cancel it equals `stationarity` to within c_i * eps; where huge terms cancel to a small sum the
+/// normwise figure can sit below what double precision can resolve (C11 SAWPATH: terms of 2.4e13
+/// cancelling to 3.6e2), and only this one is a check a correct answer passes on every build.
 struct QpDumpKkt {
     double eq = 0.0;
     double ineq = 0.0;
     double box = 0.0;
     double stationarity = 0.0;
+    double stationarity_beyond_rounding = 0.0;
     double sign = 0.0;
     double complementarity = 0.0;
     double scale = 1.0;
 };
 
-inline QpDumpKkt qp_dump_kkt(const QpDump &d, const solvers::QpSolution &s) {
-    const solvers::QpProblem &qp = d.qp;
+inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::detail::QpSolution &s) {
+    const hven::detail::QpProblem &qp = d.qp;
     const Index n = qp.n();
     QpDumpKkt k;
     Vec lo = qp.lower;
     Vec up = qp.upper;
-    const double tr =
-        std::isfinite(d.overrides.tr_radius) ? d.overrides.tr_radius : d.opts.tr_radius;
+    const double tr = std::isfinite(d.overrides.trust_region_radius)
+                          ? d.overrides.trust_region_radius
+                          : d.opts.trust_region_radius;
     if (std::isfinite(tr)) {
         Vec x0 = d.has_seed ? d.seed.x : Vec::Zero(n);
         for (Index i = 0; i < n; ++i) {
@@ -265,6 +294,38 @@ inline QpDumpKkt qp_dump_kkt(const QpDump &d, const solvers::QpSolution &s) {
         }
     }
     k.stationarity = r.lpNorm<Eigen::Infinity>() / k.scale;
+    {
+        // The rounding floor of each component of r (see QpDumpKkt): term magnitudes m and term
+        // counts c, column by column.
+        const SpMatRM h_abs = qp.H.cwiseAbs();
+        const SpMatRM h_pat = h_abs.cwiseSign();
+        const Vec ones_n = Vec::Ones(n);
+        Vec m = h_abs.selfadjointView<Eigen::Upper>() * s.x.cwiseAbs() + qp.g.cwiseAbs() +
+                s.z.cwiseAbs();
+        Vec c = h_pat.selfadjointView<Eigen::Upper>() * ones_n + Vec::Constant(n, 2.0);
+        if (qp.me() > 0 && s.lambda_e.size() == qp.me()) {
+            const SpMatRM a_abs = qp.Ae.cwiseAbs();
+            m += a_abs.transpose() * s.lambda_e.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
+        }
+        if (qp.mi() > 0 && s.lambda_i.size() == qp.mi()) {
+            const SpMatRM a_abs = qp.Ai.cwiseAbs();
+            m += a_abs.transpose() * s.lambda_i.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
+        }
+        constexpr double kEps = std::numeric_limits<double>::epsilon();
+        double beyond = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            const double excess = std::abs(r(i)) - c(i) * kEps * m(i);
+            // NaN-sticky: a NaN residual is never "within rounding".
+            if (std::isnan(excess)) {
+                beyond = excess;
+                break;
+            }
+            beyond = std::max(beyond, excess);
+        }
+        k.stationarity_beyond_rounding = beyond / k.scale;
+    }
     for (Index i = 0; i < n; ++i) {
         const double zi = s.z(i);
         // z > 0 belongs at the lower bound, z < 0 at the upper one.

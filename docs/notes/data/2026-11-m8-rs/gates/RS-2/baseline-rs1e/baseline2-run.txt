@@ -1,0 +1,13 @@
+== baseline head 3edf5ede4ef2cd95f1fa5d94ae19d40e018ae1d3 2026-11-18T09:06:06-05:00
+build rc=0
+build rc=0
+FOREGROUND_END 2026-11-18T09:09:50-05:00
+capture rc=0
+lists rc=0
+EXECUTABLE SET DIFFERS ['hven_example_01_hs071_both_engines.txt', 'hven_example_02_bounded_rosenbrock.txt', 'hven_example_03_equality_constrained.txt', 'hven_example_04_partitioned_chain.txt', 'hven_example_05_warm_continuation.txt', 'hven_example_06_ipm_to_sqp_polish.txt', 'hven_example_07_sqp_quasi_newton.txt', 'hven_example_08_results_trace_options.txt']
+executables 12; gtest names with a raw byte dump: 0; gtest lists raw-identical: True; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_DIFFER
+replay rc=0
+ctest rc=0
+100% tests passed, 0 tests failed out of 3869
+== baseline done 2026-11-18T09:17:41-05:00

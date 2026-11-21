@@ -1,0 +1,35 @@
+# Raw data of the v4 escalation experiment (dev runs, not legs). Untracked, in worktree seq2 (branch sparse-equil-v2 e9a38ba36 + the dev
+# instrument .scratch/seq4/devdbg-v4.patch, which never ships); sha256 at the time of the round.
+ce6454f4ae1a7d932a6c2d4ceecc29f1846e0628c1ade0559ec3854df3709fd4  .scratch/seq4/esc.seam-all.log
+63d0d35a1588e4282042a225df9c7173edf3166e47ae85de8180af0b4ddcd732  .scratch/seq4/esc.dumps.log
+3631adb7ec1987c35a4695ca1591eacc0ae8b3ca61f725b04ac4bf030c08e35d  .scratch/seq4/esc.qp26.log
+ce87be660724775240bb6c1a02a396c4712ea8b7f10fd69f3994ebe18152376b  .scratch/seq4/esc.refactorize
+ce87be660724775240bb6c1a02a396c4712ea8b7f10fd69f3994ebe18152376b  .scratch/seq4/esc.border
+1a1dca55525be4c9a7fc607ed435f93f27602b23194723344813bce58cea3389  .scratch/seq4/escB.seam-all.log
+4b3a078e69939c73b0616c7861780c8ff1db7edbb85d354a336c6fed15a36132  .scratch/seq4/escB.dumps.log
+b62d2d8f640062fa8698271eaca96db1949b0c5eedd990eb8c14a29aea507850  .scratch/seq4/escB.qp26.log
+f30839665bc2fd169ac5ace5af6f05a49505a4b5e963a10e779bbf3fbef1411b  .scratch/seq4/cells-esc/ALLINITC.never-default.out
+16c86eadbd2b6d81a193a6124cc7bf289fa750cdc2a18803ee33e0bd2c489869  .scratch/seq4/cells-esc/BRITGAS.default.out
+7e162911ee6320c047bb6dcb2d2bb7a7711ef397088f0207a907f07693b339ac  .scratch/seq4/cells-esc/CRESC100.default.out
+e73d5259b8a4c339b2dcf77d3e8a56cfd82d971cfe7386197e07da790394c012  .scratch/seq4/cells-esc/CRESC100.never-default.out
+e1490f0f41693f90f25b1c4ac938a8f325f88554c715a9f2e575ef0254d6a4b1  .scratch/seq4/cells-esc/CRESC4.default.out
+6d2631abb6d6a11af0d4528060baf904772ef8dbff362a2ef535687eb78899e5  .scratch/seq4/cells-esc/CRESC4.never-default.out
+87e7ea1b3efa23866f4c9cc26de8cd0420116b80cadefe0553d4ebce92a158f8  .scratch/seq4/cells-esc/CRESC50.default.out
+7462392285e17a45b7ec480817ee1d5d0a12f7675d8cc7de71692021c66aa938  .scratch/seq4/cells-esc/CRESC50.never-default.out
+c108beba2edaff48adedb87400910ba577d5df69deaca3e0b31d944232a1bab5  .scratch/seq4/cells-esc/STEENBRB.default.out
+101d23bd4118bec3c43caa4315c4701d4d2f7a848786b0a3d1f82583c6ad8551  .scratch/seq4/cells-esc/YORKNET.default.out
+51458d611179201a2c9f5c5f17e8ef279ea8ec1c17a28a38675a7250b74279f1  .scratch/seq4/cells-escB/ALLINITC.never-default.out
+3371d6e523c910262e7bd36aa985e0f202de63e239af292a6b1e39a64553bbc4  .scratch/seq4/cells-escB/BRITGAS.default.out
+f921e7f063ceffd620b880742dd698be8db2022549d944e9aa6de1b67710725a  .scratch/seq4/cells-escB/CRESC100.default.out
+b269bfd034784fc0d8ad80bcc40482da65a005999bd03311b50a08fa160d5fe7  .scratch/seq4/cells-escB/CRESC100.never-default.out
+e1490f0f41693f90f25b1c4ac938a8f325f88554c715a9f2e575ef0254d6a4b1  .scratch/seq4/cells-escB/CRESC4.default.out
+ba4c4c4a4f56b674399a5daa53c64847c21dbf8a40261722130db04bd2043f69  .scratch/seq4/cells-escB/CRESC4.never-default.out
+710f9903be540c08ceb775fb5a56b23da74a717162d0812f189a999c12e74af0  .scratch/seq4/cells-escB/CRESC50.default.out
+757fd96881dd3f3b13547288a11dda23b37bab5ff8831a8f209e96c7e7699f3b  .scratch/seq4/cells-escB/CRESC50.never-default.out
+b1f0704edbaaf0c52525e1180c4e2cb2f7abb2797be3d96bfa4f9c335c650a95  .scratch/seq4/cells-escB/STEENBRB.default.out
+85d0e823ebff90358844948be3996193caba3e1d178713f5b05031f0806b279b  .scratch/seq4/cells-escB/YORKNET.default.out
+2c4534caa83117325330b9d644206ddf1ecce810b71634706648ba386176b3d2  .scratch/seq4/cells-esc-dbg/CRESC100.never-default.err
+5cb25f07f47cb3a51bcf165e419fa208ff20f04362cd92a4faa275058e7ad169  .scratch/seq4/cells-escB-dbg/CRESC100.never-default.err
+8cf23e0154b464c6b1702db73022dcce2dd112241ae36a9d14a7656d1205db46  .scratch/seq4/devdbg-v4.patch
+6aadd61dd37a81cadde7923e73743f3fe4ec4353e9fa97452302220987953af3  .scratch/bin/cell-v4esc
+fb222ec5604f721b20b6ac5ae06c3a88a102760bef39c7aaf9842797e0f7c262  .scratch/bin/cell-v4escB

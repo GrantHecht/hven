@@ -1,0 +1,5 @@
+OK   docs/trace-schema-v0.md: | `last_kkt_info` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success fa
+OK   tests/interior/test_ipm_trace.cpp: EXPECT_NE(mask_wall_clock(silent.first).find("\"last_kkt_info\":\"success\""),
+OK   tests/sqp/test_trace_writer.cpp: EXPECT_EQ(raw_field(os.str(), "last_kkt_info"), spec_spelling(v));
+OK   tests/sqp/test_trace_writer.cpp: "\"last_kkt_info\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
+pairs: 4  failures: 0

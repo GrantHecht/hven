@@ -1,0 +1,14 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-18T10:09:05-05:00
+36e09eddc23482ca561cde06cd7288d25bf7f40c492c0a70e9143a0cce02d7d6  /home/ghecht/Projects/hven/.claude/worktrees/rs2/build/bench/hven_sqp_corpus
+run walk rc=0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+compare walk rc=0
+run ssn rc=0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+compare ssn rc=0
+run ipm rc=0
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+compare ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-18T10:14:39-05:00

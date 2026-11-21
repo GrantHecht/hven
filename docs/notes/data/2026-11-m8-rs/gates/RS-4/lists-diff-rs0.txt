@@ -1,0 +1,4 @@
+DIFFERS hven_sqp_tests.txt 1632 1648 0 0
+DIFFERS ctest-N.txt 3871 3887 133 133
+executables 12; gtest names with a raw byte dump: 0; gtest lists raw-identical: False; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_DIFFER

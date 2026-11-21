@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index 014977b18..2093f37f6 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -43,7 +43,7 @@ inline bool trust_region_grows(SqpTrustRegionGrowth rule, bool failure_step, boo
+     case SqpTrustRegionGrowth::kRatioOrFeasibilityStep:
+         return ratio || feasibility_step;
+     case SqpTrustRegionGrowth::kAnyAccepted:
+-        return true;
++        return ratio;
+     }
+     return ratio;
+ }

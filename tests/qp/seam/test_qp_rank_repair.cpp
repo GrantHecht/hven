@@ -1,0 +1,478 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// test_qp_rank_repair.cpp -- M7 W2 RDV: THE DEAD-END RANK REPAIR (walk_engine.h, Degeneracy;
+// ws_independence.h, rank_repair). Three subproblems of the exact-Hessian TRAIN cells YORKNET and
+// SAWPATH, every one FEASIBLE by an external oracle (HiGHS phase 1 minimum l1 violation 0), on
+// which BOTH algebras of the independent working set's walk ended kNumericalError at the add
+// site's dead end (no admissible member: dep_blocker_terminations, or a cond1 certificate that
+// failed verification: dep_certificate_rejections) while standing at a RANK-DEFICIENT working set
+// (normalized sigma_min 1e-13 .. 1e-17) off its equality rows:
+//   * C11_YORKNET_qp1 (the elastic rung of major 0; convex, H a nonnegative diagonal). Stall-
+//     admitted pins (a regularized test whose refinement stalled at rho 1e-2: H is zero on 493 of
+//     508 directions, so the face's delta pivots are the backend's to perturb) made the face
+//     INCONSISTENT: e110 = -3.3e-4 x6 - x21 + x22 + x390 with x21, x22, x390 pinned; deficiency 4
+//     at the dead end, the screen (me + |W| = n) calling every later blocker dependent. Oracle:
+//     Clarabel Solved, f* = 1696529.7293693814 (rows to 9e-13).
+//   * C11_SAWPATH_qp1 (the elastic rung of major 0; convex). The equality block ITSELF is
+//     numerically rank-deficient (normalized spectrum 24 .. 1e-11, row norms to 6e10): the screen
+//     counts its 578 rows and calls a blocker of rho 4.9e-5 dependent, its certificate rejected.
+//     No sharp oracle: Clarabel AlmostSolved, f = -376.225617384 at a point 8e-4 off its rows
+//     (row-equilibrated, -435.6 at a relative 1e-10): the QP is ill-posed at the feasibility
+//     tolerance, so the walk's exactly feasible point is checked against the oracle's value with
+//     the first-order bound its own residual allows (below), not to 1e-9.
+//   * RDV_YORKNET_qp5 (a restoration sub-solve's QP; nonconvex, 96 negative eigenvalues). An
+//     exchange on coefficients polluted by residual / sigma_min released a pin outside the
+//     dependency it was decided on (x8 completes e12 = -x0 + x8 + x324 - x580 exactly; the
+//     coefficients also carried 3.9e-4 on x429, the pin released): a CONSISTENT deficiency of 1.
+//     No oracle optimum; success is a KKT point the walk certifies, read here independently.
+// YORKNET qp1 reaches the oracle's optimum on both configurations; for the other two see
+// expect_repaired. MINOR AND FACTORIZATION COUNTS ARE PRINTED, NEVER ASSERTED.
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <string>
+
+#include <gtest/gtest.h>
+
+#include <hven/detail/qp/walk/walk_engine.h>
+
+#include "qp/support/qp_dump.h"
+#include "support/route_reference.h"
+
+using namespace hven;
+using namespace hven::detail;
+using hven::Index;
+using hven::test_support::QpDump;
+
+namespace {
+
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
+
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
+    d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
+    QpOptions o = d.opts;
+    o.working_set_algebra = alg;
+    EXPECT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
+    const QpSolution s = hven::test_support::solve_qp_dump(d, o);
+    std::printf(
+        "[ rdv ] %s %s status=%d minors=%ld facts=%ld f=%.12g rank_repairs=%ld "
+        "releases=%ld misses=%ld blkterm=%ld certrej=%ld\n",
+        file, alg == kBorder ? "border" : "refactorize", static_cast<int>(s.status),
+        static_cast<long>(s.counters.minor_iters), static_cast<long>(s.counters.factorizations),
+        hven::test_support::qp_dump_objective(d, s.x), static_cast<long>(s.counters.rank_repairs),
+        static_cast<long>(s.counters.rank_repair_releases),
+        static_cast<long>(s.counters.rank_repair_misses),
+        static_cast<long>(s.counters.dep_blocker_terminations),
+        static_cast<long>(s.counters.dep_certificate_rejections));
+    return s;
+}
+
+// The pins' multipliers carry their bound's sign (z >= 0 at a lower bound, <= 0 at an upper one).
+double pin_sign_violation(const QpSolution &s) {
+    double worst = 0.0;
+    for (std::size_t i = 0; i < s.bound_state.size(); ++i) {
+        const double zi = s.z(static_cast<Index>(i));
+        if (s.bound_state[i] == BoundState::kAtLower) {
+            worst = std::max(worst, -zi);
+        } else if (s.bound_state[i] == BoundState::kAtUpper) {
+            worst = std::max(worst, zi);
+        }
+    }
+    return worst;
+}
+
+// THE ENGINE'S OWN ROW CONTRACT AT A CERTIFIED EXIT, recomputed here from the dump and the
+// exported (x, lambda_e) rather than read off the engine: a kOptimal exit requires every
+// equality row's residual within 1x of its tolerance, |r_j| <= row_tolerance(row_scale_j,
+// lambda_j) with row_tolerance = max(feas_tol * row_scale, min(dual_mu * |lambda_j|,
+// kInfeasibilityAbsorbTol * row_scale)) and row_scale_j = max(1, |be_j|, ||Ae_j||_1 * ||x||_inf)
+// (walk_engine.cpp, worst_row_ratio / row_tolerance). The kInfeasibilityMarginFactor (10x) is the
+// infeasibility classifier's margin and is not the kOptimal contract. `ratio` is the worst
+// |r_j| over the tolerance (<= 1: every row meets it).
+struct EqRowContract {
+    double ratio = 0.0;
+    Index row = -1;
+    double resid = 0.0;
+    double row_scale = 0.0;
+    double lambda = 0.0;
+};
+
+EqRowContract eq_row_contract(const QpDump &d, const QpSolution &s) {
+    const QpProblem &qp = d.qp;
+    const double feas = d.opts.feasibility_tol;
+    const double mu = d.overrides.dual_regularization >= 0.0 ? d.overrides.dual_regularization
+                                                             : d.opts.dual_regularization;
+    const double xmag = s.x.lpNorm<Eigen::Infinity>();
+    EqRowContract c;
+    for (Index j = 0; j < qp.me(); ++j) {
+        const double r = std::abs(qp.Ae.row(j).dot(s.x) - qp.be(j));
+        const double rs = std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
+        const double lam = s.lambda_e.size() == qp.me() ? s.lambda_e(j) : 0.0;
+        const double tol =
+            std::max(feas * rs, std::min(mu * std::abs(lam), detail::kInfeasibilityAbsorbTol * rs));
+        const double ratio = r / tol;
+        if (ratio > c.ratio) {
+            c = {ratio, j, r, rs, lam};
+        }
+    }
+    return c;
+}
+
+// A KKT point the walk certified, read independently of the walk: rows and box to an absolute
+// tolerance, the multipliers' signs, stationarity and complementarity (qp_dump_kkt's scaled
+// readings), and at least one repair taken where the dead end stood.
+void expect_kkt_battery(const QpDump &d, const QpSolution &s, double stationarity_tol) {
+    const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+    EXPECT_LE(k.eq, 1e-8);
+    EXPECT_LE(k.ineq, 1e-8);
+    EXPECT_LE(k.box, 1e-9);
+    EXPECT_LE(k.stationarity, stationarity_tol);
+    EXPECT_LE(k.sign, 1e-9);
+    EXPECT_LE(k.complementarity, 1e-8);
+    EXPECT_LE(pin_sign_violation(s), 1e-9 * k.scale);
+}
+
+void expect_certified_kkt(const QpDump &d, const QpSolution &s, double stationarity_tol) {
+    ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_GE(s.counters.rank_repairs, 1);
+    EXPECT_GE(s.counters.rank_repair_releases, s.counters.rank_repairs);
+    EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+    EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+    expect_kkt_battery(d, s, stationarity_tol);
+}
+
+constexpr double kYorknetQp1Oracle = 1696529.7293693814;
+// SAWPATH qp1: the oracle's value at a point 8e-4 off its rows, and the first-order bound on
+// how far below an exactly feasible KKT point the true minimum can sit: f(x) - f* <= ||r||_inf
+// ||x - x*||_1 with r the walk's stationarity residual (6.1e-5 measured) and x, x* in the box
+// (sum of widths 1.17e3) -- 0.072, rounded up to 0.1.
+constexpr double kSawpathQp1Oracle = -376.225617384;
+constexpr double kSawpathQp1Band = 0.1;
+
+void expect_yorknet_qp1(QpWorkingSetAlgebra alg) {
+    QpDump d;
+    const QpSolution s = solve_fixture("C11_YORKNET_qp1.txt", alg, d);
+    // The premise: in-cell, this convex feasible subproblem ended kNumericalError (468 minors).
+    EXPECT_NE(d.result.find("status=3 minors=468"), std::string::npos) << d.result;
+#if HVEN_TEST_ROUTE_REFERENCE
+    expect_certified_kkt(d, s, 1e-8);
+#else
+    // OFF THE REFERENCE BUILD (WX B6): whether the walk takes a rank repair, and how it
+    // gets past the dead end, is a route (the Windows MKL lane certifies this fixture with
+    // rank_repairs = 0). Recorded, not pinned. The portable contract: never kInfeasible on
+    // this feasible fixture, and, if kOptimal, the KKT battery and the convex objective.
+    hven::test_support::record_off_reference_route(
+        alg == kBorder ? "yorknet_qp1_border" : "yorknet_qp1_refactorize",
+        "status=" + std::to_string(static_cast<int>(s.status)) +
+            " minors=" + std::to_string(s.counters.minor_iters) +
+            " rank_repairs=" + std::to_string(s.counters.rank_repairs) +
+            " rank_repair_releases=" + std::to_string(s.counters.rank_repair_releases) +
+            " dep_blocker_terminations=" + std::to_string(s.counters.dep_blocker_terminations) +
+            " dep_certificate_rejections=" + std::to_string(s.counters.dep_certificate_rejections));
+    EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+    if (s.status != QpStatus::kOptimal) {
+        return;
+    }
+    expect_kkt_battery(d, s, 1e-8);
+#endif
+    const double f = hven::test_support::qp_dump_objective(d, s.x);
+    EXPECT_LE(std::abs(f - kYorknetQp1Oracle), 1e-9 * std::abs(kYorknetQp1Oracle))
+        << "f = " << f << " against the oracle's " << kYorknetQp1Oracle;
+}
+
+void print_walk(const char *tag, const QpDump &d, const QpSolution &s) {
+    const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+    std::printf("[ rdv ] %s status=%d minors=%ld stagnation_drops=%ld stagnation_stops=%ld "
+                "f=%.12g stationarity=%.3e eq=%.3e\n",
+                tag, static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
+                static_cast<long>(s.counters.stagnation_drops),
+                static_cast<long>(s.counters.stagnation_stops),
+                hven::test_support::qp_dump_objective(d, s.x), k.stationarity, k.eq);
+    const EqRowContract c = eq_row_contract(d, s);
+    std::printf("[ rdv ] %s eq row contract: worst ratio=%.3e row=%ld resid=%.3e row_scale=%.4g "
+                "lambda=%.6g\n",
+                tag, c.ratio, static_cast<long>(c.row), c.resid, c.row_scale, c.lambda);
+}
+
+// SAWPATH qp1 and YORKNET qp5: the dead end is repaired on every configuration; what the walk then
+// reaches is NOT configuration-independent. Release certifies a KKT point (asserted below). Debug's
+// rounding leads both into a two-pass cycle of full steps on the face they reach (SAWPATH:
+// stationarity stalls on the equality block's 1e-11 singular values; YORKNET qp5: on a full-rank
+// square face, sigma_min 0.027, the EQP answer from the point on the rows misses them by 1.2e-2
+// and the next answer returns); until M7 W2 SNX the minor cap ended both cycles. THE STAGNATION
+// READING (walk_engine.h) now ends each with a drop, and Debug too certifies the KKT point Release
+// reaches (declared, Debug only): SAWPATH f = -376.163994774, inside the oracle band below;
+// YORKNET qp5 f = -1078.49295775, Release's pin. The kOptimal status stays asserted in Release
+// only. Asserted on both: the rule's own effect (no dead-end exit, a repair taken) and NO FALSE
+// CERTIFICATE (kOptimal only at a KKT point; never kInfeasible).
+void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_tol,
+                     const char *off_reference_key = nullptr) {
+#if !HVEN_TEST_ROUTE_REFERENCE
+    // Off the reference build a fixture that names a key (SAWPATH qp1: an exactly dependent
+    // equality block Pardiso's pivot perturbation decides on MKL and nothing equivalent decides
+    // elsewhere) records its route instead of pinning it (WX design section 2.1): the repair
+    // count, the certificate-rejection and blocker-termination counters, the stagnation counters
+    // and the status. The portable contract: never kInfeasible on a feasible fixture, and, if
+    // kOptimal, the battery. Fixtures without a key keep the pins below on every build.
+    if (off_reference_key != nullptr) {
+        hven::test_support::record_off_reference_route(
+            off_reference_key,
+            "status=" + std::to_string(static_cast<int>(s.status)) +
+                " minors=" + std::to_string(s.counters.minor_iters) +
+                " rank_repairs=" + std::to_string(s.counters.rank_repairs) +
+                " dep_blocker_terminations=" + std::to_string(s.counters.dep_blocker_terminations) +
+                " dep_certificate_rejections=" +
+                std::to_string(s.counters.dep_certificate_rejections) +
+                " stagnation_drops=" + std::to_string(s.counters.stagnation_drops) +
+                " stagnation_stops=" + std::to_string(s.counters.stagnation_stops));
+        EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        if (s.status == QpStatus::kOptimal) {
+            // The battery without the route counters (a repair taken, no blocker termination,
+            // no certificate rejection), which expect_certified_kkt pins for the reference
+            // build. The equality rows are read against the engine's OWN certification
+            // contract (eq_row_contract), not the reference build's absolute 1e-8: off the
+            // reference build the walk reaches the point by another route (YORKNET qp5 on the
+            // AVX-512 Intel runners of CI runs 43501262925 and 43655190606: 1176 minors, two
+            // repairs, the same f to 3e-11 relative, eq 2.08e-7), and the claim this arm
+            // guards is NO FALSE CERTIFICATE -- a kOptimal whose rows the engine's own
+            // contract would refuse (a row past 1x of its tolerance) -- which is exactly
+            // ratio <= 1. On a row of scale 1 with |lambda| <= 1 the bound is the old 1e-8.
+            const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+            const EqRowContract c = eq_row_contract(d, s);
+            char contract[160];
+            std::snprintf(contract, sizeof contract,
+                          "eq=%.3e worst_ratio=%.3e row=%ld resid=%.3e row_scale=%.4g lambda=%.6g",
+                          k.eq, c.ratio, static_cast<long>(c.row), c.resid, c.row_scale, c.lambda);
+            hven::test_support::record_off_reference_route(
+                std::string(off_reference_key) + "_eq_contract", contract);
+            // The kOptimal row contract: every equality row within 1x of its tolerance on
+            // whatever route reached the point (KOPT-1X R2 restores the 1x the interim ruling
+            // relaxed to 10x). The 1x ratio and the gray-exit counter stay recorded.
+            hven::test_support::record_off_reference_route(
+                std::string(off_reference_key) + "_eq_ratio_1x",
+                "ratio=" + std::to_string(c.ratio) +
+                    " optimal_row_gray_exits=" + std::to_string(s.counters.optimal_row_gray_exits));
+            EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid
+                                    << " at row scale " << c.row_scale << ", lambda " << c.lambda;
+            EXPECT_LE(k.ineq, 1e-8);
+            EXPECT_LE(k.box, 1e-9);
+            EXPECT_LE(k.stationarity, stationarity_tol);
+            EXPECT_LE(k.sign, 1e-9);
+            EXPECT_LE(k.complementarity, 1e-8);
+            EXPECT_LE(pin_sign_violation(s), 1e-9 * k.scale);
+        }
+        return;
+    }
+#else
+    (void)off_reference_key;
+#endif
+    EXPECT_GE(s.counters.rank_repairs, 1);
+    EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
+    EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
+    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kIterationLimit)
+        << static_cast<int>(s.status);
+#ifdef NDEBUG
+    // Release: the repaired walk REACHES its KKT point.
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#else
+    // Debug: the declared move, a stagnation drop out of the two-pass cycle, then the KKT point.
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_GE(s.counters.stagnation_drops, 1);
+#endif
+    if (s.status == QpStatus::kOptimal) {
+        expect_certified_kkt(d, s, stationarity_tol);
+    }
+}
+
+void expect_sawpath_qp1(QpWorkingSetAlgebra alg) {
+    QpDump d;
+    const QpSolution s = solve_fixture("C11_SAWPATH_qp1.txt", alg, d);
+    print_walk("SAWPATH qp1", d, s);
+    EXPECT_NE(d.result.find("status=3 minors=6"), std::string::npos) << d.result;
+    // Scaled stationarity 5.0e-7 measured in Release and 2.2e-6 in Debug: the equality block's
+    // 1e-11 singular values bound the multipliers' accuracy, so one bound, 1e-5, holds both.
+    expect_repaired(d, s, 1e-5, alg == kBorder ? "sawpath_qp1_border" : "sawpath_qp1_refactorize");
+    if (s.status == QpStatus::kOptimal) {
+        const double f = hven::test_support::qp_dump_objective(d, s.x);
+        EXPECT_LE(std::abs(f - kSawpathQp1Oracle), kSawpathQp1Band)
+            << "f = " << f << " against the oracle's " << kSawpathQp1Oracle;
+    }
+}
+
+void expect_yorknet_qp5(QpWorkingSetAlgebra alg) {
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    print_walk("YORKNET qp5", d, s);
+    EXPECT_NE(d.result.find("status=3 minors=546"), std::string::npos) << d.result;
+    // Off the reference build the repair count, the blocker-termination counter and the status
+    // are a route (WX B7: an AVX-512 MKL runner ended this nonconvex sub-solve kNumericalError
+    // with a dep blocker termination, an honest exit): recorded, not pinned.
+    expect_repaired(d, s, 1e-8, alg == kBorder ? "yorknet_qp5_border" : "yorknet_qp5_refactorize");
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE
+    // Release reaches the KKT point f = -1078.49 (RDV measurement; no oracle optimum: a nonconvex
+    // restoration sub-solve, so the value is pinned as the walk's own certified point).
+    EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), -1078.49, 5e-3);
+#endif
+}
+
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp1Border) { expect_yorknet_qp1(kBorder); }
+TEST(QpRdvRankRepair, YorknetQp1Refactorize) { expect_yorknet_qp1(kRefactorize); }
+TEST(QpRdvRankRepair, SawpathQp1Border) { expect_sawpath_qp1(kBorder); }
+TEST(QpRdvRankRepair, SawpathQp1Refactorize) { expect_sawpath_qp1(kRefactorize); }
+TEST(QpRdvRankRepair, YorknetQp5Border) { expect_yorknet_qp5(kBorder); }
+TEST(QpRdvRankRepair, YorknetQp5Refactorize) { expect_yorknet_qp5(kRefactorize); }
+
+// THE SEAM DROP IDENTITY of a repair: with the walk observer attached, every kRankRepair record's
+// working set shrinks by exactly the members it released, so the records' total equals the
+// rank_repair_releases counter, and their number equals rank_repairs. (YORKNET qp5's repair is
+// the cheapest of the three to reach.)
+TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
+    using Obs = hven::detail::testing::QpWalkObserver;
+    using Action = hven::detail::testing::QpWalkAction;
+    Obs::reset();
+    Obs::active = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", kBorder, d);
+    Obs::active = false;
+    ASSERT_FALSE(Obs::truncated);
+    ASSERT_GE(s.counters.rank_repairs, 1);
+    Index repairs = 0;
+    Index shrunk = 0;
+    for (const auto &r : Obs::records) {
+        if (r.action == Action::kRankRepair) {
+            ++repairs;
+            shrunk += r.ws_size_in + r.shift_adds - r.ws_size_out;
+        }
+    }
+    EXPECT_EQ(repairs, s.counters.rank_repairs);
+    EXPECT_EQ(shrunk, s.counters.rank_repair_releases);
+    Obs::reset();
+}
+
+// KOPT-1X R2: THE POST-REPAIR GRAY ZONE (a regression pin, see the discriminator below). The repair
+// seam moves the iterate along equality row 246 to 6.88 floor units of that row, immediately before
+// the successful rank-repair `continue` and with the gray hold untouched; the walk's own
+// certification contract is then what is under test: kOptimal only with every equality row within
+// 1x of its tolerance. Intel branch 14 reached this state naturally (CI: row 246 at 6.88x,
+// certified).
+namespace {
+void expect_yorknet_qp5_post_repair_gray(QpWorkingSetAlgebra alg) {
+    using Seam = hven::detail::testing::QpRepairSeam;
+    Seam::reset();
+    Seam::armed = true;
+    Seam::row = 246;
+    Seam::floor_units = 6.88;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Seam::armed = false;
+    ASSERT_GE(Seam::fires, 1) << "the seam never fired: no successful rank repair";
+    std::printf("[ rdv ] seam row 246 %.3f -> %.3f floor units at minor %ld (hold flag %d)\n",
+                Seam::ratio_before, Seam::ratio_after, static_cast<long>(Seam::minor_at_fire),
+                static_cast<int>(Seam::hold_at_fire));
+    const EqRowContract c = eq_row_contract(d, s);
+    std::printf("[ rdv ] post-repair gray: status=%d ratio=%.3e row=%ld gray_exits=%ld "
+                "polish adopted=%ld rejected=%ld\n",
+                static_cast<int>(s.status), c.ratio, static_cast<long>(c.row),
+                static_cast<long>(s.counters.optimal_row_gray_exits),
+                static_cast<long>(s.counters.terminal_polish_adopted),
+                static_cast<long>(s.counters.terminal_polish_rejected));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid << " at row scale "
+                            << c.row_scale << ", lambda " << c.lambda;
+    EXPECT_EQ(s.counters.optimal_row_gray_exits, 0);
+    Seam::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowBorder) {
+    expect_yorknet_qp5_post_repair_gray(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5PostRepairGrayRowRefactorize) {
+    expect_yorknet_qp5_post_repair_gray(kRefactorize);
+}
+
+// KOPT-1X R2: THE CERTIFIED GRAY ROW ON THE REAL FIXTURE. The repair seam above is absorbed by
+// the ordinary steps of the 373 passes that follow it (measured: the exit ratio is 7e-8 on the
+// base engine too), so it is a regression pin for the hold bookkeeping and not a discriminator.
+// The discriminator presents the walk's own certified point with row 246 moved to 6.88 floor
+// units through the certificate seam, on the first certificate read only: at the base engine
+// it was certified where it stood (ratio 6.88, one gray exit counted).
+namespace {
+void expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(QpWorkingSetAlgebra alg) {
+    using Cert = hven::detail::testing::QpCertificateSeam;
+    Cert::reset();
+    QpDump d0;
+    const QpSolution s0 = solve_fixture("RDV_YORKNET_qp5.txt", alg, d0);
+    ASSERT_EQ(static_cast<int>(s0.status), static_cast<int>(QpStatus::kOptimal));
+    const QpProblem &qp = d0.qp;
+    ASSERT_GT(qp.me(), 246);
+    const Vec a = qp.Ae.row(246).transpose();
+    const double xmag = s0.x.lpNorm<Eigen::Infinity>();
+    const double scale = std::max({1.0, std::abs(qp.be(246)), a.cwiseAbs().sum() * xmag});
+    const double target = 6.88 * d0.opts.feasibility_tol * scale;
+    Cert::x = s0.x + ((target - (a.dot(s0.x) - qp.be(246))) / a.squaredNorm()) * a;
+    Cert::z = s0.z;
+    Cert::first_only = true;
+    Cert::armed = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Cert::armed = false;
+    const EqRowContract c = eq_row_contract(d, s);
+    std::printf("[ rdv ] certified-gray: status=%d ratio=%.3e row=%ld gray_exits=%ld "
+                "presentations=%ld minors=%ld\n",
+                static_cast<int>(s.status), c.ratio, static_cast<long>(c.row),
+                static_cast<long>(s.counters.optimal_row_gray_exits),
+                static_cast<long>(Cert::presentations), static_cast<long>(s.counters.minor_iters));
+    // The certified gray point went back to the walk (and the returns are bounded).
+    EXPECT_GE(Cert::presentations, 2);
+    EXPECT_LE(Cert::presentations, 1 + hven::detail::kGrayReturnBudget);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid << " at row scale "
+                            << c.row_scale << ", lambda " << c.lambda;
+    EXPECT_EQ(s.counters.optimal_row_gray_exits, 0);
+    Cert::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkBorder) {
+    expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5CertifiedGrayRowIsReturnedToTheWalkRefactorize) {
+    expect_yorknet_qp5_certified_gray_row_is_returned_to_the_walk(kRefactorize);
+}
+
+// KOPT-1X R2 (b): A RANK-REPAIR `continue` DOES NOT SPEND THE GRAY HOLD. The repair seam marks the
+// pass as having issued the hold (force_hold) and moves the iterate to 6.88 floor units on row
+// 246; the pass after the repair must inherit no spent hold (a hold is spent by an ordinary step
+// only), and the solve must still certify within 1x.
+namespace {
+void expect_yorknet_qp5_repair_does_not_spend_the_hold(QpWorkingSetAlgebra alg) {
+    using Seam = hven::detail::testing::QpRepairSeam;
+    Seam::reset();
+    Seam::armed = true;
+    Seam::row = 246;
+    Seam::floor_units = 6.88;
+    Seam::force_hold = true;
+    QpDump d;
+    const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
+    Seam::armed = false;
+    ASSERT_GE(Seam::fires, 1);
+    EXPECT_EQ(Seam::prev_after_fire, 0) << "the repair consumed the hold";
+    const EqRowContract c = eq_row_contract(d, s);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE(c.ratio, 1.0);
+    Seam::reset();
+}
+} // namespace
+
+TEST(QpRdvRankRepair, YorknetQp5RepairDoesNotSpendTheHoldBorder) {
+    expect_yorknet_qp5_repair_does_not_spend_the_hold(kBorder);
+}
+TEST(QpRdvRankRepair, YorknetQp5RepairDoesNotSpendTheHoldRefactorize) {
+    expect_yorknet_qp5_repair_does_not_spend_the_hold(kRefactorize);
+}

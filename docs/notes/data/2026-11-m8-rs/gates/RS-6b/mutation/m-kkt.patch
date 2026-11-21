@@ -1,0 +1,13 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 76d4ee911..630fd1bff 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -178,7 +178,7 @@ PlatformRetake take_request(KktFactor &k) {
+ 
+ bool flagged(const hven::linear::FactorizeOutcome &o) {
+     return o.status == hven::linear::FactorizeOutcome::Status::kOk
+-               ? o.inertia.numerically_singular
++               ? !o.inertia.numerically_singular
+                : o.backend_code == hven::linear::kDenseSingular;
+ }
+ 

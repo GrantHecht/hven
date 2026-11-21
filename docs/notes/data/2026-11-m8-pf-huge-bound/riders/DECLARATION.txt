@@ -1,0 +1,47 @@
+M8 PF-HB riders (ruling C246: R1, R2, R3) -- DECLARATION (committed before the first leg; never edited afterwards;
+a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs kept)
+================================================================================
+Base        072ad8d2 (the PF-HB evidence head; code f96a3a0f = arm B).
+Code head   b2c3efb5  test+docs(m8-pf-hb): riders R1-R3. Files: tests/drivers/test_infinite_bound.cpp (one test),
+            tests/interior/test_soc.cpp (one test; SocTrialProblem gains a far-range variant, SocDrive a flag),
+            include/hven/detail/interior/barrier_math.h, include/hven/detail/interior/bound_set.h,
+            include/hven/drivers/common_options.h (comment text only), TYCHO-CATCH-UP.txt (new). Evidence commits
+            (this directory) follow and touch no source.
+Arm B       f96a3a0f: build-pfe/armBbin/hven_sqp_corpus sha256
+            3e1b7b1e70c099af16bd07fa7031b879e0e7103d5d6ba9f4b503e377be72d0f8; its library objects in build-pfe/rel.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1 (../legs/build.sh's flags).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY with arm B)
+--------------------------------------------------------------------------------
+E1  ENGINE: no byte moves. The three headers change comment text only (no line-sensitive macro in any of them);
+    no source file under src/ changes.
+E2  TESTS: 3479 -> 3481: HugeRealBound.TheAffineProbeRecoversTheFarPairsToo (hven_drivers_tests) and
+    SocRecovery.AFarSlackPairsCorrectedMultiplierStepIsRecovered (hven_interior_tests). No other test changes.
+E3  API: the infinite_bound doc comment gains one bullet (a stated limitation); no declaration changes.
+
+PROOFS AND PASS CRITERIA (riders/legs/, run by legs/chain.sh, each leg its own script under the box lock)
+--------------------------------------------------------------------------------
+F   failproof (dev tree build-pfhb/rel): with the recovery call at the PROBE site disabled (scratch `false &&`,
+    restored by git checkout) the probe test FAILS and the SOC test passes; with the SOC site disabled the SOC test
+    FAILS and the probe test passes; restored, both pass; the tracked tree is clean afterwards. Prints
+    FAILPROOF_AS_DECLARED.
+R1  fresh Release build build-pfe/rel-r: rc 0.
+R2  engine bytes: build-pfe/rel-r/bench/hven_sqp_corpus sha256 == arm B's above (CORPUS_IDENTICAL), arm B's pin
+    unmoved, and every library object (CMakeFiles/hven.dir/**/*.o) byte-identical to build-pfe/rel's, object sets
+    equal. ANY difference here stops the riders: the full PF-HB proof set would run again.
+R3  fresh Debug build build-pfe/dbg-r: rc 0.
+S   suites: ctest Release (rel-r) and Debug (dbg-r), full, -j4 under setsid: "100% tests passed, 0 tests failed out
+    of 3481" each.
+X   examples: 8 found in rel-r, all exit 0.
+O   off-reference CLEAN build (linux-clang-release preset, fresh build-pfe/offref-r,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, bench + examples ON): build rc 0, warning lines == 26 (as PF-HB's P8),
+    ctest "100% tests passed, 0 tests failed out of 3481". Before this declaration the new test's off-reference arm
+    was compiled -fsyntax-only (dev) and is clean.
+C   clang-format 22.1.8 --dry-run on every .cpp/.h in 072ad8d2..HEAD: 0 diagnostics.
+NOT RE-RUN (riders change no engine byte; R2 is the proof): replay, census, interior corpus, iparm, install smoke,
+PCH, flags, Accelerate sweep, runtime gate. The trailer check (git log origin/m8..HEAD | grep -ci co-authored == 0)
+is run at hand-back.
+PRE-FLIGHT (legs/chain.sh, fail closed): HEAD descends from the code head and differs from it only in this
+directory; tracked tree clean; arm B pin; build-pfe/rel present; rel-r, dbg-r, offref-r absent; no leg names an
+absolute path (every path derives from the leg's own location).
+ORDER: F, R1, R2, R3, S (Release, Debug), X, O, C.

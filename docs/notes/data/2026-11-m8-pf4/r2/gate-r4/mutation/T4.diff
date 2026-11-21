@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/linear/analysis_key.h b/include/hven/detail/linear/analysis_key.h
+index e89e40b03..424b600b3 100644
+--- a/include/hven/detail/linear/analysis_key.h
++++ b/include/hven/detail/linear/analysis_key.h
+@@ -30,7 +30,6 @@ inline std::uint64_t analysis_key(std::uint64_t pattern_hash, const SpMatRM &A,
+     mix(static_cast<std::uint64_t>(A.rows()));
+     mix(static_cast<std::uint64_t>(A.nonZeros()));
+     mix(static_cast<std::uint64_t>(o.decomposition));
+-    mix(static_cast<std::uint64_t>(o.ordering));
+     mix(o.weighted_matching ? 1u : 0u);
+     mix(o.matrix_scaling ? 1u : 0u);
+     mix(static_cast<std::uint64_t>(o.pivot_strategy));

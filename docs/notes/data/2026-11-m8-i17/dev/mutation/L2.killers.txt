@@ -1,0 +1,3 @@
+HumanTraceGoldens.TheElasticFixture
+HumanTraceGoldens.TheRestorationFixture
+SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier

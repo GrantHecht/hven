@@ -1,0 +1,40 @@
+samples A=525955 B=535403 B/A=1.01796
+largest increases (B-A samples):
+   +5977  A=    2440 B=    8417  difftime                                                                                                                                    
+   +2631  A=    1119 B=    3750  mkl_serv_get_clocks_frequency                                                                                                               
+    +490  A=    4753 B=    5243  mkl_pds_lp64_ldindx_pardiso_mic                                                                                                             
+    +445  A=     172 B=     617  __vdso_time                                                                                                                                 
+    +390  A=     145 B=     535  difftime@plt                                                                                                                                
+    +366  A=   15451 B=   15817  mkl_blas_def_dgemm_pst                                                                                                                      
+    +301  A=   13095 B=   13396  mkl_pds_lp64_dsytf2_pardiso                                                                                                                 
+    +272  A=    3546 B=    3818  mkl_blas_def_xdgemm_bdz                                                                                                                     
+    +265  A=    3270 B=    3535  mkl_blas_def_xdger_kernel                                                                                                                   
+    +128  A=     383 B=     511  hven::solvers::AssemblyDeclaration::materialize_variable_bounds() const                                                                     
+    +121  A=       0 B=     121  hven::solvers::detail::(anonymous namespace)::count_program(hven::solvers::NonLinearProgram const&, hven::solvers::ProblemStatistics&)      
+    +105  A=     581 B=     686  mkl_blas_def_dgemm_mscale                                                                                                                   
+     +87  A=    8559 B=    8646  mkl_pds_lp64_metis_fm_2waynoderefine_onesided                                                                                               
+     +86  A=     531 B=     617  mkl_serv_cpuisbulldozer                                                                                                                     
+     +80  A=   12301 B=   12381  mkl_pds_lp64_dsytrs_bklfw_pardiso                                                                                                           
+     +76  A=    1183 B=    1259  hven::solvers::test_support::F7CollocationChain::rebuild_data()                                                                             
+     +75  A=    1439 B=    1514  mkl_blas_def_xdger                                                                                                                          
+     +72  A=    1671 B=    1743  mkl_pds_lp64_csr_create_log.extracted.47                                                                                                    
+     +70  A=   54268 B=   54338  mkl_pds_lp64_upd_real_block                                                                                                                 
+     +65  A=   19345 B=   19410  mkl_pds_lp64_metis_createcoarsegraphnomask                                                                                                  
+     +61  A=    5554 B=    5615  piv_real                                                                                                                                    
+     +57  A=       0 B=      57  hven::solvers::crossover::ModelAsNlpProblem::eval_hessian(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> 
+     +49  A=    1323 B=    1372  L_not_one_loopgas_1                                                                                                                         
+     +47  A=     426 B=     473  hven::solvers::NlpProblemModel::read_structures()                                                                                           
+     +39  A=    6079 B=    6118  mkl_pds_lp64_metis_splitgraphorder                                                                                                          
+largest decreases:
+     -86  A=    1178 B=    1092  mkl_blas_xdgemm                                                                                                                             
+    -102  A=   17553 B=   17451  Eigen::SparseMatrix<double, 1, int>& Eigen::SparseMatrix<double, 1, int>::operator=<Eigen::SparseMatrix<double, 0, int> >(Eigen::SparseMatri
+    -107  A=    3089 B=    2982  mkl_pds_lp64_dsytrs_bklfw_noscal_pardiso                                                                                                    
+    -117  A=    3280 B=    3163  mkl_blas_def_xdgemm                                                                                                                         
+    -119  A=    3957 B=    3838  void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, 
+    -133  A=    1711 B=    1578  mkl_pds_lp64_metis_compute2waynodepartitionparams                                                                                           
+    -179  A=   23100 B=   22921  mkl_pds_lp64_fct_real_block                                                                                                                 
+    -307  A=   16276 B=   15969  __kmpc_flush                                                                                                                                
+    -528  A=    1066 B=     538  mkl_serv_cpuisitbarcelona                                                                                                                   
+    -654  A=   62704 B=   62050  mkl_pds_lp64_blkl_ll_real.extracted                                                                                                         
+spin-symbol samples A=3876 B=13319
+samples without the spin symbols A=522079 B=522084 B/A=1.000010

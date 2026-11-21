@@ -1,0 +1,35 @@
+M8 DN-3b -- RESULTS (against DECLARATION.txt, committed dcfc251ad before the first leg; written after the legs; criteria
+unchanged)
+================================================================================
+Code head 1101cc38b; arm A 1e6ee319... (ccd2e951f rebuilt), arm B 6d0b9967...; lane binaries head 98329aee... (fabin,
+branch dn3b-legs), base 24bb126f... (fabasebin, branch dn3b-legs-base). P5 runtime/run_all.log (committed 6a9fbfe39);
+chain legs/chain.sh -> chain/chain.out (committed cbaf26467); FA sl/fa_run.sh -> fa/fa-analysis.txt; RESTORE
+sl/hb_restore.sh -> fa/restore.out. One orchestration script ran the four in the declared order, each under its own
+flock, stopping at a failure (none occurred).
+
+P5  runtime/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 1.000000, ipm 0.999998,
+    ssn 1.000000, walk 1.000000. Run first and alone.
+P1  MET: "100% tests passed, 0 tests failed out of 3619" in both trees (suites/ctest-rel.log, ctest-dbg.log).
+P2  MET: replay walk / ssn / ipm at kNever: 27 cells x 75 columns, 0 differences each (replay/dn3b-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior/; 43 rows).
+P4  MET: FAILPROOF_AS_DECLARED -- head 34/34 pass; every mutation failed exactly its declared set (report-off 6,
+    report-under-never 7, init-rescue-off 2, dc-off-on-failed 2, dense-singular-hard 5, flag-as-singular 2)
+    (failproof/).
+FA  MET: FA_PASS (fa/fa-analysis.txt). KNEVER_UNMOVED (238 default rows equal DN-3a r2's); SQP_DENSE_UNMOVED (119);
+    BASE_AS_DN3A (119 base kAlways rows equal DN-3a r2's); NO_SPARSE_FALLBACK (every head IPM kAlways row: sparse
+    fallbacks 0, platform retakes 0, sigma-shift refactors 0); NO_HEAD_FAILURE_ROW; MOVERS_AS_DECLARED (exactly BT8,
+    CRESC100, LEWISPOL, MESH, each as declared: values below); S1_AS_DECLARED 109/112, misses ALLINITC, BT8,
+    CRESC100; ACOPP30_KEPT (optimal, 24 iterations, f 576.89242570116221 vs kNever 576.89242570037743).
+    Movers vs today's kAlways: BT8 optimal 11 it f 1.0000009536743164 -> optimal 40 it f 0.99999999999999722;
+    CRESC100 acceptable 124 -> optimal 59, f 0.56950450959614329 -> 0.56949897851252729; LEWISPOL optimal 738 ->
+    optimal 762, f 3.0000292523215726 -> 2.9999965238250588; MESH diverging 147 -> numerical_error 130.
+    REPORTED, exactly the declared expectation (the run reproduces the dev probe's analysis line for line): head IPM
+    kAlways totals -- dense singular reports 4 (BT8 1, HS61 2, LSNNODOC 1), flagged factorizations 1903 of 5831,
+    guard triggers 61 (all CRESC50), sparse fallbacks 0, retakes 0, shift refactors 0, restoration entries 0 (no
+    strategy constructed at the lane's defaults); base kAlways -- sparse fallbacks 15, guard triggers 8, factorizations
+    5887. Iteration-only movers (status and objective kept): 45 cells' rows differ in the last digits or iterations,
+    iterations differing in DEMBO7 (76 -> 85), HS61 (20 -> 14) and SPANHYD (111 -> 110).
+RESTORE: the clone's HEAD on dn1b-legs, no tracked change (fa/restore.out); dn3b-legs, dn3b-legs-base and the dev
+branches kept.
+No kNever movement anywhere. No re-run. Apple/Accelerate and Windows: UNOBSERVED.

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_snopt_f7.cpp — PHASE-6 TASK 0. THE SNOPT MEASUREMENT BINARY:
+// PHASE-6 TASK 0. THE SNOPT MEASUREMENT BINARY:
 // the CLI over bench/snopt_f7_driver.h that produced every SNOPT column in
 // docs/notes/2026-08-02-snopt-first-contact.md, and that Task 6 re-runs
 // VERBATIM for the full three-solver calibration.
@@ -67,7 +67,7 @@
 // re-solve carrying the previous point's basis, primal iterate and duals.
 //
 // --dump-solution writes bench_cli.h's solution-dump format (the same one
-// hven_sqp_bench writes and prototypes/psiopt_bridge/run_comparison.py
+// hven_sqp_bench writes and the external comparison bridge's run_comparison.py
 // reads), so a SNOPT solution can be cross-validated against ours by the
 // existing tooling rather than by a new comparison path. On a sweep it is
 // the LAST point that is dumped.
@@ -89,19 +89,18 @@
 #include <hven/qp/qp_types.h>
 
 #include "bench_cli.h"
+#include "model/support/scale_problems.h"
 #include "snopt_f7_driver.h"
-
-#include "support/scale_problems.h"
 
 namespace {
 
 using hven::Index;
 using hven::Vec;
-using hven::solvers::snopt_bridge::SnoptF7Driver;
-using hven::solvers::snopt_bridge::SnoptOptions;
-using hven::solvers::snopt_bridge::SnoptResult;
-using hven::solvers::test_support::F7CollocationChain;
-using hven::solvers::test_support::peak_rss_mib;
+using hven::snopt_bridge::SnoptF7Driver;
+using hven::snopt_bridge::SnoptOptions;
+using hven::snopt_bridge::SnoptResult;
+using hven::test_support::F7CollocationChain;
+using hven::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_snopt_f7 --n <nodes> --p <val> --arm cold|warm --csv <path>\n"
@@ -138,15 +137,15 @@ constexpr const char *kUsage =
     "RSS are INFORMATIONAL ONLY, per the standing phase rule.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
-    hven::solvers::bench_cli::throw_usage(kUsage, detail);
+    hven::bench_cli::throw_usage(kUsage, detail);
 }
 
 long long parse_ll(const std::string &what, const std::string &value) {
-    return hven::solvers::bench_cli::parse_ll(kUsage, what, value);
+    return hven::bench_cli::parse_ll(kUsage, what, value);
 }
 
 double parse_double(const std::string &what, const std::string &value) {
-    return hven::solvers::bench_cli::parse_double(kUsage, what, value);
+    return hven::bench_cli::parse_double(kUsage, what, value);
 }
 
 // Fetch the value that follows `flag`, or throw with the usage text (T6).
@@ -274,8 +273,7 @@ int main(int argc, char **argv) {
         // fail before any solve runs rather than after the expensive ones.
         F7CollocationChain model(static_cast<Index>(cfg.nodes), 3, 2, points.front(), 1.0);
 
-        std::ofstream csv =
-            hven::solvers::bench_cli::open_output_or_throw(kUsage, "--csv", cfg.csv);
+        std::ofstream csv = hven::bench_cli::open_output_or_throw(kUsage, "--csv", cfg.csv);
         csv << "solver,family,N,n,p,arm,status,iterations_major,iterations_minor,"
                "wall_seconds,x_err_inf,f_err_rel\n";
 
@@ -318,11 +316,11 @@ int main(int argc, char **argv) {
 
             if (!cfg.dump_solution.empty() && i + 1 == points.size()) {
                 const Vec x = driver.solution();
-                std::ofstream dump = hven::solvers::bench_cli::open_output_or_throw(
+                std::ofstream dump = hven::bench_cli::open_output_or_throw(
                     kUsage, "--dump-solution", cfg.dump_solution);
-                hven::solvers::bench_cli::write_solution_dump(dump, "F7", cfg.nodes, arm_label, p,
-                                                              r.status, r.f, x.data(),
-                                                              static_cast<std::size_t>(x.size()));
+                hven::bench_cli::write_solution_dump(dump, "F7", cfg.nodes, arm_label, p, r.status,
+                                                     r.f, x.data(),
+                                                     static_cast<std::size_t>(x.size()));
             }
         }
         return 0;

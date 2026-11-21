@@ -1,0 +1,295 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-check-never-refuses/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmThreads.*:DenseSolveCheck.*:DenseArm.*:DenseArmReport.*
+[==========] Running 37 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from DenseArm
+[ RUN      ] DenseArm.LifecycleMatchesTheSparseArm
+[       OK ] DenseArm.LifecycleMatchesTheSparseArm (3 ms)
+[ RUN      ] DenseArm.EvidenceIsObservedCountedAndUnperturbed
+[       OK ] DenseArm.EvidenceIsObservedCountedAndUnperturbed (0 ms)
+[ RUN      ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+[       OK ] DenseArm.LakesMatrixCountsTheReferenceNegatives (0 ms)
+[ RUN      ] DenseArm.ExactlySingularFallsBackToThePlatformSession
+[       OK ] DenseArm.ExactlySingularFallsBackToThePlatformSession (0 ms)
+[ RUN      ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms
+[       OK ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms (0 ms)
+[ RUN      ] DenseArm.ShareAndAdoptOnDenseNumerics
+[       OK ] DenseArm.ShareAndAdoptOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership
+[       OK ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership (0 ms)
+[ RUN      ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy
+[       OK ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy (0 ms)
+[ RUN      ] DenseArm.HandleSolveAndInertiaOnDenseNumerics
+[       OK ] DenseArm.HandleSolveAndInertiaOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics
+[       OK ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.OptionsValidation
+[       OK ] DenseArm.OptionsValidation (0 ms)
+[ RUN      ] DenseArm.AutoSelectsByDimension
+[       OK ] DenseArm.AutoSelectsByDimension (0 ms)
+[ RUN      ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations
+[       OK ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations (0 ms)
+[ RUN      ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress
+[       OK ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress (0 ms)
+[ RUN      ] DenseArm.PatternGuardRunsAsOnTheSparseArm
+[       OK ] DenseArm.PatternGuardRunsAsOnTheSparseArm (0 ms)
+[ RUN      ] DenseArm.CounterIdentityOnAMixedRun
+[       OK ] DenseArm.CounterIdentityOnAMixedRun (0 ms)
+[ RUN      ] DenseArm.ThreadsRoundTrip
+[       OK ] DenseArm.ThreadsRoundTrip (0 ms)
+[----------] 17 tests from DenseArm (4 ms total)
+
+[----------] 9 tests from DenseArmReport
+[ RUN      ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics
+[       OK ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics (0 ms)
+[ RUN      ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken
+[       OK ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken (0 ms)
+[ RUN      ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace
+[       OK ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace (0 ms)
+[ RUN      ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts
+[       OK ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts (0 ms)
+[ RUN      ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles
+[       OK ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles (0 ms)
+[ RUN      ] DenseArmReport.TheDetectorBracketsBothThresholds
+[       OK ] DenseArmReport.TheDetectorBracketsBothThresholds (0 ms)
+[ RUN      ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks
+[       OK ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks (0 ms)
+[ RUN      ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged
+[       OK ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged (0 ms)
+[ RUN      ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses
+[       OK ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses (0 ms)
+[----------] 9 tests from DenseArmReport (0 ms total)
+
+[----------] 3 tests from DenseArmThreads
+[ RUN      ] DenseArmThreads.TheVerboseRecordSeesALocalThreadOverride
+[       OK ] DenseArmThreads.TheVerboseRecordSeesALocalThreadOverride (200 ms)
+[ RUN      ] DenseArmThreads.EveryDenseLapackCallRunsAtOneThread
+[       OK ] DenseArmThreads.EveryDenseLapackCallRunsAtOneThread (4 ms)
+[ RUN      ] DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne
+[       OK ] DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne (2 ms)
+[----------] 3 tests from DenseArmThreads (207 ms total)
+
+[----------] 8 tests from DenseSolveCheck
+[ RUN      ] DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/linear/test_symmetric_factor_dense_arm.cpp:1337: Failure
+Value of: hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c)
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused (0 ms)
+[ RUN      ] DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked
+[       OK ] DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked (0 ms)
+[ RUN      ] DenseSolveCheck.APassingDenseSolveIsUsedUnchanged
+[       OK ] DenseSolveCheck.APassingDenseSolveIsUsedUnchanged (0 ms)
+[ RUN      ] DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst
+[       OK ] DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst (0 ms)
+[ RUN      ] DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/linear/test_symmetric_factor_dense_arm.cpp:1427: Failure
+Value of: hven::detail::dense_solve_check_refused( K, rhs, hven::detail::kDenseSolveResidualTol, zero_solve, y, r, c)
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns (0 ms)
+[ RUN      ] DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/linear/test_symmetric_factor_dense_arm.cpp:1448: Failure
+Value of: hven::detail::dense_solve_check_refused(K, rhs, 1e-5, nan_solve, y, r, c)
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio (0 ms)
+[ RUN      ] DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite
+[       OK ] DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite (0 ms)
+[ RUN      ] DenseSolveCheck.ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused
+[       OK ] DenseSolveCheck.ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused (0 ms)
+[----------] 8 tests from DenseSolveCheck (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 37 tests from 4 test suites ran. (213 ms total)
+[  PASSED  ] 34 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused
+[  FAILED  ] DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+[  FAILED  ] DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio
+
+ 3 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-check-never-refuses/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmEngines.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (1 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+[       OK ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/drivers/test_dense_arm_engines.cpp:466: Failure
+Expected: (refusals) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/drivers/test_dense_arm_engines.cpp:456: dense
+
+[  FAILED  ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK (0 ms)
+[----------] 13 tests from DenseArmEngines (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (19 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+
+ 1 FAILED TEST
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-check-never-refuses/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpqpDenseSolveCheck.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from IpqpDenseSolveCheck
+[ RUN      ] IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused
+[       OK ] IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused (2 ms)
+[ RUN      ] IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem
+[       OK ] IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem (0 ms)
+[----------] 2 tests from IpqpDenseSolveCheck (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 2 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-check-never-refuses/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpqpDenseSolveSeamTest.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from IpqpDenseSolveSeamTest
+[ RUN      ] IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing
+[       OK ] IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:973: Failure
+Expected equality of these values:
+  r.dense_solve_residual_refusals
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:974: Failure
+Expected equality of these values:
+  r.counters.ipqp_mu0_derived
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:975: Failure
+Expected equality of these values:
+  r.counters.ipqp_mu0_fallbacks
+    Which is: 0
+  1
+
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:986: Failure
+Expected equality of these values:
+  r.dense_solve_residual_refusals
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:987: Failure
+Expected equality of these values:
+  r.counters.ipqp_inertia_retries
+    Which is: 0
+  base_.counters.ipqp_inertia_retries + 1
+    Which is: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:988: Failure
+Expected equality of these values:
+  r.counters.ipqp_reg_increases
+    Which is: 0
+  base_.counters.ipqp_reg_increases + 1
+    Which is: 1
+
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1001: Failure
+Expected equality of these values:
+  r.dense_solve_residual_refusals
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1002: Failure
+Expected equality of these values:
+  r.counters.ipqp_inertia_retries
+    Which is: 0
+  base_.counters.ipqp_inertia_retries + 1
+    Which is: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1003: Failure
+Expected equality of these values:
+  r.counters.ipqp_reg_increases
+    Which is: 0
+  base_.counters.ipqp_reg_increases + 1
+    Which is: 1
+
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1014: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <01-00 00-00>
+  QpStatus::kNumericalError
+    Which is: 4-byte object <03-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1015: Failure
+Expected equality of these values:
+  r.escape_reason
+    Which is: 4-byte object <01-00 00-00>
+  IpqpEscape::kNumerical
+    Which is: 4-byte object <04-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1016: Failure
+Expected equality of these values:
+  r.counters.ipqp_iters
+    Which is: 60
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1017: Failure
+Expected: (r.dense_solve_residual_refusals) >= (2), actual: 0 vs 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1018: Failure
+Expected equality of these values:
+  DenseSolve::injections
+    Which is: 120
+  r.dense_solve_residual_refusals
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-src-check-never-refuses/tests/sqp/test_ipqp_seams.cpp:1020: Failure
+Expected equality of these values:
+  r.counters.ipqp_reg_increases
+    Which is: 0
+  r.dense_solve_residual_refusals - 1
+    Which is: -1
+
+[  FAILED  ] IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical (0 ms)
+[----------] 5 tests from IpqpDenseSolveSeamTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes
+[  FAILED  ] IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes
+[  FAILED  ] IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+
+ 4 FAILED TESTS

@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..b7e962e2a 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -355,7 +355,7 @@ void validate(const SqpOptions &opts) {
+     }
+ 
+     // THE TU-0 LEVERS.
+-    enum_in_range(opts.advanced.trust_region_growth, SqpTrustRegionGrowth::kAnyAccepted,
++    if (false) enum_in_range(opts.advanced.trust_region_growth, SqpTrustRegionGrowth::kAnyAccepted,
+                   "advanced.trust_region_growth");
+     if (!(opts.advanced.ssn_farkas_residual_tol > 0.0) ||
+         !(opts.advanced.ssn_farkas_residual_tol < 1.0)) {

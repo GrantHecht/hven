@@ -1,0 +1,17 @@
+box-lane: lane 1 acquired 2026-11-20T11:48:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T11:48:07-05:00
+[294/299] Linking CXX executable tests/sqp/hven_sqp_seam_tests
+[295/299] Linking CXX executable tests/bench/hven_bench_tests
+[296/299] Linking CXX executable tests/sqp/hven_sqp_tests
+build rc=0
+FOREGROUND_END 2026-11-20T11:55:13-05:00
+echo FOREGROUND_START 2026-11-20T11:55:13-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-20T11:56:39-05:00
+finished

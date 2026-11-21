@@ -1,0 +1,4 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/rel'
+[1/3] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[2/3] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[3/3] Linking CXX executable bench/hven_sqp_corpus

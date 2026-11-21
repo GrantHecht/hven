@@ -1,0 +1,4 @@
+renamed 2 column(s): ssn_sign_sweep_max->ssn.ssn_sign_sweep_max, ssn_sign_swept->ssn.ssn_sign_swept
+added 102 new column(s) (not differences): soc_qp_infeasible, soc_rejected, elastic_escalations, elastic_from_ipqp_escape, ipqp_suspicion_disproved, ipqp_fallback_rung_b, elastic_rho0_ceiling_hits, elastic_floor_retries, start_level_used, probe_budget_stops, crash_seeded_rows, crash_seeded_bounds ...
+order: 3308 pair(s) of mapped columns changed relative order (information)
+154 old columns, 256 new columns, 5 cells old / 5 new, 770 values compared, 0 differences

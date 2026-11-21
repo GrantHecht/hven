@@ -1,0 +1,5 @@
+box-lane: lane 0 acquired 2026-11-20T10:08:38-05:00
+FOREGROUND_START lane_install intel 2026-11-20T10:08:38-05:00
+843671be7524a6fdcba975086f814f0d2e82789d1f3237338b6e7a3292f247fc  build/lanes/hven/hven_bench_cell
+FOREGROUND_END lane_install intel 2026-11-20T10:10:26-05:00
+finished

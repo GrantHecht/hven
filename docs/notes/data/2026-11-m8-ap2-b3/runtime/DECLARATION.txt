@@ -1,0 +1,59 @@
+M8 AP-2 group B3 -- runtime neutrality gate -- DECLARATION
+(the B2-runtime-r5 instrument re-derived for B3; committed before the first leg; never edited)
+================================================================================
+SOURCE. docs/notes/data/2026-11-m8-ap2-b2/runtime-r5/DECLARATION.txt (rulings C215-C217),
+taken VERBATIM except for the arms, the paths and this group's name. analyze_r5.py and the
+fixture are copied byte-for-byte (sha256 of analyze_r5.py
+9f298a1cd5c7330443fa63a90bd5f527a6889da9ed0ef208154423382f3cd692, identical to r5's).
+runtime_leg.sh and run_all.sh are r5's runtime_r5_leg.sh and run_all.sh with only the
+worktree path, the evidence directory, the arm paths and arm A's sha256 replaced.
+
+ARMS
+  A  the pin, origin/m8 988449b4, built UNCHANGED in build-b3/rel before any B3 edit:
+     build-b3/armA/hven_sqp_corpus,
+     sha256 dffea0d7d9a9d70e0e015abc248afc8d9e44762896b958fe42d276d058b1efbf
+  B  the B3 code head fee7b3c2 (m8-b3 rebased onto origin/m8 19a9dfb1):
+     build-b3/rel/bench/hven_sqp_corpus copied to build-b3/armB/,
+     sha256 3810b64557dd14b2f70925243f61709b5389c17582043a483f3c2d9507c55dab
+     (the binary the 27-cell replay ran). run_all.sh refuses to start on a mismatch for
+     either arm.
+  NOTE ON THE PIN. Arm A is 988449b4, the declared pin. The two origin/m8 commits B3 was
+     rebased onto (d8575487 tests only; 19a9dfb1 one #include <iostream> in
+     src/drivers/ipm_options.cpp, a TU that runs only at option validation) are therefore
+     inside the B arm's delta; neither touches code on the measured paths.
+
+MODES  interior, ipm, ssn, walk, in that order. walk/ssn/ipm: each of the 27 replay cells
+(docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt) is one process
+(--internal-run-one). interior: the top-level leg whole, one process (--engine interior
+--cells <27>).
+
+INSTRUMENT, per measured process (runtime_leg.sh): wait until `date +%N` < 5e6 (sub-second
+phase alignment), then MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 perf record -c 200000
+-e instructions:u -- perf stat -x, -e instructions:u -- <arm binary> <cell args>; symbols by
+`perf report --comm hven_sqp_corpus --sort symbol -F overhead,sample,sym`.
+VALIDITY: THROTTLE events == 0 in every measured process; a throttled process VOIDS the leg.
+PARSER PRE-FLIGHT (fail closed): analyze_r5.py --preflight reproduces the fixture's sums
+before any leg. FILTER LIVENESS: INTERIOR MODE ONLY -- per arm, excluded samples summed over
+the mode's processes and rounds must be > 0, else VOID. Any unparseable table line VOIDS.
+ROUNDS 3, arm order alternated: r1 A->B, r2 B->A, r3 A->B (per cell for the per-cell modes;
+per leg for interior). One untimed, unrecorded warm-up process per arm per mode. Core 2.
+
+CRITERION, per mode: the FILTERED SUM -- instructions:u samples over every symbol EXCEPT
+exactly: difftime, difftime@plt, mkl_serv_get_clocks_frequency, __vdso_time,
+__vdso_clock_gettime, time, clock_gettime. Per (arm, cell) the median over 3 rounds; per arm
+the sum of medians; PASS iff 0.995 <= B/A <= 1.005. The gate PASSES iff all four modes pass.
+REPORTED BESIDE IT, never the criterion: raw perf-stat instructions:u, unfiltered sums,
+excluded samples, per-round ratios.
+STOP CONDITION: counter identity on every (round, cell) pair -- each child row field for field
+except wall_s; the interior corpus CSV by scripts/compare_replay.py, EXACT. Any difference or
+missing row stops the gate. (B3's declared X2 relabel moves no row here: every replay cell is
+Optimal.)
+
+ON FAIL (a mode outside the band, a VOID leg, a STOP, or a pre-flight failure): stop, commit
+the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+
+PROTOCOL: run_all.sh as `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial,
+alone; `pgrep -a hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it;
+FOREGROUND_START/END; set -o pipefail; no timeout wrapper. perf.data deleted after its table is
+written. Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf
+7.2.12-200.fc44, MKL; Apple/Windows UNOBSERVED.

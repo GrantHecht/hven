@@ -1,0 +1,3 @@
+QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheBorderAlgebra
+QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheRefactorizeAlgebra
+QpIssue18AccuracyStop.TheVerdictAndKeepRules

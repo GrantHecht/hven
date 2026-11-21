@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..ca027dd2b 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -167,7 +167,6 @@ class SchurComplement {
+             // old one (end_batch() refactorizes even if nothing lands).
+             singular_ = false;
+             evidence_.reset();
+-            factor_pending_ = true;
+             return;
+         }
+         Vec k0inv_v = detail::solve_vec(kkt_, v);

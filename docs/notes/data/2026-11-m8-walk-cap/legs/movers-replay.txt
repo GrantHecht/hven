@@ -1,0 +1,2 @@
+# M8 walk cap (../DECLARATION.md, I1): the declared replay movers, one '<mode> <cell_id>' per line. NONE: the dev run
+# (../dev/replay/) read 0 differences against the base reference in all three modes.

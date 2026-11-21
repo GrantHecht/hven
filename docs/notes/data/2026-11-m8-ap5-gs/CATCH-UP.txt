@@ -1,0 +1,15 @@
+M8 AP-5 G-S -- consumer catch-up list (the IPM restoration-locally-infeasible exit is kInfeasible). Full table: docs/migration-0.2.md, section G-S.
+No compile errors: this is a value change.
+
+Behaviour
+  IPM, restoration ends at a locally infeasible point (StopReason::kRestorationLocallyInfeasible):
+    SolveResult::status                   kStalled -> kInfeasible
+    SolveResult::infeasibility_certified  false (unchanged; uncertified)
+    SolveResult::message                  "locally infeasible (uncertified: restoration reached a locally infeasible point)"
+    IpmPhaseReport::status, the ipm.phase.exit trace event's status, the console exit line: stalled -> infeasible / Stalled -> Infeasible
+  kStageStalled is still kStalled. stop_reason is unchanged. Points and residuals are unchanged.
+  kInfeasible exits never substitute the best iterate under common.return_best (the exit substituted under the old IPM bool).
+
+Consumers that map statuses (a bench lane, a dashboard): treat the IPM's kInfeasible as "locally infeasible, uncertified"; the SQP's has the same meaning and also a certified shape.
+
+hven-bench (private; local branch not created unless needed): see VERDICTS.txt.

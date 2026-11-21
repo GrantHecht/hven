@@ -1,0 +1,4 @@
+head  : 19 tests all OK
+mutant: 19 tests, failed ['DenseArm.LakesMatrixCountsTheReferenceNegatives', 'DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative', 'DenseArmBlockWalk.NonFiniteIsSingular', 'DenseArmBlockWalk.ZeroDeterminantIsSingular']
+mutant LAKES negative reads 72: True
+FAILPROOF_AS_DECLARED

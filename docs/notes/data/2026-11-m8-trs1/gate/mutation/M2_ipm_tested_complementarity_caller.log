@@ -1,0 +1,88 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ObjectiveScaleReporting.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from ObjectiveScaleReporting
+[ RUN      ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale (5 ms)
+[ RUN      ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale (1 ms)
+[ RUN      ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale
+[       OK ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale (1 ms)
+[ RUN      ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate
+[       OK ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate (0 ms)
+[ RUN      ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks
+[       OK ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks (1 ms)
+[ RUN      ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn
+[       OK ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn (1 ms)
+[ RUN      ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:492: Failure
+Value of: passes(result.history[k])
+  Actual: true
+Expected: false
+scale 10000 row 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 0.00099989999999999996, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 0.001,
+r.tested_complementarity evaluates to 9.9999999999999995e-08, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0000001e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 0.00014666900389162654, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 0.00014668367225885242,
+r.tested_complementarity evaluates to 1.4668367225885241e-08, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0000000146683671e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 1.4666900389162655e-06, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 1.4668367225885243e-06,
+r.tested_complementarity evaluates to 1.4668367225885243e-10, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0000000001466838e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 1.4666900389162688e-08, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 1.4668367225885276e-08,
+r.tested_complementarity evaluates to 1.4668367225885276e-12, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0000000000014667e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:494: Failure
+Value of: passes(result.history.back())
+  Actual: false
+Expected: true
+scale 0.01
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 0.099000000000000005, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 0.001,
+r.tested_complementarity evaluates to 0.10000000000000001, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.1000000000000002e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 0.014521683553626388, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 0.00014668367225885242,
+r.tested_complementarity evaluates to 0.014668367225885241, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0146683672258852e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 0.00014521683553626389, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 1.4668367225885243e-06,
+r.tested_complementarity evaluates to 0.00014668367225885242, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0001466836722587e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:500: Failure
+The difference between r.complementarity * scale and r.tested_complementarity is 1.4521683553626423e-06, which exceeds 1e-12 * (1.0 + std::abs(r.tested_complementarity)), where
+r.complementarity * scale evaluates to 1.4668367225885275e-08,
+r.tested_complementarity evaluates to 1.4668367225885275e-06, and
+1e-12 * (1.0 + std::abs(r.tested_complementarity)) evaluates to 1.0000014668367226e-12.
+
+[  FAILED  ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares (2 ms)
+[----------] 7 tests from ObjectiveScaleReporting (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (15 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+
+ 1 FAILED TEST

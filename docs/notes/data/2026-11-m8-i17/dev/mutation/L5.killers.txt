@@ -1,0 +1,3 @@
+ConsoleMessages.EachTemplateRendersItsOwnLine
+HumanTraceGoldens.TheElasticFixture
+HumanTraceGoldens.TheRestorationFixture

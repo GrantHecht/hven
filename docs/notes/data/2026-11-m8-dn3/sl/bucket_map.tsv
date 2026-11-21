@@ -1,0 +1,76 @@
+# M8 DN-0 symbol-to-bucket map. FROZEN with the DECLARATION; never edited after the first leg.
+#
+# Applied by attribute.py to every perf sample's user call chain (leaf first):
+#   1. each frame's symbol is normalized: "(anonymous namespace)" -> "{anon}", then cut at the
+#      first "(" (a lambda or a template instantiation is named by its enclosing function);
+#   2. frames are scanned LEAF -> ROOT; the FIRST frame matching ANY row decides the sample, and
+#      within that frame the FIRST matching row (file order) gives the bucket;
+#   3. a pattern is a Python regex matched (re.search) against the normalized name with the
+#      prefix (?:^|[ <*&]) prepended, so "hven::x$" matches "hven::x" and "task<hven::x";
+#   4. external libraries (MKL, LAPACK, libc, libstdc++, libgfortran, CUTEst, Eigen, fmt) carry NO
+#      row: they are transparent and take the bucket of the hven/harness frame that called them;
+#   5. a chain in which NO frame matches falls back on its LEAF: ld-linux -> B_proc; an MKL/LAPACK/
+#      OpenMP-runtime symbol or libiomp5 -> B_fac; libcutest/libpb/libgfortran -> B_eval;
+#      anything else -> B_eng. Fallback and unmatched shares are reported per cell.
+# B_proc (process start/exit and harness-only work: option labels, row emission, the options
+# dump the runner asks for) is reported but EXCLUDED from the total the rule's shares read.
+#
+# bucket	pattern	note
+B_proc	_dl_\w+$	dynamic loader
+B_proc	(_start|_init|_fini|dl_main|__libc_start_main\S*|__libc_start_call_main|__libc_csu_init|__cxa_finalize|__run_exit_handlers|exit|_GLOBAL__sub_I_\S*)$	process start/exit, static init
+B_proc	hven_bench::(DeclaredRows::\w+|feasibility_parts|print_roster|roster)$	harness row/roster work
+B_proc	{anon}::(fill_shared|add_\w+|spell|emit|eqb_rows|normalise_outcome|usage|ipm_options|sqp_options|sqp_options_base|lane_hessian_provenance|dump_options_only|effective_cap|peel_arm_suffix|strip_arm_suffix)$	harness helpers
+B_proc	hven::dump_options$	options dump the runner requests
+B_sym	hven::linear::(SymmetricFactor|detail::FactorSession)::analyze$	symbolic analysis (Pardiso phase 11)
+B_fac	hven::linear::\S+	numeric factorization and solves (hven::linear), incl. DenseSymmetricFactor
+B_fac	hven::detail::(KktFactorization|KktFactor)::\w+$	engine factor wrappers
+B_fac	hven::detail::factorize_checked$	SQP factor wrapper
+B_eval	hven_bench::cutest::CutestModel::eval_\w+$	CUTEst bridge
+B_eval	hven_bench::(SplitModel|SplitModelNlp|NlpModelTripletView)::eval_\w+$	harness model bridge
+B_eval	hven_bench::{anon}::Hs071Model::eval_\w+$	HS071 model
+B_setup	hven_bench::hs::{anon}::\w+::(lower|upper|start_point|n|me|mi|name|has_hessian|\w+_structure|bounds|dimensions)$	HS model shape (setup)
+B_eval	hven_bench::hs::{anon}::\S+	HS model evaluation
+B_eval	hven::detail::CountingNlp::eval_\w+$	counting wrapper
+B_eval	hven::Nlp::eval_\w+$	Nlp interface
+B_eval	hven::detail::(NlpModel|NlpProblemModel|NlpAdapterCore|RestorationModel|ColumnScaledModel|EqualityRowSubsetModel)::(eval_\w+|refresh_\w+|sync_x|compose_\w+|split_user_multipliers|curvature_residual_evals|record_equality_multipliers|invalidate_cache|to_caller|to_scaled)$	hven model layers
+B_eval	hven::(ConstraintModel|ObjectiveModel)<.*>::(constraints\w*|objective\w*)$	declaration pieces
+B_eval	hven::detail::(NlpConstraintPiece|NlpObjectivePiece|FixedVariableRow)::(constraints\w*|objective\w*)$	declaration pieces
+B_eval	hven::detail::NlpModelAssembly::(evaluate_\w+|compose_adjoint_gradient|relay|stage_point)$	SQP assembly evaluation
+B_eval	hven::detail::AssemblyEvalSeam::(eval_nlp\w*|refresh_derivatives|jacobians_only|relay_if_stale|scale_\w+|to_caller_scale)$	SQP evaluation seam
+B_eval	hven::detail::(eval_nlp|eval_nlp_values)$	SQP evaluation
+B_eval	hven::detail::NonLinearProgram::(eval_obj|eval_occ|eval_ogc|eval_rhs|objective_pass|objective_constraints_pass|objective_gradient_constraints_pass|constraint_jacobian_pass|first_order_rhs_pass|evaluate_candidate_\w+)$	IPM model passes (values, no matrix)
+B_eval	hven::NlpAssembly::evaluate_candidate_values$	assembly evaluation
+B_eval	hven::detail::IpmSolverImpl::eval_nlp$	IPM evaluation
+B_eval	hven::detail::(ProblemState|ProblemAccess)::(refresh_nlp|map_row_values|compose_rows\w*|split_rows)$	problem bridge
+B_kkt	hven::detail::NonLinearProgram::(eval_kkt|eval_kkt_no|eval_aug|eval_soe|full_kkt_pass|first_order_kkt_pass|constraint_kkt_pass|fill_rhs|fill_solver_coeffs|set_con_coeffs_zero|set_rhs_coeffs_zero|set_primal_diags|set_slack_diags|get_mat_space|get_rhs_space|bound_kkt_destination|assemble_impl)$	IPM KKT assembly
+B_kkt	hven::detail::IpmSolverImpl::(eval_kkt|eval_kkt_no|eval_aug|eval_soe|assemble_dispatch|assemble_objective|barrier_hessian|install_primal_diags_with_sigma|add_bound_sigma|augment_complementarity_nested|kkt_pattern_check|apply_pending_kkt_hook)$	IPM KKT assembly
+B_kkt	hven::detail::(assemble_kkt_core|augment_bound_complementarity|ipqp_accumulate_bound_sigma_critical_cone|build_subproblem|build_elastic_subproblem|build_soc_subproblem|build_bordered_system|nlp_scatter_hessian_block)$	SQP/QP KKT assembly
+B_kkt	hven::detail::(IpqpKktLayout|SchurComplement|BorderOps)::\S+	KKT layout, Schur border stack
+B_kkt	hven::detail::AssemblyEvalSeam::(assemble_\w+|build_subproblem\w*|kkt_view|publish_matrix|seed_kkt_segment|gradient_view)$	SQP KKT assembly
+B_kkt	hven::detail::SqpSolverImpl::(build_qn_subproblem|build_exact_subproblem)$	SQP subproblem assembly
+B_kkt	hven::detail::NlpConstraintPiece::scatter_jacobian$	scatter
+B_kkt	hven::detail::SsnEngine::(sync_matrix|build_bound_rows|apply_sigma)$	SSN matrix assembly
+B_kkt	hven::detail::QpEngine::rebuild_k0$	QP K0 assembly
+B_kkt	hven::detail::NlpModelAssembly::assemble_impl$	SQP assembly
+B_kkt	hven::NlpAssembly::(assemble|bound_kkt_destination)$	assembly
+B_setup	hven_bench::\S+::make_model$	harness model construction
+B_setup	hven_bench::cutest::(CutestModel::(CutestModel|bounds|dimensions|hessian_structure|jacobian_structure|name)|CutestSource::\w+|decoded_dir|from_cutest_bound|cutest_problems|small_dense_problems|small_dense_sources|cutest_sources)$	CUTEst setup
+B_setup	hven_bench::(hs::HsSource::\w+|Hs071Source::\w+|hs::hs_declaration\w*|hs::normalize_absent_bounds|hs::hs_sources|hs::hs_numbers)$	HS setup
+B_setup	hven_bench::{anon}::Hs071Model::\w+$	HS071 shape
+B_setup	hven_bench::(SplitModelNlp::(SplitModelNlp|learn_structure|bounds|dimensions|hessian_structure|jacobian_structure|start_point|name)|NlpModelTripletView::\w+)$	bridge setup
+B_setup	hven::detail::CountingNlp::(bounds|dimensions|hessian_structure|jacobian_structure|has_hessian|name)$	model shape
+B_setup	hven::Nlp::(hessian_structure|jacobian_structure|has_hessian|name)$	model shape
+B_setup	hven::(IpmSolver::IpmSolver|SqpSolver::SqpSolver|Problem::Problem|AssemblyDeclaration::\w+|KktLocationTable::KktLocationTable|validate|validate_request_destinations|census_variable_bounds|materialized_bound_digest|declaration_key|declaration_identity_digest|options_fingerprint|ipm_preset|sqp_preset)$	solver/problem construction
+B_setup	hven::detail::(problem_from_model|problem_from_assembly|problem_from_program|validate_common_options|make_nlp_program|make_fixed_variable_row|make_ipqp_bounds|make_ipqp_box|ensure_solver_initialized|compute_column_scaling|compute_problem_scaling|ProblemScaling::ProblemScaling)$	construction
+B_setup	hven::detail::(IpmSolverImpl::IpmSolverImpl|SqpSolverImpl::SqpSolverImpl|NonLinearProgram::NonLinearProgram|NlpModelAssembly::NlpModelAssembly|NlpProblemModel::NlpProblemModel|AssemblyEvalSeam::AssemblyEvalSeam|NlpAdapterCore::NlpAdapterCore|RestorationModel::RestorationModel|ColumnScaledModel::ColumnScaledModel|EqualityRowSubsetModel::EqualityRowSubsetModel|ProblemState::ProblemState)$	constructors
+B_setup	hven::detail::ProblemState::(adopt_bounds|count_model|count_nlp|read_structures|refuse_\w+|relay_pieces|variable_bounds|declaration_key|ipm_program|sqp_target)$	problem bridge setup
+B_setup	hven::detail::ProblemAccess::(make|built_ipm_program|ipm_program|nlp_model|sqp_target|variable_bounds|declaration_key)$	problem bridge setup
+B_setup	hven::detail::NonLinearProgram::(make_nlp|analyze_sparsity|analyze_partitioning|materialize_\w+|finalize_data|rebuild_structures|install_function_output_maps|clear_function_output_maps|publish_location_tables|set_mat_dimensions|set_rhs_dimensions|adopt_declaration|configure_variable_treatment|install_fixed_variable_rows|discard_fixed_variable_rows|splice_fixed_variable_rows|capture_laid_dimensions|freeze_laid_thread_modes|negotiate_partition_count|count_elems|refresh_function_partitions|mark_shared_constraint_rows|set_variable_bound|set_infinite_bound|probe_identity|model_structure_key|\w*claim\w*)$	IPM program construction
+B_setup	hven::detail::NlpProblemModel::(read_structures|build_\w+_pattern|build_row_tables|validate_\w+|normalize_read_bounds|update_bounds|lower|upper|start_point)$	model construction
+B_setup	hven::detail::NlpModelAssembly::(lay|negotiate_partition_count|probe_identity|model_structure_key|\w*claim\w*)$	assembly construction
+B_setup	hven::detail::AssemblyEvalSeam::(lay|install_scaling|require_bundle_matches_layout)$	seam construction
+B_setup	hven::detail::IpmSolverImpl::(ensure_solver_initialized|init_impl|set_options|refresh_nlp_dimensions|rebuild_globalization_components|analyze_kkt_sparsity|claim_kkt_analysis|transcribe_bound_program|validate_\w+)$	IPM solve setup
+B_setup	hven::detail::SqpSolverImpl::(prepare_solve|set_options|validated|install_solve_scaling)$	SQP solve setup
+B_eng	hven::(IpmSolver|SqpSolver)::solve$	engine anchor: rest of the solve
+B_eng	hven::detail::(IpmSolverImpl|SqpSolverImpl)::(solve|solve_impl|solve_impl_body|solve_from_entry|solve_with_walk|solve_column_scaled|run_major|alg_impl|run_phase_sequence)$	engine anchor
+B_proc	main$	harness anchor: work in main outside every row above

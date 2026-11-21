@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/s_analyze.py", line 67, in <module>
+    n = read_cell(os.path.join(cells_dir, tag + '.default'))
+  File "/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/s_analyze.py", line 35, in read_cell
+    out = {'_result': open(prefix + '.result').read().strip()}
+                      ~~~~^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'sl/out/s/cells/hs-hven-ipm-hs003.default.result'

@@ -1,0 +1,2 @@
+# hven_sqp_ssn_safeguard_probe mode=routes count=20000 seed=20260807
+infeasible QPs=20000  diagnosed=11375  STANDING route=1410 (12.4%)  EXHAUSTION route=9965  not diagnosed=8625

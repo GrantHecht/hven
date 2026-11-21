@@ -1,0 +1,4 @@
+1163c1163
+< constexpr Index kMaxDualRegDecreases = 2;
+---
+> constexpr Index kMaxDualRegDecreases = 0;

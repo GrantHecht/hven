@@ -1,0 +1,30 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-06T03:37:16-05:00
+worktree HEAD f0a1c95a6f826988c6d12235df8a1a4e838688f9 status: 0 modified tracked files
+[344/344] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-06T03:40:37-05:00
+captured 178 objects from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/psym into /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/psym-before
+  hven                             56
+  hven_sqp_tests                   71
+  hven_interior_tests              4
+  hven_model_tests                 12
+  hven_tests                       11
+  hven_drivers_tests               15
+  hven_sqp_corpus                  2
+  hven_sqp_bench                   1
+  hven_sqp_ssn_safeguard_probe     1
+  hven_sqp_f7_cold                 1
+  hven_sqp_tau_bar_sweep_probe     1
+  hven_sqp_crossover               1
+  hven_sqp_ipqp_e1_arm             1
+  libhven.a                        1
+psym_compare: tool sha256 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+before-capture digest 1940a4791890a5473a848c6d8b382cfb3e40658c5efc3442b791d4b19c985516  -
+[344/344] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-06T03:44:00-05:00
+d2c9a99f14396554fc8753f102a316004f731b4333d55d9fc12ff5b3aeb90515  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/armAbin/hven_sqp_corpus
+5e3264a519b8d4d55ba00657e003c1a3f612f6b3b68469300deed3ce4915af4a  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/armA-compile_commands.json
+273e09c6c777493788316661ffc54a998b4e2531606061fdb438ff4f1b658e98  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8/armAbin/hven_sqp_corpus
+FOREGROUND_END 2026-11-06T03:44:00-05:00

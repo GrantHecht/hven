@@ -1,0 +1,102 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-detector-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:125: Failure
+Value of: cd.shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:127: Failure
+Value of: dense.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:128: Failure
+Expected equality of these values:
+  dense.dense_scale.size()
+    Which is: 0
+  3
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:132: Failure
+Value of: cd.outcome.inertia.perturbed_pivots.has_value()
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization (2 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[       OK ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[       OK ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:291: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:294: Failure
+Expected: ((d.res.x - s.res.x).lpNorm<Eigen::Infinity>()) <= (1e-6), actual: 1.2 vs 1e-06
+
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[       OK ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (1 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (11 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:501: Failure
+Expected equality of these values:
+  flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:502: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:504: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:505: Failure
+Expected equality of these values:
+  inertia_verdict(k.factor.inertia(), 2, 1)
+    Which is: 4-byte object <00-00 00-00>
+  InertiaVerdict::kSuspect
+    Which is: 4-byte object <01-00 00-00>
+
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-detector-off/tests/qp/test_qp_dense_arm.cpp:535: Failure
+Value of: factorize_checked(k, K, DenseShiftSite{3, 0.0, 0.0}).shifted
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[----------] 13 tests from QpDenseArm (16 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (16 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+
+ 4 FAILED TESTS

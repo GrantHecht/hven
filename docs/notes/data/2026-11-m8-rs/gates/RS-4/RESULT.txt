@@ -1,0 +1,33 @@
+RS-4 gate result (includes). Declarations: DECLARATION-RS4.md, DECLARATION-RS4-r2.md (base moved to GL-0 ca3588735; order-dependence plan).
+Commits under test (head c5332867b): 4db0cdb7b respell + exception 4; 59b20aff6 .clang-format; f8ff47818 pure format (260 files; reproduces byte-for-byte from its parent, checked); c5332867b order-dependence fix.
+Before arm = origin/m8 ca3588735 (GL-0 head), measured by legs/baseline2.sh in a separate detached worktree. Gate run on c5332867b (gate-run.txt, VERDICTS.txt).
+Earlier runs: gates/RS-4-run1/ (pre-rebase head, stopped at G1 on three order-dependent includes; void). A second pre-fix run on the rebased head stopped at G1 on a third (test_assembly_eval_seam.cpp); not committed (no verdicts).
+G1  clean configure, CCACHE_DISABLE=1, library + tests + bench + examples, Release: rc 0 (build-release.txt).
+G2  P-SYM, both arms `__FILE__`-neutralised (neutral_flags.py), same build path, no object map / symbol map, empty exceptions: 198 objects, 141 byte-identical, 57 NOISE-ONLY, 0 UNCLASSIFIED,
+    0 missing, 0 only-before, 0 only-after, 0 collisions; 92669 symbols matched; compiler-local label families 795 matched, 0 differing (psym.txt).
+    Explanation of the 57 non-identical objects: 54 carry class (a), the `__LINE__` immediate (gtest EXPECT/ASSERT and assert/throw sites; every delta is a small integer line shift, e.g. -1(x263) in
+    test_threads.cpp, from the reformat adding/removing lines above the site); 3 (bench_corpus, bench_crossover, ipqp_e1_arm) have CHANGED 0 -- the same three RS-2 and RS-3 recorded
+    (merged-pad / address noise with every instruction identical). The symbol SET is unchanged in all 198 objects, so no header relied on a transitive include that the reorder removed
+    (the three that did were order-dependent at COMPILE time and were fixed, below). Each object's per-symbol DELTAS line is in psym.txt.
+G3  compile_commands.json flag diff (flags_diff2.py, empty map): IDENTICAL, 363 TUs, 0 differ (flags.txt).
+G4  check_pch_neutrality.sh: PASS, PCH engaged on 4 TUs, 58 emitted artifacts byte-identical with and without it (pch-neutrality.txt). The two `// clang-format off` guards (src/hven_pch.h, src/ipm/ipm_solver.cpp) are pre-existing and unchanged;
+    their includes were re-spelled in lockstep.
+G5  ctest Release 3885/3885 and Debug 3885/3885 (the base has 3885: GL-0 added 16 tests, all in hven_sqp_tests). Sorted gtest lists RAW-identical to the base's, 20 executables incl. the 8 examples; ctest -N identical modulo the
+    byte-dump class (133 = 133) (lists-diff.txt, LISTS_IDENTICAL). The comparison with the committed RS-0 lists (lists-diff-rs0.txt) differs by exactly GL-0's +16 tests in hven_sqp_tests (1632 -> 1648; ctest -N 3871 -> 3887),
+    the same difference the base has: GL-0 is not RS-4.
+G6  check_install_smoke default + clang++ PASS, check_export_contract OK both arms (smoke/); installed listing equals the RS-3 listing (LISTING_EQUALS_BASELINE_WITH_MAP). The installed headers compile standalone (the smoke consumers).
+    Header self-containment sweep (tools/header_sweep.sh, every one of 171 headers compiled alone): base 165 PASS / 6 FAIL, after 165 / 6, the SAME 6: three Apple-only (accelerate_threads.h, accelerate_session.h, lapacke_shim.h) and three
+    documented not-self-contained-by-design (detail/sqp/assembly_eval_seam.h, detail/sqp/globalization/restoration.h, soc.h: they name NlpEval). detail/model/nlp_model.h passes alone in both.
+G7  27-cell replay x (walk, ssn, ipm), compare_replay.py against the replay measured on ca3588735: 0 differences, 75 columns each (comparison-*.txt).
+G8  Exception 4 gone: nlp_model.h includes core/types.h, not qp/qp_types.h. Explicit includes added for it: 0 (the full Release build, then Debug, then every header alone, show nothing relied on the transitive path).
+    tests/core/test_core_layering.cpp encodes no allow-list entry for the pair (it checks core/ headers only); nothing to update there. The design page (RS-design-page-v2.md) is the frozen design and still lists the pair as to-be-removed.
+G9  CI: see CI.txt.
+Counts: 867 includes re-spelled in 261 files (+1 prose line in docs/assembly-protocol.md); 260 files reformatted; 3 order-dependence fixes (src/sqp/assembly_eval_seam.cpp, tests/solver/test_infinite_bound.cpp,
+tests/sqp/test_assembly_eval_seam.cpp: the dependent include moved to its own comment-separated block below sqp_solver_impl.h); 0 clang-format off blocks added.
+Open items for RS-5/RS-7: extract NlpEval into its own header so assembly_eval_seam.h, restoration.h, soc.h become self-contained (then the comment-block workarounds go); a related-header-first rule is not expressible for <hven/...>
+includes (clang-format hoists only a QUOTED main include).
+Wall-clock informational. Co-run: none; every leg ran serially under the box lock.
+REBASE NOTE. The gate above ran on c5332867b over base ca3588735. m8 then moved to 66cc44ccc9ce (the Windows CI fix: .github/workflows/ci.yml, a CMakePresets.json description string, and the WIN32-only
+gmock warning-guard loop in tests/CMakeLists.txt); the branch was rebased onto it, which changes every RS-4 commit hash: 4db0cdb7b -> d18dfb455 (respell + exception 4), 59b20aff6 -> 6422c6213 (.clang-format),
+f8ff47818 -> 6d788afb0 (pure format; .git-blame-ignore-revs carries this one), c5332867b -> 392c0c301 (order fixes). The rebased tree differs from the tree the gate measured only in those three base files (none is C++, none
+reaches a Linux compile command), so the Linux legs were not re-run; the CI run in CI.txt is on the rebased head.

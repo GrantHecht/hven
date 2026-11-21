@@ -1,0 +1,231 @@
+{
+ "samples": 4560,
+ "period": 1000003,
+ "instr_sampled_all": 4560013680,
+ "instr_sampled_solver": 4556013668,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 4050012150,
+  "B_kkt": 208000624,
+  "B_eval": 4000012,
+  "B_setup": 1000003,
+  "B_eng": 293000879,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.888937664618086,
+  "B_kkt": 0.0456540825285338,
+  "B_eval": 0.000877963125548727,
+  "B_setup": 0.00021949078138718174,
+  "B_eng": 0.06431079894644424
+ },
+ "proc_share_of_all": 0.0008771929824561404,
+ "rule_instr": 4354013062,
+ "fallback_instr": 205000615,
+ "fallback_by_bucket": {
+  "B_fac": 205000615
+ },
+ "unmatched_instr": 1000003,
+ "unmatched_share_of_solver": 0.00021949078138718174,
+ "chains_reaching_main": 0.0004385964912280702,
+ "init_instr": 0,
+ "steady_state_instr": 4556013668,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.888937664618086,
+  "B_kkt": 0.0456540825285338,
+  "B_eval": 0.000877963125548727,
+  "B_setup": 0.00021949078138718174,
+  "B_eng": 0.06431079894644424
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3541010623
+  ],
+  [
+   "<no hven::linear frame>",
+   205000615
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   161000483
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   124000372
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   11000033
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   3000009
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::block_evidence",
+   2000006
+  ],
+  [
+   "hven::linear::SymmetricFactor::require_solvable",
+   2000006
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 172000516,
+ "kmp_instr": 2461007383,
+ "top_unmatched_leaf": [
+  [
+   "unlink_chunk.isra.0",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    796002388
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    334001002
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    313000939
+   ],
+   [
+    "find_norm",
+    171000513
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklbw_pardiso",
+    147000441
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    112000336
+   ],
+   [
+    "__kmp_fork_call",
+    110000330
+   ],
+   [
+    "mkl_blas_def_xdgemv_kernel_t",
+    107000321
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    101000303
+   ],
+   [
+    "hven::detail::SchurComplement::append_border",
+    25000075
+   ],
+   [
+    "_int_malloc",
+    14000042
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    12000036
+   ],
+   [
+    "malloc",
+    9000027
+   ],
+   [
+    "hven::detail::build_bordered_system",
+    8000024
+   ],
+   [
+    "hven::detail::SchurComplement::drop_border",
+    6000018
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    6000018
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    1000003
+   ],
+   [
+    "pow@@GLIBC_2.29",
+    1000003
+   ],
+   [
+    "hven::detail::RestorationModel::eval_hess",
+    1000003
+   ],
+   [
+    "void Eigen::SparseMatrix<double, 0, int>::collapseDuplicates<Eigen::Map<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 32, Eigen::Stride<0, 0> >, Eigen::internal::scalar_sum_op<double, double> >",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_gfortrani_set_fpu_rounding_mode",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::bordered_regularized_residual",
+    65000195
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    50000150
+   ],
+   [
+    "hven::detail::refine_bordered_solve_iterated",
+    23000069
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    13000039
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    12000036
+   ],
+   [
+    "hven::detail::QpEngine::sync_borders",
+    11000033
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    11000033
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    10000030
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ]
+  ]
+ }
+}

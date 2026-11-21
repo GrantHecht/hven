@@ -1,0 +1,3 @@
+RS-6b r5 (rebased head e8bf3d0e5 on origin/m8 afc9744bf)
+CI run 44682750284 (workflow_dispatch on rs6b @e8bf3d0e5): linux-clang-coverage success, linux-clang-release success, macos-clang-release success, windows-clang-release success.
+Windows ctest: 100% passed out of 3782 = 3772 + the 10 examples (hven_example_01..10 each ran and passed on the Windows lane).

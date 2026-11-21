@@ -1,0 +1,67 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=1
+[ e4 ] R2_Cs_STEENBRB_qp3.txt refactorize moved=682 above_floor=9 ascending=0 worst_rise=1.857e-08 status=0
+[ wa1 ] rung refactorize status=0 minors=4 f=-40.0003843936 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.499615606 dx=9.000e+00 res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0003844 dx=nan res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] rung border status=0 minors=4 f=-40.0008479765 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.499152024 dx=9.000e+00 res=5.656e-08 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.000848 dx=nan res=5.656e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] kok refactorize status=3 minors=4 f=0.00102025194754 rides=0 refused=0 rungs=0 declines=1 mu_rungs=0
+    minor 0 action=11 fp=4 verdict=0 obj_in=0 dx=1.020e-03 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=13 fp=-1 verdict=2 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=1 ride_outcome=1
+    minor 3 action=7 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] kok border status=3 minors=4 f=0.00102025194754 rides=0 refused=0 rungs=0 declines=1 mu_rungs=0
+    minor 0 action=11 fp=4 verdict=0 obj_in=0 dx=1.020e-03 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=13 fp=-1 verdict=2 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=1 ride_outcome=1
+    minor 3 action=7 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] YRK_YORKNET_qp26_m42 border status=3 minors=906 facts=910 f=-1456.83377829 ascent_rides=4 fp_rides=1 fp_refused=0 fp_rungs=1 fp_declines=4 on_rows_ordinary=3 rose=0 worst_rise=0.000e+00 eq_drift=126 eq=7.91e-06 stat=1.00e+00 comp=0.00e+00
+[ w1 ] option-off border status=1 minors=6980
+[ w1 ] option-off refactorize status=1 minors=6980
+[ bps ] BPS_ACOPR118_entry9.txt refactorize status=0 minors=432 facts=588 f=75.2165872705 fallbacks=0 refine=0
+[ sdl ] DALLASM_QN_qp10 alg=1 status=3 minors=30 refusals=0 zmx=0 reverts=1 bound_refusals=1
+[ sdl ] DALLASM_QN_qp10 alg=0 status=3 minors=38 refusals=0 zmx=1 reverts=0 bound_refusals=0
+[ sdl6 ] DALLASM_QN_qp0 alg=1 status=2 minors=30 row_refusals=0 tfc=1 eq_res=2.987e-01 row_res=0.000e+00
+[ sdl6 ] DALLASM_QN_qp0 alg=0 status=2 minors=36 row_refusals=0 tfc=1 eq_res=2.240e-01 row_res=0.000e+00
+[ nc4 ] option-off border status=0 minors=29
+[ nc4 ] option-off refactorize status=0 minors=29
+[ nc4 ] C10_STEENBRB_qp6.txt border status=0 minors=27 facts=34 f=-12 f*=-12 eq=2.28e-13 box=0.00e+00 stat=2.12e-21 comp=1.06e-21 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc4 ] C10_STEENBRB_qp6.txt refactorize status=0 minors=27 facts=33 f=-12 f*=-12 eq=2.28e-13 box=0.00e+00 stat=2.12e-21 comp=1.06e-21 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc4 ] C10_BRITGAS_qp3.txt border status=0 minors=814 facts=832 f=-35.4063659176 f*=-35.4063659176 eq=2.24e-16 box=0.00e+00 stat=7.42e-17 comp=1.39e-16 convex_certificates=1 saddle_exits=0 misses=0 rereads=[ e2f8 ] synthetic 0 status=0 minors=4 unrun=0 restarts=1 budget_stops=0 screen_pins=0 a0=2 a1=8
+3
+[ nc4 ] C10_BRITGAS_qp3.txt refactorize status=0 minors=814 facts=831 f=-35.4063659176 f*=-35.4063659176 eq=2.24e-16 box=0.00e+00 stat=7.42e-17 comp=1.39e-16 convex_certificates=1 saddle_exits=0 misses=0 rereads=3
+[ nc2 ] R2_Cs_STEENBRB_qp2.txt refactorize status=0 f=-192.000445482 minors=1865 rides=40 zero_length=24 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[ nc2 ] R2_Cs_STEENBRB_qp4.txt refactorize status=0 f=-192.000158938 minors=473 rides=67 zero_length=35 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[ qc8 ] QC8_DALLASM_qp1.txt border status=0 minors=11 facts=1 f=-125712.835807 implied=2 blkterm=0
+[ rdv ] C11_YORKNET_qp1.txt refactorize status=0 minors=614 facts=646 f=1696529.72937 rank_repairs=1 releases=4 misses=0 blkterm=0 certrej=0
+[ rdv ] RDV_YORKNET_qp5.txt refactorize status=0 minors=932 facts=977 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] YORKNET qp5 status=0 minors=932 stagnation_drops=0 stagnation_stops=0 f=-1078.49295775 stationarity=4.618e-11 eq=9.506e-15
+[ rdv ] YORKNET qp5 eq row contract: worst ratio=6.385e-08 row=225 resid=2.243e-16 row_scale=3.513 lambda=0.319242
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=932 facts=981 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=948 facts=1125 f=-1078.49295777 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] certified-gray: status=0 ratio=6.385e-08 row=225 gray_exits=0 presentations=9 minors=948
+[ yrk ] YRK_YORKNET_qp26.txt border status=0 minors=23 facts=61 f=0.133368173127 refused_exchanges=4 refusals=10 blkterm=0 misses=4
+[ yrk ] YRK_YORKNET_qp26.txt face null_dim=19 min_curvature=-1.543e-22
+[ pf1 ] status=1 minors=400 facts=272 dual_regularization_decreases=1 f=0.133626056483104 f_cap=0.139462433848742
+[ pf1 ] rung at minor 313 (record 313): dual_mu 1e-08 -> 1e-10; the pass before it: verdict=0 perturbed_pivots=0
+[ pf1 ] post-rung: passes_with_verdict=87 not_kOk=85 perturbed_pivots_total=192 perturbed_unobserved=0; pre-rung perturbed_pivots_total=0
+[ pf1 ] post-rung: kSuspect=85 kWrong=0 max_perturbed_in_a_pass=6 max_primal_delta=1e-08
+[ nc3 ] C10_STEENBRB_qp2.txt refactorize status=0 minors=293 facts=307 f=1962898.76874 f_saddle=1962909.61465 redH_min=2994.37 eq=2.27e-13 stat=5.70e-18 saddle_exits=1 misses=0 solves=25
+[ nc3 ] C10_STEENBRE_qp1.txt refactorize status=0 minors=1041 facts=1047 f=4172626.10834 f_saddle=4172746.15834 redH_min=24694.8 eq=1.82e-12 stat=3.64e-18 saddle_exits=1 misses=0 solves=12
+[ sdl ] SDL_YORKNET_qp29.txt border status=0 minors=17 facts=84 f=-0.102164084607 saddle_exits=1 misses=0 shifted=1 shifted_dirs=1
+[ sdl ] SDL_YORKNET_qp29.txt face null_dim=35 min_curvature=-9.663e-14
+[ snx ] SNX_BRITGAS_resto_qp4.txt alg=1 status=0 minors=958 facts=997 stagnation_drops=1 stagnation_stops=0 f=-20.6631919895849 f_cap=-10.0215963744262 eq=1.352e-15 eq_cap=3.243e-04
+[ snx ] SNX_BRITGAS_resto_qp4.txt classification footprint: terminal_polish_solves=1 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+[ snx ] rate 0.8 status=0 minors=53 stagnation_drops=0 stagnation_stops=0 mu_refines=0 mu_rescues=0 last_action=7
+[ snx ] idle on a priced row status=1 minors=24 stagnation_drops=0 stagnation_stops=1 mu_refines=2 mu_rescues=2 last_action=15
+[ e2f9 ] ACOPR118_f81_qp3.txt refactorize status=0 minors=9 facts=159 f=-0.00104614257146 eq=3.02e-14 stat=4.11e-14 standstill_retreats=0 dep_border_retreats=0
+[ e2f9 ] ACOPP118_f81_qp0.txt border status=0 minors=300 facts=424 f=1155.78801918 eq=7.95e-14 stat=4.81e-14 standstill_retreats=1 dep_border_retreats=0
+[ e2f7 ] ACOPR118_e4_qp5.txt refactorize status=0 minors=367 facts=519 f=-0.154376247286 stat=3.808e-14 screen_pins=5 pin_skips=0 deferred=0 undecidable=0 unrun=0 budget_stops=0 restarts=0
+[==========] 82 tests from 31 test suites ran. (43093 ms total)
+[  PASSED  ] 82 tests.

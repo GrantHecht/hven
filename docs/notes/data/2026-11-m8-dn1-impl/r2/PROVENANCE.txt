@@ -1,0 +1,38 @@
+M8 DN-1 r2 -- the N set on the review-fix code head -- PROVENANCE AND RESULTS (../DECLARATION-r2.txt)
+================================================================================
+Commits     53a3b9e8, ecc9bcc2, 2171f8dd (review fixes C270) = the code head 2171f8dd4; ffa8d4ca DECLARATION-r2 + r2/legs +
+            r2/runtime (before the first leg); this commit: the outputs and this file. Base / arm A 02065dac.
+            The predecessor's record (../DECLARATION.txt, bd669695) is untouched.
+Binaries    arm A corpus 4ee3af3b...041c and db d29b82f8...5994 (reused read only; ARM_A_OK); arm B corpus
+            8931420f4803d564...61e7 (build-dn1r2/armBbin), arm B libhven.a 37fb894cceb5e3eb..., falsifier mutant
+            hven_tests d4fbb993d17733ce...
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2, MKL_NUM_THREADS=1,
+            period 400000. Apple/Accelerate: UNOBSERVED (syntax sweep only). Windows: UNOBSERVED.
+Dates       2026-11-09 EST: declaration 01:59; runtime gate 01:59-02:45; chain1 02:45-09:12 (census 03:07-09:12).
+Protocol    every leg `flock /tmp/box-build.lock bash <leg>` (scratchpad driver: run_all.sh then chain1.sh); pgrep empty
+            before the lock and PGREP_EMPTY inside; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4
+            under setsid; serial, alone. chain/chain1.out: PREFLIGHT_OK, every leg rc 0, CHAIN1_DONE.
+
+RESULTS (criteria as declared)
+P0  arm A       ARM_A_OK. PASS.
+P1  suites      Release and Debug: 100% tests passed, 0 tests failed out of 3522 (suites/). PASS.
+P2  examples    8/8 rc 0. PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS.
+P4  iparm       IPARM_BYTE_IDENTICAL, 15 configurations (iparm/). PASS.
+P5  census      57/57 (census/): CENSUS_AS_DECLARED -- 42 exact, PF-1's 2 declared rows exactly, 13 deadline-bound; no
+                DN-1 mover. PASS.
+P6  smoke       default and clang PASSED (36 standalone-include TUs), export contract OK on both. PASS.
+P7  PCH         PASS (4 TUs engaged). PASS.
+P8  off-ref     build rc 0; ctest 0 failed out of 3522 (offref/; 26 warning lines, reported); warnings/: arm A 26 lines /
+                19 distinct (file, message), arm B 26 / 19, WARNINGS_SET_EQUAL (per-pair counts equal too). PASS (the
+                C269 wording).
+P9  Accelerate  PASS_A_AS_DECLARED. PASS. Pass B (reported): PASS_B_NOT_AS_DECLARED, the same four OTHER files as r1.
+P10 flags       FLAGS_AS_DECLARED (0 differing TUs; one added TU, baseline flags). PASS.
+P11 runtime     VERDICT PASS -- filtered B/A interior 1.000008, ipm 0.999968, ssn 0.999963, walk 0.999997; THROTTLE 0;
+                counter identity in every mode. PASS.
+P12 interior    unmoved and promoted: 43 cells x 30 columns, 0 differences each (interior/). PASS.
+P14 falsifier   head 22 DenseArm/DenseArmBlockWalk tests all OK; mutant fails exactly the four declared, LAKES reads 72:
+                FAILPROOF_AS_DECLARED. PASS.
+P16 objects     A 56, B 57, added exactly dense_session.cpp.o; dense_symmetric_factor.cpp.o BYTE-IDENTICAL; 21 others
+                differ (listed): OBJECTS_AS_DECLARED. PASS.
+Every N-set criterion of DECLARATION-r2 is met.

@@ -1,0 +1,16 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T17:58:26-05:00
+built base: [58/58] Linking CXX static library libhven.a
+built rel: [58/58] Linking CXX static library libhven.a
+ include/hven/detail/qp/qp_engine.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+MEMBER_LISTS_EQUAL
+objects=56 differ=0
+== cap30k rc=0 [HVEN_PF1B_TRACE=1  | --maxiter 30000 --exact ]
+PF1R status=1 minors=30000 facts=29872 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=0 stag_drops=0 stag_stops=0 shift_adds=882 wall=1236.113 q=6.447333496858543e-02 pins=0 tr=3121 active=879 mu=1e-08
+PF1A records=30000 truncated=0 a0=19 a10=29981 | verdict ok=30000 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=1.565e-02 ineq=1.294e-02 box=0.000e+00 stat=1.696e-07 sign=1.375e+00 compl=1.473e-02 scale=2.441e+04
+PF1E lu_fail
+rungs_traced=0
+rc=1
+FOREGROUND_END 2026-11-07T18:20:26-05:00

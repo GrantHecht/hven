@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T15:41:28-05:00
+[393/396] Linking CXX executable examples/hven_example_01_hs071_both_engines
+[394/396] Linking CXX executable examples/hven_example_05_warm_continuation
+[395/396] Linking CXX executable examples/hven_example_08_results_trace_options
+build rc=0
+FOREGROUND_END 2026-11-19T15:44:06-05:00

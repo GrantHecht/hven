@@ -1,0 +1,28 @@
+PGREP_EMPTY
+3929
+NOT_GTEST cmake
+NOT_GTEST static_scan.sh
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST cmake
+NOT_GTEST bash
+gtest executables listed: 3905
+  3924 total

@@ -3,7 +3,7 @@
 # (hven/detail/linear/accelerate_session.h/.cpp,
 # src/linear/symmetric_factor_accelerate.cpp) AND of the Apple-gated halves
 # of the three test files that exercise it
-# (tests/linear/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
+# (tests/linear/seam/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
 # tests/linear/test_symmetric_factor_evidence_invariants.cpp's one
 # `#if defined(__APPLE__)` assertion,
 # tests/linear/test_symmetric_factor_pardiso_only_options.cpp's
@@ -22,8 +22,8 @@
 # backend-neutral public API, so their
 # checks below need real gtest headers but not the stub Accelerate.h.
 #
-# hven's psiopt/tycho_sqp precedents were searched for an existing
-# "Apple-TU compile lane on Linux" trick and none was found: tycho's own
+# The two ports this backend follows were searched for an existing
+# "Apple-TU compile lane on Linux" trick and none was found: their own
 # Accelerate hygiene canary (scripts/check_accelerate_warnings.sh) is
 # Apple-only and exits immediately on any other platform. So this script is
 # a `clang++ -fsyntax-only` pass against a minimal, hand-written stub of
@@ -128,8 +128,8 @@ check_one() {
 
 check_one "${REPO_ROOT}/src/linear/accelerate_session.cpp"
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp"
-# Also with HVEN_TESTING defined, the same way hven_fault_injection_tests
-# compiles this file's own copy (tests/CMakeLists.txt) -- covers the
+# Also with HVEN_TESTING defined, the same way hven_linear_seam_tests
+# compiles this file's own copy (tests/linear/CMakeLists.txt) -- covers the
 # fault-injection call site's #ifdef branch, which the check above never
 # instantiates.
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" -DHVEN_TESTING=1
@@ -188,7 +188,7 @@ if [[ -z "${GTEST_INCLUDE}" ]]; then
     echo "      FetchContent has pulled it, then re-run this script."
 else
     TEST_HALVES_CHECKED=1
-    check_one "${REPO_ROOT}/tests/linear/test_fault_injection.cpp" \
+    check_one "${REPO_ROOT}/tests/linear/seam/test_fault_injection.cpp" \
         -D__APPLE__ -DHVEN_TESTING=1 -isystem "${GTEST_INCLUDE}"
     check_one "${REPO_ROOT}/tests/linear/test_symmetric_factor_evidence_invariants.cpp" \
         -D__APPLE__ -isystem "${GTEST_INCLUDE}"

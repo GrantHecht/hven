@@ -1,0 +1,33 @@
+M8 PF-1 -- runtime neutrality gate -- DECLARATION (PF-HB's instrument, ../../2026-11-m8-pf-huge-bound/runtime/, itself the
+B8 riders', re-pointed; committed before the first leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b8-riders/runtime/DECLARATION-r2.txt, whose criteria (themselves B8's, verbatim) are taken
+VERBATIM, as PF-HB took them; only the arms, the paths and the group's name change. run_all.sh and runtime_leg.sh are
+PF-HB's with the worktree, the build directory (build-pfe -> build-pf1e), the evidence directory, arm A's sha256 and the
+comments' arm A replaced. analyze_r5.py is PF-HB's except its one repository-root line's COMMENT (pf1/runtime/ is five
+levels below the root -- checked by ../legs/chain1.sh's pre-flight); the code is byte for byte. The fixture is copied
+byte for byte.
+
+WHY THE STANDARD GATE APPLIES TO A DECLARED COUNTER MOVE. The gate's cells are the 27 replay cells; the rule PF-1 adds
+moves none of them (../DECLARATION.txt D1: replay x walk/ssn/ipm EXACT, measured on the dev build before this
+declaration -- 0 differences in all three modes -- and asserted again by P3). Counter identity on the gate's cells is
+therefore the STOP condition as before, and the instructions are judged on the same band. The declared counter moves
+are census cells (D1), judged by their counters there, not by this gate.
+
+ARMS
+  A  bdd797e3 (origin/m8): build-pf1e/armAbin/hven_sqp_corpus, the corpus binary of ../legs/prebuild.sh's Release
+     build of bdd797e3's `git archive` export (build-pf1e/armA-src at build-pf1e/armA), ../legs/build.sh's flags;
+     sha256 cb07803891f17091a8bbe1de280d947c99d59a16e05bfbefd49d54d1a014166b.
+  B  the code head e55cecde: build-pf1e/rel/bench/hven_sqp_corpus (a fresh configure and build at the head,
+     ../legs/build.sh) copied by run_all.sh to build-pf1e/armBbin/, sha256 5c7a793d7a9b9d3fadf4d3802fe737803feef7e603e8045c504564cb2545c614.
+     run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B), core 2,
+band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter identity as the STOP
+condition: exactly as the source declaration. Both arms at the defaults in every mode.
+WHAT THE ARMS DIFFER BY, for the reader of the ratios: on a post-drop pass of the independent walk (a drop the previous
+pass made of an inequality row), one membership test of that row (a binary search of the working rows) before the shift
+refresh and one after; the rung itself never fires on these cells. Nothing else runs on the corpus.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a hven_bench_cell`
+empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux
+7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows UNOBSERVED.

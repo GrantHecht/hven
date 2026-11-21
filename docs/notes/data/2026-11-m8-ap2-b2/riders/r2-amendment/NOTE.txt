@@ -1,0 +1,5 @@
+R2 amendment (ruling C214), code head 75292af2, binary build-b2/rel/bench/hven_sqp_corpus
+sha256 97222ee9...d76691a33. Same box protocol and legs as ../PROVENANCE.txt.
+  ctest-release.txt  3270/3270 passed
+  ctest-debug.txt    3270/3270 passed
+  replay/            27 cells x walk/ssn/ipm: 0 differences x3 (EXACT)

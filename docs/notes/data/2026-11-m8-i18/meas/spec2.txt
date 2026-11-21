@@ -1,0 +1,4 @@
+N2box I18_TRIG=box,I18_STOP=tol
+N2tr I18_TRIG=tr,I18_STOP=tol
+Rbox01 I18_TRIG=box,I18_STOP=rel0.1
+Rbox05 I18_TRIG=box,I18_STOP=rel0.5

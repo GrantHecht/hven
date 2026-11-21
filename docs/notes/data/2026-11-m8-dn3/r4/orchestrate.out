@@ -1,0 +1,113 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:33:09-05:00
+LEG F1-rel start 2026-11-13T06:33:09-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:33:09-05:00
+
+The following tests did not run:
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T06:34:24-05:00
+LEG F1-rel rc=0 2026-11-13T06:34:24-05:00
+LEG F1-dbg start 2026-11-13T06:34:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:34:24-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T06:40:59-05:00
+LEG F1-dbg rc=0 2026-11-13T06:40:59-05:00
+LEG I1 start 2026-11-13T06:40:59-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:40:59-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/flipbin/hven_sqp_corpus sha256 7e41142fc0aff007b301a3af905ecacd2ccc86941dcfe212896627e0442eff4e
+RUN k=1 mode=walk 2026-11-13T06:40:59-05:00
+run rc=0
+compare rc=0
+=== r4-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ssn 2026-11-13T06:45:47-05:00
+run rc=0
+compare rc=0
+=== r4-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ipm 2026-11-13T06:46:07-05:00
+run rc=0
+compare rc=0
+=== r4-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=walk 2026-11-13T06:46:33-05:00
+run rc=0
+compare rc=0
+=== r4-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ssn 2026-11-13T06:51:21-05:00
+run rc=0
+compare rc=0
+=== r4-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ipm 2026-11-13T06:51:41-05:00
+run rc=0
+compare rc=0
+=== r4-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=walk 2026-11-13T06:52:07-05:00
+run rc=0
+compare rc=0
+=== r4-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ssn 2026-11-13T06:56:55-05:00
+run rc=0
+compare rc=0
+=== r4-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ipm 2026-11-13T06:57:15-05:00
+run rc=0
+compare rc=0
+=== r4-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-13T06:57:41-05:00
+LEG I1 rc=0 2026-11-13T06:57:41-05:00
+LEG I3ab start 2026-11-13T06:57:41-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:57:41-05:00
+dump never rc=0
+dump default rc=0
+I3a IPARM_BYTE_IDENTICAL
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r4/iparm/iparm-never.txt
+568655771da0987813dda0b6858427c8af6c548798aecae2c97f32b8a53f90c6  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r4/iparm/iparm-default.txt
+I3b (reported): the flipped default's dump, status lines per config:
+  == config default	status=optimal iterations=10 calls=0
+  == config ordering=minimum_degree	status=optimal iterations=10 calls=0
+  == config ordering=parallel_nested_dissection	status=optimal iterations=10 calls=0
+  == config pivoting=one_by_one	status=optimal iterations=10 calls=0
+  == config matching=off	status=optimal iterations=10 calls=0
+  == config scaling=on	status=optimal iterations=10 calls=0
+  == config pivot_perturbation=13	status=optimal iterations=10 calls=0
+  == config refinement_steps=2	status=optimal iterations=10 calls=0
+  == config parallel_solve=1	status=optimal iterations=10 calls=0
+  == config parallel_solve=2	REFUSED (std::invalid_argument) calls=0
+  == config cnr=on	REFUSED (std::invalid_argument) calls=0
+  == config skip_unperturbed=off	status=optimal iterations=10 calls=0
+  == config force_analysis=on	status=optimal iterations=10 calls=0
+  == config threads=2	status=optimal iterations=10 calls=0
+  == config cnr=on+threads=2	REFUSED (std::invalid_argument) calls=0
+I3b pardiso calls recorded in total: 0
+FOREGROUND_END 2026-11-13T06:57:48-05:00
+LEG I3ab rc=0 2026-11-13T06:57:48-05:00
+LEG I3c start 2026-11-13T06:57:48-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T06:57:48-05:00
+7e41142fc0aff007b301a3af905ecacd2ccc86941dcfe212896627e0442eff4e  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/flipbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+5cf7c4019d758343160638c10920b5c188dbc27dd808544ef9d7da0d129cfd9a  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/interior-r2/interior-B.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+flip rc=0
+flip (baseline invocation) rc=0
+    infeas2_stationary/MakeParameter/resto_infeasible econ_inf                           A=4.707345624e-14  B=4.729550085e-14
+compare unmoved rc=1
+    infeas2_stationary/MakeParameter/resto_infeasible econ_inf                           A=4.707345624e-14  B=4.729550085e-14
+compare promoted rc=1
+worst=1
+FOREGROUND_END 2026-11-13T06:58:11-05:00
+LEG I3c rc=1 2026-11-13T06:58:11-05:00
+STOPPED_AT I3c
+FOREGROUND_END 2026-11-13T06:58:11-05:00

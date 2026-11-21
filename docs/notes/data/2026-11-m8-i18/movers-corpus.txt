@@ -1,0 +1,14 @@
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__ACOPP57_D__qp2.txt
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__ACOPP57_D__qp3.txt
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__ACOPP57_f5__qp2.txt
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__ACOPP57_f5__qp3.txt
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__STEENBRB_def__qp3.txt
+docs__notes__data__2026-09-m7-w2-e2-d4-feasible-qps__dumps__STEENBRB_sf__qp3.txt
+tests__qp__fixtures__e2-d4__ACOPR118_f81_qp4.txt
+tests__qp__fixtures__e2-d4__ACOPR118_f81_qp5.txt
+tests__qp__fixtures__e2-d4__ACOPR118_f81_qp6.txt
+tests__qp__fixtures__e2-d4__C10_BRITGAS_qp3.txt
+tests__qp__fixtures__e2-d4__I18_qp_m137.txt@border@1e-10
+tests__qp__fixtures__e2-d4__I18_qp_m137.txt@border@1e-9
+tests__qp__fixtures__e2-d4__I18_qp_m137.txt@refactorize@1e-10
+tests__qp__fixtures__e2-d4__I18_qp_m137.txt@refactorize@1e-9

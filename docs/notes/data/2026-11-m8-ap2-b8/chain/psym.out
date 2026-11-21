@@ -1,0 +1,52 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-05T21:10:26-05:00
+before-capture digest 1e85b4f2d6c599a99b8481e12813ff8641c5ee55e16028ee0f0d62708d1b942d  -
+ninja: no work to do.
+before names 59311 after names 59340 mapped 14266 (raw-mangled mapped 36, raw unpaired 0)
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8/psym/maps/symbol-map.txt exceptions=/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8/psym/exceptions.txt
+DIFFERS     CMakeFiles/hven.dir/src/core/enum_names.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/core/ledger.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/common_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/result_message.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/trace.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+DIFFERS     CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+               Read that column first; a rank-tagged initialiser with M = 0 was paired by
+               identity, not by rank.
+P-SYM: 178 objects — 12 byte-identical, 6 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 162 compared per symbol, 159 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 82541 matched (30624 through the symbol map), 0 only-before, 0 only-after, 49 excepted, 0 collisions, 52 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 699 matched by count, 0 differing (93431 before-arm and 93447 after-arm symbols accounted by family); relocations — 876144 records compared (65409 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+compare rc=0
+FOREGROUND_END 2026-11-05T21:18:15-05:00

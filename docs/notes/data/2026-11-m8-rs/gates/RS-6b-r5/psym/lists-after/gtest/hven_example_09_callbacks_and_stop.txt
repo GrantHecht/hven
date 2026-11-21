@@ -1,0 +1,23 @@
+early-> interrupted (callback_stop) at iteration 16 of 18, f=0.045395, x=(+0.7884, +0.6191)
+early-> interrupted, returned_best_iterate=yes, f=2.674601
+external-> interrupted (stop_requested) after 3 iterations, x=(-0.7950, +0.6157)
+live-> optimal, f=0.0456748
+liveiter  0  f=+24.200000  x=(-1.2000, +1.0000)  lambda=(+0.0000)  violation=1.4e+00
+liveiter  1  f=+6.180518  x=(-0.8969, +0.6437)  lambda=(+6.8823)  violation=2.2e-01
+liveiter  2  f=+3.248943  x=(-0.7950, +0.6157)  lambda=(+1.2312)  violation=1.1e-02
+liveiter  3  f=+2.674601  x=(-0.5821, +0.2975)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  4  f=+2.077266  x=(-0.4117, +0.1404)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  5  f=+1.635066  x=(-0.2045, -0.0011)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  6  f=+1.188770  x=(-0.0788, -0.0096)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  7  f=+1.125048  x=(+0.1807, -0.0347)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  8  f=+0.582687  x=(+0.2373, +0.0531)  lambda=(+0.0000)  violation=0.0e+00
+liveiter  9  f=+0.582687  x=(+0.2373, +0.0531)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 10  f=+0.582687  x=(+0.2373, +0.0531)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 11  f=+0.582687  x=(+0.2373, +0.0531)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 12  f=+0.431033  x=(+0.3623, +0.1157)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 13  f=+0.290473  x=(+0.5169, +0.2433)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 14  f=+0.164477  x=(+0.6005, +0.3536)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 15  f=+0.131330  x=(+0.7671, +0.5607)  lambda=(+0.0000)  violation=0.0e+00
+liveiter 16  f=+0.045208  x=(+0.7875, +0.6194)  lambda=(+0.0611)  violation=3.9e-03
+liveiter 17  f=+0.045674  x=(+0.7864, +0.6177)  lambda=(+0.1214)  violation=4.2e-06
+liveiter 18  f=+0.045675  x=(+0.7864, +0.6177)  lambda=(+0.1215)  violation=4.3e-12

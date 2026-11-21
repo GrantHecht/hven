@@ -1,0 +1,139 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[ e4fix2 ] arm L inert: off 0/4 == on 0/4 ; switches min=0 pivot=0 lex_drop=0 lex_ratio=0
+[ wa1 ] degenerate refactorize status=0 minors=9 f=-0.178021644358 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=10 fp=5 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=0 obj_in=0 dx=4.444e-01 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.345679011 dx=1.975e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=4 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=-0.345679012 dx=1.000e-16 res=2.222e-05 mu=1.0e-08 post_drop=1 ride_outcome=5
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=11 fp=-1 verdict=0 obj_in=-0.178021644 dx=2.469e-01 res=9.877e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=0 obj_in=-0.345679012 dx=1.097e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 8 action=7 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] degenerate border status=0 minors=9 f=-0.124574914672 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=10 fp=5 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=0 obj_in=0 dx=5.625e-01 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.404296872 dx=3.164e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=4 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=-0.404296874 dx=1.000e-16 res=3.750e-05 mu=1.0e-08 post_drop=1 ride_outcome=5
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=11 fp=-1 verdict=0 obj_in=-0.124574915 dx=4.290e-01 res=8.899e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=0 obj_in=-0.404296873 dx=2.413e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 8 action=7 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] revert refactorize status=0 minors=8 f=-40.4964492793 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=17 fp=6 verdict=1 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=11 fp=-1 verdict=2 obj_in=0.00355072137 dx=1.000e-08 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=0.00355072067 dx=9.000e+00 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 5 action=11 fp=-1 verdict=0 obj_in=-40.4366063 dx=2.718e-01 res=9.659e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] revert border status=0 minors=4 f=-40.0605468753 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.439453125 dx=9.000e+00 res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0605469 dx=nan res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ w1 ] C11_BRITGAS_qp1 border status=0 minors=1564 facts=1606 f=4665.05166676 redH_min=nan ascent_rides=4 in_face_ordinary=26 rose=0 worst_rise=0.000e+00 rides=4 rides_not_down=0 eq=4.44e-16 stat=7.11e-17 comp=7.55e-14
+[ bps ] BPS_ACOPR118_qp26.txt refactorize status=0 minors=3 facts=3 f=-0.000976904151918 fallbacks=0 refine=0
+[ sdl6 ] NET3_QN_qp98 alg=1 status=3 minors=13 row_refusals=1 tfc=0 eq_res=2.337e-06 row_res=1.084e-01
+[ sdl6 ] NET3_QN_qp98 alg=0 status=3 minors=19 row_refusals=0 tfc=0 eq_res=3.411e-12 row_res=4.206e-12
+[ nc4 ] C10_STEENBRB_qp4.txt border status=0 minors=42 facts=51 f=-24 f*=-24 eq=2.22e-16 box=6.28e-32 stat=6.62e-23 comp=3.97e-23 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc4 ] C10_STEENBRB_qp4.txt refactorize status=0 minors=42 facts=50 f=-24 f*=-24 eq=2.22e-16 box=6.28e-32 stat=6.62e-23 comp=3.97e-23 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc4 ] C10_STEENBRB_qp8.txt border status=0 minors=27 facts=34 f=-3 f*=-3 eq=2.27e-13 box=0.00e+00 stat=8.34e-22 comp=4.96e-23 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc4 ] C10_STEENBRB_qp8.txt refactorize status=0 minors=27 facts=33 f=-3 f*=-3 eq=2.27e-13 box=0.00e+00 stat=8.34e-22 comp=4.96e-23 convex_certificates=1 saddle_exits=0 misses=0 rereads=1
+[ nc2 ] R2_Cs_STEENBRB_qp3.txt refactorize status=0 f=-384.000317097 minors=789 rides=67 zero_length=42 predicted_signs=0 vetoes=0 undos=0 zmexh=0 zmcap=0
+[ qc8 ] QC8_DALLASM_entry6.txt border status=0 minors=74 facts=1 f=-92396.9539668 implied=33 blkterm=0
+[ qc8 ] QC8_DALLASM_qp7.txt border status=0 minors=142 facts=1 f=-92397.2698491 implied=46 blkterm=0
+[ i18 ] refactorize feas=1e-09 status=3 minors=47 facts=47 eqp_refine=0 border_refine=0 f=-1.76456655805e-06
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:51: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1.0000000000000001e-09
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:70: Failure
+Expected equality of these values:
+  s.counters.minor_iters
+    Which is: 47
+  8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1.0000000000000001e-09
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:71: Failure
+Expected equality of these values:
+  s.counters.factorizations
+    Which is: 47
+  alg == QpWorkingSetAlgebra::kSchurBorder ? 1 : 8
+    Which is: 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1.0000000000000001e-09
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:73: Failure
+Expected: (s.counters.eqp_refine_steps) >= (1), actual: 0 vs 1
+the eliminated path's accuracy stop
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1.0000000000000001e-09
+
+[ i18 ] refactorize feas=1e-10 status=3 minors=53 facts=53 eqp_refine=0 border_refine=0 f=-1.2390073107e-06
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:51: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1e-10
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:70: Failure
+Expected equality of these values:
+  s.counters.minor_iters
+    Which is: 53
+  8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1e-10
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:71: Failure
+Expected equality of these values:
+  s.counters.factorizations
+    Which is: 53
+  alg == QpWorkingSetAlgebra::kSchurBorder ? 1 : 8
+    Which is: 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1e-10
+
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:73: Failure
+Expected: (s.counters.eqp_refine_steps) >= (1), actual: 0 vs 1
+the eliminated path's accuracy stop
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i18fix/tests/qp/seam/test_qp_issue18_accuracy_stop.cpp:66: 1e-10
+
+[  FAILED  ] QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheRefactorizeAlgebra (14 ms)
+[ retake ] LAKES qp0 status=0 minors=131 scaled=3 matched=2 refusals=0
+[ rdv ] C11_SAWPATH_qp1.txt refactorize status=0 minors=43 facts=43 f=-376.163994774 rank_repairs=2 releases=6 misses=0 blkterm=0 certrej=0
+[ rdv ] SAWPATH qp1 status=0 minors=43 stagnation_drops=0 stagnation_stops=0 f=-376.163994774 stationarity=5.023e-07 eq=2.407e-13
+[ rdv ] SAWPATH qp1 eq row contract: worst ratio=1.609e-09 row=3 resid=1.110e-16 row_scale=69 lambda=-5.14028
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=932 facts=981 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ rdv ] seam row 246 0.000 -> 6.880 floor units at minor 546 (hold flag 0)
+[ rdv ] post-repair gray: status=0 ratio=6.385e-08 row=225 gray_exits=0 polish adopted=0 rejected=1
+[ rdv ] RDV_YORKNET_qp5.txt border status=0 minors=932 facts=981 f=-1078.49295775 rank_repairs=1 releases=1 misses=0 blkterm=0 certrej=0
+[ yrk ] YRK_YORKNET_qp25.txt border status=0 minors=80 facts=127 f=-5.79957813652 refused_exchanges=3 refusals=23 blkterm=0 misses=3
+[ yrk ] YRK_YORKNET_qp25.txt face null_dim=15 min_curvature=-6.857e-17
+[ nc3 ] C10_STEENBRD_qp1.txt refactorize status=0 minors=574 facts=612 f=1973581.3643 f_saddle=1973701.4143 redH_min=15550.8 eq=2.27e-13 stat=2.27e-17 saddle_exits=1 misses=0 solves=12
+[ nc3 ] C10_STEENBRE_qp2.txt border status=3 minors=1271 f=-9.98646960754e+12 saddle_exits=0 misses=1
+[ sdl ] SDL_YORKNET_qp30.txt border status=0 minors=26 facts=100 f=-0.0254650240685 saddle_exits=1 misses=0 shifted=1 shifted_dirs=1
+[ sdl ] SDL_YORKNET_qp30.txt face null_dim=22 min_curvature=-9.663e-14
+[ snx ] SNX_BRITGAS_resto_qp27.txt alg=0 status=1 minors=412 facts=428 stagnation_drops=4 stagnation_stops=1 f=-6.33537680361514e-05 f_cap=-9.9381133238926e-06 eq=1.808e-14 eq_cap=2.125e-15
+[ snx ] SNX_BRITGAS_resto_qp27.txt classification footprint: terminal_polish_solves=0 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+[ snx ] rate 0.95 + row status=0 minors=135 stagnation_drops=0 stagnation_stops=0 mu_refines=12 mu_rescues=1 last_action=7
+[ snx ] stuck off its rows status=1 minors=12 stagnation_drops=0 stagnation_stops=1 mu_refines=1 mu_rescues=0 last_action=15
+[ e2f9 ] ACOPR118_f81_qp5.txt border status=0 minors=356 facts=249 f=-0.00020307691928 eq=3.01e-14 stat=3.57e-14 standstill_retreats=1 dep_border_retreats=0
+[ e2f9 ] ACOPP118_f81_qp1.txt refactorize status=0 minors=459 facts=470 f=1172.35800871 eq=3.05e-14 stat=4.45e-14 standstill_retreats=0 dep_border_retreats=0
+[ e2f7 ] ACOPR118_e4_qp6.txt refactorize status=0 minors=353 facts=503 f=0.0395282055522 stat=1.697e-14 screen_pins=5 pin_skips=0 deferred=0 undecidable=0 unrun=0 budget_stops=0 restarts=0
+[ e2f8 ] budget refactorize on status=0 minors=14 facts=22 budget_stops=1 restarts=1 a0=2
+[ e2f8 ] budget refactorize off status=0 minors=2 facts=24 budget_stops=0 restarts=0 a0=1
+[==========] 82 tests from 30 test suites ran. (21050 ms total)
+[  PASSED  ] 81 tests.

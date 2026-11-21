@@ -1,0 +1,56 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRowContract.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpRowContract
+[ RUN      ] QpRowContract.FlatNormalGrayZoneSeedIsRepairedToOneFloorUnit
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=1.500000 alg=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=3.000000 alg=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=6.900000 alg=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=9.500000 alg=1
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=1.500000 alg=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=3.000000 alg=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=6.900000 alg=0
+
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:88: Failure
+Expected: (s.counters.minor_iters) >= (2), actual: 1 vs 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/tests/sqp/test_qp_row_contract.cpp:84: k=9.500000 alg=0
+
+[  FAILED  ] QpRowContract.FlatNormalGrayZoneSeedIsRepairedToOneFloorUnit (4 ms)
+[----------] 1 test from QpRowContract (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpRowContract.FlatNormalGrayZoneSeedIsRepairedToOneFloorUnit
+
+ 1 FAILED TEST

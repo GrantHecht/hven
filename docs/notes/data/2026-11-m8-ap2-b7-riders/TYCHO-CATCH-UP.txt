@@ -1,0 +1,35 @@
+M8 AP-2 B7 riders -- tycho catch-up ADDENDUM (what the riders add to ../2026-11-m8-ap2-b7/TYCHO-CATCH-UP.txt;
+T1-T5 stand as written there, T6 is AMENDED by T8 below)
+================================================================================
+T7  NlpModel::source_infinite_bound() (new virtual, default std::nullopt; a tycho NlpModel need not
+    override). NlpProblemModel answers its construction threshold. detail::problem_from_model over a
+    model that answers a threshold REFUSES BY NAME a solve under any other common.infinite_bound, on
+    both engines ("... wraps a model that read its own declaration under infinite_bound = X ..."): its
+    constraint-row bounds decide its row split and no engine re-reads them. Before the riders such a
+    solve re-read the variable box under the solve's threshold and not the rows.
+T8  (amends T6) evaluate_kkt(model, ...) and build_subproblem(model, ...) take a trailing
+    `double infinite_bound` (default 1e20 = CommonOptions{}.infinite_bound; > 0, refused otherwise) and
+    read the model's box under it. A tycho caller measuring a solve run under another threshold passes
+    that solve's common.infinite_bound.
+T9  PredictorOptions::infinite_bound (new, default 1e20): predict() reads the model's box under it, so it
+    never pins or fixes at a bound the solve does not have. run_continuation passes the driver's own
+    common.infinite_bound. A tycho predict() caller under a non-default threshold sets it.
+T10 RestorationModel's (model, x_entry, ev, x_centre, proximity, regularized) constructor gains a trailing
+    `double infinite_bound` (default 1e20): the centre clamp and the start clamp read the box under it
+    (the SQP passes its bridge's threshold). The wrapper's own lower()/upper() still repeat the model's
+    box as declared.
+T11 COUNTS. ProblemStatistics::absent_bounds and the ipm.solve.begin `absent_bounds` key now include the
+    model's own count on the pre-laid program route (make_nlp_program(Nlp / core) ->
+    problem_from_program; was 0 there) and on a bridge (problem_from_assembly: the bridge's count plus
+    its model's, equal to sqp.solve.begin's key; was the bridge's alone). A program counts once per
+    (variable, side) of the MATERIALISED box (was: once per staged record that read a value as absent),
+    so a pieces problem that declares a side more than once, or narrows an absent side with another
+    record, counts differently. NonLinearProgram::staged_absent_sides_ is new (public member).
+T12 STRONG GUARANTEE on the model route: a problem_from_model solve refused under a new threshold (the
+    T7 refusal, or a pair the threshold empties) leaves the Problem as it was (census, declaration key,
+    laid interior-point program). The emptied-pair message on that route is now the Problem's own:
+    "Problem: variable i has no interval (lower=.., upper=..) (read as [..]: ... infinite_bound = X ...)",
+    on both engines (was "set_variable_bound: ..." on the IPM and "NlpModelAssembly: ..." on the SQP).
+T13 The interior leg's committed baseline moved to bench/baselines/2026-11-m8-b7-ipm-leg/
+    interior_baseline.csv (re-derived at the default threshold, B7's declared rows); the 2026-09-t8-ipm-leg
+    file is frozen. A tycho copy or pin of the old file is stale for the F7 rows.

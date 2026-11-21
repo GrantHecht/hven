@@ -1,0 +1,9 @@
+hven 0.2.0 -- interior-point engine
+problem    variables 2 (free 2) · constraints 1 (equality 1) · absent bounds 0
+engine     KKT dim 3, nnz 5 · inertia classic · restoration off · phases 1
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 1000
+exit        Optimal (none) -- converged: optimality and feasibility tolerances met
+iterations  7 · restoration entries 0 · factorizations 16
+objective   0.00000000e+00
+diagnostics stationarity 0.0e+00 · feasibility 0.0e+00 · complementarity 0.0e+00   (declared)
+counters    soc 0 · watchdog 0 · inertia corrections 9

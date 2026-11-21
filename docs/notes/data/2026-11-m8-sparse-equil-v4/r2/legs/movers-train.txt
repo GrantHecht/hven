@@ -1,0 +1,10 @@
+# sparse-equil v4 r2 declared TRAIN movers (arm B vs arm A dev rows; the same 9 as v4), <tag>.<arm>; D = default, K = never-default. See ../../DECLARATION-SEQ4-r2.md section 3.
+sd-hven-sqp-ALLINITC.K
+sd-hven-sqp-HS101.K
+sd-hven-sqp-HS90.K
+sd-hven-sqp-HS99EXP.K
+sd-hven-sqp-LAKES.D
+sd-hven-sqp-LAKES.K
+sd-hven-sqp-LEWISPOL.K
+sd-hven-sqp-MESH.K
+sd-hven-sqp-MSS1.K

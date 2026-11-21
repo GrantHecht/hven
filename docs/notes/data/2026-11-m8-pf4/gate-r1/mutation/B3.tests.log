@@ -1,0 +1,824 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Schur.*
+[==========] Running 15 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 15 tests from Schur
+[ RUN      ] Schur.BorderedSolveMatchesDirectFactorization
+[       OK ] Schur.BorderedSolveMatchesDirectFactorization (2 ms)
+[ RUN      ] Schur.RefactorizationTriggerFires
+[       OK ] Schur.RefactorizationTriggerFires (0 ms)
+[ RUN      ] Schur.DropBorderMatchesDirectFactorizationOfSurvivor
+[       OK ] Schur.DropBorderMatchesDirectFactorizationOfSurvivor (0 ms)
+[ RUN      ] Schur.DropBorderThrowsOnOutOfRange
+[       OK ] Schur.DropBorderThrowsOnOutOfRange (0 ms)
+[ RUN      ] Schur.IndefiniteSchurSolveMatchesDirect
+[       OK ] Schur.IndefiniteSchurSolveMatchesDirect (0 ms)
+[ RUN      ] Schur.AntiDiagonalSchurBlock
+[       OK ] Schur.AntiDiagonalSchurBlock (0 ms)
+[ RUN      ] Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery
+[       OK ] Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery (0 ms)
+[ RUN      ] Schur.NonFiniteBorderNeverLeavesAReadableEvidenceState
+[       OK ] Schur.NonFiniteBorderNeverLeavesAReadableEvidenceState (0 ms)
+[ RUN      ] Schur.InertiaBookkeepingPinnedVariable
+[       OK ] Schur.InertiaBookkeepingPinnedVariable (0 ms)
+[ RUN      ] Schur.NearlySingularOneByOneNeedsRefactorization
+[       OK ] Schur.NearlySingularOneByOneNeedsRefactorization (0 ms)
+[ RUN      ] Schur.IncrementalCMatchesFromScratchAfterAddsAndDrops
+[       OK ] Schur.IncrementalCMatchesFromScratchAfterAddsAndDrops (1 ms)
+[ RUN      ] Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:592: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(batched.cond_estimate())
+    Which is: 4620094520637100880
+  std::bit_cast<std::uint64_t>(per_add.cond_estimate())
+    Which is: 4614433206057852330
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:593: Failure
+Expected equality of these values:
+  batched.expected_neg_eigs_delta()
+    Which is: 4
+  per_add.expected_neg_eigs_delta()
+    Which is: 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4620339138687710500
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4617148034870762492
+entry 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13845094010441205140
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13836946148583136930
+entry 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625766603625357451
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13830191776930838984
+entry 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625447180988611387
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13831325924106105854
+entry 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13837729771749610332
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4608382004921355771
+entry 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4622658359521468532
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13839766243841915583
+entry 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13831891042792780970
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13827671700558696066
+entry 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13851270923783715192
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4614508773854887575
+entry 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13849532307517912305
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4606490503446360418
+entry 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13844351345872771803
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4616146525327240867
+entry 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4630021971507248600
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4622239037231426212
+entry 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13852376418859028296
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13846228227782735093
+entry 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4626604366044505298
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4624988834529404558
+entry 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4615755232997267184
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4572565276140419200
+entry 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13852596662902392230
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13844227907557182815
+entry 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4598203312682673876
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13834651382631187323
+entry 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13856394969609688994
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13840304762121494056
+entry 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13838534711755044415
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4611324783747602502
+entry 17
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13852896004717971101
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4620817347157180256
+entry 18
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4619230582156087191
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4616994588665865069
+entry 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13845543163422152350
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13836566512937512968
+entry 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625288592944521210
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13830166225241562198
+entry 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4623846090239278824
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13831304773456991173
+entry 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13839852667601789482
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4608653241260786270
+entry 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4622189447247364312
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13839712264326752431
+entry 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13834439280947907231
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13827182785235531849
+entry 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13850946857029589189
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4614535730800114192
+entry 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13849366968371914291
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4606945266699626749
+entry 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13844109779577034715
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4615996701796163037
+entry 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4629741514622900902
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4621934040872493577
+entry 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13851756029511065212
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13845940857744478278
+entry 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625805477365769350
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4624756006615549091
+entry 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13851978190433249990
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13844014095384003740
+entry 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13836435608606620120
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13833770831565621258
+entry 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13855406264059040568
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13840206907022598520
+entry 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13840304770073141920
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4610719271647518176
+entry 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13852224577054709257
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4620754208152582900
+entry 17
+
+[  FAILED  ] Schur.BatchedAddsLeaveTheStatePerAddWouldHave (0 ms)
+[ RUN      ] Schur.BatchLandsWithOneSolveOnEitherArm
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:635: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(batched.cond_estimate())
+    Which is: 4628950958187861655
+  std::bit_cast<std::uint64_t>(per_add.cond_estimate())
+    Which is: 4614433206057852330
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13844875034784899475
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4617148034870762492
+entry 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625147009489414360
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13836946148583136930
+entry 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4620795102486298972
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13830191776930838984
+entry 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4629518818354701923
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13831325924106105854
+entry 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13848331961310539407
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4608382004921355771
+entry 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4626220807863739992
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13839766243841915583
+entry 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4605024608485750280
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13827671700558696066
+entry 6
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13853809874716030137
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4614508773854887575
+entry 7
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13853299360191098969
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4606490503446360418
+entry 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13849126293503873840
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4616146525327240867
+entry 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13842778784604080562
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4622239037231426212
+entry 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4632696848983614242
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13846228227782735093
+entry 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4633488325988650434
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4624988834529404558
+entry 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4622504923768278635
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4572565276140419200
+entry 13
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4623048000469485633
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13844227907557182815
+entry 14
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4626822718319469814
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13834651382631187323
+entry 15
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13851094728004118114
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13840304762121494056
+entry 16
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13855124902732218504
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4611324783747602502
+entry 17
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4627749182946999904
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4620817347157180256
+entry 18
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: sparse arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:635: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(batched.cond_estimate())
+    Which is: 4628950958187861663
+  std::bit_cast<std::uint64_t>(per_add.cond_estimate())
+    Which is: 4614433206057852331
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13844875034784899473
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4617148034870762490
+entry 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4625147009489414354
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13836946148583136924
+entry 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4620795102486298969
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13830191776930838987
+entry 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4629518818354701918
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13831325924106105855
+entry 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13848331961310539392
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4608382004921355784
+entry 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4626220807863739991
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13839766243841915583
+entry 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4605024608485750253
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13827671700558696054
+entry 6
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13853809874716030132
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4614508773854887576
+entry 7
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13853299360191098963
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4606490503446360428
+entry 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13849126293503873836
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4616146525327240872
+entry 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13842778784604080552
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4622239037231426211
+entry 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4632696848983614235
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13846228227782735090
+entry 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4633488325988650430
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4624988834529404556
+entry 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4622504923768278643
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4572565276140413312
+entry 13
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4623048000469485623
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13844227907557182815
+entry 14
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4626822718319469806
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13834651382631187300
+entry 15
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13851094728004118112
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 13840304762121494055
+entry 16
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 13855124902732218496
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4611324783747602501
+entry 17
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:453: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(a(i))
+    Which is: 4627749182946999896
+  std::bit_cast<std::uint64_t>(b(i))
+    Which is: 4620817347157180261
+entry 18
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf4/tests/kkt/test_schur.cpp:612: dense arm
+
+[  FAILED  ] Schur.BatchLandsWithOneSolveOnEitherArm (0 ms)
+[ RUN      ] Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack
+[       OK ] Schur.BatchWhoseK0SolveThrowsLeavesThePerAddStack (0 ms)
+[ RUN      ] Schur.BatchThatThrowsLeavesThePerAddStack
+[       OK ] Schur.BatchThatThrowsLeavesThePerAddStack (0 ms)
+[----------] 15 tests from Schur (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 1 test suite ran. (6 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+[  FAILED  ] Schur.BatchLandsWithOneSolveOnEitherArm
+
+ 2 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = AnalysisTally.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from AnalysisTally
+[ RUN      ] AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem
+[       OK ] AnalysisTally.CountsEveryInstanceAndTheRepeatsAmongThem (2 ms)
+[ RUN      ] AnalysisTally.ValuesDoNotMatterThePatternDoes
+[       OK ] AnalysisTally.ValuesDoNotMatterThePatternDoes (0 ms)
+[ RUN      ] AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey
+[       OK ] AnalysisTally.AnOptionThatReachesTheSymbolicPhaseIsPartOfTheKey (0 ms)
+[ RUN      ] AnalysisTally.TheDenseArmRunsNoSymbolicPhaseAndIsNotCounted
+[       OK ] AnalysisTally.TheDenseArmRunsNoSymbolicPhaseAndIsNotCounted (0 ms)
+[ RUN      ] AnalysisTally.NestedTalliesEachSeeTheirOwnExtent
+[       OK ] AnalysisTally.NestedTalliesEachSeeTheirOwnExtent (0 ms)
+[ RUN      ] AnalysisTally.NothingIsCountedWithoutAnOpenTally
+[       OK ] AnalysisTally.NothingIsCountedWithoutAnOpenTally (0 ms)
+[----------] 6 tests from AnalysisTally (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 6 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendAnalysisTally.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from SqpBackendAnalysisTally
+[ RUN      ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+[       OK ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession (5 ms)
+[ RUN      ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis
+[       OK ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis (0 ms)
+[----------] 2 tests from SqpBackendAnalysisTally (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 2 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/build-pf4/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpPlatformRetake.*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from QpPlatformRetake
+[ RUN      ] QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+[       OK ] QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (4 ms)
+[ RUN      ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+[       OK ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+[ RUN      ] QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform
+[       OK ] QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform (0 ms)
+[ RUN      ] QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+[ retake ] qp26 border status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] qp26 refactorize status=0 minors=23 scaled=1 matched=1 refusals=0
+[       OK ] QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (320 ms)
+[ RUN      ] QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+[       OK ] QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+[ RUN      ] QpPlatformRetake.TheScaledSolveRefusesAMismatchedRightHandSide
+[       OK ] QpPlatformRetake.TheScaledSolveRefusesAMismatchedRightHandSide (0 ms)
+[ RUN      ] QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle
+[       OK ] QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle (0 ms)
+[ RUN      ] QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+[       OK ] QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+[ RUN      ] QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch
+[       OK ] QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch (0 ms)
+[ RUN      ] QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve
+[       OK ] QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve (0 ms)
+[ RUN      ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+[ retake ] LAKES qp0 status=0 minors=131 scaled=3 matched=2 refusals=0
+[       OK ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (113 ms)
+[----------] 11 tests from QpPlatformRetake (439 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (439 ms total)
+[  PASSED  ] 11 tests.

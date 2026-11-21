@@ -1,0 +1,34 @@
+M8 TR-D / TR-D' -- consumer catch-up list (one iteration history for both engines). Full table: docs/migration-0.2.md, section TR-D.
+A consumer built against origin/m8 before TR-D stops compiling at each SqpResult::history reader below; the IPM addition needs nothing.
+
+Rewrites (compile errors)
+  hven::SqpIterate                      -> removed (the driver's internal working row is not public); read hven::IterationRecord
+  SqpResult::history[k]                 -> std::vector<IterationRecord>; the engine block is h.sqp (std::optional<SqpIterationRow>)
+  h.trial                               -> h.iteration
+  h.f                                   -> h.f (std::optional<double>; h.f_recovery at depth 1)
+  h.kkt_residual                        -> std::max(h.stationarity, h.feasibility)
+  h.violation_l1 / h.tr_radius          -> h.sqp->violation_l1 / h.sqp->trust_radius
+  h.mu                                  -> h.sqp->regularization_dual (std::optional; nullopt iff !qp_solved)
+  h.step_norm                           -> h.step_norm (std::optional<double>; nullopt when no step leaves the row)
+  h.qp_solved                           -> h.sqp->qp_solved
+  h.qp_status / qp_minor_iters / qp_factorizations / verdict
+                                        -> h.sqp->qp_status / qp_minor_iterations / qp_factorizations / verdict (std::optional; nullopt iff !qp_solved)
+  h.tr_binding                          -> h.sqp->tr_binding
+  h.soc_applied / h.watchdog_restored   -> h.soc / h.watchdog
+  h.elastic_applied / h.elastic_rho0_ceiling_hit -> h.sqp->elastic / h.sqp->elastic_clamped
+  h.restoration_seed_used               -> h.sqp->restoration_seed_used
+  h.ipqp_least_infeasible_primal / ipqp_farkas_corroborated -> h.sqp->same (std::optional; nullopt off an escape row)
+  h.active_set_delta, weak_active_rows, near_active_rows, active_rows, active_lower_sides, active_upper_sides -> h.sqp->same names
+  h.rolled_back                         -> h.rolled_back (core)
+
+Additions (no rewrite)
+  IpmResult::history                    std::vector<IterationRecord>, always built; h.ipm-> block
+  IterationRecord::factorizations       now also on the SQP row (running count of the (sub-)solve), always built
+
+Behaviour
+  A row field the engine did not measure is nullopt where 0.1 wrote a default (mu, step_norm, qp_status, QP counters, verdict on a row with no solved subproblem).
+  Identity: history.size() == depth-0 iter lines == callback events (docs/trace-schema-v1.md section 4, identity 1).
+
+hven-bench (private, local branch trd-catchup off main, not pushed): see the commit message; live lanes read no history.
+
+TR-D rider (naming): the SQP iter-row JSON key `sqp.dual_regularization` is spelled `sqp.regularization_dual` (the ipm block's key for the same quantity); the C++ field SqpIterationRow::dual_regularization is renamed identically. A reader of that key or field rewrites it; nothing else moves.

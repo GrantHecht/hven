@@ -1,0 +1,6 @@
+usage: flags_diff2.py [-h] --root ROOT [--map MAP]
+                      [--expect-removed EXPECT_REMOVED] [--dir-move DIR_MOVE]
+                      [--allow-removed ALLOW_REMOVED]
+                      [--allow-added ALLOW_ADDED]
+                      before after
+flags_diff2.py: error: argument --allow-removed: expected one argument

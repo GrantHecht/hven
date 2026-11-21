@@ -1,0 +1,5 @@
+MISMATCH cutest/ZAMB2-8/hven-sqp/default
+  base : cutest/ZAMB2-8/hven-sqp/default,cutest,ZAMB2-8,cutest-nlp-35 v1,6d52681f9da339a0725f6f00e8a147adf2e9a1839bef3150aa379f35c57a6e87,TRAIN,hven-sqp,default,a706a3c68ffe392213e8e807e64da4e3e13d48ce6ea2a0c791002024f1001220,exact,300,null,300,0,optimal,optimal,8,144,null,null,null,null,-0.15293592839679399,2.260523819725465e-13,1.3742620930123906e-10,0,0,0.32142666098661721
+  fresh: cutest/ZAMB2-8/hven-sqp/default,cutest,ZAMB2-8,cutest-nlp-35 v1,6d52681f9da339a0725f6f00e8a147adf2e9a1839bef3150aa379f35c57a6e87,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,8,147,null,null,null,null,-0.15293592839679387,2.260517348393748e-13,1.3742670890160014e-10,0,0,0.30945514212362468
+MOVED options_digest: 10 cells differ, declared
+10 baseline cells, 10 fresh cells, 1 mismatches

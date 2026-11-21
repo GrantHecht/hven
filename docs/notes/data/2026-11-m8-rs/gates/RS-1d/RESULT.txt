@@ -1,0 +1,11 @@
+RS-1d gate result (cumulative against the RS-0 baseline; final run of each step; see DECLARATION-r3.md for the one criterion clarified here)
+G1 clean configure CCACHE_DISABLE=1 + Release build: rc 0
+G2' P-SYM, generated object map (30 library objects renamed/moved so far; 1 deleted): 198 objects, 187 byte-identical, 3 noise-class, 0 unclassified, 0 missing.
+    Exceptions = design-mandated test edits only: test_core_layering (1a), test_message_sites + test_trace_off_path (1c), test_qp_mode_sites + test_message_sites (1d).
+G3' flags diff 363 TUs: IDENTICAL (HVEN_SQP_SOLVER_SOURCE compared in normal form through the map)
+G4  check_pch_neutrality.sh: PASS (PCH sources unchanged in 1d; re-run as cheap evidence)
+G5' ctest Release 3869/3869; Debug 3869/3869; gtest lists raw-identical; ctest -N identical modulo the declared byte-dump class (133 = 133)
+G6  HVEN_SQP_SOLVER_SOURCE points at src/sqp/sqp_solver.cpp (test_qp_mode_sites passes, reads it); test_message_sites reads src/sqp/sqp_solver.cpp; test_trace_off_path scans {drivers, ipm, sqp, qp}, count == 130, passes
+G7  install smoke default + clang PASS, export contract OK; listing == baseline-with-map
+G8  golden rig native arm in ctest: pass
+G9  27-cell replay x walk/ssn/ipm: 0 differences x3

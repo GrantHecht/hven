@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# M8 DN-1b (../DECLARATION.txt): copied from ../../2026-11-m8-dn1-impl/r2/ and re-pointed (worktree dn1b, evidence this directory, arm A and arm B trees build-dn1be/, arm A 7784e4f59 rebuilt by legs/prebuild.sh); older provenance lines below are historical.
+# M8 DN-1b (DECLARATION P16): library objects, arm A (build-dn1be/armA, 7784e4f59) vs arm B (build-dn1be/rel): every
+# object of the hven target cmp'd. Criterion: the two object sets are equal, and every object under ./src/linear/ is
+# BYTE-IDENTICAL (the guard lives above the linear layer). Every other differing object is listed (reported, not judged).
+# usage: objects.sh <evidence-dir>   (reads two existing build trees; builds nothing)
+set -o pipefail
+WT=/home/ghecht/Projects/hven/.claude/worktrees/dn1b
+EV=${1:?evidence dir}
+mkdir -p "$EV"
+A=$WT/build-dn1be/armA/CMakeFiles/hven.dir
+B=$WT/build-dn1be/rel/CMakeFiles/hven.dir
+{
+la=$(cd "$A" && find . -name '*.o' | sort)
+lb=$(cd "$B" && find . -name '*.o' | sort)
+added=$(comm -13 <(echo "$la") <(echo "$lb") | tr '\n' ' ')
+removed=$(comm -23 <(echo "$la") <(echo "$lb") | tr '\n' ' ')
+echo "objects A $(echo "$la" | wc -l), B $(echo "$lb" | wc -l); added: ${added:-none}; removed: ${removed:-none}"
+n=0; same=0; diffs=""
+for o in $la; do
+  [ -f "$B/$o" ] || continue
+  n=$((n+1))
+  if cmp -s "$A/$o" "$B/$o"; then same=$((same+1)); else diffs="$diffs $o"; fi
+done
+echo "in both $n; identical $same; differing $((n-same)):"
+for o in $diffs; do echo "  $o"; done
+ok=1
+[ -z "$added" ] || { echo "AN OBJECT WAS ADDED"; ok=0; }
+[ -z "$removed" ] || { echo "AN OBJECT WAS REMOVED"; ok=0; }
+for o in $(cd "$A" && find ./src/linear -name '*.o' | sort); do
+  if cmp -s "$A/$o" "$B/$o"; then echo "linear BYTE-IDENTICAL $o"; else echo "linear DIFFERS $o"; ok=0; fi
+done
+[ $ok = 1 ] && echo OBJECTS_AS_DECLARED || echo OBJECTS_NOT_AS_DECLARED
+} | tee "$EV/objects.txt"
+grep -q '^OBJECTS_AS_DECLARED$' "$EV/objects.txt"

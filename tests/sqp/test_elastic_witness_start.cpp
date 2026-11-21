@@ -22,12 +22,13 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
-#include "../common_support/route_reference.h"
-#include "../qp/support/qp_dump.h"
+#include "qp/support/qp_dump.h"
+#include "support/route_reference.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -75,15 +76,15 @@ struct Pair {
 Pair load_pair(const char *cell) {
     Pair p{dump(std::string("C11_") + cell + "_qp0.txt"),
            dump(std::string("C11_") + cell + "_qp1.txt"), ElasticQp{}};
-    p.e = build_elastic_subproblem(p.d0.qp, p.d0.overrides.tr_radius, kElasticRhoInit,
-                                   SqpOptions{}.feas_tol);
+    p.e = build_elastic_subproblem(p.d0.qp, p.d0.overrides.trust_region_radius, kElasticRhoInit,
+                                   SqpOptions{}.common.feasibility_tol);
     return p;
 }
 
 void expect_premise(const Pair &p) {
     // The primary failed kInfeasible in its radius-1 window; the rung failed numerically.
     ASSERT_NE(p.d0.result.find("status=2"), std::string::npos) << p.d0.result;
-    ASSERT_EQ(p.d0.overrides.tr_radius, 1.0);
+    ASSERT_EQ(p.d0.overrides.trust_region_radius, 1.0);
     ASSERT_NE(p.d1.result.find("status=3"), std::string::npos) << p.d1.result;
     ASSERT_TRUE(p.d1.has_seed);
     ASSERT_EQ(p.d1.seed.x.lpNorm<Eigen::Infinity>(), 0.0) << "the shipped seed starts at (0, 0)";
@@ -119,7 +120,7 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
     if (::testing::Test::HasFatalFailure()) {
         return;
     }
-    const QpEngine engine(p.d1.opts, p.d1.threads);
+    const QpEngine engine(p.d1.opts, p.d1.threads, hven::linear::DensePolicy::kNever);
 
     const QpSolution before = engine.solve(p.d1.qp, p.d1.seed, p.d1.overrides);
     const double before_off = worst_violation(p.d1.qp, before.x);
@@ -233,7 +234,17 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
     EXPECT_LE(k.eq, 1e-8 * scale);
     EXPECT_LE(k.ineq, 1e-8 * scale);
     EXPECT_LE(k.box, 1e-12 * scale);
-    EXPECT_LE(k.stationarity, 1e-6);
+    // STATIONARITY BEYOND ROUNDING, on every build (qp_dump.h's QpDumpKkt states the measure).
+    // The normwise figure this used to assert, k.stationarity <= 1e-6, is below what double
+    // precision resolves on SAWPATH's rung: one free component sums terms of 2.4e13 to a value
+    // of 3.6e2, so its rounding floor is ~eps * 2.4e13 = 5e-3 absolute (1.5e-5 on k.scale 356),
+    // and the exported pair's residual there -- 1.8e-4 on the box, 3.0e-3 on the Windows lane
+    // (CI run 44806571361: 8.38e-6 scaled) -- is beneath it: the same x on every build (f to 12
+    // digits), certified at zero motion (||p|| 1.4e-11 against step_tol 1e-9), multipliers
+    // that differ by rounding alone. The box itself straddles 1e-6 run to run (5.0e-7 and
+    // 1.00002e-6 measured). A residual past its floor by more than 1e-6 of the scale still fails.
+    EXPECT_LE(k.stationarity_beyond_rounding, 1e-6)
+        << "normwise " << k.stationarity << " on scale " << k.scale;
     EXPECT_LE(k.sign, 1e-8);
     EXPECT_LE(k.complementarity, 1e-8);
 #if HVEN_TEST_ROUTE_REFERENCE
@@ -259,20 +270,20 @@ LadderArms run_ladder_arms(const char *cell) {
     EXPECT_NE(p.d0.result.find("status=2"), std::string::npos) << p.d0.result;
     SqpOptions opts;
     opts.qp = p.d0.opts;
-    QpEngine engine0(p.d0.opts, p.d0.threads);
+    QpEngine engine0(p.d0.opts, p.d0.threads, hven::linear::DensePolicy::kNever);
     const QpSolution failed = engine0.solve(p.d0.qp, p.d0.overrides);
     EXPECT_EQ(failed.status, QpStatus::kInfeasible) << "qp0's replay at this head";
     for (int arm = 0; arm < 3; ++arm) {
-        opts.elastic_witness_start = arm >= 1;
-        opts.elastic_last_optimal_rung = arm == 2;
-        QpEngine engine(p.d0.opts, p.d0.threads);
+        opts.advanced.elastic_witness_start = arm >= 1;
+        opts.advanced.elastic_last_optimal_rung = arm == 2;
+        QpEngine engine(p.d0.opts, p.d0.threads, hven::linear::DensePolicy::kNever);
         a.rep[arm] = run_elastic_ladder(engine, p.d0.qp, ElasticSeedSource{&failed, nullptr},
-                                        p.d0.overrides.tr_radius, opts, a.out[arm]);
+                                        p.d0.overrides.trust_region_radius, opts, a.out[arm]);
         std::printf("[ p1e ] %s ladder arm=%d (witness %d, last %d): usable=%d closed=%d "
                     "reduced=%d status=%d slack_l1=%.6g (witness %.6g) rungs=%ld minors=%ld "
                     "facts=%ld fallbacks=%ld\n",
-                    cell, arm, static_cast<int>(opts.elastic_witness_start),
-                    static_cast<int>(opts.elastic_last_optimal_rung),
+                    cell, arm, static_cast<int>(opts.advanced.elastic_witness_start),
+                    static_cast<int>(opts.advanced.elastic_last_optimal_rung),
                     static_cast<int>(a.rep[arm].usable), static_cast<int>(a.rep[arm].closed),
                     static_cast<int>(a.rep[arm].reduced), static_cast<int>(a.rep[arm].qp_status),
                     a.rep[arm].slack_l1, a.rep[arm].elastic.violation_l1,
@@ -301,9 +312,9 @@ TEST(SqpElasticWitnessStart, SawpathMajor0RungSolvesFromItsWitness) {
     // Re-premised (declared correctness move, 77dbf843 dead-end rank repair, ruling C58): the
     // shipped seed used to end status != kOptimal, off its rows by > 1e-3. Now, Release: kOptimal,
     // off_rows 2.41e-13 (43 minors). Debug: the repair is taken but rounding leads the walk into
-    // the known downstream two-pass cycle and the minor cap ends it (kMaxIter, 6830 minors,
+    // the known downstream two-pass cycle and the minor cap ends it (kIterationLimit, 6830 minors,
     // off_rows 7.6e-13) -- so Debug asserts only "repaired, no dead-end exit, no false
-    // certificate", as tests/qp/test_qp_rank_repair.cpp does for this fixture's sister.
+    // certificate", as tests/qp/seam/test_qp_rank_repair.cpp does for this fixture's sister.
     expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false, true);
 }
 

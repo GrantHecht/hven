@@ -1,0 +1,5 @@
+RS-5 CI (workflow_dispatch on origin rs-5).
+Run 44464646979 on head 90060ba99-equivalent (before the macOS fix): linux-clang-release success, linux-clang-coverage success, windows-clang-release success, macos-clang-release FAILURE: HeaderSelfContained failed on pardiso_session.h
+(`'mkl_pardiso.h' file not found`: an MKL-only header, the mirror of the three Apple-only ones). Fixed in 2bbb1de9e (HVEN_HEADER_CHECK_MKL_ONLY, excluded on Apple).
+Run 44470304902 on head 2bbb1de9e (all code of RS-5; later commits are evidence only): linux-clang-release success, linux-clang-coverage success, windows-clang-release success, macos-clang-release success. All four lanes green.
+The Windows lane builds and passes HeaderSelfContained over all 172 headers (no Windows exclusions needed).

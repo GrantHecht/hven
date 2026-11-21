@@ -1,0 +1,14 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index 1cb6b6645..060f4ec21 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -318,9 +318,6 @@ void solve_mat(const KktFactor &k, const Mat &rhs, Mat &x) {
+             scaled.col(j) = rhs.col(j).cwiseProduct(k.retake_scale);
+         }
+         k.scaled_session->solve(scaled, x);
+-        for (Index j = 0; j < x.cols(); ++j) {
+-            x.col(j).array() *= k.retake_scale.array();
+-        }
+         break;
+     }
+     case PlatformRetake::kMatched:

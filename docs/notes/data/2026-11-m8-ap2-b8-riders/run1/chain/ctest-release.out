@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-06T06:43:04-05:00
+
+The following tests did not run:
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2161 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2162 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-06T06:45:52-05:00

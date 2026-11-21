@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..1ff61de09 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2743,7 +2743,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             // THE REGULARIZATION FOOTPRINT's row budget, at the point a footprint ride's add site
+             // lands on after passing blockers over (section 4c): outside it, the pass is solved
+             // again without the ride.
+-            if (footprint_ride_dir.size() > 0 && ride_blocked && !passed.empty() &&
++            if (false && footprint_ride_dir.size() > 0 && ride_blocked && !passed.empty() &&
+                 add_exit == AddExit::kNone && !undecidable_retreat &&
+                 !detail::footprint_rows_within_budget(
+                     qp, ws,

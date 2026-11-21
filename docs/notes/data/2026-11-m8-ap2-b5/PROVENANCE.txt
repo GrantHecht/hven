@@ -1,0 +1,43 @@
+M8 AP-2 group B5 (exceptions and evaluation failure) -- PROVENANCE and results
+================================================================================
+Declaration    DECLARATION.txt and runtime/DECLARATION.txt (9a7e0f22), committed before the first leg.
+               One leg (P9) produced no measurement at r1 (the copied sweep script carried B4's paths;
+               kept as accelerate-r1-failed/); successor DECLARATION-r2.txt and the instrument fix
+               (3e7a7ce7) were committed before its re-run. No criterion was changed.
+Code head      2142af0a (m8-b5); base b70fda28. Every leg ran on 2142af0a (corpus stamp 2142af0afcaf).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-03 14:23 (runtime gate start) to 21:41 EST (P9 r2 end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths. The runtime gate ran alone first (runtime/run_all.log); the non-timing legs from
+               legs/chain1.sh (chain/chain1.log, chain/*.out); P9 r2 alone afterwards
+               (chain/accelerate-r2.out). No build, test or bench ran outside the lock (dev builds, tests,
+               replays and the partial dev census before the declaration also ran under it).
+
+RESULTS (criteria as declared)
+P1  suites      Release 3375/3375, Debug 3375/3375 (suites/). PASS (3375 as declared).
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/b5-comparison-*.txt). PASS.
+P4  iparm       15 configurations, BYTE-IDENTICAL to B4's dump, sha256
+                34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479 (iparm/iparm-b5.txt,
+                iparm/diff.txt empty). PASS. No IPARM-SURFACE label: no iparm field was touched.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches (census/compare.txt); serial-confirm list empty.
+                Tiers: T1 6-wide pinned, T2 solo, T3 5-wide full budget (census/census-run.log). PASS.
+P6  smoke       default and clang arms rc=0; export contract OK on both, detail-include rule armed, no
+                allow-list file in the tree (install-smoke/). PASS.
+P7  PCH         PASS, PCH engaged on 4 TUs, 57 artifacts byte-identical with and without it (pch/). PASS.
+P8  off-ref     clean build rc=0 (26 warning lines, the B4 classes: the pre-existing -Wswitch in
+                sqp_solver.cpp, typeid side effects in test_solver_interface_adapter.cpp, jacobiSvd
+                deprecation, gtest char8_t), ctest Release 3375/3375 (offref/). PASS.
+P9  Accelerate  r1: no measurement (accelerate-r1-failed/). r2: pass A 32 files, classes IDENTICAL to B4's
+                riders sweep (CLEAN / KNOWN-HEADER / KNOWN-SIZEOF), OTHER 0 (accelerate/accelerate-sweep.txt).
+                Pass B (stub) informational; leg rc=1 is pass B's, as at B4. PASS. Apple hardware UNOBSERVED.
+P10 flags       library TUs 60 before / 60 after, 0 TUs with a differing flag list, RESULT IDENTICAL
+                (flags/flags-diff.txt). PASS.
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 1.001269, ipm 1.000045, ssn
+                1.000056, walk 0.999993, all inside [0.995, 1.005]; THROTTLE 0 everywhere; counter identity
+                on every (round, cell) pair (interior 3, ipm/ssn/walk 81 each). PASS. The interior-point
+                leg's +0.13% is the per-iteration non-finite screen and rollback snapshot (declared).
+DECLARED DIFFERENCES matched: X1-X5 as declared; no corpus row moved (replay, census, runtime counter
+identity); the dev measurements before the declaration agreed (replay x4 EXACT, census tier 1 41/41).

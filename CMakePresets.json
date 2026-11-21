@@ -68,7 +68,7 @@
         {
             "name": "windows-clang-release",
             "displayName": "Windows Clang Release (clang-cl, CI)",
-            "description": "Release build using the LLVM/clang-cl toolchain preinstalled on GitHub's windows-latest runner. Compiler paths and the architecture/toolset block are the x64-Clang-Release preset from tycho's CMakePresets.json (the clang-cl precedent this was written from) verbatim -- same LLVM install location GitHub ships, same generator, same PIE/link setup. Written for the windows-clang-release CI lane; OBSERVED -- it configured, built and ran green on GitHub's windows-latest runner in CI run 31287205323 (commit ca2744c1ba41), 113 tests passed, 0 failed. See docs/ci.md.",
+            "description": "Release build using the LLVM/clang-cl toolchain on GitHub's windows-latest runner (the CI job installs a pinned LLVM over the image's preinstalled one, at the same path, because newer runner images' MSVC STL requires clang 22+). Compiler paths and the architecture/toolset block are the x64-Clang-Release preset from tycho's CMakePresets.json (the clang-cl precedent this was written from) verbatim -- same LLVM install location GitHub ships (the CI job's pinned install overwrites it in place), same generator, same PIE/link setup. Written for the windows-clang-release CI lane; OBSERVED -- it configured, built and ran green on GitHub's windows-latest runner in CI run 31287205323 (commit ca2744c1ba41), 113 tests passed, 0 failed. See docs/ci.md.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-windows",
             "installDir": "${sourceDir}/build-windows/install/${presetName}",

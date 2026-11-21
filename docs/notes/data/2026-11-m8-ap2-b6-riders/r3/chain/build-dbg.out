@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-05T00:06:47-05:00
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/dbg'
+[1/2] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_pieces.cpp.o
+[2/2] Linking CXX executable tests/model/hven_model_tests
+rc=0
+FOREGROUND_END 2026-11-05T00:06:55-05:00

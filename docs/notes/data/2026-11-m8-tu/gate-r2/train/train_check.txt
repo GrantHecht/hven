@@ -1,0 +1,4 @@
+
+SUMMARY rows 476; movers vs arm A 0; missing/capped 0
+residual values equal within the gate but not byte-equal: 0
+TU0_TRAIN_PASS

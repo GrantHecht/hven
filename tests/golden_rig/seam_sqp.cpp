@@ -35,7 +35,6 @@
 
 #include <Eigen/SparseCore>
 #include <mkl_service.h>
-
 #include <tycho_sqp/kkt_system.h>
 #include <tycho_sqp/types.h>
 

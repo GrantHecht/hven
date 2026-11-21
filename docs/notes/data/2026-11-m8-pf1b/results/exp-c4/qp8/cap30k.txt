@@ -1,0 +1,5 @@
+PF1R status=1 minors=30000 facts=29872 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=0 stag_drops=0 stag_stops=0 shift_adds=882 wall=1236.113 q=6.447333496858543e-02 pins=0 tr=3121 active=879 mu=1e-08
+PF1D result status=1 minors=20000 facts=19872 hkc=0
+PF1A records=30000 truncated=0 a0=19 a10=29981 | verdict ok=30000 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=1.565e-02 ineq=1.294e-02 box=0.000e+00 stat=1.696e-07 sign=1.375e+00 compl=1.473e-02 scale=2.441e+04
+PF1E lu_fail

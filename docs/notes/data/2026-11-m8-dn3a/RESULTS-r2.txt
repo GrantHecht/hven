@@ -1,0 +1,34 @@
+M8 DN-3a r2 -- RESULTS (against DECLARATION-r2.txt, committed f700e1fc6 before the first r2 leg; written after the legs;
+criteria unchanged; r1's DECLARATION.txt / RESULTS.txt and outputs untouched)
+================================================================================
+Code head 83c8d3774; arm A 3e2ae414... (r1's, b70e45cfb rebuilt), arm B 07a5a9db...; lane binaries head 3414b582...
+(fabin-r2), base 533c45cd... (r1's fabasebin). P5 runtime-r2/run_all.log (committed e9dbc11ae); chain legs/chain-r2.sh
+-> chain-r2/chain.out (committed aefd6c141); FA sl-r2/fa_run.sh -> fa-r2/fa-analysis.txt; RESTORE sl/hb_restore.sh ->
+fa-r2/restore.out.
+
+P5  runtime-r2/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 1.000000, ipm 1.000002,
+    ssn 1.000000, walk 1.000000. Run first and alone.
+P1  MET: "100% tests passed, 0 tests failed out of 3614" in both trees (suites-r2/ctest-rel.log, ctest-dbg.log).
+P2  MET: replay walk / ssn / ipm at kNever: 27 cells x 75 columns, 0 differences each (replay-r2/dn3a-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior-r2/; 43 rows).
+P4  MET: FAILPROOF_AS_DECLARED -- head 57/57 pass; every mutation failed exactly its declared set (thread-pin-off 2,
+    check-never-refuses 8, refusal-threshold-ignored 2, refine-off 2, refine-always 1, dense-only-off 2, ssn-unwired 1,
+    ssn-fold-off 1, ipqp-unwired 4, ipqp-two-threshold-off 1, ipqp-check-after-unscale 6, ipqp-response-estimate-off 1,
+    ipqp-response-affine-off 2, ipqp-response-corrector-off 1, ipqp-reladder-off 3, gram-dense-clause-off 1,
+    gram-unwired 0 (unkilled by declaration: fault path, wiring by inspection)) (failproof-r2/).
+FA  MET: FA_PASS (fa-r2/fa-analysis.txt). FA1 (238 cells x default/dense-default): S1_AS_DECLARED 212/215, misses
+    exactly IPM ALLINITC, IPM CRESC100, SQP HS91; FA1_AS_DN1D -- 0 movers against DN-1d r3's rows on both labels (no
+    exact-string objective difference either); TALLY_DEFAULTS_ZERO. FA2 (119 SQP cells): NO_NEW_FAILURES;
+    TALLY_KNEVER_ZERO; TALLY_COLUMNS_PRESENT.
+    REPORTED, exactly the declared expectation: qp_mode kSsn -- 0 movers vs base kAlways, 0 refusals, 0 differences from
+    r1's head rows, 99/99 kNever successes kept. qp_mode kIpqp -- 0 movers vs base kAlways; LOOTSMA back on its base row
+    (infeasible, 3 iterations, f 4.125; r1's one mover, the only r2-vs-r1 head difference); 13 refusals in 2 cells
+    (HS74 4, HS75 9), both rows equal to base's (optimal, 50 iterations, base's objective string); 94/101 head kNever
+    successes kept (r1's figure). The settler's stated expectation "IPQP refusals drop to 0" is NOT met by the data: r1's
+    17 refusals (first rho <= 1.8e-7) are gone, and 13 different, later solves are refused (dev probe, DECLARATION-r2
+    DISCLOSURES: rho after refinement 1.04e-5..7.6e-4, each answered by one dual perturbed-pivot rung that read kOk) --
+    solves r1 never reached because its IPQP stopped at its first refusal.
+RESTORE: the clone's HEAD on dn1b-legs, no tracked change (fa-r2/restore.out); dn3a-r2-legs kept (and r1's branches).
+No kNever movement anywhere. No re-run. Apple/Accelerate and Windows: UNOBSERVED (the Accelerate thread pin's compile
+included).

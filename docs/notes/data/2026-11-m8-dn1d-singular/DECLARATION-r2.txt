@@ -1,0 +1,223 @@
+M8 DN-1d r2 -- the review riders (C283) with the border answer gated on rho (C284 Option A) -- DECLARATION-r2
+(committed before the first r2 leg; never edited afterwards; a failed or void leg is answered by DECLARATION-r3, this
+file and its outputs kept; criteria are never changed after data; every invocation below uses ABSOLUTE paths)
+================================================================================
+Predecessor DECLARATION.txt (612b6a67e; code head d10be2f53): every r1 leg passed (6677bc1e9, 9ebf063a5, 5595946a6,
+            510d02d5f). Its records stay untouched; r2 re-derives EVERY leg from the r2 code head below -- nothing is
+            carried from r1 (counts, verdicts or binaries), r1's numbers appear here only as context.
+Spec        ledger C278, C280, C281, C282 (r1); C283 (review riders: every answer from a shifted factor verified against
+            the unshifted system before any consumer steps on it or adopts it; the riders in ac665e4d0's message);
+            C284 (Option A: the border answer itself gated; sigma and 1e-8 unchanged; open items registered).
+Base        4776aa2ff (origin/m8, DN-1c landed).
+Code head   809efa50253b33eefe4ee382b6e3af0adb9dcda5 -- four commits on the base: 6639aee0c (C280 layer), d10be2f53 (C282 response), ac665e4d0 (C283
+            riders; its Option-B border routing is superseded by the next commit), 809efa502 (C284 Option A). Evidence
+            commits (this directory) follow and touch no source.
+Arm A       4776aa2ff, rebuilt by r2/legs/prebuild.sh from its `git archive` export build-dn1de2/armA-src (dep/eigen
+            bc3b3987, dep/fmt 407c905e) at build-dn1de2/armA, Release, r2/legs/build.sh's flags: corpus binary
+            build-dn1de2/armAbin/hven_sqp_corpus sha256 71de4f6ee03a1fb38e2f4eae6788e1efe94cef14a3139669108ed6b52877bf9c, compile database
+            build-dn1de2/armA-compile_commands.json sha256 c417e0234d9590d10e841f9156af877655beff2cd80948317aaea1bd9dc64887; build log build-dn1de2/armA.build.log.
+            (r1's arm A: 651b5b57... / 571e994b...; this rebuild of the same commit in build-dn1de2/ differs from it in 32 bytes of the corpus binary, the GNU
+            build ID among them, same size, and in the compile database by the tree path.)
+Arm B       the code head: build-dn1de2/rel (fresh, r2/legs/build.sh, no source modification; log build-dn1de2/build-rel.out)
+            -> frozen by r2/runtime/run_all.sh to build-dn1de2/armBbin, hven_sqp_corpus sha256 16c72ffb7087b1ea17055eeda592bb9706319d54686db22a23c867ac4479b6ee.
+            build-dn1de2/dbg fresh at the head (Debug).
+Lane binary the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed), branch dn1d-legs-r2 = DN-1b's commit
+            C 1b03c78 (branch dn1b-legs) + commit E 7aa4f5d (pin -> the code head; r2/sl/hb_patch_e.py's FIVE SQP side
+            columns: r1's dn1c_dense_condition_fallbacks, dn1d_dense_flagged_factorizations, dn1d_dense_singular_refactors,
+            dn1d_dense_shifted_solve_refusals, plus dn1d_dense_shifted_k0_fallbacks), built by r2/sl/hb_setup_e.sh against the
+            pin's own install (.hven/install-809efa50253b) in .scratch/dn1d-r2-build: build-dn1de2/dn1dbin/hven_bench_cell sha256
+            639fa31433f128bc2e35ae0b8e2e650f4a9ab260b8c5788330845aca4f6d89bf. After the S, T, M and D legs r2/sl/hb_restore.sh puts the clone's HEAD back on
+            dn1b-legs (as found; dn1d-legs and dn1d-legs-r2 stay as the records).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1 unless a leg says
+            otherwise. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED (macOS CI is
+            the settler's).
+Scratch     build-dn1de2/ (r2 evidence trees, git-ignored); build-dn1de/ (r1's evidence trees) and build-dn1d/ (E0, dev and
+            study trees) are not evidence for r2: the pre-flight refuses both. The D leg's inputs were copied from
+            build-dn1de/det-inputs/ (r1's copy) to build-dn1de2/det-inputs/ before this declaration and are pinned by
+            r2/det/inputs.sha256 (the same digests as r1's det/inputs.sha256, paths re-pointed).
+Instruments r2/legs/, r2/runtime/, r2/sl/, r2/det/ = r1's legs/, runtime/, sl/, det/ copied and re-pointed (r2/, build-dn1de2/,
+            DECLARATION-r2; output directories under r2/); amended: r2/legs/chain1.sh (pre-flight also refuses build-dn1de/ and
+            any non-comment reference to r1's instrument or record directories), r2/legs/failproof.sh (TEN mutations, five
+            test executables; P14), r2/sl/hb_patch_e.py (fifth column), r2/sl/hb_setup_e.sh (branch dn1d-legs-r2, scratch
+            build .scratch/dn1d-r2-build), r2/sl/t_run.sh (checks HEAD = dn1d-legs-r2), r2/sl/hb_restore.sh (header),
+            r2/sl/s_analyze.py (the fifth column in S3, the per-cell block and the kNever-zero check; CB_COUNTS_CONSISTENT),
+            r2/runtime/DECLARATION.txt (arm B = this code head).
+
+DISCLOSURES
+- sigma = 2^-30 (kDenseEquilibratedShift) and the shifted-solve residual tolerance 1e-8 (kEqpShiftedResidualTol) were
+  CHOSEN ON THE E0 / DEV ROSTER -- the same 119 SQP cells the S leg runs (C282). Unchanged in r2.
+- THE BORDER ROUTE WAS CHOSEN AFTER OBSERVING ITS EFFECT ON THAT ROSTER (C284). ac665e4d0 (Option B: every pass with a
+  shifted K0 took the eliminated path) moved SQP ALLINITC optimal -> numerical_error on the dev roster; a diagnostic build
+  showed ALLINITC is the only roster cell solving through a shifted K0 (8 bordered solves, rho 9e-14..2.6e-13 against
+  the unshifted bordered system in this D-norm) and that the eliminated route, not a refusal, moved it. The settler
+  then ruled Option A (gate the border answer). The S leg is therefore not out-of-sample for the border route either.
+- The border D (K0's equilibration on K0's rows, 1 on the border rows) was chosen on structure, not results (design note
+  sec. 18.1); no alternative D was run.
+- Dry runs before this declaration on the r2 evidence trees (build-dn1de2/dry/, not evidence): objects
+  OBJECTS_AS_DECLARED, flags FLAGS_AS_DECLARED, warnings WARNINGS_SET_EQUAL, the pre-flight's scans clean (it stops at
+  PREFLIGHT_NO_ARM_B_FROZEN, as it must before the runtime gate).
+- The P14 sets were measured on a dev falsifier run of this code head (build-dn1d/dev/fpdev2) before this declaration.
+  Coverage note: terminal-off fails only the mu-free terminal test -- the terminal polish also rejects the near-
+  inconsistent fixture on its own residual criteria, so its rho rejection is not independently falsified by that fixture.
+- One dev roster run at this code head's content (build-dn1d/dev/roster8-r2b, 119 SQP cells kAlways, before this
+  declaration) was taken only to check the STOP condition; nothing was tuned on it: ALLINITC optimal (objective and 28
+  iterations as r1's S cell; 20 flagged = 20 refactors against r1's 24 -- the same-rows rule), S1 misses HS91 only, HS90
+  kept, retakes 0, shifted-solve refusals 75 in the same 7 cells as r1, k0 fallbacks 0.
+
+THE CHANGE (against the r1 code head d10be2f53; r1's DECLARATION.txt states the rest against 4776aa2ff)
+- ac665e4d0 (C283 riders): SSN -- the Newton step through shifted numerics is refined against K (refine_shifted_solve) and
+  rho-gated; a refusal escalates the proximal ladder, kSingular at its ceiling; SsnResult::dense_shifted_solve_refusals
+  folded into the SQP counters. Verdict refinement, eliminated twin: the replay is rho-gated (a refusal refines nothing).
+  IPQP: kDenseSingular maps to Eigen::NumericalIssue (computation_info_of, both backends; no re-analysis per
+  factorization). Factor: a failed retake fork drops the dense numerics (DenseSession::drop_numerics; also on a real
+  exactly singular attempt); DenseFactorizeFaultInjector drops them too (faithful under both policies);
+  dense_shift_refactor_count counted on return. Nits: CheckedFactorization removed (the site overload returns
+  FactorizeOutcome), DenseShiftSite{n_primal}; refine_shifted_solve, shifted_residual_ratio, shifted_solve_refused,
+  kEqpShiftRefineSteps, kEqpShiftedResidualTol in kkt_calls.h; dense_shifted cleared before analyze. New counter
+  dense_shifted_k0_fallbacks (trace key after dense_shifted_solve_refusals).
+- 809efa502 (C284 Option A): ac665e4d0's routing of every shifted K0 to the eliminated path is removed. solve_bordered_eqp
+  takes k0_shift_scale (K0's dense_scale when K0 holds shifted numerics, else null) and refuses the FIRST Schur solve when
+  bordered_shifted_residual_ratio = ||D (rhs - K_b sol)||inf / ||D rhs||inf against the unshifted bordered system K_b (K0
+  plus the live borders, regularized as handed to the stack), D = K0's equilibration on K0's rows and 1 on the border
+  rows, exceeds 1e-8 or is NaN: shifted_refused and residual_refused; the pass takes the eliminated path (its own gate).
+  Counted: eqp_residual_refusals, dense_shifted_solve_refusals, dense_shifted_k0_fallbacks (= border answers not used
+  because of a shifted K0; today exactly the border refusals). Same-rows rule: a shifted K0 on the same working rows is not
+  rebuilt (it would refactor into the same shift); the answer is gated. Verdict refinement, border twin: the replay is
+  gated on the same ratio. No refinement before the border gate (refine_shifted_solve is the (K, KktFactor) primitive;
+  the border path's residual loop, certificate and polish run after the gate, against K_b).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above plus r1's (DECLARATION.txt D0).
+D1  ENGINE AT kNever: NO MOVERS, as r1's D1 (replay P3, interior P12, census P5 with PF-1's two declared movers only,
+    runtime counter identity P11). The new counter reads 0 at kNever.
+D2  API (names for owner approval; r1's D2 set as amended): CheckedFactorization REMOVED; DenseShiftSite is {n_primal};
+    NEW in r2: QpCounters / SqpCounters ::dense_shifted_k0_fallbacks; SsnResult::dense_shifted_solve_refusals; detail:
+    DenseSession::drop_numerics, shifted_residual_ratio, shifted_solve_refused, bordered_shifted_residual_ratio,
+    solve_bordered_eqp's k0_shift_scale parameter; refine_shifted_solve / kEqpShiftRefineSteps / kEqpShiftedResidualTol
+    moved to kkt_calls.h (unchanged values).
+D3  TESTS: 3556 (Debug and Release). Against r1's 3546: QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+    renamed QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor; NEW QpDenseArm.{TheRetryAnswersAShiftThatIsItselfFlagged,
+    ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet, TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer,
+    TheTerminalPolishRejectsARefusedShiftedAnswer, AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath (the refusing
+    border fixture: a shifted K0, the bordered answer misses rho and falls to the eliminated path),
+    AShiftedK0BorderAnswerMeetingRhoIsUsed (the passing fixture: a shifted K0, the bordered answer used, nothing falls
+    back)}, DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK,
+    DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable,
+    IpqpSeamTest.{AFlaggedTerminalReadIsPerturbedAndEscapesNumerical,
+    AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure}; the two sqp.solve.end golden lines re-derived (one more
+    key); counter-shape asserts moved (1200 -> 1208).
+D4  TRACE: r1's three keys plus ONE: `dense_shifted_k0_fallbacks` after `dense_shifted_solve_refusals`, before `ssn`
+    (docs/trace-schema-v0.md rows + paragraph). Nothing else.
+D5  OBJECTS: the same 57 objects; ./src/linear/dense_session.cpp.o and symmetric_factor_mkl.cpp.o differ; every other
+    ./src/linear/ object (dense_symmetric_factor, pardiso_session) BYTE-IDENTICAL; the other differing objects are listed,
+    not judged (the dry run before this declaration: 20 differing in all, 18 outside ./src/linear/ -- the same set as r1's).
+D6  COMPILE FLAGS: no TU differs, none added or removed.
+D7  No iparm change and no IPARM-SURFACE label.
+D8  INSTALL SMOKE and export contract unchanged.
+D9  ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A.
+D10 THE DECLARED RE-DERIVATION: as r1's D10 -- every forced-dense SQP number moves against DN-1c's; r1's S-leg kAlways cells
+    (sl/out/s) are in turn superseded by this declaration's S leg. kNever cells and every kNever pin untouched (D1).
+
+PROOFS AND PASS CRITERIA, THE N SET (r2/legs/; each its own script under the box lock; criteria as r1's DECLARATION.txt
+unless stated; outputs under r2/)
+--------------------------------------------------------------------------------
+P0  arm A (r2/legs/armA.sh): the two sha256 values above: ARM_A_OK.
+P1  suites: ctest Release (build-dn1de2/rel) and Debug (build-dn1de2/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3556" in both (r2/legs/ctest.sh).
+P2  examples: all 8 run and exit 0.
+P3  27-cell replay x (walk, ssn, ipm): EXACT against docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0
+    differences each (x3).
+P4  iparm: BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations.
+P5  walk census, 57 rows, on the frozen arm B binary, against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv:
+    census_check.py with ../2026-11-m8-dn1-impl/census-movers.csv prints CENSUS_AS_DECLARED.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass.
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build then ctest: build rc 0, "0 tests failed out of 3556"; AND arm B's Release warning set equals
+    arm A's: WARNINGS_SET_EQUAL.
+P9  Accelerate syntax sweep: PASS_A_AS_DECLARED. Pass B reported.
+P10 compile-flags diff: FLAGS_AS_DECLARED (D6).
+P11 runtime gate (r2/runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in
+    [0.995, 1.005] in every mode; perf record period 400000.
+P12 interior: unmoved (arm A vs arm B, 27 cells) EXACT; promoted EXACT.
+P14 THE FALSIFIER (r2/legs/failproof.sh): FAILPROOF_AS_DECLARED -- head (build-dn1de2/rel): every test of hven_tests
+    'DenseArm*', hven_qp_walk_seam_tests 'QpDenseArm.*', hven_drivers_tests 'DenseArmEngines.*',
+    hven_fault_injection_tests 'DenseArmFallbackFault.*' and hven_ipqp_seam_tests' two IpqpSeamTest dense reads passes;
+    each mutation fails EXACTLY (and at least one test):
+      policy-off (sqp_kkt_options sets kSparseFallback): 16 -- DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm, DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK, QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer, QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet, QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified, QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed, QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath, QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken, QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform, QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor, QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly, QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm, QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer, QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged, QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer, QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges;
+      detector-off (finite factorizations never flagged): 12 -- DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm, DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable, DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics, DenseArmReport.RefusedUnderNeverAndCarriedByHandles, DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses, DenseArmReport.TheDetectorBracketsBothThresholds, DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace, QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer, QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor, QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm, QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged, QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges;
+      shift-off (no equilibrated refactor; every flag retaken): 15 -- DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm, DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK, QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer, QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet, QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified, QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed, QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath, QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken, QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform, QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor, QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm, QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer, QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged, QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer, QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges;
+      equil-off (D = 1): 4 -- DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm, DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK, QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm, QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges;
+      border-rho-off (solve_bordered_eqp's shifted-K0 gate never refuses): 1 -- QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath;
+      rho-gate-off (shifted_solve_refused never refuses: eliminated EQP, SSN, eliminated verdict replay): 6 -- DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK, QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet, QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified, QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath, QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer, QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer;
+      refine-off (refine_shifted_solve takes no step): 1 -- QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges;
+      terminal-off (the mu-free terminal refinement and the terminal polish ignore a refused shifted answer; 2 sites): 1 -- QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer;
+      ipqp-map-off (MKL computation_info_of: kDenseSingular no longer NumericalIssue): 1 -- IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure;
+      retake-drop-off (a failed retake fork keeps the dense numerics): 1 -- DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable;
+    (Measured before this declaration on a dev run, build-dn1d/dev/fpdev2, head = build-dn1d/dev/rel, a Release tree of
+    the code head.)
+P16 OBJECTS (r2/legs/objects.sh): OBJECTS_AS_DECLARED (D5).
+PRE-FLIGHT (r2/legs/chain1.sh, fail closed): every script under r2/legs/, r2/runtime/, r2/sl/ and r2/det/ names this
+worktree, build-dn1de2/ and r2/ of this directory only (build-dn1d/, build-dn1de/, r1's legs/ runtime/ sl/ det/ and
+records, other worktrees and evidence trees refused), except the read-only pins.
+ORDER: the runtime gate alone first, then chain1, then S, D, M, T, RESTORE (each its own flock):
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/runtime/run_all.sh 16c72ffb7087b1ea17055eeda592bb9706319d54686db22a23c867ac4479b6ee
+  ARMB_SHA=16c72ffb7087b1ea17055eeda592bb9706319d54686db22a23c867ac4479b6ee CODE_HEAD=809efa50253b33eefe4ee382b6e3af0adb9dcda5 bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/legs/chain1.sh > /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/chain/chain1.out
+
+THE S, D, M AND T LEGS (r2/sl/, r2/det/; each its own flock)
+--------------------------------------------------------------------------------
+S   flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/s_run.sh /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/out/s 639fa31433f128bc2e35ae0b8e2e650f4a9ab260b8c5788330845aca4f6d89bf
+    DN-0's 238 cells, per cell `default` (kNever) then `dense-default` (kAlways), the same binary, THREADS=1
+    (MKL_NUM_THREADS=1, core 2), CAP 300 s; r2/sl/s_analyze.py -> r2/sl/out/s/s-analysis.txt. Gating, every one (S_PASS
+    iff all hold) -- r1's set unchanged:
+S1  both engines, kAlways vs kNever on the same build: every kNever success keeps its status and objective within
+    1e-8*max(1,|f|) -- EXCEPT DN-1b's three movers declared in advance (C273): IPM CRESC100, IPM ALLINITC, SQP HS91. IPM
+    ACOPP30 and SQP HS90 MUST keep status and objective. Any other mover = NOT MET. S1_AS_DECLARED.
+S1b SQP ALLINITC kAlways status OPTIMAL (the owner bar): ALLINITC_OPTIMAL.
+S1c last-resort retakes = 0 on all 119 SQP cells (kAlways; kNever 0 too): RETAKES_ZERO.
+S1d on SQP cells that succeed on both arms, kAlways suspect_escalations and eqp_residual_refusals each <= kNever's:
+    ESCALATIONS_NOT_ABOVE_KNEVER.
+Ca  every flag answered: per SQP cell at kAlways flagged == refactors, every uncapped SQP row carrying the five
+    columns: EVERY_FLAG_ANSWERED.
+Cc  zero shifted factors re-flagged: retries = 0 and retakes = 0 on every SQP cell (in RETAKES_ZERO).
+Cb  NO UNVERIFIED USE (C283), argued per consumer site against the code head (design note sec. 18.1's table):
+    - eliminated EQP (solve_eqp): refine_shifted_solve, then rho against K; a refusal sets shifted_refused and
+      residual_refused; the walk escalates (counted dense_shifted_solve_refusals).
+    - border EQP (solve_bordered_eqp): rho of the first Schur solve against the unshifted bordered system; a refusal sets
+      shifted_refused and residual_refused; the pass takes the eliminated path, which gates its own answer (counted
+      dense_shifted_solve_refusals AND dense_shifted_k0_fallbacks).
+    - SSN Newton step: refine_shifted_solve, then rho; a refusal escalates the proximal ladder (kSingular at its ceiling).
+    - terminal mu-free refinement and terminal polish: through solve_eqp; a refused shifted answer is not adopted.
+    - refine_eliminated_face_on_face: through solve_eqp; residual_refused returns false.
+    - verdict refinement: the eliminated twin gates its replay on rho against K, the border twin on the bordered ratio;
+      a refused replay refines nothing.
+    - ws_independence probes: NON-STEPS -- no probe's solve is ever stepped on or adopted (a dependent verdict is certified
+      by w = a - A_W' v formed from the data; an independent one needs the unshifted residual to converge, otherwise
+      undecidable); argued, not gated.
+    - IPQP: never shifted (a flagged or exactly singular read is kPerturbed / NumericalIssue, the tier's own remedy).
+    Reported per SQP cell (kAlways): shifted-solve refusals and border refusals (= shifted-K0 fallbacks); gating:
+    CB_COUNTS_CONSISTENT (every border refusal is also a shifted-solve refusal: k0_fallbacks <= refusals per cell, the
+    column present on every uncapped row). Not measured per solve (the lane exposes no per-solve rho).
+Cd  no kOk / kWrong verdict from a flagged factor: structural, as r1's Cd (pinned by QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor
+    and ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified).
+TRIG kNever reads 0 on every row in every DN-1b/c/d column (five SQP columns now), the columns present on every uncapped
+    row: TRIGGERS_KNEVER_ZERO.
+S2  every kNever non-success cell's kAlways status reported (not gating).
+S3  per-cell counters both arms (reported), incl. per SQP cell: flagged, refactors, retries, retakes, shifted-solve
+    refusals, border refusals, shifted-K0 fallbacks.
+D   flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/det/run.sh 809efa50253b33eefe4ee382b6e3af0adb9dcda5 /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/det/out
+    As r1's D on the code head's installed library: every CAT (106) and every EXACT (53) flagged; OTHER (benign) flagged
+    <= 70; SCREEN-stage dsycon_rook calls <= 1 % of E0's 98,409 raw dense factorizations. DETECTOR_PASS.
+M   flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/m_run.sh /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/out/m 639fa31433f128bc2e35ae0b8e2e650f4a9ab260b8c5788330845aca4f6d89bf
+    As r1's M: hs043 >= 0.531 and HS84 >= 0.691 at MKL_NUM_THREADS=1; hs043 >= 0.863 and HS84 >= 0.916 at the default
+    threads. M_PASS.
+T   flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/t_run.sh /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/out/t 639fa31433f128bc2e35ae0b8e2e650f4a9ab260b8c5788330845aca4f6d89bf 809efa50253b33eefe4ee382b6e3af0adb9dcda5
+    As r1's T: >= 16/23 optimal, identical to PF-1's reading -- no cell lost and no objective moved: T_PASS. HOLDOUT never run.
+RESTORE flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r2/sl/hb_restore.sh
+    (after S, D, M and T): the clone's HEAD on dn1b-legs, no tracked change.
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <absolute leg path>`; `pgrep -a hven_bench_cell` empty before the
+lock (own command) and PGREP_EMPTY inside; set -o pipefail; MKL_NUM_THREADS=1 unless declared; no timeout wrapper; ctest
+-j4 under setsid; FOREGROUND_START/END.
+ON FAIL: the failing leg's outputs are committed; a failure is answered by DECLARATION-r3, never by editing this file.
+REGISTERED (not this round): eliminated-path quality on ALLINITC's face (Option B left it at stationarity 27.9 with no
+refusals); inertia trust between the bands.

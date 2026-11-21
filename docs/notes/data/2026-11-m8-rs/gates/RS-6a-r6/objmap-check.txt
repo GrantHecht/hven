@@ -1,0 +1,2 @@
+before objects 195 (+4 unity, +0 other), after objects 195 (+6 unity, +0 other); generated map 90 lines, declared 90 lines
+OBJMAP_EQUALS_DECLARED

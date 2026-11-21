@@ -1,0 +1,3 @@
+DenseAuto.IpmBelowItsThresholdIsTheDenseArm
+DenseAuto.IpmCountsPerCall
+DenseAuto.IpmCountsTheDenseArmsFactorizations

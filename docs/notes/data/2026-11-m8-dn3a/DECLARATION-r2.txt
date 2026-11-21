@@ -1,0 +1,213 @@
+M8 DN-3a r2 -- the review round of the SQP auto-selection prerequisite: settler rulings R1-R4, R6-R9 on r1's review
+(R5, DenseSymmetricFactor's threaded Schur border, is registered and not in scope) -- DECLARATION-r2
+(committed before the first r2 leg; never edited afterwards; criteria are never changed after data; r1's DECLARATION.txt,
+RESULTS.txt and every r1 output are kept unchanged; r2 outputs are in *-r2 files and directories; a failed or void leg is
+answered by DECLARATION-r3; every invocation below uses ABSOLUTE paths)
+================================================================================
+Spec        the settler's rulings R1-R9 on DN-3a r1 (hand-back of 734bf2738); design docs/notes/2026-11-m8-dn3-design.md
+            (r0, cbd7b41a7) and docs/notes/data/2026-11-m8-dn3/DECLARATION.md are frozen and not edited here.
+Base        b70e45cfb05e50a05852a1092351f5518fe268a8 (origin/m8).
+Code head   83c8d377477a15e301eb9ab83b7002c9acdceb17 (on r1's evidence head 734bf2738; r1's code 7ed37e044 plus THE CHANGE
+            below; the final range for every count in this file is b70e45cfb..83c8d3774). Evidence commits after it touch
+            no source.
+Arm A       r1's, unchanged: b70e45cfb rebuilt by legs/prebuild.sh, build-dn3a/armAbin/hven_sqp_corpus sha256
+            3e2ae414a7d9341b6887c3c1329eb4af8210062c26a06d92a955bcbc483d4b6c (runtime-r2/run_all.sh refuses on a mismatch).
+Arm B       the r2 code head: build-dn3a/rel (Release, every target, legs/build.sh, rebuilt 09:35) -> frozen by
+            runtime-r2/run_all.sh to build-dn3a/armBbin/hven_sqp_corpus, sha256
+            07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042. build-dn3a/dbg (Debug, every target, 09:37).
+Lane        the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed). sl-r2/fa_setup.sh built,
+binaries    before this declaration, ONE new branch from DN-1d r3's commit E f8c54bb (dn1d-legs-r3):
+            dn3a-r2-legs (ca0af0c)  pin = the r2 code head + sl-r2/hb_patch_g.py (ONE column, below):
+                            build-dn3a/fabin-r2/hven_bench_cell sha256 3414b582d4d1cf0572c09b206c7e5f7cf37f76e3271ee06f51ee4d0d8aa93fbe
+            BASE: r1's, unchanged: dn3a-legs-base, build-dn3a/fabasebin/hven_bench_cell sha256
+                            533c45cd2ee07728afa99b48837b6a46cca8a7e53e3cab493f327b9c78a27b48
+            hb_patch_g.py = r1's hb_patch_f.py with the three tally columns replaced by side.dn3a_dense_solve_residual_
+            refusals = SqpCounters::dense_solve_residual_refusals (SSN + IPQP refusals, summed over the solve), and the
+            same dn1c_dense_condition_fallbacks -> dense_platform_retakes rename. The clone's HEAD is back on dn1b-legs.
+Toolchain   r1's: clang 22.1.8, HVEN_FP_MODE=SAFER_FAST, Eigen 5.0.1, MKL 2026.2 (intel_thread layer), MKL_NUM_THREADS=1
+            unless stated; AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf 7.2.12. Apple/Accelerate and Windows:
+            UNOBSERVED (their CI lanes are the settler's; nothing pushed this round).
+Instruments r1's, re-pointed for r2 (code lines and one provenance line only, unless stated): legs/chain-r2.sh (outputs
+            suites-r2/, replay-r2/, interior-r2/, failproof-r2/; calls r1's legs/ctest.sh, replay.sh, interior.sh
+            unchanged -- each takes its output directory as an argument); legs/failproof-r2.sh (r1's structure; the r2
+            mutation table and a fourth test binary, hven_ipqp_seam_tests; trees build-dn3a/fp2-*); runtime-r2/
+            (run_all.sh EV -> runtime-r2; runtime_leg.sh, analyze_r5.py, analyze_r11.py, fixture/ byte copies plus the
+            provenance line in the two shell files; five levels deep as runtime/); sl-r2/ (cell.sh = r1's plus a
+            provenance line; hb_patch_g.py; fa_setup.sh (one branch, the base binary reused and sha-checked); fa_run.sh =
+            r1's re-pointed to fabin-r2 and sl-r2; fa_analyze.py = r1's with the one column and a REPORTED r2-vs-r1 head
+            comparison per FA2 row); RESTORE is r1's sl/hb_restore.sh, unchanged.
+
+THE CHANGE (r2 code head vs r1's code 7ed37e044; lines at the head)
+--------------------------------------------------------------------------------
+R1  include/hven/detail/kkt/kkt_calls.h:283-345 dense_solve_check_refused(K, rhs, refuse_tol, solve, y, r, c): refinement
+    (keep-while-falling, kEqpShiftRefineSteps) only when the first rho exceeds kDenseSolveResidualTol = 1e-8; refusal iff
+    rho exceeds refuse_tol (or is NaN) after it. unshifted_dense_solve_refused (the SSN's form) passes 1e-8 (one
+    threshold, unchanged behaviour). src/qp/ipqp_engine.cpp:2021-2022 solve_system passes kDenseResidualRatioSingular
+    (include/hven/detail/globalization/inertia_regularization.h:70, 1e-5, the IPM's; shared, not duplicated).
+R2  src/qp/ipqp_engine.cpp: factorize_with_ladder(..., bool solve_refused) (1802-1832): re-enters at the current rung
+    without re-assembling and reads it as kPerturbed, so the tier's perturbed-pivot remedy answers it (the primal rung
+    while the ladder is armed, else the dual shift; the bounded re-route) and the ladder climbs as usual. The step block
+    (2538-2657) is a loop: an affine or corrector refusal calls the ladder that way and re-takes the affine and corrector
+    solves on the new factorization; the reading checks at the loop's top are the original ones, so the tier escapes
+    kNumerical (or kBudget / kIndefinite) only through the ladder's own exhaustion. A refusal that moves the iteration
+    onto a modified rung counts toward IC-1's consecutive run; ipqp_mu_floor_binds is counted once per iteration (after
+    the loop). The mu-estimate solve keeps its non-finite fallback (2164). Non-finite platform solves: unchanged
+    (kNumerical).
+    New HVEN_TESTING injector IpqpDenseSolveInjector (include/hven/detail/qp/ipqp_fault_injection.h; hook
+    ipqp_engine.cpp:201-215 and 2017-2032, both #ifdef-guarded; docs/testing.md): within a window of dense step solves,
+    every backend solve the call makes is multiplied by `scale` (3): a factor of K/3's answers, rho = 2, refinement
+    diverges, refused. Faithful for the verdict and the response; not for the factor's own inertia (never asserted).
+R3  tests only: DenseSolveCheck.ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused (rank-3 G in 6 rows,
+    t = kRankGramShift ||G||inf, kappa > 1e5 asserted; kSparseFallback dsytrf reads (6, 0) observed; not refused).
+R4  src/linear/dense_session.cpp:52-93 DenseArmThreadPin at the four LAPACK sites: MKL -- MklThreadScope(
+    kDenseArmThreads) (as r1); Accelerate with an SDK declaring BLASSetThreading (__MAC_OS_X_VERSION_MAX_ALLOWED >=
+    150000, the guard interior/utils/accelerate_threads.h already uses) and __builtin_available(macOS 15.0) at run
+    time -- BLASGetThreading() saved, BLAS_THREADING_SINGLE_THREADED set, restored on exit; otherwise a no-op. The
+    Apple arm is not compiled on this box: its compilation and behaviour are UNOBSERVED until macOS CI runs it.
+R6  tests: DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne (mkl_set_num_threads(4) globally,
+    Options::threads = 0; premise: a bare dsytrf records NThr:4; every dense-arm call NThr:1; global count restored);
+    IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem (scaled_qp(1e6): no refusal, the platform's answer). The
+    mutation table (P4) splits r1's ipqp-response-off into three and adds the after-unscale mutation.
+R7  r1's process tally (DenseSolveCheckTally, dense_solve_check_tally, count_refusal) is REMOVED. Per result:
+    SsnResult::dense_solve_residual_refusals (include/hven/detail/qp/ssn_engine.h:704), IpqpResult::
+    dense_solve_residual_refusals (ipqp_engine.h:497), QpCounters (solver_counters.h:616) and SqpCounters
+    (solver_counters.h:2322, X-macro entry last at 2417; trace key appended after dense_shifted_terminations,
+    docs/trace-schema-v0.md row; both golden lines re-derived ONCE, "RE-DERIVED AT M8 DN-3a"). Folded beside
+    dense_shifted_solve_refusals: ssn_result_to_qp_solution, charge_ssn_subproblem_cost, ipqp_result_to_qp_solution
+    (both), charge_ipqp_subproblem_cost, and the five QpCounters -> SqpCounters folds (src/drivers/sqp_solver.cpp).
+    PROVISIONAL NAME (owner approval pending). The IPQP count includes mu-estimate refusals (each answered by the
+    estimate's fallback); the doc comments say which answer each site takes. The rank-repair Gram's refusal is no longer
+    tallied separately: it is a kRefused rank repair, counted by the walk's existing rank_repair_misses.
+R8  scratch: SsnEngine::dense_check_r_ / dense_check_c_ (ssn_engine.h:1078-1079); IpqpEngine::Workspace check_r /
+    check_c (ipqp_engine.cpp:640-641), sized on first dense use (no allocation on kNever, none per solve after the
+    first); the check's solve callable is `void(const Vec &, Vec &)`; dense_residual_ratio writes K y - rhs into the
+    scratch; the unused `d` parameter is dropped (no consumer passed one). Algebra: r1 computed rhs - K y and y +
+    K^-1(rhs - K y); r2 computes K y - rhs and y - K^-1(K y - rhs) -- exact IEEE negations (the solves are linear and
+    sign-symmetric), so the SSN's refined answers are bit-identical to r1's.
+R9  header comments: kkt_calls.h's check banner, dense_session.h's kDenseArmThreads, ws_independence.h's
+    rank_gram_factor_refused -- terse constraints, no round tags or history.
+
+DISCLOSURES
+- R2's fixture search (dev, scratch, before this declaration; recorded so it is not repeated): on 4-variable QPs no
+  legal subproblem was found whose dense step solve misses rho by more than the eps*kappa floor: near-dependent equality
+  rows (eps 1e-4..0, row scale 1..1e6, ruiz on/off) gave no refusal at 1e-5 (the dense arm converged where the platform
+  session ran out of iterations or escaped kNumerical); a rotated near-singular Hessian with free variables (eigenvalue
+  1e-12, h = 1e2..1e4) refused at rho = 1.5e-5..5e-5, and its cause is primal with the ladder unarmed, so the dual
+  remedy does not clear it and the tier escapes kNumerical at the ladder's ceiling -- the same escape the platform
+  session takes there on its own perturbed pivots. Hence the injector (R2 permits a constructed factor).
+- r1's IPQP fixture (two rows differing by 1e-4) now refuses nothing and converges on the dense arm; under kNever (MKL)
+  it ends kBudget -- asserted on non-Apple only (the Accelerate session's outcome is not asserted).
+- Dev suites at the code head's content (build-dn3a/dev-rel, dev-dbg; scratch): "100% tests passed, 0 tests failed out
+  of 3614" both (3616 registered: r1's 3607 + 9 new, below).
+- The P4 sets were measured on a dev falsifier run of the code head (legs/failproof-r2.sh with TREES=build-dn3a/fpdev,
+  09:38-10:23; head 57/57 pass; every set below is that run's) and are copied into failproof-r2.sh.
+- FA2 expectation measured on a dev probe (the r2 head lane binary on the 119 SQP cells x {dense-sqp-ssn, dense-sqp-ipm},
+  10:24-10:27, scratch; then a local probe branch m8-dn3a-r2-probe adcb92382 = the code head + env-gated refusal prints
+  (HVEN_DN3A_PROBE), behind a dev lane binary (clone branch dn3a-r2-probe, build-dn3a/probebin-r2), on HS74 and HS75:
+  * dense-sqp-ssn: 0 movers against r1's base kAlways rows, 0 refusals.
+  * dense-sqp-ipm: 0 movers against r1's base kAlways rows (LOOTSMA back on its base row); 13 refusals in 2 cells,
+    HS74 4 and HS75 9, every one on n = 11 with rho after refinement 1.04e-5..7.6e-4 (first rho 1.10e-5..1.28e-3), each
+    answered by ONE perturbed-pivot rung on the dual route (rho_dem 0; delta 1e-10 -> 1e-8, once 1e-8 -> 1e-6) that
+    read kOk; both cells end optimal at 50 iterations with base's objective string. These are NOT r1's 17 refusals
+    (r1's first rho was at most 1.8e-7 -- under 1e-5, now refined and kept): r1's IPQP stopped at its first refusal
+    (kNumerical), so the later solves refused here never ran under r1; on the base binary they ran unchecked.
+  THIS CONTRADICTS the settler's stated expectation ("FA2 IPQP refusals drop to 0"); the measured expectation is
+  declared below and the difference is argued in the hand-back, not tuned away.).
+- COST: unchanged from r1's statement, except that refinement now also runs on IPQP solves between 1e-8 and 1e-5
+  (r1 dev roster: 17 such solves of 37836, now refined and accepted instead of refused); scratch removes the per-check
+  allocations.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above. At kNever no dense session exists: no check, no pin, no scratch sizing; the counter stays 0.
+D1  ENGINES AT kNever: NO MOVERS -- replay P2, interior P3 (unmoved and promoted), runtime counter identity P5, the FA
+    leg's kNever rows. ANY kNever MOVER IS A STOP (hand back with the diagnosis).
+D2  API: one new PUBLIC counter field, SqpCounters::dense_solve_residual_refusals (and QpCounters'), name PROVISIONAL;
+    one trace key (sqp.solve.end counters, after dense_shifted_terminations). detail: dense_solve_check_refused's
+    signature, dense_residual_ratio's, unshifted_dense_solve_refused's; SsnResult / IpqpResult fields; DenseArmThreadPin
+    (TU-local); IpqpDenseSolveInjector (HVEN_TESTING only). Removed: DenseSolveCheckTally, dense_solve_check_tally,
+    count_refusal.
+D3  TESTS: 3616 registered, 3614 run (the two DISABLED EqpRefinementAb tests excluded), Release and Debug. New (9):
+    hven_tests DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne (MKL only),
+    DenseSolveCheck.{TheRefusalThresholdIsTheConsumersAndRefinementStillRuns,
+    ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused}; hven_sqp_tests
+    IpqpDenseSolveCheck.{LateInteriorSolvesBetweenTheThresholdsAreNotRefused, TheCheckReadsTheEquilibratedSystem}
+    (replacing r1's ADenseStepSolveThatMissesRhoEndsTheTierNumerical); hven_ipqp_seam_tests IpqpDenseSolveSeamTest.
+    {TheControlSolveRefusesNothing, ARefusedMuEstimateSolveTakesTheEstimatesFallback,
+    ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes, ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes,
+    RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical}. Renamed: DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoReads
+    TheMetric -> ...AndRhoIsTheInfNormRatio (the metric parameter is gone). Shape pins moved: SqpCounters 1216 -> 1224
+    bytes (test_callback.cpp), 91 -> 92 direct fields (test_threads.cpp, test_trace_writer.cpp).
+D4  No iparm change, no IPARM-SURFACE label, no notices/ change. docs/testing.md: one new injector entry (an Apache-2.0
+    file's seam, no session file, no deviation). docs/trace-schema-v0.md: one row and one paragraph.
+D5  kAlways at MKL_NUM_THREADS=1: moves only where a check refines or refuses, or (IPQP) where a refusal now takes the
+    ladder (FA leg).
+
+PROOFS AND PASS CRITERIA (each its own script under `flock /tmp/box-build.lock`; `pgrep -a hven_bench_cell` empty first,
+as its own command)
+--------------------------------------------------------------------------------
+P0  arm A: r1's, sha256 above (checked by runtime-r2/run_all.sh).
+P1  ctest Release (build-dn3a/rel) and Debug (build-dn3a/dbg), -j4 under setsid: "100% tests passed, 0 tests failed out
+    of 3614" in both (legs/ctest.sh; suites-r2/).
+P2  27-cell replay x (walk, ssn, ipm) at the defaults (kNever) on build-dn3a/rel: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv via scripts/compare_replay.py, 0 differences each
+    (legs/replay.sh; replay-r2/). A difference is a STOP.
+P3  interior: arm A vs arm B, 27 cells, EXACT 0 differences (unmoved); arm B under the promoted baseline's invocation
+    against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences (promoted)
+    (legs/interior.sh; interior-r2/). A difference is a STOP.
+P4  THE FALSIFIER (legs/failproof-r2.sh; seventeen mutations of the code head's `git archive` export, each site at its
+    declared count or fail closed; Release; hven_tests 'DenseArmThreads.*:DenseSolveCheck.*:DenseArm.*:DenseArmReport.*',
+    hven_drivers_tests 'DenseArmEngines.*', hven_sqp_tests 'IpqpDenseSolveCheck.*', hven_ipqp_seam_tests
+    'IpqpDenseSolveSeamTest.*'; failproof-r2/): FAILPROOF_AS_DECLARED -- the head runs 57 and fails none; each
+    mutation fails EXACTLY failproof-r2.sh's WANT set:
+      thread-pin-off 2 -- DenseArmThreads.EveryDenseLapackCallRunsAtOneThread DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne
+      check-never-refuses 8 -- DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+      refusal-threshold-ignored 2 -- DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused
+      refine-off 2 -- DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+      refine-always 1 -- DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+      dense-only-off 2 -- DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked
+      ssn-unwired 1 -- DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+      ssn-fold-off 1 -- DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+      ipqp-unwired 4 -- IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+      ipqp-two-threshold-off 1 -- IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused
+      ipqp-check-after-unscale 6 -- IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing
+      ipqp-response-estimate-off 1 -- IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback
+      ipqp-response-affine-off 2 -- IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+      ipqp-response-corrector-off 1 -- IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes
+      ipqp-reladder-off 3 -- IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+      gram-dense-clause-off 1 -- DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite
+      gram-unwired 0
+      (gram-unwired is UNKILLED: a fault path no fixture reaches -- G + tI has lambda_min >= t, so a backward-stable
+      dense LDL' reads (mr, 0), and the rank repair never factors at mr <= kRankDenseRows -- the call site's wiring is
+      by inspection; the predicate is falsified by gram-dense-clause-off on real dense factorizations, and the R3 test
+      pins that a real rank-deficient shifted Gram is NOT refused. The row stays so a change that makes the call site
+      reachable shows up.)
+P5  runtime gate (runtime-r2/; arm A vs arm B at the defaults; modes interior, ipm, ssn, walk; 27 cells; rounds 3, core 2,
+    perf record period 400000, THROTTLE == 0 or VOID): VERDICT PASS -- counter identity in every mode (a difference is
+    a STOP), filtered B/A in [0.995, 1.005] per mode. Run FIRST and alone.
+FA  THE FORCED-ARM LEG (sl-r2/fa_run.sh, the lane binaries above; serial, THREADS=1 on core 2, CAP 300 s;
+    sl-r2/fa_analyze.py -> fa-r2/fa-analysis.txt). FA1 = DN-0's 238 cells x {default, dense-default}; FA2 = its 119
+    hven-sqp cells x {sqp-ssn, dense-sqp-ssn, sqp-ipm, dense-sqp-ipm} on the head and x {dense-sqp-ssn, dense-sqp-ipm}
+    on the base lane binary (b70e45cfb). FA_PASS iff all hold (r1's criteria, the column renamed):
+    S1_AS_DECLARED      head kAlways vs head kNever: 212/215, misses exactly IPM ALLINITC, IPM CRESC100, SQP HS91.
+    FA1_AS_DN1D         every FA1 row, both labels, against DN-1d r3's row: status and iterations equal, objective
+                        within 1e-8*max(1,|f|). A kNever mover is also a STOP (KNEVER_MOVED_STOP).
+    TALLY_DEFAULTS_ZERO the refusal column reads 0 on every counted FA1 SQP row.
+    NO_NEW_FAILURES     FA2: every base kAlways success is a head kAlways success with objective within 1e-8*max(1,|f|).
+    TALLY_KNEVER_ZERO   the refusal column reads 0 on every counted head kNever FA2 row.
+    TALLY_COLUMNS_PRESENT on every counted head FA2 row.
+    REPORTED, with the declared expectation (dev probe, DISCLOSURES): qp_mode kSsn -- 0 movers vs base kAlways, 0 refusals, 99/99 head kNever successes kept;
+    qp_mode kIpqp -- 0 movers vs base kAlways (LOOTSMA back on its base row: r1's one mover is gone), 13 refusals in 2
+    cells (HS74 4, HS75 9); head kAlways keeps 94/101 head kNever successes (r1's figure; pre-existing dense-vs-sparse
+    differences of the IPQP mode). The FA2 r2-vs-r1 head comparison is reported: expected LOOTSMA only.
+    A mover beyond the expectation is reported and argued, not re-run.
+RESTORE flock /tmp/box-build.lock bash .../sl/hb_restore.sh (r1's; the clone's HEAD on dn1b-legs, no tracked change).
+NOT RUN (proportionate): census, objects/flags diffs, install smoke, pch neutrality, Accelerate sweep, the threaded
+(default threads) roster -- the pin's effect at threads != 1 is pinned by DenseArmThreads.* only.
+ORDER: P5 alone first, then legs/chain-r2.sh (P1, P2, P3, P4), then FA, then RESTORE:
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/docs/notes/data/2026-11-m8-dn3a/runtime-r2/run_all.sh 07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/docs/notes/data/2026-11-m8-dn3a/legs/chain-r2.sh 83c8d377477a15e301eb9ab83b7002c9acdceb17 07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/docs/notes/data/2026-11-m8-dn3a/sl-r2/fa_run.sh /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/docs/notes/data/2026-11-m8-dn3a/fa-r2 3414b582d4d1cf0572c09b206c7e5f7cf37f76e3271ee06f51ee4d0d8aa93fbe 533c45cd2ee07728afa99b48837b6a46cca8a7e53e3cab493f327b9c78a27b48
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/docs/notes/data/2026-11-m8-dn3a/sl/hb_restore.sh
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data; a failed or void leg is answered
+by DECLARATION-r3. Any kNever movement (P2, P3, P5 counters, FA kNever rows): STOP and hand back with the diagnosis.

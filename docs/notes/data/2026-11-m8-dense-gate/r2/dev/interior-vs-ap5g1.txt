@@ -1,0 +1,2 @@
+=== I3-1-vs-ap5 === cells compared: 43  columns compared: 30  differences: 0
+=== I3-2-vs-ap5 === cells compared: 43  columns compared: 30  differences: 0

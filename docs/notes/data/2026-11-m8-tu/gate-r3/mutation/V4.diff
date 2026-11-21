@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..3e685a0f8 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -114,7 +114,7 @@ void validate(const SqpOptions &opts) {
+         throw std::invalid_argument(fmt::format(
+             "SqpSolver: qp.feasibility_tol ({}) must be finite and > 0", opts.qp.feasibility_tol));
+     }
+-    if (!(opts.qp.optimality_tol > 0.0) || std::isinf(opts.qp.optimality_tol)) {
++    if (false) {
+         throw std::invalid_argument(fmt::format(
+             "SqpSolver: qp.optimality_tol ({}) must be finite and > 0", opts.qp.optimality_tol));
+     }

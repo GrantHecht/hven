@@ -1,0 +1,117 @@
+identical hven_dense_alloc_tests.txt
+identical hven_drivers_tests.txt
+identical hven_example_01_hs071_both_engines.txt
+identical hven_example_02_bounded_rosenbrock.txt
+identical hven_example_03_equality_constrained.txt
+identical hven_example_04_partitioned_chain.txt
+identical hven_example_05_warm_continuation.txt
+identical hven_example_06_ipm_to_sqp_polish.txt
+identical hven_example_07_sqp_quasi_newton.txt
+identical hven_example_08_results_trace_options.txt
+identical hven_fault_injection_tests.txt
+identical hven_golden_rig_audit.txt
+identical hven_golden_rig.txt
+identical hven_interior_tests.txt
+identical hven_ipqp_seam_tests.txt
+identical hven_model_tests.txt
+identical hven_qp_walk_seam_tests.txt
+identical hven_sqp_seam_tests.txt
+identical hven_sqp_tests.txt
+== hven_tests.txt
+315a316,319
+> Layering.EveryAllowListedPairStillOccurs
+> Layering.NoIncludeGoesUpTheLayerOrder
+> Layering.PublicHeadersDoNotIncludeDetail
+> Layering.TheScanReadsTheWholeTree
+== ctest-N
+215,244c215,244
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <03-00 00-00 00-00 00-00 8B-E5 73-07 00-00 00-00>
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <06-00 00-00 00-00 00-00 98-E5 73-07 00-00 00-00>
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <1C-00 00-00 00-00 00-00 A8-E5 73-07 00-00 00-00>
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <27-00 00-00 00-00 00-00 BA-E5 73-07 00-00 00-00>
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <2D-00 00-00 00-00 00-00 CF-E5 73-07 00-00 00-00>
+< Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <4C-00 00-00 00-00 00-00 E1-E5 73-07 00-00 00-00>
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 8B-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 8B-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 8B-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 8B-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 98-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 98-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 98-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 98-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 A8-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 A8-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 A8-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 A8-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 BA-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 BA-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 BA-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 BA-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 CF-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 CF-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 CF-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 CF-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 E1-E5 73-07 00-00 00-00>, 24-byte object <05-25 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 E1-E5 73-07 00-00 00-00>, 24-byte object <9E-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 E1-E5 73-07 00-00 00-00>, 24-byte object <A1-E6 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+< Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 E1-E5 73-07 00-00 00-00>, 24-byte object <DF-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+---
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <03-00 00-00 00-00 00-00 FB-E3 73-07 00-00 00-00>
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <06-00 00-00 00-00 00-00 08-E4 73-07 00-00 00-00>
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <1C-00 00-00 00-00 00-00 18-E4 73-07 00-00 00-00>
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <27-00 00-00 00-00 00-00 2A-E4 73-07 00-00 00-00>
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <2D-00 00-00 00-00 00-00 3F-E4 73-07 00-00 00-00>
+> Battery/SqpQnHs.ConvergesWithoutAHessianCall/16-byte object <4C-00 00-00 00-00 00-00 51-E4 73-07 00-00 00-00>
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 FB-E3 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 FB-E3 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 FB-E3 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <03-00 00-00 00-00 00-00 FB-E3 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 08-E4 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 08-E4 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 08-E4 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <06-00 00-00 00-00 00-00 08-E4 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 18-E4 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 18-E4 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 18-E4 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <1C-00 00-00 00-00 00-00 18-E4 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 2A-E4 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 2A-E4 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 2A-E4 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <27-00 00-00 00-00 00-00 2A-E4 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 3F-E4 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 3F-E4 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 3F-E4 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <2D-00 00-00 00-00 00-00 3F-E4 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 51-E4 73-07 00-00 00-00>, 24-byte object <0E-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 51-E4 73-07 00-00 00-00>, 24-byte object <11-E5 73-07 00-00 00-00 01-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 51-E4 73-07 00-00 00-00>, 24-byte object <62-02 70-07 00-00 00-00 00-00 00-00 00-00 00-00 E8-03 00-00 00-00 00-00>)
+> Battery/SqpQnVariantHs.ConvergesWithoutAHessianCall/(16-byte object <4C-00 00-00 00-00 00-00 51-E4 73-07 00-00 00-00>, 24-byte object <74-24 70-07 00-00 00-00 00-00 00-00 00-00 00-00 90-01 00-00 00-00 00-00>)
+308,317c308,317
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 00-00 00-00 58-ED EB-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 01-00 00-00 59-22 EE-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 02-00 00-00 32-1B EF-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 03-00 00-00 5A-65 EF-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 04-00 00-00 69-FA EE-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 00-00 00-00 58-ED EB-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 01-00 00-00 59-22 EE-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 02-00 00-00 32-1B EF-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 03-00 00-00 5A-65 EF-06 00-00 00-00>
+< BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 04-00 00-00 69-FA EE-06 00-00 00-00>
+---
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 00-00 00-00 4E-ED EB-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 01-00 00-00 D2-21 EE-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 02-00 00-00 8D-1A EF-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 03-00 00-00 B5-64 EF-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <00-00 00-00 04-00 00-00 C4-F9 EE-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 00-00 00-00 4E-ED EB-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 01-00 00-00 D2-21 EE-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 02-00 00-00 8D-1A EF-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 03-00 00-00 B5-64 EF-06 00-00 00-00>
+> BothEngines/NonFiniteStart.EndsNumericalErrorWithAMessageNamingIt/16-byte object <01-00 00-00 04-00 00-00 C4-F9 EE-06 00-00 00-00>
+1246a1247
+> HeaderSelfContained
+1914a1916,1919
+> Layering.EveryAllowListedPairStillOccurs
+> Layering.NoIncludeGoesUpTheLayerOrder
+> Layering.PublicHeadersDoNotIncludeDetail
+> Layering.TheScanReadsTheWholeTree

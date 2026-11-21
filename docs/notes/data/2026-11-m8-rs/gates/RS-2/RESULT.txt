@@ -1,0 +1,25 @@
+RS-2 gate result (test re-layout; move commit 43f5573f9; evidence head = the commit carrying this file). Declarations: DECLARATION-RS2.md, -r2 (P-SYM measurement amended), -r3 (flags unity key).
+Before arm = origin/m8 3edf5ede4 (RS-1e head) measured by legs/baseline2.sh; replay baseline run on that head; run 1 is kept in gates/RS-2-run1/ (3 instrument/wording defects, see -r2).
+G1   clean configure CCACHE_DISABLE=1 (linux-clang-release flags + bench + examples), library + tests + bench: rc 0 (run 1 and the rerun's `build` step; build-release.txt)
+G2'  P-SYM, the two arms built with __FILE__ neutralised (neutral_flags.py, identical list in both arms, each at build-n), generated object map (79 map lines, unity directory move declared),
+     symbol map = RS-0 entries + 3 derived path<char [N]> renames: 198 objects, 188 byte-identical, 3 noise-class (the bench objects bench_corpus/bench_crossover/ipqp_e1_arm, library/bench
+     sources unmoved), 0 UNCLASSIFIED, 0 missing, 0 only-before, 0 only-after, 0 collisions, 0 stale map entries, EXCEPTIONS: none. 7 objects compared per symbol through the symbol map:
+     the three S6 renames (test_solve_status -> test_ipm_phase_status, test_types -> test_qp_types, test_scaffold -> test_backend_scaffold; the _GLOBAL__sub_I_* entries prepared by RS-0)
+     and the four define-literal objects (human_trace_goldens, message_sites, trace_off_path, trace_v1_fixtures). psym.txt, object-map.txt, symbol-map.txt.
+G3'' flags diff over 363 TUs (real builds, no neutral flags): IDENTICAL; same TU set; declared deltas only: the old per-directory test include roots removed
+     (tests/{drivers,interior,model,sqp}) and -I tests added, tallied per target in flags.txt (targets that had a per-directory root swap it for tests/; the three seam executables hven_ipqp_seam_tests,
+     hven_qp_walk_seam_tests, hven_sqp_seam_tests gain it because their TUs spell root-relative local includes; hven_drivers_tests and hven_model_tests lose their directory root and already carried tests/); path-valued defines under tests/drivers/golden compared through --dir-move.
+G4   check_pch_neutrality: not required (declared): RS-2 touches no PCH include set.
+G5'  ctest Release 3869/3869, Debug 3869/3869 (ctest-release.log, ctest-debug.log); per-executable sorted gtest lists RAW-identical to the RS-1e measured lists (20 executables incl. the 8 examples)
+     and to the committed RS-0 lists (12 test executables); ctest -N identical modulo the byte-dump class, 133 = 133 (lists-diff.txt, lists-diff-rs0.txt).
+G6   path-coupled: TraceOffPath.* (site count asserted EXACTLY, 130 at RS-1e) / TraceMessageSites.* / CoreLayering.* / HumanTraceGoldens.* / TraceV1Fixtures.* all Passed; qp_mode_sites passes;
+     the 21 hven_compile_fail_* probe tests pass with the runner script and probe sources at tests/model/compile_fail/; non-vacuity: hiding tests/trace/golden makes the golden and trace_v1
+     fixture tests FAIL and hiding tests/model/compile_fail makes the probe tests FAIL, each restoring to pass (vacuity.txt); the duplicate-basename check fails the configure on a planted
+     duplicate and passes on the tree (dupcheck.txt).
+G7   check_install_smoke default + clang++ PASS, check_export_contract OK both arms; installed listing == RS-1e listing (RS-2 touches no installed file; 957 files); 55 public headers;
+     include/hven/drivers absent; hvenConfig sentinel resolves.
+G8   golden rig native arm: all Rig/Golden ctest entries Passed (in the 3869). Three-seam arms not re-attempted (pre-existing non-compilation of the old-seam adapters, reported at RS-1).
+G9   27-cell replay x walk/ssn/ipm: 0 differences x3 (75 columns each) against the RS-1e-head run; serial, solo, under the box lock.
+G10  CI: run 44336809684 on origin rs-2, all four lanes green (CI.txt).
+Judgement calls: DECLARATION-RS2.md D1-D4 (bare same-directory sibling includes stay bare; include root per target; cross-directory members spelled ../<dir>/file.cpp until RS-6a; golden_rig and
+install_smoke untouched).

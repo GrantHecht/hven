@@ -125,4 +125,92 @@ INCLUDE_DIRS_COUNT="$(grep -c 'INTERFACE_INCLUDE_DIRECTORIES' "${TARGETS_FILE}" 
     || fail "INTERFACE_INCLUDE_DIRECTORIES appears ${INCLUDE_DIRS_COUNT} times in ${TARGETS_FILE} (expected exactly once)"
 echo "-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once"
 
+# No public header includes a `detail/` header.
+#
+# "Public header" = any installed header under <prefix>/include/hven that is not
+# itself inside a `detail/` directory. Its #include lines are scanned for any path
+# with a `detail/` component; one such line anywhere is a failure. There is no
+# allow-list. (Only #include lines match: a string literal or comment that merely
+# mentions a detail path is not an include.)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREFIX_DIR="$(cd "${TARGETS_DIR}/../../.." && pwd)"
+INCLUDE_ROOT="${PREFIX_DIR}/include/hven"
+[ -d "${INCLUDE_ROOT}" ] || fail "no installed headers at ${INCLUDE_ROOT} (derived from ${TARGETS_FILE})"
+
+FOUND_PAIRS="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -name '*.h' -not -path '*/detail/*' | sed 's|^\./||' | LC_ALL=C sort |
+        while IFS= read -r header; do
+            { grep -E '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"][^>"]*detail/' "${header}" || true; } |
+                sed -E 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"]([^>"]*)[>"].*/\1/' |
+                while IFS= read -r included; do
+                    echo "${header}|${included}"
+                done
+        done | LC_ALL=C sort
+)"
+[ -z "${FOUND_PAIRS}" ] \
+    || fail "public header(s) include a detail/ header (header|included):
+${FOUND_PAIRS}"
+echo "-- no public header includes a detail/ header"
+
+# The shape of the installed include root (RS-5, CLAUDE.md section 2).
+#
+#   - Nothing sits directly under include/hven except the umbrella hven.h and directories: a
+#     header at the root is a public header with no component, which the layer order has no place
+#     for.
+#   - Every directory directly under include/hven, and every directory directly under
+#     include/hven/detail, is a known component. A new component is added to the two lists below
+#     in the same commit that creates it (and to tests/core/test_layering.cpp's classify()), so
+#     the set of places a header can live is a decision, never a side effect.
+KNOWN_PUBLIC_DIRS="core detail ipm linear model qp solver sqp trace warmstart"
+KNOWN_DETAIL_DIRS="barrier core ipm kkt linear model qp solver sqp util warmstart"
+
+ROOT_STRAYS="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -mindepth 1 -maxdepth 1 -not -type d | sed 's|^\./||' | LC_ALL=C sort |
+        grep -vx 'hven.h' || true
+)"
+[ -z "${ROOT_STRAYS}" ] \
+    || fail "file(s) at the include/hven root other than hven.h:
+${ROOT_STRAYS}"
+echo "-- include/hven holds only hven.h and component directories"
+
+unknown_dirs() { # <directory> <known component names...>
+    local dir="$1" d known k
+    shift
+    known=" $* "
+    for d in $(cd "${dir}" && find . -mindepth 1 -maxdepth 1 -type d | sed 's|^\./||' | LC_ALL=C sort); do
+        k="${known}"
+        case "${k}" in *" ${d} "*) ;; *) echo "${d}" ;; esac
+    done
+}
+UNKNOWN_PUBLIC="$(unknown_dirs "${INCLUDE_ROOT}" ${KNOWN_PUBLIC_DIRS})"
+[ -z "${UNKNOWN_PUBLIC}" ] \
+    || fail "unknown directory under include/hven (not a known component: ${KNOWN_PUBLIC_DIRS}):
+${UNKNOWN_PUBLIC}"
+UNKNOWN_DETAIL="$(unknown_dirs "${INCLUDE_ROOT}/detail" ${KNOWN_DETAIL_DIRS})"
+[ -z "${UNKNOWN_DETAIL}" ] \
+    || fail "unknown directory under include/hven/detail (not a known component: ${KNOWN_DETAIL_DIRS}):
+${UNKNOWN_DETAIL}"
+DETAIL_STRAYS="$(cd "${INCLUDE_ROOT}/detail" && find . -mindepth 1 -maxdepth 1 -not -type d | sed 's|^\./||' | LC_ALL=C sort)"
+[ -z "${DETAIL_STRAYS}" ] \
+    || fail "file(s) directly under include/hven/detail (headers live in a component directory):
+${DETAIL_STRAYS}"
+echo "-- every include/hven and include/hven/detail directory is a known component"
+
+# The umbrella <hven/hven.h> includes every public header (M8 B8): a public header it
+# does not name is a header no "#include <hven/hven.h>" consumer can see.
+[ -f "${INCLUDE_ROOT}/hven.h" ] || fail "no umbrella header at ${INCLUDE_ROOT}/hven.h"
+MISSING_FROM_UMBRELLA="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -name '*.h' -not -path '*/detail/*' -not -path './hven.h' | sed 's|^\./||' |
+        LC_ALL=C sort | while IFS= read -r header; do
+            grep -qE "^#include <hven/${header}>\$" hven.h || echo "${header}"
+        done
+)"
+[ -z "${MISSING_FROM_UMBRELLA}" ] \
+    || fail "public header(s) the umbrella hven.h does not include:
+${MISSING_FROM_UMBRELLA}"
+echo "-- the umbrella hven.h includes every public header"
+
 echo "== export contract OK for platform=${PLATFORM}, align=${ALIGN_VALUE}"

@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T21:09:53-05:00
+a86ef490b29e2e7cf3a98905270d37d769cecc390a576ac748704d08a1c92c8b  /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/armAbin/hven_sqp_corpus
+ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78  /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/armBbin/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-11T21:11:34-05:00
+ANALYSIS mode=interior rc=2
+STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing -> STOP
+VERDICT FAIL(mode=interior leg_rc=0 analysis_rc=2)
+FOREGROUND_END 2026-11-11T21:11:34-05:00

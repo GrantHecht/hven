@@ -1,0 +1,8 @@
+B2-runtime-r5 -- RESULT (DECLARATION.txt committed ce58910f before the first leg). GATE VERDICT: PASS.
+Fixture pre-flight PASS. All four modes: counter identity holds on every (round,cell) pair, 0 THROTTLE
+in every process, filtered B/A within [0.995, 1.005]:
+  interior 1.000791 (rounds 1.000808/1.000782/1.000783)  excluded A=63422 B=53569 (summed over rounds; LIVE); raw perf-stat 0.995071
+  ipm      1.000126 (1.000126/1.000128/1.000127)         excluded 0/0; filtered==all; raw 1.000128
+  ssn      1.000186 (1.000184/1.000184/1.000187)         excluded 0/0; filtered==all; raw 1.000187
+  walk     1.000025 (1.000022/1.000025/1.000025)         excluded 0/0; filtered==all; raw 1.000025
+Details: <mode>/analysis.txt, run_all.log.

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_lbfgs_damped.cpp -- the damped compact L-BFGS class in ISOLATION (no driver, no
+// The damped compact L-BFGS class in ISOLATION (no driver, no
 // QP). The oracle is an explicit dense recursive damped BFGS that applies the SAME sigma-rebuild
 // sequence (each step: B0 = sigma_k*I, replay the stored pairs), written independently of the
 // class's compact / eigen machinery.
@@ -14,17 +14,17 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/globalization/sqp/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
 
 namespace {
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-using hven::solvers::detail::LbfgsDamped;
-using hven::solvers::detail::LbfgsDampedOptions;
-using hven::solvers::detail::ResetReason;
-using hven::solvers::detail::SkipReason;
-using hven::solvers::detail::UpdateOutcome;
+using hven::detail::LbfgsDamped;
+using hven::detail::LbfgsDampedOptions;
+using hven::detail::ResetReason;
+using hven::detail::SkipReason;
+using hven::detail::UpdateOutcome;
 
 // Dense recursive damped BFGS with the sigma-rebuild convention.
 struct DenseReference {

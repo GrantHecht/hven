@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..4ced0db1a 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -3199,7 +3199,7 @@ Index SqpSolverImpl::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0
+     // kAuto's engagement alone (the caller did not ask for the row layer) takes the
+     // one-sided objective rule: problem_scaling.h, `amplify_objective`.
+     rule.amplify_objective = opts_.row_scaling;
+-    rule.power_of_two_rows = opts_.row_scaling_power_of_two;
++    rule.power_of_two_rows = false;
+     seam.install_scaling(detail::compute_problem_scaling(at_x0.grad, at_x0.Je, at_x0.Ji, rule));
+     return 1;
+ }

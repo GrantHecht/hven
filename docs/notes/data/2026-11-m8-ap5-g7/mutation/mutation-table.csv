@@ -1,0 +1,19 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+q1,IpmConvergence::feasibility not written,ok,IpmConvergence.FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals drivers rc=1 
+q2,dump prints termination.acceptable_kkt_tol,ok,OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames drivers rc=1 
+r4,SqpTiming::engine_seconds not written,ok,SqpDriverContract.TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime sqp rc=1 
+e4,worker_options(SqpOptions) keeps the threads,ok,Options.WorkerOptionsPreparesEitherEngineTheSameWay drivers rc=1 
+e3,SqpSolverAccess::ssn_tier_threads reads the IPQP tier,ok,Threads.ZeroLeavesEveryFactorAtTheBackendDefault drivers rc=1 
+r7s,SqpCounters::payload_ignored never set,ok,WarmProtocol.SqpColdCeilingCountsTheIgnoredWarmStart drivers rc=1 
+r7i,IpmCounters::start_level_used never kWarm,ok,WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1 
+r7j,IpmCounters::start_level_used never kSeeded,ok,WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1 
+b1,inertia_corrections: main ladder count not added,ok,CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1 
+b2,inertia_corrections: dense guard count not added (REPORTED),ok,DenseArmEngines.InertiaCorrectionsCountTheResidualGuardsReRuns drivers rc=1 
+e2,SQP last_result z not filled,ok,drivers rc=139 
+e2b,ev_lags_x guard ignored (REPORTED),ok,SURVIVES
+c1,IPM callback stop in restoration takes no stash,ok,StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1 
+c1b,IPM stash armed by the token only,ok,StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1 
+c2,SQP D-h: depth-1 answer relabels a token-stopped sub-solve,ok,StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop seam rc=1 
+m1,IpmCounters X entry inertia_corrections deleted,BUILD_FAIL,
+m2,SqpCounters X entry payload_ignored deleted,BUILD_FAIL,

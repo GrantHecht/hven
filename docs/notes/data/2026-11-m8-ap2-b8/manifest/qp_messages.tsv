@@ -1,0 +1,6 @@
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)tr_radius(?![\w])	\1\2trust_region_radius
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)primal_delta(?![\w])	\1\2primal_regularization
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)dual_mu(?![\w])	\1\2dual_regularization
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)max_iter(?![\w])	\1\2max_iterations
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)feas_tol(?![\w])	\1\2feasibility_tol
+re:\b(opts_|opts|options|overrides|QpOptions|SolveOverrides)(::|\.)opt_tol(?![\w])	\1\2optimality_tol

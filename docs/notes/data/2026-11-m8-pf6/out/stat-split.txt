@@ -1,0 +1,6 @@
+HS TRAIN (hsNNN)   hven-ipm  cells  22 intel 150,341,455 seq 99,825,795 ratio 0.6640
+HS TRAIN (hsNNN)   hven-sqp  cells  22 intel 193,061,598 seq 142,755,576 ratio 0.7394
+HS TRAIN (hsNNN)   both      cells  44 intel 343,403,053 seq 242,581,371 ratio 0.7064
+nlp-35 TRAIN       hven-ipm  cells  19 intel 508,039,447,817 seq 500,782,538,436 ratio 0.9857
+nlp-35 TRAIN       hven-sqp  cells  15 intel 2,021,071,486,291 seq 1,939,708,939,831 ratio 0.9597
+nlp-35 TRAIN       both      cells  34 intel 2,529,110,934,108 seq 2,440,491,478,267 ratio 0.9650

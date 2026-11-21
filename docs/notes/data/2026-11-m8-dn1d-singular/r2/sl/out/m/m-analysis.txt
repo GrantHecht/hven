@@ -1,0 +1,17 @@
+cell     setting  arm  raw(median)   stat rounds                         rec samples  init share  other-thread share  excluded
+hs043    1        N        16650185  [16645750, 16650185, 16650292]     569 (40 reps, capped 0, lost-lines 0)  0.0869  0.0000      15203851
+hs043    1        A         8216658  [8212043, 8216658, 8216745]     269 (40 reps, capped 0, lost-lines 0)  0.1612  0.0000       6891862
+hs043    default  N        55403077  [55239669, 55403077, 56436704]    1870 (40 reps, capped 0, lost-lines 0)  0.0215  0.7038      54212890
+hs043    default  A         8319231  [8313455, 8319231, 8319528]     248 (40 reps, capped 0, lost-lines 0)  0.1795  0.0000       6825534
+HS84     1        N        34106455  [34105440, 34106455, 34149756]    1187 (40 reps, capped 0, lost-lines 0)  0.0402  0.0000      32737016
+HS84     1        A        11052922  [11047998, 11052922, 11053015]     369 (40 reps, capped 0, lost-lines 0)  0.1268  0.0000       9651111
+HS84     default  N       133477182  [132904916, 133477182, 186279651]    3655 (30 reps, capped 0, lost-lines 0)  0.0095  0.7469     132206919
+HS84     default  A        11094262  [11089754, 11094262, 11094633]     342 (40 reps, capped 0, lost-lines 0)  0.1109  0.0000       9864383
+
+M hs043 MKL_NUM_THREADS=1: saving init-excluded 0.5467 (gate >= 0.531: holds), raw 0.5065
+M hs043 default threads: saving init-excluded 0.8741 (gate >= 0.863: holds), raw 0.8498
+M HS84 MKL_NUM_THREADS=1: saving init-excluded 0.7052 (gate >= 0.691: holds), raw 0.6759
+M HS84 default threads: saving init-excluded 0.9254 (gate >= 0.916: holds), raw 0.9169
+
+== VERDICTS
+M_PASS (both cells, both thread settings)

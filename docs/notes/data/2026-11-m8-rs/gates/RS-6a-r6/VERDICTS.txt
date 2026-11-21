@@ -1,0 +1,163 @@
+== gate RS-6a head 60f7c9963 base 720d30e8b steps: build psym litproof psymexc flags lists ctest smoke replay pch debug sweep mutation q9 2026-11-19T09:47:28-05:00
+build-release rc=0 2026-11-19T09:51:05-05:00
+psym-arms rc=0 2026-11-19T09:58:45-05:00
+objmap-equals-declared rc=0 2026-11-19T09:58:45-05:00
+psym-compare rc=1 2026-11-19T09:59:24-05:00
+psym-union rc=0 2026-11-19T09:59:34-05:00
+litproof rc=0 2026-11-19T10:00:02-05:00
+PGREP_EMPTY
+BYTE_IDENTICAL tests/trace/test_human_trace_goldens.cpp (base object tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_human_trace_goldens.cpp.o)
+BYTE_IDENTICAL tests/trace/test_trace_off_path.cpp (base object tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_off_path.cpp.o)
+BYTE_IDENTICAL tests/trace/test_trace_v1_fixtures.cpp (base object tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_fixtures.cpp.o)
+BYTE_IDENTICAL tests/solver/test_message_sites.cpp (base object tests/solver/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o)
+BYTE_IDENTICAL tests/bench/test_corpus_cells.cpp (base object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o)
+litproof rc=0
+exceptions-gen rc=0 2026-11-19T10:00:02-05:00
+psym-compare-r5 rc=0 2026-11-19T10:00:41-05:00
+flags-diff rc=0 2026-11-19T10:00:43-05:00
+lists-as-declared rc=0 2026-11-19T10:01:20-05:00
+ordinary: base 3412 names (0 byte-dump), after 3412 names (0 byte-dump)
+seam+alloc: base 421 names (0 byte-dump), after 421 names (0 byte-dump)
+  hven_core_tests                       44 tests
+  hven_linear_tests                    154 tests
+  hven_model_tests                     476 tests
+  hven_kkt_tests                        53 tests
+  hven_qp_tests                        450 tests
+  hven_warmstart_tests                 364 tests
+  hven_solver_tests                    363 tests
+  hven_trace_tests                     158 tests
+  hven_ipm_tests                       451 tests
+  hven_sqp_tests                       751 tests
+  hven_bench_tests                     148 tests
+  hven_linear_seam_tests                29 tests
+  hven_kkt_seam_tests                    7 tests
+  hven_qp_seam_tests                   312 tests
+  hven_solver_seam_tests                21 tests
+  hven_ipm_seam_tests                   19 tests
+  hven_sqp_seam_tests                   31 tests
+  hven_linear_alloc_tests                2 tests
+names in more than one after executable: 0
+ctest -N: base 3911 names, after 3911 names; added [] removed []; byte-dump 133/133
+LISTS_AS_DECLARED
+membership-equals-declared rc=0 2026-11-19T10:01:20-05:00
+declared 188 sources, built 188
+MEMBERSHIP_EQUALS_DECLARED
+ctest-release rc=0 2026-11-19T10:03:22-05:00
+100% tests passed, 0 tests failed out of 3909
+          Start    1: HeaderSelfContained
+          Start   62: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+          Start   63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+  60/3911 Test   #62: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.00 sec
+          Start   64: Layering.TheScanReadsTheWholeTree
+  61/3911 Test   #63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.00 sec
+          Start   65: Layering.NoIncludeGoesUpTheLayerOrder
+  62/3911 Test   #65: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.02 sec
+          Start   66: Layering.EveryAllowListedPairStillOccurs
+  63/3911 Test   #64: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.02 sec
+          Start   67: Layering.PublicHeadersDoNotIncludeDetail
+  64/3911 Test   #66: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.02 sec
+  65/3911 Test   #67: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.02 sec
+1351/3911 Test    #1: HeaderSelfContained ................................................................................................................................................................................................   Passed   35.82 sec
+install-smoke rc=0 2026-11-19T10:05:06-05:00
+listing-equals-rs5 rc=1 2026-11-19T10:05:06-05:00
+replay rc=0 2026-11-19T10:10:41-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-19T10:11:55-05:00
+build-debug rc=0 2026-11-19T10:14:25-05:00
+ctest-debug rc=0 2026-11-19T10:22:32-05:00
+100% tests passed, 0 tests failed out of 3909
+          Start    1: HeaderSelfContained
+          Start   62: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+  59/3911 Test   #62: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.01 sec
+          Start   63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+  60/3911 Test   #63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.01 sec
+          Start   64: Layering.TheScanReadsTheWholeTree
+  61/3911 Test   #64: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.08 sec
+          Start   65: Layering.NoIncludeGoesUpTheLayerOrder
+          Start   66: Layering.EveryAllowListedPairStillOccurs
+  63/3911 Test   #65: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.09 sec
+          Start   67: Layering.PublicHeadersDoNotIncludeDetail
+  67/3911 Test   #66: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.11 sec
+  79/3911 Test   #67: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.11 sec
+ 744/3911 Test    #1: HeaderSelfContained ................................................................................................................................................................................................   Passed   28.27 sec
+PASS 170 FAIL 3
+mutation rc=0 2026-11-19T10:24:01-05:00
+q9-base rc=0 2026-11-19T10:28:06-05:00
+q9-after rc=0 2026-11-19T10:32:02-05:00
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a/build-q9",
+  "-j16",
+  "hven_linear_seam_tests",
+  "hven_kkt_seam_tests",
+  "hven_qp_seam_tests",
+  "hven_solver_seam_tests",
+  "hven_ipm_seam_tests",
+  "hven_sqp_seam_tests"
+ ],
+ "rc": 0,
+ "wall_s": 63.7,
+ "peak_concurrent_rss_mib": 7242,
+ "largest_process_rss_mib_sampled": 710,
+ "largest_process_rss_mib_rusage": 716,
+ "cpu_user_s": 857.1,
+ "cpu_sys_s": 42.0,
+ "compile_commands": 98
+}
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a-base/build-q9",
+  "-j16",
+  "hven_fault_injection_tests",
+  "hven_ipqp_seam_tests",
+  "hven_qp_walk_seam_tests",
+  "hven_sqp_seam_tests"
+ ],
+ "rc": 0,
+ "wall_s": 75.7,
+ "peak_concurrent_rss_mib": 8014,
+ "largest_process_rss_mib_sampled": 714,
+ "largest_process_rss_mib_rusage": 716,
+ "cpu_user_s": 1023.1,
+ "cpu_sys_s": 47.5,
+ "compile_commands": 120
+}
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a/build-q9",
+  "-j16"
+ ],
+ "rc": 0,
+ "wall_s": 129.9,
+ "peak_concurrent_rss_mib": 8009,
+ "largest_process_rss_mib_sampled": 948,
+ "largest_process_rss_mib_rusage": 953,
+ "cpu_user_s": 1774.1,
+ "cpu_sys_s": 97.9,
+ "compile_commands": 169
+}
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a-base/build-q9",
+  "-j16"
+ ],
+ "rc": 0,
+ "wall_s": 127.6,
+ "peak_concurrent_rss_mib": 7828,
+ "largest_process_rss_mib_sampled": 946,
+ "largest_process_rss_mib_rusage": 953,
+ "cpu_user_s": 1755.5,
+ "cpu_sys_s": 90.6,
+ "compile_commands": 167
+}
+== gate RS-6a done 2026-11-19T10:32:02-05:00

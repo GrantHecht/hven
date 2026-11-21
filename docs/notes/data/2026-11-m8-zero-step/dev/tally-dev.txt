@@ -1,0 +1,8 @@
+compared 476 rows (238 cells x 2 labels), 0 movers
+CLASS IMPROVED: 0 []
+CLASS EQUAL_CLASS: 0 []
+CLASS STATUS_SHIFT: 0 []
+CLASS WORSE: 0 []
+HS battery: 44 cells x 2 labels, 0 movers []
+declared 0; undeclared movers []; declared but unmoved []; WORSE []
+I4_PASS

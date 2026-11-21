@@ -1,0 +1,29 @@
+M8 DN-3a -- RESULTS (against DECLARATION.txt, committed afd94ac19 before the first leg; written after the legs;
+criteria unchanged)
+================================================================================
+Code head 7ed37e044; arm A 3e2ae414... (b70e45cfb rebuilt), arm B 5e3c460c...; lane binaries head cedc2e8a..., base
+533c45cd.... P5 runtime/run_all.log (committed 2185739cb); chain legs/chain.sh -> chain/chain.out; FA sl/fa_run.sh ->
+fa/fa-analysis.txt; RESTORE sl/hb_restore.sh -> fa/restore.out.
+
+P5  runtime/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 1.000000, ipm 1.000005,
+    ssn 1.000000, walk 1.000000. Run first and alone.
+P1  MET: "100% tests passed, 0 tests failed out of 3605" in both trees (suites/ctest-rel.log, suites/ctest-dbg.log).
+P2  MET: replay walk / ssn / ipm at kNever: 27 cells x 75 columns, 0 differences each (replay/dn3a-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior/; 43 rows).
+P4  MET: FAILPROOF_AS_DECLARED -- head 48/48 pass; every mutation failed exactly its declared set (thread-pin-off 1,
+    check-never-refuses 4, refine-off 1, refine-always 1, dense-only-off 2, ssn-unwired 1, ipqp-unwired 1,
+    ipqp-response-off 1, gram-dense-clause-off 1, gram-unwired 0 (declared equivalent)) (failproof/).
+FA  MET: FA_PASS (fa/fa-analysis.txt). FA1 (238 cells x default/dense-default): S1_AS_DECLARED 212/215, misses
+    exactly IPM ALLINITC, IPM CRESC100, SQP HS91; FA1_AS_DN1D -- 0 movers against DN-1d r3's rows on both labels (status,
+    iterations, objective; not even an exact-string objective difference); TALLY_DEFAULTS_ZERO (no checked solve runs at
+    the SQP's defaults). FA2 (119 SQP cells): NO_NEW_FAILURES; TALLY_KNEVER_ZERO; TALLY_COLUMNS_PRESENT.
+    REPORTED, exactly the declared expectation: qp_mode kSsn -- 0 movers vs base kAlways, 0 refusals, 99/99 kNever
+    successes kept. qp_mode kIpqp -- 1 mover, LOOTSMA (infeasible -> infeasible, f 4.125 -> 0, iterations 3 -> 4, one
+    IPQP refusal; a non-success detail move); 17 IPQP refusals in 8 cells (BT12 1, HS101 3, HS102 2, HS103 3, HS74 2,
+    HS75 3, HS85 2, LOOTSMA 1), every other refusing cell unmoved in status, objective and iterations; SSN 0, Gram 0.
+    (Head kAlways keeps 94/101 head kNever successes under kIpqp, the same rows as the base binary's: pre-existing
+    dense-vs-sparse differences of the IPQP mode, none with a refusal.) DECONVC under kSsn: a caught library exception
+    row on both arms, not counted (pre-existing).
+RESTORE: the clone's HEAD on dn1b-legs, no tracked change (fa/restore.out); dn3a-legs and dn3a-legs-base kept.
+No kNever movement anywhere. No re-run. Apple/Accelerate and Windows: UNOBSERVED.

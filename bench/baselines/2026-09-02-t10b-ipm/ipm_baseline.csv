@@ -1,4 +1,4 @@
-# M6 W1 T10b -- THE kIpm ARM's SCHEMA-76 BASELINE AT THE MEASURED
+# M6 W1 T10b -- THE kIpqp ARM's SCHEMA-76 BASELINE AT THE MEASURED
 # `ipqp_init_mu = 1e-2`. A DECLARED re-derivation (CLAUDE.md section 7): the
 # barrier default moved, so this arm's counters moved with it. The T9 artifact
 # `bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv` is NOT rewritten -- it

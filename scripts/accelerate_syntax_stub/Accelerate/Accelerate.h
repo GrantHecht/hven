@@ -8,8 +8,8 @@
 // THIS IS NOT AN ACCELERATE HEADER. It is a hand-written approximation of
 // the subset of Apple's public Sparse Solvers API surface this repository
 // calls, built entirely from reading the two Mac-hardware-verified
-// downstream ports this backend follows (tycho's accelerate_interface.h /
-// accelerate_utils.h and tycho_sqp's kkt_system_accelerate.h) -- NOT from
+// downstream ports this backend follows (their accelerate interface and
+// utility headers and their KKT-system Accelerate header) -- NOT from
 // Apple's own header, which is unavailable on this Linux development
 // machine. Field names, types, and function signatures were based on those
 // two precedents' successful real-hardware use of the same calls. macOS CI
@@ -140,7 +140,7 @@ struct SparseOpaqueSymbolicFactorization {
 
     // Real Accelerate fields (confirmed by the two Mac-hardware-verified
     // downstream ports symmetric_factor_accelerate.cpp's own header comment
-    // names -- tycho's accelerate_interface.h reads
+    // names -- one port's accelerate interface reads
     // m_symbolicFactorization->factorSize_Double/factorSize_Float on real
     // hardware). Reported by Apple in BYTES. Only *_Double is read by this
     // repository (hven's SpMatRM is always double-valued); *_Float is

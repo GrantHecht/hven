@@ -1,0 +1,184 @@
+M8 PF-1b -- the release re-admission rule after PF-1: the suspect ladder, the rung's size, the sibling cell
+================================================================================
+Base 7a95a612 (origin/m8, PF-1 + riders). Every number below was measured on this machine under the box lock
+(PROVENANCE.txt). The instruments are a scratch diagnostic build of 7a95a612 that is never committed (tools/: the
+PF-1 D4QP dump patch, an env-tunable copy of the rule with a re-admission tracer, and a replay tool that runs a dump
+under the walk seam's observer, recomputes the KKT residuals of the returned point from the QP's data, and solves the
+UNREGULARIZED EQP of the returned working set with Eigen's SparseLU). Results are in results/, the per-minor CSVs
+of the key runs and the n2000 QP1 dump in data/.
+
+VERDICT: NO ENGINE CHANGE. Every QP that takes the rung reaches an exact KKT point when allowed to finish,
+through a certified exit whose own factorization is clean. The sibling cell is a budget-bound walk, not a cycle,
+and a wider trigger makes it worse. The rung lands ~1.5 decades below the backend's static-pivot floor, and a
+halving rung measured better on the one face that needs it; that is a reason to redesign the regularization
+(proximal centring, registered below), not to re-tune a constant on one sample. One comment was false and is
+corrected (10ac5642, include/hven/detail/qp/qp_engine.h, comment only; libhven.a objects 56/56 byte-identical to
+7a95a612: results/object-identity.log).
+
+--------------------------------------------------------------------------------
+(a) THE SUSPECT LADDER, AND WHETHER THE ANSWER IS TRUSTWORTHY
+--------------------------------------------------------------------------------
+Why the ladder does not fire: BY DESIGN. The walk's suspect ladder (one decade of primal_delta per rung, at most 3)
+answers exactly two events (qp_engine.cpp, section 4b): (i) an EQP answer the EQP-site residual check REFUSES,
+drifts off met rows, or is non-finite; (ii) a would-be-kOptimal exit off a kSuspect factorization whose free-block
+stationarity check fails. A kSuspect verdict on an ordinary pass is deliberately not a trigger (header: "kSuspect
+is deliberately NOT a repair trigger"). Measured on the PF-1 fixture (results/exp-a/head.txt,
+results/summary-n1000.txt):
+after the rung (minor 313, dual_mu 1e-8 -> 1e-10) 1443 passes read kSuspect (2394 perturbed pivots, at most 6 in a
+pass); the EQP-site check refused nothing -- the perturbed passes' row residuals against their own regularized
+system are median 5.7e-14, max 3.0e-10, against a 1e-1 refusal tolerance -- and the terminal pass read kOk with 0
+perturbed pivots. Neither trigger is reached, so the ladder is silent, as designed.
+It would also be the wrong answer: the perturbed pivots are DUAL-caused (mu pushed below Pardiso's static-pivot
+threshold; iparm[9] = 8, eps = 1e-8, in the iparm dump of record), and a primal_delta rung does not clear a
+dual-caused perturbed pivot -- hven's own IPQP engine records the same fact and re-routes such reports to its DUAL
+shift (ipqp_engine.h, kIpqpPivotReroutePrimalMax). So the silence is not a missed failure. The one gap was a false
+contract sentence: 7a95a612's comment on kDualRegDecreaseFactor said a face the lowered mu no longer resolves "is
+caught by the inertia verdict (kSuspect on perturbed pivots) and the suspect ladder". The ladder catches nothing
+there; the certified exit's gates are what guard the result. Corrected (comment only).
+Perturbation vs depth (rungs off, dual_mu fixed from the start, the PF-1 fixture, results/exp-a):
+    dual_mu   status      minors  facts  kSuspect passes  perturbed pivots   final KKT (stat / sign / compl)
+    1e-8      cap(6000)    6000   5871          0                0          the cycle: sign 0.98, compl 1.4e-3
+    5e-9      kOptimal     4951   3764          0                0          exact
+    2e-9      kOptimal     5003   3842         36               36          exact
+    1e-9      kOptimal     5080   3912        951              995          exact
+    5e-10     kOptimal     4970   3771       1073             1584          exact
+    2e-10     kOptimal     4945   3756       1726             2804          exact
+    1e-10     kOptimal     5008   3840       2001             4371          exact
+    1e-11     kOptimal     4619   3571       1651             2406          exact
+    1e-12     kOptimal     4485   3556        825             1663          exact
+  ("exact": stationarity 1.5e-18 to 2.2e-18, wrong-sign 0, complementarity <= 6.8e-20, and the unregularized EQP of
+  the final set 4.2e-15 to 6.4e-15 from x and <= 7.9e-15 from the multipliers; every kOptimal row ends at
+  q = -3.23190498478668e-03 to the last digit or two.) The static-pivot floor on this face
+  sits between 5e-9 and 2e-9. With mu = 1e-10 from the start the worst perturbed-pass row residual is 7.4e-4
+  (median 6.1e-13): accuracy degrades with depth, but no answer was refused and none was wrong.
+Is the answer trustworthy: YES, here, and the evidence is independent of every factorization the walk took.
+  * H is positive definite (SimplicialLDLT of H: D in [7.5e-4, 1.6e-3], no non-positive pivot), so the QP is
+    strictly convex and its KKT point is the unique global minimizer.
+  * The returned point's KKT residuals, recomputed from the QP's data (tests/qp/support/qp_dump.h, qp_dump_kkt):
+    equality 2.8e-17, inequality 6.9e-18, box 0, stationarity 1.8e-18, wrong-sign multipliers 0, complementarity
+    3.3e-20 (results/exp-a/head.txt, PF1K).
+  * The UNREGULARIZED EQP of the returned working set (5000 free columns, 3097 rows), solved by SparseLU with three
+    refinement steps (relative residual 2.8e-17), lands 6.3e-15 from the returned x and 6.4e-15 from its
+    multipliers; 0 negative row multipliers; no inactive row violated (PF1E).
+  * Every dual_mu in the table above, and every rung variant below, reaches the same q.
+  The same holds on the sibling cell's QP1 run to completion (part c): stationarity 3.0e-18, sign 0, compl 1.9e-20,
+  exact EQP 1.4e-14 / 1.7e-14 away, after 7497 kSuspect passes and 58712 perturbed pivots.
+  Why the perturbed path does not matter here: perturbation is confined to the walk's large, ill-conditioned
+  middle (n1000: none once the working set is below ~370 members; results/summary-n1000.txt) and the certified
+  exit's own factorization is clean (kOk, 0 perturbed pivots) on every run, n1000 and n2000 alike. The walk only
+  uses a perturbed answer as a search direction; the certificate is taken on a clean factor, then polished mu-free.
+Accelerate: UNOBSERVED. Accelerate reports no perturbed-pivot count (the verdict cannot read kSuspect from
+  perturbation there), and its default LDL^T uses threshold partial pivoting rather than static perturbation (not
+  observed here), so what the walk does below the floor there is not inferable from these runs. Pass A of the syntax sweep covers compilation only.
+
+--------------------------------------------------------------------------------
+(b) THE RUNG'S SIZE
+--------------------------------------------------------------------------------
+Measured (results/exp-a, results/exp-b; the rung at minor 312 in every variant, row 905):
+    rung                 rungs fired  mu after  status    facts  kSuspect passes  perturbed pivots
+    x1e-2, max 2 (head)       1        1e-10    kOptimal  3588        1443             2394
+    x1e-1, max 1/2/4          1        1e-9     kOptimal  3631         880              919
+    x0.3,  max 2              1        3e-9     kOptimal  3637          29               29
+    x0.5,  max 1              1        5e-9     kOptimal  3640          11               11
+    x0.5,  max 2/4            2        2.5e-9   kOptimal  3641          11               11
+  All five reach the same exact optimum. The face the walk cycles on (rungs off, 400 minors; PF1S): the working
+  set's constraint block A_f (3835 x 4763) has sigma_max 2.24 and sigma_min 2.55e-6, so sigma_min^2 = 6.5e-12 and
+  dual_mu = 1e-8 exceeds it by ~1500x. Note what the table says about the mechanism: a HALVING breaks the cycle
+  although 5e-9 still exceeds sigma_min^2 by ~770x -- the false fixed point is fragile, it is not "mu must resolve
+  sigma_min^2". The rung needs to move the regularized fixed point, not to reach the face's conditioning.
+What a state-of-the-art policy does (published literature only):
+  1. Keep the regularization above the factorization's stability floor. A quasidefinite K = [H+dI A'; A -mI] is
+     stably factorized in a fixed pivot order only while d and m are not too small relative to ||K|| and the unit
+     roundoff (Gill, Saunders and Shinnerl, SIAM J. Matrix Anal. Appl. 17(1), 1996; Saunders, "Cholesky-based
+     methods for sparse least squares: the benefits of regularization", 1996; Saunders and Tomlin, SOL 96-4, 1996).
+     Below the floor a static-pivoting factorization (Li and Demmel, SC'98; Schenk and Gartner, ETNA 23, 2006 --
+     Pardiso's own scheme, whose default 1e-8 is ~sqrt(eps_mach)) replaces the small pivots with eps*||A|| and
+     relies on iterative refinement: the effective regularization is then the backend's, not the caller's. That is
+     what the 192 / 2394 perturbed pivots are.
+  2. Regularize on demand, not by schedule. Ipopt applies its constraint regularization delta_c only when the
+     factor reports a singular matrix and walks delta_w down geometrically between iterations (Wachter and
+     Biegler, Math. Program. 106, 2006, section 3.1); Altman and Gondzio (Optim. Methods Softw. 11-12, 1999)
+     regularize dynamically, per pivot, only the pivots that become dangerously small.
+  3. Remove the bias rather than shrink it. The fixed point exists because the dual regularization is centred at
+     0. Centred at the current multiplier estimate (the proximal method of multipliers), the regularized and the
+     exact solutions coincide at any fixed point, at a regularization that stays bounded away from zero:
+     Friedlander and Orban (Math. Prog. Comp. 4, 2012), Pougkakiotis and Gondzio (Comput. Optim. Appl. 78, 2021);
+     in SQP form, stabilized SQP's -mu(y - y_E) (Wright, COAP 11, 1998; Hager, COAP 12, 1999; Gill and Robinson,
+     SIAM J. Optim. 23, 2013); in active-set QP form, the regularized methods of Gill and Wong (Math. Prog. Comp. 7,
+     2015). Iterative refinement against the unregularized system (OSQP's polish: Stellato et al., Math. Prog.
+     Comp. 12, 2020) cannot replace it on such a face: its contraction is ~mu/(mu + sigma_min^2), ~1 here, which is
+     why PF-1 measured the polish not breaking the cycle.
+  So: a fixed x1e-2 rung is neither (1) nor (3). The SOTA answer is (3) -- the dual twin of the proximal primal
+  centring hven already adopted (M7 W2 E3/E4) -- and with it the rung retires. If a rung is kept until then, the
+  measured bound is (1): one halving, which clears this face with 11 perturbed pivots instead of 2394.
+Why no change now: the rule's outcome is correct on every measured case; the corpus holds ONE face where the rung
+matters (f7_n1000_path_corrupted QP1; the other cell that takes it is unaffected by it, part c), so a re-sized
+rung would be a constant tuned on one sample, and a halving rung's sufficiency on any other face is unmeasured.
+The structural fix carries its own acceptance fixture: this face, at dual_mu = 1e-8, without a rung.
+
+--------------------------------------------------------------------------------
+(c) THE SIBLING CELL, f7_n2000_path_corrupted
+--------------------------------------------------------------------------------
+The cell, re-run with dumps on the diagnostic build, reproduces the census row exactly (WorkLimit, 59746 / 60000,
+QPs 19873;20001;19872; results/cell-n2000/). Engine solves 0-5 are the corrupted start's SETUP solve at p0 (not in
+the row's counters; solves 3 and 4 of it also run to their 20000-minor caps, without any rung); solves 6/7/8 are
+the designated hop's QP1/QP2/QP3 (n 10000, me 6000, mi 2000), each at the derived minor cap 20000 (the dumps' opts
+line).
+QP1 is NOT a cycle. Replayed (results/exp-c1, reproduces 20000 minors / 19873 factorizations, the rung at minor
+5337 on row 1476): minors 0-3000 make ~3000 adds from the corrupted start (objective 0 -> 0.45, working set 1188 ->
+3828); from ~4400 the objective falls window by window and the working set shrinks steadily, 3585 at minor 5000 ->
+712 at the cap (~170 members per 1000 minors late on). The descent starts ~900 minors BEFORE the rung and goes on
+at the same kind of rate after it. Run to completion (results/exp-c2/qp6_full):
+kOptimal at 23431 minors / 22643 factorizations, an exact KKT point (above). Rung off: the same cap, objective
+0.0390 at it against 0.0383 with the rung (results/exp-c2/qp6_norung) -- the rung is immaterial to this QP. The
+PF-1 census's "+1 factorization" is the discarded factor state, nothing more.
+The trigger's narrowness: the tracer logs every refresh re-admission of a row released earlier in the solve.
+QP1's are 39, all between minors 4308 and 4664 and all same-pass (released and re-admitted within one pass, not
+by a drop), plus the one at 5337 that the rule takes. The sampled ones are the add site's exchange: the pass adds
+its blocker, exchanges a working row out, and the refresh shift-adds that row back (pass net +1). None is the
+"delayed by an intervening blocked pass" case. Widening the trigger to every such re-admission (HVEN_PF1B_WIDE,
+the reviewer's per-row "released since the last KKT point" hypothesis in its broadest form): the
+n1000 fixture is unchanged (4758 / 3588), and n2000 QP1 takes two rungs (4308, 4377 -> dual_mu 1e-12), still
+caps, ends HIGHER (q 0.0486 against 0.0383) and reads 131450 perturbed pivots against 58137. Refuted for this
+cell, and harmful.
+QP2 and QP3 are the SAME subproblem as QP1 (H, g, A, b, bounds and seed_x identical in the dumps); the driver's
+QP-failure retry shrinks the trust region, 1 -> 0.5 -> 0.25, and the seeds' working-set flags differ (1186 and 584
+of 12000 entries).
+  QP2 (TR 0.5; results/exp-c3/qp7): run to completion, kOptimal at 24338 minors / 23603 factorizations, the SAME
+  optimum as QP1 (q = -3.534059099469761e-03, TR inactive there), exact KKT (stat 2.5e-18, EQP 1.0e-14 away), no
+  rung, no re-admission after minor 3277, no perturbed pivot. Another budget-bound walk.
+  QP3 (TR 0.25; results/exp-c4/qp8, 30000 minors; a run to 200000 was stopped by me at ~44 min): a THIRD shape.
+  From minor ~4300 every pass is a zero-length bound add at the full count (working set 4000 = n - me, 3121 of the
+  pins TR pins), the iterate never becomes equality-feasible (eq residual 1.6e-2, inequality 1.3e-2 at minor
+  30000), and the objective creeps (0.06315 -> 0.06447). No rung, no re-admission after minor 3910, no perturbed
+  pivot. A degenerate-vertex exchange stall on a TR-restricted subproblem that may be infeasible (unverified: no
+  LP oracle was run) -- an infeasibility-detection / anti-cycling item, not a regularization one.
+What would move the cell: not regularization. QP1 and QP2 need 23431 and 24338 minors against a cap of 20000, and
+19873 of QP1's 20000 minors refactorize (the Schur border is taken 44 times); retrying a budget-bound QP with a
+smaller trust region spends a full cap for nothing (QP2) or leads into QP3's stall. Registered below.
+
+--------------------------------------------------------------------------------
+THE REVIEWER'S REGISTERED ITEMS (treated as hypotheses)
+--------------------------------------------------------------------------------
+R-1 per-row "released since the last KKT point" trigger in WalkSeen: measured in its widest form above -- no
+    effect on n1000, harmful on n2000. Not adopted.
+R-2 gate the rung off stagnation-reading drops: no measured case. stagnation_drops is 0 on n1000 QP1 and n2000 QP1;
+    the PF-1 census moved exactly the two declared cells, and a rung discards the factor state (at least one
+    factorization, an asserted column), so no other corpus walk took the rung. Unmeasured; it
+    stays registered, not adopted.
+R-3 SqpCounters aggregation of dual_regularization_decreases and the exit mu on QpSolution: observability only
+    (the census row cannot show the rung today). A public-API addition; registered for the M8 solver-API revisit
+    rather than a standalone chain.
+
+REGISTERED BY THIS ROUND
+  P-1 proximal dual centring (the dual twin of E3/E4's primal centring): the structural answer to (b); retires the
+      rung. Acceptance fixture: e2-d4/PF1_f7_n1000_path_corrupted_qp1.txt at dual_mu 1e-8, no rung.
+  P-2 until P-1: if the rung is revisited, the measured bound is the static-pivot floor (one halving cleared the
+      face with 11 perturbed pivots); needs a second face before it is a rule.
+  P-3 f7_n2000_path_corrupted: budget-bound walks (setup solves 3/4 cap as well; QP1/QP2 need 23431/24338
+      minors) with a refactorization on ~every minor -- a cap-policy and Schur-reuse item; and the driver's
+      QP-failure retry shrinks the TR on a QP whose cap is budget, not step size.
+  P-3b the same cell's QP3 (TR 0.25): the zero-step full-count bound-add stall with the equalities unmet
+      (data/n2000_qp3_dump.txt.gz) -- infeasibility detection / anti-cycling.
+  P-4 Accelerate: the post-rung behaviour is UNOBSERVED; a Mac run of the release-readmission test (it prints
+      verdicts and the endpoint) is the cheapest observation.

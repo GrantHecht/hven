@@ -1,0 +1,10 @@
+box-lane: lane 0 acquired 2026-11-20T11:21:46-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T11:21:46-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/pf6/build-int/bench/hven_sqp_corpus sha256 cbb53c108ed7abd55f986ed372b2bf7f20d2c7f777ba29323c130e5c90326b1b
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-20T11:27:19-05:00
+finished

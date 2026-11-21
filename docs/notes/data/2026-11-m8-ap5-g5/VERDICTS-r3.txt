@@ -1,0 +1,9 @@
+r3 (DECLARATION-r3.md; code head 56604db3b14372c8fa729d56830c9e4912cb702c over origin/m8 774cebeeb; arm A 5cd3ec2e.., arm B d5c70102..)
+P1 Release: 100% tests passed, 0 failed out of 3762; Debug: same (suites-r3/)
+P3 replay A-vs-B walk/ssn/ipm: differences 0 x3; ARMED vs B: 0 x3
+P4 interior unmoved 0, promoted 0, armed 0 (43 cells)
+P5 install smoke default+clang rc 0, export contract OK x2 (install-smoke-r3/export-contract-summary.txt)
+P8 TSan: drivers 100 tests + StopPollSeam, reports=0
+M  control clean; ALL 31 ids a..z A..E killed (x by ColumnScalingDriver.RestorationEvents..., h by CallbackPayload.IpmBlockCarries..., w by AnAllFreeRowsProblem..., C killed); no survivors; no RESTORE_MISMATCH / WORKTREE_MOVED
+P2a/P2b not re-run (declared; r1 gates stand)
+CRITERIA MET ALL under DECLARATION-r3

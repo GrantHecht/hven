@@ -1,0 +1,14 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T21:47:44-05:00
+build rc=1
+25
+2 warnings generated.
+ninja: build stopped: subcommand failed.
+[6/339] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[132/339] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/validation_errors.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/tests/sqp/test_crossover_legs.cpp:585:57: error: no member named 'kkt_inf' in 'hven::solvers::IpmResult'
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/tests/sqp/test_crossover_legs.cpp:585:69: error: no member named 'kkt_inf' in 'hven::solvers::IpmResult'
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/tests/sqp/test_crossover_legs.cpp:587:61: error: no member named 'kkt_inf' in 'hven::solvers::IpmResult'
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/tests/sqp/test_crossover_legs.cpp:587:84: error: no member named 'kkt_inf' in 'hven::solvers::IpmResult'
+4 errors generated.
+FOREGROUND_END 2026-11-02T21:49:35-05:00

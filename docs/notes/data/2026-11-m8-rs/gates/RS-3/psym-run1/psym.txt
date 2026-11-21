@@ -1,0 +1,5 @@
+psym_compare: the two captures were made by DIFFERENT versions of this script
+              before: 57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d
+              after:  0b33d7f32a79cd776c9ff52e689e6ff796aaef4a86c77afbf290fb604f687558
+              The object set is a property of the capturing script; comparing across
+              versions would silently omit whatever the older one did not capture.

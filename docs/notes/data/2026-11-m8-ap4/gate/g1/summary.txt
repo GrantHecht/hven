@@ -1,0 +1,10 @@
+build-rel rc=0
+ctest-rel rc=0
+replay-B rc=0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+build-debug rc=0
+ctest-dbg rc=0
+install-smoke rc=0
+done 2026-11-20T17:32:18-05:00

@@ -1,0 +1,161 @@
+{
+ "samples": 1848,
+ "period": 1000003,
+ "instr_sampled_all": 1848005544,
+ "instr_sampled_solver": 1843005529,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 22000066,
+  "B_kkt": 2000006,
+  "B_eval": 4000012,
+  "B_setup": 1815005445,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.011937059142702116,
+  "B_kkt": 0.0010851871947911015,
+  "B_eval": 0.002170374389582203,
+  "B_setup": 0.9848073792729246,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0027056277056277055,
+ "rule_instr": 1846005538,
+ "fallback_instr": 2000006,
+ "fallback_by_bucket": {
+  "B_fac": 2000006
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9880952380952381,
+ "init_instr": 1812005436,
+ "steady_state_instr": 31000093,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7096774193548387,
+  "B_kkt": 0.06451612903225806,
+  "B_eval": 0.12903225806451613,
+  "B_setup": 0.0967741935483871,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   20000060
+  ],
+  [
+   "<no hven::linear frame>",
+   2000006
+  ]
+ ],
+ "mkl_serv_instr": 1812005436,
+ "kmp_instr": 20000060,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    3000009
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    3000009
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    2000006
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    2000006
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_noscal_pardiso",
+    2000006
+   ],
+   [
+    "mem_prim_move",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_metis_genmmd",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    1000003
+   ],
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    2000006
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1169003507
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    491001473
+   ],
+   [
+    "__vdso_time",
+    82000246
+   ],
+   [
+    "difftime@plt",
+    62000186
+   ],
+   [
+    "time@plt",
+    8000024
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2000006
+   ],
+   [
+    "__ctype_b_loc",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ],
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "strcmp",
+    1000003
+   ]
+  ]
+ }
+}

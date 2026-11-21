@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..d69a7696f 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10131,7 +10131,6 @@ SsnOptions SqpSolverImpl::ssn_options(double prox_sigma_init) const {
+     sopts.hint_rule = opts_.advanced.ssn_hint_rule;
+     sopts.infeasibility_rule = opts_.advanced.ssn_infeasibility_rule;
+     sopts.farkas_residual_tol = opts_.advanced.ssn_farkas_residual_tol;
+-    sopts.uncertain_tol = opts_.advanced.ssn_uncertain_tol;
+     sopts.lm_sigma_c = opts_.advanced.ssn_lm_sigma_c;
+     sopts.lm_sigma_exponent = opts_.advanced.ssn_lm_sigma_exponent;
+     return sopts;

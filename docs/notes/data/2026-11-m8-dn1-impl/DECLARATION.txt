@@ -1,0 +1,130 @@
+M8 DN-1 -- the dense arm behind SymmetricFactor -- DECLARATION (committed before the first leg; never edited afterwards;
+a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs kept; criteria are never changed after
+data)
+================================================================================
+Spec        docs/notes/2026-11-m8-dn1-design.md (§13 tests, §14 proofs) and the settler's rulings C264-C267.
+Base        02065dac (origin/m8).
+Code head   a8c50e99. Commits a00f17ba (feat: the arm), c7e3198a (decode_2x2 forced inline, optional det-zero report:
+            dense_symmetric_factor.o byte-identical), a8c50e99 (test fixture scale). Evidence commits (this directory)
+            follow and touch no source.
+Arm A       02065dac, built by legs/prebuild.sh from its `git archive` export build-dn1e/armA-src (dep/eigen bc3b3987,
+            dep/fmt 407c905e) at build-dn1e/armA, Release, legs/build.sh's flags: corpus binary
+            build-dn1e/armAbin/hven_sqp_corpus sha256 4ee3af3ba96395333eeb433a2f3ee1155cc01ceb443659075f16c0552741041c,
+            compile database build-dn1e/armA-compile_commands.json sha256
+            d29b82f856b157addb7c4e26eb215a97998c86ae7979d80f3ad15a4e53875994 (build-dn1e/prebuild.out -> chain/).
+Arm B       the code head: build-dn1e/rel (fresh, legs/build.sh, built after the code head commit) -> build-dn1e/armBbin,
+            hven_sqp_corpus sha256 c84bb4abafc6c687d8222b60c61b66f3e19f48e31c12b9c93690249d64fa01c6. build-dn1e/dbg fresh at the head (Debug).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1 unless a leg says
+            otherwise. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED.
+Scratch     build-dn1e/ (evidence trees, git-ignored); build-dn1/ (dev trees: not evidence of this chain).
+
+THE DEV MEASUREMENTS THE EXPECTATIONS ARE DECLARED FROM (before this declaration):
+- objects (legs/objects.sh on build-dn1e/armA vs a Release build of c7e3198a): A 56, B 57, added exactly
+  dense_session.cpp.o, dense_symmetric_factor.cpp.o BYTE-IDENTICAL, 21 other objects differ (listed by the leg). The
+  first form of the decode move (a plain inline function) was measured NOT byte-identical (the function was no longer
+  inlined into block_evidence()); c7e3198a is the remedy, measured identical.
+- falsifier (legs/failproof.sh, dev run on c7e3198a into a scratch dir): the 1e8-scaled synthetic 2x2 block still read
+  its sign under the mutant, so the fixture moved to 1e10 (a8c50e99); the other three expected failures were observed.
+- Debug suite on the dev tree at a00f17ba after the golden re-derivation: every test passed; Release suite on build-dn1e/rel
+  at the head: "100% tests passed, 0 tests failed out of 3517" (dev run, scratch log); the falsifier re-run on a8c50e99 (scratch): FAILPROOF_AS_DECLARED.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE (design §2-§9): SymmetricFactor::Options::dense_factorization / max_dense_dimension, the dense session
+    (detail/linear/dense_session.{h,cpp}), the dispatch in symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp,
+    FactorizeOutcome::arm (FactorArm), FactorEvidence::dense_factor_entries, Counters::dense_factorize_count /
+    dense_fallback_count, the shim's _work entry points, decode_2x2 in detail/linear/block_decode.h, engine plumbing (IPM
+    KktFactorization; SQP KktFactor/BorderState/SSN/rank repair/IPQP), both validate()s accept kAlways, QpCounters /
+    SqpCounters inertia_suspect_verdicts / inertia_wrong_verdicts.
+D1  ENGINE AT kNever: NO MOVERS. Every counter, status, iterate column and residual of every engine is EXACT against arm A:
+    replay x walk/ssn/ipm (P3), interior unmoved and promoted (P12), the census (P5), the runtime gate's counter identity
+    in all four modes (P11).
+D2  API: the names of D0 (owner-approved in C266); IpmResult::factor_memory reports n(n+1)/2 on a dense-taken
+    factorization; KktFactorization::factor_mem() returns Index.
+D3  TESTS: 3486 -> 3517 (the dense-arm suites of design §13: T1-T8/T11 19 tests, T9 1, T10 1, T12/T14 7, T13 3);
+    three existing pins extended (two SqpCounters sizeof/field-list pins, the field-count pin), two golden trace lines
+    re-derived (D4), the reserved-kAlways refusal in test_limits.cpp turned into an acceptance.
+D4  TRACE: sqp.solve.end's counters object gains two keys after restoration_curvature_switches
+    (inertia_suspect_verdicts, inertia_wrong_verdicts); the two sqp.solve.end golden lines re-derived; no other key,
+    event or printed string changes.
+D5  OBJECTS: arm B = arm A's 56 objects plus src/linear/dense_session.cpp.o; dense_symmetric_factor.cpp.o BYTE-IDENTICAL;
+    the other differing objects are listed, not judged.
+D6  COMPILE FLAGS: no TU present in both builds differs; exactly one library TU added (dense_session.cpp), with the
+    baseline TU's flags.
+D7  No iparm change and no IPARM-SURFACE label.
+D8  INSTALL SMOKE: 36 standalone-include TUs, unchanged; export contract unchanged.
+D9  ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A (no new file mentions USE_ACCELERATE_SPARSE).
+    symmetric_factor_accelerate.cpp's dispatch and the shim's _work entry points compile on Apple only: UNOBSERVED here.
+
+PROOFS AND PASS CRITERIA, THE N SET (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above: ARM_A_OK.
+P1  suites (N6): ctest Release (build-dn1e/rel) and Debug (build-dn1e/dbg), -j4 under setsid: "100% tests passed, 0
+    tests failed out of 3517" in both (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm) (N2), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each.
+P4  iparm (N5): BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations (legs/iparm.sh).
+P5  walk census, 57 rows (N3), on the frozen arm B binary (legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: legs/census_check.py with census-movers.csv (PF-1's two
+    rows, byte-equal to ../2026-11-m8-r11-block-decode/census-movers.csv) prints CENSUS_AS_DECLARED. A third
+    non-baseline row fails it.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass (N6).
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (linux-clang-release preset, fresh build-dn1e/offref, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF,
+    bench + examples ON) then ctest: build rc 0, "0 tests failed out of 3517"; no warning line names a file of the
+    code head's diff. The warning line count is reported, not judged.
+P9  Accelerate syntax sweep (N7, the Linux half; legs/misc.sh accelerate; legs/accel_compare.py): PASS_A_AS_DECLARED.
+    Pass B reported. The macOS CI lane is the settler's (the branch is not pushed by this lane).
+P10 compile-flags diff (N1; legs/flags.sh, legs/flags_check.py): FLAGS_AS_DECLARED (D6).
+P11 runtime gate (N4; runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A
+    in [0.995, 1.005] in every mode; perf record period 400000.
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT; promoted (arm B under
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv's invocation) EXACT.
+P14 THE FALSIFIER (legs/failproof.sh): the code head with dense_block_walk()'s 2x2 read replaced by the
+    (trace +- disc)/2 read (one site, fail closed): every DenseArm / DenseArmBlockWalk test passes on the head; on the
+    mutant exactly LakesMatrixCountsTheReferenceNegatives (negative reads 72), IllScaledNegativeDeterminantCountsOneNegative,
+    ZeroDeterminantIsSingular and NonFiniteIsSingular fail: FAILPROOF_AS_DECLARED.
+P16 OBJECTS (legs/objects.sh): OBJECTS_AS_DECLARED (D5).
+PRE-FLIGHT (legs/chain1.sh, fail closed, before the first leg): every script here names this worktree, build-dn1e/ and
+this directory only (build-dn1/ and other trees refused), except the read-only pins named in P3/P4/P5/P9/P12.
+ORDER: the runtime gate alone first (runtime/run_all.sh), then chain1.
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END.
+
+THE DN-1 SET (design §14 A, S, M; C264-C266): CRITERIA FROZEN HERE, BEFORE ANY DATA
+--------------------------------------------------------------------------------
+These legs need instruments this lane has not yet written (a replay of DN-0's 5501 dumped matrices through the DN-1
+build at kAlways; a dense-policy options label in a local hven-bench clone for the 238 DN-0 cells and the two M cells;
+an init-excluding attribution for M). Their instruments, exact commands and arm binaries are committed in a successor
+file DECLARATION-dn1legs.txt in this directory BEFORE their first run. That file may add commands, never change or
+drop a criterion below.
+A1-IPM / A1-SQP  dense-arm negative count = the reference's on the engine's decidable union at s = 1 (decidable under
+       the unscaled or the congruence-scaled reference, ../2026-11-m8-dn1-design/matrices.csv.gz's dec_u1/dec_s1 and
+       true_neg/ref_neg_scaled), dense-taken matrices: = 100 % per engine (expected 2575/2575, 2764/2764). s = 10, 100
+       reported beside. A failure stops DN-1 with the matrix, both references and the D blocks.
+A2-IPM / A2-SQP  matrices where Pardiso (unperturbed) matches the reference and the arm does not, union: = 0 per engine.
+A3     every matrix the arm finds exactly singular is taken by the fallback, arm == kSparse, outcome and evidence
+       field-for-field equal to the kNever replay of the same matrix: all (expected 25/25).
+A4     literal agreement with unperturbed Pardiso at n <= 8, 16, 24, 32, 48, 64, 96, 128, all, per engine: REPORTED.
+A5     on every dense-taken matrix the arm's negative count = MKL dsytrf read by det/trace (mkl_bk_neg); against DN-0's
+       dense column it differs on exactly the 14 LAKES matrices of design [E3d], by +6 each: all.
+A6     dsytrf_rook column (negative count vs the reference, exactly-singular count, max |L|, replay residual, isolated
+       instructions per factorization and solve): REPORTED.
+A7     min |D-block eigenvalue| / max |a_ij| over dense-taken factorizations, per engine, decidable/undecidable: REPORTED.
+A-thr  the arm's negative counts at the default thread setting: identical to MKL_NUM_THREADS=1, or the differences listed.
+S1     both engines on DN-0's 238 cells, kAlways vs kNever on the same build: every kNever success (optimal or
+       acceptable) keeps its status and objective within 1e-8*max(1,|f|). Not met -> reported per cell with its
+       kSuspect-conversion trace; the settler rules.
+S2     every kNever non-success cell's kAlways status reported; a move to success with objective and terminal KKT
+       residuals; a move between two non-success statuses in the same detail. Not gating (owner-accepted, C266).
+S3     reported per cell, both arms: iterations, factorizations, dense_factorize_count, dense_fallback_count (where the
+       engine exposes them), inertia_suspect_verdicts, inertia_wrong_verdicts, suspect_escalations,
+       eqp_residual_refusals, eqp_row_drift_refusals, border_uncertified_fallbacks, dep_inertia_rereads,
+       dep_inertia_reread_flips, zero_motion_exhausted. Every move declared.
+S4     not run: no census or replay cell has n_kkt <= 2000 (design §14 S4, C265).
+M      (kNever - kAlways)/kNever solver instructions >= 0.20, process-once OpenMP init excluded, on BOTH hs043 and HS84
+       (SQP), serial perf stat, at BOTH the default thread setting and MKL_NUM_THREADS=1. Holding at only one setting is
+       a thread-policy finding reported to the settler, not a pass. Raw reading reported beside.
+T      CUTEst TRAIN (23, hven-sqp, default options, the PF-1 terms): >= 16/23 optimal and no cell lost against PF-1's
+       reading. HOLDOUT is never run.

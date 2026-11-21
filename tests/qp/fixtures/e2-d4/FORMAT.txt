@@ -1,4 +1,4 @@
-E2-D4 QP dump format (D4QP v1) -- written by the scratch instrumentation in src/qp/qp_engine.cpp (QpEngine::run, just before
+E2-D4 QP dump format (D4QP v1) -- written by the scratch instrumentation in src/qp/walk/walk_engine.cpp (QpEngine::run, just before
 the ledger record) when HVEN_D4_QPDUMP=<dir> is set and the solve ends kNumericalError or kMaxIter (HVEN_D4_DUMPALL: every solve).
 One file per solve: <cell>/qp<seq>.txt, seq in solve order within the cell run; the cell's stderr D4DUMP line (in the
 transcript) names seq, the engine solve number and the outcome, and the neighbouring D3 lines give the context (major,
@@ -26,3 +26,14 @@ a hot K0).
 The C10_* dumps (M7 W2 C10 census, scratch diagnostic build at m7 1f8d3118) carry two more tokens on the result line:
 `site=` the source line of qp_engine.cpp (at 1f8d3118) that set the in-cell status (1335 = the trusted-kWrong dead end),
 and `solve=` the engine solve number within the cell run.
+PF1_f7_n1000_path_corrupted_qp1.txt (M8 PF-1, scratch diagnostic build at m8 bdd797e3): the census cell's designated hop's
+first QP (engine solve 4 of the cell run), every solve dumped. Its result line reads `status=1 minors=20000 facts=19871 hkc=0`
+(hkc = QpOptions::hessian_known_convex); the opts line's max_iter is the derived cap the solve ran at, recorded as such.
+SEQ4_LAKES_qp0.txt (M8 sparse-equil-v4 r2, scratch diagnostic build docs/notes/data/2026-11-m8-sparse-equil-v4/r2/diag/
+dump_patch.py on local commit 03393384b): the first walk solve of the TRAIN cell LAKES (hven-sqp lane, both labels dump the
+same file) during which a REFUSAL-ONLY escalation of the platform-solve response was taken. Its result line reads
+`status=0 minors=131 facts=162 scaled=3 matched=2 retake_refusals=0 hkc=0 maxiter=1360` (scaled / matched: the solve's
+sparse_scaled_retakes / sparse_matched_retakes; hkc = QpOptions::hessian_known_convex).
+I18_qp_m137.txt (issue #18): the library's own D4QP writer (docs/qp-dump-format.md), major 137's main QP of the reporter's SQP
+run at hven 331b31837, verbatim from the issue. Its result line reads `status=3 minors=48 facts=20 hkc=1 maxiter=500`; the
+loader sets QpOptions::hessian_known_convex from `hkc=`.

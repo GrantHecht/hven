@@ -1,0 +1,26 @@
+M8 IPM no-numerics restoration routing r2 -- runtime neutrality gate (../DECLARATION-r2.txt P5) -- DECLARATION
+(committed before the first leg; never edited; a failed or void leg is answered by a successor, this file and its outputs
+kept; ../runtime/ and its DECLARATION.txt are r1's record, kept)
+================================================================================
+SOURCE. ../runtime/ (r1: run_all.sh, runtime_leg.sh, analyze_r5.py, analyze_r11.py, fixture/), re-pointed in CODE lines
+only: the evidence directory (runtime-r2), arm B's frozen binary (build-nonum/armBbin-r2) and the perf scratch directory
+(build-nonum/runtime-perf-r2); one provenance comment line added to each shell file; analyze_r5.py, analyze_r11.py and
+fixture/ are byte copies. PATH DEPTH: this directory is five levels below the repository root, as ../runtime/ is, so
+analyze_r11.py's root line ('../../../../..') resolves to the worktree root, where scripts/compare_replay.py is present;
+run_all.sh refuses to start if it is absent (exit 7) and runs the fixture pre-flight first. Period 400000; analyzer
+analyze_r11.py.
+ARMS
+  A  unchanged from r1: build-nonum/armAbin/hven_sqp_corpus (b9626e7e5), sha256
+     5ba57d305a57f3e14820e67f9bc0686a58806914bb2d9daa4dc7f78b997139fb.
+  B  the code head b0013f4ae: build-nonum/rel/bench/hven_sqp_corpus copied by run_all.sh to build-nonum/armBbin-r2/,
+     sha256 baf48f93f0ad30699845dfcb24ebd2fe1721f8c2ec9f13dfff95c999074fd955. run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults. VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY: ../DECLARATION.txt's change (632ba77cc) plus ../DECLARATION-r2.txt's (b0013f4ae): per
+interior-point iteration, one more short-circuited test (kkt_no_numerics_numeric, false off the no-numerics path) at the
+head of the exhausted-inertia dispatch's body, which is itself entered only on exhausted inertia; the un-evaluable
+dispatch's acceptable test gains a restoration-inactive conjunct (restoration_ null at the defaults); one [[unlikely]]
+test at the tail. Only the interior mode runs that code; ipm, ssn and walk are the SQP engine's modes and are measured
+as the unchanged-code control.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.

@@ -1,0 +1,33 @@
+# M8 DN-1 design analysis -- provenance (collected 2026-11-08T04:00:24Z; review round r1 re-run 2026-11-08, part E added)
+Purpose: the numbers cited by docs/notes/2026-11-m8-dn1-design.md. Analysis only: no build, no solve,
+no measurement was taken. Every figure is derived from DN-0's committed record and its raw data.
+
+## base
+hven branch m8-dn1 off origin/m8 44af1c16dac3e13011b56af38a1fce8de755f2f3
+## inputs
+committed: docs/notes/data/2026-11-m8-dn0/ (results/cells.csv, raw/roster.tsv, raw/dump/*.index.tsv.gz)
+committed: docs/notes/data/2026-11-m8-dn0-ipm-r1/results/init-audit.csv (IPM init-excluded reading)
+raw (read-only, not committed): /home/ghecht/Projects/hven-bench-sd/.scratch/dn0/run
+  replay/*.replay.csv (233 files, 5501 rows)   sha256 of concatenation d14794b0ed37252dbc2f7d9355bb600bf69b8ad9b7df81543529f57acc8f1f12
+  dump/*/mat_*.bin (5501 matrices, sorted)       sha256 of concatenation b10b5e2e46c0a6be3cd8e1fc43d62b9f8842058131f088e7ab9f1abdf227670a
+  record/*-hven-sqp-*.script.gz (SQP perf call chains, for the OpenMP-init audit)
+                                                  sha256 of concatenation 053b99773620cab0de30dd3d3085c0bc523d64f0ef4666e29c7c4274f0afb393
+  These are the DN-0 legs R, D and P (DN-0 PROVENANCE: hven pin 58dc14bc, MKL 2026.2.0, AMD Ryzen 7 5800X3D).
+## tool
+Python 3.13.12; numpy 2.5.4; scipy 1.18.1 (BSD; a scratch venv, never linked into hven)
+scipy.linalg.ldl = LAPACK ?sytrf (scipy's bundled OpenBLAS), uplo 'U'; numpy.linalg.eigvalsh = LAPACK ?syevd.
+The reference inertia (eigvalsh, tolerance n * eps * max|lambda|) is an analysis reference, not a hven value.
+Part E (review round r1): Intel oneAPI MKL 2026.2 (Product Build 20260915, the version DN-0 ran), libmkl_rt.so
+loaded through ctypes, LP64, MKL_THREADING_LAYER=SEQUENTIAL, MKL_NUM_THREADS=1: dsytrf_ and dsytrf_rook_,
+uplo 'U'. Scaled reference = eigvalsh(D A D), D = |a_ii|^-1/2 rounded to a power of two (exact congruence),
+D = 1 on a zero diagonal; tolerance safety factors 1, 10, 100. No timing is taken.
+## command
+MKL_THREADING_LAYER=SEQUENTIAL MKL_NUM_THREADS=1 MKL_INTERFACE_LAYER=LP64 OPENBLAS_NUM_THREADS=1 \
+  python -I dn1_design_analysis.py docs/notes/data/2026-11-m8-dn0 <RUN> docs/notes/data/2026-11-m8-dn1-design docs/notes/data/2026-11-m8-dn0-ipm-r1 /opt/intel/oneapi/mkl/2026.2/lib/libmkl_rt.so
+(parts A-D of results.txt are byte-identical to the first run's 211 lines; part E is appended)
+## outputs
+results.txt        sha256 ac5f9d991776813e203e29763e9f37d36fd344a4d78c05463c1624f1d241761a
+matrices.csv.gz    sha256 f204be2c2a444b8fcdda8081a53f5940e04fc8ab8cf858b4c257f6e9b53b078c  (one row per replayed matrix: DN-0 columns + scipy BK + reference; r1 adds MKL dsytrf/rook, decidability at s=1/10/100 both references, scaled reference)
+dn1_design_analysis.py sha256 07ddaaffec10b5d37291eafc0bda6f58e41d113db285dda594df4c29d3388745
+## platform
+Linux x86-64 only. Apple/Accelerate: UNOBSERVED (no value here was produced on Apple hardware or the macOS lane).

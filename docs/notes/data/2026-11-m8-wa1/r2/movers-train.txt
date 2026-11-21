@@ -1,0 +1,10 @@
+# WA-1 r2 declared TRAIN movers (dev run, arm B df3c523d6 vs arm A bc8ed0e12; all NEUTRAL: status unchanged)
+sd-hven-sqp-CRESC100.K
+sd-hven-sqp-HS101.D
+sd-hven-sqp-HS101.K
+sd-hven-sqp-HS56.D
+sd-hven-sqp-MESH.D
+sd-hven-sqp-MSS1.D
+sd-hven-sqp-MSS1.K
+sd-hven-sqp-SPANHYD.D
+sd-hven-sqp-SPANHYD.K

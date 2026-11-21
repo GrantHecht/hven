@@ -1,0 +1,8 @@
+LEG_START mode=walk core=2 period=400000 event=instructions:u 2026-11-20T05:55:23-05:00
+20a9fa884605451e10bc81c6f64d5f4a12d27b56fa377eda3a9e62143570cb2c  /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/bin/A/hven_sqp_corpus
+2b7d173b6959e0372ac9a4c5da51410f049b06aa94e6a4dddce20d202708da18  /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/bin/B/hven_sqp_corpus
+WARMUP arm=A rc=0 2026-11-20T05:55:23-05:00
+WARMUP arm=B rc=0 2026-11-20T05:55:23-05:00
+RUN mode=walk round=1 arm=A tag=f7_n1000_bound_neutral 2026-11-20T05:55:23-05:00
+python3: can't open file '/home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/runtime/analyze_r5.py': [Errno 2] No such file or directory
+PARSE_ERROR walk-r1-A-f7_n1000_bound_neutral -- LEG VOID 2026-11-20T05:55:24-05:00

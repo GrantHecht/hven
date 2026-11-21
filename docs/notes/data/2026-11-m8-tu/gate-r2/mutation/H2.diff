@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..eabd96cb9 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -1421,7 +1421,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
+         rho_0_override.has_value()
+             ? std::min(kElasticRhoMax, std::max(kElasticRhoInit, *rho_0_override))
+             : elastic_initial_rho(seed, opts.qp.dual_regularization,
+-                                  opts.advanced.elastic_rho0_headroom_rungs, rho0_ceiling_hit);
++                                  1, rho0_ceiling_hit);
+     if (rho0_ceiling_hit) {
+         ++out.elastic_rho0_ceiling_hits;
+     }

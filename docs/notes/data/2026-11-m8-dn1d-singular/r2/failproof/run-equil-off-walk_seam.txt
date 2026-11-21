@@ -1,0 +1,87 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-equil-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 19 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 19 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor
+[       OK ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor (2 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[       OK ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged
+[       OK ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[       OK ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[       OK ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[       OK ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (1 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (11 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:537: Failure
+Expected equality of these values:
+  refactors
+    Which is: 2
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:538: Failure
+Expected equality of these values:
+  retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:539: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:550: Failure
+The difference between r.x(1) and static_cast<double>(x2) is 1.5384615803526458e-09, which exceeds 1e-14, where
+r.x(1) evaluates to 2,
+static_cast<double>(x2) evaluates to 1.9999999984615384, and
+1e-14 evaluates to 1e-14.
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:551: Failure
+The difference between r.lambda_e(0) and static_cast<double>(lam) is 0.019178142305463618, which exceeds 1e-6, where
+r.lambda_e(0) evaluates to -6.6183304942616884e-17,
+static_cast<double>(lam) evaluates to 0.019178142305463552, and
+1e-6 evaluates to 9.9999999999999995e-07.
+
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-equil-off/tests/qp/test_qp_dense_arm.cpp:571: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[ RUN      ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet
+[       OK ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer
+[       OK ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer
+[       OK ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath
+[       OK ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed
+[       OK ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed (0 ms)
+[----------] 19 tests from QpDenseArm (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 1 test suite ran. (17 ms total)
+[  PASSED  ] 17 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+
+ 2 FAILED TESTS

@@ -1,0 +1,22 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T13:57:09-05:00
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/build-riders/rel'
+[1/16] Building CXX object examples/CMakeFiles/hven_example_02_bounded_rosenbrock.dir/02_bounded_rosenbrock.cpp.o
+[2/16] Building CXX object examples/CMakeFiles/hven_example_01_hs071_both_engines.dir/01_hs071_both_engines.cpp.o
+[3/16] Building CXX object examples/CMakeFiles/hven_example_06_ipm_to_sqp_polish.dir/06_ipm_to_sqp_polish.cpp.o
+[4/16] Building CXX object examples/CMakeFiles/hven_example_03_equality_constrained.dir/03_equality_constrained.cpp.o
+[5/16] Building CXX object examples/CMakeFiles/hven_example_07_sqp_quasi_newton.dir/07_sqp_quasi_newton.cpp.o
+[6/16] Building CXX object examples/CMakeFiles/hven_example_05_warm_continuation.dir/05_warm_continuation.cpp.o
+[7/16] Building CXX object examples/CMakeFiles/hven_example_08_results_trace_options.dir/08_results_trace_options.cpp.o
+[8/16] Building CXX object examples/CMakeFiles/hven_example_04_partitioned_chain.dir/04_partitioned_chain.cpp.o
+[9/16] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[10/16] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[11/16] Linking CXX executable examples/hven_example_01_hs071_both_engines
+[12/16] Linking CXX executable examples/hven_example_03_equality_constrained
+[13/16] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[14/16] Linking CXX executable examples/hven_example_05_warm_continuation
+[15/16] Linking CXX executable examples/hven_example_08_results_trace_options
+[16/16] Linking CXX executable examples/hven_example_04_partitioned_chain
+rc=0
+FOREGROUND_END 2026-11-07T13:57:15-05:00
+FINAL_RC=0

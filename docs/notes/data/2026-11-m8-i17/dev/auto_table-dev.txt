@@ -1,0 +1,14 @@
+hven-sqp TRAIN cells: 119
+auto                         optimal 105  other  14  iters(optimal)   1523  qp_minors   111181  {'optimal': 105, 'infeasible': 6, 'max_iter': 3, 'numerical_error': 5}
+N6                           optimal 105  other  14  iters(optimal)   1523  qp_minors   111181  {'optimal': 105, 'infeasible': 6, 'max_iter': 3, 'numerical_error': 5}
+N10                          optimal 105  other  14  iters(optimal)   1523  qp_minors   111181  {'optimal': 105, 'infeasible': 6, 'max_iter': 3, 'numerical_error': 5}
+N16                          optimal 105  other  14  iters(optimal)   1523  qp_minors   111181  {'optimal': 105, 'infeasible': 6, 'max_iter': 3, 'numerical_error': 5}
+N20                          optimal 105  other  14  iters(optimal)   1523  qp_minors   111181  {'optimal': 105, 'infeasible': 6, 'max_iter': 3, 'numerical_error': 5}
+--- N6 vs auto: rows differing in status or iterations
+  tally {}
+--- N10 vs auto: rows differing in status or iterations
+  tally {}
+--- N16 vs auto: rows differing in status or iterations
+  tally {}
+--- N20 vs auto: rows differing in status or iterations
+  tally {}

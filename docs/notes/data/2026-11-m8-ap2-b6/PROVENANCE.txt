@@ -1,0 +1,52 @@
+M8 AP-2 group B6 (the pieces layer) -- PROVENANCE and results
+================================================================================
+Declaration    DECLARATION.txt and runtime/DECLARATION.txt (b57672ae), committed before the first leg.
+               No leg failed; no successor declaration; no criterion was changed.
+Code head      2a0392b9 (m8-b6); base 1c94174e (B5 landed). Every leg ran on 2a0392b9 (corpus stamp
+               2a0392b94be7; arm B sha256 2beb40b8ea9b94a969c5cc063c1ba6adf56bb020a913dea7863f75a5c65144f8;
+               arm A 1c94174e, sha256 87a9564e5d98c26115995232e50ac1415797584bee32cb47e917b0cac20759bf).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-04 08:28 EST (runtime gate start) to 2026-11-04 15:44 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths. The runtime gate ran alone first (runtime/run_all.log); the non-timing legs from
+               legs/chain1.sh (chain/chain1.log, chain/*.out). Dev builds, tests, replays and a dev chain
+               before the declaration also ran under the lock, with one exception: a single dev run of the
+               rewritten example 4 binary (about 1 s, 07:49 EST) was started outside the lock -- a box
+               protocol breach, reported here; nothing else was running on the box at the time
+               (pgrep empty) and the run is not evidence.
+
+RESULTS (criteria as declared)
+P1  suites      Release 3425/3425, Debug 3425/3425 (suites/). PASS (3425 as declared, X4). The B6 pins
+                (PiecesExample4.BothFormsAgree, PiecesLocalBlocks.*, PiecesEvaluationFailure.*,
+                PiecesProblem.*, PiecesBuilder.*, the adapter and compile-fail additions) pass in both.
+P2  examples    8/8 exit 0 (chain/examples.out; example 4 prints adopted=1 / adopted=3, iterations 4 and
+                4, OK). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/b6-comparison-*.txt).
+                PASS.
+P4  iparm       15 configurations, BYTE-IDENTICAL to the B5 riders' dump, sha256
+                34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479 (iparm/iparm-b6.txt).
+                PASS. No IPARM-SURFACE label: no iparm field was touched.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches (census/compare.txt); serial-confirm list empty.
+                Tiers: T1 6-wide pinned, T2 solo, T3 5-wide full budget (census/census-run.log), on the
+                frozen arm-B binary build-b6/armBbin (sha256 checked by the leg). PASS.
+P6  smoke       default and clang arms rc=0, 35 standalone-include TUs, the pieces solve and the SQP
+                refusal through the installed headers; export contract OK on both (platform linux, align
+                32), "no public header includes a detail/ header" with no allow-list (install-smoke/).
+                PASS.
+P7  PCH         PASS, PCH engaged on 4 TUs, all 57 artifacts byte-identical with and without it (pch/).
+P8  off-ref     clean build rc=0 (30 warning lines: the B5 riders' 26 classes, plus four more of the
+                existing -Wpotentially-evaluated-expression class from the three new typeid pins in
+                test_solver_interface_adapter.cpp), ctest Release 3425/3425 (offref/). PASS.
+P9  Accelerate  pass A: BYTE-IDENTICAL to the B5 riders' sweep (32 files, OTHER 0; CLEAN / KNOWN-HEADER /
+                KNOWN-SIZEOF) (accelerate/accelerate-sweep.txt). Pass B (stub) informational and
+                byte-identical to the B5 riders'; the leg's rc=1 is pass B's, as at B4 and B5. PASS.
+                Apple hardware UNOBSERVED.
+P10 flags       library TUs 60 before / 60 after, 0 TUs with a differing flag list, RESULT IDENTICAL
+                (flags/flags-diff.txt). PASS.
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 1.000157, ipm 1.000000, ssn
+                1.000000, walk 0.999997, all inside [0.995, 1.005]; THROTTLE 0 everywhere; counter identity
+                on every (round, cell) pair (interior 3, ipm/ssn/walk 81 each). PASS.
+DECLARED DIFFERENCES matched: X1-X5 as declared; no corpus row moved (replay, census, runtime counter
+identity); the dev measurements before the declaration agreed.

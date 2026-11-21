@@ -1,0 +1,81 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-05T01:48:30-05:00
+Preparing worktree (detached HEAD 31c73879)
+Updating files:  19% (11887/60940)Updating files:  20% (12188/60940)Updating files:  21% (12798/60940)Updating files:  22% (13407/60940)Updating files:  23% (14017/60940)Updating files:  24% (14626/60940)Updating files:  25% (15235/60940)Updating files:  26% (15845/60940)Updating files:  27% (16454/60940)Updating files:  28% (17064/60940)Updating files:  29% (17673/60940)Updating files:  30% (18282/60940)Updating files:  31% (18892/60940)Updating files:  32% (19501/60940)Updating files:  33% (20111/60940)Updating files:  34% (20720/60940)Updating files:  35% (21329/60940)Updating files:  36% (21939/60940)Updating files:  37% (22548/60940)Updating files:  38% (23158/60940)Updating files:  39% (23767/60940)Updating files:  39% (23861/60940)Updating files:  40% (24376/60940)Updating files:  41% (24986/60940)Updating files:  42% (25595/60940)Updating files:  43% (26205/60940)Updating files:  44% (26814/60940)Updating files:  45% (27423/60940)Updating files:  46% (28033/60940)Updating files:  47% (28642/60940)Updating files:  48% (29252/60940)Updating files:  49% (29861/60940)Updating files:  50% (30470/60940)Updating files:  51% (31080/60940)Updating files:  52% (31689/60940)Updating files:  53% (32299/60940)Updating files:  54% (32908/60940)Updating files:  55% (33517/60940)Updating files:  56% (34127/60940)Updating files:  57% (34736/60940)Updating files:  58% (35346/60940)Updating files:  58% (35869/60940)Updating files:  59% (35955/60940)Updating files:  60% (36564/60940)Updating files:  61% (37174/60940)Updating files:  62% (37783/60940)Updating files:  63% (38393/60940)Updating files:  64% (39002/60940)Updating files:  65% (39611/60940)Updating files:  66% (40221/60940)Updating files:  67% (40830/60940)Updating files:  68% (41440/60940)Updating files:  69% (42049/60940)Updating files:  70% (42658/60940)Updating files:  71% (43268/60940)Updating files:  72% (43877/60940)Updating files:  73% (44487/60940)Updating files:  74% (45096/60940)Updating files:  74% (45460/60940)Updating files:  75% (45705/60940)Updating files:  76% (46315/60940)Updating files:  77% (46924/60940)Updating files:  78% (47534/60940)Updating files:  79% (48143/60940)Updating files:  80% (48752/60940)Updating files:  81% (49362/60940)Updating files:  82% (49971/60940)Updating files:  83% (50581/60940)Updating files:  84% (51190/60940)Updating files:  85% (51799/60940)Updating files:  86% (52409/60940)Updating files:  87% (53018/60940)Updating files:  88% (53628/60940)Updating files:  89% (54237/60940)Updating files:  90% (54846/60940)Updating files:  91% (55456/60940)Updating files:  92% (56065/60940)Updating files:  92% (56207/60940)Updating files:  93% (56675/60940)Updating files:  94% (57284/60940)Updating files:  95% (57893/60940)Updating files:  96% (58503/60940)Updating files:  97% (59112/60940)Updating files:  98% (59722/60940)Updating files:  99% (60331/60940)Updating files: 100% (60940/60940)Updating files: 100% (60940/60940), done.
+HEAD is now at 31c73879 docs(m8-b6): rider evidence -- r3 re-run at e3c634c5 (corpus binary identical to arm B; replay x3 0 differences, iparm byte-identical, suites R/D 3441/3441, examples 8/8, smoke both arms + export contract, PCH PASS, Accelerate pass A identical, off-reference 26 warnings + 3441/3441, flags IDENTICAL); census 57/57 and runtime gate PASS carried by byte identity; PROVENANCE
+Cloning into '/home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armA-src/dep/eigen'...
+Cloning into '/home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armA-src/dep/fmt'...
+Submodule path 'dep/eigen': checked out 'bc3b39870ecb690a623a3f49149a358b95c5781d'
+Submodule path 'dep/fmt': checked out '407c905e45ad75fc29bf0f9bb7c5c2fd3475976f'
+ bc3b39870ecb690a623a3f49149a358b95c5781d dep/eigen (5.0.1)
+ 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f dep/fmt (12.1.0)
+31c73879 docs(m8-b6): rider evidence -- r3 re-run at e3c634c5 (corpus binary identical to arm B; replay x3 0 differences, iparm byte-identical, suites R/D 3441/3441, examples 8/8, smoke both arms + export contract, PCH PASS, Accelerate pass A identical, off-reference 26 warnings + 3441/3441, flags IDENTICAL); census 57/57 and runtime gate PASS carried by byte identity; PROVENANCE
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armA'
+[1/61] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/61] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/61] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[4/61] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[5/61] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/61] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[7/61] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[8/61] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[9/61] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[10/61] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[11/61] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[12/61] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[13/61] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[14/61] Building CXX object CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o
+[15/61] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[16/61] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[17/61] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[18/61] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[19/61] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[20/61] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[21/61] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[22/61] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[23/61] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[24/61] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[25/61] Building CXX object CMakeFiles/hven.dir/src/drivers/common_options.cpp.o
+[26/61] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[27/61] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[28/61] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[29/61] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[30/61] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[31/61] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[32/61] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[33/61] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[34/61] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[35/61] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[36/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[37/61] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[38/61] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[39/61] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[40/61] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[41/61] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[42/61] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[43/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[44/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[45/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[46/61] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[47/61] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[48/61] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[49/61] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[50/61] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armA-src/src/drivers/sqp_solver.cpp:6316:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6316 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[51/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[52/61] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[53/61] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[54/61] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[55/61] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[56/61] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[57/61] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[58/61] Linking CXX static library libhven.a
+[59/61] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[60/61] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[61/61] Linking CXX executable bench/hven_sqp_corpus
+rc=0
+55fc58a35389c58260005a0d875db612e6f8f40d5193983b0c6bb0f108a70ea3  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armAbin/hven_sqp_corpus
+FOREGROUND_END 2026-11-05T01:49:20-05:00

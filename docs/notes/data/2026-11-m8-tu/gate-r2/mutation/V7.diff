@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..d990ae426 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -131,7 +131,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: qp.max_schur_border_dimension ({}) must be >= 0",
+                         opts.qp.max_schur_border_dimension));
+     }
+-    enum_in_range(opts.qp.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder,
++    if (false) enum_in_range(opts.qp.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder,
+                   "qp.working_set_algebra");
+     if (!(opts.qp.trust_region_radius >= 0.0)) { // +inf passes; NaN and negatives do not
+         throw std::invalid_argument(fmt::format(

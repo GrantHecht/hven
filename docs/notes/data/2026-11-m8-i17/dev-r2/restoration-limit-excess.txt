@@ -1,0 +1,4 @@
+CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits path excess (caller units; <= 0 = within the limit) under the two restoration mutations; first line kOff, second kAlways where present. The code commit reads <= 0 in both.
+I4a (restoration limit off): Expected: (path_excess(rec, 2, kLimit)) <= (0.0), actual: 0.035078299542861333 vs 0
+I4a (restoration limit off): Expected: (path_excess(rec, 2, kLimit)) <= (0.0), actual: 6.3479947147097828 vs 0
+I4b (restoration limit in engine units): Expected: (path_excess(rec, 2, kLimit)) <= (0.0), actual: 3.1499999989598946 vs 0

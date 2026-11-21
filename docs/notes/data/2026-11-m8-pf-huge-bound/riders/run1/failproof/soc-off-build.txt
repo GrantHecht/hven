@@ -1,0 +1,5 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/build-pfhb/rel'
+[1/4] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[2/4] Linking CXX static library libhven.a
+[3/4] Linking CXX executable tests/drivers/hven_drivers_tests
+[4/4] Linking CXX executable tests/interior/hven_interior_tests

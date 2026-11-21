@@ -20,15 +20,17 @@
 // sits at its active lower bound, <= 0 when it sits at its active upper
 // bound, and 0 when the variable is free.
 
+#include <algorithm>
 #include <stdexcept>
 #include <vector>
 
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/detail/model/absent_bound.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The quadratic program solved by the SQP inner loop (see the
 /// formulation and multiplier sign convention in the file header).
@@ -37,7 +39,26 @@ struct QpProblem {
     Vec g;                                               ///< n.
     Eigen::SparseMatrix<double, Eigen::RowMajor> Ae, Ai; ///< me x n, mi x n.
     Vec be, bi;                                          ///< me, mi.
-    Vec lower, upper;                                    ///< n (+/-inf allowed, e.g. +/-1e20).
+    Vec lower, upper;                                    ///< n (+/-inf allowed; see below).
+
+    /// THE QP TIER'S ONE ABSENT-BOUND CUTOFF, carried with the data (it replaces
+    /// the four engine constants kEngineInfBound, kIpqpInfBound, kSsnInfBound and
+    /// QpDegeneracyParams::inf_bound): `lower(i) <= -infinite_bound` and
+    /// `upper(i) >= infinite_bound` are ABSENT in every QP mode (walk, SSN, IPQP,
+    /// the degeneracy arm). A problem built by hand keeps the library's default
+    /// threshold, 1e20, as before. The SQP engine applies
+    /// CommonOptions::infinite_bound once, where a declaration enters its
+    /// transcription, so every subproblem it builds already writes an absent side
+    /// as an infinity, and it stamps this field +inf: a finite subproblem bound is
+    /// a real one, however large (a shifted or column-scaled real bound included).
+    /// Derived problems (the trust-region window, the elastic and mixed lifts)
+    /// copy it from their source.
+    double infinite_bound = detail::kDefaultInfiniteBound;
+
+    /// @brief Whether lower(i) is a bound (not absent under infinite_bound).
+    bool has_lower(Index i) const { return lower(i) > -infinite_bound; }
+    /// @brief Whether upper(i) is a bound (not absent under infinite_bound).
+    bool has_upper(Index i) const { return upper(i) < infinite_bound; }
 
     Index n() const { return g.size(); }
     Index me() const { return Ae.rows(); }
@@ -49,6 +70,11 @@ struct QpProblem {
     ///   below-diagonal entry in H.
     void validate() const {
         const Index nn = n();
+        if (!(infinite_bound > 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "QpProblem::validate: infinite_bound must be > 0 (+inf is legal), got {}",
+                infinite_bound));
+        }
         if (H.rows() != nn || H.cols() != nn) {
             throw std::invalid_argument(fmt::format(
                 "QpProblem::validate: H is {}x{}, expected {}x{}", H.rows(), H.cols(), nn, nn));
@@ -110,7 +136,7 @@ struct QpProblem {
 /// `residual`: the norm of the box_part entries DROPPED because their
 /// coordinate is unbounded on the needed side, each <= kDepTol * ||c||.
 /// `exact_tol`: the rounding floor kCertExactKappa * (n + m) * eps * ||y||_1 *
-/// max_k ||a_k|| (standard model; derived at kCertExactKappa, qp_engine.h).
+/// max_k ||a_k|| (standard model; derived at kCertExactKappa, walk_engine.h).
 ///   - residual <= exact_tol: an exact Farkas certificate for the QP up to
 ///     rounding -- every x in the box with Ae x = be, Ai x <= bi has
 ///     s * c^T x >= implied > limit -- behind a kInfeasible.
@@ -142,7 +168,7 @@ struct QpSolution {
     std::vector<bool> ineq_active;       ///< Size mi.
     QpCounters counters;
 
-    /// Trust-region activity set (qp_engine.h's "Section 6"), size n. True at
+    /// Trust-region activity set (walk_engine.h's "Section 6"), size n. True at
     /// index i iff variable i is held by a TR-tight effective bound rather
     /// than a real one: bound_state[i] reports kFree for such a variable (TR
     /// pins are deliberately EXCLUDED from bound_state, a real-bound-only
@@ -166,4 +192,10 @@ struct QpSolution {
     QpFarkasCertificate farkas;
 };
 
-} // namespace hven::solvers
+/// The QP tier's one definition of NO MOTION: a step of inf-norm at most this moves nothing the
+/// kernel can resolve. `x_inf` is the inf-norm of the QP iterate (step space in the SQP driver).
+inline double qp_no_motion_tol(double feasibility_tol, double x_inf) {
+    return feasibility_tol * std::max(1.0, x_inf);
+}
+
+} // namespace hven::detail

@@ -1,0 +1,5 @@
+=== interior-promoted-armA === cells compared: 43  columns compared: 30  differences: 4
+    infeas2_spike/MakeParameter/stalled status                             A=stalled  B=infeasible
+    infeas2_spike/MakeParameter/stalled phases                             A=kSolve:stalled:123  B=kSolve:infeasible:123
+    infeas2_stationary/MakeParameter/resto_infeasible status                             A=stalled  B=infeasible
+    infeas2_stationary/MakeParameter/resto_infeasible phases                             A=kOptimize:stalled:22  B=kOptimize:infeasible:22

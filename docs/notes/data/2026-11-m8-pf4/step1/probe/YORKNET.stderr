@@ -1,0 +1,36 @@
+PF4PROBE_BEGIN
+PF4 skipped_retake=0 syncs_zero=20
+PF4 analyses=14520 repeat_of_last=0 repeat_of_any_seen=8219 distinct=6301
+PF4K k=1 batches=750 cols=750 instr_single=1010223535 instr_multi=1009824218 ns_single=76204107 ns_multi=78910780 identical=750 differ=0 max_rel=0.000e+00
+PF4K k=4 batches=1 cols=4 instr_single=5125266 instr_multi=4109658 ns_single=400768 ns_multi=390818 identical=0 differ=4 max_rel=1.133e-07
+PF4K k=9 batches=6 cols=54 instr_single=55775939 instr_multi=33499439 ns_single=4406865 ns_multi=3003975 identical=0 differ=54 max_rel=8.278e-07
+PF4K k=10 batches=1 cols=10 instr_single=12182887 instr_multi=6730628 ns_single=961335 ns_multi=590547 identical=0 differ=10 max_rel=9.001e-08
+PF4K k=18 batches=1 cols=18 instr_single=16424215 instr_multi=8479670 ns_single=1320773 ns_multi=764236 identical=0 differ=18 max_rel=8.278e-07
+PF4K k=31 batches=1 cols=31 instr_single=28322882 instr_multi=13555344 ns_single=2292187 ns_multi=1207713 identical=0 differ=31 max_rel=1.435e-07
+PF4K k=33 batches=2 cols=66 instr_single=60218425 instr_multi=28337169 ns_single=4871523 ns_multi=2534565 identical=0 differ=66 max_rel=1.119e-06
+PF4K k=35 batches=1 cols=35 instr_single=31935189 instr_multi=15485797 ns_single=2589075 ns_multi=1364393 identical=0 differ=35 max_rel=1.119e-06
+PF4K k=36 batches=1 cols=36 instr_single=46131891 instr_multi=19955048 ns_single=3588440 ns_multi=1764950 identical=0 differ=36 max_rel=9.909e-08
+PF4K k=38 batches=2 cols=76 instr_single=69390137 instr_multi=32347933 ns_single=5534149 ns_multi=2904614 identical=0 differ=76 max_rel=8.278e-07
+PF4K k=39 batches=2 cols=78 instr_single=71261591 instr_multi=33563888 ns_single=5745328 ns_multi=3004472 identical=0 differ=78 max_rel=7.672e-07
+PF4K k=42 batches=1 cols=42 instr_single=38374284 instr_multi=18137290 ns_single=3063482 ns_multi=1601001 identical=0 differ=42 max_rel=7.672e-07
+PF4K k=46 batches=4 cols=184 instr_single=185035107 instr_multi=83407518 ns_single=14627097 ns_multi=7444698 identical=0 differ=184 max_rel=7.672e-07
+PF4K k=47 batches=3 cols=141 instr_single=129955479 instr_multi=59876646 ns_single=10384401 ns_multi=5360800 identical=0 differ=141 max_rel=4.061e-09
+PF4K k=48 batches=3 cols=144 instr_single=132300370 instr_multi=60913046 ns_single=10579930 ns_multi=5445060 identical=0 differ=144 max_rel=1.393e-09
+PF4K k=49 batches=1 cols=49 instr_single=45511643 instr_multi=21128562 ns_single=3627119 ns_multi=1885640 identical=0 differ=49 max_rel=3.562e-10
+PF4K k=50 batches=2 cols=100 instr_single=92880910 instr_multi=41971355 ns_single=7418938 ns_multi=3821289 identical=0 differ=100 max_rel=3.562e-10
+PF4K k=51 batches=2 cols=102 instr_single=94734309 instr_multi=42996494 ns_single=7528848 ns_multi=3843048 identical=0 differ=102 max_rel=3.562e-10
+PF4K k=52 batches=5 cols=260 instr_single=241479470 instr_multi=107503285 ns_single=19260250 ns_multi=9697397 identical=0 differ=260 max_rel=3.562e-10
+PF4K k=53 batches=4 cols=212 instr_single=196900214 instr_multi=88215664 ns_single=15705431 ns_multi=7976104 identical=0 differ=212 max_rel=3.562e-10
+PF4K k=54 batches=1 cols=54 instr_single=50154502 instr_multi=22090923 ns_single=4102287 ns_multi=1998489 identical=0 differ=54 max_rel=3.562e-10
+PF4K k=55 batches=4 cols=220 instr_single=204331322 instr_multi=91286078 ns_single=16419127 ns_multi=8264503 identical=0 differ=220 max_rel=3.562e-10
+PF4K k=56 batches=1 cols=56 instr_single=52011762 instr_multi=23793159 ns_single=4190916 ns_multi=2133028 identical=0 differ=56 max_rel=3.562e-10
+PF4K k=59 batches=1 cols=59 instr_single=75515085 instr_multi=31588356 ns_single=5964956 ns_multi=4265636 identical=0 differ=59 max_rel=7.335e-07
+PF4K k=62 batches=1 cols=62 instr_single=79459241 instr_multi=33866073 ns_single=6176795 ns_multi=3015473 identical=0 differ=62 max_rel=9.909e-08
+PF4K k=64 batches=84 cols=27411 instr_single=42699784120 instr_multi=17138605510 ns_single=3265752743 ns_multi=1698645055 identical=7 differ=27404 max_rel=1.164e-06
+PF4N n0=568 batches=186
+PF4N n0=720 batches=122
+PF4N n0=753 batches=98
+PF4N n0=756 batches=107
+PF4N n0=764 batches=81
+PF4N n0=1080 batches=291
+PF4PROBE_END

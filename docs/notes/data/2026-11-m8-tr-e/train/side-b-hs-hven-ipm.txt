@@ -1,0 +1,4 @@
+renamed 7 column(s): kkt_analyses_this_call->symbolic_analyses, kkt_analyze_count->kkt_factor_counters.analyze_count, kkt_factorize_count->kkt_factor_counters.factorize_count, kkt_partial_solve_count->kkt_factor_counters.partial_solve_count, kkt_pattern_verify_count->kkt_factor_counters.pattern_verify_count, kkt_solve_count->kkt_factor_counters.solve_count, soc_steps_taken->soc_steps
+added 17 new column(s) (not differences): factorizations, restoration_entries, restoration_iters, nonfinite_step_rollbacks, start_level_used, recovery_depth_histogram, inertia_corrections, dense_solve_residual_refusals, dense_factorizations, kkt_factor_counters.dense_factorize_count, kkt_factor_counters.dense_fallback_count, kkt_factor_counters.dense_singular_count ...
+order: 38 pair(s) of mapped columns changed relative order (information)
+22 old columns, 39 new columns, 22 cells old / 22 new, 484 values compared, 0 differences

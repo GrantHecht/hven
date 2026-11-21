@@ -14,57 +14,44 @@ project(hven_install_smoke LANGUAGES CXX)
 
 find_package(hven REQUIRED)
 
-# The standalone-include TUs (M6 W5 T0). Each includes exactly ONE public hven
-# header and nothing else, so a header that has stopped carrying its own
-# transitive includes fails HERE -- against a fresh install prefix, through
-# find_package(hven), the way a real consumer sees it -- rather than passing
-# inside hven's own build where some other TU in the same unity blob, or hven's
-# own include order, had already pulled the missing declaration in.
-#
-# That is exactly the property W5 relies on: T4 MOVED the trace sink into a
-# public drivers/ header and split the evidence structs out of the engine
-# header, and T8.10 renamed the four model-layer headers listed below and both
-# engine headers. Both are public-surface changes whose failure mode is
-# "compiles in-tree, does not compile for a consumer".
-#
-# M6 W5 T8.9: include_nlp_solver.cpp went with the retired NLPSolver wrapper,
-# and the TWO ENGINE HEADERS took its place -- they are what a consumer reaches
-# for now.
-#
-# M7 W0 T5(a): include_make_nlp_program.cpp joins them, 18 -> 19. The
-# transcription entry moved out of detail/model/nlp_adapter.h into the public
-# header hven/model/make_nlp_program.h, and a public header that does not carry
-# its own includes is exactly what this list exists to catch.
-set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
-    include_trace_writer.cpp
-    include_trace.cpp
-    include_ipqp_evidence.cpp
-    include_nlp_triplet_model.cpp
-    include_make_nlp_program.cpp
-    include_nlp_assembly.cpp
-    include_assembly_declaration.cpp
-    include_nlp_model_assembly.cpp
-    include_ipm_solver.cpp
-    include_sqp_solver.cpp
-    include_solve_status.cpp
-    include_core_solver_status.cpp
-    include_common_options.cpp
-    include_ipm_solver_types.cpp
-    include_solve_result.cpp
-    include_sqp_warm_start.cpp
-    include_seeding.cpp
-    include_console_trace_sink.cpp
-    include_compiler.cpp)
+# The standalone-include check. For every PUBLIC header of the installed package (everything under
+# include/hven/ except detail/) one generated translation unit includes that header and nothing else,
+# so a header that has stopped carrying its own transitive includes fails HERE, against a fresh
+# install prefix through find_package(hven), the way a real consumer sees it -- rather than passing
+# inside hven's own build where another include had already pulled the missing declaration in. The
+# list is the installed tree itself, so a new public header is covered the day it is added; the
+# in-tree twin for every header (detail/ included) is the HeaderSelfContained test of tests/.
+# Compile-time only: the objects are empty and the smoke binary below is the link/run proof.
+get_filename_component(_hven_prefix "${hven_DIR}/../../.." ABSOLUTE)
+file(GLOB_RECURSE _hven_public_headers RELATIVE "${_hven_prefix}/include" CONFIGURE_DEPENDS
+    "${_hven_prefix}/include/hven/*.h")
+list(FILTER _hven_public_headers EXCLUDE REGEX "^hven/detail/")
+list(SORT _hven_public_headers)
+list(LENGTH _hven_public_headers _n_public)
+if(_n_public LESS 40)
+    message(FATAL_ERROR "install smoke: found only ${_n_public} public headers under "
+        "${_hven_prefix}/include/hven; the install tree is wrong or the glob is.")
+endif()
+set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES "")
+foreach(_h IN LISTS _hven_public_headers)
+    string(REPLACE "/" "_" _stem "${_h}")
+    set(_tu "${CMAKE_CURRENT_BINARY_DIR}/standalone/include_${_stem}.cpp")
+    file(CONFIGURE OUTPUT "${_tu}" CONTENT "#include <${_h}>\n" @ONLY)
+    list(APPEND HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES "${_tu}")
+endforeach()
+message(STATUS "install smoke: ${_n_public} public headers, one standalone TU each")
 
-add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
+add_library(hven_install_smoke_standalone OBJECT ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
+target_link_libraries(hven_install_smoke_standalone PRIVATE hven::hven)
+
+add_executable(hven_install_smoke main.cpp)
 target_link_libraries(hven_install_smoke PRIVATE hven::hven)
+add_dependencies(hven_install_smoke hven_install_smoke_standalone)
 
-# No unity build and no precompiled header, stated rather than inherited. A
-# unity build would concatenate the ten TUs above into one, and the first
-# header to include <vector> would then satisfy all the others -- which is
-# precisely the failure this target exists to catch. CMAKE_UNITY_BUILD is a
-# cache variable a caller can set from the command line (hven's own test
-# targets do use unity builds), so the OFF here has to be explicit.
-set_target_properties(hven_install_smoke PROPERTIES
+# No unity build and no precompiled header, stated rather than inherited: a unity build would
+# concatenate the TUs and the first header to include <vector> would satisfy all the others --
+# precisely the failure this target exists to catch. CMAKE_UNITY_BUILD is a cache variable a caller
+# can set from the command line, so the OFF here has to be explicit.
+set_target_properties(hven_install_smoke hven_install_smoke_standalone PROPERTIES
     UNITY_BUILD OFF
     DISABLE_PRECOMPILE_HEADERS ON)

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_qn_models.cpp -- the full-memory damped BFGS and the nonlinear-variables-only
+// The full-memory damped BFGS and the nonlinear-variables-only
 // restriction (qn_models.h) in ISOLATION, and the mixed lift's scalar-part replacements
 // (MixedLiftData::diag / base / support) they publish. The oracle for the full-memory model is
 // an explicit recursion written independently of the class.
@@ -16,11 +16,13 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/globalization/sqp/lbfgs_damped.h>
-#include <hven/detail/globalization/sqp/mixed_lift.h>
-#include <hven/detail/globalization/sqp/qn_models.h>
+#include <hven/detail/sqp/quasi_newton/lbfgs_damped.h>
+#include <hven/detail/sqp/quasi_newton/mixed_lift.h>
+#include <hven/detail/sqp/quasi_newton/qn_models.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 namespace {
 
 using detail::DenseDampedBfgs;
@@ -635,4 +637,4 @@ TEST(MixedLiftScalarPart, ValidationRejectsBadReplacements) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

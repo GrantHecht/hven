@@ -1,0 +1,60 @@
+AP-2 B8 (the rename sweep) -- tycho catch-up items (a catch-up list, not a gate)
+================================================================================
+The complete old -> new table is docs/notes/2026-11-m8-ap2-b8-naming.md section 3 (generated from
+this directory's manifest/, the files the rename was applied from). The rules that predict every
+public name are section 1 of the same note. The items below are what tycho's tree will meet.
+
+T14 NAMESPACE. hven::solvers is gone: every name is hven::X (hven::solvers::detail::X ->
+    hven::detail::X). `using namespace hven::solvers;` -> `using namespace hven;`.
+    hven::utils::TypeStorage -> hven::TypeStorage; tycho's thread-pool / Timer uses of
+    hven::utils::X are hven::detail::X (internal; better replaced by tycho's own).
+T15 HEADERS. One include reaches everything: <hven/hven.h>. Renamed (no forwarding headers):
+    model/indexing_data.h -> model/solver_indexing_data.h; model/sizing_specs.h ->
+    model/sizable_spec.h; model/solver_interface_specs.h -> model/piece_interfaces.h;
+    hven/solver_interface_adapter.h -> hven/model/solver_interface_adapter.h;
+    drivers/ipm_iterate_info.h -> drivers/ipm_iterate.h.
+T16 RAW PIECE PROTOCOL MEMBERS are bare (public data has no trailing underscore):
+    SolverIndexingData (input_size, output_size, num_funcappl, vindex_init, cindex_init,
+    unique_constraints, v_index, c_index, v_out_index, v_out_reduced, v_index_continuity,
+    c_index_continuity, inner_constraint_starts, inner_gradient_starts, inner_kkt_starts);
+    SolverFunctionBase / ConstraintFunction / ObjectiveFunction: function, index_data;
+    ConstraintInterface / ObjectiveInterface: storage; ConstraintModel<T> / ObjectiveModel<T>: piece
+    (was data_); AssemblyDeclaration (objectives, equality_constraints, inequality_constraints,
+    primal_vars, equality_rows, inequality_rows, fixing_rows, equality_shared_row_overcount,
+    inequality_shared_row_overcount, partition_count, rows_derived, variable_bounds);
+    VariableBound (index, lower, upper); KktClaimSpace, KktScatterView, RhsClaimSpace, RhsArenaView,
+    RhsScatterView, ClaimBlock, CandidatePoint/Values/FirstOrder, ModelStructureKey, DeclarationKey,
+    IdentityProbe: their members likewise. The B6 item "raw scatter must honour !unique_constraints_"
+    now reads `!unique_constraints`.
+T17 ENUMERATORS are kPascalCase: ThreadingFlags::kRoundRobin / kMainThread / kNeedsPool /
+    kByApplication / kThread0..kThread28; ParsedIOFlags -> ParsedIoFlags with kHiddenInput /
+    kIgnoreOutput (the old IngoreOutput typo is fixed) / kNotContiguous / kContiguous;
+    TypeStorage::Kind::kEmpty / kInline / kHeap; linear::FactorKind::kLdlt / kLlt / kLu.
+T18 THE IPM ITERATE RECORD. IterateInfo -> IpmIterate; its members lose the trailing underscore and
+    keep their stems, which are the ipm.iter trace keys (iter, mu, prim_obj, barr_obj, kkt_inf,
+    barr_inf, econ_inf, icon_inf, ..., eval_exceptions). A late callback reading `info.iter_`
+    reads `info.iter`.
+T19 OPTIONS. SqpOptions: tr_init/tr_max/tr_min -> trust_region_initial/_max/_min; budget_mode ->
+    return_best_on_max_iterations; enable_scaling -> row_scaling; scaling_factor_limit ->
+    scaling_factor_max; qn_memory -> lbfgs_memory; advanced.restoration_max_entries ->
+    advanced.max_restoration_entries (now >= 0; 0 refuses restoration). QpOptions (SqpOptions::qp):
+    feas_tol -> feasibility_tol, opt_tol -> optimality_tol, max_iter -> max_iterations, primal_delta
+    -> primal_regularization, dual_mu -> dual_regularization, schur_cap -> max_schur_border_dimension,
+    schur_cond_max -> schur_condition_max, ws_algebra -> working_set_algebra, tr_radius ->
+    trust_region_radius (SolveOverrides likewise for tr_radius/primal_delta/dual_mu). IpmOptions:
+    initial_barrier/max_barrier/min_barrier -> barrier_initial/_max/_min; best_criterion ->
+    best_iterate_criterion; advanced: acceptance_strategy (AcceptanceKind) -> acceptance_mode
+    (AcceptanceMode), barrier_governor (BarrierGovernorKind) -> barrier_governor_mode
+    (BarrierGovernorMode), restoration_max_entries -> max_restoration_entries,
+    line_search_max_backtracks -> max_line_search_backtracks, line_search_extended_backtracks ->
+    max_extended_backtracks, inertia_correction_max_attempts -> max_inertia_correction_attempts,
+    solve_phase_mode is a SolvePhaseMode {kOptimize, kOptimizeWithoutObjective, kSolveEquations}
+    (was AlgorithmMode {kOpt, kOptNo, kSoe, kInit}). LineSearchMode::{kAugmentedLagrangian,
+    kLagrangian, kL1, kNone}; PrimalDualStepStrategy::{kEqualityMultipliersPrimal, kAllMinimum,
+    kEqualityMultipliersDual, kEqualityMultipliersMaximum}; MeritPenaltyRule::kSinglePenalty (was
+    kWmno). dump_options and validation messages print the new names.
+T20 OTHER TYPES. IpCrossoverOptions -> IpmCrossoverOptions; kIpActivityFactor -> kIpmActivityFactor.
+    Internal (tycho should not be using them): NLPAdapterCore, NLPRowClassification, NLPRowKind,
+    NLPConstraintPiece, NLPObjectivePiece, NLPCoordinate, KKTVector -> Nlp.../KktVector.
+T21 VERSION 0.2.0 (CHANGELOG.md at the repository root).
+Trace keys, golden lines and CSV headers are unchanged: a trace reader needs no edit.

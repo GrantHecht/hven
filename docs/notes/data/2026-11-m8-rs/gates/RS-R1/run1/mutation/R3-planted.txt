@@ -1,0 +1,34 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Layering.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from Layering
+[ RUN      ] Layering.TheScanReadsTheWholeTree
+[       OK ] Layering.TheScanReadsTheWholeTree (18 ms)
+[ RUN      ] Layering.NoIncludeGoesUpTheLayerOrder
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/tests/core/test_layering.cpp:691: Failure
+Value of: report.empty()
+  Actual: false
+Expected: true
+CLAUDE.md section 2's layer order is core < util < barrier < linear < model < qp-data < kkt < qp-engines < warmstart < solver < {ipm, sqp} public < trace < engine implementations. A file may include its own layer or a lower one; ipm and sqp never include each other. MOVE THE TYPE DOWN rather than the include up. Do not add to kAllowed to make this pass: an entry is a debt with a named owner, and a new one is a design decision.
+Offending include(s):
+  src/trace/json_lines_trace_sink.cpp:34: #include <hven/detail/sqp/globalization/funnel.h> -- a trace file includes a engine implementation file -- upward
+
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder (15 ms)
+[ RUN      ] Layering.EveryAllowListedPairStillOccurs
+[       OK ] Layering.EveryAllowListedPairStillOccurs (15 ms)
+[ RUN      ] Layering.PublicHeadersDoNotIncludeDetail
+[       OK ] Layering.PublicHeadersDoNotIncludeDetail (15 ms)
+[ RUN      ] Layering.NoForwardDeclarationGoesUpTheLayerOrder
+[       OK ] Layering.NoForwardDeclarationGoesUpTheLayerOrder (167 ms)
+[ RUN      ] Layering.KnownForwardDeclarationsStillOccur
+[       OK ] Layering.KnownForwardDeclarationsStillOccur (170 ms)
+[----------] 6 tests from Layering (404 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (404 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder
+
+ 1 FAILED TEST

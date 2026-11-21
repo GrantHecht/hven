@@ -1,0 +1,4 @@
+31c31
+<         (void)mkl_get_max_threads();
+---
+>         (void)dsecnd();

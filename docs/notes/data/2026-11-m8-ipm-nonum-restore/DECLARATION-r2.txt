@@ -1,0 +1,135 @@
+M8 IPM no-numerics restoration routing r2 (review findings R1-R6) -- DECLARATION-r2
+(successor to DECLARATION.txt, which stays frozen with its outputs; committed before the first r2 leg; never edited
+afterwards; criteria are never changed after data; a failed or void r2 leg is answered by DECLARATION-r3; every
+invocation below uses ABSOLUTE paths)
+================================================================================
+Base        b9626e7e5 (origin/m8).
+Code range  b9626e7e5..b0013f4ae: 632ba77cc (the routing, r1) and b0013f4ae (this review round). The r1 evidence
+            commits (981d220e1, 09cb5ecdc, 57560613f) touch no source. Evidence commits after this one touch no source.
+Arm A       unchanged from r1: build-nonum/armAbin/hven_sqp_corpus, sha256
+            5ba57d305a57f3e14820e67f9bc0686a58806914bb2d9daa4dc7f78b997139fb (git archive of b9626e7e5).
+Arm B       the code head b0013f4ae: build-nonum/rel (Release, every target, rebuilt at the head), hven_sqp_corpus
+            sha256 baf48f93f0ad30699845dfcb24ebd2fe1721f8c2ec9f13dfff95c999074fd955, frozen by runtime-r2/run_all.sh to build-nonum/armBbin-r2 (r1's armBbin untouched).
+            build-nonum/dbg (Debug, every target) rebuilt at the head.
+Toolchain   as r1: clang 22.1.8, HVEN_FP_MODE=SAFER_FAST, Eigen 5.0.1 (dep/eigen bc3b3987), MKL 2026.2,
+            MKL_NUM_THREADS=1; AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf 7.2.12. Apple/Accelerate and Windows:
+            UNOBSERVED (macOS CI is the settler's).
+Instruments r1's, re-pointed to r2 output directories (r1 files and outputs kept): legs/chain-r2.sh (= chain.sh; outputs
+            suites-r2/, replay-r2/, interior-r2/, failproof-r2/; calls interior-r2.sh and failproof-r2.sh),
+            legs/interior-r2.sh (= interior.sh; arm B build-nonum/armBbin-r2), legs/failproof-r2.sh (r1's rewritten:
+            fourteen mutations, multi-site, P4), runtime-r2/ (= runtime/; evidence runtime-r2, arm B armBbin-r2, perf
+            scratch build-nonum/runtime-perf-r2; analyze_r5.py, analyze_r11.py and fixture/ byte copies; same path
+            depth, five levels -- runtime-r2/DECLARATION.txt). legs/build.sh, legs/ctest.sh, legs/replay.sh unchanged
+            (replay writes nnr-* into replay-r2/).
+
+THE CHANGE (b0013f4ae; lines at the head, src/drivers/ipm_solver.cpp)
+--------------------------------------------------------------------------------
+R1  4237-4244 the no-numerics dispatch's acceptable exit runs only when restoration is NOT active; 4350-4351 the
+    un-evaluable dispatch's acceptable exit gets the same guard (a pre-existing hole: inside restoration Citer carries
+    the restoration subproblem's residuals). Inside restoration both dispatches go on to their abort.
+R2  4237 a no-numerics iteration tests the acceptable exit FIRST (outside restoration), then the nested elastic
+    re-centre (4244), then restoration entry, then abort (4266-4270, no acceptable test left there). The comment at
+    4221-4234 states the order. Wrong-inertia (kkt_exhausted) order unchanged: re-centre, entry, SINGULAR_KKT.
+R3  tests (below). 4157-4160: `|| kkt_no_numerics` kept with a one-line intent comment.
+R4  4546-4551 the no-numerics acceptable stop writes stop_detail_ (PROVISIONAL): "stopped at an acceptable iterate:
+    the KKT factorization at iteration <i> left no numerics" (the dense guard's re-run named instead -- "the dense
+    step guard's refactorization at iteration <i> left no numerics" -- when it failed). src/drivers/result_message.cpp:
+    a kAcceptable message appends a non-empty detail after "; " (empty on every other kAcceptable exit, so every other
+    message is byte-unchanged).
+R5  3925-3928 comment at the governor-skipped barrier tail (nested phase: only the row's barr_obj).
+R6  include/hven/core/errors.h exception-contract parenthetical: the acceptable stop is "outside restoration" and first.
+    docs/testing.md and the test file's header state the order.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults)
+--------------------------------------------------------------------------------
+D0  Behaviour differs from 632ba77cc only (a) on an iteration whose last KKT factorization left no numerics on a
+    numeric refusal, and (b) on an un-evaluable iteration while restoration is ACTIVE at an acceptable-tier row. (a) is
+    unreachable on every battery cell (MKL Pardiso perturbs through, as r1 declared); (b) needs restoration configured
+    AND active at an un-evaluable iteration (a trial evaluation that threw or was non-finite) whose restoration row
+    passes the acceptable tier. Restoration is off at the defaults (restoration_mode kOff); the only battery rows that
+    configure it are the interior leg's exit variants `stalled` and `resto_infeasible` (bench/ipm_corpus_leg.cpp,
+    kL1Nested), which reach (b) only if such a trial occurs inside their phase at an acceptable-tier row. Declared: they
+    do not (P3 decides; a moved row there is a STOP, not a re-declaration).
+D1  ENGINES AT THE DEFAULTS: NO MOVERS -- replay P2, interior P3 (unmoved vs arm A and promoted), runtime counter
+    identity P5. If any identity cell moves: STOP and hand back.
+D2  API: no new public name, status, stop reason or counter. Message wording above (PROVISIONAL).
+D3  TESTS: 3597 registered (r1's 3592 + 5), 3595 run (the two pre-existing DISABLED tests EqpRefinementAb.
+    FootprintRuleProbe and EqpRefinementAb.FullBattery excluded from ctest's summary). hven_sqp_seam_tests new:
+    IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep (R3a), IpmNoNumericsSeam.
+    AnAcceptableRestorationRowIsNeverAnAcceptableStop (R3d, ladder), IpmNoNumericsSeam.
+    AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop (R1's un-evaluable guard; faithful: a model refusing every
+    trial point, EvaluationError), BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBefore
+    RestorationIsEntered/{ProximalSwitch,L1Nested} (R3e). Strengthened: BothStrategies/IpmNoNumericsRestorationSeam.
+    ANumericRefusalEntersRestoration/* (R3b histogram restoration/unresolved buckets; R3c abort iteration and row
+    count: proximal entry->abort 2 rows, nested entry->re-centre->abort 3 rows); IpmNoNumericsSeam.
+    ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (R4 message). IpmDenseGuardSeam.
+    AFailedGuardReRunEndsTheSolveWithoutItsStep stays restoration-off, unchanged.
+D4  No iparm change, no IPARM-SURFACE label; no notices/ change; no trace key; include lists: the test file only
+    (<cstdio>, <optional>, hven/core/errors.h, hven/detail/globalization/recovery_chain.h); no src/include include
+    list change, so no pch leg.
+
+PROOFS AND PASS CRITERIA (each under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` empty first)
+--------------------------------------------------------------------------------
+P1  ctest Release (build-nonum/rel) and Debug (build-nonum/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3595" in both; skips as r1 (Release FailByDesignControl only; Debug that plus the YORKNET/STEENBRB/
+    ACOPP118 fixtures) (legs/ctest.sh; suites-r2/).
+P2  27-cell replay x (walk, ssn, ipm) on build-nonum/rel: EXACT against docs/notes/data/2026-10-m7-wx2-gates/gates/
+    replay/head-*.csv via scripts/compare_replay.py, 0 differences each (x3) (legs/replay.sh; replay-r2/).
+P3  interior: arm A vs arm B (armBbin-r2), 27 cells, EXACT 0 differences (unmoved); arm B under the promoted
+    baseline's invocation against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences
+    (promoted) (legs/interior-r2.sh; interior-r2/).
+P4  THE FALSIFIER (legs/failproof-r2.sh; fourteen mutations of the code head's `git archive` export, each site exactly
+    once or fail closed; Release, hven_sqp_seam_tests; filter IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:
+    */IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*, 19 tests at the head; failproof-r2/):
+    FAILPROOF_AS_DECLARED -- the head runs 19 and fails none, route property "scale 1.76 pass 3"; each mutation fails
+    EXACTLY failproof-r2.sh's WANT_* set (measured on a dev run of the same head before this declaration,
+    build-nonum/dev-fp-r2). Counts (BS = BothStrategies/IpmNoNumericsRestorationSeam, NN = IpmNoNumericsSeam,
+    DG = IpmDenseGuardSeam):
+      r1's eight, re-checked on the new head:
+      revert-all 13 -- the six BS (EntersRestoration, IsRecoveredThroughRestoration, AnAcceptableIterateStops...; x2),
+        DG.AFailedGuardReRunUnderRestorationDiscardsItsStep, NN.{...AtAnAcceptableIterateStopsThere, ...IsAStatusAtThe
+        FirstIteration, ...IsAStatusBeforeTheProbePredictor, AnAcceptableRestorationRowIsNeverAnAcceptableStop,
+        AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop, TheAbortedIterationsRowCarriesItsBarrierObjective};
+      no-route 13 -- the six BS, DG.AFailedGuardReRunEndsTheSolveWithoutItsStep, DG.AFailedGuardReRunUnderRestoration
+        DiscardsItsStep, NN.{...AtAnAcceptableIterateStopsThere, ...AtTheFirstIteration, ...BeforeTheProbePredictor,
+        AnAcceptableRestorationRow..., AnUnevaluableStepInsideRestoration...};
+      no-barrier-tail 1 -- NN.TheAbortedIterationsRowCarriesItsBarrierObjective;
+      no-acceptable-exit 3 (site moved to the acceptable-first branch) -- BS.AnAcceptableIterateStopsBefore
+        RestorationIsEntered x2, NN.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere;
+      no-guard-site 2 -- DG.AFailedGuardReRunEndsTheSolveWithoutItsStep, DG.AFailedGuardReRunUnderRestoration
+        DiscardsItsStep;
+      no-probe-guard 3 -- NN.{...BeforeTheProbePredictor, AnAcceptableRestorationRowIsNeverAnAcceptableStop,
+        TheAbortedIterationsRowCarriesItsBarrierObjective};
+      diverging-override 10 -- the six BS, DG.AFailedGuardReRunUnderRestorationDiscardsItsStep, NN.{...AtAnAcceptable
+        IterateStopsThere, AnAcceptableRestorationRow..., AnUnevaluableStepInsideRestoration...};
+      hard-continues 1 -- NN.AHardBackendErrorEndsTheSolveWithoutRestoration;
+      new:
+      restoration-acceptable (R1, no-numerics guard removed) 1 -- NN.AnAcceptableRestorationRowIsNeverAnAcceptableStop;
+      uneval-restoration-acceptable (R1, un-evaluable guard removed) 1 -- NN.AnUnevaluableStepInsideRestorationIsNever
+        AnAcceptableStop;
+      acceptable-last (R2, 632ba77cc's order: acceptable tested at the abort, unguarded) 3 -- BS.AnAcceptableIterate
+        StopsBeforeRestorationIsEntered x2, NN.AnAcceptableRestorationRowIsNeverAnAcceptableStop;
+      no-recentre (R3c, a no-numerics iteration skips the nested re-centre) 1 -- BS.ANumericRefusalEnters
+        Restoration/L1Nested;
+      no-acceptable-detail (R4) 3 -- BS.AnAcceptableIterateStopsBeforeRestorationIsEntered x2, NN.ALadderEnding
+        WithoutNumericsAtAnAcceptableIterateStopsThere;
+      keep-dxsl (R3a, the no-numerics DXSL.setZero() deleted) 0 -- DECLARED EQUIVALENT ON EVERY FAITHFUL ROUTE. Every
+        continuing outcome of a no-numerics iteration sets alpha = 0, and the only readers of the discarded step
+        after the zeroing are products with alpha (`XSL += alpha*DXSL`, the callback's step norm, the nested
+        elastic commit alpha*alphap/alphad); the far-slack, bound-dual and line-search readers are gated on GoodStep,
+        which is false. A finite discarded step is therefore invisible; the zeroing guards a NON-finite one
+        (0*Inf = NaN in the commit). No faithful injector produces a non-finite guard-rejected step (the route's
+        rejected solve is finite: an O(1) residual ratio on a ~1e-33 pivot block), so R3a's x-unmoved pin cannot
+        catch this mutation; it stays in the table so that a future reader of DXSL on this path shows up as a
+        change in this set.
+    The three BackendErrorSeam tests and NN.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest pass under
+    every arm.
+P5  runtime gate (runtime-r2/DECLARATION.txt): VERDICT PASS -- counter identity in every mode (interior, ipm, ssn,
+    walk), THROTTLE 0, filtered B/A in [0.995, 1.005] per mode; perf record period 400000. Run FIRST and alone.
+NOT RUN (proportionate, as r1): census, S/T legs, objects/flags diffs, install smoke, pch neutrality, Accelerate sweep.
+Run only if P2, P3 or P5 fails identity.
+ORDER: P5 alone first, then legs/chain-r2.sh (P1, P2, P3, P4):
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/docs/notes/data/2026-11-m8-ipm-nonum-restore/runtime-r2/run_all.sh baf48f93f0ad30699845dfcb24ebd2fe1721f8c2ec9f13dfff95c999074fd955
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/docs/notes/data/2026-11-m8-ipm-nonum-restore/legs/chain-r2.sh b0013f4ae baf48f93f0ad30699845dfcb24ebd2fe1721f8c2ec9f13dfff95c999074fd955
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data. If identity (P2, P3, P5
+counters) moves any cell: STOP and hand back with the diagnosis.

@@ -1,0 +1,32 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T17:49:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T17:49:25-05:00
+[22/25] Linking CXX executable bench/hven_sqp_corpus
+[23/25] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[24/25] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+rc=0
+FOREGROUND_END 2026-11-13T17:49:44-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T17:49:44-05:00
+[22/25] Linking CXX executable bench/hven_sqp_crossover
+[23/25] Linking CXX executable bench/hven_sqp_corpus
+[24/25] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+rc=0
+FOREGROUND_END 2026-11-13T17:49:58-05:00
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/rel'
+[1/1] Checking the configure-time bench git stamp against the live tree (M7-16)
+check_bench_stamp: OK (53fc92c93433)
+53fc92c93433
+927cfc3d8c7af0660719179b9db1e5aaf8d5fe3aa3cd695f0a4f2276b4c14a7b  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin/hven_sqp_corpus
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T17:49:59-05:00
+ cmake/hven_pin.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+c6e4d88 EVIDENCE-ONLY (local clone, never pushed): pin hven 53fc92c93 (m8-dense-gate) on dn3-flip-legs (M8 dense gate TRAIN lane)
+HVEN_PIN_SHA 53fc92c93433b1652e94751e0318b83a597bd0e9
+e17dc5f396b71d0032fabde833730843d2fcb2ca7655b1a814cfd40c18ed032e  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin/hven_bench_cell
+db63cb78adc44359c132d1e2fda2b21e2bede0ea848d94f4d3b19af7a486f5f5  /home/ghecht/Projects/hven-bench-dn1/.hven/install-53fc92c93433/lib64/libhven.a
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+FOREGROUND_END 2026-11-13T17:50:57-05:00
+FOREGROUND_END 2026-11-13T17:50:57-05:00

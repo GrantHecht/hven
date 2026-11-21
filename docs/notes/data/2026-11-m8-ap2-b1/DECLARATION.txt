@@ -1,0 +1,103 @@
+M8 AP-2 group B1 -- DECLARATION (committed before the first leg; never edited afterwards)
+================================================================================
+Group      B1: header hygiene + private implementation for IpmSolver and SqpSolver
+           (docs/notes/2026-11-m8-ap1-api-review.md section 7 and section 13, row B1;
+            docs/notes/2026-11-m8-brief.md AP-2)
+Pre-break pin   origin/m8 = 34fba748 ("docs(m8): AP-1 review riders"), built UNCHANGED
+Branch     m8-b1 (worktree of the same repo; no push)
+Toolchain  system clang++ (Release, HVEN_FP_MODE=SAFER_FAST, the uniform flag regime),
+           Ninja, MKL, MKL_NUM_THREADS=1.  Install smoke additionally on the default
+           (GCC) front end.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+IpmSolver / SqpSolver become thin public classes holding a std::unique_ptr to a
+private implementation (IpmSolverImpl / SqpSolverImpl, in detail/drivers/*_impl.h).
+The old class bodies move, member for member, into the implementation classes; the
+public methods forward.  The 21 engine-header detail/ includes leave the two public
+engine headers; the 19 residual includes (section 7 table) are NOT touched and are
+the export contract's shrink-only allow-list.  fmt leaves ipm_solver.h, sqp_solver.h,
+ledger.h, console_trace_sink.h; throw-message construction in claim_space.h,
+structure_identity.h, candidate_point.h, nlp_assembly.h moves to out-of-line cold
+functions in src/ (the check stays inline).  The three aggregate_arity static_asserts
+move to src/drivers/trace_writer.cpp.  Public-header comments become contract text.
+
+PROOFS (the common six + the B1 specifics)
+--------------------------------------------------------------------------------
+1  both suites (ctest Release and Debug, ctest -j4 under setsid).
+2  install smoke on both front ends (default/GCC arm and the clang++ arm), then
+   scripts/check_export_contract.sh on each.
+3  export contract: scripts/check_export_contract.sh gains the rule "no public header
+   includes detail/" with the section-7 residual as an allow-list that may only shrink.
+4  golden rig: run if its targets build in this tree; if they cannot (they compile
+   against pinned OLD-SEAM checkouts), that is reported as UNOBSERVED with the reason.
+5  27-cell replay x 3 engines (walk, ssn, ipm), scripts/compare_replay.py, cells
+   docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt, reference
+   docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-{walk,ssn,ipm}.csv.
+   EXACT (no residual gate): zero mismatches on counters and statuses; the residual
+   columns are held to compare_replay.py's own EXACT mode and any difference is
+   reported, not waved.
+6  census: NOT RUN.  Declared reason: B1 moves no numeric code and the replay and the
+   P-SYM below cover the walk; if P-SYM reports any non-__FILE__/__LINE__ difference
+   outside the named exception, the census becomes mandatory and the group is stopped
+   and reported.
+B1-a  move-construction test: a solve, move the solver, solve again bitwise-equal;
+      the moved-from solver is destroyed and assigned to (both engines).
+B1-b  compile-flags diff: the build's own compile_commands.json, library TUs, pin vs
+      B1, full flag set per TU (normalized only for the -I/-o/-c/source tokens).
+B1-c  P-SYM (scripts/psym_compare.sh, sha256 recorded below) over the engine TUs:
+      * ONE build directory (build-b1/rel, Release), CCACHE_DISABLE=1, pin captured
+        first, the tree then moved to B1 and rebuilt IN PLACE, B1 captured; the
+        tool is the same script for both arms.
+      * NAMED EXCEPTION: the implementation boundary.  Concretely (i) symbols of
+        hven::solvers::IpmSolver / SqpSolver that carried engine bodies are renamed to
+        hven::solvers::IpmSolverImpl / SqpSolverImpl (a --symbol-map, generated
+        mechanically from the pin's own symbol list by the committed rule
+        s/hven::solvers::(Ipm|Sqp)Solver::/hven::solvers::\1SolverImpl::/ -- no
+        hand-written entry), and (ii) the new forwarding symbols of the public
+        classes (every defined symbol whose demangled name begins
+        hven::solvers::IpmSolver:: or hven::solvers::SqpSolver:: in the B1 capture and
+        absent from the pin) are listed in an --exceptions file as [NEW-FORWARDER],
+        generated mechanically.  The two generated files and the generator are kept in
+        this directory and are read, not edited, after the first compare.
+      * The remainder of the object set -- every symbol outside those two classes --
+        must be identical to the P-SYM tool's classification.  Any difference in
+        another symbol, other than __FILE__/__LINE__-class, is a finding reported
+        as such, not an exception.  The out-of-line cold throw functions (claim_space,
+        structure_identity, candidate_point, nlp_assembly) are likewise a named
+        class (new symbols named *_throw_*/cold) whose COUNT is stated in the result.
+B1-d  runtime protocol (CLAUDE.md section 5 / docs/measurement.md section 4):
+      * Arms: A = the pin's hven_sqp_corpus (built in build-b1/rel BEFORE any edit),
+        copied byte-for-byte to the scratch; B = hven_sqp_corpus built from B1.
+      * Cells: the 27 replay cells, one process per cell via --internal-run-one, modes
+        walk, ssn, ipm (the SQP arms) and --engine interior (the top-level IPM leg).
+      * perf stat -e instructions:u,branches:u,cycles:u,branch-misses:u,
+        L1-icache-load-misses:u   (pass A); three rounds, arms ALTERNATED per cell
+        within a round, one untimed unrecorded warm-up process per batch;
+        taskset -c 2 (SMT sibling cpu10 idle), MKL_NUM_THREADS=1 OMP_NUM_THREADS=1.
+      * Per arm the per-cell MEDIAN of the three runs; corpus = SUM of per-cell
+        medians.  BAND (the page's +-0.5 % instructions, with the ownership doc
+        section 11.1 per-cell band 0.99-1.01 as the secondary reading): the corpus
+        ratio B/A must lie in 0.995-1.005 in every mode.  A counter-column
+        byte-identity check (compare_replay.py on each arm pair's CSV) is the STOP
+        condition: if a counter moves, it is not an instruction measurement.
+      * Pass B (Zen 3: instructions,cycles,de_dis_uop_queue_empty_di0,
+        op_cache_hit_miss.op_cache_miss,op_cache_hit_miss.op_cache_hit,
+        ic_fetch_stall.ic_stall_any) is EXPLANATORY: taken only if pass A reads
+        outside the band or a per-cell median leaves 0.99-1.01.
+      * Wall-clock is carried beside the instructions and is INFORMATIONAL.  The legs
+        run one process at a time, alone, under flock /tmp/box-build.lock with
+        pgrep checked empty before and inside the lock.  The idle proof (R2') is not
+        computed: nothing here asserts a wall.
+      * The SMT-sibling idle state is not proven by /proc/stat in this run; this is
+        declared rather than implied.
+
+HONESTY CLAUSES
+--------------------------------------------------------------------------------
+* A failed leg stops the group and is reported.  No criterion is changed after the
+  first leg.
+* Apple/Accelerate: UNOBSERVED.  Nothing here is observed on Mac or Windows.
+* Tool hashes at declaration time:
+    scripts/psym_compare.sh      2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+    scripts/compare_replay.py    8e56ea2ecc46d62e2e917ac5bd2e7723d100645b0aa852ec0e074c9200a36080
+    scripts/check_install_smoke.sh d4b63e0c9a2ea0ed4175fced948a822ac8bbae145d276d2249b74ed26e6c714e

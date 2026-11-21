@@ -1,0 +1,26 @@
+== hven-ipm / hs: 22 cells; status {'optimal': 22}
+  primary      per-cell median: B_sym=0.001 B_fac=0.423 B_kkt=0.011 B_eval=0.026 B_setup=0.172 B_eng=0.364
+  primary      weighted agg.  : B_sym=0.001 B_fac=0.425 B_kkt=0.011 B_eval=0.043 B_setup=0.167 B_eng=0.354
+  primary      (B_sym+B_fac) >= 0.40 on 20/22 cells; B_kkt >= 0.25 on 0/22
+  steady-state per-cell median: B_sym=0.001 B_fac=0.424 B_kkt=0.011 B_eval=0.026 B_setup=0.171 B_eng=0.364
+  steady-state weighted agg.  : B_sym=0.001 B_fac=0.425 B_kkt=0.011 B_eval=0.043 B_setup=0.165 B_eng=0.355
+  steady-state (B_sym+B_fac) >= 0.40 on 20/22 cells; B_kkt >= 0.25 on 0/22
+  solver samples per cell (all reps): min=620 q25=689 med=729 max=963; cells with sampling defects: 0
+  SC (record binary) / S median instructions: min=0.999236 med=1.000035 max=1.000850; S-round spread (max-min)/median: med=7.09e-04 max=1.12e-03
+  rho: n=22 min=0.030 q25=0.041 med=0.048 q75=0.059 max=0.082; rho<=0.5 on 22
+  rho_engine_weighted: med=0.194 q25=0.171 q75=0.248; <=0.5 on 22, <1 on 22
+  neg_agree per cell: med=1.000 min=1.000; cells at >= 0.99: 22/22
+  pooled matrices: 268; neg agree (replay sparse vs dense) 1.0000; engine vs dense 1.0000; replay fidelity 1.0000; sparse ok 268, dense ok 268
+== hven-ipm / sd: 97 cells; status {'optimal': 89, 'acceptable': 1, 'max_iter': 3, 'diverging': 1, 'numerical_error': 3}
+  primary      per-cell median: B_sym=0.000 B_fac=0.395 B_kkt=0.013 B_eval=0.086 B_setup=0.205 B_eng=0.257
+  primary      weighted agg.  : B_sym=0.000 B_fac=0.504 B_kkt=0.019 B_eval=0.365 B_setup=0.049 B_eng=0.063
+  primary      (B_sym+B_fac) >= 0.40 on 45/97 cells; B_kkt >= 0.25 on 0/97
+  steady-state per-cell median: B_sym=0.000 B_fac=0.396 B_kkt=0.013 B_eval=0.087 B_setup=0.205 B_eng=0.257
+  steady-state weighted agg.  : B_sym=0.000 B_fac=0.504 B_kkt=0.019 B_eval=0.365 B_setup=0.048 B_eng=0.063
+  steady-state (B_sym+B_fac) >= 0.40 on 46/97 cells; B_kkt >= 0.25 on 0/97
+  solver samples per cell (all reps): min=702 q25=871 med=1187 max=50521; cells with sampling defects: 0
+  SC (record binary) / S median instructions: min=0.998912 med=1.000000 max=1.001040; S-round spread (max-min)/median: med=3.84e-04 max=1.42e-03
+  rho: n=95 min=0.029 q25=0.058 med=0.067 q75=0.097 max=1.818; rho<=0.5 on 90
+  rho_engine_weighted: med=0.314 q25=0.234 q75=0.559; <=0.5 on 70, <1 on 82
+  neg_agree per cell: med=1.000 min=0.091; cells at >= 0.99: 85/95
+  pooled matrices: 2416; neg agree (replay sparse vs dense) 0.9764; engine vs dense 0.9710; replay fidelity 0.9884; sparse ok 2416, dense ok 2401

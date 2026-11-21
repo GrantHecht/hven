@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/model_surface_kkt.h — the model-surface scorer
+// The model-surface scorer
 // (docs/notes/2026-08-21-m4-task5-design.md). An ENGINE-INDEPENDENT KKT
 // residual scorer, computed ONLY off
 // NlpAssembly::evaluate_candidate_first_order and AssemblyDeclaration's own
@@ -16,7 +16,7 @@
 //
 // ENGINE-INDEPENDENT BY CONSTRUCTION, AND THE CHECK IS THIS FILE'S OWN
 // INCLUDE LIST. This header may include ONLY model/ headers, core/ headers,
-// Eigen, fmt, and the standard library -- never qp/, drivers/, kkt/, or any
+// Eigen, fmt, and the standard library -- never qp/, solver/, ipm/, sqp/, kkt/, or any
 // interior header. The compile is the proof: a later edit that pulls an
 // engine header in here breaks that proof the moment it is added, and no
 // runtime check could catch what a missing #include already prevents.
@@ -74,15 +74,14 @@
 #include <vector>
 
 #include <Eigen/Core>
-
 #include <fmt/format.h>
 
-#include "hven/core/types.h"
-#include "hven/model/assembly_declaration.h"
-#include "hven/model/candidate_point.h"
-#include "hven/model/nlp_assembly.h"
+#include <hven/core/types.h>
+#include <hven/model/assembly_declaration.h>
+#include <hven/model/candidate_point.h>
+#include <hven/model/nlp_assembly.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief One point's KKT residuals plus scale denominators, as scored by
 ///        model_surface_kkt_residuals below.
@@ -142,9 +141,9 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
                                                             const Vec &lambda_e,
                                                             const Vec &lambda_i, const Vec &z) {
     const AssemblyDeclaration &declared = aggregate.declaration();
-    const Eigen::Index n = declared.primal_vars_;
-    const Eigen::Index me = declared.equality_rows_;
-    const Eigen::Index mi = declared.inequality_rows_;
+    const Eigen::Index n = declared.primal_vars;
+    const Eigen::Index me = declared.equality_rows;
+    const Eigen::Index mi = declared.inequality_rows;
 
     if (z.size() != n) {
         throw std::invalid_argument(
@@ -198,7 +197,7 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
     // them once the numerators are infinite.
     bool bounds_are_finite = true;
     for (const VariableBound &bound : bounds) {
-        if (std::isnan(bound.lower_) || std::isnan(bound.upper_)) {
+        if (std::isnan(bound.lower) || std::isnan(bound.upper)) {
             bounds_are_finite = false;
             break;
         }
@@ -217,7 +216,7 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
     // stationarity: max_i |grad f + adjoint_grad - z|_i, over non-fixed i.
     for (Eigen::Index i = 0; i < n; ++i) {
         const VariableBound &bound = bounds[static_cast<std::size_t>(i)];
-        if (bound.lower_ == bound.upper_) {
+        if (bound.lower == bound.upper) {
             continue; // declared-fixed: no stationarity condition at this row.
         }
         const double g = objective_gradient(i) + constraint_adjoint_gradient(i) - z(i);
@@ -234,8 +233,8 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
     }
     for (Eigen::Index i = 0; i < n; ++i) {
         const VariableBound &bound = bounds[static_cast<std::size_t>(i)];
-        out.primal_ = std::max(out.primal_, std::max(0.0, bound.lower_ - x(i)));
-        out.primal_ = std::max(out.primal_, std::max(0.0, x(i) - bound.upper_));
+        out.primal_ = std::max(out.primal_, std::max(0.0, bound.lower - x(i)));
+        out.primal_ = std::max(out.primal_, std::max(0.0, x(i) - bound.upper));
     }
 
     // complementarity: inequality rows, plus bound complementarity over every
@@ -249,8 +248,8 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
     }
     for (Eigen::Index i = 0; i < n; ++i) {
         const VariableBound &bound = bounds[static_cast<std::size_t>(i)];
-        if (std::isfinite(bound.lower_) || std::isfinite(bound.upper_)) {
-            const double dist = std::min(x(i) - bound.lower_, bound.upper_ - x(i));
+        if (std::isfinite(bound.lower) || std::isfinite(bound.upper)) {
+            const double dist = std::min(x(i) - bound.lower, bound.upper - x(i));
             out.complementarity_ = std::max(out.complementarity_, std::abs(z(i) * dist));
         }
     }
@@ -270,4 +269,4 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggrega
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

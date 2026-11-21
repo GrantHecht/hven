@@ -1,0 +1,2 @@
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED

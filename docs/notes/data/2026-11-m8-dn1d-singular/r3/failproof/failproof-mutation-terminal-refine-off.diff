@@ -1,0 +1,4 @@
+4361c4361
+<     if (local.dense_shifted && r.residual_refused) {
+---
+>     if (false && local.dense_shifted && r.residual_refused) {

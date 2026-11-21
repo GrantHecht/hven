@@ -1,0 +1,394 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 161 tests from 22 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from ConsoleLadder
+[ RUN      ] ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime
+[       OK ] ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime (5 ms)
+[ RUN      ] ConsoleLadder.ASqpSolveClimbsOneRungAtATime
+[       OK ] ConsoleLadder.ASqpSolveClimbsOneRungAtATime (2 ms)
+[ RUN      ] ConsoleLadder.TheLegendFlagSuppressesOnlyTheLegend
+[       OK ] ConsoleLadder.TheLegendFlagSuppressesOnlyTheLegend (1 ms)
+[ RUN      ] ConsoleLadder.TimingAddsExactlyOneInformationalLine
+[       OK ] ConsoleLadder.TimingAddsExactlyOneInformationalLine (1 ms)
+[----------] 4 tests from ConsoleLadder (10 ms total)
+
+[----------] 4 tests from ConsoleGolden
+[ RUN      ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung
+[       OK ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung (0 ms)
+[ RUN      ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheSummaryRung
+[       OK ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheSummaryRung (0 ms)
+[ RUN      ] ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung
+[       OK ] ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung (0 ms)
+[ RUN      ] ConsoleGolden.AnSqpSolveOfHs071AtTheSummaryRung
+[       OK ] ConsoleGolden.AnSqpSolveOfHs071AtTheSummaryRung (0 ms)
+[----------] 4 tests from ConsoleGolden (1 ms total)
+
+[----------] 3 tests from ConsoleMessages
+[ RUN      ] ConsoleMessages.EachTemplateRendersItsOwnLine
+[       OK ] ConsoleMessages.EachTemplateRendersItsOwnLine (0 ms)
+[ RUN      ] ConsoleMessages.TheSolverInitializedNoticeNeedsAMeasurableDuration
+[       OK ] ConsoleMessages.TheSolverInitializedNoticeNeedsAMeasurableDuration (0 ms)
+[ RUN      ] ConsoleMessages.WarningsPrintFromTheWarningsRungAndNoticesFromTheIterationsRung
+[       OK ] ConsoleMessages.WarningsPrintFromTheWarningsRungAndNoticesFromTheIterationsRung (0 ms)
+[----------] 3 tests from ConsoleMessages (0 ms total)
+
+[----------] 2 tests from ConsoleColour
+[ RUN      ] ConsoleColour.NeverEmitsNoEscapeAndAlwaysColoursOnlyTheWarningMarkAndTheExitLine
+[       OK ] ConsoleColour.NeverEmitsNoEscapeAndAlwaysColoursOnlyTheWarningMarkAndTheExitLine (0 ms)
+[ RUN      ] ConsoleColour.TheExitLineColourFollowsTheStatus
+[       OK ] ConsoleColour.TheExitLineColourFollowsTheStatus (0 ms)
+[----------] 2 tests from ConsoleColour (0 ms total)
+
+[----------] 2 tests from ConsoleColumns
+[ RUN      ] ConsoleColumns.TheColumnHeaderRepeatsEveryTwentyRowsAndAfterAMessageLine
+[       OK ] ConsoleColumns.TheColumnHeaderRepeatsEveryTwentyRowsAndAfterAMessageLine (0 ms)
+[ RUN      ] ConsoleColumns.ARestartedSolveWritesItsHeaderAndLegendAgain
+[       OK ] ConsoleColumns.ARestartedSolveWritesItsHeaderAndLegendAgain (0 ms)
+[----------] 2 tests from ConsoleColumns (0 ms total)
+
+[----------] 2 tests from ConsoleNesting
+[ RUN      ] ConsoleNesting.ANestedSolveBeginAndEndPrintNothingAndTheOuterFooterStillPrints
+[       OK ] ConsoleNesting.ANestedSolveBeginAndEndPrintNothingAndTheOuterFooterStillPrints (0 ms)
+[ RUN      ] ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth
+[       OK ] ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth (0 ms)
+[----------] 2 tests from ConsoleNesting (0 ms total)
+
+[----------] 1 test from ConsolePhases
+[ RUN      ] ConsolePhases.AMultiPhaseSolvePrintsOnePhaseLineEachAtTheSummaryRung
+[       OK ] ConsolePhases.AMultiPhaseSolvePrintsOnePhaseLineEachAtTheSummaryRung (0 ms)
+[----------] 1 test from ConsolePhases (0 ms total)
+
+[----------] 3 tests from ConsoleBlocks
+[ RUN      ] ConsoleBlocks.TheHeaderAndTheFooterRenderFromTheEventsFields
+[       OK ] ConsoleBlocks.TheHeaderAndTheFooterRenderFromTheEventsFields (0 ms)
+[ RUN      ] ConsoleBlocks.TheExitLineShowsTheStatusTheStopReasonAndTheMessage
+[       OK ] ConsoleBlocks.TheExitLineShowsTheStatusTheStopReasonAndTheMessage (0 ms)
+[ RUN      ] ConsoleBlocks.ASolveEndWithoutADeclaredResultPrintsNoFooter
+[       OK ] ConsoleBlocks.ASolveEndWithoutADeclaredResultPrintsNoFooter (0 ms)
+[----------] 3 tests from ConsoleBlocks (0 ms total)
+
+[----------] 3 tests from ConsoleRows
+[ RUN      ] ConsoleRows.TheColumnHeadersAreTheSpecsText
+[       OK ] ConsoleRows.TheColumnHeadersAreTheSpecsText (0 ms)
+[ RUN      ] ConsoleRows.InteriorPointRowsMatchTheSpecExamples
+[       OK ] ConsoleRows.InteriorPointRowsMatchTheSpecExamples (0 ms)
+[ RUN      ] ConsoleRows.SqpRowsMatchTheSpecExamples
+[       OK ] ConsoleRows.SqpRowsMatchTheSpecExamples (0 ms)
+[----------] 3 tests from ConsoleRows (0 ms total)
+
+[----------] 3 tests from FanOut
+[ RUN      ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond
+[       OK ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond (0 ms)
+[ RUN      ] FanOut.ANullHalfIsSkippedRatherThanDereferenced
+[       OK ] FanOut.ANullHalfIsSkippedRatherThanDereferenced (0 ms)
+[ RUN      ] FanOut.AUserSinkIsNotDisplacedByTheConsole
+[       OK ] FanOut.AUserSinkIsNotDisplacedByTheConsole (1 ms)
+[----------] 3 tests from FanOut (1 ms total)
+
+[----------] 4 tests from HumanTraceGoldens
+[ RUN      ] HumanTraceGoldens.TheNumericGateAcceptsRoundoffAndRefusesRealDrift
+[       OK ] HumanTraceGoldens.TheNumericGateAcceptsRoundoffAndRefusesRealDrift (0 ms)
+[ RUN      ] HumanTraceGoldens.FourProblemsTwoEnginesFourRungs
+[       OK ] HumanTraceGoldens.FourProblemsTwoEnginesFourRungs (28 ms)
+[ RUN      ] HumanTraceGoldens.TheRestorationFixture
+[       OK ] HumanTraceGoldens.TheRestorationFixture (11 ms)
+[ RUN      ] HumanTraceGoldens.TheElasticFixture
+[       OK ] HumanTraceGoldens.TheElasticFixture (14 ms)
+[----------] 4 tests from HumanTraceGoldens (54 ms total)
+
+[----------] 3 tests from PrintTables
+[ RUN      ] PrintTables.PredictorOutcomeNamesEveryEnumerator
+[       OK ] PrintTables.PredictorOutcomeNamesEveryEnumerator (0 ms)
+[ RUN      ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue
+[       OK ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue (0 ms)
+[ RUN      ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem
+[       OK ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem (0 ms)
+[----------] 3 tests from PrintTables (0 ms total)
+
+[----------] 3 tests from VariableBoundCensusTable
+[ RUN      ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+[       OK ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable
+[       OK ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide
+[       OK ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide (0 ms)
+[----------] 3 tests from VariableBoundCensusTable (0 ms total)
+
+[----------] 4 tests from TraceMessagesIpm
+[ RUN      ] TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit
+[       OK ] TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit (0 ms)
+[ RUN      ] TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit
+[       OK ] TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit (0 ms)
+[ RUN      ] TraceMessagesIpm.ANonFiniteEvaluationInsideRestorationWritesANonFiniteExit
+[       OK ] TraceMessagesIpm.ANonFiniteEvaluationInsideRestorationWritesANonFiniteExit (26 ms)
+[ RUN      ] TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired
+[       OK ] TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired (10 ms)
+[----------] 4 tests from TraceMessagesIpm (38 ms total)
+
+[----------] 6 tests from TraceMessagesSqp
+[ RUN      ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem
+[       OK ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem (6 ms)
+[ RUN      ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+[       OK ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict (6 ms)
+[ RUN      ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule
+[       OK ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule (216 ms)
+[ RUN      ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters
+[       OK ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters (0 ms)
+[ RUN      ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine
+[       OK ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine (0 ms)
+[ RUN      ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter
+[       OK ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter (1 ms)
+[----------] 6 tests from TraceMessagesSqp (231 ms total)
+
+[----------] 1 test from TraceMessagesBoth
+[ RUN      ] TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo
+[       OK ] TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo (2 ms)
+[----------] 1 test from TraceMessagesBoth (2 ms total)
+
+[----------] 5 tests from TraceOffPath
+[ RUN      ] TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder
+[       OK ] TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder (847 ms)
+[ RUN      ] TraceOffPath.ThePlantedUnguardedConstructionAndCallAreCaught
+[       OK ] TraceOffPath.ThePlantedUnguardedConstructionAndCallAreCaught (0 ms)
+[ RUN      ] TraceOffPath.TheGuardedFormsPass
+[       OK ] TraceOffPath.TheGuardedFormsPass (0 ms)
+[ RUN      ] TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest
+[       OK ] TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest (0 ms)
+[ RUN      ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce
+[       OK ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce (0 ms)
+[----------] 5 tests from TraceOffPath (848 ms total)
+
+[----------] 13 tests from TraceV1Contract
+[ RUN      ] TraceV1Contract.TheIterLinesAreTheIterationsAndTheLastRowsAgreeWithTheResult
+[       OK ] TraceV1Contract.TheIterLinesAreTheIterationsAndTheLastRowsAgreeWithTheResult (3 ms)
+[ RUN      ] TraceV1Contract.SqpEventAndRowAgreeRowForRow
+[       OK ] TraceV1Contract.SqpEventAndRowAgreeRowForRow (0 ms)
+[ RUN      ] TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind
+[       OK ] TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind (1 ms)
+[ RUN      ] TraceV1Contract.V2TheIpmStepNormIsWrittenWithOnlyASinkAttached
+[       OK ] TraceV1Contract.V2TheIpmStepNormIsWrittenWithOnlyASinkAttached (1 ms)
+[ RUN      ] TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon
+[       OK ] TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon (0 ms)
+[ RUN      ] TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork
+[       OK ] TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork (2 ms)
+[ RUN      ] TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections
+[       OK ] TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections (2 ms)
+[ RUN      ] TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale
+[       OK ] TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale (0 ms)
+[ RUN      ] TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm
+[       OK ] TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm (0 ms)
+[ RUN      ] TraceV1Contract.BothEnginesReportTheSameDeclaredCensusOnTheSameProblem
+[       OK ] TraceV1Contract.BothEnginesReportTheSameDeclaredCensusOnTheSameProblem (0 ms)
+[ RUN      ] TraceV1Contract.TheIpmRowMuIsTheBarrierParameterTheStepWasFormedAt
+[       OK ] TraceV1Contract.TheIpmRowMuIsTheBarrierParameterTheStepWasFormedAt (1 ms)
+[ RUN      ] TraceV1Contract.ObservationChangesNoCounterStatusOrPoint
+[       OK ] TraceV1Contract.ObservationChangesNoCounterStatusOrPoint (44 ms)
+[ RUN      ] TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve
+[       OK ] TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve (1 ms)
+[----------] 13 tests from TraceV1Contract (64 ms total)
+
+[----------] 3 tests from TraceV1Fixtures
+[ RUN      ] TraceV1Fixtures.IpmCompleteStream
+[       OK ] TraceV1Fixtures.IpmCompleteStream (0 ms)
+[ RUN      ] TraceV1Fixtures.SqpCompleteStream
+[       OK ] TraceV1Fixtures.SqpCompleteStream (0 ms)
+[ RUN      ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd
+[       OK ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd (0 ms)
+[----------] 3 tests from TraceV1Fixtures (0 ms total)
+
+[----------] 85 tests from JsonLinesTraceSink
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpReg
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpReg (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestart
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestart (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRoute
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRoute (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpCertify
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpCertify (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpMode
+[       OK ] JsonLinesTraceSink.GoldenLineQpMode (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+[       OK ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling
+[       OK ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling (0 ms)
+[ RUN      ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough
+[       OK ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough (0 ms)
+[ RUN      ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope
+[       OK ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles
+[       OK ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual
+[       OK ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject
+[       OK ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject (0 ms)
+[ RUN      ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm
+[       OK ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm (5 ms)
+[ RUN      ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows
+[       OK ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas (0 ms)
+[ RUN      ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure
+[       OK ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure (0 ms)
+[ RUN      ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve
+[       OK ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve (4 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign
+[       OK ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign (0 ms)
+[ RUN      ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore
+[       OK ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow
+[       OK ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed (0 ms)
+[ RUN      ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter
+[       OK ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter (4 ms)
+[ RUN      ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned
+[       OK ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation
+[       OK ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation (3 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell
+[       OK ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell (4 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterIsInCallerUnitsOnAScaledSolve
+[       OK ] JsonLinesTraceSink.SqpIterIsInCallerUnitsOnAScaledSolve (3 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk (0 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs
+[       OK ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs (0 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk (3 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject
+[       OK ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject (3 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous
+[       OK ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous (0 ms)
+[ RUN      ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm
+[       OK ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm (2 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish
+[       OK ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish (11 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet
+[       OK ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet (11 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals
+[       OK ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals (11 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne
+[       OK ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne (11 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct
+[       OK ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal
+[       OK ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal (3 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating
+[       OK ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating (0 ms)
+[ RUN      ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero
+[       OK ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero (0 ms)
+[ RUN      ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve
+[       OK ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration
+[       OK ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration (12 ms)
+[ RUN      ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade
+[       OK ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor
+[       OK ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor (11 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures
+[       OK ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork (0 ms)
+[ RUN      ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve
+[       OK ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder
+[       OK ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis
+[       OK ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization
+[       OK ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseExit
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseExit (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineMessageOnePerKind
+[       OK ] JsonLinesTraceSink.GoldenLineMessageOnePerKind (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire
+[       OK ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere
+[       OK ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere (0 ms)
+[ RUN      ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne
+[       OK ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull
+[       OK ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth
+[       OK ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth (0 ms)
+[ RUN      ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString
+[       OK ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString (0 ms)
+[----------] 85 tests from JsonLinesTraceSink (115 ms total)
+
+[----------] 1 test from SqpCountersFieldTables
+[ RUN      ] SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct
+[       OK ] SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct (0 ms)
+[----------] 1 test from SqpCountersFieldTables (0 ms total)
+
+[----------] 6 tests from SqpConsole
+[ RUN      ] SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole
+[       OK ] SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole (39 ms)
+[ RUN      ] SqpConsole.TheLiveConsoleWritesOneRowPerIterLineIncludingTheRestorationRows
+[       OK ] SqpConsole.TheLiveConsoleWritesOneRowPerIterLineIncludingTheRestorationRows (12 ms)
+[ RUN      ] SqpConsole.TheSqpDefaultPrintLevelWritesNothing
+[       OK ] SqpConsole.TheSqpDefaultPrintLevelWritesNothing (1 ms)
+[ RUN      ] SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff
+[       OK ] SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff (5 ms)
+[ RUN      ] SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints
+[       OK ] SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints (11 ms)
+[ RUN      ] SqpConsole.AttachTraceDuringASolveIsRefused
+[       OK ] SqpConsole.AttachTraceDuringASolveIsRefused (1 ms)
+[----------] 6 tests from SqpConsole (70 ms total)
+
+[----------] Global test environment tear-down
+[==========] 161 tests from 22 test suites ran. (1441 ms total)
+[  PASSED  ] 161 tests.

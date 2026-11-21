@@ -27,7 +27,19 @@ set(_hven_sparse_solver "@HVEN_SPARSE_SOLVER@")
 if(_hven_sparse_solver STREQUAL "AccelerateSparse")
     find_dependency(AccelerateSparse)
 elseif(_hven_sparse_solver STREQUAL "MKL")
+    # The threading layer hven was built against (HVEN_MKL_THREADING). FindMKL
+    # reads MKL_USE_SEQUENTIAL; set it for the find only, so the consumer's own
+    # value is not clobbered.
+    set(_hven_mkl_threading "@HVEN_MKL_THREADING_INSTALLED@")
+    set(_hven_saved_mkl_use_sequential "${MKL_USE_SEQUENTIAL}")
+    if(_hven_mkl_threading STREQUAL "sequential")
+        set(MKL_USE_SEQUENTIAL ON)
+    else()
+        unset(MKL_USE_SEQUENTIAL)
+    endif()
     find_dependency(MKL)
+    set(MKL_USE_SEQUENTIAL "${_hven_saved_mkl_use_sequential}")
+    unset(_hven_saved_mkl_use_sequential)
 else()
     message(FATAL_ERROR
         "hven: unknown sparse solver '${_hven_sparse_solver}'. "
@@ -92,9 +104,10 @@ if(NOT TARGET hven::hven)
         "The installation may be corrupted.")
 endif()
 
-# Validate critical installed headers are present. The sentinel is an ENGINE
-# header (M6 W5 T8.9 retired model/nlp_solver.h, which used to be this check).
-if(NOT EXISTS "${_hven_include_dir}/hven/drivers/ipm_solver.h")
+# Validate critical installed headers are present. The sentinel is the umbrella
+# header: it is the one public path that stays put when a component directory
+# is reorganised (RS-1c moved the engine header this check used to name).
+if(NOT EXISTS "${_hven_include_dir}/hven/hven.h")
     message(FATAL_ERROR
         "hven: public headers not found at "
         "${_hven_include_dir}/hven/. "
@@ -174,6 +187,7 @@ endif()
 set(CMAKE_MODULE_PATH "${_hven_cmake_module_path}")
 unset(_hven_cmake_module_path)
 unset(_hven_sparse_solver)
+unset(_hven_mkl_threading)
 unset(_hven_include_dir)
 
 check_required_components(hven)

@@ -1,0 +1,5 @@
+head     : 39 tests, failed none
+guard-off: 39 tests, failed ['DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor', 'DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal'] | status-differs failures 2 | OK
+check-off: 39 tests, failed ['DenseArmConditionCheck.RefusedUnderNeverAndCarriedByAFallbackHandle', 'DenseArmConditionCheck.SingularToWorkingPrecisionFallsBack', 'DenseArmEngines.SqpConditionCheckRetakesASingularToWorkingPrecisionKkt'] | status-differs failures 0 | OK
+unwired  : 39 tests, failed ['DenseArmEngines.SqpConditionCheckRetakesASingularToWorkingPrecisionKkt', 'QpDenseArm.SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly'] | status-differs failures 0 | OK
+FAILPROOF_AS_DECLARED

@@ -1,0 +1,14 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-rho-gate-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpqpSeamTest.AFlaggedTerminalReadIsPerturbedAndEscapesNumerical:IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from IpqpSeamTest
+[ RUN      ] IpqpSeamTest.AFlaggedTerminalReadIsPerturbedAndEscapesNumerical
+[       OK ] IpqpSeamTest.AFlaggedTerminalReadIsPerturbedAndEscapesNumerical (2 ms)
+[ RUN      ] IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure
+[       OK ] IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure (0 ms)
+[----------] 2 tests from IpqpSeamTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 2 tests.

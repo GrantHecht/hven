@@ -1,0 +1,54 @@
+P-SYM tool sha256 (runner):   57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d
+P-SYM tool sha256 (captures): 57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d
+P-SYM maps: object-map=/home/ghecht/Projects/hven/.claude/worktrees/rs/docs/notes/data/2026-11-m8-rs/gates/RS-1a/object-map.txt symbol-map=none exceptions=none
+
+MISSING     CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o (no counterpart in /home/ghecht/Projects/hven/.claude/worktrees/rs/.scratch/ga/psym)
+RENAMED     CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o -> CMakeFiles/hven.dir/src/util/get_core_count.cpp.o
+RENAMED     CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o -> CMakeFiles/hven.dir/src/util/memory_management.cpp.o
+RENAMED     CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o -> CMakeFiles/hven.dir/src/util/thread_pool.cpp.o
+SYMBOLS     tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    void std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> >::_M_range_insert<__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > > >(__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::forward_iterator_tag)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<unsigned long, unsigned int>(char const*, char const*, unsigned long const&, unsigned int const&)
+              ONLY-AFTER    std::filesystem::__cxx11::path* std::__do_uninit_copy<__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::filesystem::__cxx11::path*>(__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::filesystem::__cxx11::path*)
+              ONLY-AFTER    std::_UninitDestroyGuard<std::filesystem::__cxx11::path*, void>::~_UninitDestroyGuard()
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char const*, std::filesystem::__cxx11::path>(char const* const&, std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    (anonymous namespace)::headers_under[abi:cxx11](char const*)
+              ONLY-AFTER    void std::_Destroy<std::filesystem::__cxx11::path*>(std::filesystem::__cxx11::path*, std::filesystem::__cxx11::path*)
+              LOCAL-FAMILY  .L.str: 55 before, 67 after
+              LOCAL-FAMILY  GCC_except_table: 29 before, 35 after
+DIFFERS     tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 143 alignment-pad lines vs 166 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 7869 lines vs 9191 -- instructions were added or removed
+PER-SYMBOL  tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o: PERSYM 41 identical, 2 noise-only, 3 differing, 0 only-before, 7 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 910 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              NOISE-ONLY    (anonymous namespace)::scan_includes(std::filesystem::__cxx11::path const&)
+                            COUNTS 672 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +3(x1)
+              NOISE-ONLY    _GLOBAL__sub_I_test_core_layering.cpp
+                            COUNTS 199 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS +22(x3) +31(x3)
+              DIFFERS       CoreLayering_TheScanActuallyReadsTheCoreHeaders_Test::TestBody()
+                            PAD-ROUTE DECLINED: 22 alignment-pad lines vs 21 (228 -> 234 bytes); start 0x0 (mod 32 = 0) -> 0x0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1097 lines vs 1446 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::core_headers[abi:cxx11]()
+                            PAD-ROUTE DECLINED: 3 alignment-pad lines vs 1 (28 -> 2 bytes); start 0x3970 (mod 32 = 16) -> 0x4530 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 266 lines vs 74 -- instructions were added or removed
+              DIFFERS       CoreLayering_NoCoreHeaderDependsUpwardOnAnotherTier_Test::TestBody()
+                            PAD-ROUTE DECLINED: 60 alignment-pad lines vs 63 (672 -> 661 bytes); start 0xff0 (mod 32 = 16) -> 0x14b0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2319 lines vs 2695 -- instructions were added or removed
+              ONLY-AFTER    void std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> >::_M_range_insert<__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > > >(__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::forward_iterator_tag)
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperEQFailure<unsigned long, unsigned int>(char const*, char const*, unsigned long const&, unsigned int const&)
+              ONLY-AFTER    std::filesystem::__cxx11::path* std::__do_uninit_copy<__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::filesystem::__cxx11::path*>(__gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, __gnu_cxx::__normal_iterator<std::filesystem::__cxx11::path const*, std::vector<std::filesystem::__cxx11::path, std::allocator<std::filesystem::__cxx11::path> > >, std::filesystem::__cxx11::path*)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char const*, std::filesystem::__cxx11::path>(char const* const&, std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::_UninitDestroyGuard<std::filesystem::__cxx11::path*, void>::~_UninitDestroyGuard()
+              ONLY-AFTER    (anonymous namespace)::headers_under[abi:cxx11](char const*)
+              ONLY-AFTER    void std::_Destroy<std::filesystem::__cxx11::path*>(std::filesystem::__cxx11::path*, std::filesystem::__cxx11::path*)
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 89348 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 53544 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 104548 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +6(x1)
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 199 objects — 193 byte-identical, 3 differing within the accepted noise class, 1 with unclassified differences, 0 matched by basename after a path move, 1 missing
+P-SYM coverage: 3 objects matched through the object map, 1 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 92407 matched (0 through the symbol map), 0 only-before, 7 only-after, 0 excepted, 0 collisions, 56 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 793 matched by count, 2 differing (103602 before-arm and 103620 after-arm symbols accounted by family); relocations — 910 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

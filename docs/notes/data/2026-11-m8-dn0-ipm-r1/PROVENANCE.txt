@@ -1,0 +1,115 @@
+# M8 DN-0 IPM r1 provenance (collected 2026-11-08T03:43:06Z)
+## commits
+hven worktree HEAD: f94246d2433186fb742235dbfa47bd38b83e335d (m8-dn0r1)
+hven pin (measured library): 0a34c8a2adba9e725351b3c9e23c14471d3fecb1
+harness HEAD: 38f5b4a59243c82b3b3a9ab34e8f2db71f98d848 (m8-dn0r1); dirty: 0 tracked changes
+## pin stamp
+  HVEN_PIN_SHA 0a34c8a2adba9e725351b3c9e23c14471d3fecb1
+  HVEN_PIN_BRANCH m8
+  HVEN_PIN_DATE 2026-11-07
+  HVEN_BUILT_UTC 2026-11-08T02:45:25Z
+  HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+  HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+  HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+## toolchain
+clang: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake: cmake version 4.3.0
+ninja: 1.13.2
+perf: perf version 7.2.12-200.fc44.x86_64
+python: Python 3.13.12
+gfortran: GNU Fortran (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2)
+MKL (from the pin build's CMakeCache): /opt/intel/oneapi/mkl/latest/include 
+  #define __INTEL_MKL_BUILD_DATE 20260915
+  #define INTEL_MKL_VERSION      20260200
+libiomp5: /opt/intel/oneapi/compiler/2026.2/lib/libiomp5.so
+CUTEst: /home/ghecht/Software/cutest/lib/libcutest_double.so
+## hardware / OS
+host: fedora
+kernel: 7.2.12-200.fc44.x86_64
+  CPU(s):                                  16
+  Model name:                              AMD Ryzen 7 5800X3D 8-Core Processor
+  Thread(s) per core:                      2
+  Core(s) per socket:                      8
+  Socket(s):                               1
+  CPU(s) scaling MHz:                      81%
+  L3 cache:                                96 MiB (1 instance)
+measurement core: 2; its SMT siblings: 2,10
+governor(cpu2): powersave
+boost: 1
+memory: MemTotal:       32756800 kB
+perf_event_paranoid: 2
+perf_event_max_sample_rate: 79000 (kernel-lowered this boot: 1 event(s))
+  Nov 07 18:46:34 fedora kernel: perf: interrupt took too long (2508 > 2500), lowering kernel.perf_event_max_sample_rate to 79000
+perf_event_mlock_kb: 516; RLIMIT_MEMLOCK: 8192 KB
+perf reader core: 4; its SMT siblings: 4,12
+## binaries (sha256)
+  48902c5ca141cbac3d684a1f73644f969d9be42dc63ad1a55bd44f79a422fd1e  build/lanes/hven/hven_bench_cell
+  5145a913e9aa8abd1b53c466280180d2cb709457d4e5cf4ac352c53d28b5be17  .scratch/dn0r1/build-cfi/hven_bench_cell
+  4c2513ceb501a7b02cfbfa88be3aef8c9640ddd817e94db129444dccf6953020  .scratch/dn0r1/build-dump/lanes/hven/hven_bench_cell
+  80a21da968a2c28e1f2cf09df56e4acd5618d6b82d7a41988e7b497eebcb00af  .scratch/dn0r1/build-tools/dn0_replay
+  1ad55842abbbfab48ea25598de1d635cca37f5babf88c66785b65413fd62eded  .scratch/dn0r1/build-tools/dn0_replay_verify
+  37d2a2aef58715ce275320dc2a4072f546f6ffa44e10929845b25c905919db02  .hven/install-0a34c8a2adba/lib64/libhven.a
+  6f24b1598a9806c42e747d933af73394c707786724b61e7ba12ba94c4ca00f3b  .scratch/dn0r1/hven-cfi/install/lib64/libhven.a
+## effective compile flags
+libhven.a (pin build build.ninja, symmetric_factor_mkl.cpp.o):
+    FLAGS = -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+    DEFINES = -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_VERSION_STRING=\"0.2.0\"
+measured lane binary (build/build.ninja FLAGS for hven_bench_cell.cpp):
+    FLAGS = -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20
+    DEFINES = -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_HAS_CUTEST=1 -DHVEN_BENCH_PIN_SHA=\"0a34c8a2adba9e725351b3c9e23c14471d3fecb1\" -DHVEN_DEFAULT_IPM_THREADS=8
+CFI libhven.a (hven-cfi build.ninja, symmetric_factor_mkl.cpp.o; the launcher appends -fasynchronous-unwind-tables):
+    FLAGS = -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+  launcher: /home/ghecht/Projects/hven/.claude/worktrees/dn0r1/docs/notes/data/2026-11-m8-dn0-ipm-r1/tools/cfi_launcher.sh
+RECORD binary: the measured link command with libhven.a swapped (.scratch/dn0r1/build-cfi/link.diff):
+  10c10
+  < --dependency-file=lanes/hven/CMakeFiles/hven_bench_cell.dir/link.d
+  ---
+  > --dependency-file=/home/ghecht/Projects/hven-bench-sd/.scratch/dn0r1/build-cfi/link.d
+  13c13
+  < lanes/hven/hven_bench_cell
+  ---
+  > /home/ghecht/Projects/hven-bench-sd/.scratch/dn0r1/build-cfi/hven_bench_cell
+  27c27
+  < /home/ghecht/Projects/hven-bench-sd/.hven/install-0a34c8a2adba/lib64/libhven.a
+  ---
+  > /home/ghecht/Projects/hven-bench-sd/.scratch/dn0r1/hven-cfi/install/lib64/libhven.a
+dump build: link closure objects byte-identical to the measured build's (identity/dump-vs-measured-objects.txt), link adds -Wl,--wrap=pardiso + pardiso_wrap.c.o
+replay (build-tools compile_commands.json):
+  dn0_replay.cpp: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -isystem /home/ghecht/Projects/hven-bench-sd/.hven/install-0a34c8a2adba/include -isystem /opt/intel/oneapi/mkl/latest/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/dn0_replay.dir/dn0_replay.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0r1/docs/notes/data/2026-11-m8-dn0-ipm-r1/tools/dn0_replay.cpp
+  dn0_replay.cpp: /usr/bin/clang++ -DDN0_VERIFY -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -isystem /home/ghecht/Projects/hven-bench-sd/.hven/install-0a34c8a2adba/include -isystem /opt/intel/oneapi/mkl/latest/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/dn0_replay_verify.dir/dn0_replay.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0r1/docs/notes/data/2026-11-m8-dn0-ipm-r1/tools/dn0_replay.cpp
+  pardiso_wrap.c: /usr/bin/clang  -DMKL_LP64 -m64 -O3 -DNDEBUG -o CMakeFiles/dn0_pardiso_wrap.dir/pardiso_wrap.c.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0r1/docs/notes/data/2026-11-m8-dn0-ipm-r1/tools/pardiso_wrap.c
+## legs (UTC, raw/logs)
+FOREGROUND_START SC 2026-11-08T02:59:12Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END SC 2026-11-08T02:59:19Z max_sample_rate=79000 rc=0
+FOREGROUND_START D 2026-11-08T03:38:05Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END D 2026-11-08T03:38:09Z max_sample_rate=79000 rc=0
+FOREGROUND_START P 2026-11-08T02:59:19Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END P 2026-11-08T03:38:05Z max_sample_rate=79000 rc=0
+FOREGROUND_START R 2026-11-08T03:38:10Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END R 2026-11-08T03:38:14Z max_sample_rate=79000 rc=0
+FOREGROUND_START S2 2026-11-08T02:58:58Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END S2 2026-11-08T02:59:05Z max_sample_rate=79000 rc=0
+FOREGROUND_START S1 2026-11-08T02:58:50Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+WARMUP_DONE hven-ipm hs003 (discarded)
+FOREGROUND_END S1 2026-11-08T02:58:58Z max_sample_rate=79000 rc=0
+FOREGROUND_START S3 2026-11-08T02:59:05Z max_sample_rate=79000
+PREFLIGHT_OK max_sample_rate=79000
+FOREGROUND_END S3 2026-11-08T02:59:12Z max_sample_rate=79000 rc=0
+LEG_DONE S1 2026-11-08T02:58:58Z
+LEG_DONE S2 2026-11-08T02:59:05Z
+LEG_DONE S3 2026-11-08T02:59:12Z
+LEG_DONE SC 2026-11-08T02:59:19Z
+LEG_DONE P 2026-11-08T03:38:05Z
+LEG_DONE D 2026-11-08T03:38:09Z
+LEG_DONE R 2026-11-08T03:38:14Z
+CHAIN_DONE 2026-11-08T03:38:14Z
+## protocol
+serial, alone under /tmp/box-build.lock (one acquisition per leg, tools/run_chain.sh launched with setsid), pgrep empty before each leg and inside the lock; lane process on core 2 (SMT sibling 10 idle); perf record's reader on core 4 (sibling 12 idle); MKL_NUM_THREADS=1 OMP_NUM_THREADS=1; no timeout wrapper (cell.sh's own watchdog, 300 s; no cell capped)
+## post-hoc (after every leg; informational, no reading input)
+tools/init_audit.py, tools/share_uncertainty.py (analysis of the P scripts); tools/init_probe_gdb_bt.sh (SMBANK, non-population, 03:40:36Z) and tools/init_probe_gdb_count.sh (hs071, population, 03:41:05Z): gdb under the box lock, RECORD binary

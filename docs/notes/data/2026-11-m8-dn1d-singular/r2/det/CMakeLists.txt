@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.24)
+project(dn1d_det CXX)
+set(CMAKE_CXX_STANDARD 20)
+find_package(hven REQUIRED)
+add_executable(det det.cpp)
+target_link_libraries(det PRIVATE hven::hven)
+target_compile_definitions(det PRIVATE EIGEN_MAX_ALIGN_BYTES=32)

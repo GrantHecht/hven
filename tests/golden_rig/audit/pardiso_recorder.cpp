@@ -4,13 +4,13 @@
 // See pardiso_recorder.h. This TU also defines the wrapper the linker
 // redirects the backend's phase entry point to.
 
+#include "pardiso_recorder.h"
+
 #include <algorithm>
 #include <cstring>
 
 #include <mkl_pardiso.h>
 #include <mkl_types.h>
-
-#include "pardiso_recorder.h"
 
 namespace hven::rig::audit {
 

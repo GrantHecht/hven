@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 3e11d4b9b..9f648694b 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1457,7 +1457,7 @@ constexpr double kCurvatureTolFactor = 1e-12;
+ // inside the shift test (1x the floor plus the footprint allowance) and the structural margin
+ // (kInfeasibilityMarginFactor times that), so a landing point inside it neither shifts a working
+ // inequality nor reads as drift, whatever the next face's multipliers.
+-constexpr double kFootprintRowBudget = 0.5;
++constexpr double kFootprintRowBudget = 5.0;
+ 
+ // THE REGULARIZATION FOOTPRINT's dual_mu rungs per solve (section 4c): a cap of their own, outside
+ // kMaxDualRegDecreases (the release re-admission's). At 1 a reverted rung ends footprint rungs for

@@ -1,0 +1,18 @@
+[ retake ] qp26 border status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] qp26 refactorize status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] LAKES qp0 status=0 minors=131 scaled=3 matched=2 refusals=0
+[  PASSED  ] 11 tests.
+me1 build rc=0
+[  FAILED  ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+[ retake ] qp26 border status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] qp26 refactorize status=0 minors=23 scaled=1 matched=1 refusals=0
+[ retake ] LAKES qp0 status=0 minors=131 scaled=2 matched=0 refusals=1
+[  FAILED  ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (129 ms)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+[  FAILED  ] QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+ 2 FAILED TESTS
+RESTORED
+final build rc=0
+DEV5_DONE

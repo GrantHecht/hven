@@ -1,0 +1,7 @@
+tag	reps	solver_samples	share_pooled	share_rep_mean	se_rep_mean	se_binomial	rep_min	rep_max
+hs-hven-ipm-hs007	100	721	0.4229	0.4274	0.0178	0.0184	0.000	1.000
+hs-hven-ipm-hs010	100	727	0.4189	0.4236	0.0176	0.0183	0.000	0.833
+hs-hven-ipm-hs077	100	731	0.4184	0.4222	0.0174	0.0182	0.000	0.857
+sd-hven-ipm-TRY-B	100	1157	0.4616	0.4661	0.0124	0.0147	0.200	0.875
+sd-hven-ipm-HS100MOD	100	1187	0.4210	0.4222	0.0127	0.0143	0.100	0.700
+sd-hven-ipm-HIMMELP6	100	1205	0.4800	0.4816	0.0132	0.0144	0.182	0.889

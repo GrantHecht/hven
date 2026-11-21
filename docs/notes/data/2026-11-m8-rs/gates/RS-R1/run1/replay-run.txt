@@ -1,0 +1,3 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:13:02-05:00
+73064a1e7b7a17156f3084afcdec52b453f2edfcf8203417b0d6ee955509aa27  /home/ghecht/Projects/hven/.claude/worktrees/rsr1/build/bench/hven_sqp_corpus

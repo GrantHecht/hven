@@ -1,0 +1,132 @@
+{
+ "samples": 4839,
+ "period": 1000003,
+ "instr_sampled_all": 4859615517,
+ "instr_sampled_solver": 4851587493,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3014009,
+  "B_kkt": 0,
+  "B_eval": 1000003,
+  "B_setup": 4846566478,
+  "B_eng": 1007003,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.000621241810922444,
+  "B_kkt": 0.0,
+  "B_eval": 0.00020611871917033982,
+  "B_setup": 0.9989650779240312,
+  "B_eng": 0.00020756154587605208
+ },
+ "proc_share_of_all": 0.0016519874817084218,
+ "rule_instr": 4858608514,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1007003,
+ "unmatched_share_of_solver": 0.00020756154587605208,
+ "chains_reaching_main": 0.9954536061169663,
+ "init_instr": 4844559472,
+ "steady_state_instr": 7028021,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.4288560037028916,
+  "B_kkt": 0.0,
+  "B_eval": 0.1422879925942168,
+  "B_setup": 0.2855719981485542,
+  "B_eng": 0.14328400555433743
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2007006
+  ],
+  [
+   "<no hven::linear frame>",
+   1007003
+  ]
+ ],
+ "mkl_serv_instr": 4844559472,
+ "kmp_instr": 2007006,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   1007003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    1007003
+   ],
+   [
+    "hven::detail::KktFactorization::record",
+    1007003
+   ],
+   [
+    "__kmp_stg_parse",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3103239270
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1301442888
+   ],
+   [
+    "__vdso_time",
+    215889645
+   ],
+   [
+    "difftime@plt",
+    210938630
+   ],
+   [
+    "time@plt",
+    13049039
+   ],
+   [
+    "__memchr_avx2",
+    1007003
+   ],
+   [
+    "std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4007012
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    2014006
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2007006
+   ]
+  ]
+ }
+}

@@ -1,0 +1,8 @@
+LEG_START mode=interior core=2 period=400000 event=instructions:u 2026-11-15T07:34:31-05:00
+8c530207b47180f7baf6ad53109bed8ea252a4d3b1348a37923603ef2fb2bb78  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armAbin/hven_sqp_corpus
+663b1138968b6b82811b730dc49d278e868b5dad56fd8ccf7b8700bcbc199a77  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armBbin/hven_sqp_corpus
+WARMUP arm=A rc=0 2026-11-15T07:34:42-05:00
+WARMUP arm=B rc=0 2026-11-15T07:34:53-05:00
+RUN mode=interior round=1 arm=A tag=all 2026-11-15T07:34:53-05:00
+python3: can't open file '/home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/docs/notes/data/2026-11-m8-ap5-g4/runtime-r3/analyze_r5.py': [Errno 2] No such file or directory
+PARSE_ERROR interior-r1-A-all -- LEG VOID 2026-11-15T07:35:06-05:00

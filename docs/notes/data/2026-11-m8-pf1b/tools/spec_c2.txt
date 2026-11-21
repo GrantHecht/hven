@@ -1,0 +1,2 @@
+qp6_full HVEN_PF1B_TRACE=1 -- --maxiter 200000 --exact
+qp6_norung HVEN_PF1B_RUNGS=0 -- --exact

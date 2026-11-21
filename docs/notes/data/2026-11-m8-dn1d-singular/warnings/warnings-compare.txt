@@ -1,0 +1,23 @@
+arm A: 26 warning lines, 19 distinct (file, message)
+arm B: 26 warning lines, 19 distinct (file, message)
+## the set (arm B)
+  1 <build>/_deps/googletest-src/googletest/include/gtest/gtest-printers.h: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator double<double>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator long<long>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::IpmLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::IpmTerminationOptions>::operator double<double>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+  1 include/hven/core/detail/aggregate_arity.h: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+  2 src/drivers/sqp_solver.cpp: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+  1 tests/drivers/test_callback.cpp: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  1 tests/drivers/test_callback.cpp: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  1 tests/drivers/test_callback.cpp: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  1 tests/drivers/test_callback.cpp: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  1 tests/drivers/test_callback.cpp: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  7 tests/interior/test_solver_interface_adapter.cpp: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  1 tests/sqp/test_eqp_refine_ab.cpp: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  1 tests/sqp/test_equality_basis.cpp: 'jacobiSvd' is deprecated: Options should be specified using method's template parameter. [-Wdeprecated-declarations]
+  1 tests/sqp/test_equality_basis.cpp: 'jacobiSvd<0>' is deprecated: Options should be specified using method's template parameter. [-Wdeprecated-declarations]
+  1 tests/sqp/test_hs_battery.cpp: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+WARNINGS_SET_EQUAL

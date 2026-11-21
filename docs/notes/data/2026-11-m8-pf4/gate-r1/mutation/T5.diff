@@ -1,0 +1,13 @@
+diff --git a/src/linear/analysis_tally.cpp b/src/linear/analysis_tally.cpp
+index 9f5bb260c..27ad54b6b 100644
+--- a/src/linear/analysis_tally.cpp
++++ b/src/linear/analysis_tally.cpp
+@@ -29,7 +29,7 @@ AnalysisTally::~AnalysisTally() {
+ }
+ 
+ void AnalysisTally::record(std::uint64_t key) noexcept {
+-    for (AnalysisTally *t = t_innermost; t != nullptr; t = t->outer_) {
++    for (AnalysisTally *t = t_innermost; t != nullptr; t = nullptr) {
+         ++t->analyses_;
+         try {
+             if (!t->seen_->keys.insert(key).second) {

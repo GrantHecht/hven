@@ -1,0 +1,17 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T09:43:12-05:00
+f7058d55f7a1ed9e092b8e7b93d86993e33b10ab64ae9b8c26a0a81ab8329797  /home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-08T09:43:12-05:00
+run rc=0
+compare rc=0
+=== r11-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-08T09:48:00-05:00
+run rc=0
+compare rc=0
+=== r11-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-08T09:48:20-05:00
+run rc=0
+compare rc=0
+=== r11-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-08T09:48:46-05:00

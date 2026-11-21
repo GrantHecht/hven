@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..24466f937 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -165,8 +165,6 @@ class SchurComplement {
+             pending_d_.push_back(d);
+             // C is owed a factorization from here on: nothing may read the
+             // old one (end_batch() refactorizes even if nothing lands).
+-            singular_ = false;
+-            evidence_.reset();
+             factor_pending_ = true;
+             return;
+         }

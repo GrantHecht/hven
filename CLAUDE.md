@@ -4,14 +4,18 @@
 
 hven is a high-performance sparse NLP solver library: an interior-point
 engine and an SQP engine sharing common infrastructure (sparse linear
-algebra, KKT assembly, warm-start currency, globalization primitives).
+algebra, KKT assembly, the QP engines, warm-start currency). Globalization is
+engine-private (`detail/ipm/globalization/`, `detail/sqp/globalization/`), not shared.
 Written in C++20, licensed Apache-2.0, under active development.
 
-Built so far: the core and linear-algebra components (`src/CMakeLists.txt`
-is the authority on what compiles). Neither engine is in this repository
-yet — both arrive with later milestones, migrated in from the projects
-they originated in — so a statement about "the engines" is a statement
-about where this is going, not about code you can read here.
+Built so far: both engines — the interior-point solver (`ipm`) and the SQP
+solver (`sqp`) — with the three QP engines they use (`walk`, `ssn`, `ipqp`,
+under `qp/`) and the infrastructure they share: the core vocabulary, sparse
+and dense linear algebra, the model contract, KKT assembly, warm-start
+currency, the shared solver surface and the trace sinks. Section 2 is the map
+of where each lives; `src/CMakeLists.txt` is the authority on what compiles.
+The engines were migrated in from the projects they originated in, and that
+history is what the two exceptions below are about.
 
 - Namespace: `hven::`
 - Public headers: `include/hven/`
@@ -55,36 +59,83 @@ Outside these two, the rule holds without exception.
 
 ## 2. Repository structure
 
+hven is organised by engine, with shared layers. There are five engines: the NLP
+solvers ipm and sqp, and the QP engines walk, ssn and ipqp (under qp/). A
+component name X appears in up to four places with one meaning:
+include/hven/X/ (public headers), include/hven/detail/X/ (internal headers),
+src/X/ (translation units), tests/X/ (tests). A file lives with the component
+that owns its concept. Engine-private code lives in the engine. A shared layer
+exists when at least two engines include it, or when it is a named bridge
+(model's problem forms, the warm-start hand-off types, the shared solver
+surface, trace).
+
 ```
 include/hven/
-  core/            typedefs, settings & diagnostics shapes, the counters
-                    contract, instrumentation/ledger, threading utils
-  linear/          unified sparse-LA interface (one surface, MKL Pardiso
-                    + Apple Accelerate implementations)
-  model/           the problem contract + the provider-side partitioned
-                    evaluation engine
-  kkt/             KKT assembly and layout, including the Schur-
-                    complement border stack
-  interior/        barrier / interior-point machinery
-  qp/              QP subproblem engines
-  globalization/   funnel, line-search, trust-region, SOC, and
-                    restoration primitives
-  warmstart/       warm-start currency, crossover, mesh transfer,
-                    continuation
-  drivers/         the top-level IPM and SQP algorithms
-  detail/          template implementation bodies and internals kept out
-                    of the public umbrella headers
-src/               non-template implementation TUs
-tests/             unit and correctness test suite
+  hven.h           the umbrella: includes every public header
+  core/            shared vocabulary: types, errors, statuses, the counters
+                    contract, stop token, ledger, pattern hash, version
+  linear/          sparse and dense symmetric factorizations (MKL Pardiso /
+                    Apple Accelerate, LAPACK dense arm)
+  model/           the problem contract: Nlp, Problem, the piece and assembly
+                    surface
+  qp/              QP subproblem types and IPQP evidence
+  warmstart/       the warm-start currency, seeding, the SQP native warm start,
+                    the IPM polish extension (continuation lives in detail/sqp/)
+  solver/          what both solvers share: CommonOptions, SolveResult,
+                    iteration records, step verdicts
+  ipm/             the interior-point solver (IpmSolver, IpmOptions, results)
+  sqp/             the SQP solver (SqpSolver, SqpOptions, results)
+  trace/           the trace-sink interface and the console / JSON-lines sinks
+  detail/          internals: installed, no compatibility promise
+    core/ util/    internal vocabulary; generic utilities
+    barrier/       barrier-function kernels and bound sets (IPM + IPQP);
+                    kernels, not the mu strategy (see ipm/)
+    linear/        backend sessions (MPL-derived files: see §6)
+    model/         engine-facing problem forms and bridges
+    qp/            QP data; walk/ ssn/ ipqp/ = the three QP engines
+    kkt/           KKT systems shared by engines (KktFactor, KktFactorization,
+                    assembly, Schur border, inertia regularization)
+    warmstart/     crossover ingest, SQP warm state, mesh transfer
+    solver/        plumbing both solvers share
+    ipm/           IPM internals and mu governors; globalization/ =
+                    acceptance, line search, SOC, watchdog, restoration
+    sqp/           SQP internals, continuation, predictor; globalization/ =
+                    funnel, trust region, SOC, elastic, restoration;
+                    quasi_newton/ = Hessian approximations
+src/               translation units, mirroring the components. A TU sits in
+                    the deepest directory holding every header it implements
+                    (so src/sqp/globalization/ exists, while the IPM's
+                    globalization bodies live in src/ipm/). hven_pch.h is the
+                    opt-in PCH
+tests/             tests/X pins component X's contract, whatever drives it
+                    (tests/bench/ = gates for the bench instruments).
+                    Fixtures live in X/support/; support/ = fixtures owned by
+                    no component; golden_rig/; install_smoke/. Executables: one
+                    hven_<dir>_tests per directory, at most one
+                    hven_<dir>_seam_tests (sources in tests/<dir>/seam/), plus
+                    hven_linear_alloc_tests; tests/CMakeLists.txt is the
+                    authority and docs/testing.md the how-to
 bench/             benchmark harness and tracked baselines
-bindings/          optional nanobind Python module (own CMake component)
-cmake/             CMake helper modules (Find* modules, compile options,
-                    submodule helpers)
-dep/               vendored submodule dependencies (Eigen, fmt; nanobind
-                    added later with bindings/)
-notices/           third-party license notices
-docs/              engineering documentation
+examples/          one-problem-per-program examples, built and run in CI
+bindings/          reserved for the optional Python module (nothing builds yet)
+scripts/           gates and instruments (install smoke, export contract,
+                    P-SYM, PCH neutrality, census and replay runners)
+cmake/             Find* modules, compile options, the package config template
+dep/               vendored submodules (Eigen, fmt)
+notices/           third-party license notices (protected: §6)
+docs/              engineering documentation; docs/notes/ holds frozen records
 ```
+
+Layering, for every header and TU: core < util < barrier < linear < model <
+qp data < kkt < qp engines < warmstart < solver < {ipm, sqp} public types <
+trace < engine implementations. A file includes only its own level or lower
+ones; ipm and sqp never include each other. Public headers never include
+detail/. The whole order is enforced by tests/core/test_layering.cpp over
+include/hven and src/, with an explicit allow-list of known upward pairs (each
+a named debt; a stale entry fails the test, a new pair is a design decision).
+Public directories and the include root are enforced by
+scripts/check_export_contract.sh; every header compiling alone is enforced by
+the HeaderSelfContained ctest.
 
 ## 3. Build
 
@@ -276,8 +327,8 @@ no exceptions:
   `src/linear/symmetric_factor_mkl.cpp`), with `HVEN_TESTING` defined
   target-wide on a standalone test executable that recompiles those TUs a
   second time and does not link `hven::hven`, so the production library and
-  `hven_tests` are never touched by it. Use this convention for any new need
-  rather than inventing another; `docs/testing.md` also records why each
+  the ordinary `hven_<component>_tests` executables are never touched by it.
+  Use this convention for any new need rather than inventing another; `docs/testing.md` also records why each
   existing injector is or is not faithful for scenarios beyond the one it was
   built for, and lists every sanctioned inside-the-session-file deviation with
   its reasoning and its cost evidence.

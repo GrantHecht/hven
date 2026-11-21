@@ -1,0 +1,25 @@
+control: fails nothing
+w1   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w2   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w3   must-kill KILLED by IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve drivers rc=1 interior rc=1 sqp rc=1
+w4   must-kill KILLED by JsonLinesTraceSink.GoldenLineMessageOnePerKind sqp rc=1
+c1   must-kill KILLED by ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime drivers rc=1
+c2   must-kill KILLED by ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmConsole.TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing drivers rc=1 interior rc=1
+c3   must-kill KILLED by ConsoleLadder.ASqpSolveClimbsOneRungAtATime drivers rc=1
+o1   must-kill KILLED by TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+o2   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+v2   must-kill KILLED by CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot drivers rc=1 interior rc=1
+v3   must-kill KILLED by TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon drivers rc=1
+v4   must-kill KILLED by TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections drivers rc=1
+t1   must-kill KILLED by ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1
+t2   must-kill KILLED by TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind drivers rc=1
+p1a  must-kill KILLED by TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1
+p1b  must-kill KILLED by JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 sqp rc=1
+p1c  must-kill KILLED by TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1
+p2   must-kill KILLED by TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce drivers rc=1
+p3   must-kill KILLED by TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1
+p4   must-kill KILLED by TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1
+p5   must-kill KILLED by ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1
+p11a must-kill INSTRUMENT FAULT ( not the problem)
+p11b must-kill INSTRUMENT FAULT ( not the problem)
+MUTATION_VERDICT FAIL

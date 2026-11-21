@@ -1,0 +1,8 @@
+# WA-1 r7 declared TRAIN movers (dev run, arm B 192d00529 vs arm A origin/m8 64e384e2a): all NEUTRAL (status unchanged)
+sd-hven-sqp-HS101.D
+sd-hven-sqp-HS101.K
+sd-hven-sqp-MESH.D
+sd-hven-sqp-MSS1.D
+sd-hven-sqp-MSS1.K
+sd-hven-sqp-SPANHYD.D
+sd-hven-sqp-SPANHYD.K

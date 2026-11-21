@@ -10,8 +10,6 @@
 // file only; the remainder of hven is Apache-2.0. See notices/eigen-mpl2.txt.
 // =============================================================================
 
-#include "hven/detail/linear/accelerate_session.h"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -21,6 +19,8 @@
 #include <type_traits>
 
 #include <fmt/format.h>
+
+#include <hven/detail/linear/accelerate_session.h>
 
 namespace hven::linear::detail {
 

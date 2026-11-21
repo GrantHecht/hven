@@ -1,0 +1,121 @@
+M8 AP-2 group B2 -- DECLARATION (committed before the first leg; never edited afterwards)
+================================================================================
+Group      B2: one problem type.  hven::Nlp is the single public callback contract and
+           hven::Problem the one object both engines solve
+           (docs/notes/2026-11-m8-ap1-api-review.md sections 3, 5, 7, 8.2, 13 row B2;
+            docs/notes/2026-11-m8-brief.md AP-2; owner decisions 2 and 8)
+Pin        origin/m8 = 03d5d121 ("docs(m8): AP-2 B1 riders evidence ..."), built UNCHANGED
+           from an exported copy (build-b2/pin-src -> build-b2/pin), Release
+Branch     m8-b2 (worktree of the same repo; not pushed)
+Toolchain  system clang++ (Release and Debug, HVEN_FP_MODE=SAFER_FAST, the uniform flag
+           regime), Ninja, MKL, MKL_NUM_THREADS=1.  Install smoke additionally on the
+           default (GCC) front end.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+* Public: model/nlp.h (Nlp, NlpDimensions), model/problem.h (Problem,
+  ProblemStatistics), core/types.h gains IndexVecRef and kInfinity.  IpmSolver and
+  SqpSolver solve a `Problem &`; their NonLinearProgram / NlpModel / NlpModelAssembly
+  overloads leave the public classes.  SolveResult reports `lambda` and `g` in the
+  problem's own row space; lambda_e, lambda_i, ce, ci leave its public surface
+  (the engines' native split stays reachable through detail/ only).
+* To detail/: NlpModel, ParametricNlpModel, NonLinearProgram (and the master-list
+  make_nlp), NlpProblemModel, NlpModelAssembly, make_nlp_program.  NlpTripletModel is
+  replaced by Nlp.  starting_multipliers retired.
+* Entries for tests and bench: detail::problem_from_program, detail::problem_from_model
+  (and detail::problem_from_assembly for the SQP's bridge route).  Each forwards to the
+  engine's existing internal entry unchanged.
+* Per solve on a Problem(Nlp): dimensions(), both structures and bounds() re-read;
+  per-iterate caches cleared; an unchanged bound set is a no-op; a changed set re-lays
+  the transcription; a dimension or structure change, or a row-kind flip, is refused
+  by name.  A pieces Problem (Problem(AssemblyDeclaration)) is refused by name on the
+  SQP (owner decision 8).
+* The 9 B2 lines of scripts/export_contract_detail_includes.allow are deleted.
+
+PROOFS
+--------------------------------------------------------------------------------
+1  both suites: ctest Release and Debug, -j4 under setsid; every test passes.
+2  install smoke on both front ends (default/GCC arm, clang arm), each followed by
+   scripts/check_export_contract.sh; both pass.
+3  export contract: the allow-list loses its 9 B2 lines and the check passes with it.
+4  golden rig: the native-arm rig suite inside ctest; the two OLD-SEAM arms are not
+   configured in this tree (as in every earlier gate) -- reported, not claimed.
+5  27-cell replay x 3 SQP modes (walk, ssn, ipm), scripts/compare_replay.py (sha256
+   8e56ea2e...), cells docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt,
+   reference docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-{walk,ssn,ipm}.csv.
+   The corpus binary takes the internal route (detail::problem_from_model).  EXACT:
+   zero differences on every non-wall column.  Any difference is a failed leg.
+6  census: NOT RUN.  Declared reason: B2 moves no numeric code on the internal route
+   (the engines' internal entries are called unchanged); proof 5 and B2-R1's counter
+   check cover the walk.  TRIPWIRE: any proof-5 difference, or any counter difference in
+   B2-R1, stops the group and is reported (the census then becomes mandatory).
+
+B2-a  PUBLIC ROUTE vs INTERNAL ROUTE, counter identity (the M5 pin).
+      Subset: all 27 replay cells (f7_n{1000,2000,5000,10000,20000}_bound_{neutral,
+      physics,corrupted,activity,warm}, f7_n1000_path_warm, f7_n800_path_warm).  The
+      harness asserts crossover::dual_bind_refusal(cell) is empty for every one of them
+      before its first solve, and stops (fail-closed) if any is not.
+      Vehicle: hven_sqp_corpus gains a hidden lever `--internal-route
+      native|nlp-internal|nlp-public` (default native = the replay route, unchanged).
+      Each cell is stated as an Nlp by crossover::ModelAsNlpProblem (the dual binding).
+        SQP (walk, ssn, ipm): nlp-internal = today's triplet route, i.e. a FRESH
+          NlpProblemModel(nlp) for every solve the cell makes (the documented correct
+          use after a parameter change, friction #23), solved through
+          detail::problem_from_model; nlp-public = ONE Problem(nlp) per cell, every
+          solve of the cell on it.  Same taxonomy protocol, same warm-start values.
+        IPM (--engine interior): nlp-internal = make_nlp_program(nlp) solved through
+          detail::problem_from_program; nlp-public = Problem(nlp).
+      Comparison: scripts/compare_replay.py, nlp-internal vs nlp-public, per mode.
+      CRITERION: statuses and every integer field EXACT.  The float-measure columns are
+      read EXACT first; if and only if EXACT fails on float-measure columns alone, the
+      CLAUDE.md section 7 near-ulp gate (`--residual-gate 1e-5`, the project's calibrated
+      value) is the declared secondary reading, and both readings are reported.  Any
+      status or integer difference is a failed leg.
+B2-b  new suite pins (gtest, in both suites): one Problem on both engines; the EX-1
+      in-place sweep (friction #23) correct on both engines; an unchanged-bounds re-solve
+      counter-identical to today's re-solve on both engines; a changed fixed set re-laid
+      and counted (kkt_analyses_this_call) and a prior WarmStartData refused as an
+      identity mismatch; a dimension change, a structure change and a row-kind flip each
+      refused by name; the per-row lambda/g map round-trip on every row kind (equality,
+      upper, lower, range, free); IPM alternation (two IpmSolvers on one Problem) counted;
+      a pieces Problem refused by name on the SQP; has_hessian()==false refused by name on
+      the IPM and on an exact-Hessian SQP, accepted on a quasi-Newton SQP.
+B2-c  examples: HVEN_BUILD_EXAMPLES=ON, the B2-affected examples build and run (exit 0).
+B2-d  compile-flags diff: the build's own compile_commands.json, library TUs, pin vs B2,
+      full flag set per TU (normalized only for -I/-o/-c/source tokens); added TUs carry
+      the baseline flags.
+
+RUNTIME NEUTRALITY (CLAUDE.md section 5 / docs/measurement.md section 4)
+--------------------------------------------------------------------------------
+B2-R1 (the band).  Arms: A = the pin's hven_sqp_corpus (build-b2/armA, sha256
+      0ba5d824...), B = B2's hven_sqp_corpus.  Default (internal) route.  The B1 protocol
+      verbatim: the 27 cells, one process per cell via --internal-run-one for walk, ssn,
+      ipm; --engine interior whole; perf stat -e instructions:u,branches:u,cycles:u,
+      branch-misses:u,L1-icache-load-misses:u; three rounds, arms alternated per cell
+      within a round; one untimed unrecorded warm-up per arm per batch; taskset -c 2
+      (SMT sibling cpu10 left idle, not proven by /proc/stat), MKL_NUM_THREADS=
+      OMP_NUM_THREADS=1; per arm the per-cell MEDIAN of the three runs; corpus = SUM of
+      per-cell medians.  BAND: corpus instructions B/A in 0.995-1.005 in every mode.
+      STOP condition: compare_replay.py on each (round, cell) pair's two CSV rows; a
+      counter difference is not an instruction measurement.  Pass B (Zen 3 front-end
+      events) is EXPLANATORY, taken only if pass A leaves the band.
+B2-R2 (informational, no band).  The public route's per-solve re-read cost: B2's binary,
+      nlp-public vs nlp-internal, one round, walk and interior, same perf events; the
+      ratio is reported, never gated (the two arms do different setup work by design:
+      the internal arm re-transcribes per solve).
+Wall-clock is carried beside the instructions and is INFORMATIONAL.  Every leg runs one
+process at a time, alone, under flock /tmp/box-build.lock with pgrep checked empty before
+and inside the lock.
+
+HONESTY CLAUSES
+--------------------------------------------------------------------------------
+* A failed leg stops the group and is reported.  No criterion is changed after the first
+  leg; a tool or exception rule that needs fixing after data is reported as a criterion
+  change.
+* Apple/Accelerate and Windows: UNOBSERVED.
+* Tool hashes at declaration time:
+    scripts/compare_replay.py       8e56ea2ecc46d62e2e917ac5bd2e7723d100645b0aa852ec0e074c9200a36080
+    scripts/check_install_smoke.sh  d4b63e0c9a2ea0ed4175fced948a822ac8bbae145d276d2249b74ed26e6c714e
+    scripts/check_export_contract.sh 8371798782141fd2095766018bd58deeb357ab3b51217a2521eca2be8d6e369c
+      (this one changes in B2 by the allow-list deletion only; its post-B2 hash is
+       recorded in PROVENANCE.txt)

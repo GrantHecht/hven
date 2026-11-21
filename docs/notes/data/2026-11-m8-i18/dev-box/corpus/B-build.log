@@ -1,0 +1,3 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/corpus-build-B'
+[1/2] Building CXX object CMakeFiles/corpus_replay.dir/corpus_replay.cpp.o
+[2/2] Linking CXX executable corpus_replay

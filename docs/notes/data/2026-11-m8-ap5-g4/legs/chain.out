@@ -1,0 +1,163 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:36:06-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:36:06-05:00
+
+The following tests did not run:
+	815 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2374 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2375 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T02:37:19-05:00
+STEP ctest-rel rc=0 2026-11-15T02:37:19-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:37:19-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	815 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2374 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2375 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T02:44:06-05:00
+STEP ctest-dbg rc=0 2026-11-15T02:44:06-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:44:07-05:00
+8e8918047ff063cf9bfd57d04fa71c89a5103199b3046613248a91e91d7e672c  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=B 2026-11-15T02:44:07-05:00
+run rc=0
+compare vs g2 r3 rc=0
+=== g4-vs-g2r3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=B 2026-11-15T02:48:56-05:00
+run rc=0
+compare vs g2 r3 rc=0
+=== g4-vs-g2r3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=B 2026-11-15T02:49:17-05:00
+run rc=0
+compare vs g2 r3 rc=0
+=== g4-vs-g2r3-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-15T02:49:43-05:00
+run rc=0
+compare armed rc=0
+=== g4-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-15T02:54:32-05:00
+run rc=0
+compare armed rc=0
+=== g4-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-15T02:54:52-05:00
+run rc=0
+compare armed rc=0
+=== g4-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-15T02:55:18-05:00
+STEP replay rc=0 2026-11-15T02:55:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:55:18-05:00
+1cfd3715ecf26969362592edc50ea07645aa8bf2bbbd2dd5348f4cc592f9e8e9  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armAbin/hven_sqp_corpus
+8e8918047ff063cf9bfd57d04fa71c89a5103199b3046613248a91e91d7e672c  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-15T02:56:03-05:00
+STEP interior rc=0 2026-11-15T02:56:03-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:56:03-05:00
+SMOKE_START default 2026-11-15T02:56:03-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-15T02:56:12-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-15T02:56:20-05:00
+STEP install-smoke rc=0 2026-11-15T02:56:20-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:56:20-05:00
+ninja: no work to do.
+[----------] 5 tests from StopRecovery (199 ms total)
+
+[----------] Global test environment tear-down
+[==========] 65 tests from 7 test suites ran. (1130 ms total)
+[  PASSED  ] 65 tests.
+tsan rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-15T02:56:24-05:00
+STEP tsan rc=0 2026-11-15T02:56:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T02:56:24-05:00
+control build rc=0
+CONTROL failures: []
+applied a src/drivers/ipm_solver.cpp
+MUT a: StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
+applied b src/drivers/ipm_solver.cpp
+MUT b: StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
+applied c src/drivers/ipm_solver.cpp
+MUT c: StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
+applied d src/qp/qp_engine.cpp
+MUT d: StopPollSeam.T4AStopInsideARestorationSubproblemReturnsTheEntryPoint StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied e src/qp/ssn_engine.cpp
+MUT e: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied f src/qp/ipqp_engine.cpp
+MUT f: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied g src/drivers/sqp_solver.cpp
+MUT g: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied h src/drivers/sqp_solver.cpp
+MUT h: StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk seam rc=1 
+applied i src/drivers/sqp_solver.cpp
+MUT i: StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied j src/drivers/sqp_solver.cpp
+MUT j: StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied k src/drivers/sqp_solver.cpp
+MUT k: StopPollSeam.TheSocResolveIsNotArmed seam rc=1 
+applied l src/drivers/sqp_solver.cpp
+MUT l: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode StopPollSeam.T9AnArmedUnfiredSolveIsTheUnarmedSolveOnEachQpMode seam rc=1 
+applied m src/drivers/sqp_solver.cpp
+MUT m: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode StopPollSeam.T9AnArmedUnfiredSolveIsTheUnarmedSolveOnEachQpMode seam rc=1 
+applied n src/drivers/sqp_solver.cpp
+MUT n: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied o src/drivers/sqp_solver.cpp
+MUT o: StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+applied p src/drivers/sqp_solver.cpp
+MUT p: SURVIVES
+applied q src/drivers/sqp_solver.cpp
+MUT q: SURVIVES
+applied r src/drivers/sqp_solver.cpp
+MUT r: StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+FOREGROUND_END 2026-11-15T03:04:21-05:00
+STEP mutations rc=0 2026-11-15T03:04:21-05:00
+worst=0
+FOREGROUND_END 2026-11-15T03:04:21-05:00

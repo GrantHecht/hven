@@ -1,0 +1,12 @@
+  src/qp/ssn_engine.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+  src/qp/ws_independence.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+  src/warmstart/continuation.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+  src/warmstart/ipm_polish_extension.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+  src/warmstart/warm_start.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+  src/warmstart/warm_start_data.cpp  -['-DHVEN_DEFAULT_QP_THREADS=8', '-DHVEN_VERSION_STRING="0.1.0"'] +['-DHVEN_DEFAULT_IPM_THREADS=8', '-DHVEN_VERSION_STRING="0.2.0"']
+distinct flag lists among library TUs: before 5, after 5
+RESULT: DIFFERENT
+flags_diff rc=1 (riders: 1 expected, the two declared defines)
+differing TUs 56; every one only the declared defines: True
+FLAGS_AS_DECLARED
+rc=0

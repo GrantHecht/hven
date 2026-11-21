@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T05:13:43-05:00
+[497/500] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[498/500] Linking CXX executable tests/bench/hven_bench_tests
+[499/500] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+build rc=0
+FOREGROUND_END 2026-11-19T05:18:21-05:00

@@ -1,0 +1,98 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+#pragma once
+
+// ladder_testing.h — the SQP driver's ladder seam (M7 W2 ladder round, L1/L3).
+// Compiles to nothing unless HVEN_TESTING is defined, which only the standalone
+// hven_sqp_seam_tests executable does (docs/testing.md, the sixth seam).
+
+#ifdef HVEN_TESTING
+
+#include <vector>
+
+namespace hven::detail::testing {
+
+/// Ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems as
+/// the engine's own N3 exit does: status kNumericalError, multipliers cleared,
+/// the iterate kept. It stands in for a QP the engine does not solve (E2-D3: the
+/// DALLASM major-1 QP at a feasible point, the READING6 E2 terminations), which
+/// no small model reproduces. The restoration sub-driver is touched by
+/// `fail_restoration_walk_qps` and `exhaust_restoration_elastic`, and by the walk-cap knobs
+/// (`off_rows_rungs`, `off_rows_inloop_rungs`, `report_reads_slacks_only`), which apply to any
+/// caller's elastic ladder, the sub-driver's included.
+struct SqpLadderSeam {
+    /// How many walk subproblems to end kNumericalError; 0 = off.
+    static inline int fail_walk_qps = 0;
+    /// How many kOptimal walk subproblems to let through before the first forced exit.
+    static inline int pass_walk_qps = 0;
+    /// Non-empty: the forced exit's iterate is the step to THIS point (engine variables), a walk
+    /// that stopped somewhere other than the optimum (M7 W2 R2 fix 1). Empty: the solved
+    /// optimum is kept, as before.
+    static inline std::vector<double> forced_point;
+    /// Only once the solve's one restoration has resumed (the DALLASM shape).
+    static inline bool only_after_resume = false;
+    /// Stamp the exit as an E2 termination (`dep_blocker_terminations` = 1).
+    static inline bool as_e2_termination = true;
+    /// Stamp the exit as a certificate bound-half refusal (`certificate_bound_refusals` = 1).
+    static inline bool as_bound_refusal = false;
+    /// Stamp the exit as a certificate row-half refusal (`certificate_row_refusals` = 1).
+    static inline bool as_row_refusal = false;
+    /// How many exits were forced (read by the test).
+    static inline int forced = 0;
+    /// THE RESTORATION SUB-DRIVER'S OWN (M7 W2 RST): how many of ITS kOptimal walk
+    /// subproblems to end kNumericalError the same way (multipliers cleared, the iterate
+    /// kept, no E2 stamp); 0 = off. The knobs above never touch the sub-driver.
+    static inline int fail_restoration_walk_qps = 0;
+    /// Of those forced exits, how many instead read kInfeasible and have their elastic
+    /// ladder end unusable (M7 W2 RST rider M1): the exhausted tier whose nested
+    /// restoration request is refused. 0 = off.
+    static inline int exhaust_restoration_elastic = 0;
+    /// How many restoration sub-driver exits were forced (read by the test).
+    static inline int forced_restoration = 0;
+    /// M8 WALK CAP: how many elastic ladders (any caller, either rung engine) have their
+    /// FINAL kOptimal rung replaced by the shape the uncapped footprint excuse produced --
+    /// the original block at the rung's p_ref (a zero step), every slack 0, status kOptimal,
+    /// the relaxed rows left violated; 0 = off.
+    static inline int off_rows_rungs = 0;
+    /// M8 WALK CAP: the ladder's report judges `closed`/`reduced` on the slacks alone, the
+    /// verdict before the rung-residual bound, so the driver's zero-step guard has a fixture.
+    static inline bool report_reads_slacks_only = false;
+    /// M8 WALK CAP: as `off_rows_rungs`, but each of the next N kOptimal rungs is replaced
+    /// as the ladder runs, before its closure test, not only the final one; 0 = off.
+    static inline int off_rows_inloop_rungs = 0;
+    /// How many rungs `off_rows_rungs` / `off_rows_inloop_rungs` replaced (read by the test).
+    static inline int off_rows_forced = 0;
+    /// ZERO-STEP AGREEMENT: > 0 adds +this to column 2 and -this to column 4 (column 0 alone on a
+    /// QP of at most 5 columns) of every kOptimal walk step of the restoration sub-driver that
+    /// the walk itself reads as NO MOTION (inf-norm within qp_no_motion_tol): a noise step, net
+    /// zero in the penalty objective, the rounding residue a platform other than the reference
+    /// leaves where the reference leaves exactly 0. Multipliers are kept; 0 = off.
+    static inline double perturb_restoration_walk_step = 0.0;
+    /// How many restoration walk steps were perturbed (read by the test).
+    static inline int perturbed_restoration_steps = 0;
+
+    static void reset() {
+        fail_walk_qps = 0;
+        pass_walk_qps = 0;
+        forced_point.clear();
+        only_after_resume = false;
+        as_e2_termination = true;
+        as_bound_refusal = false;
+        as_row_refusal = false;
+        forced = 0;
+        fail_restoration_walk_qps = 0;
+        exhaust_restoration_elastic = 0;
+        forced_restoration = 0;
+        off_rows_rungs = 0;
+        off_rows_inloop_rungs = 0;
+        report_reads_slacks_only = false;
+        off_rows_forced = 0;
+        perturb_restoration_walk_step = 0.0;
+        perturbed_restoration_steps = 0;
+    }
+};
+
+} // namespace hven::detail::testing
+
+#endif

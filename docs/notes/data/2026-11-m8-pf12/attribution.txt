@@ -1,0 +1,46 @@
+f7_n1000_path_neutral
+  u0: total 1.201e+12 instr, 1.088e+08 instr/minor
+  m8: total 1.769e+12 instr, 1.405e+08 instr/minor
+  bin | u0 instr/minor | m8 instr/minor | delta | share of excess
+  E4_polish (polish_*, adopt_polished, refine_terminal_mu_free | 0 | 3.176e+04 | +3.176e+04 | 0.1%
+  E2_detector_screen (detect_dependency, dependency_test*, cer | 0 | 1.35e+05 | +1.35e+05 | 0.4%
+  BPS_border (border_*, bordered_*, BorderedSystem) | 2.445e+05 | 9.132e+05 | +6.687e+05 | 2.1%
+  refine_face (refine_*face*, refine_on_face) | 0 | 0 | +0 | 0.0%
+  MKL/Pardiso/BLAS (libmkl, mkl_*, pardiso*) | 9.263e+07 | 1.228e+08 | +3.016e+07 | 95.2%
+  Eigen/other hven | 1.589e+07 | 1.659e+07 | +6.962e+05 | 2.2%
+  top m8 symbols by per-minor delta vs u0:
+    +1.043e+07  mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted
+    +7.271e+06  mkl_spblas_lp64_def_dcsr1nsunf__mvout_par
+    +4.665e+06  mkl_pds_lp64_dsytrs_bkl_scal_pardiso
+    +1.49e+06  mkl_pds_lp64_dsytrs_bklfw_noscal_pardiso
+    +1.336e+06  mkl_pds_lp64_dsytrs_bklbw_pardiso
+    +1.266e+06  void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> co
+    +9.37e+05  hven::detail::assemble_kkt_core(hven::detail::QpProblem const&, hven::detail::WorkingSet const&, hven::QpOptio
+    +9.342e+05  L_not_one_loopgas_1
+    +8.952e+05  mkl_blas_def_xdgemv
+    +8.417e+05  hven::detail::bordered_regularized_residual(Eigen::SparseMatrix<double, 1, int> const&, long, std::vector<Eige
+    +7.719e+05  mkl_blas_lp64_dgemv
+    +6.395e+05  mkl_blas_def_xdgemv_kernel_t
+f7_n825_path_neutral_control
+  u0: total 9.129e+11 instr, 9.548e+07 instr/minor
+  m8: total 1.174e+12 instr, 1.109e+08 instr/minor
+  bin | u0 instr/minor | m8 instr/minor | delta | share of excess
+  E4_polish (polish_*, adopt_polished, refine_terminal_mu_free | 0 | 2.833e+04 | +2.833e+04 | 0.2%
+  E2_detector_screen (detect_dependency, dependency_test*, cer | 0 | 7.555e+04 | +7.555e+04 | 0.5%
+  BPS_border (border_*, bordered_*, BorderedSystem) | 7.426e+05 | 1.133e+05 | -6.293e+05 | -4.1%
+  refine_face (refine_*face*, refine_on_face) | 0 | 0 | +0 | 0.0%
+  MKL/Pardiso/BLAS (libmkl, mkl_*, pardiso*) | 7.407e+07 | 9.694e+07 | +2.287e+07 | 148.3%
+  Eigen/other hven | 2.067e+07 | 1.374e+07 | -6.927e+06 | -44.9%
+  top m8 symbols by per-minor delta vs u0:
+    +5.159e+06  mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted
+    +3.344e+06  mkl_spblas_lp64_def_dcsr1nsunf__mvout_par
+    +1.784e+06  mkl_pds_lp64_dsytrs_bkl_scal_pardiso
+    +1.491e+06  mkl_pds_lp64_blkl_ll_real.extracted
+    +1.403e+06  mkl_pds_lp64_metis_createcoarsegraphnomask
+    +9.16e+05  hven::detail::assemble_kkt_core(hven::detail::QpProblem const&, hven::detail::WorkingSet const&, hven::QpOptio
+    +8.427e+05  void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> co
+    +5.589e+05  mkl_pds_lp64_upd_real_block
+    +5.435e+05  mkl_pds_lp64_metis_fm_2waynoderefine_onesided
+    +5.326e+05  L_not_one_loopgas_1
+    +4.369e+05  mkl_blas_lp64_dgemv
+    +4.209e+05  Eigen::internal::sparse_time_dense_product_impl<Eigen::SparseMatrix<double, 1, int>, Eigen::Matrix<double, -1,

@@ -1,0 +1,23 @@
+M8 DN-3 -- runtime neutrality gate (../DECLARATION-r1.md P5) -- DECLARATION
+(committed with ../DECLARATION-r1.md before the first leg; never edited; a failed or void leg is answered by a successor,
+this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-dn3b/runtime/ (DN-3b's instrument, itself DN-3a r2's), re-pointed in code lines only:
+run_all.sh's and runtime_leg.sh's worktree, evidence directory (runtime/ of this directory) and build-dn3/ paths,
+run_all.sh's arm A sha256; one provenance line added to each copied file; fixture/ byte copy. Same path depth (five
+levels below the repository root, so analyze_r11.py's '../../../../..' is the worktree root, where
+scripts/compare_replay.py is present). Period 400000; analyzer analyze_r11.py; fixture pre-flight first.
+ARMS
+  A  09718f3dd (origin/m8), rebuilt by ../legs/prebuild.sh: build-dn3/armAbin/hven_sqp_corpus, sha256 in
+     ../DECLARATION-r1.md (Arm A) and in run_all.sh.
+  B  the code head: build-dn3/rel/bench/hven_sqp_corpus copied by run_all.sh to build-dn3/armBbin/, sha256 in
+     ../DECLARATION-r1.md (Arm B). run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults (kNever). VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY at the defaults (kNever): sqp_kkt_options() writes an empty max_dense_dimension (one branch per
+factor configuration); every DenseTallyScope reads two more factor counters at entry and exit and adds one difference
+(walk eliminated/K0/polish factorizations, SSN steps); the IPQP reads two more counters once per solve; the IPM reads two
+more counters at each public solve entry and exit and at each set_qp_params() reconfigure; the IPQP and the IPM
+configure an empty threshold. No dense session exists at kNever, so nothing else runs. All four modes run changed code.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.

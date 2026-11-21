@@ -1,0 +1,15 @@
+RS-0 baseline (taken at rs-1 head 5b54e8596 = abfa51b04 + RS-0 instruments + DECLARATION; no compiled code differs from origin/m8 abfa51b04)
+Build: clean configure, CCACHE_DISABLE=1, Release, clang++ 22.1.8, HVEN_FP_MODE=SAFER_FAST, bench+examples ON, at $WT/build (the same absolute path every later arm uses).
+gtest fetched from the main checkout's googletest-src v1.17.0 via FETCHCONTENT_SOURCE_DIR_GOOGLETEST (a GIT_DIR/GIT_WORK_TREE environment breaks FetchContent's git clone).
+P-SYM capture: 199 objects (hven 58, sqp_tests 73, interior_tests 4, model_tests 12, tests 13, drivers_tests 30, bench 7) + libhven.a; tool sha256 57b7b82383c5a0e238297a4eb515bca734cee1a89da5fd9c9218d035d893b55d.
+  Derived object directories equal the old fixed ones (counts identical per group). Compare of the capture with itself: 199 byte-identical, PASS.
+  Object-map generator on the real manifest with all RS-1 moves applied synthetically: 39 map lines, 1 deleted (color_text), 0 errors; identity: 0 lines.
+Static initialisers (nm): library TUs solve_status, warm_start, qp_engine, kkt_calls carry NONE; test TUs test_solve_status, test_scaffold, test_types carry
+  _GLOBAL__sub_I_<stem>.cpp -> ../symbol-map-rs2.txt (applies from RS-2).
+ctest Release: 100% tests passed, 0 tests failed out of 3869. ctest -N: 3871 names; gtest lists per executable: gtest/*.txt (3846 names total).
+Install smoke (default + clang): PASSED, export contract OK; installed listing 962 files each, include/hven/drivers 16 files.
+Trace-off-path scanned site count (C++ std::regex tool, src/{drivers,qp}): TOTAL sites 130 files 23   [asserted EQUAL after RS-1e]
+Core-layering scanned headers: core-layering scanned headers (include/hven/core, recursive): 14   [11 public + 3 core/detail; RS-1a: 11 + 6]
+27-cell replay x walk/ssn/ipm on the base commit == the M7 WX2 pin (docs/notes/data/2026-10-m7-wx2-gates/gates/replay), 0 differences x3 -> both references coincide.
+  The corpus binary sha256 is in corpus-binary.sha256; the replay CSVs themselves are the pin files (kept in .scratch/base/replay, regenerable).
+Compile database of the baseline: .scratch/cc-base.json sha256 0de9ba41d909bb5f793ae6fee0b89422d6eb1e755f225e26a8431521c9aac2c8 (365 TUs).

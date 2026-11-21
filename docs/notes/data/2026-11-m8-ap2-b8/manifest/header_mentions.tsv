@@ -1,0 +1,9 @@
+re:(?<![\w/])model/solver_interface_specs\.h	model/piece_interfaces.h
+re:(?<![\w/])model/indexing_data\.h	model/solver_indexing_data.h
+re:(?<![\w/])model/sizing_specs\.h	model/sizable_spec.h
+re:(?<![\w/])drivers/ipm_iterate_info\.h	drivers/ipm_iterate.h
+re:\(indexing_data\.h\)	(solver_indexing_data.h)
+re:(?<![\w/])indexing_data\.h\):	solver_indexing_data.h):
+re:(?<![\w/])\(iterate_info\.h\)	(ipm_iterate.h)
+re:-- indexing_data\.h$	-- solver_indexing_data.h
+kIterateInfoFieldCount	kIpmIterateFieldCount

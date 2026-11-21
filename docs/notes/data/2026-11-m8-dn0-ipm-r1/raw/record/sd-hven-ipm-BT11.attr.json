@@ -1,0 +1,276 @@
+{
+ "samples": 2253,
+ "period": 250007,
+ "instr_sampled_all": 740617295,
+ "instr_sampled_solver": 281297056,
+ "bucket_instr": {
+  "B_sym": 255257,
+  "B_fac": 106493213,
+  "B_kkt": 0,
+  "B_eval": 14205144,
+  "B_setup": 75063832,
+  "B_eng": 85279610,
+  "B_proc": 459320239
+ },
+ "share_of_solver": {
+  "B_sym": 0.0009074286223599866,
+  "B_fac": 0.3785791949418767,
+  "B_kkt": 0.0,
+  "B_eval": 0.05049872971297645,
+  "B_setup": 0.2668489783270252,
+  "B_eng": 0.30316566839576164
+ },
+ "proc_share_of_all": 0.6201856776785101,
+ "rule_instr": 603835999,
+ "fallback_instr": 58568130,
+ "fallback_by_bucket": {
+  "B_fac": 58251621,
+  "B_proc": 316509
+ },
+ "unmatched_instr": 78213166,
+ "unmatched_share_of_solver": 0.2780447371621266,
+ "chains_reaching_main": 0.2241455836662228,
+ "init_instr": 404011,
+ "steady_state_instr": 280893045,
+ "steady_state_share": {
+  "B_sym": 0.0009087337851316326,
+  "B_fac": 0.37912370881237023,
+  "B_kkt": 0.0,
+  "B_eval": 0.05057136249137105,
+  "B_setup": 0.26579448060025834,
+  "B_eng": 0.30360171431086874
+ },
+ "fac_split": [
+  [
+   "<no hven::linear frame>",
+   58251621
+  ],
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   47237813
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   671520
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   332259
+  ]
+ ],
+ "mkl_serv_instr": 12172833,
+ "kmp_instr": 159803423,
+ "top_unmatched_leaf": [
+  [
+   "__strcmp_avx2",
+   38209309
+  ],
+  [
+   "__internal_syscall_cancel",
+   12048585
+  ],
+  [
+   "__printf_buffer",
+   3457095
+  ],
+  [
+   "__vfscanf_internal",
+   3310344
+  ],
+  [
+   "msort_with_tmp.part.0",
+   2932830
+  ],
+  [
+   "syscall",
+   2353815
+  ],
+  [
+   "vsnprintf",
+   2114310
+  ],
+  [
+   "__strchrnul_avx2",
+   1762799
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "void hven::feed_pattern<double, 1, int>",
+    255257
+   ]
+  ],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    21164585
+   ],
+   [
+    "_strnlen_s_chk",
+    4824635
+   ],
+   [
+    "_int_malloc",
+    4179363
+   ],
+   [
+    "__kmp_env_initialize",
+    4126863
+   ],
+   [
+    "__kmp_stg_parse",
+    2661576
+   ],
+   [
+    "__intel_avx_rep_memcpy",
+    2346815
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    2053058
+   ],
+   [
+    "[unknown]",
+    1921806
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    2532074
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    1761047
+   ],
+   [
+    "elfun_",
+    1490042
+   ],
+   [
+    "range_",
+    1021279
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    951275
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    883023
+   ],
+   [
+    "hven::{anon}::adopt_pattern",
+    788772
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_hess_in_place",
+    704770
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    7598211
+   ],
+   [
+    "hven::detail::get_core_count",
+    6956190
+   ],
+   [
+    "__internal_syscall_cancel",
+    5312648
+   ],
+   [
+    "_gfortrani_read_block_form",
+    4940137
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    3408342
+   ],
+   [
+    "__memchr_avx2",
+    3004337
+   ],
+   [
+    "isspace",
+    2976333
+   ],
+   [
+    "std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >",
+    2943081
+   ]
+  ],
+  "B_eng": [
+   [
+    "__strcmp_avx2",
+    38209309
+   ],
+   [
+    "__internal_syscall_cancel",
+    12048585
+   ],
+   [
+    "__printf_buffer",
+    3457095
+   ],
+   [
+    "__vfscanf_internal",
+    3310344
+   ],
+   [
+    "msort_with_tmp.part.0",
+    2932830
+   ],
+   [
+    "syscall",
+    2353815
+   ],
+   [
+    "vsnprintf",
+    2114310
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1977804
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    150212669
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    125961981
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    61868472
+   ],
+   [
+    "strcmp",
+    40570124
+   ],
+   [
+    "check_match",
+    18540269
+   ],
+   [
+    "mprotect",
+    7050698
+   ],
+   [
+    "_dl_addr",
+    5382646
+   ],
+   [
+    "_dl_runtime_resolve_xsavec",
+    2500568
+   ]
+  ]
+ }
+}

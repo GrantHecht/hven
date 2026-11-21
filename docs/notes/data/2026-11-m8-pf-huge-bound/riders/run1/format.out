@@ -1,0 +1,11 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T00:48:04-05:00
+clang-format version 22.1.8 (Fedora 22.1.8-4.fc44)
+0 include/hven/detail/interior/barrier_math.h
+0 include/hven/detail/interior/bound_set.h
+0 include/hven/drivers/common_options.h
+0 tests/drivers/test_infinite_bound.cpp
+0 tests/interior/test_soc.cpp
+diagnostics=0
+rc=0
+FOREGROUND_END 2026-11-07T00:48:04-05:00

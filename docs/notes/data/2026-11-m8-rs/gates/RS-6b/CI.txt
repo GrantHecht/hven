@@ -1,0 +1,10 @@
+RS-6b CI record (workflow_dispatch on origin rs6b unless stated)
+development loop:
+  44662244398  rs6b @5a5028986  windows build failed: test_ssn_engine.cpp M_PI undefined (cancelled otherwise)
+  44664062758  rs6b @ee9bca156 (TEMP -k 0)  windows build OK; ctest 3 failed of 3772: IpqpAcceptanceA1.TwoBlocks..., SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken, B1Gate.KSsnMatchesTheWalks...; macOS success; linux cancelled by a newer dispatch
+  44668118024  rs6b @57a2d41eb (TEMP -k 0 still present)  ALL FOUR LANES GREEN
+gate run L6:
+  44674386300  rs6b @72cc139df  (code == final head; later commits docs/evidence only)  macos success, linux-clang-coverage success, linux-clang-release success, windows-clang-release success
+  Windows ctest: 100% tests passed out of 3772 (windows-ctest-summary.txt); skipped/disabled: FailByDesignControl, NlpAdapterAllocationTest.TheCounterSeesEachInterposedAllocator, RouteReference sentinel (off-reference), EqpRefinementAb x2
+mutation (DECLARATION-RS-6b-r2.md, -r4.md): combined run 44671220716 (cancelled, record: combined-run1*.txt); isolated Windows-only runs:
+  core 44674261794 | trace 44674264114 | kkt 44674266666 | warmstart 44674269786 | model 44674273308 | linear 44674275801 | qpface 44674278310 | sqpm7 44674280843 | ssnrefine 44674283396 | core2 44678288788

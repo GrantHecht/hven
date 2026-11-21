@@ -1,0 +1,20 @@
+== goldens: hide tests/trace/golden; ctest -R '^(HumanTraceGoldens|TraceV1Fixtures)\.'
+14% tests passed, 6 tests failed out of 7
+ctest rc=8 (nonzero expected)
+1/7 Test #1577: TraceV1Fixtures.SqpCompleteStream ....................................***Failed    0.01 sec
+3/7 Test #1576: TraceV1Fixtures.IpmCompleteStream ....................................***Failed    0.00 sec
+4/7 Test #1578: TraceV1Fixtures.IpmAbortedStreamHasNoEnd .............................***Failed    0.00 sec
+5/7 Test #1615: HumanTraceGoldens.TheElasticFixture ..................................***Failed    0.03 sec
+100% tests passed, 0 tests failed out of 7
+restored: ctest rc=0 (0 expected)
+== compile_fail: hide tests/model/compile_fail; ctest -R '^hven_compile_fail_'
+0% tests passed, 21 tests failed out of 21
+ctest rc=8 (nonzero expected)
+ 1/21 Test #1434: hven_compile_fail_no_constraint_surface .................***Failed    0.01 sec
+ 2/21 Test #1444: hven_compile_fail_constraint_only_objective .............***Failed    0.01 sec
+ 3/21 Test #1445: hven_compile_fail_partial_objective_surface .............***Failed    0.01 sec
+ 4/21 Test #1436: hven_compile_fail_local_jacobian_pattern_out_of_range ...***Failed    0.01 sec
+100% tests passed, 0 tests failed out of 21
+restored: ctest rc=0 (0 expected)
+tree restored clean
+VACUITY_PROOF rc=0

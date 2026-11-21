@@ -1,0 +1,6 @@
+control: fails nothing
+o1   must-kill KILLED by BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1
+o2   must-kill KILLED by ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1
+o3   must-kill KILLED by Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest drivers rc=1
+x1   must-kill KILLED by Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest drivers rc=1
+MUTATION_VERDICT PASS

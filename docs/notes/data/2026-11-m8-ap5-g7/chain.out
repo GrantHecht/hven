@@ -1,0 +1,200 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:17:00-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:17:01-05:00
+
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2441 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2442 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T01:18:16-05:00
+STEP ctest-rel rc=0 2026-11-16T01:18:16-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:18:16-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2441 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2442 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T01:25:32-05:00
+STEP ctest-dbg rc=0 2026-11-16T01:25:32-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:25:32-05:00
+4ac810154cc0767369d16933621ce178674e34c6b47e11956578b3d4fc12f6fc  /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/armAbin/hven_sqp_corpus
+c1984bd697602a9f5d11515c1eb23e05bf93e4ab902470a9adc35f411eec8f84  /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-16T01:25:32-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-16T01:30:22-05:00
+run rc=0
+compare A vs B rc=0
+=== g7-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-16T01:35:11-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-16T01:35:31-05:00
+run rc=0
+compare A vs B rc=0
+=== g7-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-16T01:35:52-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-16T01:36:18-05:00
+run rc=0
+compare A vs B rc=0
+=== g7-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-16T01:36:44-05:00
+run rc=0
+compare armed rc=0
+=== g7-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-16T01:41:30-05:00
+run rc=0
+compare armed rc=0
+=== g7-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-16T01:41:51-05:00
+run rc=0
+compare armed rc=0
+=== g7-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-16T01:42:17-05:00
+STEP replay rc=0 2026-11-16T01:42:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:42:17-05:00
+4ac810154cc0767369d16933621ce178674e34c6b47e11956578b3d4fc12f6fc  /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/armAbin/hven_sqp_corpus
+c1984bd697602a9f5d11515c1eb23e05bf93e4ab902470a9adc35f411eec8f84  /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/g7/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-16T01:43:01-05:00
+STEP interior rc=0 2026-11-16T01:43:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:43:02-05:00
+SMOKE_START default 2026-11-16T01:43:02-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-16T01:44:06-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-16T01:44:47-05:00
+STEP install-smoke rc=0 2026-11-16T01:44:47-05:00
+golden distinct MATCH
+golden zero     MATCH
+rest of the file (outside the two literals and the declared comment/count lines) UNCHANGED
+pairs 2, failures 0
+STEP goldens rc=0 2026-11-16T01:44:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:44:47-05:00
+[150/150] Linking CXX executable tests/drivers/hven_drivers_tests
+[----------] 10 tests from StopRecovery (407 ms total)
+
+[----------] Global test environment tear-down
+[==========] 102 tests from 9 test suites ran. (1584 ms total)
+[  PASSED  ] 102 tests.
+[----------] 18 tests from StopPollSeam (480 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test suite ran. (480 ms total)
+[  PASSED  ] 18 tests.
+tsan rc=0 seam rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-16T01:46:34-05:00
+STEP tsan rc=0 2026-11-16T01:46:34-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T01:46:34-05:00
+control build rc=0
+CONTROL failures: []
+APPLIED q1 src/drivers/ipm_solver.cpp
+MUT q1: IpmConvergence.FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals drivers rc=1 
+APPLIED q2 src/drivers/ipm_options.cpp
+MUT q2: OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames drivers rc=1 
+APPLIED r4 src/drivers/sqp_solver.cpp
+MUT r4: SqpDriverContract.TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime sqp rc=1 
+APPLIED e4 src/drivers/sqp_options.cpp
+MUT e4: Options.WorkerOptionsPreparesEitherEngineTheSameWay drivers rc=1 
+APPLIED e3 include/hven/detail/drivers/sqp_solver_impl.h
+MUT e3: Threads.ZeroLeavesEveryFactorAtTheBackendDefault drivers rc=1 
+APPLIED r7s src/drivers/sqp_solver.cpp
+MUT r7s: WarmProtocol.SqpColdCeilingCountsTheIgnoredWarmStart drivers rc=1 
+APPLIED r7i src/drivers/ipm_solver.cpp
+MUT r7i: WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1 
+APPLIED r7j src/drivers/ipm_solver.cpp
+MUT r7j: WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1 
+APPLIED b1 src/drivers/ipm_solver.cpp
+MUT b1: CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1 
+APPLIED b2 src/drivers/ipm_solver.cpp
+MUT b2: DenseArmEngines.InertiaCorrectionsCountTheResidualGuardsReRuns drivers rc=1 
+APPLIED e2 src/drivers/sqp_solver.cpp
+/home/ghecht/Projects/hven/.claude/worktrees/g7/docs/notes/data/2026-11-m8-ap5-g7/legs/mutations.sh: line 27: 2623306 Segmentation fault         timeout 900 "$B/drivers/hven_drivers_tests" --gtest_brief=1 --gtest_fail_fast 2>&1
+MUT e2: drivers rc=139 
+APPLIED e2b src/drivers/sqp_solver.cpp
+MUT e2b: SURVIVES
+APPLIED c1 src/drivers/ipm_solver.cpp
+MUT c1: StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1 
+APPLIED c1b src/drivers/ipm_solver.cpp
+MUT c1b: StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1 
+APPLIED c2 src/drivers/sqp_solver.cpp
+MUT c2: StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop seam rc=1 
+APPLIED m1 include/hven/core/solver_counters.h
+MUT m1 BUILD_FAIL
+APPLIED m2 include/hven/core/solver_counters.h
+MUT m2 BUILD_FAIL
+FOREGROUND_END 2026-11-16T02:24:59-05:00
+STEP mutations rc=0 2026-11-16T02:24:59-05:00
+control: fails nothing
+q1   must-kill KILLED by IpmConvergence.FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals drivers rc=1
+q2   must-kill KILLED by OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames drivers rc=1
+r4   must-kill KILLED by SqpDriverContract.TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime sqp rc=1
+e4   must-kill KILLED by Options.WorkerOptionsPreparesEitherEngineTheSameWay drivers rc=1
+e3   must-kill KILLED by Threads.ZeroLeavesEveryFactorAtTheBackendDefault drivers rc=1
+r7s  must-kill KILLED by WarmProtocol.SqpColdCeilingCountsTheIgnoredWarmStart drivers rc=1
+r7i  must-kill KILLED by WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1
+r7j  must-kill KILLED by WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1
+b1   must-kill KILLED by CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1
+e2   must-kill KILLED by drivers rc=139
+c1   must-kill KILLED by StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1
+c1b  must-kill KILLED by StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1
+c2   must-kill KILLED by StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop seam rc=1
+m1   must-kill KILLED (build)
+m2   must-kill KILLED (build)
+b2   reported  KILLED by DenseArmEngines.InertiaCorrectionsCountTheResidualGuardsReRuns drivers rc=1
+e2b  reported  SURVIVES
+MUTATION_VERDICT PASS
+STEP mutation-verdict rc=0 2026-11-16T02:24:59-05:00
+CHAIN_COMPLETE
+FOREGROUND_END 2026-11-16T02:24:59-05:00
+chain rc=0

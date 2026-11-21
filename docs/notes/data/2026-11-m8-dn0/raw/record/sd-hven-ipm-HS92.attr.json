@@ -1,0 +1,138 @@
+{
+ "samples": 2503,
+ "period": 1000003,
+ "instr_sampled_all": 2503007509,
+ "instr_sampled_solver": 2499007497,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 1000003,
+  "B_kkt": 0,
+  "B_eval": 43000129,
+  "B_setup": 2444007332,
+  "B_eng": 11000033,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.00040016006402561027,
+  "B_kkt": 0.0,
+  "B_eval": 0.01720688275310124,
+  "B_setup": 0.9779911964785915,
+  "B_eng": 0.004401760704281713
+ },
+ "proc_share_of_all": 0.0015980823012385138,
+ "rule_instr": 2449007347,
+ "fallback_instr": 43000129,
+ "fallback_by_bucket": {
+  "B_eval": 43000129
+ },
+ "unmatched_instr": 11000033,
+ "unmatched_share_of_solver": 0.004401760704281713,
+ "chains_reaching_main": 0.9764282860567319,
+ "init_instr": 2443007329,
+ "steady_state_instr": 56000168,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.017857142857142856,
+  "B_kkt": 0.0,
+  "B_eval": 0.7678571428571429,
+  "B_setup": 0.017857142857142856,
+  "B_eng": 0.19642857142857142
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 2443007329,
+ "kmp_instr": 1000003,
+ "top_unmatched_leaf": [
+  [
+   "__sin_fma",
+   8000024
+  ],
+  [
+   "_int_malloc",
+   1000003
+  ],
+  [
+   "__ieee754_exp_fma",
+   1000003
+  ],
+  [
+   "__sincos_fma",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "eval92_",
+    43000129
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1554004662
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    661001983
+   ],
+   [
+    "__vdso_time",
+    113000339
+   ],
+   [
+    "difftime@plt",
+    104000312
+   ],
+   [
+    "time@plt",
+    11000033
+   ],
+   [
+    "hven::detail::get_core_count",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__sin_fma",
+    8000024
+   ],
+   [
+    "_int_malloc",
+    1000003
+   ],
+   [
+    "__ieee754_exp_fma",
+    1000003
+   ],
+   [
+    "__sincos_fma",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ]
+  ]
+ }
+}

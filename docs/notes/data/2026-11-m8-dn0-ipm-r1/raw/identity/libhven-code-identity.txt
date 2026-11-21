@@ -1,0 +1,8 @@
+members: pin 56, cfi 56; same names: True
+executable sections compared: 6756 (6891718 bytes); differing: 0
+non-executable differences (kind, section): count
+  differs .eh_frame: 51
+  differs .rela.eh_frame: 51
+  only-in-cfi .eh_frame: 2
+  only-in-cfi .rela.eh_frame: 2
+CODE_IDENTITY_OK

@@ -1,0 +1,12 @@
+WA1M fp solve=1 iter=1440 code=1 verdict=0 after_move=0 chain=0 slope=3.781e-07 php=-4.514e-12 ms=1.563e-16 mc=1.310e-09 blocked=1 a_block=4.431e-05 a_rows=2.914e+01 move=0.000e+00 mu=1.0e-08
+WA1M step solve=1 iter=1440 after_move=0 chain=0 code=1 alpha=1.634e-06 kind=2 df=0.000000e+00 f=4665.18900654
+WA1M fp solve=1 iter=1510 code=1 verdict=0 after_move=0 chain=0 slope=8.349e-05 php=-8.767e-08 ms=-3.296e-14 mc=2.791e-06 blocked=1 a_block=-0.000e+00 a_rows=3.404e-01 move=0.000e+00 mu=1.0e-08
+WA1M step solve=1 iter=1510 after_move=0 chain=0 code=1 alpha=-0.000e+00 kind=2 df=0.000000e+00 f=4665.06124245
+WA1M fp solve=2 iter=1440 code=1 verdict=0 after_move=0 chain=0 slope=3.781e-07 php=-4.514e-12 ms=1.563e-16 mc=1.310e-09 blocked=1 a_block=4.431e-05 a_rows=2.914e+01 move=0.000e+00 mu=1.0e-08
+WA1M step solve=2 iter=1440 after_move=0 chain=0 code=1 alpha=1.634e-06 kind=2 df=0.000000e+00 f=4665.18900654
+WA1M fp solve=2 iter=1510 code=1 verdict=0 after_move=0 chain=0 slope=8.349e-05 php=-8.767e-08 ms=-3.296e-14 mc=2.791e-06 blocked=1 a_block=-0.000e+00 a_rows=3.404e-01 move=0.000e+00 mu=1.0e-08
+WA1M step solve=2 iter=1510 after_move=0 chain=0 code=1 alpha=-0.000e+00 kind=2 df=0.000000e+00 f=4665.06124245
+WA1M fp solve=5 iter=18 code=2 verdict=2 after_move=0 chain=0 slope=5.035e+01 php=-8.656e+01 ms=5.690e-05 mc=2.054e+01 blocked=1 a_block=2.221e-06 a_rows=7.108e-04 move=0.000e+00 mu=1.0e-08
+WA1M fp solve=5 iter=19 code=2 verdict=0 after_move=0 chain=0 slope=1.019e-01 php=-3.546e-04 ms=8.616e-06 mc=6.362e-03 blocked=1 a_block=1.079e-02 a_rows=4.147e-02 move=0.000e+00 mu=1.0e-08
+WA1M fp solve=6 iter=18 code=2 verdict=2 after_move=0 chain=0 slope=5.035e+01 php=-8.656e+01 ms=5.690e-05 mc=2.054e+01 blocked=1 a_block=2.221e-06 a_rows=7.108e-04 move=0.000e+00 mu=1.0e-08
+WA1M fp solve=6 iter=19 code=2 verdict=0 after_move=0 chain=0 slope=1.019e-01 php=-3.546e-04 ms=8.616e-06 mc=6.362e-03 blocked=1 a_block=1.079e-02 a_rows=4.147e-02 move=0.000e+00 mu=1.0e-08

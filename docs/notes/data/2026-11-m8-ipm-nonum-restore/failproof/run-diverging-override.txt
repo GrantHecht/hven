@@ -1,0 +1,107 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-diverging-override/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:*/IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*
+[==========] Running 14 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from BackendErrorSeam
+[ RUN      ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine (4 ms)
+[ RUN      ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine (0 ms)
+[ RUN      ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult
+[       OK ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult (2 ms)
+[----------] 3 tests from BackendErrorSeam (7 ms total)
+
+[----------] 1 test from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (2 ms)
+[----------] 1 test from IpmDenseGuardSeam (2 ms total)
+
+[----------] 6 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:374: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <05-00 00-00>
+  hven::SolveStatus::kAcceptable
+    Which is: 4-byte object <01-00 00-00>
+diverging: the iterates grew without bound
+
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration
+[       OK ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+[       OK ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective (0 ms)
+[----------] 6 tests from IpmNoNumericsSeam (4 ms total)
+
+[----------] 4 tests from BothStrategies/IpmNoNumericsRestorationSeam
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:429: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <05-00 00-00>
+  hven::SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+diverging: the iterates grew without bound
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:431: Failure
+Expected: (r.message.find("(numerical issue)")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+diverging: the iterates grew without bound
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:432: Failure
+Expected: (run.event_x.size()) > (1U), actual: 1 vs 1
+the solve continued past the iteration that entered it
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:429: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <05-00 00-00>
+  hven::SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+diverging: the iterates grew without bound
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:431: Failure
+Expected: (r.message.find("(numerical issue)")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+diverging: the iterates grew without bound
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:432: Failure
+Expected: (run.event_x.size()) > (1U), actual: 1 vs 1
+the solve continued past the iteration that entered it
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:457: Failure
+Value of: success(r.status)
+  Actual: false
+Expected: true
+diverging: the iterates grew without bound
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-src-diverging-override/tests/sqp/test_ipm_dense_guard_seams.cpp:457: Failure
+Value of: success(r.status)
+  Actual: false
+Expected: true
+diverging: the iterates grew without bound
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[----------] 4 tests from BothStrategies/IpmNoNumericsRestorationSeam (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+
+ 5 FAILED TESTS

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/kkt/schur_complement.h b/include/hven/detail/kkt/schur_complement.h
+index e02a17353..d7ef16d1e 100644
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -626,7 +626,7 @@ class SchurComplement {
+         }
+         try {
+             for (Index j = 0; j < k; ++j) {
+-                const auto sj = static_cast<std::size_t>(j);
++                const auto sj = static_cast<std::size_t>(k - 1 - j);
+                 Vec k0inv_v = batched ? Vec(sol.col(j)) : detail::solve_vec(kkt_, pv[sj]);
+                 land(pv[sj], std::move(k0inv_v), pd[sj]);
+             }

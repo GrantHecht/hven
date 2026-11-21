@@ -1,0 +1,220 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T04:30:40-05:00
+code paths == 4d70afbd025889a0b845a2902863edd17a5ecc3f == the declared trees, clean; HEAD 167281e617f75575dc97b96699d3c8772cf76d3a
+LEG P4 start 2026-11-19T04:30:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T04:30:40-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126670e+06 B=7.126646e+06 B/A=0.999997
+  all samples                      A=7.126670e+06 B=7.126646e+06 B/A=0.999997
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850673e+12 B=2.850664e+12 B/A=0.999997
+per-round filtered B/A (informational):
+  round 1: B/A=0.999997
+  round 2: B/A=0.999995
+  round 3: B/A=0.999997
+MODE walk FILTERED B/A = 0.999997 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-19T05:04:18-05:00
+LEG P4 rc=0 2026-11-19T05:04:18-05:00
+LEG P5 start 2026-11-19T05:04:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T05:04:18-05:00
+MUT control unit_rc=0 seam_rc=0 killers=0
+APPLIED Mt1
+RESTORED
+MUT Mt1 unit_rc=0 seam_rc=1 killers=12
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (5395 ms)
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (127 ms)
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (647 ms)
+APPLIED Mt2
+RESTORED
+MUT Mt2 unit_rc=0 seam_rc=1 killers=12
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (5414 ms)
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (127 ms)
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (647 ms)
+APPLIED Mt3
+RESTORED
+MUT Mt3 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform
+   QpPlatformRetake.ARequestLeavesAnUnperturbedFactorizationOnThePlatform (0 ms)
+APPLIED Me1
+RESTORED
+MUT Me1 unit_rc=0 seam_rc=1 killers=4
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (129 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+APPLIED Me2
+RESTORED
+MUT Me2 unit_rc=0 seam_rc=1 killers=8
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (129 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (646 ms)
+APPLIED Mm1
+RESTORED
+MUT Mm1 unit_rc=1 seam_rc=1 killers=12
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices (27 ms)
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices (16 ms)
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   QpNc4ConvexCertificate.BritgasRestorationLpQp4 (4670 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (324 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (26 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+APPLIED Mm2
+RESTORED
+MUT Mm2 unit_rc=1 seam_rc=1 killers=18
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (132 ms)
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle
+   QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle (0 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (650 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (57 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+   SymmetricMatchingScaling.ScalesAStructurallySingularIndexByItsMatchedNeighbours
+   SymmetricMatchingScaling.ScalesAStructurallySingularIndexByItsMatchedNeighbours (0 ms)
+APPLIED Mm3
+RESTORED
+MUT Mm3 unit_rc=1 seam_rc=1 killers=12
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices
+   MaxProductMatching.MatchesADenseHungarianOnLargerRandomMatrices (0 ms)
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices
+   MaxProductMatching.MatchesBruteForceOnSmallMatrices (16 ms)
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (129 ms)
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake
+   QpPlatformRetake.YorknetRestorationQp26EscalatesToTheMatchedRetake (324 ms)
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow
+   SymmetricMatchingScaling.BoundsEveryEntryAndPutsAUnitInEveryRow (4 ms)
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal
+   SymmetricMatchingScaling.PairsASaddlePointBlockAcrossItsZeroDiagonal (0 ms)
+APPLIED Mm4
+RESTORED
+MUT Mm4 unit_rc=0 seam_rc=1 killers=10
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal
+   QpPlatformRetake.LakesQp0EscalatesOnTheEngineRefusal (128 ms)
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (2 ms)
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization
+   QpPlatformRetake.TheResponseIsTieredAndPerFactorization (0 ms)
+   QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle
+   QpPlatformRetake.TheScaledSessionIsAnalyzedOncePerPatternAndReleasedWhenIdle (0 ms)
+APPLIED Mi1
+RESTORED
+MUT Mi1 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+APPLIED Mr1
+RESTORED
+MUT Mr1 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve
+   QpPlatformRetake.ARequestDoesNotSurviveIntoTheNextSolve (0 ms)
+APPLIED Mr2
+RESTORED
+MUT Mr2 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch
+   QpPlatformRetake.APendingK0RetakeIsNotTheNoOpLatch (0 ms)
+APPLIED Mb1
+RESTORED
+MUT Mb1 unit_rc=0 seam_rc=1 killers=4
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict
+   QpPlatformRetake.TheBorderedAnswerCarriesTheVerdict (0 ms)
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale
+   QpPlatformRetake.TheCoupledScaledFixtureIsSolvedAtEveryScale (1 ms)
+APPLIED Md1
+RESTORED
+MUT Md1 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+APPLIED Md2
+RESTORED
+MUT Md2 unit_rc=0 seam_rc=1 killers=2
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed
+   QpPlatformRetake.AFailedRetakeLeavesThePlatformNumericsDisarmed (0 ms)
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T05:12:01-05:00
+LEG P5 rc=0 2026-11-19T05:12:01-05:00
+LEG P6 start 2026-11-19T05:12:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T05:12:01-05:00
+SMOKE_START default 2026-11-19T05:12:01-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-19T05:13:02-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/seq4/build-k/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-19T05:13:43-05:00
+LEG P6 rc=0 2026-11-19T05:13:43-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-19T05:13:43-05:00

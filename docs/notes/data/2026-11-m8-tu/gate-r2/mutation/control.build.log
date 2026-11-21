@@ -1,0 +1,93 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/tu0/build'
+[0/2] Re-checking globbed directories...
+[1/49] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_options.cpp.o
+[2/49] Building CXX object CMakeFiles/hven.dir/src/sqp/problem_scaling.cpp.o
+[3/49] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver_handle.cpp.o
+[4/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_counters.cpp.o
+[5/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_options.cpp.o
+[6/49] Building CXX object CMakeFiles/hven.dir/src/qp/ssn/ssn_engine.cpp.o
+[7/49] Building CXX object CMakeFiles/hven.dir/src/sqp/assembly_eval_seam.cpp.o
+[8/49] Building CXX object CMakeFiles/hven.dir/src/sqp/globalization/soc_elastic_restoration.cpp.o
+[9/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_warm_restart.cpp.o
+[10/49] Building CXX object CMakeFiles/hven.dir/src/sqp/continuation.cpp.o
+[11/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_concurrency.cpp.o
+[12/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_trace.cpp.o
+[13/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_eqp_refine_ab.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/qp/test_eqp_refine_ab.cpp:140:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  140 |     switch (s) {
+      |             ^
+1 warning generated.
+[14/49] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/src/sqp/sqp_solver.cpp:7102:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 7102 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[15/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_callback.cpp:568:67: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  568 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/model/nlp_model.h:85:7: note: 'eval_grad' has been explicitly marked deprecated here
+   85 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_callback.cpp:568:85: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  568 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                                     ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/model/nlp_model.h:113:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  113 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_callback.cpp:569:19: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  569 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/model/nlp_model.h:117:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  117 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_callback.cpp:569:38: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  569 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/model/nlp_model.h:89:7: note: 'eval_ce' has been explicitly marked deprecated here
+   89 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/solver/test_callback.cpp:569:54: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  569 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/model/nlp_model.h:93:7: note: 'eval_ci' has been explicitly marked deprecated here
+   93 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[16/49] Linking CXX static library libhven.a
+[17/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_threads.cpp.o
+[18/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_dense_arm_engines.cpp.o
+[19/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_options.cpp.o
+[20/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_infinite_bound.cpp.o
+[21/49] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_solve_result.cpp.o
+[22/49] Building CXX object tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_acceptance.cpp.o
+[23/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+[24/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+[25/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_witness_start.cpp.o
+[26/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+[27/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+[28/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+[29/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+[30/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_column_scaling.cpp.o
+[31/49] Linking CXX executable tests/qp/hven_qp_tests
+[32/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/sqp/test_hs_battery.cpp:240:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  240 |     switch (s) {
+      |             ^
+1 warning generated.
+[33/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[34/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+[35/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+[36/49] Linking CXX executable tests/solver/hven_solver_tests
+[37/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+[38/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[39/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_tu0_levers.cpp.o
+[40/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[41/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[42/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[43/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_qn_mode.cpp.o
+[44/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis_driver.cpp.o
+[45/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_ingest_complementarity.cpp.o
+[46/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[47/49] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[48/49] Linking CXX executable tests/sqp/hven_sqp_tests

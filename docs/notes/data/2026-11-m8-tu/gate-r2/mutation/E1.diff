@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index ab1dfa2c3..d78adca39 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8923,7 +8923,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+                     ? Vec((st.x + report.p_elastic).cwiseMax(seam.lower()).cwiseMin(seam.upper()))
+                     : Vec();
+             RestorationCandidate elastic_cand;
+-            if (have_p && opts_.advanced.restoration_elastic_seed) {
++            if (have_p) {
+                 elastic_cand.x = &x_elastic;
+             }
+             // T3-A: after a refusal that walked to kInfeasible, `report` is

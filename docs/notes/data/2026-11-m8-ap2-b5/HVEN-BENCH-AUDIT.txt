@@ -1,0 +1,64 @@
+M8 AP-2 group B5 -- the hven-bench CUTEst adapter throw-type audit (AP-1 §4.6 / §13 B5: "obligation
+before landing")
+================================================================================
+Audited tree  /home/ghecht/Projects/hven-bench, branch main at 8a4627f (read only; nothing in it was
+              edited by this group).
+Question      Which exception types can the adapter throw from an EVALUATION callback, and which of them
+              mean "the model cannot be evaluated at this point"? After B5 the interior-point engine
+              absorbs hven::solvers::EvaluationError ONLY (it used to absorb every exception at a trial
+              point), so an evaluation failure thrown as any other type now ends the solve by propagating.
+
+FINDINGS -- lanes/cutest/cutest_model.cpp (the CUTEst lane's hven model)
+  F1  check_status() (cutest_model.cpp:51-57) throws std::invalid_argument for EVERY non-zero CUTEst
+      status: 1 = allocation, 2 = array bound, 3 = EVALUATION ERROR. It is called after every
+      evaluation call (cutest_cofg in eval_f / eval_grad_f, cutest_ccfsg in eval_g / eval_jac,
+      cutest_csh / cutest_cshc in eval_hess).
+      Status 3 is CUTEst's own "cannot evaluate here" and is the one case that must become
+      hven::solvers::EvaluationError. Statuses 1 and 2 are setup/contract failures and stay
+      std::invalid_argument.
+      Effect without the change: on the interior-point engine a status-3 failure at a trial point,
+      absorbed as a rejected trial before B5, now propagates out of the solve; on the SQP engine it
+      propagated before and still does. With the change both engines reject the trial (the SQP gains
+      it).
+  F2  The size and structure checks in the same file (eval_grad_f / eval_g / eval_jac / eval_hess
+      "sized N for M", a Jacobian or Hessian entry outside the declared structure) are contract
+      violations: std::invalid_argument is right and stays.
+  F3  Non-finite values computed by the SIF functions themselves (a log of a negative, an overflow)
+      are returned as values, not thrown. After B5 they are failed trials on BOTH engines (before B5
+      the interior-point engine accepted a -Inf merit); no adapter change is needed for them.
+  F4  lanes/hven/nlp_model_triplet_view.cpp: every throw is a size/structure contract check
+      (std::invalid_argument) -- stays. sets/hs/*: declaration-time invalid_argument only.
+      lanes/ipopt, lanes/snopt, lanes/external: not hven-engine callbacks; out of scope.
+
+PROPOSED CHANGE (to land in hven-bench when its hven pin moves to a commit containing B5; it needs
+<hven/core/errors.h>, which does not exist before B5):
+
+    --- a/lanes/cutest/cutest_model.cpp
+    +++ b/lanes/cutest/cutest_model.cpp
+    @@ check_status
+     void check_status(integer status, const char *call, const std::string &problem) {
+    -    if (status != 0) {
+    -        throw std::invalid_argument(fmt::format(
+    -            "cutest: {} returned status {} on problem {} (1 = allocation, 2 = array bound, "
+    -            "3 = evaluation error)",
+    -            call, status, problem));
+    -    }
+    +    if (status == 0) {
+    +        return;
+    +    }
+    +    const std::string message = fmt::format(
+    +        "cutest: {} returned status {} on problem {} (1 = allocation, 2 = array bound, "
+    +        "3 = evaluation error)",
+    +        call, status, problem);
+    +    // CUTEst's own "cannot evaluate here": a rejected trial on both hven engines.
+    +    if (status == 3) {
+    +        throw hven::solvers::EvaluationError(message);
+    +    }
+    +    throw std::invalid_argument(message);
+     }
+    (plus #include <hven/core/errors.h>)
+
+CORPUS EXPOSURE. No replay, census or runtime cell of this repository goes through the CUTEst lane
+(the corpus binary's cells are hven-native), so this audit moves no pinned row here. Whether any
+hven-bench CUTEst cell has ever hit status 3 is a hven-bench question, answered by its own re-run
+when the pin moves.

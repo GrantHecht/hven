@@ -1,0 +1,48 @@
+== gate RS-5 head 90060ba99 base c9a4253cc steps: build psym flags lists ctest smoke replay pch debug sweep 2026-11-18T23:31:38-05:00
+build-release rc=0 2026-11-18T23:35:22-05:00
+psym-arms rc=0 2026-11-18T23:42:53-05:00
+psym-compare rc=1 2026-11-18T23:43:16-05:00
+flags-diff rc=1 2026-11-18T23:43:17-05:00
+lists-as-declared rc=1 2026-11-18T23:44:01-05:00
+ctest-release rc=0 2026-11-18T23:46:01-05:00
+100% tests passed, 0 tests failed out of 3890
+          Start   29: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+          Start   30: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+          Start   31: Layering.TheScanReadsTheWholeTree
+  29/3892 Test   #29: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.00 sec
+          Start   32: Layering.NoIncludeGoesUpTheLayerOrder
+          Start   33: Layering.EveryAllowListedPairStillOccurs
+  30/3892 Test   #30: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.01 sec
+          Start   34: Layering.PublicHeadersDoNotIncludeDetail
+  31/3892 Test   #32: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.02 sec
+  32/3892 Test   #33: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.02 sec
+  33/3892 Test   #34: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.02 sec
+  34/3892 Test   #31: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.02 sec
+          Start  843: HeaderSelfContained
+2363/3892 Test  #843: HeaderSelfContained ................................................................................................................................................................................................   Passed   36.27 sec
+install-smoke rc=0 2026-11-18T23:47:46-05:00
+listing-equals-rs4-plus-nlp_eval rc=0 2026-11-18T23:47:46-05:00
+replay rc=0 2026-11-18T23:53:23-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-18T23:54:35-05:00
+build-debug rc=0 2026-11-18T23:57:08-05:00
+ctest-debug rc=0 2026-11-19T00:05:36-05:00
+100% tests passed, 0 tests failed out of 3890
+          Start   29: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+          Start   30: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+          Start   31: Layering.TheScanReadsTheWholeTree
+  28/3892 Test   #29: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.01 sec
+          Start   32: Layering.NoIncludeGoesUpTheLayerOrder
+  29/3892 Test   #30: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.01 sec
+          Start   33: Layering.EveryAllowListedPairStillOccurs
+  30/3892 Test   #33: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.03 sec
+          Start   34: Layering.PublicHeadersDoNotIncludeDetail
+  31/3892 Test   #31: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.04 sec
+  32/3892 Test   #32: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.04 sec
+  41/3892 Test   #34: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.04 sec
+          Start  843: HeaderSelfContained
+1439/3892 Test  #843: HeaderSelfContained ................................................................................................................................................................................................   Passed   26.77 sec
+PASS 169 FAIL 3
+== gate RS-5 done 2026-11-19T00:06:19-05:00

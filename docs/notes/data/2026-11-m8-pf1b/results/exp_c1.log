@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T15:58:29-05:00
+== qp6_head rc=0 [HVEN_PF1B_TRACE=1  | --exact ]
+PF1R status=1 minors=20000 facts=19873 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=16403 stag_drops=0 stag_stops=0 shift_adds=647 wall=610.663 q=3.826546515014657e-02 pins=580 tr=0 active=132 mu=1e-08
+PF1A records=20000 truncated=0 a0=73 a4=5705 a10=5420 a11=8802 | verdict ok=13063 suspect=6937 wrong=0 none=0 perturbed_passes=6937 perturbed_total=58137
+PF1K eq=4.163e-17 ineq=6.939e-18 box=0.000e+00 stat=3.200e-09 sign=1.079e-02 compl=4.923e-04 scale=1.000e+00
+PF1E nf=9420 mw=6132 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.397e-06 |lam_exact-lam|inf=7.088e-10 |lam|inf=3.933e-02 exact_neg_rows=2 exact_inactive_viol=0.000e+00 q_exact=3.826546515013549e-02
+rungs_traced=1
+rc=0
+FOREGROUND_END 2026-11-07T16:08:40-05:00
