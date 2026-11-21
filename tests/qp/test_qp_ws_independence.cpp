@@ -594,10 +594,11 @@ TEST(WsIndependenceCalibration, AStalledRefinementAboveTheUndecidableBandIsAdmit
         EXPECT_TRUE(t.stall_admit) << "the refinement converged: the fixture no longer stalls";
         EXPECT_GE(t.rho, detail::kDepUndecidable);
         // PF-2e: its first refinement step is stagnant (rho does not fall) and rho stays far above
-        // kDepUndecidable, so the contraction probe ends the refinement there (a declared pin move:
-        // 1 + kDepRefineSteps solves before PF-2e).
-        EXPECT_TRUE(t.probe_cut);
-        EXPECT_EQ(t.solves, 2);
+        // kDepUndecidable, so on the eliminated path the contraction probe ends the refinement
+        // there (a declared pin move: 1 + kDepRefineSteps solves before PF-2e); the border path
+        // refines to the budget as before.
+        EXPECT_EQ(t.probe_cut, !border);
+        EXPECT_EQ(t.solves, border ? 1 + detail::kDepRefineSteps : 2);
     }
 }
 
@@ -771,8 +772,9 @@ QpProblem unit_rows_qp() {
 }
 } // namespace
 
-// A grey test that converged at its first solve: the re-read takes ONE refinement step, reads it
-// stagnant, and stops (two steps short of the budget), the test's rho and "independent" standing.
+// A grey test that converged at its first solve: on the eliminated path the re-read takes ONE
+// refinement step, reads it stagnant, and stops (two steps short of the budget), the test's rho and
+// "independent" standing. The border path takes no probe: its re-read is the full one.
 TEST(WsIndependenceProbe, AStagnantGreyReReadStopsAfterOneStep) {
     for (const bool border : {false, true}) {
         SCOPED_TRACE(border ? "border" : "eliminated");
@@ -784,22 +786,28 @@ TEST(WsIndependenceProbe, AStagnantGreyReReadStopsAfterOneStep) {
         ASSERT_EQ(t.resume_steps, 0);
         hven::linear::SolveTally tally;
         const detail::DepTest r = detail::grey_reread(sv.qp, sv.ws, sv.view(), a, sv.o, t);
-        EXPECT_TRUE(r.probe_cut);
-        EXPECT_EQ(r.solves, 2); // the reused first solve and the one probe step
-        EXPECT_GT(r.rho, detail::kDepTol);
-        EXPECT_NEAR(r.rho, t.rho, 1e-12);
-        if (!border) {
-            EXPECT_EQ(tally.solves(hven::linear::SolveContext::kDetector), 1);
-        }
+        const Index r_backend = tally.solves(hven::linear::SolveContext::kDetector);
         const detail::DepTest full =
             detail::certificate_coefficients(sv.qp, sv.ws, sv.view(), a, sv.o, &t);
         EXPECT_FALSE(full.probe_cut);
+        EXPECT_GT(r.rho, detail::kDepTol);
+        if (border) {
+            EXPECT_FALSE(r.probe_cut);
+            EXPECT_EQ(r.solves, full.solves);
+            EXPECT_EQ(r.rho, full.rho);
+            continue;
+        }
+        EXPECT_TRUE(r.probe_cut);
+        EXPECT_EQ(r.solves, 2); // the reused first solve and the one probe step
+        EXPECT_NEAR(r.rho, t.rho, 1e-12);
+        EXPECT_EQ(r_backend, 1);
         EXPECT_GT(full.solves, r.solves);
     }
 }
 
-// A grey test whose own refinement step was already stagnant: the re-read is decided before any
-// solve (the test's last step is the probe), and reads exactly the test's coefficients.
+// A grey test whose own refinement step was already stagnant: on the eliminated path the re-read is
+// decided before any solve (the test's last step is the probe), and reads exactly the test's
+// coefficients; the border path re-reads in full.
 TEST(WsIndependenceProbe, AGreyTestWithAStagnantStepNeedsNoReReadSolve) {
     for (const bool border : {false, true}) {
         SCOPED_TRACE(border ? "border" : "eliminated");
@@ -809,9 +817,14 @@ TEST(WsIndependenceProbe, AGreyTestWithAStagnantStepNeedsNoReReadSolve) {
         ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
         ASSERT_TRUE(t.has_resume);
         ASSERT_EQ(t.resume_steps, 1);
-        ASSERT_GE(t.rho, detail::kDepStagnation * t.resume_rho_prev);
         hven::linear::SolveTally tally;
         const detail::DepTest r = detail::grey_reread(sv.qp, sv.ws, sv.view(), a, sv.o, t);
+        if (border) {
+            EXPECT_FALSE(r.probe_cut);
+            EXPECT_GT(tally.solves(hven::linear::SolveContext::kDetector), 0);
+            continue;
+        }
+        ASSERT_GE(t.rho, detail::kDepStagnation * t.resume_rho_prev);
         EXPECT_EQ(tally.solves(hven::linear::SolveContext::kDetector), 0);
         EXPECT_TRUE(r.probe_cut);
         EXPECT_EQ(r.solves, t.solves);
