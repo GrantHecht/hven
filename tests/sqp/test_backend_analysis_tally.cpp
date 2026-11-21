@@ -50,17 +50,19 @@ TEST(SqpBackendAnalysisTally, TheDenseArmPaysNoPlatformAnalysis) {
 }
 
 // THE SOLVE TALLY (PF-2b): the twelve backend_solve* counters partition the solve's backend solves
-// by issuing component. Invariants every solve carries: a call carries at least one column, the
-// ordinary bucket is never empty on a solve that factored anything, and the polish bucket is
-// reached by any walk solve (the polish loop issues its first solve whenever an EQP was solved).
+// by issuing component. A call carries at least one column; the ordinary bucket is never empty;
+// every other bucket is reached (the detector, the polish loops and, on the Schur-border algebra
+// only, the bordered refinement), and the bordered refinement is silent on the refactorizing
+// algebra, which never forms a border. The backend reports refinement steps inside the solves
+// (Pardiso's default), so each reached bucket carries them too.
 TEST(SqpBackendSolveTally, PartitionsTheSolvesAndEveryComponentIsReachable) {
-    Index detector = 0;
-    Index polish = 0;
-    Index border = 0;
-    for (const int hs : {14, 43, 76, 79}) {
-        for (const auto algebra :
-             {QpWorkingSetAlgebra::kRefactorize, QpWorkingSetAlgebra::kSchurBorder}) {
-            SCOPED_TRACE(hs);
+    for (const auto algebra :
+         {QpWorkingSetAlgebra::kRefactorize, QpWorkingSetAlgebra::kSchurBorder}) {
+        SCOPED_TRACE(static_cast<int>(algebra));
+        Index solves[4] = {0, 0, 0, 0};
+        Index rhs[4] = {0, 0, 0, 0};
+        Index refine[4] = {0, 0, 0, 0};
+        for (const int hs : {14, 43, 76, 79}) {
             SqpOptions opts;
             opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
             opts.common.max_iterations = 60;
@@ -70,20 +72,34 @@ TEST(SqpBackendSolveTally, PartitionsTheSolvesAndEveryComponentIsReachable) {
             const SqpResult sol =
                 driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
             const SqpCounters &c = sol.counters;
-            EXPECT_GT(c.backend_solves_ordinary, 0);
-            EXPECT_GE(c.backend_solve_rhs_ordinary, c.backend_solves_ordinary);
-            EXPECT_GE(c.backend_solve_rhs_detector, c.backend_solves_detector);
-            EXPECT_GE(c.backend_solve_rhs_polish, c.backend_solves_polish);
-            EXPECT_GE(c.backend_solve_rhs_border_refine, c.backend_solves_border_refine);
-            EXPECT_GE(c.backend_solve_refine_ordinary, 0);
-            detector += c.backend_solves_detector;
-            polish += c.backend_solves_polish;
-            border += c.backend_solves_border_refine;
+            const Index s4[4] = {c.backend_solves_ordinary, c.backend_solves_detector,
+                                 c.backend_solves_polish, c.backend_solves_border_refine};
+            const Index r4[4] = {c.backend_solve_rhs_ordinary, c.backend_solve_rhs_detector,
+                                 c.backend_solve_rhs_polish, c.backend_solve_rhs_border_refine};
+            const Index f4[4] = {c.backend_solve_refine_ordinary, c.backend_solve_refine_detector,
+                                 c.backend_solve_refine_polish,
+                                 c.backend_solve_refine_border_refine};
+            EXPECT_GT(s4[0], 0) << hs;
+            for (int k = 0; k < 4; ++k) {
+                EXPECT_GE(r4[k], s4[k]) << hs << " bucket " << k;
+                solves[k] += s4[k];
+                rhs[k] += r4[k];
+                refine[k] += f4[k];
+            }
+        }
+        const bool bordered = algebra == QpWorkingSetAlgebra::kSchurBorder;
+        for (int k = 0; k < 4; ++k) {
+            if (k == 3 && !bordered) {
+                EXPECT_EQ(solves[k], 0);
+                EXPECT_EQ(rhs[k], 0);
+                EXPECT_EQ(refine[k], 0);
+            } else {
+                EXPECT_GT(solves[k], 0) << "bucket " << k;
+                EXPECT_GT(rhs[k], 0) << "bucket " << k;
+                EXPECT_GT(refine[k], 0) << "bucket " << k;
+            }
         }
     }
-    EXPECT_GT(detector, 0);
-    EXPECT_GT(polish, 0);
-    EXPECT_GT(border, 0);
 }
 
 } // namespace

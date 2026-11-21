@@ -210,6 +210,19 @@ TEST(SolveTally, ScopesLabelSolvesAndNestAndRestore) {
     EXPECT_EQ(tally.solves(SolveContext::kOrdinary), 1);
 }
 
+TEST(SolveTally, APartialSolveCountsOnePartialCall) {
+    SymmetricFactor f = factored(DensePolicy::kNever);
+    if (!f.supports_partial_solve()) {
+        GTEST_SKIP() << "this backend's partial solves do not compose";
+    }
+    SolveTally tally;
+    const hven::Vec b = hven::Vec::Ones(6);
+    hven::Vec y(6);
+    f.solve_partial(SymmetricFactor::SolvePhase::kForward, b, y);
+    EXPECT_EQ(tally.solves(SolveContext::kOrdinary), 1);
+    EXPECT_EQ(tally.rhs_columns(SolveContext::kOrdinary), 1);
+}
+
 TEST(SolveTally, ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts) {
     SymmetricFactor f = factored(DensePolicy::kNever);
     auto handle = f.share();
