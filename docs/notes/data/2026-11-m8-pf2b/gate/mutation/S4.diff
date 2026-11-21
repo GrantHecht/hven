@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index ad2cbee0f..f66b474e5 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -311,7 +311,6 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
+                                Index *steps_out = nullptr,
+                                const BorderedResolution *resolution = nullptr,
+                                BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
+-    const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kBorderRefine);
+     const auto residual_of = [&](const Vec &s) {
+         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
+     };

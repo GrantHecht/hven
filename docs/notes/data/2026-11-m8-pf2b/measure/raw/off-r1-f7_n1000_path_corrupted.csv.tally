@@ -1,0 +1,2 @@
+solves_ordinary,solves_detector,solves_polish,solves_border_refine,rhs_ordinary,rhs_detector,rhs_polish,rhs_border_refine,refine_ordinary,refine_detector,refine_polish,refine_border_refine
+10143,0,8761,2362,10894,0,8761,2362,20282,0,17522,4724

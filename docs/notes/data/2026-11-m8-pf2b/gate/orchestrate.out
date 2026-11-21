@@ -1,0 +1,197 @@
+box-lane: lane 0 acquired 2026-11-21T02:45:26-05:00
+FOREGROUND_START 2026-11-21T02:45:26-05:00 lane=0 phys=0 1 2 3
+LEG P1-rel start 2026-11-21T02:45:26-05:00
+FOREGROUND_START 2026-11-21T02:45:26-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	872 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	873 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-21T02:46:55-05:00
+LEG P1-rel rc=0 2026-11-21T02:46:55-05:00
+LEG P1-rel-criterion start 2026-11-21T02:46:55-05:00
+LEG P1-rel-criterion rc=0 2026-11-21T02:46:55-05:00
+LEG P1-dbg start 2026-11-21T02:46:55-05:00
+FOREGROUND_START 2026-11-21T02:46:55-05:00
+	1389 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1522 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1617 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1618 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1619 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-21T02:55:09-05:00
+LEG P1-dbg rc=0 2026-11-21T02:55:09-05:00
+LEG P1-dbg-criterion start 2026-11-21T02:55:09-05:00
+LEG P1-dbg-criterion rc=0 2026-11-21T02:55:09-05:00
+LEG P2 start 2026-11-21T02:55:09-05:00
+replay rc A=0 B=0
+LEG P2 rc=0 2026-11-21T03:12:17-05:00
+LEG P2-criterion start 2026-11-21T03:12:17-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-21T03:12:18-05:00
+LEG P3 start 2026-11-21T03:12:18-05:00
+enum rc A=0 B=0
+LEG P3 rc=0 2026-11-21T03:15:05-05:00
+LEG P3-criterion start 2026-11-21T03:15:05-05:00
+SUMMARY rows 476; movers vs arm A 0 (better 0, worse 0, neutral 0); missing/capped 0
+REPORT_ONLY (dev run)
+TOTAL ALL                rows  476  A 1.154846e+12  B 1.154968e+12  B/A 1.000106
+TOTAL hven-ipm           rows  238  A 7.934830e+09  B 7.934956e+09  B/A 1.000016
+TOTAL hven-ipm.D         rows  119  A 4.278937e+09  B 4.279035e+09  B/A 1.000023
+TOTAL hven-ipm.K         rows  119  A 3.655893e+09  B 3.655921e+09  B/A 1.000008
+TOTAL hven-sqp           rows  238  A 1.146911e+12  B 1.147033e+12  B/A 1.000106
+TOTAL hven-sqp.D         rows  119  A 4.953977e+11  B 4.954424e+11  B/A 1.000090
+TOTAL hven-sqp.K         rows  119  A 6.515138e+11  B 6.515910e+11  B/A 1.000119
+P3_INSTRUCTIONS sqp B/A 1.000106 <= 1.005
+LEG P3-criterion rc=0 2026-11-21T03:15:06-05:00
+LEG P4 start 2026-11-21T03:15:06-05:00
+FOREGROUND_START 2026-11-21T03:15:06-05:00
+PREFLIGHT every mutation applies and restores: MUST=[M1 M2 M3 M4 M5 S1 S2 S3 S4 A1 A2 A3 A4 A5 C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12] REC=[]
+MUT control rc=0 killers=0
+APPLIED M1 to src/linear/analysis_tally.cpp
+MUT M1 rc=1 killers=6
+   SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+   SolveTally.APartialSolveCountsOnePartialCall
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+   SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+   SolveTally.ScopesLabelSolvesAndNestAndRestore
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED M2 to src/linear/analysis_tally.cpp
+MUT M2 rc=1 killers=4
+   SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+   SolveTally.APartialSolveCountsOnePartialCall
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED M3 to src/linear/analysis_tally.cpp
+MUT M3 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED M4 to src/linear/analysis_tally.cpp
+MUT M4 rc=1 killers=1
+   SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+APPLIED M5 to src/linear/analysis_tally.cpp
+MUT M5 rc=1 killers=4
+   SolveTally.APartialSolveCountsOnePartialCall
+   SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+   SolveTally.ScopesLabelSolvesAndNestAndRestore
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED S1 to src/qp/walk/ws_independence.cpp
+MUT S1 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED S2 to include/hven/detail/qp/walk/eqp_solve.h
+MUT S2 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED S3 to include/hven/detail/qp/walk/bordered_eqp.h
+MUT S3 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED S4 to include/hven/detail/qp/walk/bordered_eqp.h
+MUT S4 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED A1 to src/linear/symmetric_factor_mkl.cpp
+MUT A1 rc=1 killers=1
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+APPLIED A2 to src/linear/symmetric_factor_mkl.cpp
+MUT A2 rc=1 killers=5
+   SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+   SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+   SolveTally.ScopesLabelSolvesAndNestAndRestore
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED A3 to src/linear/symmetric_factor_mkl.cpp
+MUT A3 rc=1 killers=1
+   SolveTally.APartialSolveCountsOnePartialCall
+APPLIED A4 to src/linear/dense_session.cpp
+MUT A4 rc=1 killers=1
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+APPLIED A5 to src/linear/dense_session.cpp
+MUT A5 rc=1 killers=1
+   SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+APPLIED C1 to src/sqp/sqp_solver.cpp
+MUT C1 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C2 to src/sqp/sqp_solver.cpp
+MUT C2 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C3 to src/sqp/sqp_solver.cpp
+MUT C3 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C4 to src/sqp/sqp_solver.cpp
+MUT C4 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C5 to src/sqp/sqp_solver.cpp
+MUT C5 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C6 to src/sqp/sqp_solver.cpp
+MUT C6 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C7 to src/sqp/sqp_solver.cpp
+MUT C7 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C8 to src/sqp/sqp_solver.cpp
+MUT C8 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C9 to src/sqp/sqp_solver.cpp
+MUT C9 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C10 to src/sqp/sqp_solver.cpp
+MUT C10 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C11 to src/sqp/sqp_solver.cpp
+MUT C11 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+APPLIED C12 to src/sqp/sqp_solver.cpp
+MUT C12 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-21T03:28:40-05:00
+LEG P4 rc=0 2026-11-21T03:28:40-05:00
+LEG P5 start 2026-11-21T03:28:40-05:00
+FOREGROUND_START 2026-11-21T03:28:40-05:00
+SMOKE_START default 2026-11-21T03:28:40-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-21T03:31:20-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-21T03:33:04-05:00
+LEG P5 rc=0 2026-11-21T03:33:04-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-21T03:33:04-05:00

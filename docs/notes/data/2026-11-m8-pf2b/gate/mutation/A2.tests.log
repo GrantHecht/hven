@@ -1,0 +1,275 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SolveTally.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from SolveTally
+[ RUN      ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:181: Failure
+Expected equality of these values:
+  tally.solves(SolveContext::kOrdinary)
+    Which is: 1
+  2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:172: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:182: Failure
+Expected equality of these values:
+  tally.rhs_columns(SolveContext::kOrdinary)
+    Which is: 3
+  4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:172: 0
+
+[  FAILED  ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext (2 ms)
+[ RUN      ] SolveTally.ScopesLabelSolvesAndNestAndRestore
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:207: Failure
+Expected equality of these values:
+  tally.solves(SolveContext::kDetector)
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:208: Failure
+Expected equality of these values:
+  tally.solves(SolveContext::kPolish)
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:210: Failure
+Expected equality of these values:
+  tally.solves(SolveContext::kOrdinary)
+    Which is: 0
+  1
+
+[  FAILED  ] SolveTally.ScopesLabelSolvesAndNestAndRestore (0 ms)
+[ RUN      ] SolveTally.APartialSolveCountsOnePartialCall
+[       OK ] SolveTally.APartialSolveCountsOnePartialCall (0 ms)
+[ RUN      ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:236: Failure
+Expected equality of these values:
+  tally.solves(SolveContext::kBorderRefine)
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:237: Failure
+Expected equality of these values:
+  tally.rhs_columns(SolveContext::kBorderRefine)
+    Which is: 0
+  1
+
+[  FAILED  ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts (0 ms)
+[ RUN      ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:251: Failure
+Expected equality of these values:
+  inner.solves(SolveContext::kOrdinary)
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/linear/test_analysis_tally.cpp:253: Failure
+Expected equality of these values:
+  outer.solves(SolveContext::kOrdinary)
+    Which is: 0
+  2
+
+[  FAILED  ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne (0 ms)
+[----------] 5 tests from SolveTally (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+[  FAILED  ] SolveTally.ScopesLabelSolvesAndNestAndRestore
+[  FAILED  ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+[  FAILED  ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+
+ 4 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendSolveTally.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpBackendSolveTally
+[ RUN      ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+14
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+43
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+76
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+79
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+14
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+43
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+76
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:82: Failure
+Expected: (s4[0]) > (0), actual: 0 vs 0
+79
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:97: Failure
+Expected: (solves[k]) > (0), actual: 0 vs 0
+bucket 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable (9 ms)
+[----------] 1 test from SqpBackendSolveTally (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+
+ 1 FAILED TEST

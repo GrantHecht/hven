@@ -1,0 +1,12 @@
+diff --git a/src/linear/symmetric_factor_mkl.cpp b/src/linear/symmetric_factor_mkl.cpp
+index fc154d5ab..293cd6a2c 100644
+--- a/src/linear/symmetric_factor_mkl.cpp
++++ b/src/linear/symmetric_factor_mkl.cpp
+@@ -1000,7 +1000,6 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
+     Vec rhs_buffer = rhs;
+     backend_call([&] { session_->solve_partial(backend_phase, rhs_buffer.data(), x.data()); });
+     ++counters_.partial_solve_count;
+-    SolveTally::record(1, 0);
+ 
+     SolveInfo info;
+     info.refinement_steps = session_->refinement_iters();
