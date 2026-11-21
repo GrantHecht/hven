@@ -1,0 +1,205 @@
+diff -ruN '--exclude=sizing_log.h' -x tests measB/src/qp/walk/walk_engine.cpp measC/src/qp/walk/walk_engine.cpp
+--- measB/src/qp/walk/walk_engine.cpp	2026-11-21 01:55:36.000000000 -0500
++++ measC/src/qp/walk/walk_engine.cpp	2026-11-21 04:46:09.458472835 -0500
+@@ -37,6 +37,7 @@
+ #include <utility>
+ 
+ #include <hven/detail/core/inf_norm.h>
++#include <hven/detail/qp/walk/sizing_log.h>
+ #include <hven/detail/qp/walk/walk_engine.h>
+ 
+ using namespace hven::detail;
+@@ -825,6 +826,7 @@
+     const std::atomic<bool> *const stop = stop_flag_;
+     detail::poll_stop_begin_solve(stop, detail::StopPollSite::kWalk);
+     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
++        if (auto *lf = detail::sizing::fp()) { std::fprintf(lf, "M\n"); }
+         if (detail::poll_stop(stop, detail::StopPollSite::kWalk)) [[unlikely]] {
+             break; // status is still kIterationLimit: the cap's exit
+         }
+diff -ruN '--exclude=sizing_log.h' -x tests measB/src/qp/walk/ws_independence.cpp measC/src/qp/walk/ws_independence.cpp
+--- measB/src/qp/walk/ws_independence.cpp	2026-11-21 01:55:36.000000000 -0500
++++ measC/src/qp/walk/ws_independence.cpp	2026-11-21 04:45:51.663425158 -0500
+@@ -13,6 +13,7 @@
+ #include <hven/detail/core/inf_norm.h>
+ #include <hven/detail/qp/walk/bordered_eqp.h>
+ #include <hven/detail/qp/walk/ws_independence.h>
++#include <hven/detail/qp/walk/sizing_log.h>
+ #include <hven/linear/symmetric_factor.h>
+ 
+ namespace hven::detail {
+@@ -241,6 +242,7 @@
+         }
+         t.rho = 0.0;
+         t.verdict = DepVerdict::kDependent;
++        if (auto *lf = sizing::fp()) { std::fprintf(lf, "U nofree %d\n", target == 0.0 ? 1 : 0); }
+         return t;
+     }
+     if (!f.usable()) {
+@@ -256,6 +258,7 @@
+         // exact structural dependency needs no factor and overrules this.
+         t.verdict = t.screen ? DepVerdict::kDependent : DepVerdict::kIndependent;
+         t.unrun = true;
++        if (auto *lf = sizing::fp()) { std::fprintf(lf, "U unrun %d\n", target == 0.0 ? 1 : 0); }
+         return t;
+     }
+ 
+@@ -271,6 +274,43 @@
+     ++t.solves;
+     Vec res = sys.residual(qp, rhs, y, opts);
+     double res_norm = nan_sticky_inf_norm(res);
++    const Vec sz_y1 = y;
++    const double sz_res1 = res_norm;
++    const auto sz_rho = [&](const Vec &yy) {
++        Vec ve = Vec::Zero(qp.me());
++        Vec vw = Vec::Zero(static_cast<Index>(aw.size()));
++        for (std::size_t k = 0; k < sys.comp.size(); ++k) {
++            const WsMember &m = sys.comp[k];
++            const double yk = yy(sys.comp_pos[k]);
++            if (m.kind == WsMember::Kind::kEq) {
++                ve(m.idx) = yk;
++            } else if (m.kind == WsMember::Kind::kRow) {
++                const auto it = std::lower_bound(aw.begin(), aw.end(), m.idx);
++                if (it != aw.end() && *it == m.idx) {
++                    vw(static_cast<Index>(it - aw.begin())) = yk;
++                }
++            }
++        }
++        Vec w2 = a;
++        if (qp.me() > 0) {
++            w2 -= qp.Ae.transpose() * ve;
++        }
++        if (qp.mi() > 0) {
++            if (sys.rows_w->rows() == aw) {
++                sys.rows_w->add_t(w2, vw, /*subtract=*/true);
++            } else {
++                RowSubset(qp.Ai, aw).add_t(w2, vw, /*subtract=*/true);
++            }
++        }
++        double fs = 0.0;
++        for (Index i = 0; i < n; ++i) {
++            if (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kFree) {
++                fs += w2(i) * w2(i);
++            }
++        }
++        return std::sqrt(fs) / a_norm;
++    };
++    const double sz_rho1 = sizing::fp() != nullptr ? sz_rho(sz_y1) : 0.0;
+     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
+         const Vec cand = y + sys.solve(res);
+         ++t.solves;
+@@ -333,6 +373,16 @@
+         t.verdict = DepVerdict::kIndependent;
+         t.stall_admit = !converged;
+     }
++    if (auto *lf = sizing::fp()) {
++        double dy = 0.0, yn = 0.0;
++        for (Index q = 0; q < y.size(); ++q) {
++            dy = std::max(dy, std::abs(y(q) - sz_y1(q)));
++            yn = std::max(yn, std::abs(y(q)));
++        }
++        std::fprintf(lf, "D tgt0=%d screen=%d solves=%lld rho1=%.6e res1=%.6e target=%.6e rho=%.6e resF=%.6e conv=%d verdict=%d dyrel=%.3e\n",
++                     target == 0.0 ? 1 : 0, t.screen ? 1 : 0, static_cast<long long>(t.solves), sz_rho1, sz_res1, target, t.rho,
++                     res_norm, converged ? 1 : 0, static_cast<int>(t.verdict), yn > 0 ? dy / yn : 0.0);
++    }
+     return t;
+ }
+ 
+diff -ruN measB/include/hven/detail/qp/walk/bordered_eqp.h measC/include/hven/detail/qp/walk/bordered_eqp.h
+--- measB/include/hven/detail/qp/walk/bordered_eqp.h	2026-11-21 01:55:36.000000000 -0500
++++ measC/include/hven/detail/qp/walk/bordered_eqp.h	2026-11-21 04:46:17.539361188 -0500
+@@ -479,14 +479,29 @@
+         const double cap =
+             detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(sol));
+         if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P B step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=cap\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(sol),
++                             detail::nan_sticky_inf_norm(delta), -1.0);
++            }
+             break; // not a polish: see eqp_solve.h's kEqpPolishStepCap
+         }
+         const Vec candidate = sol + delta;
+         Vec cres = residual_of(candidate);
+         const double cres_inf = detail::nan_sticky_inf_norm(cres);
+         if (!(cres_inf < res_inf)) {
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P B step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=reject\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(sol),
++                             detail::nan_sticky_inf_norm(delta), cres_inf);
++            }
+             break; // stagnated, diverging, or NaN -- keep the better answer
+         }
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P B step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=kept\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(sol),
++                             detail::nan_sticky_inf_norm(delta), cres_inf);
++            }
+         sol = candidate;
+         res = std::move(cres);
+         res_inf = cres_inf;
+diff -ruN measB/include/hven/detail/qp/walk/eqp_solve.h measC/include/hven/detail/qp/walk/eqp_solve.h
+--- measB/include/hven/detail/qp/walk/eqp_solve.h	2026-11-21 01:55:36.000000000 -0500
++++ measC/include/hven/detail/qp/walk/eqp_solve.h	2026-11-21 04:46:17.538614631 -0500
+@@ -180,6 +180,7 @@
+ #include <hven/detail/kkt/kkt_assembly.h>
+ #include <hven/detail/kkt/kkt_factor.h>
+ #include <hven/detail/qp/qp_problem.h>
++#include <hven/detail/qp/walk/sizing_log.h>
+ #include <hven/detail/qp/working_set.h>
+ #include <hven/qp/qp_types.h>
+ 
+@@ -407,14 +408,29 @@
+         const double cap =
+             detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(y));
+         if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P E step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=cap\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(y),
++                             detail::nan_sticky_inf_norm(delta), -1.0);
++            }
+             break; // not a polish: see kEqpPolishStepCap
+         }
+         const Vec candidate = y + delta;
+         Vec cres = residual_of(candidate);
+         const double cres_inf = detail::nan_sticky_inf_norm(cres);
+         if (!(cres_inf < res_inf)) {
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P E step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=reject\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(y),
++                             detail::nan_sticky_inf_norm(delta), cres_inf);
++            }
+             break; // stagnated, diverging, or NaN -- keep the better point
+         }
++            if (auto *lf = hven::detail::sizing::fp()) {
++                std::fprintf(lf, "P E step=%d res0=%.6e rhs=%.6e y=%.6e delta=%.6e cres=%.6e out=kept\n", static_cast<int>(step),
++                             res_inf, detail::nan_sticky_inf_norm(rhs0), detail::nan_sticky_inf_norm(y),
++                             detail::nan_sticky_inf_norm(delta), cres_inf);
++            }
+         y = candidate;
+         res = std::move(cres);
+         res_inf = cres_inf;
+diff -ruN measB/include/hven/detail/qp/walk/sizing_log.h measC/include/hven/detail/qp/walk/sizing_log.h
+--- measB/include/hven/detail/qp/walk/sizing_log.h	1969-12-31 19:00:00.000000000 -0500
++++ measC/include/hven/detail/qp/walk/sizing_log.h	2026-11-21 04:45:51.646559837 -0500
+@@ -0,0 +1,20 @@
++// SCRATCH ONLY (PF-2c sizing): env-gated event log; never committed to the library.
++#pragma once
++#include <cstdio>
++#include <cstdlib>
++namespace hven::detail::sizing {
++inline std::FILE *fp() {
++    static std::FILE *f = [] {
++        const char *p = std::getenv("HVEN_SIZING_LOG");
++        if (p == nullptr) {
++            return static_cast<std::FILE *>(nullptr);
++        }
++        std::FILE *g = std::fopen(p, "w");
++        if (g != nullptr) {
++            std::atexit([] { std::fflush(fp()); });
++        }
++        return g;
++    }();
++    return f;
++}
++} // namespace hven::detail::sizing

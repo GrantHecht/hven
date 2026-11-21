@@ -1,0 +1,68 @@
+===== f7_n1000_path_neutral
+ cert calls paired with a test: 2242  unpaired cert calls (from entry detector/other): 0
+ cert re-read flips to dependent (rho_cert<=1e-6, before rounding-floor allowance): 2  of 2242  (0.1%)
+ pairs/flips by rho1 half-decade: 1e-6.0:1/1 1e-4.5:7/0 1e-4.0:226/0 1e-3.5:2004/0 1e-3.0:4/1
+ pairs/flips by test final rho half-decade: 1e-6.0:11/2 1e-5.5:7/0 1e-4.5:5/0 1e-4.0:215/0 1e-3.5:2004/0
+ cert rho1 half-decade pairs/flips: 1e-6.0:1/1 1e-4.5:7/0 1e-4.0:226/0 1e-3.5:2004/0 1e-3.0:4/1
+ test converged among pairs: 2242 of 2242  test solves in pairs 2272  cert solves 8968
+ first-step outcome transitions (prev->next): {('cap', 'kept'): 99, ('kept', 'kept'): 192, ('kept', 'cap'): 98, ('cap', 'cap'): 12203}
+  skip if res0 > 1*cap_abs: caps skipped 0 of 12302 (0.0%), kept lost 0 of 291
+  skip if res0 > 0.1*cap_abs: caps skipped 0 of 12302 (0.0%), kept lost 0 of 291
+  skip if res0 > 0.01*cap_abs: caps skipped 1467 of 12302 (11.9%), kept lost 0 of 291
+  skip if res0 > 0.001*cap_abs: caps skipped 4850 of 12302 (39.4%), kept lost 0 of 291
+  amplification delta/res0: kept median 1.52e+06 p90 3.59e+06 max 5.68e+07 | cap min 9.97e+02 p10 1.07e+04 median 1.52e+07
+  backoff K=3 S=5: skipped 7655 first-solves (60.8%), kept steps lost 54 of 291
+  backoff K=5 S=10: skipped 8158 first-solves (64.8%), kept steps lost 62 of 291
+  backoff K=10 S=20: skipped 8094 first-solves (64.3%), kept steps lost 41 of 291
+  backoff K=20 S=50: skipped 8588 first-solves (68.2%), kept steps lost 19 of 291
+===== f7_n800_path_neutral
+ cert calls paired with a test: 1960  unpaired cert calls (from entry detector/other): 0
+ cert re-read flips to dependent (rho_cert<=1e-6, before rounding-floor allowance): 19  of 1960  (1.0%)
+ pairs/flips by rho1 half-decade: 1e-4.5:2/0 1e-4.0:203/0 1e-3.5:1726/8 1e-3.0:22/11 1e-2.5:7/0
+ pairs/flips by test final rho half-decade: 1e-6.0:7/7 1e-5.5:9/9 1e-5.0:8/3 1e-4.5:5/0 1e-4.0:210/0 1e-3.5:1721/0
+ cert rho1 half-decade pairs/flips: 1e-4.5:2/0 1e-4.0:203/0 1e-3.5:1726/8 1e-3.0:22/11 1e-2.5:7/0
+ test converged among pairs: 1960 of 1960  test solves in pairs 2032  cert solves 7840
+ first-step outcome transitions (prev->next): {('cap', 'kept'): 275, ('kept', 'kept'): 423, ('kept', 'cap'): 274, ('cap', 'cap'): 9849}
+  skip if res0 > 1*cap_abs: caps skipped 0 of 10124 (0.0%), kept lost 0 of 698
+  skip if res0 > 0.1*cap_abs: caps skipped 0 of 10124 (0.0%), kept lost 0 of 698
+  skip if res0 > 0.01*cap_abs: caps skipped 830 of 10124 (8.2%), kept lost 0 of 698
+  skip if res0 > 0.001*cap_abs: caps skipped 4459 of 10124 (44.0%), kept lost 9 of 698
+  amplification delta/res0: kept median 2.38e+05 p90 1.78e+06 max 5.64e+07 | cap min 7.93e+02 p10 3.11e+03 median 1.14e+07
+  backoff K=3 S=5: skipped 6255 first-solves (57.8%), kept steps lost 132 of 698
+  backoff K=5 S=10: skipped 6520 first-solves (60.2%), kept steps lost 42 of 698
+  backoff K=10 S=20: skipped 6500 first-solves (60.1%), kept steps lost 46 of 698
+  backoff K=20 S=50: skipped 6850 first-solves (63.3%), kept steps lost 18 of 698
+===== f7_n825_path_neutral_control
+ cert calls paired with a test: 1806  unpaired cert calls (from entry detector/other): 0
+ cert re-read flips to dependent (rho_cert<=1e-6, before rounding-floor allowance): 1  of 1806  (0.1%)
+ pairs/flips by rho1 half-decade: 1e-4.5:5/0 1e-4.0:88/0 1e-3.5:1710/0 1e-3.0:3/1
+ pairs/flips by test final rho half-decade: 1e-6.0:1/1 1e-4.5:5/0 1e-4.0:105/0 1e-3.5:1695/0
+ cert rho1 half-decade pairs/flips: 1e-4.5:5/0 1e-4.0:88/0 1e-3.5:1710/0 1e-3.0:3/1
+ test converged among pairs: 1806 of 1806  test solves in pairs 1848  cert solves 7224
+ first-step outcome transitions (prev->next): {('cap', 'kept'): 120, ('kept', 'kept'): 221, ('kept', 'cap'): 119, ('cap', 'cap'): 10128}
+  skip if res0 > 1*cap_abs: caps skipped 0 of 10248 (0.0%), kept lost 0 of 341
+  skip if res0 > 0.1*cap_abs: caps skipped 0 of 10248 (0.0%), kept lost 0 of 341
+  skip if res0 > 0.01*cap_abs: caps skipped 1034 of 10248 (10.1%), kept lost 0 of 341
+  skip if res0 > 0.001*cap_abs: caps skipped 4055 of 10248 (39.6%), kept lost 4 of 341
+  amplification delta/res0: kept median 1.08e+06 p90 3.34e+06 max 5.78e+07 | cap min 8.22e+02 p10 9.95e+03 median 1.39e+07
+  backoff K=3 S=5: skipped 6350 first-solves (60.0%), kept steps lost 54 of 341
+  backoff K=5 S=10: skipped 6759 first-solves (63.8%), kept steps lost 50 of 341
+  backoff K=10 S=20: skipped 6699 first-solves (63.3%), kept steps lost 32 of 341
+  backoff K=20 S=50: skipped 7140 first-solves (67.4%), kept steps lost 27 of 341
+===== f7_n750_path_neutral_control
+ cert calls paired with a test: 1835  unpaired cert calls (from entry detector/other): 0
+ cert re-read flips to dependent (rho_cert<=1e-6, before rounding-floor allowance): 23  of 1835  (1.3%)
+ pairs/flips by rho1 half-decade: 1e-4.5:6/2 1e-4.0:60/0 1e-3.5:1746/9 1e-3.0:15/5 1e-2.5:7/7 1e-2.0:1/0
+ pairs/flips by test final rho half-decade: 1e-6.0:11/11 1e-5.5:13/11 1e-5.0:2/1 1e-4.5:5/0 1e-4.0:69/0 1e-3.5:1735/0
+ cert rho1 half-decade pairs/flips: 1e-4.5:6/2 1e-4.0:60/0 1e-3.5:1746/9 1e-3.0:15/5 1e-2.5:7/7 1e-2.0:1/0
+ test converged among pairs: 1835 of 1835  test solves in pairs 1899  cert solves 7340
+ first-step outcome transitions (prev->next): {('cap', 'kept'): 230, ('kept', 'kept'): 438, ('kept', 'cap'): 229, ('cap', 'cap'): 9400}
+  skip if res0 > 1*cap_abs: caps skipped 0 of 9630 (0.0%), kept lost 0 of 668
+  skip if res0 > 0.1*cap_abs: caps skipped 0 of 9630 (0.0%), kept lost 0 of 668
+  skip if res0 > 0.01*cap_abs: caps skipped 972 of 9630 (10.1%), kept lost 0 of 668
+  skip if res0 > 0.001*cap_abs: caps skipped 4013 of 9630 (41.7%), kept lost 10 of 668
+  amplification delta/res0: kept median 2.46e+04 p90 2.19e+06 max 5.61e+07 | cap min 7.48e+02 p10 4.46e+03 median 9.33e+06
+  backoff K=3 S=5: skipped 5945 first-solves (57.7%), kept steps lost 96 of 668
+  backoff K=5 S=10: skipped 6260 first-solves (60.8%), kept steps lost 46 of 668
+  backoff K=10 S=20: skipped 6220 first-solves (60.4%), kept steps lost 46 of 668
+  backoff K=20 S=50: skipped 6620 first-solves (64.3%), kept steps lost 46 of 668

@@ -1,0 +1,266 @@
+===== f7_n1000_path_neutral
+ status Optimal cols7-8 11401 12593  log minors 12593  tally detector solves 17949 per minor 1.425 polish solves 14102 ord 25746 border 3104
+ D tests(solved) 3720 solves 6892  unrun/nofree tests 0  cert D calls 2242 solves 8968  other detector solves (entry/probe/repair/...) 2089
+ tests/minor 0.295 (solved+unrun) ; cert/minor 0.178
+ tests-per-minor histogram: 0:8873 1:3720  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 2638, 2: 29, 3: 16, 4: 1037}
+ first solve already within refinement target: 2638   needed refinement: 1082  refinement solves (extra): 3172
+ verdict(from rho1) != final verdict: 9 of 3720 ; final undecidable: 5
+ rho1 decade histogram (all solved tests): 1e-6:1 1e-5:7 1e-4:2234 1e-3:366 1e-2:3 1e-1:938 1e0:171
+ rho1 decade histogram (tests needing refinement): 1e-5:4 1e-4:21 1e-3:18 1e-2:2 1e-1:938 1e0:99
+ refined tests rel |rho-rho1|/rho: median 1.10e-03 p90 2.52e-03 max 2.25e+03
+  band (1e-09,1e-03): inside 2242 (60.3%), refined-outside 1057, saved refinement solves 3145, verdict flips outside 5
+  band (1e-08,1e-04): inside 8 (0.2%), refined-outside 1078, saved refinement solves 3168, verdict flips outside 9
+  band (1e-07,1e-05): inside 1 (0.0%), refined-outside 1082, saved refinement solves 3172, verdict flips outside 9
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 1082, saved refinement solves 3172, verdict flips outside 9
+  band (3e-07,3e-06): inside 1 (0.0%), refined-outside 1082, saved refinement solves 3172, verdict flips outside 9
+  band (1e-07,1e-04): inside 8 (0.2%), refined-outside 1078, saved refinement solves 3168, verdict flips outside 9
+  band (1e-08,1e-03): inside 2242 (60.3%), refined-outside 1057, saved refinement solves 3145, verdict flips outside 5
+  band (1e-08,1e-02): inside 2608 (70.1%), refined-outside 1039, saved refinement solves 3097, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 2242
+ polish calls 12593 (E 11382 B 1211) solves 12884 (1.023/minor; tally 14102) kept steps 582 (kept rate 4.5% of solves); first step: kept 291 reject 0 cap 12302
+   second step solves 291 kept 291
+   non-kept polish solves (wasted) 12302 = 95.5% of polish solves; 0.977 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 0 calls (0.0%), of which first step would have been kept 0
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 1 calls (0.0%), of which first step would have been kept 1
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 3 calls (0.0%), of which first step would have been kept 3
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 89 calls (0.7%), of which first step would have been kept 70
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 1155 calls (9.2%), of which first step would have been kept 216
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 4468 calls (35.5%), of which first step would have been kept 248
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 6672 calls (53.0%), of which first step would have been kept 283
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 9912 calls (78.7%), of which first step would have been kept 291
+   res0-rel decade hist, first step kept : 1e-16:1 1e-15:2 1e-14:67 1e-13:146 1e-12:32 1e-11:35 1e-10:8
+   res0-rel decade hist, first step cap : 1e-14:19 1e-13:920 1e-12:3281 1e-11:2169 1e-10:1058 1e-9:2174 1e-8:1493 1e-7:8 1e-6:7 1e-5:2 1e-4:1171
+===== f7_n800_path_neutral
+ status Optimal cols7-8 9637 10822  log minors 10822  tally detector solves 16591 per minor 1.533 polish solves 12719 ord 22410 border 3230
+ D tests(solved) 3477 solves 6983  unrun/nofree tests 0  cert D calls 1960 solves 7840  other detector solves (entry/probe/repair/...) 1768
+ tests/minor 0.321 (solved+unrun) ; cert/minor 0.181
+ tests-per-minor histogram: 0:7345 1:3477  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 2185, 2: 77, 3: 216, 4: 999}
+ first solve already within refinement target: 2185   needed refinement: 1292  refinement solves (extra): 3506
+ verdict(from rho1) != final verdict: 27 of 3477 ; final undecidable: 16
+ rho1 decade histogram (all solved tests): 1e-5:4 1e-4:1959 1e-3:391 1e-2:77 1e-1:970 1e0:76
+ rho1 decade histogram (tests needing refinement): 1e-5:2 1e-4:41 1e-3:130 1e-2:74 1e-1:970 1e0:75
+ refined tests rel |rho-rho1|/rho: median 1.43e-03 p90 1.17e+02 max 1.19e+04
+  band (1e-09,1e-03): inside 1963 (56.5%), refined-outside 1249, saved refinement solves 3462, verdict flips outside 19
+  band (1e-08,1e-04): inside 4 (0.1%), refined-outside 1290, saved refinement solves 3504, verdict flips outside 27
+  band (1e-07,1e-05): inside 0 (0.0%), refined-outside 1292, saved refinement solves 3506, verdict flips outside 27
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 1292, saved refinement solves 3506, verdict flips outside 27
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 1292, saved refinement solves 3506, verdict flips outside 27
+  band (1e-07,1e-04): inside 4 (0.1%), refined-outside 1290, saved refinement solves 3504, verdict flips outside 27
+  band (1e-08,1e-03): inside 1963 (56.5%), refined-outside 1249, saved refinement solves 3462, verdict flips outside 19
+  band (1e-08,1e-02): inside 2354 (67.7%), refined-outside 1119, saved refinement solves 3156, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 1960
+ polish calls 10822 (E 9629 B 1193) solves 11520 (1.064/minor; tally 12719) kept steps 1391 (kept rate 12.1% of solves); first step: kept 698 reject 0 cap 10124
+   second step solves 698 kept 693
+   non-kept polish solves (wasted) 10129 = 87.9% of polish solves; 0.936 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 0 calls (0.0%), of which first step would have been kept 0
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 1 calls (0.0%), of which first step would have been kept 1
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 2 calls (0.0%), of which first step would have been kept 2
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 277 calls (2.6%), of which first step would have been kept 274
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 1215 calls (11.2%), of which first step would have been kept 587
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 3729 calls (34.5%), of which first step would have been kept 596
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 5363 calls (49.6%), of which first step would have been kept 667
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 8578 calls (79.3%), of which first step would have been kept 698
+   res0-rel decade hist, first step kept : 1e-16:1 1e-15:1 1e-14:272 1e-13:313 1e-12:9 1e-11:71 1e-10:22 1e-9:9
+   res0-rel decade hist, first step cap : 1e-14:3 1e-13:625 1e-12:2505 1e-11:1563 1e-10:969 1e-9:2215 1e-8:832 1e-7:3 1e-6:75 1e-5:101 1e-4:144 1e-3:1089
+===== f7_n825_path_neutral_control
+ status Optimal cols7-8 10440 10589  log minors 10589  tally detector solves 13613 per minor 1.286 polish solves 11087 ord 21359 border 308
+ D tests(solved) 3120 solves 5804  unrun/nofree tests 0  cert D calls 1806 solves 7224  other detector solves (entry/probe/repair/...) 585
+ tests/minor 0.295 (solved+unrun) ; cert/minor 0.171
+ tests-per-minor histogram: 0:7469 1:3120  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 2193, 2: 31, 3: 35, 4: 861}
+ first solve already within refinement target: 2193   needed refinement: 927  refinement solves (extra): 2684
+ verdict(from rho1) != final verdict: 9 of 3120 ; final undecidable: 6
+ rho1 decade histogram (all solved tests): 1e-5:5 1e-4:1801 1e-3:364 1e-2:2 1e-1:807 1e0:141
+ rho1 decade histogram (tests needing refinement): 1e-5:1 1e-4:21 1e-3:17 1e-2:1 1e-1:807 1e0:80
+ refined tests rel |rho-rho1|/rho: median 1.29e-03 p90 4.08e-03 max 3.28e+03
+  band (1e-09,1e-03): inside 1806 (57.9%), refined-outside 905, saved refinement solves 2644, verdict flips outside 6
+  band (1e-08,1e-04): inside 5 (0.2%), refined-outside 926, saved refinement solves 2683, verdict flips outside 9
+  band (1e-07,1e-05): inside 0 (0.0%), refined-outside 927, saved refinement solves 2684, verdict flips outside 9
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 927, saved refinement solves 2684, verdict flips outside 9
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 927, saved refinement solves 2684, verdict flips outside 9
+  band (1e-07,1e-04): inside 5 (0.2%), refined-outside 926, saved refinement solves 2683, verdict flips outside 9
+  band (1e-08,1e-03): inside 1806 (57.9%), refined-outside 905, saved refinement solves 2644, verdict flips outside 6
+  band (1e-08,1e-02): inside 2170 (69.6%), refined-outside 888, saved refinement solves 2598, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 1806
+ polish calls 10589 (E 10436 B 153) solves 10930 (1.032/minor; tally 11087) kept steps 682 (kept rate 6.2% of solves); first step: kept 341 reject 0 cap 10248
+   second step solves 341 kept 341
+   non-kept polish solves (wasted) 10248 = 93.8% of polish solves; 0.968 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 0 calls (0.0%), of which first step would have been kept 0
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 1 calls (0.0%), of which first step would have been kept 1
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 3 calls (0.0%), of which first step would have been kept 3
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 102 calls (1.0%), of which first step would have been kept 98
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 972 calls (9.2%), of which first step would have been kept 258
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 3520 calls (33.2%), of which first step would have been kept 280
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 5459 calls (51.6%), of which first step would have been kept 329
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 8508 calls (80.3%), of which first step would have been kept 341
+   res0-rel decade hist, first step kept : 1e-16:1 1e-15:2 1e-14:95 1e-13:160 1e-12:22 1e-11:49 1e-10:8 1e-9:4
+   res0-rel decade hist, first step cap : 1e-14:4 1e-13:710 1e-12:2526 1e-11:1890 1e-10:1060 1e-9:1977 1e-8:1057 1e-7:6 1e-6:43 1e-5:1 1e-4:142 1e-3:832
+===== f7_n750_path_neutral_control
+ status Optimal cols7-8 8779 10298  log minors 10298  tally detector solves 15295 per minor 1.485 polish solves 12508 ord 21419 border 4278
+ D tests(solved) 3121 solves 5631  unrun/nofree tests 0  cert D calls 1835 solves 7340  other detector solves (entry/probe/repair/...) 2324
+ tests/minor 0.303 (solved+unrun) ; cert/minor 0.178
+ tests-per-minor histogram: 0:7177 1:3121  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 2227, 2: 71, 3: 30, 4: 793}
+ first solve already within refinement target: 2227   needed refinement: 894  refinement solves (extra): 2510
+ verdict(from rho1) != final verdict: 66 of 3121 ; final undecidable: 15
+ rho1 decade histogram (all solved tests): 1e-5:6 1e-4:1849 1e-3:437 1e-2:4 1e-1:695 1e0:130
+ rho1 decade histogram (tests needing refinement): 1e-5:5 1e-4:58 1e-3:58 1e-2:3 1e-1:695 1e0:75
+ refined tests rel |rho-rho1|/rho: median 1.59e-03 p90 7.89e+00 max 1.70e+04
+  band (1e-09,1e-03): inside 1855 (59.4%), refined-outside 831, saved refinement solves 2445, verdict flips outside 23
+  band (1e-08,1e-04): inside 6 (0.2%), refined-outside 889, saved refinement solves 2505, verdict flips outside 66
+  band (1e-07,1e-05): inside 0 (0.0%), refined-outside 894, saved refinement solves 2510, verdict flips outside 66
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 894, saved refinement solves 2510, verdict flips outside 66
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 894, saved refinement solves 2510, verdict flips outside 66
+  band (1e-07,1e-04): inside 6 (0.2%), refined-outside 889, saved refinement solves 2505, verdict flips outside 66
+  band (1e-08,1e-03): inside 1855 (59.4%), refined-outside 831, saved refinement solves 2445, verdict flips outside 23
+  band (1e-08,1e-02): inside 2292 (73.4%), refined-outside 773, saved refinement solves 2306, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 1835
+ polish calls 10298 (E 8765 B 1533) solves 10966 (1.065/minor; tally 12508) kept steps 1275 (kept rate 11.6% of solves); first step: kept 668 reject 0 cap 9630
+   second step solves 668 kept 607
+   non-kept polish solves (wasted) 9691 = 88.4% of polish solves; 0.941 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 0 calls (0.0%), of which first step would have been kept 0
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 1 calls (0.0%), of which first step would have been kept 1
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 3 calls (0.0%), of which first step would have been kept 3
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 21 calls (0.2%), of which first step would have been kept 13
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 1102 calls (10.7%), of which first step would have been kept 520
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 3445 calls (33.5%), of which first step would have been kept 527
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 5487 calls (53.3%), of which first step would have been kept 606
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 8298 calls (80.6%), of which first step would have been kept 668
+   res0-rel decade hist, first step kept : 1e-16:1 1e-15:2 1e-14:10 1e-13:507 1e-12:7 1e-11:79 1e-10:52 1e-9:10
+   res0-rel decade hist, first step cap : 1e-14:8 1e-13:574 1e-12:2336 1e-11:1963 1e-10:734 1e-9:2015 1e-8:1005 1e-7:60 1e-6:8 1e-5:8 1e-4:125 1e-3:794
+===== f7_n1000_path_corrupted
+ status Optimal cols7-8 3590 4762  log minors 17110  tally detector solves 2831 per minor 0.165 polish solves 9202 ord 9941 border 2816
+ D tests(solved) 4481 solves 8235  unrun/nofree tests 0  cert D calls 2304 solves 9167  other detector solves (entry/probe/repair/...) -14571
+ tests/minor 0.262 (solved+unrun) ; cert/minor 0.135
+ tests-per-minor histogram: 0:12629 1:4481  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 3118, 2: 96, 3: 143, 4: 1124}
+ first solve already within refinement target: 3118   needed refinement: 1363  refinement solves (extra): 3754
+ verdict(from rho1) != final verdict: 25 of 4481 ; final undecidable: 15
+ rho1 decade histogram (all solved tests): 1e-6:2 1e-5:57 1e-4:2243 1e-3:829 1e-2:20 1e-1:1134 1e0:196
+ rho1 decade histogram (tests needing refinement): 1e-5:9 1e-4:20 1e-3:40 1e-2:18 1e-1:1134 1e0:142
+ refined tests rel |rho-rho1|/rho: median 1.03e-03 p90 8.89e-03 max 5.97e+03
+  band (1e-09,1e-03): inside 2302 (51.4%), refined-outside 1334, saved refinement solves 3718, verdict flips outside 15
+  band (1e-08,1e-04): inside 59 (1.3%), refined-outside 1354, saved refinement solves 3745, verdict flips outside 25
+  band (1e-07,1e-05): inside 2 (0.0%), refined-outside 1363, saved refinement solves 3754, verdict flips outside 25
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 1363, saved refinement solves 3754, verdict flips outside 25
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 1363, saved refinement solves 3754, verdict flips outside 25
+  band (1e-07,1e-04): inside 59 (1.3%), refined-outside 1354, saved refinement solves 3745, verdict flips outside 25
+  band (1e-08,1e-03): inside 2302 (51.4%), refined-outside 1334, saved refinement solves 3718, verdict flips outside 15
+  band (1e-08,1e-02): inside 3131 (69.9%), refined-outside 1294, saved refinement solves 3614, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 2304
+ polish calls 17110 (E 15744 B 1366) solves 20481 (1.197/minor; tally 9202) kept steps 5878 (kept rate 28.7% of solves); first step: kept 3371 reject 230 cap 13509
+   second step solves 3371 kept 2507
+   non-kept polish solves (wasted) 14603 = 71.3% of polish solves; 0.853 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 773 calls (4.5%), of which first step would have been kept 543
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 992 calls (5.8%), of which first step would have been kept 762
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 1213 calls (7.1%), of which first step would have been kept 983
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 2447 calls (14.3%), of which first step would have been kept 2195
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 3700 calls (21.6%), of which first step would have been kept 2497
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 6897 calls (40.3%), of which first step would have been kept 2593
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 9251 calls (54.1%), of which first step would have been kept 2887
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 14210 calls (83.1%), of which first step would have been kept 3371
+   res0-rel decade hist, first step kept : 1e-17:543 1e-16:219 1e-15:221 1e-14:1212 1e-13:302 1e-12:96 1e-11:294 1e-10:367 1e-9:117
+   res0-rel decade hist, first step reject : 1e-17:230
+   res0-rel decade hist, first step cap : 1e-14:22 1e-13:951 1e-12:3101 1e-11:2060 1e-10:1023 1e-9:3452 1e-8:1558 1e-7:108 1e-6:21 1e-5:16 1e-4:1197
+===== f7_n800_path_corrupted
+ status Optimal cols7-8 14 2310  log minors 11873  tally detector solves 1098 per minor 0.092 polish solves 6900 ord 5504 border 9200
+ D tests(solved) 3020 solves 5715  unrun/nofree tests 0  cert D calls 1638 solves 6552  other detector solves (entry/probe/repair/...) -11169
+ tests/minor 0.254 (solved+unrun) ; cert/minor 0.138
+ tests-per-minor histogram: 0:8853 1:3020  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 2066, 2: 50, 3: 67, 4: 837}
+ first solve already within refinement target: 2066   needed refinement: 954  refinement solves (extra): 2695
+ verdict(from rho1) != final verdict: 37 of 3020 ; final undecidable: 15
+ rho1 decade histogram (all solved tests): 1e-6:1 1e-5:1 1e-4:1627 1e-3:477 1e-2:5 1e-1:753 1e0:156
+ rho1 decade histogram (tests needing refinement): 1e-4:26 1e-3:58 1e-2:4 1e-1:753 1e0:113
+ refined tests rel |rho-rho1|/rho: median 1.29e-03 p90 2.46e-02 max 7.24e+03
+  band (1e-09,1e-03): inside 1629 (53.9%), refined-outside 928, saved refinement solves 2668, verdict flips outside 21
+  band (1e-08,1e-04): inside 2 (0.1%), refined-outside 954, saved refinement solves 2695, verdict flips outside 37
+  band (1e-07,1e-05): inside 1 (0.0%), refined-outside 954, saved refinement solves 2695, verdict flips outside 37
+  band (5e-07,2e-06): inside 1 (0.0%), refined-outside 954, saved refinement solves 2695, verdict flips outside 37
+  band (3e-07,3e-06): inside 1 (0.0%), refined-outside 954, saved refinement solves 2695, verdict flips outside 37
+  band (1e-07,1e-04): inside 2 (0.1%), refined-outside 954, saved refinement solves 2695, verdict flips outside 37
+  band (1e-08,1e-03): inside 1629 (53.9%), refined-outside 928, saved refinement solves 2668, verdict flips outside 21
+  band (1e-08,1e-02): inside 2106 (69.7%), refined-outside 870, saved refinement solves 2525, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 1638
+ polish calls 11875 (E 8916 B 2959) solves 13922 (1.173/minor; tally 6900) kept steps 3605 (kept rate 25.9% of solves); first step: kept 2047 reject 331 cap 9497
+   second step solves 2047 kept 1558
+   non-kept polish solves (wasted) 10317 = 74.1% of polish solves; 0.869 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 288 calls (2.4%), of which first step would have been kept 133
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 692 calls (5.8%), of which first step would have been kept 376
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 737 calls (6.2%), of which first step would have been kept 406
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 1144 calls (9.6%), of which first step would have been kept 806
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 2778 calls (23.4%), of which first step would have been kept 1640
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 4557 calls (38.4%), of which first step would have been kept 1682
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 6366 calls (53.6%), of which first step would have been kept 1824
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 9956 calls (83.8%), of which first step would have been kept 2047
+   res0-rel decade hist, first step kept : 1e-17:133 1e-16:243 1e-15:30 1e-14:400 1e-13:834 1e-12:42 1e-11:142 1e-10:187 1e-9:36
+   res0-rel decade hist, first step reject : 1e-17:155 1e-16:161 1e-15:15
+   res0-rel decade hist, first step cap : 1e-14:7 1e-13:800 1e-12:1737 1e-11:1667 1e-10:692 1e-9:2675 1e-8:913 1e-7:68 1e-6:7 1e-5:13 1e-4:918
+===== f7_n2000_path_activity
+ status Optimal cols7-8 18 1881  log minors 1881  tally detector solves 3136 per minor 1.667 polish solves 6108 ord 4894 border 5590
+ D tests(solved) 136 solves 136  unrun/nofree tests 0  cert D calls 136 solves 544  other detector solves (entry/probe/repair/...) 2456
+ tests/minor 0.072 (solved+unrun) ; cert/minor 0.072
+ tests-per-minor histogram: 0:1745 1:136  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 136}
+ first solve already within refinement target: 136   needed refinement: 0  refinement solves (extra): 0
+ verdict(from rho1) != final verdict: 0 of 136 ; final undecidable: 0
+ rho1 decade histogram (all solved tests): 1e-5:110 1e-4:26
+ rho1 decade histogram (tests needing refinement): 
+  band (1e-09,1e-03): inside 136 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-04): inside 110 (80.9%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-07,1e-05): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-07,1e-04): inside 110 (80.9%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-03): inside 136 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-02): inside 136 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 136
+ polish calls 1883 (E 2 B 1881) solves 3055 (1.624/minor; tally 6108) kept steps 2060 (kept rate 67.4% of solves); first step: kept 1172 reject 3 cap 708
+   second step solves 1172 kept 888
+   non-kept polish solves (wasted) 995 = 32.6% of polish solves; 0.529 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 554 calls (29.4%), of which first step would have been kept 551
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 567 calls (30.1%), of which first step would have been kept 564
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 578 calls (30.7%), of which first step would have been kept 575
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 624 calls (33.1%), of which first step would have been kept 613
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 918 calls (48.8%), of which first step would have been kept 810
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 1798 calls (95.5%), of which first step would have been kept 1172
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 1881 calls (99.9%), of which first step would have been kept 1172
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 1881 calls (99.9%), of which first step would have been kept 1172
+   res0-rel decade hist, first step kept : 1e-19:137 1e-18:389 1e-17:25 1e-16:13 1e-15:11 1e-14:38 1e-13:197 1e-12:362
+   res0-rel decade hist, first step reject : 1e-19:3
+   res0-rel decade hist, first step cap : 1e-14:8 1e-13:97 1e-12:518 1e-11:83 1e-8:2
+===== f7_n2000_path_physics
+ status Optimal cols7-8 12 1638  log minors 1638  tally detector solves 7366 per minor 4.497 polish solves 6053 ord 4504 border 4106
+ D tests(solved) 617 solves 617  unrun/nofree tests 0  cert D calls 617 solves 2468  other detector solves (entry/probe/repair/...) 4281
+ tests/minor 0.377 (solved+unrun) ; cert/minor 0.377
+ tests-per-minor histogram: 0:1021 1:617  max 1  minors with >=2: 0.0%
+ solves-per-test histogram: {1: 617}
+ first solve already within refinement target: 617   needed refinement: 0  refinement solves (extra): 0
+ verdict(from rho1) != final verdict: 0 of 617 ; final undecidable: 0
+ rho1 decade histogram (all solved tests): 1e-5:57 1e-4:560
+ rho1 decade histogram (tests needing refinement): 
+  band (1e-09,1e-03): inside 617 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-04): inside 57 (9.2%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-07,1e-05): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (5e-07,2e-06): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (3e-07,3e-06): inside 0 (0.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-07,1e-04): inside 57 (9.2%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-03): inside 617 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+  band (1e-08,1e-02): inside 617 (100.0%), refined-outside 0, saved refinement solves 0, verdict flips outside 0
+ grey-band converged-independent (rho<1e-3, triggers cert re-read): 617
+ polish calls 1642 (E 4 B 1638) solves 3029 (1.849/minor; tally 6053) kept steps 2609 (kept rate 86.1% of solves); first step: kept 1387 reject 1 cap 254
+   second step solves 1387 kept 1222
+   non-kept polish solves (wasted) 420 = 13.9% of polish solves; 0.256 per minor
+   skip first solve if res0/max(1,|rhs|)<=1e-16: 408 calls (24.8%), of which first step would have been kept 407
+   skip first solve if res0/max(1,|rhs|)<=1e-15: 408 calls (24.8%), of which first step would have been kept 407
+   skip first solve if res0/max(1,|rhs|)<=1e-14: 414 calls (25.2%), of which first step would have been kept 413
+   skip first solve if res0/max(1,|rhs|)<=1e-13: 452 calls (27.5%), of which first step would have been kept 451
+   skip first solve if res0/max(1,|rhs|)<=1e-12: 819 calls (49.9%), of which first step would have been kept 744
+   skip first solve if res0/max(1,|rhs|)<=1e-11: 1639 calls (99.8%), of which first step would have been kept 1386
+   skip first solve if res0/max(1,|rhs|)<=1e-10: 1640 calls (99.9%), of which first step would have been kept 1387
+   skip first solve if res0/max(1,|rhs|)<=1e-08: 1640 calls (99.9%), of which first step would have been kept 1387
+   res0-rel decade hist, first step kept : 1e-19:97 1e-18:310 1e-15:6 1e-14:38 1e-13:293 1e-12:642 1e-11:1
+   res0-rel decade hist, first step reject : 1e-19:1
+   res0-rel decade hist, first step cap : 1e-13:74 1e-12:178 1e-8:2
