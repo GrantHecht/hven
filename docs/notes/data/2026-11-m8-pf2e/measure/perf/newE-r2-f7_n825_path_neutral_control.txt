@@ -1,0 +1,17 @@
+# started on Sat Nov 21 18:04:22 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/measE2/bench/hven_sqp_corpus --internal-run-one f7_n825_path_neutral_control --engine walk --internal-out /home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e/measure/raw/newE-r2-f7_n825_path_neutral_control.csv':
+
+ 1,087,941,372,371      instructions:u                                                        
+   162,650,723,078      branches:u                                                            
+   361,614,908,376      cycles:u                                                              
+     1,823,567,699      branch-misses:u                                                       
+        75,636,486      L1-icache-load-misses:u                                               
+
+     110.884370557 seconds time elapsed
+
+     107.495343000 seconds user
+       2.881230000 seconds sys
+
+
