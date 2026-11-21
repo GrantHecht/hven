@@ -2312,12 +2312,15 @@ TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
     // distance for every coefficient vector), so it stays independent: R-E does
     // not flip it, and the walk is the fix-5 walk (596 minors in Release,
     // kNumericalError -- not this rule's class).
+    // PF-2d L2: rho 7.669e-4 is above the re-read band (1e-6, 1e-4], so the first solve's
+    // "independent" stands and the re-read no longer happens (dep_grey_rereads 1 -> 0): the same
+    // verdict, one detector solve sequence fewer. The walk is unchanged (minors pinned below).
     const QpDump d = e2d4_dump("YORKNET_def-qp1.txt");
     EXPECT_NE(d.result.find("status=3 minors=594 "), std::string::npos);
     for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
-        EXPECT_EQ(s.counters.dep_grey_rereads, 1);
+        EXPECT_EQ(s.counters.dep_grey_rereads, 0);
         EXPECT_EQ(s.counters.dep_grey_reread_dependent, 0);
     }
 }

@@ -38,7 +38,7 @@
 //     independent AND COUNTED (DepTest::stall_admit, QpCounters::
 //     dep_stall_admits): not "stall => dependent";
 //   - otherwise (converged, rho > kDepTol) INDEPENDENT -- including
-//     kDepTol < rho < kDepUndecidable, where the walk's caller re-reads it
+//     kDepTol < rho <= kDepRereadBandHi, where the walk's caller re-reads it
 //     (R-E, E2 fix6: QpEngine::test_candidate runs certificate_coefficients and
 //     certifies a dependent when rho' + its rounding floor <= kDepTol; see
 //     kDepRereadKappa).
@@ -91,6 +91,13 @@ constexpr Index kDepRefineSteps = 3;
 // changes at 1e-2 (2-14 per cell at 3e-3).
 constexpr double kDepDecideFirstRho = 1e-2;
 constexpr bool decides_at_first_solve(double rho1) { return rho1 >= kDepDecideFirstRho; }
+// R-E re-reads a converged independent only inside (Lo, Hi]; largest flipping rho: 1.55e-5 on the
+// f7 cells, 4.5e-4 on the ACOPR57 restoration QP.
+constexpr double kDepRereadBandLo = kDepTol;
+constexpr double kDepRereadBandHi = 1e-4;
+constexpr bool in_reread_band(double rho) {
+    return rho > kDepRereadBandLo && rho <= kDepRereadBandHi;
+}
 constexpr double kDepCoeffTol = 1e-6;
 constexpr Index kEntryDetectSolves = 4;
 // A detector support member is offered for removal only when the null vector certifies it:

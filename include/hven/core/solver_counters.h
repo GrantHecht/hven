@@ -499,7 +499,7 @@ struct QpCounters {
     Index dep_inertia_rereads = 0;
     Index dep_inertia_reread_flips = 0;
     // CONVERGED candidate tests read independent in the grey
-    // band kDepTol < rho < kDepUndecidable, re-read with the refinement run to
+    // band kDepTol < rho <= kDepRereadBandHi, re-read with the refinement run to
     // its end on the same factor (no factorization; the solves in
     // dep_test_solves), and how many of those the re-read certified DEPENDENT
     // (rho' + its rounding floor <= kDepTol).

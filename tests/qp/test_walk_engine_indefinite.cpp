@@ -2964,3 +2964,34 @@ TEST(QpGreyReread, TheReReadSavesTheTestsFirstBackendSolve) {
     // logical solves = the test's + the re-read's; the re-read's first is not a backend call.
     EXPECT_EQ(counters.dep_test_solves - tally.solves(hven::linear::SolveContext::kDetector), 1);
 }
+
+// PF-2d L2: the grey re-read runs only for a converged independent whose rho is in
+// (kDepRereadBandLo, kDepRereadBandHi] = (1e-6, 1e-4]; rho = e / sqrt(1 + e^2) here (fixture
+// above).
+TEST(QpGreyRereadBand, TheReReadRunsExactlyInsideTheBand) {
+    struct Case {
+        double e;
+        Index rereads;
+    };
+    // inside: just above kDepTol, 3e-6, 3e-5, 9.9e-5; above the top: 1.01e-4, 5e-4.
+    const Case cases[] = {{1.5e-6, 1}, {3e-6, 1}, {3e-5, 1}, {9.9e-5, 1}, {1.01e-4, 0}, {5e-4, 0}};
+    for (const Case &c : cases) {
+        SCOPED_TRACE(::testing::Message() << "e " << c.e);
+        const GreyBandFixture fx(c.e);
+        QpCounters counters;
+        const detail::DepTest t = fx.candidate(counters);
+        EXPECT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+        EXPECT_EQ(counters.dep_grey_rereads, c.rereads);
+        EXPECT_EQ(counters.dep_grey_reread_dependent, 0);
+    }
+}
+
+TEST(QpGreyRereadBand, TheBandEdgesAreHalfOpenAtKDepTolAndTheTop) {
+    EXPECT_FALSE(detail::in_reread_band(detail::kDepTol));
+    EXPECT_TRUE(detail::in_reread_band(std::nextafter(detail::kDepTol, 1.0)));
+    EXPECT_TRUE(detail::in_reread_band(1e-4));
+    EXPECT_FALSE(detail::in_reread_band(std::nextafter(1e-4, 1.0)));
+    EXPECT_FALSE(detail::in_reread_band(std::numeric_limits<double>::quiet_NaN()));
+    EXPECT_EQ(detail::kDepRereadBandLo, detail::kDepTol);
+    EXPECT_EQ(detail::kDepRereadBandHi, 1e-4);
+}

@@ -5217,7 +5217,7 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     // the refinement run to its end on the same factor; a certified rho' makes it
     // dependent with the re-read's coefficients (walk_engine.h, Degeneracy).
     if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
-        t.rho < detail::kDepUndecidable) {
+        detail::in_reread_band(t.rho)) {
         ++counters.dep_grey_rereads;
         detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts, &t);
         const Index solves = t.solves + r.solves;

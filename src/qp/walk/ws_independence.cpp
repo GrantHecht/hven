@@ -367,7 +367,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
     } else {
         t.verdict = DepVerdict::kIndependent;
         t.stall_admit = !converged;
-        if (keep_first && converged && t.rho < kDepUndecidable) {
+        if (keep_first && converged && in_reread_band(t.rho)) {
             t.has_first = true;
             t.first_y = std::move(y0);
             t.first_res = std::move(res0);

@@ -740,7 +740,7 @@
 // unlocks the members locked only by having entered at this point, min-ratio with
 // lowest-index ties (dep_unlocks; ExchangePick, where the finiteness argument is).
 // E2 FIX6 (R-E, the grey re-read): a candidate test that CONVERGED to "independent" with
-// kDepTol < rho < kDepUndecidable is re-read at every growth site (test_candidate, after R-A)
+// kDepTol < rho <= kDepRereadBandHi is re-read at every growth site (test_candidate, after R-A)
 // by running the refinement to its end on the same factor (certificate_coefficients: no
 // factorization, at most kDepRefineSteps steps); rho' plus its rounding floor
 // (kDepRereadKappa) <= kDepTol makes it DEPENDENT with the re-read coefficients, else the
