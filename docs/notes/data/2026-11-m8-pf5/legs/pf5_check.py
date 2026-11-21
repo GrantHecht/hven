@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""PF-5 (../DECLARATION-PF-5.md): the row identity check of the TRAIN (DN-3's 238 roster cells x D/K) and nlp-35 legs.
+"""PF-5 (../DECLARATION-PF-5.md; r1: ../DECLARATION-PF-5-r1.md adds the plain rule for rows carrying none of the
+three PF-5 columns -- the hven-ipm lane): the row identity check of the TRAIN (DN-3's 238 roster cells x D/K) and nlp-35 legs.
 
 Row loading and comparison are train_check.py's load()/compare() (imported from this directory, byte copies of PF-4
 r2's), with one rule of PF-5's own on top:
@@ -31,6 +32,14 @@ def check(pa, pb):
     b, okb = tc.load(pb)
     if not (oka and okb):
         return [f"NO_ROW_OR_CAPPED (A {oka}, B {okb})"], [], (0, 0)
+    if all(k not in a and k not in b for k in (R, AN, RP)):
+        # r1: a row that carries none of the three (the hven-ipm lane reports no SqpCounters) compares plainly.
+        ex, ig, og = tc.compare(b, a)
+        da = open(pa + ".optdump").read() if os.path.exists(pa + ".optdump") else None
+        db = open(pb + ".optdump").read() if os.path.exists(pb + ".optdump") else None
+        if da is None or da != db:
+            ex.append("OPTDUMP_DIFFERS")
+        return ex + og, ig, (0, 0)
     if R not in b:
         return ["B_LACKS_" + R], [], (0, 0)
     reuses = int(b[R])

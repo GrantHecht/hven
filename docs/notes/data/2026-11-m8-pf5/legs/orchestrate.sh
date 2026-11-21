@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# PF-5 (../DECLARATION-PF-5.md) section 5: the legs in order, each compute leg in its own box-lane acquisition; the
+# PF-5 (../DECLARATION-PF-5.md) section 5 (r1: GATE_DIR names the output directory, gate-r1 for ../DECLARATION-PF-5-r1.md): the legs in order, each compute leg in its own box-lane acquisition; the
 # chain stops at the first failed leg. Outputs under ../gate/. Run outside any lock:
 #   bash orchestrate.sh <code commit> <corpus A sha> <corpus B sha> <lane A sha> <lane B sha> <ntests> [first leg]
 set -uo pipefail
 WT=/home/ghecht/Projects/hven/.claude/worktrees/pf5b
 L=$WT/docs/notes/data/2026-11-m8-pf5/legs
-G=$WT/docs/notes/data/2026-11-m8-pf5/gate
+G=$WT/docs/notes/data/2026-11-m8-pf5/${GATE_DIR:-gate}
 BOX=$HOME/.local/bin/box-lane
 CODE=${1:?}; CA=${2:?}; CB=${3:?}; LA=${4:?}; LB=${5:?}; NT=${6:?}; FIRST=${7:-P1}
 BIN=$WT/.scratch/bin
