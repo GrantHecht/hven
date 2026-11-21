@@ -824,4 +824,7 @@ verbatim from `src/CMakeLists.txt`. The current value and the tripwire's purpose
 # 61 as of linear/analysis_tally.cpp (M8 PF-4): the per-thread analysis tally both platform adapters
 # record into. NOT a PCH source, on the same unmeasured-default footing: it includes the public factor
 # header and <unordered_set> only.
+# 62-64 as of M8 AP-4 G1 (the three option-enum-name TUs): switch tables run once per dump, NOT PCH
+# sources, on the same unmeasured-default footing (recorded here by the PF-4/AP-4 integration).
+# 65 as of M8 AP-4 G2 (the options-reference TU): runs once per reference, NOT a PCH source.
 ```
