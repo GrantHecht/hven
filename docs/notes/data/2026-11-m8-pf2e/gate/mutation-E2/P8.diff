@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index c885946ae..e3c538499 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -337,7 +337,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+     }
+     // The probe reads the eliminated path only: on the border path a stagnant step can precede a
+     // collapse (kDepStagnation).
+-    const bool test_probe = probe == DepProbe::kTest && target > 0.0 && !t.screen && !sys.bordered;
++    const bool test_probe = probe == DepProbe::kTest && target > 0.0 && !sys.bordered;
+     const bool reread_probe = probe == DepProbe::kReread && resumed && !sys.bordered;
+     if (test_probe && res_norm > target) {
+         read_out(y);

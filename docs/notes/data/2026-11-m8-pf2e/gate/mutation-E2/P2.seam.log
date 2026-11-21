@@ -1,0 +1,22 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp:QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal:QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch:QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal
+[       OK ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal (4 ms)
+[ RUN      ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+[       OK ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp (3235 ms)
+[ RUN      ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[       OK ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent (502 ms)
+[----------] 3 tests from QpE2WorkingSet (3742 ms total)
+
+[----------] 1 test from QpLatchReason
+[ RUN      ] QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch
+[ rla ] BRITGAS qp0 first 120: status=1 minors=120 facts=166 cap=0 cond=40 releases=39 holds=84
+[       OK ] QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch (532 ms)
+[----------] 1 test from QpLatchReason (532 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (4275 ms total)
+[  PASSED  ] 4 tests.

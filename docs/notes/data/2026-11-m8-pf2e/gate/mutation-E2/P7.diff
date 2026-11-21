@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 9df70da51..8d3605715 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -5221,7 +5221,7 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
+     if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
+         t.rho < detail::kDepUndecidable) {
+         ++counters.dep_grey_rereads;
+-        detail::DepTest r = detail::grey_reread(qp, ws, view, a, opts, t);
++        detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts, &t);
+         const Index solves = t.solves + r.solves;
+         const double rho_floor =
+             r.rho <= detail::kDepTol ? detail::dependency_rounding_floor(qp, ws, r, a) : 0.0;

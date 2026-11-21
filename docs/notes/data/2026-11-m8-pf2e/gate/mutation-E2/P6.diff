@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index c885946ae..431197a02 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -325,7 +325,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+         y = first->resume_y;
+         res = first->resume_res;
+         res_norm = first->resume_res_norm;
+-        steps = first->resume_steps;
++        steps = 0;
+         rho_prev = first->resume_rho_prev;
+         rho_cur = first->rho;
+         t.solves = 1 + steps;

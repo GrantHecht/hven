@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index c885946ae..681dcdf42 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -346,7 +346,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+     // THE CONTRACTION PROBE (kDepStagnation): after a kept step that read rho_prev -> rho_cur,
+     // with `left` steps of the budget remaining.
+     const auto stagnant_cut = [&](Index left) {
+-        if (!(rho_prev > 0.0) || !(rho_cur >= kDepStagnation * rho_prev)) {
++        if (!(rho_prev > 0.0) || !(rho_cur >= 0.01 * rho_prev)) {
+             return false; // no step read, or the step contracted
+         }
+         const double reach = rho_cur * std::pow(kDepStagnation, static_cast<double>(left));

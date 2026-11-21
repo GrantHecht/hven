@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index c885946ae..c09abc364 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -350,7 +350,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+             return false; // no step read, or the step contracted
+         }
+         const double reach = rho_cur * std::pow(kDepStagnation, static_cast<double>(left));
+-        return reread_probe ? reach > kDepTol : reach >= kDepUndecidable;
++        return reread_probe ? reach > kDepUndecidable : reach >= kDepUndecidable;
+     };
+     if (reread_probe && steps < kDepRefineSteps && stagnant_cut(kDepRefineSteps - steps)) {
+         t.probe_cut = true; // the test's own last step was stagnant: no re-read solve at all

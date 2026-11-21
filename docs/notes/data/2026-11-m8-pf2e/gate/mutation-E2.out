@@ -1,0 +1,42 @@
+box-lane: lane 1 acquired 2026-11-21T18:12:14-05:00
+FOREGROUND_START 2026-11-21T18:12:14-05:00
+PREFLIGHT every mutation applies and restores: [P1 P2 P3 P4 P5 P6 P7 P8 P9]
+MUT control rc=0 seam_rc=0 killers=0
+APPLIED P1 to src/qp/walk/ws_independence.cpp
+MUT P1 rc=0 seam_rc=1 killers=1
+   QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+APPLIED P2 to include/hven/detail/qp/walk/ws_independence.h
+MUT P2 rc=1 seam_rc=0 killers=4
+   QpGreyReread.TheReReadStopsOnAStagnantProbeStep
+   WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+   WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+   WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+APPLIED P3 to src/qp/walk/ws_independence.cpp
+MUT P3 rc=1 seam_rc=0 killers=3
+   QpGreyReread.TheReReadStopsOnAStagnantProbeStep
+   WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+   WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+APPLIED P4 to src/qp/walk/ws_independence.cpp
+MUT P4 rc=1 seam_rc=0 killers=1
+   WsIndependenceProbe.AStagnantTestInTheGreyBandIsNotCut
+APPLIED P5 to src/qp/walk/ws_independence.cpp
+MUT P5 rc=1 seam_rc=0 killers=1
+   WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+APPLIED P6 to src/qp/walk/ws_independence.cpp
+MUT P6 rc=1 seam_rc=0 killers=2
+   WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+   WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+APPLIED P7 to src/qp/walk/walk_engine.cpp
+MUT P7 rc=1 seam_rc=0 killers=1
+   QpGreyReread.TheReReadStopsOnAStagnantProbeStep
+APPLIED P8 to src/qp/walk/ws_independence.cpp
+MUT P8 rc=1 seam_rc=0 killers=1
+   WsIndependenceProbe.AScreenTestIsNeverCut
+APPLIED P9 to src/qp/walk/ws_independence.cpp
+MUT P9 rc=1 seam_rc=0 killers=3
+   WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+   WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+   WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-21T18:22:40-05:00
+MUT_EXIT

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/ws_independence.h b/include/hven/detail/qp/walk/ws_independence.h
+index 895438026..25efedcaf 100644
+--- a/include/hven/detail/qp/walk/ws_independence.h
++++ b/include/hven/detail/qp/walk/ws_independence.h
+@@ -99,7 +99,7 @@ constexpr Index kDepRefineSteps = 3;
+ // path breaks (NET1, TRAIN: rho 3.35e-6 -> 3.40e-6 -> 4.6e-11 and the mu-free residual with it, a
+ // stagnant step before a collapse, on the Schur complement's solve), so the probe runs on the
+ // eliminated path only; a bordered test and re-read refine to the budget as before.
+-constexpr double kDepStagnation = 0.5;
++constexpr double kDepStagnation = 2.0;
+ constexpr double kDepCoeffTol = 1e-6;
+ constexpr Index kEntryDetectSolves = 4;
+ // A detector support member is offered for removal only when the null vector certifies it:

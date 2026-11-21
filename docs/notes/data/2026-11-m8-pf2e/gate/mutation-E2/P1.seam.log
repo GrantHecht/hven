@@ -1,0 +1,80 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp:QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal:QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch:QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from QpE2WorkingSet
+[ RUN      ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal
+[       OK ] QpE2WorkingSet.TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal (4 ms)
+[ RUN      ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2009: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2014: Failure
+Expected: (k.stationarity) <= (1e-6), actual: 1 vs 1e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2016: Failure
+Expected: (k.complementarity) <= (1e-6), actual: 0.008795309229755582 vs 1e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2253: Failure
+The difference between hven::test_support::qp_dump_objective(d, s.x) and -18.3950535 is 20.233987819714716, which exceeds 1e-6, where
+hven::test_support::qp_dump_objective(d, s.x) evaluates to 1.8389343197147159,
+-18.3950535 evaluates to -18.3950535, and
+1e-6 evaluates to 9.9999999999999995e-07.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2009: Failure
+Expected equality of these values:
+  static_cast<int>(s.status)
+    Which is: 3
+  static_cast<int>(QpStatus::kOptimal)
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2014: Failure
+Expected: (k.stationarity) <= (1e-6), actual: 1 vs 1e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2016: Failure
+Expected: (k.complementarity) <= (1e-6), actual: 0.008795309229755582 vs 1e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2253: Failure
+The difference between hven::test_support::qp_dump_objective(d, s.x) and -18.3950535 is 20.233987819714716, which exceeds 1e-6, where
+hven::test_support::qp_dump_objective(d, s.x) evaluates to 1.8389343197147159,
+-18.3950535 evaluates to -18.3950535, and
+1e-6 evaluates to 9.9999999999999995e-07.
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2250: border
+
+[  FAILED  ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp (3973 ms)
+[ RUN      ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent
+[       OK ] QpE2WorkingSet.AConvergedGreyPinOnDallasmIsReReadDependent (501 ms)
+[----------] 3 tests from QpE2WorkingSet (4478 ms total)
+
+[----------] 1 test from QpLatchReason
+[ RUN      ] QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch
+[ rla ] BRITGAS qp0 first 120: status=1 minors=120 facts=166 cap=0 cond=40 releases=39 holds=84
+[       OK ] QpLatchReason.BritgasMainSubproblemHoldsItsConditioningLatch (528 ms)
+[----------] 1 test from QpLatchReason (528 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (5007 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+
+ 1 FAILED TEST

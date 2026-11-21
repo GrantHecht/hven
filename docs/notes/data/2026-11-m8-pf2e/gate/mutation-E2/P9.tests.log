@@ -1,0 +1,117 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsIndependence*:QpGreyReread*
+[==========] Running 20 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from WsIndependenceDetector
+[ RUN      ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses
+[       OK ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses (2 ms)
+[ RUN      ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval
+[       OK ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval (0 ms)
+[ RUN      ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone
+[       OK ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone (0 ms)
+[----------] 3 tests from WsIndependenceDetector (2 ms total)
+
+[----------] 7 tests from WsIndependenceCalibration
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparates
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparates (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras (0 ms)
+[ RUN      ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:600: Failure
+Expected equality of these values:
+  t.probe_cut
+    Which is: true
+  !border
+    Which is: false
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:590: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:601: Failure
+Expected equality of these values:
+  t.solves
+    Which is: 2
+  border ? 1 + detail::kDepRefineSteps : 2
+    Which is: 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:590: border
+
+[  FAILED  ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged (0 ms)
+[ RUN      ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent
+[       OK ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent (0 ms)
+[ RUN      ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol
+[       OK ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol (0 ms)
+[ RUN      ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+[       OK ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead (0 ms)
+[----------] 7 tests from WsIndependenceCalibration (2 ms total)
+
+[----------] 5 tests from WsIndependenceProbe
+[ RUN      ] WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:795: Failure
+Value of: r.probe_cut
+  Actual: true
+Expected: false
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:780: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:796: Failure
+Expected equality of these values:
+  r.solves
+    Which is: 2
+  full.solves
+    Which is: 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:780: border
+
+[  FAILED  ] WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep (0 ms)
+[ RUN      ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:823: Failure
+Value of: r.probe_cut
+  Actual: true
+Expected: false
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:813: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:824: Failure
+Expected: (tally.solves(hven::linear::SolveContext::kDetector)) > (0), actual: 0 vs 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:813: border
+
+[  FAILED  ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve (0 ms)
+[ RUN      ] WsIndependenceProbe.AContractingGreyReReadRunsToItsEnd
+[       OK ] WsIndependenceProbe.AContractingGreyReReadRunsToItsEnd (0 ms)
+[ RUN      ] WsIndependenceProbe.AStagnantTestInTheGreyBandIsNotCut
+[       OK ] WsIndependenceProbe.AStagnantTestInTheGreyBandIsNotCut (0 ms)
+[ RUN      ] WsIndependenceProbe.AScreenTestIsNeverCut
+[       OK ] WsIndependenceProbe.AScreenTestIsNeverCut (0 ms)
+[----------] 5 tests from WsIndependenceProbe (0 ms total)
+
+[----------] 1 test from WsIndependenceReadOnly
+[ RUN      ] WsIndependenceReadOnly.TestAndDetectorWriteNothing
+[       OK ] WsIndependenceReadOnly.TestAndDetectorWriteNothing (0 ms)
+[----------] 1 test from WsIndependenceReadOnly (0 ms total)
+
+[----------] 2 tests from WsIndependenceUnrun
+[ RUN      ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT (0 ms)
+[ RUN      ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT (0 ms)
+[----------] 2 tests from WsIndependenceUnrun (0 ms total)
+
+[----------] 2 tests from QpGreyReread
+[ RUN      ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve
+[       OK ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve (0 ms)
+[ RUN      ] QpGreyReread.TheReReadStopsOnAStagnantProbeStep
+[       OK ] QpGreyReread.TheReReadStopsOnAStagnantProbeStep (0 ms)
+[----------] 2 tests from QpGreyReread (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 6 test suites ran. (5 ms total)
+[  PASSED  ] 17 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+[  FAILED  ] WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+[  FAILED  ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+
+ 3 FAILED TESTS

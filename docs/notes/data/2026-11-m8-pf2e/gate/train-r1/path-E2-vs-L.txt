@@ -1,0 +1,3 @@
+SUMMARY rows 476; status movers 0; path movers 0; counter-only movers 42; missing/capped 0
+INSTR hven-sqp all    REF 1.146201e+12 NEW 1.143747e+12 NEW/REF 0.997859
+INSTR hven-sqp stable REF 1.146201e+12 NEW 1.143747e+12 NEW/REF 0.997859

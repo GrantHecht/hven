@@ -1,0 +1,10 @@
+box-lane: lane 1 acquired 2026-11-21T17:57:38-05:00
+FOREGROUND_START 2026-11-21T17:57:38-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	872 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	873 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-21T17:59:04-05:00
+CTEST_REL_EXIT

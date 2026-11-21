@@ -1,0 +1,88 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsIndependence*:QpGreyReread*
+[==========] Running 20 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from WsIndependenceDetector
+[ RUN      ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses
+[       OK ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses (2 ms)
+[ RUN      ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval
+[       OK ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval (0 ms)
+[ RUN      ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone
+[       OK ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone (0 ms)
+[----------] 3 tests from WsIndependenceDetector (2 ms total)
+
+[----------] 7 tests from WsIndependenceCalibration
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparates
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparates (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras (0 ms)
+[ RUN      ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+[       OK ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged (0 ms)
+[ RUN      ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent
+[       OK ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent (0 ms)
+[ RUN      ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol
+[       OK ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol (0 ms)
+[ RUN      ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:754: Failure
+Expected equality of these values:
+  resumed_solves
+    Which is: 3
+  fresh_solves - t.solves
+    Which is: 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:730: eliminated mu 0.0001
+
+[  FAILED  ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead (0 ms)
+[----------] 7 tests from WsIndependenceCalibration (2 ms total)
+
+[----------] 5 tests from WsIndependenceProbe
+[ RUN      ] WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep
+[       OK ] WsIndependenceProbe.AStagnantGreyReReadStopsAfterOneStep (0 ms)
+[ RUN      ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:830: Failure
+Expected equality of these values:
+  r.solves
+    Which is: 1
+  t.solves
+    Which is: 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2e/tests/qp/test_qp_ws_independence.cpp:813: eliminated
+
+[  FAILED  ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve (0 ms)
+[ RUN      ] WsIndependenceProbe.AContractingGreyReReadRunsToItsEnd
+[       OK ] WsIndependenceProbe.AContractingGreyReReadRunsToItsEnd (0 ms)
+[ RUN      ] WsIndependenceProbe.AStagnantTestInTheGreyBandIsNotCut
+[       OK ] WsIndependenceProbe.AStagnantTestInTheGreyBandIsNotCut (0 ms)
+[ RUN      ] WsIndependenceProbe.AScreenTestIsNeverCut
+[       OK ] WsIndependenceProbe.AScreenTestIsNeverCut (0 ms)
+[----------] 5 tests from WsIndependenceProbe (0 ms total)
+
+[----------] 1 test from WsIndependenceReadOnly
+[ RUN      ] WsIndependenceReadOnly.TestAndDetectorWriteNothing
+[       OK ] WsIndependenceReadOnly.TestAndDetectorWriteNothing (0 ms)
+[----------] 1 test from WsIndependenceReadOnly (0 ms total)
+
+[----------] 2 tests from WsIndependenceUnrun
+[ RUN      ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT (0 ms)
+[ RUN      ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT (0 ms)
+[----------] 2 tests from WsIndependenceUnrun (0 ms total)
+
+[----------] 2 tests from QpGreyReread
+[ RUN      ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve
+[       OK ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve (0 ms)
+[ RUN      ] QpGreyReread.TheReReadStopsOnAStagnantProbeStep
+[       OK ] QpGreyReread.TheReReadStopsOnAStagnantProbeStep (0 ms)
+[----------] 2 tests from QpGreyReread (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 20 tests from 6 test suites ran. (5 ms total)
+[  PASSED  ] 18 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+[  FAILED  ] WsIndependenceProbe.AGreyTestWithAStagnantStepNeedsNoReReadSolve
+
+ 2 FAILED TESTS
