@@ -1,0 +1,8 @@
+# frozen binaries of DECLARATION-PF-2b (sha256), recorded before the first leg
+corpus A  (0ee37c2ca, .scratch/bin/A/hven_sqp_corpus)   8f51689ea9fbed528652ce1740f4437dd1d2a189761355900dbb0bd37587b055
+corpus B  (ae2e6729f, .scratch/bin/B/hven_sqp_corpus)   decbf458a7a3d01099a90ecf61975933bd60793502a78b46bfb31e3f97d6f4db
+lane A    (pin 0ee37c2ca, .scratch/bin/A/hven_bench_cell) 13e7eaebd0b3708349fbb3549be86591ab3d52dd4084f188d3bb37a0ef73d7ed
+lane B    (pin ae2e6729f, .scratch/bin/B/hven_bench_cell) 5dbfa81515406c39688964c54d8e95bdd621df4cf1ca1ecac0d6211f9a572e6b
+measB     (ae2e6729f + pf12 lever patch)                70153d54ee020f43f3959e539df9dde9126e62588814bf0b719d4a5887198399
+U0        (M6 19f7674f6)                                32a67ecc217a131c59e31e94cd063024bbe076fb34c3245e22175759a86e9635
+ctest count (Release dev run, ae2e6729f): 4042
