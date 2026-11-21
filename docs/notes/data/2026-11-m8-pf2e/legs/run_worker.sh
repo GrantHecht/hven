@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# -r1: the newE arm is measE2 (arm E2); raw tags keep the name newE.
 # PF-2e P3 worker (pf2d's run_worker.sh with two arms). $1 = logical cpu (a distinct physical core of the lane), rest = cells.
 # Per cell, 3 rounds; arms alternated within a round (rotating order); one process per cell (--internal-run-one); untimed
 # warm-up first. Arms: newL = pf2d's measL binary (control re-take), newE = git archive E + the PF-12 lever patch (build-measE).
@@ -8,7 +9,7 @@ DD=$R/docs/notes/data/2026-11-m8-pf2e/measure
 PA=instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
 CORE=$1; shift
 BIN_newL=/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/build-measL/bench/hven_sqp_corpus
-BIN_newE=$R/.scratch/build-pf2e/measE/bench/hven_sqp_corpus
+BIN_newE=$R/.scratch/build-pf2e/measE2/bench/hven_sqp_corpus
 run() { # arm round cell
   local arm=$1 r=$2 c=$3 bin
   case $arm in newL) bin=$BIN_newL;; newE) bin=$BIN_newE;; esac

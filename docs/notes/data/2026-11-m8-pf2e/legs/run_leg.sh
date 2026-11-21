@@ -4,7 +4,7 @@
 S=/home/ghecht/Projects/hven/.claude/worktrees/pf2e/docs/notes/data/2026-11-m8-pf2e
 sha() { grep -F "$1" $S/BINARIES.txt | awk '{print $NF}'; }
 [ "$(sha256sum /home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/build-measL/bench/hven_sqp_corpus | cut -d' ' -f1)" = "$(sha 'measL')" ] || { echo SHA_MISMATCH_measL; exit 4; }
-[ "$(sha256sum /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/measE/bench/hven_sqp_corpus | cut -d' ' -f1)" = "$(sha 'measE')" ] || { echo SHA_MISMATCH_measE; exit 4; }
+[ "$(sha256sum /home/ghecht/Projects/hven/.claude/worktrees/pf2e/.scratch/build-pf2e/measE2/bench/hven_sqp_corpus | cut -d' ' -f1)" = "$(sha 'measE2')" ] || { echo SHA_MISMATCH_measE2; exit 4; }
 mkdir -p $S/measure/raw $S/measure/perf
 read -r a b c d <<< "$BOX_LANE_PHYS"
 echo "lane=$BOX_LANE phys=$BOX_LANE_PHYS $(date -Is)"

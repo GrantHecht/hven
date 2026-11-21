@@ -4,3 +4,6 @@ lane E (hven_bench_cell, pin 13d4c541d) ea25c159a5c73663d8bccb7b8183ed6c107732c8
 measL (pf2d frozen, 21ae792ce + pf12 lever patch) 430e71e09a398f0ac1063cc5bf46233914acda197a254f6eb2af49aeb6b5b55b
 measE (13d4c541d + pf12 lever patch) 40fd00248e5d2e5e70ef159325396cb75535a4b195a76fd2fc4d501d6f61cc92
 arms: L = pf2d ship head (code 21ae792ce); E = pf2e 334085b67 (rule) + 13d4c541d (tests), lane pin 13d4c541d (private hven-bench clone fc0bf24 off e03cbad, NEVER=1)
+lane E2 (hven_bench_cell, pin 268a18f4c) 9de1e747fd63ee782c11b9d80ff22524bbbde0a9f3abd34cee1269b9738b74af
+measE2 (268a18f4c + pf12 lever patch) ff7ac0b2258f0c12e5a9e68b5c45113a28538be04fe024eb0d508f22a5aaa71b
+arms (-r1): E2 = pf2e 65a7856ac (rule r1) + 268a18f4c (tests), lane pin 268a18f4c (private hven-bench clone e16d81c off e03cbad, NEVER=1)
