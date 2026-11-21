@@ -633,7 +633,9 @@ TEST(WsIndependenceCalibration, ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDe
         EXPECT_TRUE(above.stall_admit);
         EXPECT_GT(rv.reread(vec_of({1.0, 2e-2, 0.0})).solves, 1);
 
-        const RowsView sv(screen_qp, 1e-4, {}, {0, 1}, border);
+        // mu = 0.05: with A = I, H = I the first solve reads rho1 = mu / (1 + mu) = 0.048 >= the
+        // first-solve decision threshold, and the refinement contracts it by mu per step.
+        const RowsView sv(screen_qp, 0.05, {}, {0, 1}, border);
         const detail::DepTest scr = sv.test(vec_of({1.0, 2e-2}));
         EXPECT_TRUE(scr.screen);
         EXPECT_EQ(scr.verdict, detail::DepVerdict::kDependent);
