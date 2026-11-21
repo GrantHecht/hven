@@ -2918,7 +2918,7 @@ TEST(QpEngineIndefinite, KnownConvexFlagStandsInForTheStructuralConvexTest) {
 // ===========================================================================
 // PF-2d L1 end to end: QpEngine::test_candidate's grey re-read resumes from the test's own first
 // solve. Working row (1, 0, 0); the candidate row (1, e, 0) has rho = e / sqrt(1 + e^2) and the
-// test converges at its first solve. e = 3e-4 is a grey reading (re-read: dep_grey_rereads 1), and
+// test converges at its first solve. e = 5e-5 is a grey reading (re-read: dep_grey_rereads 1), and
 // the backend detector solves are the logical `dep_test_solves` minus the one reused solve.
 // ===========================================================================
 namespace {
@@ -2954,7 +2954,7 @@ struct GreyBandFixture {
 } // namespace
 
 TEST(QpGreyReread, TheReReadSavesTheTestsFirstBackendSolve) {
-    const GreyBandFixture fx(3e-4);
+    const GreyBandFixture fx(5e-5);
     QpCounters counters;
     hven::linear::SolveTally tally;
     const detail::DepTest t = fx.candidate(counters);
