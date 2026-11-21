@@ -53,8 +53,9 @@ TEST(SqpBackendAnalysisTally, TheDenseArmPaysNoPlatformAnalysis) {
 // by issuing component. A call carries at least one column; the ordinary bucket is never empty;
 // every other bucket is reached (the detector, the polish loops and, on the Schur-border algebra
 // only, the bordered refinement), and the bordered refinement is silent on the refactorizing
-// algebra, which never forms a border. The backend reports refinement steps inside the solves
-// (Pardiso's default), so each reached bucket carries them too.
+// algebra, which never forms a border. Pardiso reports refinement steps inside the solves (its
+// default), so on MKL each reached bucket carries them; Accelerate reports none (observed 0 on the
+// macOS lane, run 44880880598), and there the counters read 0 by construction.
 TEST(SqpBackendSolveTally, PartitionsTheSolvesAndEveryComponentIsReachable) {
     for (const auto algebra :
          {QpWorkingSetAlgebra::kRefactorize, QpWorkingSetAlgebra::kSchurBorder}) {
@@ -96,7 +97,11 @@ TEST(SqpBackendSolveTally, PartitionsTheSolvesAndEveryComponentIsReachable) {
             } else {
                 EXPECT_GT(solves[k], 0) << "bucket " << k;
                 EXPECT_GT(rhs[k], 0) << "bucket " << k;
+#ifdef __APPLE__
+                EXPECT_EQ(refine[k], 0) << "bucket " << k; // Accelerate reports no refinement count
+#else
                 EXPECT_GT(refine[k], 0) << "bucket " << k;
+#endif
             }
         }
     }
