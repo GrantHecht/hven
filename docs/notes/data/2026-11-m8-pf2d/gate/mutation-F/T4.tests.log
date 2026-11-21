@@ -1,0 +1,63 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/build-pf2d/F-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsIndependenceCalibration.*:QpGreyReread*:WsIndependence*
+[==========] Running 16 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from WsIndependenceDetector
+[ RUN      ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses
+[       OK ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses (2 ms)
+[ RUN      ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval
+[       OK ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval (0 ms)
+[ RUN      ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone
+[       OK ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone (0 ms)
+[----------] 3 tests from WsIndependenceDetector (2 ms total)
+
+[----------] 9 tests from WsIndependenceCalibration
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparates
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparates (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras (0 ms)
+[ RUN      ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+[       OK ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged (0 ms)
+[ RUN      ] WsIndependenceCalibration.ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDepDecideFirstRho
+[       OK ] WsIndependenceCalibration.ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDepDecideFirstRho (0 ms)
+[ RUN      ] WsIndependenceCalibration.TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armF/tests/qp/test_qp_ws_independence.cpp:646: Failure
+Value of: detail::decides_at_first_solve(detail::kDepDecideFirstRho)
+  Actual: false
+Expected: true
+
+[  FAILED  ] WsIndependenceCalibration.TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho (0 ms)
+[ RUN      ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent
+[       OK ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent (0 ms)
+[ RUN      ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol
+[       OK ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol (0 ms)
+[ RUN      ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+[       OK ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead (0 ms)
+[----------] 9 tests from WsIndependenceCalibration (2 ms total)
+
+[----------] 1 test from WsIndependenceReadOnly
+[ RUN      ] WsIndependenceReadOnly.TestAndDetectorWriteNothing
+[       OK ] WsIndependenceReadOnly.TestAndDetectorWriteNothing (0 ms)
+[----------] 1 test from WsIndependenceReadOnly (0 ms total)
+
+[----------] 2 tests from WsIndependenceUnrun
+[ RUN      ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT (0 ms)
+[ RUN      ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT (0 ms)
+[----------] 2 tests from WsIndependenceUnrun (0 ms total)
+
+[----------] 1 test from QpGreyReread
+[ RUN      ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve
+[       OK ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve (0 ms)
+[----------] 1 test from QpGreyReread (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 5 test suites ran. (5 ms total)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WsIndependenceCalibration.TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho
+
+ 1 FAILED TEST

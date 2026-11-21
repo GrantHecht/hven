@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index 6736ffb80..43108bab1 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -271,7 +271,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+     Vec y;
+     Vec res;
+     double res_norm;
+-    if (first != nullptr && first->has_first) {
++    if (false && first != nullptr && first->has_first) {
+         // The same factor and right-hand side as the test that produced `first`: its first solve
+         // is this one's, bit for bit.
+         y = first->first_y;

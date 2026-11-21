@@ -1,0 +1,73 @@
+box-lane: lane 0 acquired 2026-11-21T10:23:00-05:00
+FOREGROUND_START 2026-11-21T10:23:00-05:00 lane=0 phys=0 1 2 3
+LEG P2 start 2026-11-21T10:23:01-05:00
+replay rc=0
+LEG P2 rc=0 2026-11-21T10:40:17-05:00
+LEG P2-criterion start 2026-11-21T10:40:17-05:00
+L k1 walk: === A-vs-L-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+L k1 ssn: === A-vs-L-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+L k1 ipm: === A-vs-L-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+L k2 walk: === A-vs-L-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+L k2 ssn: === A-vs-L-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+L k2 ipm: === A-vs-L-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+L k3 walk: === A-vs-L-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+L k3 ssn: === A-vs-L-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+L k3 ipm: === A-vs-L-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+F k1 walk: === A-vs-F-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+F k1 ssn: === A-vs-F-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+F k1 ipm: === A-vs-F-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+F k2 walk: === A-vs-F-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+F k2 ssn: === A-vs-F-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+F k2 ipm: === A-vs-F-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+F k3 walk: === A-vs-F-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+F k3 ssn: === A-vs-F-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+F k3 ipm: === A-vs-F-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+G k1 walk: === A-vs-G-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+G k1 ssn: === A-vs-G-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+G k1 ipm: === A-vs-G-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+G k2 walk: === A-vs-G-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+G k2 ssn: === A-vs-G-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+G k2 ipm: === A-vs-G-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+G k3 walk: === A-vs-G-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+G k3 ssn: === A-vs-G-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+G k3 ipm: === A-vs-G-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_L_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-21T10:40:17-05:00
+LEG P3 start 2026-11-21T10:40:17-05:00
+enum rc=0
+LEG P3 rc=0 2026-11-21T10:43:09-05:00
+LEG P3-criterion start 2026-11-21T10:43:09-05:00
+== L vs A
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/train_check-L.txt:SUMMARY rows 476; movers vs arm A 0 (better 0, worse 0, neutral 0); missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/movers-L.txt:MOVERS_SUMMARY rows 476; status movers 0; counter/other movers 0
+TOTAL ALL                rows  476  A 1.154965e+12  B 1.154088e+12  B/A 0.999241
+TOTAL hven-ipm           rows  238  A 7.935064e+09  B 7.935017e+09  B/A 0.999994
+TOTAL hven-ipm.D         rows  119  A 4.279056e+09  B 4.279023e+09  B/A 0.999992
+TOTAL hven-ipm.K         rows  119  A 3.656008e+09  B 3.655994e+09  B/A 0.999996
+TOTAL hven-sqp           rows  238  A 1.147030e+12  B 1.146153e+12  B/A 0.999236
+TOTAL hven-sqp.D         rows  119  A 4.954476e+11  B 4.952281e+11  B/A 0.999557
+TOTAL hven-sqp.K         rows  119  A 6.515824e+11  B 6.509254e+11  B/A 0.998992
+== F vs A
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/train_check-F.txt:SUMMARY rows 476; movers vs arm A 100 (better 0, worse 0, neutral 100); missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/movers-F.txt:MOVERS_SUMMARY rows 476; status movers 0; counter/other movers 100
+TOTAL ALL                rows  476  A 1.154965e+12  B 1.075244e+12  B/A 0.930976
+TOTAL hven-ipm           rows  238  A 7.935064e+09  B 7.935130e+09  B/A 1.000008
+TOTAL hven-ipm.D         rows  119  A 4.279056e+09  B 4.279068e+09  B/A 1.000003
+TOTAL hven-ipm.K         rows  119  A 3.656008e+09  B 3.656062e+09  B/A 1.000015
+TOTAL hven-sqp           rows  238  A 1.147030e+12  B 1.067309e+12  B/A 0.930498
+TOTAL hven-sqp.D         rows  119  A 4.954476e+11  B 4.912646e+11  B/A 0.991557
+TOTAL hven-sqp.K         rows  119  A 6.515824e+11  B 5.760447e+11  B/A 0.884070
+== G vs A
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/train_check-G.txt:SUMMARY rows 476; movers vs arm A 100 (better 0, worse 0, neutral 100); missing/capped 0
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/gate/train/movers-G.txt:MOVERS_SUMMARY rows 476; status movers 0; counter/other movers 100
+TOTAL ALL                rows  476  A 1.154965e+12  B 9.861896e+11  B/A 0.853870
+TOTAL hven-ipm           rows  238  A 7.935064e+09  B 7.935137e+09  B/A 1.000009
+TOTAL hven-ipm.D         rows  119  A 4.279056e+09  B 4.279141e+09  B/A 1.000020
+TOTAL hven-ipm.K         rows  119  A 3.656008e+09  B 3.655996e+09  B/A 0.999997
+TOTAL hven-sqp           rows  238  A 1.147030e+12  B 9.782545e+11  B/A 0.852859
+TOTAL hven-sqp.D         rows  119  A 4.954476e+11  B 4.747556e+11  B/A 0.958236
+TOTAL hven-sqp.K         rows  119  A 6.515824e+11  B 5.034989e+11  B/A 0.772733
+P3_INSTRUCTIONS_L L/A 0.999236 <= 1.000
+LEG P3-criterion rc=0 2026-11-21T10:43:10-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-21T10:43:10-05:00

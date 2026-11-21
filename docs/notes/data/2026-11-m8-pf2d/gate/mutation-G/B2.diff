@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/ws_independence.h b/include/hven/detail/qp/walk/ws_independence.h
+index a0a8f05c0..8d5a42cf3 100644
+--- a/include/hven/detail/qp/walk/ws_independence.h
++++ b/include/hven/detail/qp/walk/ws_independence.h
+@@ -94,7 +94,7 @@ constexpr bool decides_at_first_solve(double rho1) { return rho1 >= kDepDecideFi
+ // R-E re-reads a converged independent only inside (Lo, Hi]; largest flipping rho: 1.55e-5 on the
+ // f7 cells, 4.5e-4 on the ACOPR57 restoration QP.
+ constexpr double kDepRereadBandLo = kDepTol;
+-constexpr double kDepRereadBandHi = 1e-4;
++constexpr double kDepRereadBandHi = 1e-5;
+ constexpr bool in_reread_band(double rho) {
+     return rho > kDepRereadBandLo && rho <= kDepRereadBandHi;
+ }
