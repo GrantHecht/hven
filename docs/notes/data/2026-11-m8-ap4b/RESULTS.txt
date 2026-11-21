@@ -1,0 +1,8 @@
+AP-4b RESULTS (DECLARATION-AP4b.md; base 0cecdc6d0). Per-group evidence in g4/ g5/ g6/ g7/.
+Proof heads: G4 51cbd92d2 (covers G3, comment-only), G5 e51fc3f0e, G6 ca09d7a02, G7 5b37a505f (final; includes a clang-format-only comment fix to G3's text).
+group  ctest Release/Debug (tests)   replay 27 cells x walk/ssn/ipm + armed   install smoke default/clang + export contract
+G4     pass/pass (3990)              6 of 6 comparisons: 0 differences       pass x2 / OK x2
+G5     pass/pass (3998)              0 x6                                    pass x2 / OK x2
+G6     pass/pass (4001)              0 x6                                    pass x2 / OK x2
+G7     pass/pass (4001)              0 x6                                    pass x2 / OK x2
+No timing assertion made. check_export_contract.sh asserts macros/properties, not symbols: no symbol list exists to update.
