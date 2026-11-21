@@ -1015,7 +1015,8 @@ No trajectory moves; one counter is added (`docs/notes/data/2026-11-m8-pf5/`).
   refactorization fails is discarded. Nothing in `hven::linear` changes.
 - New counters `QpCounters::symbolic_analysis_reuses` and `SqpCounters::symbolic_analysis_reuses` (trace key after
   `backend_symbolic_repeats`): the hits, over one QP solve and over one SQP solve (the latter over the same scope as
-  `backend_symbolic_analyses`, which no longer counts the analyses the hits replaced and falls by exactly that many).
+  `backend_symbolic_analyses`, which no longer counts the platform analyses the sparse-arm hits replaced and, with
+  `backend_symbolic_repeats`, falls by exactly that many; a dense-arm hit replaces only the dense session's set-up).
   `symbolic_analyses` keeps its meaning.
 
 Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.

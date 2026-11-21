@@ -2470,10 +2470,12 @@ struct SqpCounters {
     ///        solve (M8 PF-5; detail/kkt/kkt_factor.h, THE RETAINED ANALYSES), on
     ///        any factor, the restoration sub-solve's included -- taken over the
     ///        same scope as `backend_symbolic_analyses` (detail::AnalysisReuseTally),
-    ///        not folded from QpCounters. Each such hit would otherwise have been a
-    ///        backend analysis (and a repeat), so `backend_symbolic_analyses +
-    ///        symbolic_analysis_reuses` is what `backend_symbolic_analyses` read
-    ///        before PF-5 on the same trajectory. `symbolic_analyses` does not move.
+    ///        not folded from QpCounters. Hits on both arms count. A hit on a
+    ///        sparse-selected pattern replaces a platform analysis that would have
+    ///        been a repeat, so on the same trajectory `backend_symbolic_analyses`
+    ///        and `backend_symbolic_repeats` each fall by the sparse hits; a hit on a
+    ///        dense-selected pattern replaces only the dense session's set-up, which
+    ///        neither backend counter sees. `symbolic_analyses` does not move.
     ///        Appended last.
     Index symbolic_analysis_reuses = 0;
 };
