@@ -1,0 +1,17 @@
+# frozen binaries of DECLARATION-PF-2d (+r1, r2), sha256, recorded before the first leg
+corpus A (hven_sqp_corpus) decbf458a7a3d01099a90ecf61975933bd60793502a78b46bfb31e3f97d6f4db
+lane A (hven_bench_cell) 5dbfa81515406c39688964c54d8e95bdd621df4cf1ca1ecac0d6211f9a572e6b
+corpus L (hven_sqp_corpus) d02b72853b3a689cd2653bc18d6bab8c2089cc3b8839ad6d9a6b4001abd5b62b
+lane L (hven_bench_cell) 33183386bed750fba23ec49ec976411b8828b226d9716dd76d28c54068e9be09
+corpus F (hven_sqp_corpus) 3750b2cf5c5f8730753217d881ccd7039b63beef455937907ea77489b073c172
+lane F (hven_bench_cell) 7cea52fb674dd6ad1547f87786626198cdb161dee329cb27e96b7229544b641b
+corpus G (hven_sqp_corpus) 014784d6ebdf7a85623f19b720eeecf47eda4d7421ba48008e8a5c880bdedc80
+lane G (hven_bench_cell) 1c898eff49fad1e6da4c8cfbd2572011cd6b97025d657c29e75bc097db898efd
+measL (21ae792ce + pf12 lever patch) 430e71e09a398f0ac1063cc5bf46233914acda197a254f6eb2af49aeb6b5b55b
+measF (pf2d-l3 f3d69e8e9 + pf12 lever patch) c877dcf01ef866eb3215b126c2d6b6a021ce68f408df72ec053696dce4c7fcfc
+measG (pf2d-l2 + pf12 lever patch) a1f28e18495a50bce5df770c3d00bbe3ce21486db3e566acb85958772adb43f6
+measPrev (pf2b ae2e6729f + pf12 lever patch) 70153d54ee020f43f3959e539df9dde9126e62588814bf0b719d4a5887198399
+U0 (M6 19f7674f6) 32a67ecc217a131c59e31e94cd063024bbe076fb34c3245e22175759a86e9635
+arms: A = pf2b ae2e6729f (e8d2441a3); L = 21ae792ce (L1; ship head pf2d adds only a test and docs); F = pf2d-l3 f3d69e8e9 (lane pin e313af92c); G = pf2d-l2 336723ed1 (L1+L3+L2)
+ctest count: L1 commit 21ae792ce (Release dev run) 4043; ship head (L1 + 1 test) 4044
+ctest F (evidence): 4046, 2 failed (ping-pong, BRITGAS latch)
