@@ -1,0 +1,17 @@
+# started on Sat Nov 21 10:59:27 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-measB/bench/hven_sqp_corpus --internal-run-one f7_n750_path_neutral_control --engine walk --internal-out /home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/measure/raw/prev-r1-f7_n750_path_neutral_control.csv':
+
+ 1,074,181,959,428      instructions:u                                                        
+   156,685,367,059      branches:u                                                            
+   351,738,398,719      cycles:u                                                              
+     1,749,867,630      branch-misses:u                                                       
+        48,325,734      L1-icache-load-misses:u                                               
+
+     107.928015219 seconds time elapsed
+
+     104.536309000 seconds user
+       2.899930000 seconds sys
+
+
