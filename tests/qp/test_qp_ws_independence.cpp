@@ -695,6 +695,62 @@ TEST(WsIndependenceCalibration, AGreyReReadNeverFlipsACandidateAboveKDepTol) {
     }
 }
 
+// PF-2d L1: the re-read resumes from the test's own first solve. Two grey fixtures: the stiff one,
+// whose test converges at its first solve, and a large-mu one whose test needs a refinement step
+// before it converges (so the kept first solve differs from the final solve). The re-read from the
+// kept solve equals the stand-alone re-read bit for bit and issues fewer backend solves (one fewer
+// on the eliminated path, one bordered solve fewer on the border path); `solves` stays logical.
+TEST(WsIndependenceCalibration, AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead) {
+    Eigen::MatrixXd Ai_stiff(2, 3);
+    Ai_stiff << 1, 1, 0, 0, 0, 1;
+    const QpProblem stiff =
+        make_qp(1e4 * Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
+                Ai_stiff, vec_of({1.0, 1.0}), -10.0, 10.0);
+    Eigen::MatrixXd Ai_unit(2, 3);
+    Ai_unit << 1, 0, 0, 0, 1, 0;
+    const QpProblem unit =
+        make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
+                Ai_unit, vec_of({1.0, 1.0}), -10.0, 10.0);
+    struct Case {
+        const QpProblem *qp;
+        double mu;
+        Vec a;
+        bool refines; // the test itself takes at least one refinement step
+    };
+    const Case cases[] = {{&stiff, 1e-8, vec_of({3.0, 3.0, 0.0}), false},
+                          {&unit, 1e-4, vec_of({1.0, 3e-5, 0.0}), true}};
+    for (const Case &c : cases) {
+        for (const bool border : {false, true}) {
+            SCOPED_TRACE(::testing::Message()
+                         << (border ? "border" : "eliminated") << " mu " << c.mu);
+            const RowsView sv(*c.qp, c.mu, {}, {0}, border);
+            const detail::DepTest t = sv.test(c.a);
+            ASSERT_EQ(t.verdict, detail::DepVerdict::kIndependent);
+            ASSERT_TRUE(t.has_first);
+            EXPECT_EQ(t.solves > 1, c.refines);
+            hven::linear::SolveTally fresh_tally;
+            const detail::DepTest fresh = sv.reread(c.a);
+            const Index fresh_solves = fresh_tally.solves(hven::linear::SolveContext::kDetector);
+            hven::linear::SolveTally resumed_tally;
+            const detail::DepTest resumed =
+                detail::certificate_coefficients(sv.qp, sv.ws, sv.view(), c.a, sv.o, &t);
+            const Index resumed_solves =
+                resumed_tally.solves(hven::linear::SolveContext::kDetector);
+            EXPECT_EQ(resumed.rho, fresh.rho);
+            EXPECT_EQ(resumed.solves, fresh.solves);
+            EXPECT_EQ(resumed.verdict, fresh.verdict);
+            EXPECT_EQ(resumed.v_e, fresh.v_e);
+            EXPECT_EQ(resumed.v_w, fresh.v_w);
+            EXPECT_EQ(resumed.v_pin, fresh.v_pin);
+            EXPECT_GE(fresh_solves, 1);
+            EXPECT_LT(resumed_solves, fresh_solves);
+            if (!border) {
+                EXPECT_EQ(resumed_solves, fresh_solves - 1);
+            }
+        }
+    }
+}
+
 // S24 end to end: THE HEURISTIC FALLBACK. near_dependent_rows_qp as mandatory
 // equalities with x2's lower pin seeded: the pin is the only removable member
 // and y_hat does not certify it, so the uncertified pin is offered alone and

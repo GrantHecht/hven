@@ -1,0 +1,425 @@
+MOVER NEUTRAL  hs-hven-sqp-hs003.K
+    base: status=optimal iterations=4 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    new:  status=optimal iterations=4 objective=0 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=10
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 3; side.harness_qpsum_dep_test_solves: 19 -> 16
+MOVER NEUTRAL  hs-hven-sqp-hs010.D
+    base: status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    new:  status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    diff: side.harness_qpsum_dep_stall_admits: 2 -> 6; side.harness_qpsum_dep_test_solves: 382 -> 374
+MOVER NEUTRAL  hs-hven-sqp-hs010.K
+    base: status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    new:  status=optimal iterations=14 objective=-1.0000000024811382 reference_abs_err=2.4811381837963609e-09 elastic_activations=8 restoration_iters=0 qp_minor_iters=184
+    diff: side.harness_qpsum_dep_stall_admits: 2 -> 9; side.harness_qpsum_dep_test_solves: 382 -> 373
+MOVER NEUTRAL  hs-hven-sqp-hs026.K
+    base: status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684338004e-12 reference_abs_err=2.2822012684338004e-12 elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 72 -> 71
+MOVER NEUTRAL  hs-hven-sqp-hs045.D
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    diff: side.harness_qpsum_dep_stall_admits: 1 -> 2; side.harness_qpsum_dep_test_solves: 25 -> 19
+MOVER NEUTRAL  hs-hven-sqp-hs045.K
+    base: status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    new:  status=optimal iterations=2 objective=1 reference_abs_err=0 elastic_activations=0 restoration_iters=0 qp_minor_iters=6
+    diff: side.harness_qpsum_dep_stall_admits: 1 -> 2; side.harness_qpsum_dep_test_solves: 25 -> 19
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.D
+    base: status=optimal iterations=7 objective=576.8924260137228 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=482
+    new:  status=optimal iterations=7 objective=576.8924260137228 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=485
+    diff: factorizations: 408 -> 411; side.backend_symbolic_analyses: 265 -> 267; side.factorizations: 408 -> 411; side.harness_factorizations_total: 408 -> 411; side.harness_qpsum_dep_grey_reread_dependent: 6 -> 5; side.harness_qpsum_dep_grey_rereads: 9 -> 5; side.harness_qpsum_dep_stall_admits: 35 -> 59; side.harness_qpsum_dep_test_solves: 427 -> 296; side.harness_qpsum_dep_tests: 174 -> 175; side.harness_qpsum_eq_drift_violations: 44 -> 47; side.harness_qpsum_ws_exchanges_shifted: 1 -> 0; side.qp_minor_iters: 482 -> 485
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.K
+    base: status=optimal iterations=7 objective=576.8924260137228 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=482
+    new:  status=optimal iterations=7 objective=576.8924260137228 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=485
+    diff: factorizations: 408 -> 411; side.backend_symbolic_analyses: 265 -> 267; side.factorizations: 408 -> 411; side.harness_factorizations_total: 408 -> 411; side.harness_qpsum_dep_grey_reread_dependent: 6 -> 5; side.harness_qpsum_dep_grey_rereads: 9 -> 5; side.harness_qpsum_dep_stall_admits: 35 -> 59; side.harness_qpsum_dep_test_solves: 427 -> 296; side.harness_qpsum_dep_tests: 174 -> 175; side.harness_qpsum_eq_drift_violations: 44 -> 47; side.harness_qpsum_ws_exchanges_shifted: 1 -> 0; side.qp_minor_iters: 482 -> 485
+MOVER NEUTRAL  sd-hven-sqp-BT2.D
+    base: status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    diff: side.harness_qpsum_dep_test_solves: 128 -> 125
+MOVER NEUTRAL  sd-hven-sqp-BT2.K
+    base: status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=0.032568202450873357 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=61
+    diff: side.harness_qpsum_dep_test_solves: 127 -> 125
+MOVER NEUTRAL  sd-hven-sqp-BT7.D
+    base: status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1905
+    new:  status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1916
+    diff: factorizations: 1428 -> 1431; side.border_refine_steps: 1359 -> 1370; side.dense_factorizations: 1487 -> 1493; side.dense_flagged_factorizations: 1 -> 4; side.dense_singular_refactors: 1 -> 4; side.eqp_refine_iters: 5 -> 15; side.eqp_residual_refusals: 1 -> 4; side.factorizations: 1428 -> 1431; side.harness_factorizations_total: 1486 -> 1489; side.harness_qpsum_dep_dependent: 335 -> 332; side.harness_qpsum_dep_grey_reread_dependent: 39 -> 31; side.harness_qpsum_dep_grey_rereads: 39 -> 31
+MOVER NEUTRAL  sd-hven-sqp-BT7.K
+    base: status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1903
+    new:  status=optimal iterations=97 objective=360.37976717416603 reference_abs_err=null elastic_activations=89 restoration_iters=15 qp_minor_iters=1914
+    diff: factorizations: 1455 -> 1458; side.backend_symbolic_analyses: 901 -> 904; side.backend_symbolic_repeats: 881 -> 884; side.border_refine_steps: 1353 -> 1364; side.eqp_refine_iters: 1 -> 7; side.eqp_residual_refusals: 1 -> 4; side.factorizations: 1455 -> 1458; side.harness_factorizations_total: 1515 -> 1518; side.harness_qpsum_dep_dependent: 329 -> 326; side.harness_qpsum_dep_grey_reread_dependent: 39 -> 31; side.harness_qpsum_dep_grey_rereads: 39 -> 31; side.harness_qpsum_dep_infeasible_certificates: 88 -> 85
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.D
+    base: status=optimal iterations=211 objective=0.56760271636285275 reference_abs_err=null elastic_activations=9 restoration_iters=34 qp_minor_iters=26853
+    new:  status=optimal iterations=211 objective=0.56760271636285275 reference_abs_err=null elastic_activations=9 restoration_iters=34 qp_minor_iters=26853
+    diff: side.harness_qpsum_dep_grey_rereads: 387 -> 297; side.harness_qpsum_dep_stall_admits: 1474 -> 2795; side.harness_qpsum_dep_test_solves: 65119 -> 60085
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.K
+    base: status=optimal iterations=38 objective=0.56760270972592863 reference_abs_err=null elastic_activations=8 restoration_iters=27 qp_minor_iters=15948
+    new:  status=optimal iterations=38 objective=0.56760270972592863 reference_abs_err=null elastic_activations=8 restoration_iters=27 qp_minor_iters=16202
+    diff: factorizations: 17010 -> 17294; side.backend_symbolic_analyses: 15793 -> 16050; side.backend_symbolic_repeats: 6657 -> 6650; side.border_refine_steps: 7579 -> 7590; side.eqp_polish_steps: 11886 -> 12154; side.eqp_refine_iters: 247 -> 252; side.factorizations: 17010 -> 17294; side.harness_factorizations_total: 17010 -> 17294; side.harness_qpsum_dep_dependent: 22431 -> 21395; side.harness_qpsum_dep_grey_rereads: 814 -> 762; side.harness_qpsum_dep_inertia_rereads: 21 -> 22; side.harness_qpsum_dep_passovers: 19614 -> 18493
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.D
+    base: status=optimal iterations=65 objective=0.8718975485408631 reference_abs_err=null elastic_activations=3 restoration_iters=4 qp_minor_iters=1240
+    new:  status=optimal iterations=65 objective=0.8718975485408631 reference_abs_err=null elastic_activations=3 restoration_iters=4 qp_minor_iters=1240
+    diff: side.harness_qpsum_dep_grey_rereads: 3 -> 1; side.harness_qpsum_dep_stall_admits: 13 -> 91; side.harness_qpsum_dep_test_solves: 1560 -> 1447
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.K
+    base: status=optimal iterations=38 objective=0.87189755146824099 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=708
+    new:  status=optimal iterations=38 objective=0.87189755146824099 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=708
+    diff: side.harness_qpsum_dep_grey_rereads: 11 -> 1; side.harness_qpsum_dep_stall_admits: 65 -> 137; side.harness_qpsum_dep_test_solves: 1146 -> 898
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.D
+    base: status=max_iter iterations=276 objective=0.5933938466488371 reference_abs_err=null elastic_activations=6 restoration_iters=24 qp_minor_iters=8081
+    new:  status=max_iter iterations=276 objective=0.5933938466488371 reference_abs_err=null elastic_activations=6 restoration_iters=24 qp_minor_iters=8081
+    diff: side.harness_qpsum_dep_grey_rereads: 188 -> 73; side.harness_qpsum_dep_stall_admits: 542 -> 1691; side.harness_qpsum_dep_test_solves: 20648 -> 17044
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.K
+    base: status=numerical_error iterations=103 objective=0.59645079316641514 reference_abs_err=null elastic_activations=3 restoration_iters=21 qp_minor_iters=10182
+    new:  status=numerical_error iterations=103 objective=0.59645079316641514 reference_abs_err=null elastic_activations=3 restoration_iters=21 qp_minor_iters=10182
+    diff: side.harness_qpsum_dep_grey_rereads: 127 -> 42; side.harness_qpsum_dep_stall_admits: 1047 -> 2437; side.harness_qpsum_dep_test_solves: 14411 -> 9425
+MOVER NEUTRAL  sd-hven-sqp-DECONVC.D
+    base: status=optimal iterations=126 objective=2.0788530385055048e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3218
+    new:  status=optimal iterations=126 objective=2.0788530385055048e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3218
+    diff: side.harness_qpsum_dep_stall_admits: 27 -> 673; side.harness_qpsum_dep_test_solves: 4015 -> 3277
+MOVER NEUTRAL  sd-hven-sqp-DECONVC.K
+    base: status=optimal iterations=126 objective=2.0788220966684235e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3266
+    new:  status=optimal iterations=126 objective=2.0788220966684235e-11 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=3266
+    diff: side.harness_qpsum_dep_stall_admits: 71 -> 1595; side.harness_qpsum_dep_test_solves: 5512 -> 3298
+MOVER NEUTRAL  sd-hven-sqp-DEMBO7.D
+    base: status=optimal iterations=15 objective=174.78699436456208 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1354
+    new:  status=optimal iterations=19 objective=174.78699440942245 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1547
+    diff: eval_f: 17 -> 21; eval_g: 55 -> 59; eval_hess: 28 -> 32; eval_jac: 27 -> 31; factorizations: 885 -> 1114; iterations: 15 -> 19; side.accepted_f_type: 10 -> 14; side.active_set_delta_total: 39 -> 63; side.border_refine_steps: 1757 -> 1907; side.dense_factorizations: 885 -> 1115; side.dense_flagged_factorizations: 0 -> 1; side.dense_singular_refactors: 0 -> 1
+MOVER NEUTRAL  sd-hven-sqp-DEMBO7.K
+    base: status=optimal iterations=17 objective=174.78699436628204 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1374
+    new:  status=optimal iterations=20 objective=174.78699440938482 reference_abs_err=null elastic_activations=1 restoration_iters=29 qp_minor_iters=1618
+    diff: eval_f: 19 -> 23; eval_g: 57 -> 61; eval_hess: 30 -> 32; eval_jac: 29 -> 31; factorizations: 1030 -> 1291; iterations: 17 -> 20; side.accepted_f_type: 11 -> 14; side.accepted_h_type: 5 -> 4; side.active_set_delta_total: 35 -> 61; side.backend_symbolic_analyses: 823 -> 1048; side.backend_symbolic_repeats: 303 -> 339; side.border_refine_steps: 1741 -> 1966
+MOVER NEUTRAL  sd-hven-sqp-DNIEPER.D
+    base: status=optimal iterations=5 objective=18744.014418731251 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=333
+    new:  status=optimal iterations=5 objective=18744.014418731251 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=334
+    diff: factorizations: 581 -> 583; side.dense_factorizations: 498 -> 500; side.eqp_polish_steps: 311 -> 310; side.factorizations: 581 -> 583; side.harness_factorizations_total: 581 -> 583; side.harness_qpsum_dep_dependent: 114 -> 115; side.harness_qpsum_dep_grey_reread_dependent: 3 -> 2; side.harness_qpsum_dep_grey_rereads: 3 -> 2; side.harness_qpsum_dep_stall_admits: 0 -> 9; side.harness_qpsum_dep_test_solves: 461 -> 449; side.harness_qpsum_dep_tests: 307 -> 308; side.harness_qpsum_ws_exchanges: 111 -> 112
+MOVER NEUTRAL  sd-hven-sqp-DNIEPER.K
+    base: status=optimal iterations=5 objective=18744.014418731262 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=334
+    new:  status=optimal iterations=5 objective=18744.014418731262 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=335
+    diff: factorizations: 585 -> 586; side.backend_symbolic_analyses: 413 -> 414; side.eqp_polish_steps: 316 -> 315; side.eqp_refine_iters: 0 -> 1; side.factorizations: 585 -> 586; side.harness_factorizations_total: 586 -> 587; side.harness_qpsum_dep_dependent: 118 -> 119; side.harness_qpsum_dep_grey_reread_dependent: 6 -> 5; side.harness_qpsum_dep_grey_rereads: 6 -> 5; side.harness_qpsum_dep_stall_admits: 24 -> 53; side.harness_qpsum_dep_test_solves: 547 -> 463; side.harness_qpsum_dep_tests: 308 -> 309
+MOVER NEUTRAL  sd-hven-sqp-HS101.D
+    base: status=optimal iterations=27 objective=1809.7647657918353 reference_abs_err=null elastic_activations=4 restoration_iters=19 qp_minor_iters=692
+    new:  status=optimal iterations=27 objective=1809.7647657918353 reference_abs_err=null elastic_activations=4 restoration_iters=19 qp_minor_iters=692
+    diff: side.harness_qpsum_dep_stall_admits: 39 -> 77; side.harness_qpsum_dep_test_solves: 1033 -> 920
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+    base: status=optimal iterations=28 objective=1809.7647657900543 reference_abs_err=null elastic_activations=4 restoration_iters=21 qp_minor_iters=768
+    new:  status=optimal iterations=28 objective=1809.7647657900543 reference_abs_err=null elastic_activations=4 restoration_iters=21 qp_minor_iters=768
+    diff: side.harness_qpsum_dep_stall_admits: 50 -> 133; side.harness_qpsum_dep_test_solves: 1262 -> 1055
+MOVER NEUTRAL  sd-hven-sqp-HS102.D
+    base: status=optimal iterations=23 objective=911.88057153778061 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    new:  status=optimal iterations=23 objective=911.88057153778061 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    diff: side.harness_qpsum_dep_stall_admits: 1 -> 19; side.harness_qpsum_dep_test_solves: 455 -> 432
+MOVER NEUTRAL  sd-hven-sqp-HS102.K
+    base: status=optimal iterations=23 objective=911.88057153778118 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    new:  status=optimal iterations=23 objective=911.88057153778118 reference_abs_err=null elastic_activations=3 restoration_iters=0 qp_minor_iters=275
+    diff: side.harness_qpsum_dep_stall_admits: 1 -> 22; side.harness_qpsum_dep_test_solves: 459 -> 432
+MOVER NEUTRAL  sd-hven-sqp-HS103.D
+    base: status=optimal iterations=21 objective=543.66795850363519 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=21 objective=543.66795850363519 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 18; side.harness_qpsum_dep_test_solves: 331 -> 310
+MOVER NEUTRAL  sd-hven-sqp-HS103.K
+    base: status=optimal iterations=21 objective=543.66795850371875 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=21 objective=543.66795850371875 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=201
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 18; side.harness_qpsum_dep_test_solves: 331 -> 310
+MOVER NEUTRAL  sd-hven-sqp-HS104.D
+    base: status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 10; side.harness_qpsum_dep_test_solves: 91 -> 81
+MOVER NEUTRAL  sd-hven-sqp-HS104.K
+    base: status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    new:  status=optimal iterations=11 objective=3.951163440064283 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=61
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 10; side.harness_qpsum_dep_test_solves: 91 -> 81
+MOVER NEUTRAL  sd-hven-sqp-HS107.K
+    base: status=optimal iterations=5 objective=5055.011803391455 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=5 objective=5055.011803391455 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    diff: side.harness_qpsum_dep_test_solves: 24 -> 23
+MOVER NEUTRAL  sd-hven-sqp-HS108.D
+    base: status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=149
+    new:  status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=149
+    diff: side.harness_qpsum_dep_stall_admits: 7 -> 8; side.harness_qpsum_dep_test_solves: 134 -> 112
+MOVER NEUTRAL  sd-hven-sqp-HS108.K
+    base: status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=133
+    new:  status=optimal iterations=11 objective=-0.67498144504677182 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=133
+    diff: side.harness_qpsum_dep_stall_admits: 7 -> 8; side.harness_qpsum_dep_test_solves: 132 -> 112
+MOVER NEUTRAL  sd-hven-sqp-HS111LNP.D
+    base: status=optimal iterations=25 objective=-47.76109102074409 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    new:  status=optimal iterations=25 objective=-47.761091020744082 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=257
+    diff: factorizations: 65 -> 64; side.border_refine_steps: 459 -> 471; side.dense_flagged_factorizations: 0 -> 1; side.dense_singular_refactors: 0 -> 1; side.eqp_polish_steps: 555 -> 550; side.eqp_refine_iters: 0 -> 1; side.factorizations: 65 -> 64; side.harness_factorizations_total: 65 -> 64; side.harness_qpsum_dep_border_retreats: 2 -> 0; side.harness_qpsum_dep_dependent: 52 -> 50; side.harness_qpsum_dep_grey_reread_dependent: 2 -> 3; side.harness_qpsum_dep_grey_rereads: 4 -> 5
+MOVER NEUTRAL  sd-hven-sqp-HS111LNP.K
+    base: status=optimal iterations=25 objective=-47.76109102074409 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=253
+    new:  status=optimal iterations=25 objective=-47.761091020744082 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=257
+    diff: factorizations: 91 -> 90; side.backend_symbolic_analyses: 65 -> 60; side.backend_symbolic_repeats: 55 -> 53; side.border_refine_steps: 456 -> 468; side.eqp_polish_steps: 594 -> 582; side.factorizations: 91 -> 90; side.harness_factorizations_total: 91 -> 90; side.harness_qpsum_dep_border_retreats: 2 -> 0; side.harness_qpsum_dep_dependent: 52 -> 50; side.harness_qpsum_dep_grey_reread_dependent: 2 -> 3; side.harness_qpsum_dep_grey_rereads: 4 -> 5; side.harness_qpsum_dep_infeasible_certificates: 4 -> 3
+MOVER NEUTRAL  sd-hven-sqp-HS117.D
+    base: status=optimal iterations=8 objective=32.348678965723892 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    new:  status=optimal iterations=8 objective=32.348678965723892 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 2; side.harness_qpsum_dep_test_solves: 69 -> 67
+MOVER NEUTRAL  sd-hven-sqp-HS117.K
+    base: status=optimal iterations=8 objective=32.348678965723877 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    new:  status=optimal iterations=8 objective=32.348678965723877 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=80
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 68 -> 67
+MOVER NEUTRAL  sd-hven-sqp-HS26.K
+    base: status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    new:  status=optimal iterations=17 objective=2.2822012684329756e-12 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=36
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 72 -> 71
+MOVER NEUTRAL  sd-hven-sqp-HS56.D
+    base: status=optimal iterations=39 objective=-3.4560000072757782 reference_abs_err=null elastic_activations=14 restoration_iters=0 qp_minor_iters=551
+    new:  status=optimal iterations=39 objective=-3.4560000072757782 reference_abs_err=null elastic_activations=14 restoration_iters=0 qp_minor_iters=551
+    diff: side.harness_qpsum_dep_stall_admits: 36 -> 47; side.harness_qpsum_dep_test_solves: 1323 -> 1270
+MOVER NEUTRAL  sd-hven-sqp-HS56.K
+    base: status=optimal iterations=18 objective=-3.4560000000019393 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=125
+    new:  status=optimal iterations=18 objective=-3.4560000000019393 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=125
+    diff: side.harness_qpsum_dep_stall_admits: 3 -> 7; side.harness_qpsum_dep_test_solves: 218 -> 211
+MOVER NEUTRAL  sd-hven-sqp-HS64.D
+    base: status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    new:  status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 12; side.harness_qpsum_dep_test_solves: 370 -> 358
+MOVER NEUTRAL  sd-hven-sqp-HS64.K
+    base: status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    new:  status=optimal iterations=16 objective=6299.8424279205465 reference_abs_err=null elastic_activations=7 restoration_iters=0 qp_minor_iters=179
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 12; side.harness_qpsum_dep_test_solves: 370 -> 358
+MOVER NEUTRAL  sd-hven-sqp-HS67.D
+    base: status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    new:  status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 6; side.harness_qpsum_dep_test_solves: 52 -> 46
+MOVER NEUTRAL  sd-hven-sqp-HS67.K
+    base: status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    new:  status=optimal iterations=14 objective=-1162.1186917014566 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=51
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 12; side.harness_qpsum_dep_test_solves: 58 -> 46
+MOVER NEUTRAL  sd-hven-sqp-HS68.D
+    base: status=optimal iterations=15 objective=-0.92042505349640014 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    new:  status=optimal iterations=15 objective=-0.92042505349640014 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 4; side.harness_qpsum_dep_test_solves: 103 -> 99
+MOVER NEUTRAL  sd-hven-sqp-HS68.K
+    base: status=optimal iterations=15 objective=-0.92042505349639692 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    new:  status=optimal iterations=15 objective=-0.92042505349639692 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=46
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 4; side.harness_qpsum_dep_test_solves: 103 -> 99
+MOVER NEUTRAL  sd-hven-sqp-HS70.D
+    base: status=optimal iterations=22 objective=0.0074984635749341007 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    new:  status=optimal iterations=22 objective=0.0074984635749341007 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 4; side.harness_qpsum_dep_test_solves: 85 -> 80
+MOVER NEUTRAL  sd-hven-sqp-HS70.K
+    base: status=optimal iterations=22 objective=0.0074984635749338882 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    new:  status=optimal iterations=22 objective=0.0074984635749338882 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=86
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 4; side.harness_qpsum_dep_test_solves: 85 -> 80
+MOVER NEUTRAL  sd-hven-sqp-HS74.D
+    base: status=optimal iterations=51 objective=5126.4981095978101 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=981
+    new:  status=optimal iterations=51 objective=5126.4981095978101 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=981
+    diff: side.harness_qpsum_dep_grey_rereads: 4 -> 0; side.harness_qpsum_dep_stall_admits: 72 -> 115; side.harness_qpsum_dep_test_solves: 2057 -> 1891
+MOVER NEUTRAL  sd-hven-sqp-HS74.K
+    base: status=optimal iterations=51 objective=5126.4981095978092 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=982
+    new:  status=optimal iterations=51 objective=5126.4981095978092 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=982
+    diff: side.harness_qpsum_dep_grey_rereads: 4 -> 0; side.harness_qpsum_dep_stall_admits: 74 -> 160; side.harness_qpsum_dep_test_solves: 2191 -> 1924
+MOVER NEUTRAL  sd-hven-sqp-HS75.D
+    base: status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=976
+    new:  status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=976
+    diff: side.harness_qpsum_dep_grey_rereads: 4 -> 0; side.harness_qpsum_dep_stall_admits: 74 -> 114; side.harness_qpsum_dep_test_solves: 2132 -> 1911
+MOVER NEUTRAL  sd-hven-sqp-HS75.K
+    base: status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=977
+    new:  status=optimal iterations=50 objective=5174.4126953803361 reference_abs_err=null elastic_activations=38 restoration_iters=17 qp_minor_iters=977
+    diff: side.harness_qpsum_dep_grey_rereads: 4 -> 0; side.harness_qpsum_dep_stall_admits: 75 -> 158; side.harness_qpsum_dep_test_solves: 2155 -> 1914
+MOVER NEUTRAL  sd-hven-sqp-HS80.K
+    base: status=optimal iterations=7 objective=0.053949847766714805 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    new:  status=optimal iterations=7 objective=0.053949847766714805 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=15
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 30 -> 29
+MOVER NEUTRAL  sd-hven-sqp-HS81.D
+    base: status=optimal iterations=24 objective=0.43885121993859871 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    new:  status=optimal iterations=24 objective=0.43885121993859871 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 344 -> 343
+MOVER NEUTRAL  sd-hven-sqp-HS81.K
+    base: status=optimal iterations=24 objective=0.4388512199385986 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    new:  status=optimal iterations=24 objective=0.4388512199385986 reference_abs_err=null elastic_activations=2 restoration_iters=0 qp_minor_iters=171
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 344 -> 343
+MOVER NEUTRAL  sd-hven-sqp-HS83.D
+    base: status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=201
+    new:  status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=201
+    diff: side.harness_qpsum_dep_stall_admits: 9 -> 11; side.harness_qpsum_dep_test_solves: 433 -> 404
+MOVER NEUTRAL  sd-hven-sqp-HS83.K
+    base: status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=205
+    new:  status=optimal iterations=12 objective=-30665.538671783321 reference_abs_err=null elastic_activations=6 restoration_iters=0 qp_minor_iters=205
+    diff: side.harness_qpsum_dep_stall_admits: 9 -> 13; side.harness_qpsum_dep_test_solves: 433 -> 402
+MOVER NEUTRAL  sd-hven-sqp-HS84.D
+    base: status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    new:  status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    diff: side.harness_qpsum_dep_test_solves: 74 -> 71
+MOVER NEUTRAL  sd-hven-sqp-HS84.K
+    base: status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    new:  status=optimal iterations=6 objective=-5280335.1332147606 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=53
+    diff: side.harness_qpsum_dep_test_solves: 72 -> 70
+MOVER NEUTRAL  sd-hven-sqp-HS85.D
+    base: status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    new:  status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 9; side.harness_qpsum_dep_test_solves: 94 -> 85
+MOVER NEUTRAL  sd-hven-sqp-HS85.K
+    base: status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    new:  status=optimal iterations=10 objective=-2.2156046905737434 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=34
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 9; side.harness_qpsum_dep_test_solves: 94 -> 85
+MOVER NEUTRAL  sd-hven-sqp-HS88.D
+    base: status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    new:  status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 636 -> 632
+MOVER NEUTRAL  sd-hven-sqp-HS88.K
+    base: status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    new:  status=infeasible iterations=18 objective=0 reference_abs_err=null elastic_activations=14 restoration_iters=1 qp_minor_iters=262
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 630 -> 626
+MOVER NEUTRAL  sd-hven-sqp-HS89.D
+    base: status=optimal iterations=21 objective=1.3626568148875193 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    new:  status=optimal iterations=21 objective=1.3626568148875193 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 3; side.harness_qpsum_dep_test_solves: 153 -> 150
+MOVER NEUTRAL  sd-hven-sqp-HS89.K
+    base: status=optimal iterations=21 objective=1.3626568148492262 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    new:  status=optimal iterations=21 objective=1.3626568148492262 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=88
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 3; side.harness_qpsum_dep_test_solves: 153 -> 150
+MOVER NEUTRAL  sd-hven-sqp-HS90.D
+    base: status=optimal iterations=50 objective=1.3626567971288293 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    new:  status=optimal iterations=50 objective=1.3626567971288293 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    diff: side.harness_qpsum_dep_grey_rereads: 1 -> 0; side.harness_qpsum_dep_stall_admits: 0 -> 17; side.harness_qpsum_dep_test_solves: 555 -> 531
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+    base: status=optimal iterations=50 objective=1.3626567971288286 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    new:  status=optimal iterations=50 objective=1.3626567971288286 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    diff: side.harness_qpsum_dep_grey_rereads: 1 -> 0; side.harness_qpsum_dep_stall_admits: 0 -> 17; side.harness_qpsum_dep_test_solves: 555 -> 531
+MOVER NEUTRAL  sd-hven-sqp-HS91.D
+    base: status=optimal iterations=53 objective=1.3626567971142309 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=308
+    new:  status=optimal iterations=53 objective=1.3626567971142309 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=308
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 29; side.harness_qpsum_dep_test_solves: 510 -> 481
+MOVER NEUTRAL  sd-hven-sqp-HS91.K
+    base: status=optimal iterations=57 objective=1.3626568148205342 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=327
+    new:  status=optimal iterations=57 objective=1.3626568148205342 reference_abs_err=null elastic_activations=1 restoration_iters=0 qp_minor_iters=327
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 29; side.harness_qpsum_dep_test_solves: 560 -> 531
+MOVER NEUTRAL  sd-hven-sqp-HS92.D
+    base: status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=789
+    new:  status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=789
+    diff: side.harness_qpsum_dep_grey_rereads: 2 -> 0; side.harness_qpsum_dep_stall_admits: 20 -> 27; side.harness_qpsum_dep_test_solves: 1664 -> 1549
+MOVER NEUTRAL  sd-hven-sqp-HS92.K
+    base: status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=769
+    new:  status=infeasible iterations=40 objective=0 reference_abs_err=null elastic_activations=36 restoration_iters=1 qp_minor_iters=769
+    diff: side.harness_qpsum_dep_grey_rereads: 2 -> 0; side.harness_qpsum_dep_stall_admits: 20 -> 27; side.harness_qpsum_dep_test_solves: 2221 -> 2106
+MOVER NEUTRAL  sd-hven-sqp-HS93.D
+    base: status=optimal iterations=7 objective=135.07596378168057 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=135.07596378168057 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 2; side.harness_qpsum_dep_test_solves: 41 -> 39
+MOVER NEUTRAL  sd-hven-sqp-HS93.K
+    base: status=optimal iterations=7 objective=135.07596378168054 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    new:  status=optimal iterations=7 objective=135.07596378168054 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=20
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 2; side.harness_qpsum_dep_test_solves: 41 -> 39
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.D
+    base: status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=8722
+    new:  status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=8722
+    diff: side.harness_qpsum_dep_grey_rereads: 1037 -> 487; side.harness_qpsum_dep_stall_admits: 152 -> 1948; side.harness_qpsum_dep_test_solves: 18935 -> 14885
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+    base: status=max_iter iterations=50 objective=-42266901.690001324 reference_abs_err=null elastic_activations=50 restoration_iters=250 qp_minor_iters=9478
+    new:  status=max_iter iterations=1 objective=-78452.5087890625 reference_abs_err=null elastic_activations=1 restoration_iters=299 qp_minor_iters=1483
+    diff: eval_f: 52 -> 3; eval_g: 421 -> 321; eval_hess: 141 -> 4; eval_jac: 141 -> 289; factorizations: 12550 -> 1716; iterations: 50 -> 1; side.accepted_h_type: 8 -> 0; side.active_set_delta_peak: 3 -> 0; side.active_set_delta_total: 3 -> 0; side.backend_symbolic_analyses: 9209 -> 875; side.backend_symbolic_repeats: 9010 -> 536; side.border_refine_steps: 4452 -> 496
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6380
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6910
+    diff: factorizations: 5380 -> 6168; side.backend_symbolic_analyses: 4271 -> 4788; side.backend_symbolic_repeats: 709 -> 895; side.border_refine_steps: 4018 -> 4073; side.elastic_escalations: 60 -> 64; side.eqp_polish_steps: 1345 -> 1478; side.eqp_refine_iters: 4848 -> 4911; side.factorizations: 5380 -> 6168; side.harness_factorizations_total: 5394 -> 6182; side.harness_qp_ledger_solves: 94 -> 98; side.harness_qpsum_dep_blocker_terminations: 10 -> 9; side.harness_qpsum_dep_border_retreats: 2 -> 1
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6380
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6910
+    diff: factorizations: 5380 -> 6168; side.backend_symbolic_analyses: 4271 -> 4788; side.backend_symbolic_repeats: 709 -> 895; side.border_refine_steps: 4018 -> 4073; side.elastic_escalations: 60 -> 64; side.eqp_polish_steps: 1345 -> 1478; side.eqp_refine_iters: 4848 -> 4911; side.factorizations: 5380 -> 6168; side.harness_factorizations_total: 5394 -> 6182; side.harness_qp_ledger_solves: 94 -> 98; side.harness_qpsum_dep_blocker_terminations: 10 -> 9; side.harness_qpsum_dep_border_retreats: 2 -> 1
+MOVER NEUTRAL  sd-hven-sqp-LAUNCH.D
+    base: status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    new:  status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 18; side.harness_qpsum_dep_test_solves: 179 -> 161
+MOVER NEUTRAL  sd-hven-sqp-LAUNCH.K
+    base: status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    new:  status=optimal iterations=10 objective=9.0049050687378216 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=67
+    diff: side.harness_qpsum_dep_stall_admits: 1 -> 54; side.harness_qpsum_dep_test_solves: 237 -> 161
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.D
+    base: status=infeasible iterations=3 objective=3.0003768489350362 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=70
+    new:  status=infeasible iterations=3 objective=3.0003768489350362 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=70
+    diff: side.harness_qpsum_dep_grey_rereads: 14 -> 6; side.harness_qpsum_dep_test_solves: 209 -> 180
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+    base: status=infeasible iterations=3 objective=3.0001382876515432 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=78
+    new:  status=infeasible iterations=3 objective=3.0001382876515432 reference_abs_err=null elastic_activations=2 restoration_iters=2 qp_minor_iters=78
+    diff: side.harness_qpsum_dep_grey_rereads: 14 -> 6; side.harness_qpsum_dep_test_solves: 239 -> 207
+MOVER NEUTRAL  sd-hven-sqp-LSNNODOC.D
+    base: status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 33 -> 32
+MOVER NEUTRAL  sd-hven-sqp-LSNNODOC.K
+    base: status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    new:  status=optimal iterations=6 objective=123.1124487914452 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=14
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 1; side.harness_qpsum_dep_test_solves: 33 -> 32
+MOVER NEUTRAL  sd-hven-sqp-MATRIX2.K
+    base: status=optimal iterations=11 objective=2.3841857910156176e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    new:  status=optimal iterations=11 objective=2.3841857910156176e-07 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=26
+    diff: side.harness_qpsum_dep_stall_admits: 0 -> 2; side.harness_qpsum_dep_test_solves: 46 -> 44
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+    base: status=max_iter iterations=273 objective=-8.1453339138274874 reference_abs_err=null elastic_activations=5 restoration_iters=27 qp_minor_iters=4065
+    new:  status=max_iter iterations=273 objective=-8.1453339138274874 reference_abs_err=null elastic_activations=5 restoration_iters=27 qp_minor_iters=4072
+    diff: eval_g: 299 -> 300; eval_jac: 300 -> 301; factorizations: 7402 -> 7359; side.active_set_delta_total: 612 -> 602; side.backend_symbolic_analyses: 155 -> 153; side.backend_symbolic_repeats: 83 -> 87; side.border_refine_steps: 8067 -> 8069; side.dense_factorizations: 7243 -> 7208; side.eqp_polish_steps: 5568 -> 5584; side.eqp_refine_iters: 3023 -> 3062; side.factorizations: 7402 -> 7359; side.harness_eval_g: 299 -> 300
+MOVER NEUTRAL  sd-hven-sqp-MESH.K
+    base: status=numerical_error iterations=93 objective=-56.715693901853726 reference_abs_err=null elastic_activations=12 restoration_iters=27 qp_minor_iters=1127
+    new:  status=numerical_error iterations=59 objective=-576184.81509389542 reference_abs_err=null elastic_activations=9 restoration_iters=50 qp_minor_iters=1728
+    diff: eval_f: 94 -> 61; eval_g: 119 -> 126; eval_hess: 52 -> 61; eval_jac: 68 -> 80; factorizations: 1707 -> 2754; iterations: 93 -> 59; kkt_complementarity: 7.7810444242705735e-33 -> 0; side.accepted_f_type: 32 -> 43; side.accepted_h_type: 4 -> 3; side.active_set_delta_total: 65 -> 67; side.backend_symbolic_analyses: 1253 -> 2118; side.backend_symbolic_repeats: 816 -> 1401
+MOVER NEUTRAL  sd-hven-sqp-MISTAKE.D
+    base: status=optimal iterations=15 objective=-1.0000000954611243 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=119
+    new:  status=optimal iterations=15 objective=-1.0000000954611243 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=119
+    diff: side.harness_qpsum_dep_stall_admits: 6 -> 8; side.harness_qpsum_dep_test_solves: 163 -> 141
+MOVER NEUTRAL  sd-hven-sqp-MISTAKE.K
+    base: status=optimal iterations=10 objective=-1.000000000001696 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=65
+    new:  status=optimal iterations=10 objective=-1.000000000001696 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=65
+    diff: side.harness_qpsum_dep_grey_rereads: 3 -> 0; side.harness_qpsum_dep_stall_admits: 4 -> 10; side.harness_qpsum_dep_test_solves: 109 -> 77
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+    base: status=numerical_error iterations=10 objective=-8.0838825476377352 reference_abs_err=null elastic_activations=3 restoration_iters=18 qp_minor_iters=4856
+    new:  status=numerical_error iterations=10 objective=-8.0838825476377352 reference_abs_err=null elastic_activations=3 restoration_iters=18 qp_minor_iters=4877
+    diff: factorizations: 6379 -> 6389; side.backend_symbolic_analyses: 5722 -> 5732; side.backend_symbolic_repeats: 2337 -> 2339; side.border_refine_steps: 2853 -> 3715; side.eqp_polish_steps: 6578 -> 6583; side.eqp_refine_iters: 1286 -> 1407; side.eqp_residual_refusals: 268 -> 275; side.factorizations: 6379 -> 6389; side.harness_factorizations_total: 6382 -> 6393; side.harness_qpsum_ascent_footprint_rides: 2 -> 1; side.harness_qpsum_ascent_rides: 62 -> 61; side.harness_qpsum_border_uncertified_fallbacks: 31 -> 32
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+    base: status=numerical_error iterations=31 objective=-15.004146919469283 reference_abs_err=null elastic_activations=14 restoration_iters=71 qp_minor_iters=11519
+    new:  status=numerical_error iterations=11 objective=-0.87579641737264746 reference_abs_err=null elastic_activations=3 restoration_iters=41 qp_minor_iters=7957
+    diff: eval_f: 41 -> 14; eval_g: 81 -> 49; eval_hess: 59 -> 30; eval_jac: 71 -> 41; factorizations: 11165 -> 10380; iterations: 31 -> 11; side.accepted_f_type: 10 -> 1; side.backend_symbolic_analyses: 9677 -> 8687; side.backend_symbolic_repeats: 3949 -> 2188; side.border_refine_steps: 10355 -> 4366; side.elastic_activations: 14 -> 3; side.eqp_polish_steps: 8078 -> 10599
+MOVER NEUTRAL  sd-hven-sqp-NET1.D
+    base: status=optimal iterations=13 objective=941194.33167399233 reference_abs_err=null elastic_activations=1 restoration_iters=15 qp_minor_iters=853
+    new:  status=optimal iterations=13 objective=941194.33167399233 reference_abs_err=null elastic_activations=1 restoration_iters=15 qp_minor_iters=787
+    diff: factorizations: 407 -> 348; side.backend_symbolic_analyses: 80 -> 75; side.backend_symbolic_repeats: 29 -> 24; side.border_refine_steps: 1053 -> 1009; side.dense_factorizations: 208 -> 177; side.eqp_polish_steps: 602 -> 506; side.eqp_refine_iters: 1 -> 0; side.factorizations: 407 -> 348; side.harness_factorizations_total: 410 -> 351; side.harness_qpsum_dep_blocker_terminations: 0 -> 1; side.harness_qpsum_dep_dependent: 462 -> 363; side.harness_qpsum_dep_grey_reread_dependent: 4 -> 0
+MOVER NEUTRAL  sd-hven-sqp-NET1.K
+    base: status=optimal iterations=13 objective=941194.33167399233 reference_abs_err=null elastic_activations=1 restoration_iters=15 qp_minor_iters=784
+    new:  status=optimal iterations=14 objective=941194.33167399233 reference_abs_err=null elastic_activations=2 restoration_iters=15 qp_minor_iters=1116
+    diff: eval_f: 14 -> 15; eval_g: 33 -> 34; eval_hess: 29 -> 30; eval_jac: 28 -> 29; factorizations: 465 -> 581; iterations: 13 -> 14; side.accepted_h_type: 1 -> 2; side.active_set_delta_peak: 9 -> 18; side.active_set_delta_total: 10 -> 34; side.backend_symbolic_analyses: 292 -> 446; side.backend_symbolic_repeats: 69 -> 142; side.border_refine_steps: 954 -> 1960
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.D
+    base: status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1553
+    new:  status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1553
+    diff: side.harness_qpsum_dep_stall_admits: 23 -> 60; side.harness_qpsum_dep_test_solves: 2335 -> 2250
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.K
+    base: status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1561
+    new:  status=optimal iterations=40 objective=-16.419773828930577 reference_abs_err=null elastic_activations=33 restoration_iters=0 qp_minor_iters=1561
+    diff: side.harness_qpsum_dep_stall_admits: 295 -> 539; side.harness_qpsum_dep_test_solves: 3110 -> 2300
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+    base: status=numerical_error iterations=72 objective=9525134350.0751438 reference_abs_err=null elastic_activations=10 restoration_iters=9 qp_minor_iters=16837
+    new:  status=numerical_error iterations=77 objective=13439366103.904755 reference_abs_err=null elastic_activations=11 restoration_iters=7 qp_minor_iters=17405
+    diff: eval_f: 70 -> 77; eval_g: 70 -> 75; eval_hess: 89 -> 94; eval_jac: 70 -> 72; factorizations: 33144 -> 32747; iterations: 72 -> 77; side.accepted_f_type: 59 -> 62; side.active_set_delta_total: 242 -> 209; side.backend_symbolic_analyses: 460 -> 483; side.backend_symbolic_repeats: 223 -> 204; side.border_refine_steps: 1525 -> 1213; side.dense_factorizations: 19378 -> 20105
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+    base: status=numerical_error iterations=86 objective=8397417386.7157564 reference_abs_err=null elastic_activations=11 restoration_iters=9 qp_minor_iters=20059
+    new:  status=numerical_error iterations=60 objective=3734497215.7274113 reference_abs_err=null elastic_activations=3 restoration_iters=3 qp_minor_iters=13514
+    diff: eval_f: 85 -> 60; eval_g: 85 -> 60; eval_hess: 107 -> 66; eval_jac: 86 -> 60; factorizations: 37629 -> 24143; iterations: 86 -> 60; kkt_primal_ineq: 0 -> 6.8735577125889069e-12; side.accepted_f_type: 74 -> 55; side.active_set_delta_total: 244 -> 275; side.backend_symbolic_analyses: 21421 -> 13966; side.backend_symbolic_repeats: 10652 -> 7684; side.border_refine_steps: 1459 -> 486
+MOVER NEUTRAL  sd-hven-sqp-WATER.D
+    base: status=optimal iterations=45 objective=10549.379466956934 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1526
+    new:  status=optimal iterations=45 objective=10549.379466956934 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1526
+    diff: side.harness_qpsum_dep_grey_rereads: 1 -> 0; side.harness_qpsum_dep_stall_admits: 0 -> 73; side.harness_qpsum_dep_test_solves: 2622 -> 2546
+MOVER NEUTRAL  sd-hven-sqp-WATER.K
+    base: status=optimal iterations=46 objective=10549.379466956942 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1602
+    new:  status=optimal iterations=46 objective=10549.379466956942 reference_abs_err=null elastic_activations=30 restoration_iters=14 qp_minor_iters=1602
+    diff: side.harness_qpsum_dep_grey_rereads: 1 -> 0; side.harness_qpsum_dep_stall_admits: 0 -> 70; side.harness_qpsum_dep_test_solves: 2733 -> 2659
+
+SUMMARY rows 476; movers vs arm A 100 (better 0, worse 0, neutral 100); missing/capped 0
+residual values equal within the gate but not byte-equal: 21
+  INGATE BASE sd-hven-sqp-DEMBO7.K side.ssn.ssn_sign_sweep_max: 1.0193524617241409e-22 -> 2.929784471517282e-19
+  INGATE BASE sd-hven-sqp-HS111LNP.D kkt_primal_eq: 6.5899187495777056e-09 -> 6.5899187356999178e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D kkt_stationarity: 4.9823221104361437e-09 -> 4.9823327685771801e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D objective: -47.76109102074409 -> -47.761091020744082
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_feasibility: 6.5899187495777056e-09 -> 6.5899187356999178e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_kkt_residual: 6.5899187495777056e-09 -> 6.5899187356999178e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.D side.sqp_stationarity: 4.9823221104361437e-09 -> 4.9823327685771801e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K kkt_primal_eq: 6.58991872182213e-09 -> 6.5899187773332812e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K objective: -47.76109102074409 -> -47.761091020744082
+  INGATE BASE sd-hven-sqp-HS111LNP.K side.sqp_feasibility: 6.58991872182213e-09 -> 6.5899187773332812e-09
+  INGATE BASE sd-hven-sqp-HS111LNP.K side.sqp_kkt_residual: 6.58991872182213e-09 -> 6.5899187773332812e-09
+  INGATE BASE sd-hven-sqp-MESH.D kkt_complementarity: 4.7322848562054626e-29 -> 4.7329192957893484e-29
+  INGATE BASE sd-hven-sqp-MESH.D kkt_primal_eq: 8.7149018852602554e-11 -> 8.714902441927271e-11
+  INGATE BASE sd-hven-sqp-MESH.D kkt_primal_ineq: 1.6199951080916453e-46 -> 1.6195609094383663e-46
+  INGATE BASE sd-hven-sqp-MESH.D side.restoration_feas_out: 1.0877835510975521e-10 -> 1.0876591277174245e-10
+  INGATE BASE sd-hven-sqp-MESH.D side.restoration_h_out: 2.46539607035148e-10 -> 2.4653073844103463e-10
+  INGATE BASE sd-hven-sqp-MESH.D side.sqp_feasibility: 8.7149018852602554e-11 -> 8.714902441927271e-11
+  INGATE BASE sd-hven-sqp-MESH.K side.eqb_max_gap: 1.0160982047361472e-09 -> 1.0160982046639906e-09
+  INGATE BASE sd-hven-sqp-MESH.K side.ssn.ssn_sign_sweep_max: 1.8884993426190484e-23 -> 3.842434361598567e-16
+  INGATE BASE sd-hven-sqp-SPANHYD.K side.restoration_feas_out: 2.983203961637315e-13 -> 3.240741008880832e-13
+  INGATE BASE sd-hven-sqp-SPANHYD.K side.restoration_h_out: 1.3757502081990225e-12 -> 1.3134493492827914e-12
+REPORT_ONLY (dev run)

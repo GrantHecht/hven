@@ -1,0 +1,13 @@
+diff --git a/src/linear/analysis_tally.cpp b/src/linear/analysis_tally.cpp
+index e5568378d..33b904177 100644
+--- a/src/linear/analysis_tally.cpp
++++ b/src/linear/analysis_tally.cpp
+@@ -48,7 +48,7 @@ SolveContextScope::SolveContextScope(SolveContext ctx) noexcept : prev_(t_solve_
+     t_solve_context = ctx;
+ }
+ 
+-SolveContextScope::~SolveContextScope() { t_solve_context = prev_; }
++SolveContextScope::~SolveContextScope() {}
+ 
+ SolveTally::SolveTally() : outer_(t_solve_innermost) { t_solve_innermost = this; }
+ 

@@ -1,0 +1,567 @@
+MOVER hs-hven-sqp-hs003.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 3
+    side.harness_qpsum_dep_test_solves: 19 -> 16
+MOVER hs-hven-sqp-hs010.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 2 -> 6
+    side.harness_qpsum_dep_test_solves: 382 -> 374
+MOVER hs-hven-sqp-hs010.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 2 -> 9
+    side.harness_qpsum_dep_test_solves: 382 -> 373
+MOVER hs-hven-sqp-hs026.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 72 -> 71
+MOVER hs-hven-sqp-hs045.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1 -> 2
+    side.harness_qpsum_dep_test_solves: 25 -> 19
+MOVER hs-hven-sqp-hs045.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1 -> 2
+    side.harness_qpsum_dep_test_solves: 25 -> 19
+MOVER sd-hven-sqp-ACOPP30.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 35 -> 59
+    side.harness_qpsum_dep_test_solves: 427 -> 310
+MOVER sd-hven-sqp-ACOPP30.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 35 -> 59
+    side.harness_qpsum_dep_test_solves: 427 -> 310
+MOVER sd-hven-sqp-BT2.D keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 128 -> 125
+MOVER sd-hven-sqp-BT2.K keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 127 -> 125
+MOVER sd-hven-sqp-BT7.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 26 -> 28
+    side.harness_qpsum_dep_test_solves: 4543 -> 4463
+MOVER sd-hven-sqp-BT7.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 27 -> 29
+    side.harness_qpsum_dep_test_solves: 4531 -> 4448
+MOVER sd-hven-sqp-CRESC100.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1474 -> 2795
+    side.harness_qpsum_dep_test_solves: 65119 -> 60360
+MOVER sd-hven-sqp-CRESC100.K keys=factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_saddle_direction_solves,side.harness_qpsum_saddle_exit_misses,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_ws_exchanges_shifted,side.inertia_suspect_verdicts,side.inertia_wrong_verdicts,side.qp_minor_iters,side.symbolic_analyses
+    factorizations: 17010 -> 17294
+    side.backend_symbolic_analyses: 15793 -> 16050
+    side.backend_symbolic_repeats: 6657 -> 6650
+    side.border_refine_steps: 7579 -> 7590
+    side.eqp_polish_steps: 11886 -> 12154
+    side.eqp_refine_iters: 247 -> 252
+    side.factorizations: 17010 -> 17294
+    side.harness_factorizations_total: 17010 -> 17294
+    side.harness_qpsum_dep_dependent: 22431 -> 21395
+    side.harness_qpsum_dep_inertia_rereads: 21 -> 22
+    side.harness_qpsum_dep_passovers: 19614 -> 18493
+    side.harness_qpsum_dep_recheck_removals: 1389 -> 1410
+MOVER sd-hven-sqp-CRESC4.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 13 -> 91
+    side.harness_qpsum_dep_test_solves: 1560 -> 1453
+MOVER sd-hven-sqp-CRESC4.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 65 -> 137
+    side.harness_qpsum_dep_test_solves: 1146 -> 934
+MOVER sd-hven-sqp-CRESC50.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 542 -> 1691
+    side.harness_qpsum_dep_test_solves: 20648 -> 17444
+MOVER sd-hven-sqp-CRESC50.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1047 -> 2437
+    side.harness_qpsum_dep_test_solves: 14411 -> 9757
+MOVER sd-hven-sqp-DECONVC.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 27 -> 673
+    side.harness_qpsum_dep_test_solves: 4015 -> 3277
+MOVER sd-hven-sqp-DECONVC.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 71 -> 1595
+    side.harness_qpsum_dep_test_solves: 5512 -> 3298
+MOVER sd-hven-sqp-DEMBO7.D keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total,side.border_refine_steps,side.dense_factorizations,side.dense_flagged_factorizations,side.dense_singular_refactors,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_refine_steps,side.eqp_row_drift_refusals,side.eval_hess_calls,side.evals_full,side.evals_values,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_solves,side.harness_qpsum_ascent_footprint_declines,side.harness_qpsum_ascent_footprint_rides,side.harness_qpsum_ascent_footprint_rungs,side.harness_qpsum_ascent_rides,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_untested_growth,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_ws_exchanges_shifted,side.harness_qpsum_zero_motion_exhausted,side.inertia_wrong_verdicts,side.major_iters,side.near_active_peak,side.qp_failure_steps_accepted,side.qp_failure_steps_judged,side.qp_maxiter_exits,side.qp_minor_iters,side.qp_numerical_exits,side.reject_f_armijo,side.rejected_steps,side.rejection_run_histogram,side.soc_rejected,side.soc_steps,side.steps_accepted,side.suspect_escalations,side.symbolic_analyses,side.terminal_polish_adopted,side.terminal_polish_rejected,side.terminal_polish_solves,side.weak_active_peak,kkt_complementarity,kkt_primal_ineq,kkt_stationarity,objective,side.sqp_complementarity,side.sqp_feasibility,side.sqp_kkt_residual,side.sqp_stationarity
+    eval_f: 17 -> 26
+    eval_g: 55 -> 64
+    eval_hess: 28 -> 35
+    eval_jac: 27 -> 34
+    factorizations: 885 -> 1750
+    iterations: 15 -> 23
+    side.accepted_f_type: 10 -> 16
+    side.accepted_h_type: 4 -> 5
+    side.active_set_delta_peak: 11 -> 12
+    side.active_set_delta_total: 39 -> 101
+    side.border_refine_steps: 1757 -> 2320
+    side.dense_factorizations: 885 -> 1754
+MOVER sd-hven-sqp-DEMBO7.K keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.eqp_refine_steps,side.eval_hess_calls,side.evals_full,side.evals_values,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_solves,side.harness_qpsum_ascent_footprint_declines,side.harness_qpsum_ascent_footprint_rungs,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_reread_flips,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_repair_screen_pins,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_untested_growth,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_ws_exchanges_shifted,side.harness_qpsum_zero_motion_exhausted,side.inertia_wrong_verdicts,side.major_iters,side.near_active_peak,side.qp_failure_steps_accepted,side.qp_failure_steps_judged,side.qp_minor_iters,side.qp_numerical_exits,side.reject_f_armijo,side.rejected_steps,side.rejection_run_histogram,side.soc_rejected,side.soc_steps,side.steps_accepted,side.symbolic_analyses,side.verdict_refine_steps,side.weak_active_peak,kkt_primal_ineq,objective,side.sqp_complementarity,side.sqp_feasibility,side.sqp_kkt_residual,side.sqp_stationarity
+    eval_f: 19 -> 23
+    eval_g: 57 -> 61
+    eval_hess: 30 -> 32
+    eval_jac: 29 -> 31
+    factorizations: 1030 -> 1291
+    iterations: 17 -> 20
+    side.accepted_f_type: 11 -> 14
+    side.accepted_h_type: 5 -> 4
+    side.active_set_delta_total: 35 -> 61
+    side.backend_symbolic_analyses: 823 -> 1048
+    side.backend_symbolic_repeats: 303 -> 339
+    side.border_refine_steps: 1741 -> 1966
+MOVER sd-hven-sqp-DNIEPER.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 9
+    side.harness_qpsum_dep_test_solves: 461 -> 452
+MOVER sd-hven-sqp-DNIEPER.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 24 -> 53
+    side.harness_qpsum_dep_test_solves: 547 -> 466
+MOVER sd-hven-sqp-HS101.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 39 -> 77
+    side.harness_qpsum_dep_test_solves: 1033 -> 920
+MOVER sd-hven-sqp-HS101.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 50 -> 133
+    side.harness_qpsum_dep_test_solves: 1262 -> 1055
+MOVER sd-hven-sqp-HS102.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1 -> 19
+    side.harness_qpsum_dep_test_solves: 455 -> 432
+MOVER sd-hven-sqp-HS102.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1 -> 22
+    side.harness_qpsum_dep_test_solves: 459 -> 432
+MOVER sd-hven-sqp-HS103.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 18
+    side.harness_qpsum_dep_test_solves: 331 -> 310
+MOVER sd-hven-sqp-HS103.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 18
+    side.harness_qpsum_dep_test_solves: 331 -> 310
+MOVER sd-hven-sqp-HS104.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 10
+    side.harness_qpsum_dep_test_solves: 91 -> 81
+MOVER sd-hven-sqp-HS104.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 10
+    side.harness_qpsum_dep_test_solves: 91 -> 81
+MOVER sd-hven-sqp-HS107.K keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 24 -> 23
+MOVER sd-hven-sqp-HS108.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 7 -> 8
+    side.harness_qpsum_dep_test_solves: 134 -> 112
+MOVER sd-hven-sqp-HS108.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 7 -> 8
+    side.harness_qpsum_dep_test_solves: 132 -> 112
+MOVER sd-hven-sqp-HS111LNP.D keys=factorizations,side.border_refine_steps,side.dense_flagged_factorizations,side.dense_singular_refactors,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_infeasible_certificates,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_undecidable,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_terminal_mu_refines,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.qp_minor_iters
+    factorizations: 65 -> 64
+    side.border_refine_steps: 459 -> 471
+    side.dense_flagged_factorizations: 0 -> 1
+    side.dense_singular_refactors: 0 -> 1
+    side.eqp_polish_steps: 555 -> 550
+    side.eqp_refine_iters: 0 -> 1
+    side.factorizations: 65 -> 64
+    side.harness_factorizations_total: 65 -> 64
+    side.harness_qpsum_dep_border_retreats: 2 -> 0
+    side.harness_qpsum_dep_dependent: 52 -> 50
+    side.harness_qpsum_dep_grey_reread_dependent: 2 -> 3
+    side.harness_qpsum_dep_grey_rereads: 4 -> 5
+MOVER sd-hven-sqp-HS111LNP.K keys=factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.eqp_polish_steps,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_infeasible_certificates,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_undecidable,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_terminal_mu_refines,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.qp_minor_iters
+    factorizations: 91 -> 90
+    side.backend_symbolic_analyses: 65 -> 60
+    side.backend_symbolic_repeats: 55 -> 53
+    side.border_refine_steps: 456 -> 468
+    side.eqp_polish_steps: 594 -> 582
+    side.factorizations: 91 -> 90
+    side.harness_factorizations_total: 91 -> 90
+    side.harness_qpsum_dep_border_retreats: 2 -> 0
+    side.harness_qpsum_dep_dependent: 52 -> 50
+    side.harness_qpsum_dep_grey_reread_dependent: 2 -> 3
+    side.harness_qpsum_dep_grey_rereads: 4 -> 5
+    side.harness_qpsum_dep_infeasible_certificates: 4 -> 3
+MOVER sd-hven-sqp-HS117.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 2
+    side.harness_qpsum_dep_test_solves: 69 -> 67
+MOVER sd-hven-sqp-HS117.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 68 -> 67
+MOVER sd-hven-sqp-HS26.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 72 -> 71
+MOVER sd-hven-sqp-HS56.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 36 -> 47
+    side.harness_qpsum_dep_test_solves: 1323 -> 1270
+MOVER sd-hven-sqp-HS56.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 3 -> 7
+    side.harness_qpsum_dep_test_solves: 218 -> 211
+MOVER sd-hven-sqp-HS64.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 12
+    side.harness_qpsum_dep_test_solves: 370 -> 358
+MOVER sd-hven-sqp-HS64.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 12
+    side.harness_qpsum_dep_test_solves: 370 -> 358
+MOVER sd-hven-sqp-HS67.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 6
+    side.harness_qpsum_dep_test_solves: 52 -> 46
+MOVER sd-hven-sqp-HS67.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 12
+    side.harness_qpsum_dep_test_solves: 58 -> 46
+MOVER sd-hven-sqp-HS68.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 4
+    side.harness_qpsum_dep_test_solves: 103 -> 99
+MOVER sd-hven-sqp-HS68.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 4
+    side.harness_qpsum_dep_test_solves: 103 -> 99
+MOVER sd-hven-sqp-HS70.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 4
+    side.harness_qpsum_dep_test_solves: 85 -> 80
+MOVER sd-hven-sqp-HS70.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 4
+    side.harness_qpsum_dep_test_solves: 85 -> 80
+MOVER sd-hven-sqp-HS74.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 72 -> 115
+    side.harness_qpsum_dep_test_solves: 2057 -> 1903
+MOVER sd-hven-sqp-HS74.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 74 -> 160
+    side.harness_qpsum_dep_test_solves: 2191 -> 1937
+MOVER sd-hven-sqp-HS75.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 74 -> 114
+    side.harness_qpsum_dep_test_solves: 2132 -> 1925
+MOVER sd-hven-sqp-HS75.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 75 -> 158
+    side.harness_qpsum_dep_test_solves: 2155 -> 1928
+MOVER sd-hven-sqp-HS80.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 30 -> 29
+MOVER sd-hven-sqp-HS81.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 344 -> 343
+MOVER sd-hven-sqp-HS81.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 344 -> 343
+MOVER sd-hven-sqp-HS83.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 9 -> 11
+    side.harness_qpsum_dep_test_solves: 433 -> 404
+MOVER sd-hven-sqp-HS83.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 9 -> 13
+    side.harness_qpsum_dep_test_solves: 433 -> 402
+MOVER sd-hven-sqp-HS84.D keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 74 -> 71
+MOVER sd-hven-sqp-HS84.K keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 72 -> 70
+MOVER sd-hven-sqp-HS85.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 9
+    side.harness_qpsum_dep_test_solves: 94 -> 85
+MOVER sd-hven-sqp-HS85.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 9
+    side.harness_qpsum_dep_test_solves: 94 -> 85
+MOVER sd-hven-sqp-HS88.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 636 -> 632
+MOVER sd-hven-sqp-HS88.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 630 -> 626
+MOVER sd-hven-sqp-HS89.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 3
+    side.harness_qpsum_dep_test_solves: 153 -> 150
+MOVER sd-hven-sqp-HS89.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 3
+    side.harness_qpsum_dep_test_solves: 153 -> 150
+MOVER sd-hven-sqp-HS90.D keys=side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_grey_rereads: 1 -> 0
+    side.harness_qpsum_dep_stall_admits: 0 -> 17
+    side.harness_qpsum_dep_test_solves: 555 -> 531
+MOVER sd-hven-sqp-HS90.K keys=side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_grey_rereads: 1 -> 0
+    side.harness_qpsum_dep_stall_admits: 0 -> 17
+    side.harness_qpsum_dep_test_solves: 555 -> 531
+MOVER sd-hven-sqp-HS91.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 29
+    side.harness_qpsum_dep_test_solves: 510 -> 481
+MOVER sd-hven-sqp-HS91.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 29
+    side.harness_qpsum_dep_test_solves: 560 -> 531
+MOVER sd-hven-sqp-HS92.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 20 -> 27
+    side.harness_qpsum_dep_test_solves: 1664 -> 1557
+MOVER sd-hven-sqp-HS92.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 20 -> 27
+    side.harness_qpsum_dep_test_solves: 2221 -> 2114
+MOVER sd-hven-sqp-HS93.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 2
+    side.harness_qpsum_dep_test_solves: 41 -> 39
+MOVER sd-hven-sqp-HS93.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 2
+    side.harness_qpsum_dep_test_solves: 41 -> 39
+MOVER sd-hven-sqp-HS99EXP.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 152 -> 1948
+    side.harness_qpsum_dep_test_solves: 18935 -> 16878
+MOVER sd-hven-sqp-HS99EXP.K keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_activations,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_residual_refusals,side.eval_hess_calls,side.evals_full,side.evals_values,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_infeasible,side.harness_qp_ledger_solves,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_deferred_adds,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_infeasible_certificates,side.harness_qpsum_dep_known_dependent_refusals,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_fallbacks,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_mandatory_dependent_entries,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ride_sign_vetoes,side.harness_qpsum_terminal_mu_refines,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.inertia_wrong_verdicts,side.major_iters,side.qp_minor_iters,side.qp_numerical_exits,side.reject_h_funnel,side.rejected_steps,side.rejection_run_histogram,side.restoration_curvature_switches,side.restoration_f_in,side.restoration_iters,side.soc_applied,side.soc_rejected,side.soc_steps,side.sparse_matched_retakes,side.sparse_retake_refusals,side.sparse_scaled_retakes,side.steps_accepted,side.suspect_escalations,side.symbolic_analyses,side.terminal_polish_adopted,side.terminal_polish_rejected,side.terminal_polish_solves,kkt_primal_eq,kkt_stationarity,objective,side.restoration_f_out,side.restoration_feas_out,side.restoration_h_in,side.restoration_h_out,side.sqp_feasibility,side.sqp_kkt_residual,side.sqp_stationarity
+    eval_f: 52 -> 3
+    eval_g: 421 -> 321
+    eval_hess: 141 -> 4
+    eval_jac: 141 -> 289
+    factorizations: 12550 -> 1716
+    iterations: 50 -> 1
+    side.accepted_h_type: 8 -> 0
+    side.active_set_delta_peak: 3 -> 0
+    side.active_set_delta_total: 3 -> 0
+    side.backend_symbolic_analyses: 9209 -> 875
+    side.backend_symbolic_repeats: 9010 -> 536
+    side.border_refine_steps: 4452 -> 496
+MOVER sd-hven-sqp-LAKES.D keys=factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qp_ledger_solves,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_deferred_adds,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_fallbacks,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_mandatory_dependent_entries,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.qp_minor_iters,side.sparse_scaled_retakes
+    factorizations: 5380 -> 6168
+    side.backend_symbolic_analyses: 4271 -> 4788
+    side.backend_symbolic_repeats: 709 -> 895
+    side.border_refine_steps: 4018 -> 4073
+    side.elastic_escalations: 60 -> 64
+    side.eqp_polish_steps: 1345 -> 1478
+    side.eqp_refine_iters: 4848 -> 4911
+    side.factorizations: 5380 -> 6168
+    side.harness_factorizations_total: 5394 -> 6182
+    side.harness_qp_ledger_solves: 94 -> 98
+    side.harness_qpsum_dep_blocker_terminations: 10 -> 9
+    side.harness_qpsum_dep_border_retreats: 2 -> 1
+MOVER sd-hven-sqp-LAKES.K keys=factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qp_ledger_solves,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_deferred_adds,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_fallbacks,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_mandatory_dependent_entries,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.qp_minor_iters,side.sparse_scaled_retakes
+    factorizations: 5380 -> 6168
+    side.backend_symbolic_analyses: 4271 -> 4788
+    side.backend_symbolic_repeats: 709 -> 895
+    side.border_refine_steps: 4018 -> 4073
+    side.elastic_escalations: 60 -> 64
+    side.eqp_polish_steps: 1345 -> 1478
+    side.eqp_refine_iters: 4848 -> 4911
+    side.factorizations: 5380 -> 6168
+    side.harness_factorizations_total: 5394 -> 6182
+    side.harness_qp_ledger_solves: 94 -> 98
+    side.harness_qpsum_dep_blocker_terminations: 10 -> 9
+    side.harness_qpsum_dep_border_retreats: 2 -> 1
+MOVER sd-hven-sqp-LAUNCH.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 18
+    side.harness_qpsum_dep_test_solves: 179 -> 161
+MOVER sd-hven-sqp-LAUNCH.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1 -> 54
+    side.harness_qpsum_dep_test_solves: 237 -> 161
+MOVER sd-hven-sqp-LEWISPOL.D keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 209 -> 207
+MOVER sd-hven-sqp-LEWISPOL.K keys=side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_test_solves: 239 -> 238
+MOVER sd-hven-sqp-LSNNODOC.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 33 -> 32
+MOVER sd-hven-sqp-LSNNODOC.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 1
+    side.harness_qpsum_dep_test_solves: 33 -> 32
+MOVER sd-hven-sqp-MATRIX2.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 2
+    side.harness_qpsum_dep_test_solves: 46 -> 44
+MOVER sd-hven-sqp-MESH.D keys=eval_g,eval_jac,factorizations,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.dense_factorizations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_eval_g,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qpsum_ascent_rides,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_repair_screen_pins,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_exchanges,side.harness_qpsum_saddle_exit_misses,side.harness_qpsum_saddle_exits,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.inertia_wrong_verdicts,side.qp_minor_iters,side.ssn.ssn_sign_swept,side.symbolic_analyses,side.restoration_f_out,side.ssn.ssn_sign_sweep_max
+    eval_g: 299 -> 300
+    eval_jac: 300 -> 301
+    factorizations: 7402 -> 7359
+    side.active_set_delta_total: 612 -> 602
+    side.backend_symbolic_analyses: 155 -> 153
+    side.backend_symbolic_repeats: 83 -> 87
+    side.border_refine_steps: 8067 -> 8069
+    side.dense_factorizations: 7243 -> 7208
+    side.eqp_polish_steps: 5568 -> 5584
+    side.eqp_refine_iters: 3023 -> 3062
+    side.factorizations: 7402 -> 7359
+    side.harness_eval_g: 299 -> 300
+MOVER sd-hven-sqp-MESH.K keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,kkt_complementarity,side.accepted_f_type,side.accepted_h_type,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_activations,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_residual_refusals,side.eval_hess_calls,side.evals_full,side.evals_values,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_infeasible,side.harness_qp_ledger_solves,side.harness_qpsum_ascent_footprint_rides,side.harness_qpsum_ascent_footprint_rung_reverts,side.harness_qpsum_ascent_footprint_rungs,side.harness_qpsum_ascent_rides,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_certificate_rejections,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_reread_flips,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_infeasible_certificates,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_repair_screen_pins,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_fallbacks,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_dep_untested_growth,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_eq_drift_violations,side.harness_qpsum_mandatory_dependent_entries,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ride_predicted_signs,side.harness_qpsum_saddle_direction_solves,side.harness_qpsum_saddle_exit_misses,side.harness_qpsum_saddle_exits,side.harness_qpsum_standstill_retreats,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.inertia_wrong_verdicts,side.major_iters,side.optimal_row_gray_exits,side.qp_failure_steps_accepted,side.qp_failure_steps_judged,side.qp_failures_in_a_row_peak,side.qp_failures_routed,side.qp_minor_iters,side.qp_numerical_exits,side.reject_qp_failed,side.rejected_steps,side.rejection_run_histogram,side.restoration_curvature_switches,side.restoration_entries,side.restoration_iters,side.soc_qp_infeasible,side.soc_rejected,side.soc_steps,side.sparse_scaled_retakes,side.ssn.ssn_sign_swept,side.steps_accepted,side.symbolic_analyses,side.terminal_polish_adopted,side.terminal_polish_rejected,side.terminal_polish_solves,side.verdict_refine_steps,kkt_primal_eq,kkt_stationarity,objective,side.restoration_f_in,side.restoration_f_out,side.restoration_feas_out,side.restoration_h_in,side.restoration_h_out,side.sqp_feasibility,side.sqp_kkt_residual,side.sqp_stationarity
+    eval_f: 94 -> 61
+    eval_g: 119 -> 126
+    eval_hess: 52 -> 61
+    eval_jac: 68 -> 80
+    factorizations: 1707 -> 2754
+    iterations: 93 -> 59
+    kkt_complementarity: 7.7810444242705735e-33 -> 0
+    side.accepted_f_type: 32 -> 43
+    side.accepted_h_type: 4 -> 3
+    side.active_set_delta_total: 65 -> 67
+    side.backend_symbolic_analyses: 1253 -> 2118
+    side.backend_symbolic_repeats: 816 -> 1401
+MOVER sd-hven-sqp-MISTAKE.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 6 -> 8
+    side.harness_qpsum_dep_test_solves: 163 -> 141
+MOVER sd-hven-sqp-MISTAKE.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 4 -> 10
+    side.harness_qpsum_dep_test_solves: 109 -> 89
+MOVER sd-hven-sqp-MSS1.D keys=side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_grey_rereads: 39 -> 38
+    side.harness_qpsum_dep_stall_admits: 409 -> 1020
+    side.harness_qpsum_dep_test_solves: 9564 -> 7505
+MOVER sd-hven-sqp-MSS1.K keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_f_type,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_activations,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_refine_steps,side.eqp_residual_refusals,side.eval_hess_calls,side.evals_full,side.evals_values,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_solves,side.harness_qpsum_ascent_footprint_declines,side.harness_qpsum_ascent_footprint_rung_reverts,side.harness_qpsum_ascent_footprint_rungs,side.harness_qpsum_ascent_rides,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_known_dependent_refusals,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_repair_budget_stops,side.harness_qpsum_dep_repair_restarts,side.harness_qpsum_dep_repair_screen_pins,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_screen_under_mandatory_dependence,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_dep_undecidable,side.harness_qpsum_dep_unlocks,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_eq_drift_violations,side.harness_qpsum_mandatory_dependent_entries,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ride_exchanges,side.harness_qpsum_terminal_mu_refine_rescues,side.harness_qpsum_terminal_mu_refines,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.inertia_wrong_verdicts,side.major_iters,side.qp_failure_steps_accepted,side.qp_failure_steps_judged,side.qp_failures_in_a_row_peak,side.qp_failures_routed,side.qp_maxiter_exits,side.qp_minor_iters,side.qp_numerical_exits,side.reject_qp_failed,side.rejected_steps,side.rejection_run_histogram,side.restoration_curvature_switches,side.restoration_entries,side.restoration_iters,side.steps_accepted,side.suspect_escalations,side.symbolic_analyses,side.terminal_polish_rejected,side.terminal_polish_solves,kkt_primal_eq,kkt_stationarity,objective,side.restoration_f_in,side.restoration_f_out,side.restoration_feas_out,side.restoration_h_in,side.restoration_h_out,side.sqp_feasibility,side.sqp_kkt_residual,side.sqp_stationarity
+    eval_f: 41 -> 11
+    eval_g: 81 -> 34
+    eval_hess: 59 -> 21
+    eval_jac: 71 -> 26
+    factorizations: 11165 -> 8984
+    iterations: 31 -> 9
+    side.accepted_f_type: 10 -> 0
+    side.backend_symbolic_analyses: 9677 -> 7514
+    side.backend_symbolic_repeats: 3949 -> 1983
+    side.border_refine_steps: 10355 -> 3974
+    side.elastic_activations: 14 -> 2
+    side.eqp_polish_steps: 8078 -> 9800
+MOVER sd-hven-sqp-NET1.D keys=factorizations,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.dense_factorizations,side.eqp_polish_steps,side.eqp_refine_iters,side.factorizations,side.harness_factorizations_total,side.harness_qpsum_dep_blocker_terminations,side.harness_qpsum_dep_dependent,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_recheck_removals,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_uncertified_trims,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_wrong_verdicts,side.qp_minor_iters,side.symbolic_analyses
+    factorizations: 407 -> 348
+    side.backend_symbolic_analyses: 80 -> 75
+    side.backend_symbolic_repeats: 29 -> 24
+    side.border_refine_steps: 1053 -> 1009
+    side.dense_factorizations: 208 -> 177
+    side.eqp_polish_steps: 602 -> 506
+    side.eqp_refine_iters: 1 -> 0
+    side.factorizations: 407 -> 348
+    side.harness_factorizations_total: 410 -> 351
+    side.harness_qpsum_dep_blocker_terminations: 0 -> 1
+    side.harness_qpsum_dep_dependent: 462 -> 363
+    side.harness_qpsum_dep_grey_reread_dependent: 4 -> 0
+MOVER sd-hven-sqp-NET1.K keys=eval_f,eval_g,eval_hess,eval_jac,factorizations,iterations,side.accepted_h_type,side.active_set_delta_peak,side.active_set_delta_total,side.backend_symbolic_analyses,side.backend_symbolic_repeats,side.border_refine_steps,side.elastic_activations,side.elastic_escalations,side.eqp_polish_steps,side.eqp_refine_iters,side.eqp_residual_refusals,side.eval_hess_calls,side.evals_full,side.factorizations,side.harness_eval_f,side.harness_eval_g,side.harness_eval_grad_f,side.harness_eval_hess,side.harness_eval_jac,side.harness_factorizations_total,side.harness_qp_ledger_infeasible,side.harness_qp_ledger_solves,side.harness_qpsum_ascent_rides,side.harness_qpsum_border_uncertified_fallbacks,side.harness_qpsum_dep_border_retreats,side.harness_qpsum_dep_certificate_rejections,side.harness_qpsum_dep_grey_reread_dependent,side.harness_qpsum_dep_grey_rereads,side.harness_qpsum_dep_implied_passovers,side.harness_qpsum_dep_inertia_rereads,side.harness_qpsum_dep_infeasible_certificates,side.harness_qpsum_dep_passovers,side.harness_qpsum_dep_pin_skips,side.harness_qpsum_dep_ride_blockers,side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_structural_first,side.harness_qpsum_dep_test_solves,side.harness_qpsum_dep_tests,side.harness_qpsum_dep_unlocks,side.harness_qpsum_dep_untested_growth,side.harness_qpsum_entry_dependency_removals,side.harness_qpsum_reentry_exemptions,side.harness_qpsum_ride_declines_fallthrough_blocked,side.harness_qpsum_ride_exchanges,side.harness_qpsum_ride_sign_vetoes,side.harness_qpsum_saddle_direction_solves,side.harness_qpsum_ws_count_violations,side.harness_qpsum_ws_exchanges,side.harness_qpsum_ws_exchanges_bound,side.harness_qpsum_zero_motion_exhausted,side.inertia_suspect_verdicts,side.inertia_wrong_verdicts,side.major_iters,side.near_active_peak,side.qp_minor_iters,side.steps_accepted,side.symbolic_analyses,side.terminal_polish_adopted,side.terminal_polish_rejected,side.terminal_polish_solves,side.weak_active_peak,side.restoration_f_out,side.restoration_feas_out,side.restoration_h_in,side.restoration_h_out
+    eval_f: 14 -> 15
+    eval_g: 33 -> 34
+    eval_hess: 29 -> 30
+    eval_jac: 28 -> 29
+    factorizations: 465 -> 581
+    iterations: 13 -> 14
+    side.accepted_h_type: 1 -> 2
+    side.active_set_delta_peak: 9 -> 18
+    side.active_set_delta_total: 10 -> 34
+    side.backend_symbolic_analyses: 292 -> 446
+    side.backend_symbolic_repeats: 69 -> 142
+    side.border_refine_steps: 954 -> 1960
+MOVER sd-hven-sqp-OPTPRLOC.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 23 -> 60
+    side.harness_qpsum_dep_test_solves: 2335 -> 2250
+MOVER sd-hven-sqp-OPTPRLOC.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 295 -> 539
+    side.harness_qpsum_dep_test_solves: 3110 -> 2300
+MOVER sd-hven-sqp-SPANHYD.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1573 -> 1769
+    side.harness_qpsum_dep_test_solves: 23237 -> 20080
+MOVER sd-hven-sqp-SPANHYD.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 1887 -> 2102
+    side.harness_qpsum_dep_test_solves: 27354 -> 22777
+MOVER sd-hven-sqp-WATER.D keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 73
+    side.harness_qpsum_dep_test_solves: 2622 -> 2549
+MOVER sd-hven-sqp-WATER.K keys=side.harness_qpsum_dep_stall_admits,side.harness_qpsum_dep_test_solves
+    side.harness_qpsum_dep_stall_admits: 0 -> 70
+    side.harness_qpsum_dep_test_solves: 2733 -> 2663
+MOVERS_SUMMARY rows 476; status movers 0; counter/other movers 100
+  KEY side.harness_qpsum_dep_test_solves: 100 rows
+  KEY side.harness_qpsum_dep_stall_admits: 93 rows
+  KEY side.harness_qpsum_dep_grey_rereads: 15 rows
+  KEY factorizations: 13 rows
+  KEY side.border_refine_steps: 13 rows
+  KEY side.eqp_polish_steps: 13 rows
+  KEY side.factorizations: 13 rows
+  KEY side.harness_factorizations_total: 13 rows
+  KEY side.harness_qpsum_dep_tests: 13 rows
+  KEY side.harness_qpsum_reentry_exemptions: 13 rows
+  KEY side.harness_qpsum_ws_exchanges: 13 rows
+  KEY side.harness_qpsum_ws_exchanges_bound: 13 rows
+  KEY side.qp_minor_iters: 13 rows
+  KEY side.harness_qpsum_dep_dependent: 12 rows
+  KEY side.backend_symbolic_analyses: 11 rows
+  KEY side.backend_symbolic_repeats: 11 rows
+  KEY side.eqp_refine_iters: 11 rows
+  KEY side.harness_qpsum_dep_passovers: 11 rows
+  KEY side.harness_qpsum_dep_border_retreats: 11 rows
+  KEY side.harness_qpsum_dep_recheck_removals: 9 rows
+  KEY side.inertia_wrong_verdicts: 9 rows
+  KEY side.symbolic_analyses: 9 rows
+  KEY side.harness_qpsum_dep_uncertified_trims: 9 rows
+  KEY side.harness_qpsum_zero_motion_exhausted: 9 rows
+  KEY side.harness_qpsum_dep_undecidable: 8 rows
+  KEY side.harness_qp_ledger_solves: 8 rows
+  KEY side.harness_qpsum_dep_grey_reread_dependent: 8 rows
+  KEY side.harness_qpsum_dep_implied_passovers: 8 rows
+  KEY side.harness_qpsum_entry_dependency_removals: 8 rows
+  KEY side.harness_qpsum_dep_ride_blockers: 8 rows
+  KEY side.harness_qpsum_ride_exchanges: 8 rows
+  KEY side.harness_qpsum_dep_inertia_rereads: 7 rows
+  KEY side.harness_qpsum_dep_unlocks: 7 rows
+  KEY side.harness_qpsum_ws_count_violations: 7 rows
+  KEY side.inertia_suspect_verdicts: 7 rows
+  KEY eval_g: 7 rows
+  KEY eval_jac: 7 rows
+  KEY side.harness_eval_g: 7 rows
+  KEY side.harness_eval_jac: 7 rows
+  KEY side.harness_qpsum_dep_structural_first: 7 rows
+  KEY side.harness_qpsum_ride_declines_fallthrough_blocked: 7 rows
+  KEY eval_f: 6 rows
+  KEY eval_hess: 6 rows
+  KEY iterations: 6 rows
+  KEY side.active_set_delta_total: 6 rows
+  KEY side.eval_hess_calls: 6 rows
+  KEY side.evals_full: 6 rows
+  KEY side.harness_eval_f: 6 rows
+  KEY side.harness_eval_grad_f: 6 rows
+  KEY side.harness_eval_hess: 6 rows
+  KEY side.harness_qpsum_border_uncertified_fallbacks: 6 rows
+  KEY side.harness_qpsum_dep_pin_skips: 6 rows
+  KEY side.major_iters: 6 rows
+  KEY side.steps_accepted: 6 rows
+  KEY side.harness_qpsum_dep_screen_under_mandatory_dependence: 6 rows
+  KEY side.harness_qpsum_dep_blocker_terminations: 6 rows
+  KEY side.accepted_h_type: 5 rows
+  KEY side.evals_values: 5 rows
+  KEY side.harness_qpsum_ascent_rides: 5 rows
+  KEY side.qp_numerical_exits: 5 rows
+  KEY side.rejected_steps: 5 rows
+  KEY side.rejection_run_histogram: 5 rows
+  KEY side.terminal_polish_rejected: 5 rows
+  KEY side.terminal_polish_solves: 5 rows
+  KEY objective: 5 rows
+  KEY side.sqp_feasibility: 5 rows
+  KEY side.sqp_kkt_residual: 5 rows
+  KEY side.sqp_stationarity: 5 rows
+  KEY side.harness_qpsum_dep_infeasible_certificates: 5 rows
+  KEY side.harness_qpsum_mandatory_dependent_entries: 5 rows
+  KEY side.restoration_f_out: 5 rows
+  KEY side.accepted_f_type: 4 rows
+  KEY side.harness_qpsum_ascent_footprint_rungs: 4 rows
+  KEY side.harness_qpsum_dep_untested_growth: 4 rows
+  KEY side.qp_failure_steps_accepted: 4 rows
+  KEY side.qp_failure_steps_judged: 4 rows
+  KEY side.soc_rejected: 4 rows
+  KEY side.soc_steps: 4 rows
+  KEY side.terminal_polish_adopted: 4 rows
+  KEY kkt_stationarity: 4 rows
+  KEY side.harness_qpsum_dep_repair_screen_pins: 4 rows
+  KEY side.harness_qpsum_terminal_mu_refines: 4 rows
+  KEY side.elastic_activations: 4 rows
+  KEY side.elastic_escalations: 4 rows
+  KEY side.eqp_residual_refusals: 4 rows
+  KEY side.harness_qpsum_dep_uncertified_fallbacks: 4 rows
+  KEY side.sparse_scaled_retakes: 4 rows
+  KEY side.restoration_feas_out: 4 rows
+  KEY side.restoration_h_in: 4 rows
+  KEY side.restoration_h_out: 4 rows
+  KEY side.harness_qpsum_saddle_direction_solves: 3 rows
+  KEY side.harness_qpsum_saddle_exit_misses: 3 rows
+  KEY side.harness_qpsum_ws_exchanges_shifted: 3 rows
+  KEY side.active_set_delta_peak: 3 rows
+  KEY side.dense_factorizations: 3 rows
+  KEY side.eqp_refine_steps: 3 rows
+  KEY side.harness_qpsum_ascent_footprint_declines: 3 rows
+  KEY side.near_active_peak: 3 rows
+  KEY side.suspect_escalations: 3 rows
+  KEY side.weak_active_peak: 3 rows
+  KEY side.harness_qp_ledger_infeasible: 3 rows
+  KEY side.harness_qpsum_dep_deferred_adds: 3 rows
+  KEY side.restoration_curvature_switches: 3 rows
+  KEY side.restoration_f_in: 3 rows
+  KEY side.restoration_iters: 3 rows
+  KEY kkt_primal_eq: 3 rows
+  KEY side.dense_flagged_factorizations: 2 rows
+  KEY side.dense_singular_refactors: 2 rows
+  KEY side.harness_qpsum_ascent_footprint_rides: 2 rows
+  KEY side.qp_maxiter_exits: 2 rows
+  KEY side.reject_f_armijo: 2 rows
+  KEY kkt_complementarity: 2 rows
+  KEY kkt_primal_ineq: 2 rows
+  KEY side.sqp_complementarity: 2 rows
+  KEY side.harness_qpsum_dep_inertia_reread_flips: 2 rows
+  KEY side.verdict_refine_steps: 2 rows
+  KEY side.harness_qpsum_dep_known_dependent_refusals: 2 rows
+  KEY side.harness_qpsum_ride_sign_vetoes: 2 rows
+  KEY side.harness_qpsum_saddle_exits: 2 rows
+  KEY side.ssn.ssn_sign_swept: 2 rows
+  KEY side.harness_qpsum_ascent_footprint_rung_reverts: 2 rows
+  KEY side.harness_qpsum_dep_certificate_rejections: 2 rows
+  KEY side.harness_qpsum_eq_drift_violations: 2 rows
+  KEY side.qp_failures_in_a_row_peak: 2 rows
+  KEY side.qp_failures_routed: 2 rows
+  KEY side.reject_qp_failed: 2 rows
+  KEY side.restoration_entries: 2 rows
+  KEY side.eqp_row_drift_refusals: 1 rows
+  KEY side.reject_h_funnel: 1 rows
+  KEY side.soc_applied: 1 rows
+  KEY side.sparse_matched_retakes: 1 rows
+  KEY side.sparse_retake_refusals: 1 rows
+  KEY side.ssn.ssn_sign_sweep_max: 1 rows
+  KEY side.harness_qpsum_ride_predicted_signs: 1 rows
+  KEY side.harness_qpsum_standstill_retreats: 1 rows
+  KEY side.optimal_row_gray_exits: 1 rows
+  KEY side.soc_qp_infeasible: 1 rows
+  KEY side.harness_qpsum_dep_repair_budget_stops: 1 rows
+  KEY side.harness_qpsum_dep_repair_restarts: 1 rows
+  KEY side.harness_qpsum_terminal_mu_refine_rescues: 1 rows

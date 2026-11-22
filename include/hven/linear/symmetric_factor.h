@@ -34,6 +34,7 @@
 // entry present in the sparsity pattern even where its value is zero.
 // analyze() validates all of that at the boundary.
 
+#include <array>
 #include <concepts>
 #include <cstdint>
 #include <limits>
@@ -1236,6 +1237,66 @@ class AnalysisTally {
     Index analyses_ = 0;
     Index repeats_ = 0;
     std::unique_ptr<Seen> seen_;
+};
+
+// THE SOLVE TALLY (M8 PF-2b): an exact count, taken at this boundary, of the
+// backend solves -- sparse Pardiso/Accelerate and the dense arm alike, full
+// solves and partial solves, through a SymmetricFactor or a Factorization
+// handle -- completed on the calling thread while a tally is open, split by
+// the SolveContext open at the time the solve ran. Three quantities per
+// context: solves (one per backend call, whatever its column count), right-hand
+// side columns (a PF-4 batch is one solve of many columns), and the iterative-
+// refinement steps the backend reports having performed inside those solves
+// (Pardiso's own refinement sweeps; the dense arm and Accelerate report none).
+//
+// The context is a thread-local label a caller opens around a region
+// (SolveContextScope); it nests (the innermost wins, the enclosing one is
+// restored on exit) and is read only here. kOrdinary is the label of every
+// solve no scope covers. Observation only: neither the tally nor a scope
+// changes any result; with no tally open record() does nothing.
+enum class SolveContext : std::uint8_t {
+    kOrdinary = 0, // no scope open: the EQP, SSN, IPQP and every other solve
+    kDetector,     // the independent working set's dependency tests (ws_independence)
+    kPolish,       // the unregularized polish loops (eqp_solve.h, bordered_eqp.h)
+    kBorderRefine, // the bordered answer's refinement sweeps
+    kCount
+};
+inline constexpr std::size_t kSolveContextCount = static_cast<std::size_t>(SolveContext::kCount);
+
+class SolveContextScope {
+  public:
+    explicit SolveContextScope(SolveContext ctx) noexcept;
+    ~SolveContextScope();
+    SolveContextScope(const SolveContextScope &) = delete;
+    SolveContextScope &operator=(const SolveContextScope &) = delete;
+
+  private:
+    SolveContext prev_;
+};
+
+class SolveTally {
+  public:
+    SolveTally();
+    ~SolveTally();
+    SolveTally(const SolveTally &) = delete;
+    SolveTally &operator=(const SolveTally &) = delete;
+
+    Index solves(SolveContext c) const noexcept { return solves_[static_cast<std::size_t>(c)]; }
+    Index rhs_columns(SolveContext c) const noexcept {
+        return rhs_columns_[static_cast<std::size_t>(c)];
+    }
+    Index refinement_steps(SolveContext c) const noexcept {
+        return refinement_steps_[static_cast<std::size_t>(c)];
+    }
+
+    // Called by the backend adapters after each completed solve.
+    static void record(Index rhs_columns, Index refinement_steps) noexcept;
+
+  private:
+    SolveTally *outer_ = nullptr;
+    std::array<Index, kSolveContextCount> solves_{};
+    std::array<Index, kSolveContextCount> rhs_columns_{};
+    std::array<Index, kSolveContextCount> refinement_steps_{};
 };
 
 } // namespace hven::linear

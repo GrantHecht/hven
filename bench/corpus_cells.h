@@ -105,6 +105,7 @@
 // hand-off. Both phases are separately bounded -- neither is unbounded.
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -374,6 +375,11 @@ struct CorpusRow {
     double ms_primal = -1.0;
     double ms_dual_scale = -1.0;
     double ms_x_scale = -1.0;
+    // M8 PF-2b: the designated solve's backend-solve tally (SqpCounters::backend_solves_* /
+    // backend_solve_rhs_* / backend_solve_refine_*, in that family order, each over ordinary,
+    // detector, polish, border_refine). NOT a CSV column: the 76-column schema is unchanged; the
+    // internal-run-one child writes it to a `.tally` sidecar when HVEN_BENCH_SOLVE_TALLY is set.
+    std::array<long long, 12> solve_tally{};
 };
 
 // =============================================================================
@@ -1644,6 +1650,15 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
     row.escapes = static_cast<int>(sol.counters.ssn.ssn_escapes);
     row.ssn = sol.counters.ssn;
     row.ipqp = sol.counters.ipqp;
+    {
+        const auto &c = sol.counters;
+        row.solve_tally = {c.backend_solves_ordinary,       c.backend_solves_detector,
+                           c.backend_solves_polish,         c.backend_solves_border_refine,
+                           c.backend_solve_rhs_ordinary,    c.backend_solve_rhs_detector,
+                           c.backend_solve_rhs_polish,      c.backend_solve_rhs_border_refine,
+                           c.backend_solve_refine_ordinary, c.backend_solve_refine_detector,
+                           c.backend_solve_refine_polish,   c.backend_solve_refine_border_refine};
+    }
     row.status = sol.status;
     row.kkt_residual = last_kkt_residual(sol);
     row.wall_s = wall_s;

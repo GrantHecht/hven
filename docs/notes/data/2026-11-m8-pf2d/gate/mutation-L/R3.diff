@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index 6736ffb80..b76f7e5fd 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -354,7 +354,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+         t.stall_admit = !converged;
+         if (keep_first && converged && t.rho < kDepUndecidable) {
+             t.has_first = true;
+-            t.first_y = std::move(y0);
++            t.first_y = y;
+             t.first_res = std::move(res0);
+             t.first_res_norm = res_norm0;
+         }

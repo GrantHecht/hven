@@ -13,6 +13,7 @@
 #include <hven/detail/core/inf_norm.h>
 #include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/qp/walk/ws_independence.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::detail {
 
@@ -219,7 +220,10 @@ namespace {
 // The dependency test's body; `target` is the refinement's stopping residual
 // (<= 0: refine until a step stops lowering the residual or the steps run out).
 DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
-                           const Vec &a, const QpOptions &opts, double target) {
+                           const Vec &a, const QpOptions &opts, double target,
+                           const DepTest *first = nullptr) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     const Index n = qp.n();
     const std::vector<Index> &aw = ws.active_ineq();
     DepTest t;
@@ -264,10 +268,29 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
             rhs(p) = a(i);
         }
     }
-    Vec y = sys.solve(rhs);
+    Vec y;
+    Vec res;
+    double res_norm;
+    if (first != nullptr && first->has_first) {
+        // The same factor and right-hand side as the test that produced `first`: its first solve
+        // is this one's, bit for bit.
+        y = first->first_y;
+        res = first->first_res;
+        res_norm = first->first_res_norm;
+    } else {
+        y = sys.solve(rhs);
+        res = sys.residual(qp, rhs, y, opts);
+        res_norm = nan_sticky_inf_norm(res);
+    }
     ++t.solves;
-    Vec res = sys.residual(qp, rhs, y, opts);
-    double res_norm = nan_sticky_inf_norm(res);
+    const bool keep_first = first == nullptr && target > 0.0;
+    Vec y0;
+    Vec res0;
+    const double res_norm0 = res_norm;
+    if (keep_first) {
+        y0 = y;
+        res0 = res;
+    }
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++t.solves;
@@ -329,6 +352,12 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
     } else {
         t.verdict = DepVerdict::kIndependent;
         t.stall_admit = !converged;
+        if (keep_first && converged && t.rho < kDepUndecidable) {
+            t.has_first = true;
+            t.first_y = std::move(y0);
+            t.first_res = std::move(res0);
+            t.first_res_norm = res_norm0;
+        }
     }
     return t;
 }
@@ -341,8 +370,8 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 }
 
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
-                                 const Vec &a, const QpOptions &opts) {
-    return dependency_test_to(qp, ws, f, a, opts, 0.0);
+                                 const Vec &a, const QpOptions &opts, const DepTest *first) {
+    return dependency_test_to(qp, ws, f, a, opts, 0.0, first);
 }
 
 double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, const DepTest &t,
@@ -369,6 +398,8 @@ double dependency_rounding_floor(const QpProblem &qp, const WorkingSet &ws, cons
 
 EntryDetection detect_dependency(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                                  const QpOptions &opts) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     EntryDetection d;
     // STRUCTURAL: a member row whose nonzeros all sit at pinned columns is
     // spanned by those pins. Exact, no solve.
@@ -628,6 +659,8 @@ bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const De
                              const Vec &x, const QpOptions &opts,
                              const std::function<bool(const Vec &, const Vec &)> &accept,
                              Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     if (!f.usable()) {
         return false;
     }
@@ -706,6 +739,8 @@ bool terminal_null_direction(const QpProblem &qp, const WorkingSet &ws, const De
 
 Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f, const Vec &u,
                const QpOptions &opts, Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     if (!f.usable() || ws.num_free() == 0) {
         return Vec();
     }
@@ -750,6 +785,8 @@ Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f
 
 Vec face_negative_curvature(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
                             const QpOptions &opts, double curvature_tol, Index &solves) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     const Index n = qp.n();
     if (!f.usable() || ws.num_free() == 0) {
         return Vec();
@@ -856,6 +893,8 @@ Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
                        const QpOptions &opts, int threads, double block_cap,
                        hven::linear::DensePolicy dense) {
+    const hven::linear::SolveContextScope solve_context(
+        hven::linear::SolveContext::kDetector); // PF-2b
     RankRepair out;
     const Index n = qp.n();
     const Index me = qp.me();

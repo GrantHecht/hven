@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 6d4c24282..be3a6992a 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -3686,7 +3686,6 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
+         c.backend_solve_refine_ordinary = t.refinement_steps(SolveContext::kOrdinary);
+         c.backend_solve_refine_detector = t.refinement_steps(SolveContext::kDetector);
+         c.backend_solve_refine_polish = t.refinement_steps(SolveContext::kPolish);
+-        c.backend_solve_refine_border_refine = t.refinement_steps(SolveContext::kBorderRefine);
+     }
+     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+     //

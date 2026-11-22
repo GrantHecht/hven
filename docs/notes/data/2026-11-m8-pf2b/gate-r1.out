@@ -1,0 +1,36 @@
+box-lane: lane 0 acquired 2026-11-21T03:34:01-05:00
+[145/150] Linking CXX executable examples/hven_example_08_results_trace_options
+[146/150] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[147/150] Linking CXX executable examples/hven_example_10_first_derivatives_only
+rc=0
+FOREGROUND_START 2026-11-21T03:37:53-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	872 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	873 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-21T03:39:17-05:00
+100% tests passed, 0 tests failed out of 4042
+[184/189] Linking CXX executable examples/hven_example_08_results_trace_options
+[185/189] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[186/189] Linking CXX executable examples/hven_example_10_first_derivatives_only
+rc=0
+FOREGROUND_START 2026-11-21T03:43:06-05:00
+	1389 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1522 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1617 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1618 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1619 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-21T03:51:11-05:00
+100% tests passed, 0 tests failed out of 4042
+FOREGROUND_START 2026-11-21T03:51:11-05:00
+PREFLIGHT every mutation applies and restores: MUST=[ M3] REC=[]
+MUT control rc=0 killers=0
+APPLIED M3 to src/linear/analysis_tally.cpp
+MUT M3 rc=1 killers=1
+   SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-21T03:51:29-05:00
+R1_DONE

@@ -1,0 +1,48 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SolveTally.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from SolveTally
+[ RUN      ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+[       OK ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext (2 ms)
+[ RUN      ] SolveTally.ScopesLabelSolvesAndNestAndRestore
+[       OK ] SolveTally.ScopesLabelSolvesAndNestAndRestore (0 ms)
+[ RUN      ] SolveTally.APartialSolveCountsOnePartialCall
+[       OK ] SolveTally.APartialSolveCountsOnePartialCall (0 ms)
+[ RUN      ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+[       OK ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts (0 ms)
+[ RUN      ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+[       OK ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne (0 ms)
+[----------] 5 tests from SolveTally (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 5 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendSolveTally.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpBackendSolveTally
+[ RUN      ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:99: Failure
+Expected: (refine[k]) > (0), actual: 0 vs 0
+bucket 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable (8 ms)
+[----------] 1 test from SqpBackendSolveTally (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+
+ 1 FAILED TEST

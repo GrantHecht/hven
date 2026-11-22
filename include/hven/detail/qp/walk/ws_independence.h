@@ -198,6 +198,12 @@ struct DepTest {
     Vec v_e;   // per equality row
     Vec v_w;   // per ws.active_ineq() entry
     Vec v_pin; // size n; nonzero only at pinned columns
+    // First solve of a converged independent test in the re-read band, kept so that
+    // certificate_coefficients can resume from it instead of repeating the same backend solve.
+    bool has_first = false;
+    Vec first_y;
+    Vec first_res;
+    double first_res_norm = 0.0;
 
     bool dependent() const { return verdict != DepVerdict::kIndependent; }
 };
@@ -208,9 +214,12 @@ DepTest dependency_test(const QpProblem &qp, const WorkingSet &ws, const DepFact
 
 /// The same test with the refinement run to its end (until a step stops lowering the mu-free
 /// residual, at most kDepRefineSteps): the Farkas certificate's multipliers, mu-free up to
-/// rounding (settler S25'). Only the coefficients are meant to be read.
+/// rounding (settler S25'). Only the coefficients are meant to be read. `first`, when it holds a
+/// first solve (DepTest::has_first, from dependency_test of the same `a` on the same factor), is
+/// resumed from rather than solved again; `solves` still counts it.
 DepTest certificate_coefficients(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f,
-                                 const Vec &a, const QpOptions &opts);
+                                 const Vec &a, const QpOptions &opts,
+                                 const DepTest *first = nullptr);
 
 /// R-E's rounding floor (kDepRereadKappa): the bound on the rounding carried by a computed rho for
 /// the coefficients `t` holds (t.v_e, t.v_w) of the candidate `a`.

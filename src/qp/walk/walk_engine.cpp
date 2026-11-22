@@ -5219,7 +5219,7 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
     if (t.verdict == detail::DepVerdict::kIndependent && !t.stall_admit &&
         t.rho < detail::kDepUndecidable) {
         ++counters.dep_grey_rereads;
-        detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts);
+        detail::DepTest r = detail::certificate_coefficients(qp, ws, view, a, opts, &t);
         const Index solves = t.solves + r.solves;
         const double rho_floor =
             r.rho <= detail::kDepTol ? detail::dependency_rounding_floor(qp, ws, r, a) : 0.0;
@@ -5231,6 +5231,9 @@ detail::DepTest QpEngine::test_candidate(const QpProblem &qp, const WorkingSet &
         }
         t.solves = solves;
     }
+    t.has_first = false;
+    t.first_y = Vec();
+    t.first_res = Vec();
     // The screen alone decided, with the mandatory rows dependent: possibly a
     // false dependent (the safe direction), counted.
     if (t.screen && !(t.rho <= detail::kDepTol) && counters.mandatory_dependent_entries > 0) {

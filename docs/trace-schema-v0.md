@@ -904,6 +904,18 @@ group; `SqpOptions::hessian_mode`).
 | `sparse_retake_refusals` | integer | `SqpCounters::sparse_retake_refusals` | walk answers through retake numerics that the EQP-site residual check refused without an escalation (M8 sparse-equil-v4). Folded like `eqp_residual_refusals`. No sentinel. |
 | `backend_symbolic_analyses` | integer | `SqpCounters::backend_symbolic_analyses` | every symbolic analysis the platform (sparse) backend completed during the solve, on any factor, taken at the factor boundary (`hven::linear::AnalysisTally`); the restoration sub-solve's included by the tally itself, not folded (M8 PF-4). No sentinel. |
 | `backend_symbolic_repeats` | integer | `SqpCounters::backend_symbolic_repeats` | of those, the analyses whose key (pattern hash, order, stored entries, the factor options that reach the symbolic phase) an earlier one in the same solve carried (M8 PF-4). No sentinel. |
+| `backend_solves_ordinary` | integer | `SqpCounters::backend_solves_ordinary` | backend solve calls (a batched multi-RHS solve is one), every solve no component scope covers (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solves_detector` | integer | `SqpCounters::backend_solves_detector` | backend solve calls (a batched multi-RHS solve is one), issued inside ws_independence.cpp (dependency tests, entry detector, certificate, face probes, rank repair) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solves_polish` | integer | `SqpCounters::backend_solves_polish` | backend solve calls (a batched multi-RHS solve is one), issued by the unregularized polish loops (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solves_border_refine` | integer | `SqpCounters::backend_solves_border_refine` | backend solve calls (a batched multi-RHS solve is one), issued by the bordered answer's refinement (refine_bordered_solve_iterated) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_rhs_ordinary` | integer | `SqpCounters::backend_solve_rhs_ordinary` | right-hand-side columns those calls carried, every solve no component scope covers (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_rhs_detector` | integer | `SqpCounters::backend_solve_rhs_detector` | right-hand-side columns those calls carried, issued inside ws_independence.cpp (dependency tests, entry detector, certificate, face probes, rank repair) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_rhs_polish` | integer | `SqpCounters::backend_solve_rhs_polish` | right-hand-side columns those calls carried, issued by the unregularized polish loops (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_rhs_border_refine` | integer | `SqpCounters::backend_solve_rhs_border_refine` | right-hand-side columns those calls carried, issued by the bordered answer's refinement (refine_bordered_solve_iterated) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_refine_ordinary` | integer | `SqpCounters::backend_solve_refine_ordinary` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), every solve no component scope covers (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_refine_detector` | integer | `SqpCounters::backend_solve_refine_detector` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued inside ws_independence.cpp (dependency tests, entry detector, certificate, face probes, rank repair) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_refine_polish` | integer | `SqpCounters::backend_solve_refine_polish` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued by the unregularized polish loops (`hven::linear::SolveTally`, M8 PF-2b) |
+| `backend_solve_refine_border_refine` | integer | `SqpCounters::backend_solve_refine_border_refine` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued by the bordered answer's refinement (refine_bordered_solve_iterated) (`hven::linear::SolveTally`, M8 PF-2b) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -996,6 +1008,12 @@ distinct values up by three, no sentinel, both v1 golden `sqp.solve.end` lines
 `backend_symbolic_repeats`, the table rows above), after `sparse_retake_refusals`, the same route:
 two keys before the `ssn` object, the nested tables' distinct values up by two, no sentinel, both v1
 golden `sqp.solve.end` lines and the two counters-object goldens re-derived once.
+
+**THE DIRECT COUNTERS M8 PF-2b APPENDED — TWELVE** (`backend_solves_*`, `backend_solve_rhs_*`,
+`backend_solve_refine_*`, each over `ordinary`, `detector`, `polish`, `border_refine`, the table rows
+above), after `backend_symbolic_repeats`, the same route: twelve keys before the `ssn` object, the
+nested tables' distinct values up by twelve, no sentinel, both v1 golden `sqp.solve.end` lines and the
+two counters-object goldens re-derived once.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

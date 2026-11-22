@@ -1,0 +1,118 @@
+## determinism and baseline checks
+f7_n1000_path_corrupted | u0 | Optimal fact 2976 minors 4049 | instr/minor 372982589.5 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n1000_path_corrupted | new | Optimal fact 3590 minors 4762 | instr/minor 487704305.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_corrupted | off | Optimal fact 3701 minors 4873 | instr/minor 393855647.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | u0 | Optimal fact 9951 minors 11043 | instr/minor 108772214.7 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n1000_path_neutral | new | Optimal fact 11401 minors 12593 | instr/minor 139383090.8 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | off | Optimal fact 11198 minors 12390 | instr/minor 114787506.5 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | u0 | Optimal fact 8 minors 1505 | instr/minor 186522126.6 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n2000_path_activity | new | Optimal fact 18 minors 1881 | instr/minor 378540125.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | off | Optimal fact 8 minors 1501 | instr/minor 293745255.0 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | u0 | Optimal fact 9 minors 1396 | instr/minor 199254494.9 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n2000_path_physics | new | Optimal fact 12 minors 1638 | instr/minor 478998486.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | off | Optimal fact 9 minors 1386 | instr/minor 311257086.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | u0 | Optimal fact 7865 minors 9297 | instr/minor 76067439.1 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n750_path_neutral_control | new | Optimal fact 8779 minors 10298 | instr/minor 104310270.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | off | Optimal fact 8780 minors 10309 | instr/minor 83239149.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | u0 | Optimal fact 14 minors 1795 | instr/minor 451402755.4 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n800_path_corrupted | new | Optimal fact 14 minors 2310 | instr/minor 587762686.7 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | off | Optimal fact 14 minors 2242 | instr/minor 477244956.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | u0 | Optimal fact 29222 minors 30165 | instr/minor 86098938.1 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n800_path_neutral | new | Optimal fact 9637 minors 10822 | instr/minor 112249407.7 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | off | Optimal fact 30193 minors 31220 | instr/minor 97132610.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | u0 | Optimal fact 7605 minors 9561 | instr/minor 95482138.1 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n825_path_neutral_control | new | Optimal fact 10440 minors 10589 | instr/minor 111013327.1 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | off | Optimal fact 8606 minors 10713 | instr/minor 93505523.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+
+## PF-2 per-minor instruction ratio vs U0 (instructions:u / qp_minors, medians)
+cell | U0 | new | new/U0 | off | off/U0 | new status fact minors | off status fact minors
+f7_n1000_path_corrupted | 3.73e+08 | 4.877e+08 | 1.308 | 3.939e+08 | 1.056 | Optimal 3590 4762 | Optimal 3701 4873
+f7_n1000_path_neutral | 1.088e+08 | 1.394e+08 | 1.281 | 1.148e+08 | 1.055 | Optimal 11401 12593 | Optimal 11198 12390
+f7_n2000_path_activity | 1.865e+08 | 3.785e+08 | 2.029 | 2.937e+08 | 1.575 | Optimal 18 1881 | Optimal 8 1501
+f7_n2000_path_physics | 1.993e+08 | 4.79e+08 | 2.404 | 3.113e+08 | 1.562 | Optimal 12 1638 | Optimal 9 1386
+f7_n750_path_neutral_control | 7.607e+07 | 1.043e+08 | 1.371 | 8.324e+07 | 1.094 | Optimal 8779 10298 | Optimal 8780 10309
+f7_n800_path_corrupted | 4.514e+08 | 5.878e+08 | 1.302 | 4.772e+08 | 1.057 | Optimal 14 2310 | Optimal 14 2242
+f7_n800_path_neutral | 8.61e+07 | 1.122e+08 | 1.304 | 9.713e+07 | 1.128 | Optimal 9637 10822 | Optimal 30193 31220
+f7_n825_path_neutral_control | 9.548e+07 | 1.11e+08 | 1.163 | 9.351e+07 | 0.979 | Optimal 10440 10589 | Optimal 8606 10713
+
+## solve tally per qp minor (designated solve only), off (U0-equivalent work) vs new
+
+f7_n1000_path_corrupted: new minors 4762, off minors 4873
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.081 | 2.088 | +0.006 | 2.236 | 2.454 | 4.162 | 4.174
+  detector | 0.000 | 0.594 | +0.594 | 0.000 | 0.594 | 0.000 | 1.189
+  polish | 1.798 | 1.932 | +0.135 | 1.798 | 1.932 | 3.596 | 3.865
+  border | 0.485 | 0.591 | +0.107 | 0.485 | 0.591 | 0.969 | 1.183
+  total | 4.364 | 5.206 | +0.842 | 4.518 | 5.572 | 8.727 | 10.411
+  instr/minor new-off = 9.385e+07 ; extra solves/minor 0.842 ; implied instr per extra solve 1.115e+08
+  extra-solve share (of the sum of per-bucket deltas): ordinary 0.7%, detector 70.6%, polish 16.0%, border 12.7%
+
+f7_n1000_path_neutral: new minors 12593, off minors 12390
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.038 | 2.044 | +0.006 | 2.177 | 2.181 | 4.077 | 4.089
+  detector | 0.000 | 1.425 | +1.425 | 0.000 | 1.425 | 0.000 | 2.851
+  polish | 1.123 | 1.120 | -0.003 | 1.123 | 1.120 | 2.245 | 2.240
+  border | 0.195 | 0.246 | +0.051 | 0.195 | 0.246 | 0.391 | 0.493
+  total | 3.356 | 4.836 | +1.480 | 3.495 | 4.973 | 6.713 | 9.672
+  instr/minor new-off = 2.46e+07 ; extra solves/minor 1.480 ; implied instr per extra solve 1.662e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary 0.4%, detector 96.3%, polish -0.2%, border 3.4%
+
+f7_n2000_path_activity: new minors 1881, off minors 1501
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.502 | 2.602 | +0.100 | 2.502 | 2.642 | 5.001 | 5.201
+  detector | 0.000 | 1.667 | +1.667 | 0.000 | 1.667 | 0.000 | 3.334
+  polish | 3.540 | 3.247 | -0.293 | 3.540 | 3.247 | 7.081 | 6.494
+  border | 2.000 | 2.972 | +0.972 | 2.000 | 2.972 | 4.000 | 5.944
+  total | 8.042 | 10.488 | +2.446 | 8.042 | 10.528 | 16.081 | 20.974
+  instr/minor new-off = 8.479e+07 ; extra solves/minor 2.446 ; implied instr per extra solve 3.467e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary 4.1%, detector 68.2%, polish -12.0%, border 39.7%
+
+f7_n2000_path_physics: new minors 1638, off minors 1386
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.703 | 2.750 | +0.047 | 2.703 | 2.795 | 5.403 | 5.497
+  detector | 0.000 | 4.497 | +4.497 | 0.000 | 4.497 | 0.000 | 8.994
+  polish | 4.000 | 3.695 | -0.305 | 4.000 | 3.695 | 8.000 | 7.391
+  border | 2.000 | 2.507 | +0.507 | 2.000 | 2.507 | 4.000 | 5.013
+  total | 8.703 | 13.449 | +4.746 | 8.703 | 13.495 | 17.403 | 26.895
+  instr/minor new-off = 1.677e+08 ; extra solves/minor 4.746 ; implied instr per extra solve 3.534e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary 1.0%, detector 94.8%, polish -6.4%, border 10.7%
+
+f7_n750_path_neutral_control: new minors 10298, off minors 10309
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.052 | 2.080 | +0.028 | 2.133 | 2.197 | 4.104 | 4.160
+  detector | 0.000 | 1.485 | +1.485 | 0.000 | 1.485 | 0.000 | 2.970
+  polish | 1.213 | 1.215 | +0.001 | 1.213 | 1.215 | 2.427 | 2.429
+  border | 0.299 | 0.415 | +0.117 | 0.299 | 0.415 | 0.598 | 0.831
+  total | 3.564 | 5.195 | +1.631 | 3.645 | 5.312 | 7.128 | 10.390
+  instr/minor new-off = 2.107e+07 ; extra solves/minor 1.631 ; implied instr per extra solve 1.292e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary 1.7%, detector 91.1%, polish 0.1%, border 7.2%
+
+f7_n800_path_corrupted: new minors 2310, off minors 2242
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.394 | 2.383 | -0.012 | 2.654 | 2.635 | 4.787 | 4.764
+  detector | 0.000 | 0.475 | +0.475 | 0.000 | 0.475 | 0.000 | 0.951
+  polish | 2.690 | 2.987 | +0.297 | 2.690 | 2.987 | 5.381 | 5.974
+  border | 2.000 | 3.983 | +1.983 | 2.000 | 3.983 | 4.000 | 7.965
+  total | 7.085 | 9.828 | +2.743 | 7.345 | 10.080 | 14.168 | 19.654
+  instr/minor new-off = 1.105e+08 ; extra solves/minor 2.743 ; implied instr per extra solve 4.029e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary -0.4%, detector 17.3%, polish 10.8%, border 72.3%
+
+f7_n800_path_neutral: new minors 10822, off minors 31220
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.017 | 2.071 | +0.054 | 2.041 | 2.117 | 4.034 | 4.141
+  detector | 0.000 | 1.533 | +1.533 | 0.000 | 1.533 | 0.000 | 3.066
+  polish | 1.115 | 1.175 | +0.060 | 1.115 | 1.175 | 2.230 | 2.351
+  border | 0.067 | 0.298 | +0.232 | 0.067 | 0.298 | 0.133 | 0.597
+  total | 3.198 | 5.078 | +1.879 | 3.223 | 5.124 | 6.397 | 10.155
+  instr/minor new-off = 1.512e+07 ; extra solves/minor 1.879 ; implied instr per extra solve 8.045e+06
+  extra-solve share (of the sum of per-bucket deltas): ordinary 2.9%, detector 81.6%, polish 3.2%, border 12.3%
+
+f7_n825_path_neutral_control: new minors 10589, off minors 10713
+  bucket | solves/minor off | new | delta | rhs/minor off | new | refine/minor off | new
+  ordinary | 2.087 | 2.017 | -0.070 | 2.453 | 2.017 | 4.174 | 4.034
+  detector | 0.000 | 1.286 | +1.286 | 0.000 | 1.286 | 0.000 | 2.571
+  polish | 1.233 | 1.047 | -0.186 | 1.233 | 1.047 | 2.465 | 2.094
+  border | 0.400 | 0.029 | -0.371 | 0.400 | 0.029 | 0.801 | 0.058
+  total | 3.720 | 4.379 | +0.659 | 4.086 | 4.379 | 7.440 | 8.757
+  instr/minor new-off = 1.751e+07 ; extra solves/minor 0.659 ; implied instr per extra solve 2.657e+07
+  extra-solve share (of the sum of per-bucket deltas): ordinary -10.6%, detector 195.1%, polish -28.2%, border -56.3%

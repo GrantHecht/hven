@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index 6736ffb80..c9b1c6fd7 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -276,7 +276,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+         // is this one's, bit for bit.
+         y = first->first_y;
+         res = first->first_res;
+-        res_norm = first->first_res_norm;
++        res_norm = 0.0;
+     } else {
+         y = sys.solve(rhs);
+         res = sys.residual(qp, rhs, y, opts);

@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index ad2cbee0f..30045e95b 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -457,7 +457,6 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
+     if (max_steps <= 0) {
+         return 0;
+     }
+-    const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kPolish);
+     const Index n0 = K0.rows();
+     // The rhs of the face's own exact system: the bordered rhs with the proximal
+     // term removed from the variable rows it was added to.

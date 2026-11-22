@@ -1,0 +1,117 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/build-pf2d/G-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsIndependenceCalibration.*:QpGreyReread*:WsIndependence*
+[==========] Running 18 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from WsIndependenceDetector
+[ RUN      ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses
+[       OK ] WsIndependenceDetector.TheEliminatedSupportNamesThePinsTheDependencyUses (2 ms)
+[ RUN      ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval
+[       OK ] WsIndependenceDetector.APinInTheSupportByASmallCoefficientIsNotOfferedForRemoval (0 ms)
+[ RUN      ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone
+[       OK ] WsIndependenceDetector.WithNoRemovableMemberCertifiedTheBestCertifiedOneIsOfferedAlone (0 ms)
+[----------] 3 tests from WsIndependenceDetector (2 ms total)
+
+[----------] 9 tests from WsIndependenceCalibration
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparates
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparates (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesBordered (0 ms)
+[ RUN      ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras
+[       OK ] WsIndependenceCalibration.RefinedStatisticSeparatesAtARowRatioOf1e10BothAlgebras (0 ms)
+[ RUN      ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged
+[       OK ] WsIndependenceCalibration.AStalledRefinementAboveTheUndecidableBandIsAdmittedAndFlagged (0 ms)
+[ RUN      ] WsIndependenceCalibration.ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDepDecideFirstRho
+[       OK ] WsIndependenceCalibration.ANonScreenTestDecidesAtItsFirstSolveOnlyAboveKDepDecideFirstRho (0 ms)
+[ RUN      ] WsIndependenceCalibration.TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho
+[       OK ] WsIndependenceCalibration.TheFirstSolveDecisionEdgeIsClosedAtKDepDecideFirstRho (0 ms)
+[ RUN      ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent
+[       OK ] WsIndependenceCalibration.AConvergedRhoBetweenKDepTolAndKDepUndecidableIsIndependent (0 ms)
+[ RUN      ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol
+[       OK ] WsIndependenceCalibration.AGreyReReadNeverFlipsACandidateAboveKDepTol (0 ms)
+[ RUN      ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_qp_ws_independence.cpp:780: Failure
+Value of: t.has_first
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_qp_ws_independence.cpp:776: eliminated mu 1e-08
+
+[  FAILED  ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead (0 ms)
+[----------] 9 tests from WsIndependenceCalibration (2 ms total)
+
+[----------] 1 test from WsIndependenceReadOnly
+[ RUN      ] WsIndependenceReadOnly.TestAndDetectorWriteNothing
+[       OK ] WsIndependenceReadOnly.TestAndDetectorWriteNothing (0 ms)
+[----------] 1 test from WsIndependenceReadOnly (0 ms total)
+
+[----------] 2 tests from WsIndependenceUnrun
+[ RUN      ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndASilentScreenIsINDEPENDENT (0 ms)
+[ RUN      ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT
+[       OK ] WsIndependenceUnrun.NoFactorAndAFiringScreenIsSTILLDEPENDENT (0 ms)
+[----------] 2 tests from WsIndependenceUnrun (0 ms total)
+
+[----------] 1 test from QpGreyReread
+[ RUN      ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2962: Failure
+Expected equality of these values:
+  counters.dep_grey_rereads
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2965: Failure
+Expected equality of these values:
+  counters.dep_test_solves - tally.solves(hven::linear::SolveContext::kDetector)
+    Which is: 0
+  1
+
+[  FAILED  ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve (0 ms)
+[----------] 1 test from QpGreyReread (0 ms total)
+
+[----------] 2 tests from QpGreyRereadBand
+[ RUN      ] QpGreyRereadBand.TheReReadRunsExactlyInsideTheBand
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2984: Failure
+Expected equality of these values:
+  counters.dep_grey_rereads
+    Which is: 0
+  c.rereads
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2979: e 3.0000000000000001e-05
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2984: Failure
+Expected equality of these values:
+  counters.dep_grey_rereads
+    Which is: 0
+  c.rereads
+    Which is: 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2979: e 9.8999999999999994e-05
+
+[  FAILED  ] QpGreyRereadBand.TheReReadRunsExactlyInsideTheBand (0 ms)
+[ RUN      ] QpGreyRereadBand.TheBandEdgesAreHalfOpenAtKDepTolAndTheTop
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2992: Failure
+Value of: detail::in_reread_band(1e-4)
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/armG/tests/qp/test_walk_engine_indefinite.cpp:2996: Failure
+Expected equality of these values:
+  detail::kDepRereadBandHi
+    Which is: 1e-05
+  1e-4
+    Which is: 0.0001
+
+[  FAILED  ] QpGreyRereadBand.TheBandEdgesAreHalfOpenAtKDepTolAndTheTop (0 ms)
+[----------] 2 tests from QpGreyRereadBand (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 6 test suites ran. (5 ms total)
+[  PASSED  ] 14 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] WsIndependenceCalibration.AReReadResumedFromTheTestsFirstSolveEqualsAFreshReRead
+[  FAILED  ] QpGreyReread.TheReReadSavesTheTestsFirstBackendSolve
+[  FAILED  ] QpGreyRereadBand.TheReReadRunsExactlyInsideTheBand
+[  FAILED  ] QpGreyRereadBand.TheBandEdgesAreHalfOpenAtKDepTolAndTheTop
+
+ 4 FAILED TESTS

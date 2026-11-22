@@ -580,6 +580,7 @@ SolveInfo run_dense_solve(const DenseSession &session, ConstMatRef RHS, MatRef X
     }
     X = RHS;
     session.solve(X.data(), static_cast<Index>(X.cols()), ldb);
+    SolveTally::record(static_cast<Index>(X.cols()), 0);
     return SolveInfo{};
 }
 
@@ -599,6 +600,7 @@ SolveInfo run_dense_solve(const DenseSession &session, ConstVecRef rhs, VecRef x
     }
     x = rhs;
     session.solve(x.data(), 1, static_cast<Index>(x.size()));
+    SolveTally::record(1, 0);
     return SolveInfo{};
 }
 

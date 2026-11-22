@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/ws_independence.cpp b/src/qp/walk/ws_independence.cpp
+index 6075a7b04..bedc59d3b 100644
+--- a/src/qp/walk/ws_independence.cpp
++++ b/src/qp/walk/ws_independence.cpp
+@@ -333,7 +333,7 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
+     // L3 (PF-2d): a non-screen test that would refine but whose first solve already reads rho1
+     // clear of the grey band is independent; the refinement cannot change that verdict.
+     bool decided_at_first = false;
+-    if (target > 0.0 && !t.screen && res_norm > target) {
++    if (target > 0.0 && res_norm > target) {
+         read_out(y);
+         decided_at_first = decides_at_first_solve(t.rho);
+     }

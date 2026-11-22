@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 6d4c24282..54c36dd84 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -3684,7 +3684,6 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
+         c.backend_solve_rhs_polish = t.rhs_columns(SolveContext::kPolish);
+         c.backend_solve_rhs_border_refine = t.rhs_columns(SolveContext::kBorderRefine);
+         c.backend_solve_refine_ordinary = t.refinement_steps(SolveContext::kOrdinary);
+-        c.backend_solve_refine_detector = t.refinement_steps(SolveContext::kDetector);
+         c.backend_solve_refine_polish = t.refinement_steps(SolveContext::kPolish);
+         c.backend_solve_refine_border_refine = t.refinement_steps(SolveContext::kBorderRefine);
+     }

@@ -1,0 +1,22 @@
+FOREGROUND_START 2026-11-21T10:23:01-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/pf2d/.scratch/bin/A/hven_sqp_corpus sha256 decbf458a7a3d01099a90ecf61975933bd60793502a78b46bfb31e3f97d6f4db
+RUN A k=1 mode=walk 2026-11-21T10:23:01-05:00
+run rc=0
+RUN A k=1 mode=ssn 2026-11-21T10:27:59-05:00
+run rc=0
+RUN A k=1 mode=ipm 2026-11-21T10:28:20-05:00
+run rc=0
+RUN A k=2 mode=walk 2026-11-21T10:28:47-05:00
+run rc=0
+RUN A k=2 mode=ssn 2026-11-21T10:33:44-05:00
+run rc=0
+RUN A k=2 mode=ipm 2026-11-21T10:34:06-05:00
+run rc=0
+RUN A k=3 mode=walk 2026-11-21T10:34:33-05:00
+run rc=0
+RUN A k=3 mode=ssn 2026-11-21T10:39:29-05:00
+run rc=0
+RUN A k=3 mode=ipm 2026-11-21T10:39:50-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-21T10:40:17-05:00

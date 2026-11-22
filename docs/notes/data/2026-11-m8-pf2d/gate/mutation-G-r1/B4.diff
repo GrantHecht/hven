@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/ws_independence.h b/include/hven/detail/qp/walk/ws_independence.h
+index a0a8f05c0..89b4e52d2 100644
+--- a/include/hven/detail/qp/walk/ws_independence.h
++++ b/include/hven/detail/qp/walk/ws_independence.h
+@@ -96,7 +96,7 @@ constexpr bool decides_at_first_solve(double rho1) { return rho1 >= kDepDecideFi
+ constexpr double kDepRereadBandLo = kDepTol;
+ constexpr double kDepRereadBandHi = 1e-4;
+ constexpr bool in_reread_band(double rho) {
+-    return rho > kDepRereadBandLo && rho <= kDepRereadBandHi;
++    return rho > kDepRereadBandLo && rho < kDepRereadBandHi;
+ }
+ constexpr double kDepCoeffTol = 1e-6;
+ constexpr Index kEntryDetectSolves = 4;
