@@ -73,6 +73,37 @@ TEST(Schur, BorderedSolveMatchesDirectFactorization) {
     EXPECT_EQ(schur.dim(), 0);
 }
 
+// A non-finite K0 answer under a live border (STEENBRC, TU-1 pilot: a
+// numerically singular sparse K0 overflowed to NaN on a right-hand side of
+// norm 3e11 while one border was live). The bordered answer carries the NaN
+// to the caller's NaN-sticky residual check, as the borderless stack's
+// plain K0 solve always has; it does not throw out of the dense solve of C.
+// The stack is untouched: a finite solve after it is the healthy answer.
+TEST(Schur, NonFiniteK0AnswerUnderABorderPropagatesWithoutThrowing) {
+    SpMatRM K0 = make_kkt3();
+    QpOptions opts;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
+    detail::factorize_checked(kkt, K0);
+    SchurComplement schur(kkt, opts);
+    Vec v(3);
+    v << 0, 1, 0;
+    schur.add_border(v, -opts.dual_regularization);
+    ASSERT_EQ(schur.dim(), 1);
+
+    Vec finite(4);
+    finite << 1, 2, 0.5, 0;
+    const Vec healthy = schur.solve(finite);
+    ASSERT_TRUE(healthy.allFinite());
+
+    Vec bad = finite;
+    bad(0) = std::numeric_limits<double>::quiet_NaN();
+    Vec x;
+    EXPECT_NO_THROW(x = schur.solve(bad));
+    EXPECT_FALSE(x.allFinite());
+    EXPECT_FALSE(schur.needs_refactorization());
+    EXPECT_EQ(schur.solve(finite), healthy);
+}
+
 TEST(Schur, RefactorizationTriggerFires) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
@@ -271,36 +302,23 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     EXPECT_THROW(schur.expected_neg_eigs_delta(), std::logic_error);
 }
 
-// M3 final review (FX-1 + FX-7b). A non-finite border makes C non-finite, and
-// WHAT THE DENSE FACTOR DOES WITH THAT IS BACKEND-SPECIFIC -- which is the
-// whole reason this fixture is split rather than shared:
+// M3 final review (FX-1 + FX-7b), made uniform by the TU-1 pilot's STEENBRC
+// fix. A non-finite border makes C non-finite. Until that fix the two
+// backends reached different states: MKL's LAPACKE screened C for NaN and
+// try_factorize THREW (info < 0), which escaped the SQP solve when a
+// numerically singular K0 overflowed to NaN on a border column; Apple's shim
+// has no screen, so dsytrf_ reported an exact zero pivot and the border was
+// committed in the ordinary singular_ state -- OBSERVED on the macOS CI lane
+// (M3 final review). factor_c now screens C itself, so both platforms reach
+// the Apple state: the add commits, and needs_refactorization() reports it.
 //
-//   * On MKL, LAPACKE screens the matrix for non-finite entries BEFORE calling
-//     dsytrf and reports it as info < 0 -- an illegal ARGUMENT, not a fact
-//     about A -- so DenseSymmetricFactor::try_factorize THROWS. That throw
-//     escaping rebuild_schur() is the only non-allocation path that produces a
-//     nonempty stack with no cached block evidence and singular_ == false:
-//     FX-1's state, and the one add_border must roll back out of (FX-7b).
+// FX-1's no-evidence branch (a rebuild that threw) stays reachable through
+// allocation failure inside factor_c, the same
+// untestable-without-allocator-injection class as FX-7(a) and FX-8.
 //
-//   * On Apple there is no LAPACKE at all. hven's shim
-//     (hven/detail/linear/lapacke_shim.h) reproduces only LAPACKE's workspace
-//     management and deliberately NOT its NaN pre-screen, so dsytrf_ sees the
-//     non-finite C itself and reports info > 0 -- an exact zero pivot -- which
-//     try_factorize DEMOTES to kExactlySingular rather than throwing. The
-//     border is committed and the state reached is the ordinary singular_ one.
-//     OBSERVED on the macOS CI lane (M3 final review), not assumed: this arm
-//     asserts a control-flow outcome that lane executed, and no Accelerate
-//     float.
-//
-// So FX-1's new no-evidence branch is covered here on MKL only. On Apple it
-// stays reachable, but only through allocation failure inside rebuild_schur
-// (the C allocation, or the shim's own workspace vector), which puts it in the
-// same untestable-without-allocator-injection class as FX-7(a) and FX-8.
-//
-// What BOTH backends owe, and what the shared tail below pins: whichever of
-// the two states the backend produced, no evidence reader may dereference the
-// absent evidence, and every one of them must tell the caller to stop
-// bordering this factorization.
+// What both backends owe: no evidence reader may dereference the absent
+// evidence, and every one of them must tell the caller to stop bordering this
+// factorization.
 TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
@@ -318,26 +336,10 @@ TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     v2 << 1, 0, 0;
     const double nan_d = std::numeric_limits<double>::quiet_NaN();
 
-#if defined(__APPLE__)
-    schur.add_border(v2, nan_d);
-    EXPECT_EQ(schur.dim(), 2) << "the demoted-to-singular add commits its border";
-#else
-    EXPECT_THROW(schur.add_border(v2, nan_d), std::runtime_error);
-    EXPECT_EQ(schur.dim(), 1) << "the failed add left no border behind";
-
-    // Pinned by MESSAGE, not just by type: it is what distinguishes THIS state
-    // (a rebuild that threw) from the exactly-singular one the readers already
-    // handled, and so what proves the reader was reached through the
-    // no-evidence branch rather than through singular_.
-    try {
-        (void)schur.expected_neg_eigs_delta();
-        FAIL() << "expected_neg_eigs_delta() must refuse a stack with no usable factorization";
-    } catch (const std::logic_error &e) {
-        EXPECT_NE(std::string(e.what()).find("threw before producing block evidence"),
-                  std::string::npos)
-            << e.what();
-    }
-#endif
+    EXPECT_NO_THROW(schur.add_border(v2, nan_d));
+    EXPECT_EQ(schur.dim(), 2) << "the non-finite add commits its border, as singular";
+    EXPECT_THROW((void)schur.solve(Vec::Ones(5)), BackendError)
+        << "a solve through it is refused as the exactly singular one is";
 
     EXPECT_TRUE(std::isinf(schur.cond_estimate()));
     EXPECT_FALSE(schur.nearly_singular());
@@ -741,12 +743,12 @@ TEST(Schur, BatchOnRetakeNumericsLandsThePerAddColumns) {
     }
 }
 
-// A non-finite border inside a batch: the single factorization throws, and the
-// replay leaves the stack where the per-add path leaves it -- the first
-// non-finite add rolled back, every earlier add kept, the factorization
-// discarded. (MKL only: Apple demotes a non-finite C to kExactlySingular, see
-// NonFiniteBorderNeverLeavesAReadableEvidenceState.)
-TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
+#endif
+
+// A non-finite border inside a batch lands the stack the per-add path builds:
+// every add committed, C screened as non-finite (factor_c), nothing thrown.
+// Dropping the non-finite border gives both a healthy stack again.
+TEST(Schur, BatchWithANonFiniteBorderLeavesThePerAddStack) {
     IncrementalFixture fx;
     QpOptions opts;
     detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
@@ -756,7 +758,8 @@ TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
     SchurComplement per_add(kkt, opts);
     per_add.add_border(fx.pool[0], fx.diag[0]);
     per_add.add_border(fx.pool[1], fx.diag[1]);
-    EXPECT_THROW(per_add.add_border(fx.pool[2], nan_d), std::runtime_error);
+    EXPECT_NO_THROW(per_add.add_border(fx.pool[2], nan_d));
+    per_add.add_border(fx.pool[3], fx.diag[3]);
 
     SchurComplement batched(kkt, opts);
     batched.add_border(fx.pool[0], fx.diag[0]);
@@ -764,20 +767,19 @@ TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
     batched.add_border(fx.pool[1], fx.diag[1]);
     batched.add_border(fx.pool[2], nan_d);
     batched.add_border(fx.pool[3], fx.diag[3]);
-    EXPECT_THROW(batched.end_batch(), std::runtime_error);
+    EXPECT_NO_THROW(batched.end_batch());
 
     EXPECT_EQ(batched.dim(), per_add.dim());
-    EXPECT_EQ(batched.dim(), 2);
+    EXPECT_EQ(batched.dim(), 4);
     EXPECT_TRUE(batched.needs_refactorization());
     EXPECT_TRUE(per_add.needs_refactorization());
     EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::logic_error);
 
-    // Both stacks keep their surviving borders at their original indices, and a
-    // later drop lands on the right one.
-    batched.drop_border(1);
-    per_add.drop_border(1);
-    EXPECT_EQ(batched.dim(), 1);
+    // Both stacks keep their borders at their original indices, and dropping
+    // the non-finite one lands on it.
+    batched.drop_border(2);
+    per_add.drop_border(2);
+    EXPECT_EQ(batched.dim(), 3);
     EXPECT_FALSE(batched.needs_refactorization());
     EXPECT_FALSE(per_add.needs_refactorization());
 }
-#endif

@@ -11,8 +11,9 @@
 // caller-side workspace query (`lwork = -1`, read back `work[0]`) that
 // `LAPACKE_dsytrf` performs internally on MKL. This header implements ONLY
 // the entry points two call sites use, column-major layout only:
-// `LAPACKE_dsytrf`/`LAPACKE_dsytrs` for `DenseSymmetricFactor`
-// (dense_symmetric_factor.cpp), and the caller-workspace
+// `LAPACKE_dsytrf`/`LAPACKE_dsytrs_work` for `DenseSymmetricFactor`
+// (dense_symmetric_factor.cpp; `LAPACKE_dsytrs` stays for the Accelerate
+// probes, test_accelerate_probes.cpp), and the caller-workspace
 // `LAPACKE_dsytrf_work`/`LAPACKE_dsytrs_work` and their rook forms
 // `LAPACKE_dsytrf_rook_work`/`LAPACKE_dsytrs_rook_work`/
 // `LAPACKE_dsycon_rook_work` for the dense arm (dense_session.cpp; LAPACKE has
@@ -66,7 +67,7 @@ using lapack_int = __LAPACK_int;
 
 // dense_symmetric_factor.cpp passes ipiv_.data() (a std::vector<int>,
 // mandated by DenseSymmetricFactor's frozen public surface) directly as a
-// lapack_int* argument to LAPACKE_dsytrf/LAPACKE_dsytrs below -- a raw
+// lapack_int* argument to LAPACKE_dsytrf/LAPACKE_dsytrs_work below -- a raw
 // pointer conversion that is only well-formed when lapack_int IS int (not
 // merely same-sized), since no implicit pointer conversion exists between
 // distinct same-size types. The LP64 Accelerate LAPACK interface (the

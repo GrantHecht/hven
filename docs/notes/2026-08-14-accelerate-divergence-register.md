@@ -396,6 +396,19 @@ control flow and the Apple lane reported
 never computed; a control-flow outcome and a status, no float, so nothing here
 is an Apple VALUE.
 
+**CLOSED 2026-11-22 (branch `nanrhs`): the MKL arm now takes the Apple state.**
+The MKL throw was not harmless: in the TU-1 pilot (CUTEst STEENBRC, hven-sqp,
+`adaptive_dual_regularization_max = 1e-10`) a numerically singular sparse K0
+overflowed to NaN, and the LAPACKE screens in the dense factor of C (`dsytrs`
+on the bordered right-hand side, info `-8`; `dsytrf` on a non-finite border
+column, info `-4`) threw `BackendError` out of the SQP solve. `SchurComplement::factor_c`
+now screens C's lower triangle itself and records a non-finite C as `singular_`, and
+`DenseSymmetricFactor::solve` calls `LAPACKE_dsytrs_work`, which carries a NaN
+right-hand side into the answer as the sparse sessions and the shim always did.
+Both platforms now reach the row's Accelerate column; the fixture is no longer
+split, and `BatchThatThrowsLeavesThePerAddStack` became the uniform
+`BatchWithANonFiniteBorderLeavesThePerAddStack`.
+
 ### M3-8 — the macOS lane is not run-to-run deterministic on route counters (M7 WX)
 
 Source: `docs/notes/2026-10-m7-wx-ci-design.md` section 1.1; CI runs

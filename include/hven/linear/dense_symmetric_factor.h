@@ -126,6 +126,9 @@ class DenseSymmetricFactor {
     //
     // A zero-column RHS is accepted and is a no-op (X is untouched).
     //
+    // A non-finite entry of RHS is not an error: it propagates into X, as on
+    // the sparse sessions, on both platforms. The caller judges the answer.
+    //
     // Throws std::logic_error if called before a successful
     // factorize() (a caller that ignored the outcome). Throws std::invalid_argument if RHS's row
     // count does not equal dim(), or if X's shape does not match RHS's shape.

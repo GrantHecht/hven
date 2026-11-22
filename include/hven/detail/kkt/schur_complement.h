@@ -471,15 +471,12 @@ class SchurComplement {
     // nonempty C and got a usable factorization out of it. Two states leave
     // it disengaged, and neither may be read through:
     //
-    //   * singular_ -- try_factorize reported kExactlySingular, so the
-    //     factor completed but carries nothing decodable.
-    //   * A throw out of factor_c, which is a real path:
-    //     DenseSymmetricFactor::try_factorize throws on LAPACKE info < 0,
-    //     and LAPACKE's own NaN screen returns info < 0 for a C carrying a
-    //     non-finite entry -- which one non-finite border value is enough to
-    //     produce. dim() and singular_ are BOTH the wrong thing to test:
-    //     the stack is nonempty and the factorization was not singular, it
-    //     simply never finished.
+    //   * singular_ -- try_factorize reported kExactlySingular, or C carries a
+    //     non-finite entry (factor_c screens it), so nothing is decodable.
+    //   * A throw out of factor_c (an allocation, or try_factorize's
+    //     info < 0 on a finite C): dim() and singular_ are BOTH the wrong
+    //     thing to test: the stack is nonempty and the factorization was not
+    //     singular, it simply never finished.
     //
     // The readers' contracts are unchanged for every state that could
     // already occur -- cond_estimate() reports infinity, nearly_singular()
@@ -689,6 +686,21 @@ class SchurComplement {
             return;
         }
 
+        // A NON-FINITE C IS SINGULAR_, ON BOTH PLATFORMS: one non-finite K0
+        // column (a numerically singular K0 whose answer overflowed, STEENBRC
+        // in the TU-1 pilot) or border value is enough. MKL's LAPACKE screens
+        // the triangle and returns info < 0, which try_factorize throws;
+        // Accelerate's dsytrf_ reports a zero pivot (observed on the macOS CI
+        // lane, M3 final review). Screening here gives MKL Accelerate's state,
+        // which needs_refactorization() reports and the walk answers with its
+        // rebuild or the eliminated path, rather than a throw out of the QP.
+        for (Index j = 0; j < m; ++j) {
+            if (!c_.col(j).segment(j, m - j).allFinite()) {
+                singular_ = true;
+                return;
+            }
+        }
+
         // try_factorize, not factorize: an exact zero pivot is a reportable
         // STATE this class degrades on (needs_refactorization() reports it,
         // solve()/expected_neg_eigs_delta() throw), never an error to
@@ -738,7 +750,7 @@ class SchurComplement {
     // needs_refactorization(), expected_neg_eigs_delta()'s throw -- stay
     // here: they are border-stack policy, not dense-factor facts.
     hven::linear::DenseSymmetricFactor factor_;
-    bool singular_ = false; // true iff last try_factorize was kExactlySingular
+    bool singular_ = false; // last C kExactlySingular, or non-finite (factor_c)
     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
 };
 

@@ -27,7 +27,7 @@
 #include <hven/detail/linear/lapacke_shim.h>
 using hven::linear::detail::lapack_int;
 using hven::linear::detail::LAPACKE_dsytrf;
-using hven::linear::detail::LAPACKE_dsytrs;
+using hven::linear::detail::LAPACKE_dsytrs_work;
 #else
 #include <mkl_lapacke.h>
 #endif
@@ -202,7 +202,7 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     const auto n = static_cast<lapack_int>(dim_);
     const auto nrhs = static_cast<lapack_int>(X.cols());
 
-    // LAPACKE_dsytrs solves in place and requires contiguous column-major
+    // LAPACKE_dsytrs_work solves in place and requires contiguous column-major
     // storage with leading dimension == n. X's own storage satisfies that
     // whenever it is not itself a strided view into a larger matrix (e.g. a
     // block of a caller-owned matrix); when it is, solve into an owned
@@ -229,13 +229,21 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     // other way to reach LAPACK.
     const char uplo = uplo_char(triangle_, "solve");
 
+    // THE _work FORM, ON PURPOSE: the high-level LAPACKE_dsytrs screens B for
+    // NaN on MKL (info = -8) and the Accelerate shim never has, so a
+    // non-finite right-hand side threw on one platform and propagated on the
+    // other. A NaN in B is a fact about the data, not an illegal argument: it
+    // propagates into X, as on the sparse sessions, and the consumer's own
+    // NaN-sticky gates refuse the answer (STEENBRC: a numerically singular
+    // sparse K0 overflowed to NaN under a Schur border, and the throw escaped
+    // the SQP solve).
     // The same call-scoped bracket the factorization runs under; see there.
     const detail::MklThreadScope threads(threads_);
-    const auto info = static_cast<int>(LAPACKE_dsytrs(LAPACK_COL_MAJOR, uplo, n, nrhs,
-                                                      factors_.data(), n, ipiv_.data(), target, n));
+    const auto info = static_cast<int>(LAPACKE_dsytrs_work(
+        LAPACK_COL_MAJOR, uplo, n, nrhs, factors_.data(), n, ipiv_.data(), target, n));
     if (info != 0) {
         throw hven::BackendError(
-            fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
+            fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs_work failed, info={}", info));
     }
 
     if (!x_contiguous) {

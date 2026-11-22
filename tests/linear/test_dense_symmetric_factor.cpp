@@ -218,6 +218,38 @@ TEST(DenseSymmetricFactor, ZeroColumnRhsIsAcceptedAndNoOp) {
     EXPECT_EQ(X.cols(), 0);
 }
 
+// A non-finite right-hand side is data, not an illegal argument: the answer
+// carries it, as a sparse session's does, on both platforms, and a finite
+// column beside it is solved as if alone. MKL's high-level LAPACKE_dsytrs
+// screened B and returned info = -8, which threw BackendError out of the
+// SQP solve (STEENBRC: a numerically singular sparse K0 overflowed to NaN
+// under a Schur border); the Accelerate shim never screened.
+TEST(DenseSymmetricFactor, NonFiniteRhsPropagatesIntoXWithoutThrowing) {
+    Mat A(3, 3);
+    A << 4, 1, 0, 1, -3, 2, 0, 2, 5;
+    for (const hven::linear::Triangle t :
+         {hven::linear::Triangle::kUpper, hven::linear::Triangle::kLower}) {
+        DenseSymmetricFactor f;
+        f.factorize(A, t);
+
+        Mat finite(3, 1);
+        finite << 1, -2, 3;
+        Mat X_ref(3, 1);
+        f.solve(finite, X_ref);
+
+        for (const double bad :
+             {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()}) {
+            Mat RHS(3, 2);
+            RHS.col(0) = finite.col(0);
+            RHS.col(1) << 1, bad, 0;
+            Mat X(3, 2);
+            EXPECT_NO_THROW(f.solve(RHS, X)) << "bad = " << bad;
+            EXPECT_FALSE(X.col(1).allFinite()) << "bad = " << bad;
+            expect_mat_near(X.col(0), X_ref, kTightRelTol);
+        }
+    }
+}
+
 // --- Error paths -----------------------------------------------------------
 
 TEST(DenseSymmetricFactor, SolveBeforeFactorizeThrows) {

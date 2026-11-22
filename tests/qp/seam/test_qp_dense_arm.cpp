@@ -1457,6 +1457,52 @@ TEST_F(QpDenseArmWound, AWoundedShiftedK0FallsBackToTheEliminatedPath) {
     EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6);
 }
 
+// A NAN K0 ANSWER UNDER THE BORDER STACK ENDS IN A STATUS, NEVER A THROW (TU-1 pilot, STEENBRC: a
+// numerically singular sparse K0 overflowed to NaN under a live border, and MKL's LAPACKE NaN
+// screens in the dense factor of C threw BackendError out of the SQP solve). The wound (scale NaN)
+// poisons one set of K0 numerics from its `skip`-th dense solve on, so the sweep places the NaN at
+// every solve the walk takes: the bordered answer (the screen on C's dsytrs, info -8), a border
+// column (C itself non-finite: the screen on dsytrf, info -4), the eliminated twin. Every one is
+// answered by the walk's own retreat -- the NaN-sticky residual refusal, or the rebuild a stack
+// with no usable factorization asks for -- and the next K0 numerics are healthy, so the walk
+// finishes at the unwounded answer.
+TEST_F(QpDenseArmWound, ANanK0AnswerUnderBordersEndsInAStatusNotAThrow) {
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd::Identity(3, 3).sparseView();
+    qp.g = Vec::Zero(3);
+    qp.g << 0.0, -1.0, -2.0;
+    Eigen::MatrixXd Ae(1, 3);
+    Ae << 1.0, 1.0, 1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Vec::Constant(1, 1.0);
+    Eigen::MatrixXd Ai(2, 3);
+    Ai << 0.0, 1.0, 0.0, 0.0, 0.0, 1.0; // x1 <= 0.25 and x2 <= 0.5 both bind: borders
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec(2);
+    qp.bi << 0.25, 0.5;
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec::Constant(3, 10.0);
+    QpOptions o;
+    o.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    const QpSolution base = QpEngine(o, 0, DensePolicy::kAlways).solve(qp);
+    ASSERT_EQ(static_cast<int>(base.status), static_cast<int>(QpStatus::kOptimal));
+
+    int wounded_runs = 0;
+    for (int skip = 0; skip < 40; ++skip) {
+        arm_wound(1, std::numeric_limits<double>::quiet_NaN());
+        Wound::skip = skip;
+        QpSolution d;
+        ASSERT_NO_THROW(d = QpEngine(o, 0, DensePolicy::kAlways).solve(qp)) << "skip " << skip;
+        if (Wound::solves_wounded > 0) {
+            ++wounded_runs;
+        }
+        EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kOptimal))
+            << "skip " << skip;
+        EXPECT_LE((d.x - base.x).lpNorm<Eigen::Infinity>(), 1e-6) << "skip " << skip;
+    }
+    EXPECT_GE(wounded_runs, 30); // the premise: the sweep reaches the walk's solves
+}
+
 // THE BORDER VERDICT GATE'S PLACEMENT: on the first Schur solve, before any refinement. A
 // contracting wound (scale 1.001) on K0 makes the first solve miss the gate while the refined
 // replay meets it (both measured below): a gate placed after refinement would take the verdict
