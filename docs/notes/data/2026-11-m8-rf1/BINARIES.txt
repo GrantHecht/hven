@@ -2,3 +2,8 @@
 corpus C (hven_sqp_corpus, c721dc32d) 68d43c2191c2f3408939b331a8a3fea3b90d21d5dbb61180549d8cc323939706
 lane C (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin c721dc32d) 5458e592a6d484fcb06446e18513123905f01d63750f7c4ba03369f67e1f828c
 REF: pf2d arm L (lane L 33183386bed750fba23ec49ec976411b8828b226d9716dd76d28c54068e9be09, corpus L d02b72853b3a689cd2653bc18d6bab8c2089cc3b8839ad6d9a6b4001abd5b62b), committed rows only
+# frozen binaries of DECLARATION-RF-1-AB2, sha256, recorded before the first leg (code head 7b80afca7)
+corpus AB2 (hven_sqp_corpus, 7b80afca7; copied from .scratch/build-rf1/rel/bench) a2cfb5ce3d59e1c97996668b9d73c437685307f7c4810eed8b5a5ecf2d1c63aa
+lane AB2 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 7b80afca7) 5bc2140811f24588d255b6be43a4802a69f4631201910c441997803a29f4afcf
+pilot C (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin c721dc32d) c3f6db29613b179e1f6c7a5784f01d5055d906af664038d9f7fa7716ea3ce5d7
+pilot AB2 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin 7b80afca7) 6566f29aab095c7e18bd3b4f635589802771b2d3e24c9df2e849165fbdb37d56
