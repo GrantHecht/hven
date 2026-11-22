@@ -160,6 +160,10 @@ std::string sqp_status_message(const SqpResult &result, StopReason reason,
             return "stalled: the QP subproblem reached its minor-iteration cap and its retry "
                    "budget was spent";
         }
+        if (reason == StopReason::kRestorationWorkLimit) {
+            return "stalled: the restoration phase spent its own factorization budget at a point "
+                   "the resume tests refused";
+        }
         if (reason == StopReason::kTrustRegionFloor) {
             return "stalled: the trust region reached its floor at a feasible point whose rejected "
                    "steps promised less than the objective's rounding floor";

@@ -36,6 +36,11 @@ namespace hven::detail {
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
+/// The restoration phase's own factorization budget when
+/// SqpAdvancedOptions::restoration_max_factorizations is unset: this floor plus the
+/// factorizations the solve had spent at entry (RF-1 design 4.1).
+inline constexpr Index kRestorationWorkFloor = 5000;
+
 /// The upper bound on a slack: none. Written as +inf, the one spelling of an
 /// absent side under every CommonOptions::infinite_bound (a finite stand-in would
 /// become a real bound under a larger threshold). The restoration sub-solve's

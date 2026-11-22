@@ -1567,4 +1567,39 @@ TEST(Rf1RetryLadderSeam, AFailureThatPromisesADecreaseStillRequestsRestoration) 
     EXPECT_GE(sol.counters.restoration_entries, 1);
 }
 
+// RF-1 design 4.1: the phase's own budget spent ends the phase kWorkLimit at its best-h point;
+// the parent labels it kRestorationWorkLimit (kStalled), not the caller's kWorkLimit.
+TEST(Rf1RestorationSeam, ASpentPhaseBudgetIsTheRestorationWorkLimit) {
+    const SeamReset guard;
+    CountingCircleLineModel model;
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.advanced.restoration_max_factorizations = 0;
+    const SqpResult sol =
+        SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
+// ... and the caller's own ceiling, when it is the smaller bound, stays kWorkLimit.
+TEST(Rf1RestorationSeam, TheCallersCeilingInsideThePhaseStaysTheWorkLimit) {
+    const SeamReset guard;
+    CountingCircleLineModel model;
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.advanced.restoration_max_factorizations = 100000;
+    // Unforced, this fixture enters restoration once; a ceiling reached inside the phase.
+    SqpOptions probe = o;
+    const SqpResult free_run =
+        SqpSolver(probe).solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(free_run.counters.restoration_entries, 1);
+    CountingCircleLineModel model2;
+    o.common.max_factorizations = free_run.counters.factorizations - 1;
+    const SqpResult sol =
+        SqpSolver(o).solve(hven::detail::problem_ref(model2), (model2).start_point());
+    EXPECT_EQ(sol.status, SolveStatus::kWorkLimit);
+}
+
 } // namespace hven

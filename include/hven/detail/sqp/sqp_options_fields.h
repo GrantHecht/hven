@@ -87,6 +87,9 @@
       "A ladder rung that fails above a solved rung reports the solved rung instead.")             \
     X(restoration_resume_reduction, r_closed_open(0.0, 1.0),                                       \
       "Sufficient-reduction resume fraction of the entry violation. 0 is off.")                    \
+    X(restoration_max_factorizations, r_ge(0.0),                                                   \
+      "The restoration phase's own factorization budget; unset derives 5000 plus the solve's "     \
+      "factorizations at entry.")                                                                  \
     X(lbfgs_update_on_reject, r_any(),                                                             \
       "Under kLbfgsDamped, also offer the pair of a rejected trial.")                              \
     X(lbfgs_nonlinear_only, r_any(),                                                               \

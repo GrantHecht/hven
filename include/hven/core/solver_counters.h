@@ -2557,6 +2557,9 @@ struct SqpCounters {
     /// whose last rejected step promised less than the objective's rounding floor
     /// (StopReason::kTrustRegionFloor).
     Index trust_region_floor_exits = 0;
+    /// soc_qp_iteration_limits: RF-1 -- second-order-correction re-solves that ended at their
+    /// minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged.
+    Index soc_qp_iteration_limits = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2687,7 +2690,8 @@ struct SqpCounters {
     X(qp_retry_rung_regularization, counter_never_absent)                                          \
     X(qp_retry_replays, counter_never_absent)                                                      \
     X(qp_failure_box_projections, counter_never_absent)                                            \
-    X(trust_region_floor_exits, counter_never_absent)
+    X(trust_region_floor_exits, counter_never_absent)                                              \
+    X(soc_qp_iteration_limits, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

@@ -907,6 +907,10 @@ bool detail::qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, 
     return true;
 }
 
+Index detail::restoration_phase_budget(const std::optional<Index> &configured, Index f_entry) {
+    return configured.value_or(kRestorationWorkFloor + f_entry);
+}
+
 double detail::retry_regularization(double primal_regularization) {
     return std::min(kRetryRegularizationCap, kRetryRegularizationFactor * primal_regularization);
 }
@@ -976,8 +980,9 @@ bool detail::sqp_exit_is_labelable(SolveStatus status, StopReason reason) {
                reason == StopReason::kRestorationFailed ||
                reason == StopReason::kRestorationNoClaim;
     }
-    return status == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
-                                               reason == StopReason::kTrustRegionFloor);
+    return status == SolveStatus::kStalled &&
+           (reason == StopReason::kSubproblemIterationLimit ||
+            reason == StopReason::kTrustRegionFloor || reason == StopReason::kRestorationWorkLimit);
 }
 
 bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,
@@ -6581,7 +6586,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // slice of the shared budget is deliberately still reported as kIterationLimit just below
     // (the "no budget left to restore with" exit, when spent >= opts_.max_iter, is the same
     // answer). Forcing this off keeps the sub-solve from returning its best iterate.
-    ropts.common.return_best = ReturnBest::kNever;
+    //
+    // RF-1 design 4.2 REVERSES THIS: the phase hands back its best-h point on every non-optimal
+    // exit (the shared order reads the wrapper's objective, the penalty h, the wrapper's own
+    // feasibility being satisfied throughout), so the resume gates below read the best point
+    // instead of wherever the phase stopped. The parent's best is still its own.
+    ropts.common.return_best = ReturnBest::kOnAnyNonOptimal;
     ropts.advanced.equality_basis = false;
     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
     // MODE IS. Without this line the copy above would carry `qp_mode`
@@ -6652,6 +6662,13 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     StopReason sub_reason = StopReason::kNone;
     std::string sub_detail;
     Index phase_run = 0;
+    // THE PHASE BUDGET (RF-1 design 4.1): `advanced.restoration_max_factorizations`, or
+    // kRestorationWorkFloor plus the factorizations this solve had spent at entry, so one phase
+    // at most doubles the solve's work plus a floor. Spent across the phase's runs.
+    const Index phase_f_entry = st.out.counters.factorizations;
+    const Index phase_budget = detail::restoration_phase_budget(
+        opts_.advanced.restoration_max_factorizations, phase_f_entry);
+    bool phase_budget_binds = false;
     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
                                bool stop_on_qp_failure) -> SqpResult {
         SqpOptions phase_opts = ropts;
@@ -6661,6 +6678,15 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         if (opts_.common.max_factorizations) {
             phase_opts.common.max_factorizations = std::max<Index>(
                 0, *opts_.common.max_factorizations - st.out.counters.factorizations);
+        }
+        // THE PHASE'S OWN WORK BUDGET (RF-1 design 4.1): what is left of it, when it is the
+        // smaller bound. Which bound bound decides how the parent reads a kWorkLimit.
+        const Index phase_left =
+            std::max<Index>(0, phase_budget - (st.out.counters.factorizations - phase_f_entry));
+        phase_budget_binds = !phase_opts.common.max_factorizations ||
+                             phase_left < *phase_opts.common.max_factorizations;
+        if (phase_budget_binds) {
+            phase_opts.common.max_factorizations = phase_left;
         }
         if (opts_.common.time_limit_seconds) {
             const double spent_s = std::chrono::duration<double>(std::chrono::steady_clock::now() -
@@ -6903,6 +6929,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.qp_retry_replays += phase.counters.qp_retry_replays;
         st.out.counters.qp_failure_box_projections += phase.counters.qp_failure_box_projections;
         st.out.counters.trust_region_floor_exits += phase.counters.trust_region_floor_exits;
+        st.out.counters.soc_qp_iteration_limits += phase.counters.soc_qp_iteration_limits;
         st.out.counters.qp_failure_steps_judged += phase.counters.qp_failure_steps_judged;
         st.out.counters.qp_failure_steps_accepted += phase.counters.qp_failure_steps_accepted;
         st.out.counters.nonfinite_subproblems += phase.counters.nonfinite_subproblems;
@@ -7169,7 +7196,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         opts_.advanced.restoration_resume_reduction > 0.0 && !feasible_resume &&
         box_r <= opts_.common.feasibility_tol &&
         h_r <= opts_.advanced.restoration_resume_reduction * excursion_h_in &&
-        (rs.status == SolveStatus::kNumericalError ||
+        (rs.status == SolveStatus::kNumericalError || rs.status == SolveStatus::kStalled ||
+         (rs.status == SolveStatus::kWorkLimit && phase_budget_binds) ||
          (rs.status == SolveStatus::kOptimal && !optimal_claims));
     // A STOPPED PHASE NEVER RESUMES (M8 AP-5 G2): the solve ends at the entry point
     // through the not-feasible-enough exit below, with the phase's verdict computed
@@ -7395,6 +7423,15 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.detail.clear();
         break;
     case SolveStatus::kWorkLimit:
+        // THE PHASE'S OWN BUDGET (RF-1 design 4.1) is not the caller's limit: the phase
+        // stalled, and the point it handed back did not pass the resume gates above.
+        if (phase_budget_binds) {
+            st.resto.status = SolveStatus::kStalled;
+            st.resto.reason = StopReason::kRestorationWorkLimit;
+            st.resto.detail.clear();
+            break;
+        }
+        [[fallthrough]];
     case SolveStatus::kTimeLimit:
         // A WORK OR TIME LIMIT STOPPED THE SUB-SOLVE. The sub-solve ran on what was
         // left of this solve's limits, so the limit is this solve's own: reported
@@ -9093,6 +9130,51 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         in.primal_regularization = opts_.qp.primal_regularization;
         return detail::choose_retry_rung(in);
     };
+    // THE RUNG, TAKEN (RF-1 design 3.1): the change it makes to the next solve and the seed it
+    // leaves. Shared by the routing gate and, inside a restoration sub-solve, by an exhausted
+    // elastic ladder (design 4.3).
+    const auto take_rung = [&](RetryRung rung) {
+        st.retry_rungs_used |= static_cast<std::uint8_t>(rung);
+        switch (rung) {
+        case RetryRung::kShrink:
+            ++st.out.counters.qp_retry_rung_shrink;
+            st.delta = shrunk_radius(st.delta);
+            break;
+        case RetryRung::kCold:
+            ++st.out.counters.qp_retry_rung_cold;
+            break;
+        case RetryRung::kAlgebra:
+            ++st.out.counters.qp_retry_rung_algebra;
+            st.pending_rung = rung;
+            break;
+        case RetryRung::kRegularization:
+            ++st.out.counters.qp_retry_rung_regularization;
+            st.pending_rung = rung;
+            break;
+        case RetryRung::kNone:
+            break;
+        }
+        // Seeded from the FAILED solve's ACTIVE SET (but R2, which is the cold start). On
+        // kNumericalError the engine clears the multipliers
+        // (walk_engine.h's exit semantics), so the seed carries
+        // activity only -- which is all warm seeding uses, and
+        // which on this path is the point: the engine's own
+        // start-of-solve inertia repair sees a working set the
+        // failed solve had to walk to, and can act on it at
+        // iter == 0 where it could not mid-solve.
+        if (rung == RetryRung::kCold) {
+            st.have_seed = false;
+        } else {
+            st.seed = std::move(mj.qs);
+            st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
+            st.have_seed = true;
+        }
+        if (recompute_after_qp_failure(st.eqb, st.out.equality_basis, st.ev, seam.lower(),
+                                       seam.upper(), iter)) {
+            st.subproblem_is_stale = true; // the retry rebuilds over the new split
+            drop_row_coordinate_carries(st);
+        }
+    };
     // AFTER THE RUNGS, AN INFEASIBLE LINEARIZATION GOES TO THE ELASTIC LADDER (RF-1 design
     // 3.1), entered as a working-set termination: a walk failure the routing gate below would
     // refuse (budget spent, no rung left) at h > feas_tol. Decided here, ahead of the
@@ -9203,6 +9285,30 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // PUSHED AFTER THE CALL (R9): the call decides
             // `row.restoration_seed_used`, and the row must reach both
             // `history` and the stream with its final value.
+            // AN EXHAUSTED LADDER INSIDE THE PHASE IS A ROUTED FAILURE FIRST (RF-1 design
+            // 4.3): its nested restoration request is always refused, so a rung left at this
+            // iterate is tried before it. The curvature switch still reads the refusal.
+            if (is_restoration_sub_driver_ && !stop_phase_on_qp_failure_ && mj.walk_owns_this_qp &&
+                st.qp_failures_in_a_row < opts_.advanced.max_consecutive_qp_failures &&
+                mj.qs.x.size() == st.qp.n() && mj.qs.x.allFinite()) {
+                const RetryRung rung = next_rung();
+                if (rung != RetryRung::kNone &&
+                    !(rung == RetryRung::kShrink && shrink_hits_floor(st.delta))) {
+                    ++st.qp_failures_in_a_row;
+                    ++st.out.counters.qp_failures_routed;
+                    st.out.counters.qp_failures_in_a_row_peak = std::max(
+                        st.out.counters.qp_failures_in_a_row_peak, st.qp_failures_in_a_row);
+                    ++st.rejections_at_iterate;
+                    ++st.counted_run_at_iterate;
+                    ++st.out.counters.rejected_steps;
+                    count_rejection(st.out.counters, detail::RejectCause::kNone,
+                                    st.counted_run_at_iterate);
+                    mj.row.verdict = StepVerdict::kReject;
+                    push_history(mj.row);
+                    take_rung(rung);
+                    return MajorOutcome::kContinue;
+                }
+            }
             const RestorationOutcome elastic_outcome =
                 enter_restoration(st, mj, seam, bridge, iter, elastic_cand);
             // THE PHASE'S CURVATURE SWITCH, SECOND TRIGGER (M7 W2 RST rider M1). Inside a
@@ -9498,46 +9604,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 return MajorOutcome::kFinishRestorationQp;
             }
             push_history(mj.row);
-            st.retry_rungs_used |= static_cast<std::uint8_t>(rung);
-            switch (rung) {
-            case RetryRung::kShrink:
-                ++st.out.counters.qp_retry_rung_shrink;
-                st.delta = shrunk_radius(st.delta);
-                break;
-            case RetryRung::kCold:
-                ++st.out.counters.qp_retry_rung_cold;
-                break;
-            case RetryRung::kAlgebra:
-                ++st.out.counters.qp_retry_rung_algebra;
-                st.pending_rung = rung;
-                break;
-            case RetryRung::kRegularization:
-                ++st.out.counters.qp_retry_rung_regularization;
-                st.pending_rung = rung;
-                break;
-            case RetryRung::kNone:
-                break;
-            }
-            // Seeded from the FAILED solve's ACTIVE SET (but R2, which is the cold start). On
-            // kNumericalError the engine clears the multipliers
-            // (walk_engine.h's exit semantics), so the seed carries
-            // activity only -- which is all warm seeding uses, and
-            // which on this path is the point: the engine's own
-            // start-of-solve inertia repair sees a working set the
-            // failed solve had to walk to, and can act on it at
-            // iter == 0 where it could not mid-solve.
-            if (rung == RetryRung::kCold) {
-                st.have_seed = false;
-            } else {
-                st.seed = std::move(mj.qs);
-                st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
-                st.have_seed = true;
-            }
-            if (recompute_after_qp_failure(st.eqb, st.out.equality_basis, st.ev, seam.lower(),
-                                           seam.upper(), iter)) {
-                st.subproblem_is_stale = true; // the retry rebuilds over the new split
-                drop_row_coordinate_carries(st);
-            }
+            take_rung(rung);
             // THE SHRINK AND THE SEED ARE THIS MAJOR'S OWN WORK and are done
             // BEFORE the outcome leaves: the caller only advances the loop.
             return MajorOutcome::kContinue;
@@ -9707,6 +9774,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             emit_trace_qp_mode(mev);
         }
 
+        // RF-1 design 4.5: whether SOC re-solves end at their minor cap, observed.
+        if (mj.qs_soc.status == QpStatus::kIterationLimit) {
+            ++st.out.counters.soc_qp_iteration_limits;
+        }
         st.out.counters.qp_minor_iters += mj.qs_soc.counters.minor_iters;
         st.out.counters.factorizations += mj.qs_soc.counters.factorizations;
         st.out.counters.eqp_refine_steps += mj.qs_soc.counters.eqp_refine_steps;

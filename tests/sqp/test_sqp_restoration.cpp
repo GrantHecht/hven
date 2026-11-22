@@ -3604,7 +3604,7 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
 // M7 W2 P1E -- the sufficient-reduction resume's boundary and its certificate guard.
 TEST(RestorationResumeReductionOption, RefusesAFractionOutsideTheUnitIntervalByNameAndValue) {
     SqpOptions o;
-    EXPECT_DOUBLE_EQ(o.advanced.restoration_resume_reduction, 0.0) << "OFF by default";
+    EXPECT_DOUBLE_EQ(o.advanced.restoration_resume_reduction, 0.1) << "0.1 by default (RF-1)";
     for (const double bad : {-0.5, 1.0, 2.0, std::numeric_limits<double>::infinity(),
                              std::numeric_limits<double>::quiet_NaN()}) {
         o.advanced.restoration_resume_reduction = bad;

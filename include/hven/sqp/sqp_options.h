@@ -367,14 +367,22 @@ struct SqpAdvancedOptions {
     /// reconciles them.
     bool elastic_last_optimal_rung = false;
 
-    /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off (default).
+    /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off. Default 0.1 (RF-1).
     /// At k > 0 the restoration phase also resumes at a point with
     /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
-    /// nothing (kNumericalError, or a kOptimal inside the no-claim margin).
+    /// nothing (kNumericalError, kStalled, the phase's own work limit, or a kOptimal inside
+    /// the no-claim margin); the point read is the phase's best-h point.
     /// The funnel restoration exit (KLV Sec. 3) rather than feasibility; such an
     /// entry is counted in `SqpCounters::restoration_reduction_resumes`. `validate()`
     /// refuses a value outside [0, 1) and a NaN.
-    double restoration_resume_reduction = 0.0;
+    double restoration_resume_reduction = 0.1;
+
+    /// The restoration phase's own factorization budget (RF-1). Unset (default) derives
+    /// 5000 plus the factorizations the solve had spent at the phase's entry; >= 0. A phase
+    /// that spends it ends at its best-h point; one the resume tests refuse ends the solve
+    /// kStalled beside StopReason::kRestorationWorkLimit. The caller's
+    /// `common.max_factorizations` still bounds the whole solve.
+    std::optional<Index> restoration_max_factorizations;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
     /// gradient/Jacobian evaluation per rejection). False (default) offers accepted

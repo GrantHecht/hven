@@ -13361,7 +13361,7 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                                     SolveStatus::kWorkLimit,      SolveStatus::kTimeLimit};
     int labelable = 0;
     for (const SolveStatus s : statuses) {
-        for (int r = 0; r <= static_cast<int>(StopReason::kTrustRegionFloor); ++r) {
+        for (int r = 0; r <= static_cast<int>(StopReason::kRestorationWorkLimit); ++r) {
             const auto reason = static_cast<StopReason>(r);
             const bool expect =
                 (s == SolveStatus::kNumericalError &&
@@ -13370,13 +13370,14 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                   reason == StopReason::kRestorationFailed ||
                   reason == StopReason::kRestorationNoClaim)) ||
                 (s == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
-                                                reason == StopReason::kTrustRegionFloor));
+                                                reason == StopReason::kTrustRegionFloor ||
+                                                reason == StopReason::kRestorationWorkLimit));
             EXPECT_EQ(sqp_exit_is_labelable(s, reason), expect)
                 << to_string(s) << " / " << to_string(reason);
             labelable += expect ? 1 : 0;
         }
     }
-    EXPECT_EQ(labelable, 6);
+    EXPECT_EQ(labelable, 7);
 }
 
 // RF-1 design 3.1: each rung's skip rule, and the order.
@@ -13426,6 +13427,15 @@ TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
     EXPECT_EQ(choose_retry_rung(used), RetryRung::kAlgebra);
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-8), 1e-6);
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
+}
+
+// RF-1 design 4.1: the phase budget's derivation.
+TEST(Rf1RestorationBudget, UnsetDerivesTheFloorPlusTheEntryWork) {
+    using hven::detail::restoration_phase_budget;
+    EXPECT_EQ(restoration_phase_budget(std::nullopt, 0), 5000);
+    EXPECT_EQ(restoration_phase_budget(std::nullopt, 84000), 89000);
+    EXPECT_EQ(restoration_phase_budget(Index{7}, 84000), 7);
+    EXPECT_EQ(restoration_phase_budget(Index{0}, 10), 0);
 }
 
 // RF-1 design 3.4: both conjuncts, inclusive, NaN-safe.

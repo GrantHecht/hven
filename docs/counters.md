@@ -227,7 +227,8 @@ one of those three therefore cannot silently miss the trace.
   failures whose outcome equalled the attempt before them and were not charged;
   `qp_failure_box_projections` counts stagnation-stop iterates projected onto
   their box before the retryable test; `trust_region_floor_exits` counts the
-  floor exit (`trust_region_floor`). All are events of a driver's own majors and
+  floor exit (`trust_region_floor`); `soc_qp_iteration_limits` counts SOC re-solves that
+  ended at their minor cap (an observation, RF-1 design 4.5). All are events of a driver's own majors and
   fold from the restoration sub-solve on `qp_cap_retries`' argument. The sum of
   the four rung counters equals the routed failures that changed the QP; a
   routed failure that took no rung (the radius floor, a judged failure step) is

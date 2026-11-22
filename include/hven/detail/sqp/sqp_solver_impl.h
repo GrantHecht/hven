@@ -376,6 +376,10 @@ struct RetryRungInputs {
 /// @brief The first rung not yet used whose skip rule does not apply; kNone when none is left.
 RetryRung choose_retry_rung(const RetryRungInputs &in);
 
+/// @brief The restoration phase's own factorization budget (RF-1 design 4.1): the configured
+///        value, else kRestorationWorkFloor plus the solve's factorizations at entry.
+Index restoration_phase_budget(const std::optional<Index> &configured, Index f_entry);
+
 /// @brief R4's primal regularization: `min(kRetryRegularizationCap, 100 * configured)`.
 double retry_regularization(double primal_regularization);
 
@@ -393,7 +397,8 @@ bool project_onto_subproblem_box(const QpProblem &qp, double window, Vec &x);
 /// @brief May a top-level exit with @p status and @p reason be labelled kAcceptable (RF-1)?
 /// @return True for the failure exits the label is defined over: kNumericalError beside
 ///         kSubproblemFailure, kRestorationRefused, kRestorationFailed or kRestorationNoClaim, and
-///         kStalled beside kSubproblemIterationLimit or kTrustRegionFloor. False for every other
+///         kStalled beside kSubproblemIterationLimit, kTrustRegionFloor or
+///         kRestorationWorkLimit. False for every other
 ///         pair -- the limits, interrupts, kInfeasible and the non-finite exits name a cause the
 ///         caller acts on.
 bool sqp_exit_is_labelable(SolveStatus status, StopReason reason);

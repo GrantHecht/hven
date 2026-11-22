@@ -924,6 +924,7 @@ group; `SqpOptions::hessian_mode`).
 | `qp_retry_replays` | integer | `SqpCounters::qp_retry_replays` | routed failures whose outcome fingerprint equalled the attempt before them at the same iterate (status, minors, factorizations, termination counters, the iterate bitwise): not charged, the ladder moved on (M8 RF-1) |
 | `qp_failure_box_projections` | integer | `SqpCounters::qp_failure_box_projections` | failed subproblems ended by a stagnation stop whose iterate was projected onto the subproblem's box (trust-region window included) before the retryable test (M8 RF-1) |
 | `trust_region_floor_exits` | integer | `SqpCounters::trust_region_floor_exits` | solves ended at the trust-region floor at a feasible point whose last rejected step promised less than the objective's rounding floor (StopReason::kTrustRegionFloor) (M8 RF-1) |
+| `soc_qp_iteration_limits` | integer | `SqpCounters::soc_qp_iteration_limits` | second-order-correction re-solves that ended at their minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged (M8 RF-1) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two

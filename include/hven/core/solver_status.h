@@ -35,7 +35,8 @@ enum class QpStatus {
 /// subproblem or restoration exit that would otherwise be kNumericalError or
 /// kStalled -- whose returned point passes SqpOptions::termination's acceptable
 /// tier (stop reason kNone; the exit it came from is named in the message), and
-/// kStalled only through StopReason::kSubproblemIterationLimit and kTrustRegionFloor. Both report
+/// kStalled only through StopReason::kSubproblemIterationLimit, kTrustRegionFloor and
+/// kRestorationWorkLimit. Both report
 /// kInterrupted -- what a per-iteration callback returning CallbackAction::kStop gets, at the point
 /// the engine was standing on
 /// -- and both report kWorkLimit and kTimeLimit.
@@ -204,6 +205,10 @@ enum class StopReason {
     /// promised less than the objective's rounding floor: restoration there would be a no-op.
     /// Verdict kStalled (kAcceptable at an acceptable point). SQP.
     kTrustRegionFloor = 16,
+    /// The restoration phase spent its own factorization budget
+    /// (SqpAdvancedOptions::restoration_max_factorizations) and handed back a point the resume
+    /// gates refused. Verdict kStalled (kAcceptable at an acceptable point). SQP.
+    kRestorationWorkLimit = 17,
 };
 
 /// @brief The kind of a trace/console `message` (both engines).

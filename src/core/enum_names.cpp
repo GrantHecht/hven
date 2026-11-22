@@ -160,6 +160,8 @@ const char *to_string(StopReason reason) {
         return "subproblem_iteration_limit";
     case StopReason::kTrustRegionFloor:
         return "trust_region_floor";
+    case StopReason::kRestorationWorkLimit:
+        return "restoration_work_limit";
     }
     throw std::invalid_argument(
         fmt::format("to_string(StopReason): unrecognized value ({})", static_cast<int>(reason)));
