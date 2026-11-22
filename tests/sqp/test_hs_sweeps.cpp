@@ -1160,8 +1160,9 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // RF-1 A+B2 (declared mover): 23/30 -> 22/40. The arm's failing chain at p = 1 (the LICQ
     // point) now takes the retry rungs and a restoration before the same kNumericalError; the
     // status, the stop point and every objective are unchanged (section (1) and (3b) hold).
-    // CONFIG-SPLIT: Debug reads 21/39.
-#ifdef NDEBUG
+    // CONFIG-SPLIT: Debug reads 21/39, and so do the off-reference Release lanes (macOS and
+    // Windows, CI run 44991274789); the reference Release build reads 22/40.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
 #else
@@ -1637,7 +1638,8 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // 4, and its stop near the origin reads f = 1.00343 (Release 1.00378): where the failing chain
     // stops on the singular branch is a rounding matter, so the stop is pinned to its
     // neighbourhood.
-#ifdef NDEBUG
+    // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(off.majors, 40);
 #else
     EXPECT_EQ(off.majors, 39);

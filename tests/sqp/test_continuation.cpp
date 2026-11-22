@@ -1243,7 +1243,10 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // minors and statuses unchanged. Accelerate UNOBSERVED.
     // RF-1 A+B2: CONFIG-SPLIT at the 200 cap -- Release 559, Debug 501 (the restoration phase's
     // factorizations; majors, minors and the status agree).
-#ifdef NDEBUG
+    // macOS (Accelerate) Release reads 686 (CI run 44991274789); Windows Release reads 559.
+#if defined(USE_ACCELERATE_SPARSE)
+    constexpr Index kArmAFactorizations = 686;
+#elif defined(NDEBUG)
     constexpr Index kArmAFactorizations = 559;
 #else
     constexpr Index kArmAFactorizations = 501;
