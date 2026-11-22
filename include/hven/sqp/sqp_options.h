@@ -467,6 +467,26 @@ struct SqpAdvancedOptions {
     double adaptive_dual_regularization_max = 1e-8;
 };
 
+/// @brief The acceptable tier of the SQP engine: the same four tolerances, under the same names and
+///        defaults, as `IpmTerminationOptions`'s acceptable tier.
+///
+/// The SQP never stops EARLY at an acceptable point (it has no consecutive-iterate rule). A solve
+/// that ends through a failure exit -- a subproblem the retry ladder could not rescue, or a
+/// restoration request that was refused or failed -- reports `kAcceptable` instead of
+/// `kNumericalError` or `kStalled` when the point it returns passes all four: stationarity and
+/// complementarity as the convergence test measures them, the equality and inequality (box
+/// included) residuals in caller units. Each must be >= its convergence tolerance.
+struct SqpTerminationOptions {
+    /// Acceptable-level stationarity tolerance. Default 1e-2.
+    double acceptable_stationarity_tol = 1.0e-2;
+    /// Acceptable-level equality tolerance. Default 1e-3.
+    double acceptable_equality_tol = 1.0e-3;
+    /// Acceptable-level inequality tolerance (bounds included). Default 1e-3.
+    double acceptable_inequality_tol = 1.0e-3;
+    /// Acceptable-level complementarity tolerance. Default 1e-3.
+    double acceptable_complementarity_tol = 1.0e-3;
+};
+
 /// @brief The SQP engine's factorization settings.
 struct SqpLinearOptions {
     /// When the dense factorization arm is used: `kAuto` (the default; M8 DN-3):
@@ -511,6 +531,9 @@ struct SqpOptions {
     /// The shared options, at this engine's defaults: `max_iterations` 100,
     /// `threads` 0 (leave the backend alone).
     CommonOptions common;
+
+    /// The acceptable tier a failure exit is labelled against; see SqpTerminationOptions.
+    SqpTerminationOptions termination;
 
     /// The l-infinity trust-region radius the FIRST subproblem of a solve is
     /// given. Default 1.0. Must be > 0; +inf is legal and means "no trust

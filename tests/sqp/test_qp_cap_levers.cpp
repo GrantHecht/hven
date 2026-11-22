@@ -183,7 +183,8 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
     SqpSolver driver(o);
     const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
-    EXPECT_EQ(out.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(out.status, SolveStatus::kStalled);
     EXPECT_EQ(out.counters.major_iters, 2);
     // WHAT THE FAILURES WERE: both budget exhaustions, neither a broken
     // factorization. Before M1 these two were one number.
@@ -245,7 +246,8 @@ TEST(QpCapBudget, TheDefaultIsThreeAndOneIsTheOldGate) {
     SqpSolver old_gate(one);
     const SqpResult c = old_gate.solve(hven::detail::problem_ref(model), cold_start());
 
-    EXPECT_EQ(c.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(c.status, SolveStatus::kStalled);
     EXPECT_EQ(c.counters.major_iters, 2);
     EXPECT_EQ(c.counters.qp_failures_routed, 1);
     EXPECT_EQ(c.counters.qp_failures_in_a_row_peak, 1);
@@ -262,7 +264,8 @@ TEST(QpCapBudget, ABudgetOfThreeRoutesThreeFailuresAndThenExits) {
     const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     // FOUR majors now: three routed failures, then the fourth is refused.
-    EXPECT_EQ(out.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(out.status, SolveStatus::kStalled);
     EXPECT_EQ(out.counters.qp_failures_routed, 3);
     EXPECT_EQ(out.counters.qp_failures_in_a_row_peak, 3);
     EXPECT_EQ(out.counters.qp_maxiter_exits, 4);
@@ -350,7 +353,8 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
     SqpSolver driver(o);
     const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
-    EXPECT_EQ(out.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(out.status, SolveStatus::kStalled);
     // TWO majors as today, each having spent its cap TWICE: two attempts and
     // two retries, of which only the RETRIES' exits reach the routing site --
     // so two counted exits, two retries, and four capped attempts by the pair's
@@ -555,7 +559,8 @@ TEST(QpFailureStep, TheCappedFixtureConvergesOnItsOwnSteps) {
     SqpOptions off = o;
     off.advanced.qp_failure_step = false;
     const SqpResult routed = SqpSolver(off).solve(hven::detail::problem_ref(model), cold_start());
-    EXPECT_EQ(routed.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(routed.status, SolveStatus::kStalled);
     EXPECT_EQ(routed.counters.qp_failure_steps_judged, 0);
     EXPECT_EQ(routed.counters.qp_failure_steps_accepted, 0);
 }
@@ -586,6 +591,64 @@ TEST(QpCapBudget, ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters) {
     EXPECT_EQ(c.reject_qp_failed, 3);
     EXPECT_EQ(c.reject_funnel_ceiling + c.reject_f_armijo + c.reject_h_funnel + c.reject_other, 0);
     EXPECT_EQ(c.rejection_run_histogram, (std::array<Index, 5>{1, 1, 1, 0, 0}));
+}
+
+// ---------------------------------------------------------------------------
+// RF-1 -- the minor-cap exit is kStalled, and a failure exit at an acceptable
+// point is kAcceptable. Labels only: the two arms of each test run the same
+// solve and must agree on everything but the label.
+// ---------------------------------------------------------------------------
+
+namespace {
+SqpOptions rf1_capped(double acceptable) {
+    SqpOptions o = base_options();
+    o.qp.max_iterations = 1;
+    o.advanced.max_consecutive_qp_failures = 1;
+    o.termination.acceptable_stationarity_tol = acceptable;
+    o.termination.acceptable_equality_tol = acceptable;
+    o.termination.acceptable_inequality_tol = acceptable;
+    o.termination.acceptable_complementarity_tol = acceptable;
+    // A tracked best iterate, so the label's effect on `best_iterate` is visible.
+    o.common.return_best = ReturnBest::kOnLimit;
+    return o;
+}
+} // namespace
+
+TEST(Rf1MinorCapExit, TheCappedExitIsStalledBesideItsOwnStopReason) {
+    // THE TIGHTEST TIER validate() accepts (the convergence tolerances): the capped
+    // point is not acceptable, so the exit keeps its own label.
+    BoxPullModel model;
+    const SqpResult out = SqpSolver(rf1_capped(SqpOptions{}.common.optimality_tol))
+                              .solve(hven::detail::problem_ref(model), cold_start());
+    ASSERT_EQ(out.counters.qp_maxiter_exits, 2) << "premise: both majors capped";
+    ASSERT_EQ(out.counters.qp_numerical_exits, 0);
+    EXPECT_EQ(out.status, SolveStatus::kStalled);
+    EXPECT_EQ(out.stop_reason, StopReason::kSubproblemIterationLimit);
+    EXPECT_EQ(out.message, "stalled: the QP subproblem reached its minor-iteration cap and its "
+                           "retry budget was spent");
+    EXPECT_TRUE(out.best_iterate.has_value()) << "a kStalled exit keeps its best iterate";
+}
+
+TEST(Rf1MinorCapExit, AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves) {
+    BoxPullModel model;
+    const SqpResult tight = SqpSolver(rf1_capped(SqpOptions{}.common.optimality_tol))
+                                .solve(hven::detail::problem_ref(model), cold_start());
+    const SqpResult wide =
+        SqpSolver(rf1_capped(1e10)).solve(hven::detail::problem_ref(model), cold_start());
+    EXPECT_EQ(wide.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(wide.stop_reason, StopReason::kNone);
+    EXPECT_EQ(wide.message, "converged to an acceptable level: the solve stopped at a point "
+                            "inside the acceptable tolerances: exit subproblem_iteration_limit");
+    EXPECT_FALSE(wide.best_iterate.has_value()) << "no kAcceptable carries a best iterate";
+    // THE LABEL ONLY: the same path, point and work.
+    EXPECT_EQ(wide.counters.major_iters, tight.counters.major_iters);
+    EXPECT_EQ(wide.counters.factorizations, tight.counters.factorizations);
+    EXPECT_EQ(wide.counters.qp_minor_iters, tight.counters.qp_minor_iters);
+    EXPECT_EQ(wide.history.size(), tight.history.size());
+    EXPECT_EQ(wide.f, tight.f);
+    ASSERT_EQ(wide.x.size(), tight.x.size());
+    EXPECT_TRUE((wide.x.array() == tight.x.array()).all());
+    EXPECT_EQ(wide.feasibility, tight.feasibility);
 }
 
 } // namespace hven

@@ -344,7 +344,13 @@ TEST(TraceMessagesSqp, SubproblemFailureLinesMatchTheExitCounters) {
                 ASSERT_TRUE(m.k.has_value());
             }
         }
-        EXPECT_EQ(warnings, r.stop_reason == StopReason::kSubproblemFailure ? 1 : 0);
+        // RF-1: the exit is spelled kSubproblemFailure or kSubproblemIterationLimit, or, labelled
+        // kAcceptable, named in the message.
+        const bool subproblem_exit = r.stop_reason == StopReason::kSubproblemFailure ||
+                                     r.stop_reason == StopReason::kSubproblemIterationLimit ||
+                                     (r.status == SolveStatus::kAcceptable &&
+                                      r.message.find("exit subproblem_") != std::string::npos);
+        EXPECT_EQ(warnings, subproblem_exit ? 1 : 0);
     }
 }
 

@@ -61,8 +61,9 @@ using hven::SqpOptions;
 // not contract: a different ABI, alignment or standard library legitimately
 // produces others, which is why the asserts are gated. Apple and Windows values
 // are UNOBSERVED and deliberately not guessed. IpmOptions re-observed at the M8 AP-5 G-RB rider
-// (472, one enum removed). All other values re-observed at M8 AP-2 B3, which re-laid every options
-// struct (the history of earlier values is in docs/notes and in git).
+// (472, one enum removed); SqpOptions at M8 RF-1 (760, `termination` added). All other values
+// re-observed at M8 AP-2 B3, which re-laid every options struct (the history of earlier values is
+// in docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
 static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
@@ -75,7 +76,9 @@ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 728, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 760, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::SqpTerminationOptions) == 32,
+              "SqpTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpAdvancedOptions) == 432,

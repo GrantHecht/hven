@@ -349,6 +349,23 @@ SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &
 ///         kInfeasible, which are answers rather than failures.
 bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol);
 
+/// @brief May a top-level exit with @p status and @p reason be labelled kAcceptable (RF-1)?
+/// @return True for the failure exits the label is defined over: kNumericalError beside
+///         kSubproblemFailure, kRestorationRefused, kRestorationFailed or kRestorationNoClaim, and
+///         kStalled beside kSubproblemIterationLimit. False for every other pair -- the limits,
+///         interrupts, kInfeasible and the non-finite exits name a cause the caller acts on.
+bool sqp_exit_is_labelable(SolveStatus status, StopReason reason);
+
+/// @brief Does a returned point pass SqpOptions::termination's acceptable tier (RF-1)?
+/// @param kkt           The convergence test's own measurement at the point (engine space):
+///                      its stationarity and complementarity are read.
+/// @param feasibility_e The declared equality residual at the point, caller units.
+/// @param feasibility_i The declared inequality residual (box included), caller units.
+/// @param t             The tier.
+/// @return False when @p kkt is not finite or any reading is NaN.
+bool sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,
+                          const SqpTerminationOptions &t);
+
 // --- The semismooth-Newton tier ---------------------------------------------
 //
 // SqpOptions::qp_mode selects the kernel each subproblem is solved on. kWalk is

@@ -156,6 +156,8 @@ const char *to_string(StopReason reason) {
         return "restoration_no_claim";
     case StopReason::kRestorationFailed:
         return "restoration_failed";
+    case StopReason::kSubproblemIterationLimit:
+        return "subproblem_iteration_limit";
     }
     throw std::invalid_argument(
         fmt::format("to_string(StopReason): unrecognized value ({})", static_cast<int>(reason)));

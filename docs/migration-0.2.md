@@ -1021,3 +1021,19 @@ No trajectory moves; one counter is added (`docs/notes/data/2026-11-m8-pf5/`).
   `symbolic_analyses` keeps its meaning.
 
 Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.
+
+## RF-1 -- the SQP's failure exits are labelled honestly (M8 RF-1)
+
+A declared status event on the SQP engine; the IPM is unchanged. Points, iterations and counters are
+unchanged (reporting only); `docs/notes/2026-11-m8-rf1-design.md` section 1 has the design.
+
+| before | after | rewrite |
+|---|---|---|
+| SQP `status == kNumericalError` beside `kSubproblemFailure`, `kRestorationRefused`, `kRestorationFailed` or `kRestorationNoClaim`, at a returned point inside the acceptable tier | `status == kAcceptable`, `stop_reason == kNone`, message `converged to an acceptable level: ...: exit <reason>` | a consumer that treated these as failures now sees an acceptable verdict; the tier is `SqpOptions::termination` (new; the IPM's four `acceptable_*_tol` names and defaults) |
+| SQP `status == kNumericalError`, `stop_reason == kSubproblemFailure`, last QP stopped at its minor cap | `status == kStalled`, `stop_reason == kSubproblemIterationLimit` (new) | switch on the new stop reason; kStalled substitutes the best iterate under `kOnAnyNonOptimal` exactly as kNumericalError did |
+
+- `SqpOptions::termination` (`SqpTerminationOptions`): `acceptable_stationarity_tol` 1e-2,
+  `acceptable_equality_tol` 1e-3, `acceptable_inequality_tol` 1e-3, `acceptable_complementarity_tol` 1e-3;
+  each finite, > 0 and >= its convergence tolerance. Same dumped names as the IPM's.
+- Restoration sub-solves are never relabelled (`restoration_sub_status` keeps its values).
+- A relabelled exit carries no `best_iterate`, as no kAcceptable does.

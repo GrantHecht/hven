@@ -136,7 +136,11 @@ std::string sqp_status_message(const SqpResult &result, StopReason reason,
     case SolveStatus::kOptimal:
         return "converged: optimality and feasibility tolerances met";
     case SolveStatus::kAcceptable:
-        return "converged to an acceptable level: the acceptable tolerances were met";
+        // THE SQP REACHES kAcceptable ONLY BY LABELLING A FAILURE EXIT (RF-1); `detail` names
+        // the exit, and the stop reason is kNone as for any acceptable verdict.
+        return with_detail("converged to an acceptable level: the solve stopped at a point "
+                           "inside the acceptable tolerances",
+                           detail);
     case SolveStatus::kIterationLimit:
         return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
@@ -152,6 +156,10 @@ std::string sqp_status_message(const SqpResult &result, StopReason reason,
         }
         return "locally infeasible (uncertified: no claim is made about the model)";
     case SolveStatus::kStalled:
+        if (reason == StopReason::kSubproblemIterationLimit) {
+            return "stalled: the QP subproblem reached its minor-iteration cap and its retry "
+                   "budget was spent";
+        }
         return "stalled: the iteration stopped making progress";
     case SolveStatus::kDiverging:
         return "diverging: the iterates grew without bound";

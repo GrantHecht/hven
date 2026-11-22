@@ -836,6 +836,8 @@ const char *spec_spelling(StopReason v) {
         return "\"restoration_no_claim\"";
     case StopReason::kRestorationFailed:
         return "\"restoration_failed\"";
+    case StopReason::kSubproblemIterationLimit:
+        return "\"subproblem_iteration_limit\"";
     }
     return kUnspelled;
 }
@@ -991,7 +993,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpmRestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
-    static_assert(static_cast<int>(StopReason::kRestorationFailed) == 15 - 1, "15 stop reasons");
+    static_assert(static_cast<int>(StopReason::kSubproblemIterationLimit) == 16 - 1,
+                  "16 stop reasons");
     static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
                   "4 factorization statuses");
     static_assert(static_cast<int>(MessageKind::kStopAtIteration) == 17 - 1, "17 message kinds");
@@ -1224,7 +1227,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
           StopReason::kRestorationLocallyInfeasible, StopReason::kSubproblemFailure,
           StopReason::kInconsistentEqualities, StopReason::kRestorationRefused,
           StopReason::kRestorationNonFinite, StopReason::kRestorationNoClaim,
-          StopReason::kRestorationFailed}) {
+          StopReason::kRestorationFailed, StopReason::kSubproblemIterationLimit}) {
         stop_reason(v);
     }
 

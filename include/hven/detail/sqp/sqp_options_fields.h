@@ -28,6 +28,14 @@
     X(max_dense_dimension, r_text("unset (reserved)"),                                             \
       "Reserved for a caller's kAuto threshold; only the empty value is accepted.")
 
+#define HVEN_SQP_TERMINATION_OPTIONS_FIELDS(X)                                                     \
+    X(acceptable_stationarity_tol, r_gt(0.0),                                                      \
+      "Acceptable-level stationarity tolerance a failure exit's point is labelled against.")      \
+    X(acceptable_equality_tol, r_gt(0.0), "Acceptable-level equality tolerance.")                  \
+    X(acceptable_inequality_tol, r_gt(0.0),                                                        \
+      "Acceptable-level inequality tolerance (bounds included).")                                  \
+    X(acceptable_complementarity_tol, r_gt(0.0), "Acceptable-level complementarity tolerance.")
+
 #define HVEN_SQP_ADVANCED_OPTIONS_FIELDS(X, G)                                                     \
     X(second_order_correction, r_any(),                                                            \
       "Second-order correction: a rejected trial whose violation increased gets one hot-started "  \
@@ -108,6 +116,7 @@
 
 #define HVEN_SQP_OPTIONS_FIELDS(X, G)                                                              \
     G(common, common, false)                                                                       \
+    G(termination, sqp_termination, false)                                                         \
     X(trust_region_initial, r_gt(0.0, false),                                                      \
       "The l-infinity trust-region radius the first subproblem is given. +inf means no trust "     \
       "region.")                                                                                   \
@@ -150,6 +159,13 @@ template <class S, class F> void visit_sqp_linear(S &o, const OptionCtx &c, F &f
     constexpr std::string_view owner = "SqpLinearOptions";
 #define X(m, r, d) f(OptionMeta{c.prefix, #m, d, (r), c.advanced, owner}, o.m);
     HVEN_SQP_LINEAR_OPTIONS_FIELDS(X)
+#undef X
+}
+
+template <class S, class F> void visit_sqp_termination(S &o, const OptionCtx &c, F &f) {
+    constexpr std::string_view owner = "SqpTerminationOptions";
+#define X(m, r, d) f(OptionMeta{c.prefix, #m, d, (r), c.advanced, owner}, o.m);
+    HVEN_SQP_TERMINATION_OPTIONS_FIELDS(X)
 #undef X
 }
 

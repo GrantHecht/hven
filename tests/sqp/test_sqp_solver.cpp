@@ -4381,7 +4381,8 @@ TEST(SqpSolverQpFailure, RepeatedQpMaxIterStillPropagates) {
     // UNCHANGED (the status pin did not move). Debug, whose arithmetic the
     // unification did not touch, still walks the original two-row chain (the
     // #else arm). Two fresh reproductions agreed.
-    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
     ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
               QpStatus::kIterationLimit);
@@ -4557,7 +4558,8 @@ TEST(SqpSolverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         // propagates rather than shrinking a fourth time.
         EXPECT_EQ(sol.history[4].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
                   QpStatus::kIterationLimit);
-        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+        EXPECT_EQ(sol.status, SolveStatus::kStalled);
 
         // AND THE ELASTIC TIER NEVER ACTIVATED (fix round 1): every failure
         // above is kIterationLimit, so this trajectory is bit-identical to Task 7's.
@@ -13342,6 +13344,131 @@ TEST(SqpGl0, TheIdentitiesHoldAcrossTheHsBattery) {
     }
     EXPECT_EQ(solves, 30);
     EXPECT_GT(total_rejections, 0) << "premise: the battery rejects somewhere";
+}
+
+// ---------------------------------------------------------------------------
+// RF-1 -- the acceptable label's two predicates, at their boundaries.
+// ---------------------------------------------------------------------------
+
+TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
+    using hven::detail::sqp_exit_is_labelable;
+    const SolveStatus statuses[] = {SolveStatus::kOptimal,        SolveStatus::kAcceptable,
+                                    SolveStatus::kIterationLimit, SolveStatus::kInfeasible,
+                                    SolveStatus::kStalled,        SolveStatus::kDiverging,
+                                    SolveStatus::kNumericalError, SolveStatus::kInterrupted,
+                                    SolveStatus::kWorkLimit,      SolveStatus::kTimeLimit};
+    int labelable = 0;
+    for (const SolveStatus s : statuses) {
+        for (int r = 0; r <= static_cast<int>(StopReason::kSubproblemIterationLimit); ++r) {
+            const auto reason = static_cast<StopReason>(r);
+            const bool expect =
+                (s == SolveStatus::kNumericalError &&
+                 (reason == StopReason::kSubproblemFailure ||
+                  reason == StopReason::kRestorationRefused ||
+                  reason == StopReason::kRestorationFailed ||
+                  reason == StopReason::kRestorationNoClaim)) ||
+                (s == SolveStatus::kStalled && reason == StopReason::kSubproblemIterationLimit);
+            EXPECT_EQ(sqp_exit_is_labelable(s, reason), expect)
+                << to_string(s) << " / " << to_string(reason);
+            labelable += expect ? 1 : 0;
+        }
+    }
+    EXPECT_EQ(labelable, 5);
+}
+
+TEST(Rf1AcceptableLabel, EachTierIsReadInclusivelyAndANanFails) {
+    using hven::detail::sqp_point_acceptable;
+    SqpTerminationOptions t;
+    t.acceptable_stationarity_tol = 1e-2;
+    t.acceptable_equality_tol = 2e-3;
+    t.acceptable_inequality_tol = 3e-3;
+    t.acceptable_complementarity_tol = 4e-3;
+    SqpKkt k;
+    k.stationarity = t.acceptable_stationarity_tol;
+    k.complementarity = t.acceptable_complementarity_tol;
+    const double fe = t.acceptable_equality_tol;
+    const double fi = t.acceptable_inequality_tol;
+    EXPECT_TRUE(sqp_point_acceptable(k, fe, fi, t)) << "every reading exactly at its tolerance";
+    const double inf = std::numeric_limits<double>::infinity();
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    SqpKkt s = k;
+    s.stationarity = std::nextafter(k.stationarity, inf);
+    EXPECT_FALSE(sqp_point_acceptable(s, fe, fi, t)) << "stationarity";
+    SqpKkt c = k;
+    c.complementarity = std::nextafter(k.complementarity, inf);
+    EXPECT_FALSE(sqp_point_acceptable(c, fe, fi, t)) << "complementarity";
+    EXPECT_FALSE(sqp_point_acceptable(k, std::nextafter(fe, inf), fi, t)) << "equality";
+    EXPECT_FALSE(sqp_point_acceptable(k, fe, std::nextafter(fi, inf), t)) << "inequality";
+    EXPECT_FALSE(sqp_point_acceptable(k, nan, fi, t)) << "an unmeasured equality half";
+    EXPECT_FALSE(sqp_point_acceptable(k, fe, nan, t)) << "an unmeasured inequality half";
+    SqpKkt ns = k;
+    ns.stationarity = nan;
+    EXPECT_FALSE(sqp_point_acceptable(ns, fe, fi, t)) << "a NaN stationarity";
+    SqpKkt nf = k;
+    nf.finite = false;
+    EXPECT_FALSE(sqp_point_acceptable(nf, fe, fi, t)) << "a non-finite measurement";
+}
+
+TEST(Rf1AcceptableLabel, TheTierIsValidatedOnTheConvergenceTiersOrder) {
+    const auto refuses = [](auto edit) {
+        SqpOptions o;
+        edit(o);
+        EXPECT_THROW(validate(o), std::invalid_argument);
+    };
+    refuses([](SqpOptions &o) { o.termination.acceptable_stationarity_tol = 1e-7; });
+    refuses([](SqpOptions &o) { o.termination.acceptable_equality_tol = 1e-7; });
+    refuses([](SqpOptions &o) { o.termination.acceptable_inequality_tol = 1e-7; });
+    refuses([](SqpOptions &o) { o.termination.acceptable_complementarity_tol = 1e-7; });
+    refuses([](SqpOptions &o) {
+        o.termination.acceptable_stationarity_tol = std::numeric_limits<double>::infinity();
+    });
+    refuses([](SqpOptions &o) {
+        o.termination.acceptable_equality_tol = std::numeric_limits<double>::quiet_NaN();
+    });
+    SqpOptions at_floor;
+    at_floor.termination.acceptable_stationarity_tol = at_floor.common.optimality_tol;
+    at_floor.termination.acceptable_equality_tol = at_floor.common.feasibility_tol;
+    at_floor.termination.acceptable_inequality_tol = at_floor.common.feasibility_tol;
+    at_floor.termination.acceptable_complementarity_tol = at_floor.common.optimality_tol;
+    EXPECT_NO_THROW(validate(at_floor)) << "the convergence tier itself is a legal floor";
+}
+
+// The subproblem-failure exit (RepeatedQpNumericalErrorStillPropagates' fixture) under a
+// tier wide enough to admit its point: the label moves, nothing else does.
+TEST(Rf1AcceptableLabel, ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves) {
+    TwinSaddleModel model(3);
+    const auto run = [&](double acceptable) {
+        SqpOptions opts;
+        opts.trust_region_initial = 4.0;
+        opts.trust_region_max = 100.0;
+        opts.common.max_iterations = 40;
+        twin_saddle_premise(opts);
+        opts.advanced.max_consecutive_qp_failures = 1;
+        opts.termination.acceptable_stationarity_tol =
+            std::max(acceptable, opts.common.optimality_tol);
+        opts.termination.acceptable_equality_tol =
+            std::max(acceptable, opts.common.feasibility_tol);
+        opts.termination.acceptable_inequality_tol =
+            std::max(acceptable, opts.common.feasibility_tol);
+        opts.termination.acceptable_complementarity_tol =
+            std::max(acceptable, opts.common.optimality_tol);
+        SqpSolver driver(opts);
+        return driver.solve(hven::detail::problem_ref(model), model.start_point());
+    };
+    const SqpResult tight = run(0.0);
+    const SqpResult wide = run(1e10);
+    ASSERT_EQ(tight.status, SolveStatus::kNumericalError);
+    ASSERT_EQ(tight.stop_reason, StopReason::kSubproblemFailure);
+    EXPECT_EQ(wide.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(wide.stop_reason, StopReason::kNone);
+    EXPECT_EQ(wide.message, "converged to an acceptable level: the solve stopped at a point "
+                            "inside the acceptable tolerances: exit subproblem_failure");
+    EXPECT_EQ(wide.counters.major_iters, tight.counters.major_iters);
+    EXPECT_EQ(wide.counters.factorizations, tight.counters.factorizations);
+    EXPECT_EQ(wide.history.size(), tight.history.size());
+    EXPECT_EQ(wide.f, tight.f);
+    ASSERT_EQ(wide.x.size(), tight.x.size());
+    EXPECT_TRUE((wide.x.array() == tight.x.array()).all());
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

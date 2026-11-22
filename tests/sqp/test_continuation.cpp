@@ -1183,7 +1183,8 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 
     ASSERT_TRUE(off.reached_p1) << trajectory(off);
     ASSERT_EQ(off.steps.size(), 4u) << trajectory(off);
-    EXPECT_EQ(off.steps[1].status, SolveStatus::kNumericalError) << trajectory(off);
+    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(off.steps[1].status, SolveStatus::kStalled) << trajectory(off);
     EXPECT_EQ(off.proposals_abandoned, 0) << "nothing can be abandoned with the budget off";
     EXPECT_EQ(off.proposals_full_cost, 1) << trajectory(off);
     // OBSERVED VALUES (MKL Pardiso, clang++, Release AND Debug): the failed

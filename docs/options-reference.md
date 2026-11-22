@@ -101,6 +101,10 @@ Documented and stable between break windows; includes the `qp.` block.
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
+| `termination.acceptable_stationarity_tol` | `double` | `0.01` | finite, > 0 | Acceptable-level stationarity tolerance a failure exit's point is labelled against. |
+| `termination.acceptable_equality_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level equality tolerance. |
+| `termination.acceptable_inequality_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level inequality tolerance (bounds included). |
+| `termination.acceptable_complementarity_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level complementarity tolerance. |
 | `trust_region_initial` | `double` | `1` | > 0 (+inf allowed) | The l-infinity trust-region radius the first subproblem is given. +inf means no trust region. |
 | `trust_region_max` | `double` | `10000000000` | > 0; >= trust_region_initial unless that is +inf | Ceiling the growth rule expands the radius toward; the value a +inf initial radius's first shrink lands on. |
 | `trust_region_min` | `double` | `1e-10` | finite, > 0 | The radius floor: a shrink below it raises a restoration request. Must be <= trust_region_initial and trust_region_max. |

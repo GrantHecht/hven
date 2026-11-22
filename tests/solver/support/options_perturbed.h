@@ -104,6 +104,10 @@ inline SqpOptions sqp_all_perturbed() {
     o.common.start_level = StartLevel::kHot;
     o.common.infinite_bound = 1e19;
     o.common.return_best = ReturnBest::kOnAnyNonOptimal;
+    o.termination.acceptable_stationarity_tol = 2e-2;
+    o.termination.acceptable_equality_tol = 2e-3;
+    o.termination.acceptable_inequality_tol = 3e-3;
+    o.termination.acceptable_complementarity_tol = 4e-3;
     o.trust_region_initial = 2.0;
     o.trust_region_max = 1e9;
     o.trust_region_min = 1e-9;

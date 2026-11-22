@@ -158,6 +158,11 @@ analysed).
 `sqp`: `scaling_active`, `obj_scale`, `row_scale_min`, `row_scale_max`, `scaled_kkt_residual`,
 `columns_active`, `col_spread`, `start_level_used`.
 
+`stop_reason` is `to_string(StopReason)`'s spelling. M8 RF-1 (declared): `subproblem_iteration_limit` is new
+(SQP, beside `status` `stalled`: the last QP stopped at its minor-iteration cap), and an SQP failure exit whose
+returned point passes `termination`'s acceptable tier is written `status` `acceptable`, `stop_reason` `none`,
+with the exit it came from named at the end of `message` (`exit restoration_refused`, ...).
+
 The record is written by the public handle after it has finished the result, so it carries the
 handle-derived fields. A depth-1 SQP end is written by the sub-driver and has `stop_reason`, `message`,
 `diagnostics` and `work` all `null`.

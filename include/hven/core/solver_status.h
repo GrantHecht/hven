@@ -30,9 +30,14 @@ enum class QpStatus {
 ///
 /// Reachability differs per engine: the interior-point engine reports kInfeasible only,
 /// uncertified, when feasibility restoration ends at a locally infeasible point
-/// (StopReason::kRestorationLocallyInfeasible), and the SQP engine reports none of
-/// kAcceptable, kStalled and kDiverging. Both report kInterrupted -- what a per-iteration callback
-/// returning CallbackAction::kStop gets, at the point the engine was standing on
+/// (StopReason::kRestorationLocallyInfeasible), and the SQP engine never reports
+/// kDiverging. The SQP reaches kAcceptable only by labelling a failure exit -- a
+/// subproblem or restoration exit that would otherwise be kNumericalError or
+/// kStalled -- whose returned point passes SqpOptions::termination's acceptable
+/// tier (stop reason kNone; the exit it came from is named in the message), and
+/// kStalled only through StopReason::kSubproblemIterationLimit. Both report kInterrupted -- what a
+/// per-iteration callback returning CallbackAction::kStop gets, at the point the engine was
+/// standing on
 /// -- and both report kWorkLimit and kTimeLimit.
 ///
 /// kInfeasible has two shapes on the SQP engine, told apart only by
@@ -46,7 +51,7 @@ enum class QpStatus {
 ///   certificate gate refused it (restoration_proximity > 0), or the
 ///   inconsistent-equalities exit. No claim is made about the model.
 /// An unserviceable restoration request (nested, or refused by the entry rule)
-/// is kNumericalError, never kInfeasible.
+/// is kNumericalError (kAcceptable at an acceptable point), never kInfeasible.
 ///
 /// A solve that exhausts its major-iteration cap reports kIterationLimit;
 /// SolveResult::returned_best_iterate says whether the point returned is the
@@ -168,27 +173,33 @@ enum class StopReason {
     /// Feasibility restoration converged to a point that is still infeasible.
     /// Verdict kInfeasible, uncertified (`infeasibility_certified` false). Interior-point.
     kRestorationLocallyInfeasible = 8,
-    /// The QP subproblem failed and its retry budget was spent. Verdict
-    /// kNumericalError, or kInfeasible (uncertified) for an infeasible
-    /// subproblem. SQP.
+    /// The QP subproblem failed (`QpStatus::kNumericalError`) and its retry budget
+    /// was spent. Verdict kNumericalError (kAcceptable at an acceptable point), or
+    /// kInfeasible (uncertified) for an infeasible subproblem. A QP stopped by its
+    /// minor-iteration cap is kSubproblemIterationLimit instead. SQP.
     kSubproblemFailure = 9,
     /// The equality constraints were judged inconsistent (the equality-basis
     /// exit). Verdict kInfeasible, uncertified. SQP.
     kInconsistentEqualities = 10,
     /// Feasibility restoration was requested and could not be serviced: the
     /// request came from inside a restoration sub-solve, or the per-solve entry
-    /// cap was spent. Verdict kNumericalError. SQP.
+    /// cap was spent. Verdict kNumericalError (kAcceptable at an acceptable point). SQP.
     kRestorationRefused = 11,
     /// Restoration ended at a point where the model is not finite. Verdict
     /// kNumericalError. SQP.
     kRestorationNonFinite = 12,
     /// The restoration sub-solve converged without a claim: the point is
     /// neither feasible enough to resume from nor infeasible enough to certify.
-    /// Verdict kNumericalError. SQP.
+    /// Verdict kNumericalError (kAcceptable at an acceptable point). SQP.
     kRestorationNoClaim = 13,
     /// The restoration sub-solve itself ended kNumericalError. Verdict
-    /// kNumericalError. SQP.
+    /// kNumericalError (kAcceptable at an acceptable point). SQP.
     kRestorationFailed = 14,
+    /// The last QP subproblem ended at its minor-iteration cap
+    /// (`QpStatus::kIterationLimit`) and its retry budget was spent: the solve could
+    /// not make progress, but nothing failed arithmetically. Verdict kStalled
+    /// (kAcceptable at an acceptable point). SQP.
+    kSubproblemIterationLimit = 15,
 };
 
 /// @brief The kind of a trace/console `message` (both engines).
@@ -293,7 +304,7 @@ const char *to_string(IpmKktFactorStatus status);
 ///        `stop_reason` spelling).
 /// @param reason The stop reason.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the fifteen.
+/// @throws std::invalid_argument if @p reason is not one of the sixteen.
 const char *to_string(StopReason reason);
 
 /// @brief The reporting order over all ten statuses, weakest verdict first.

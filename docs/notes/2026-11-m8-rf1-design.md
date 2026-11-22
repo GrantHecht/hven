@@ -297,3 +297,17 @@ HOLDOUT (never). Wall-clock claims. The QP walk's own terminations (zero-motion,
 exit) are not changed: RF-1 changes what the DRIVER does with a QP that could not finish. A `QpStatus` split of the walk's
 working-set terminations from arithmetic failure (a fifth QP status) is the natural next step and is registered, not done.
 Accelerate and Windows readings: CI only.
+
+## Amendment C-1 (at C's implementation; the text above is kept)
+
+- **No `MessageKind::kAcceptableExit`.** The relabelled exit's origin is carried in the stop DETAIL instead
+  (`exit <stop_reason spelling>`, plus the original detail in parentheses), which reaches `SolveResult::message`
+  and the `solve.end` event's `message`; `stop_reason` is `none`. Same information, no new trace alphabet. Section
+  1.3's last paragraph and the "the message not emitted" mutation of section 2 are answered by this: the C
+  mutation is "the detail not set".
+- **The minor-cap split is top level only**, like the label: the sub-driver's `kFinishQpFailure` status feeds the
+  parent's status switch (the `restoration_curvature` switch site returns through it), so it stays
+  `map_status`'s there.
+- **The acceptable test reads the result's caller-unit `feasibility_e`/`feasibility_i`** after `finish` has
+  written them (the stash on an unscaled solve, the caller-scale re-measurement on a scaled one), and the engine
+  `kkt` passed to `finish` for stationarity and complementarity. The label is applied last in `finish`.

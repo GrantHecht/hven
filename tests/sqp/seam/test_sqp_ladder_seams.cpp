@@ -669,7 +669,11 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
     // solve's own convergence test calls feasible.
     EXPECT_FALSE(sol.infeasibility_certified);
-    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move): the no-claim exit at a point inside the acceptable tier is labelled
+    // kAcceptable (was kNumericalError); the point and the withheld claim are unchanged.
+    EXPECT_EQ(sol.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(sol.stop_reason, StopReason::kNone);
+    EXPECT_NE(sol.message.find("exit restoration_"), std::string::npos) << sol.message;
     EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0) << "the option is off";
 }
 
@@ -733,6 +737,39 @@ TEST(SqpLadderSeam, TheReductionResumeTakesTheNoClaimPointAndCountsIt) {
     EXPECT_EQ(on.counters.restoration_reduction_resumes, 1);
     EXPECT_GT(on.counters.major_iters, off.counters.major_iters) << "the solve went on";
     EXPECT_NE(on.status, SolveStatus::kInfeasible);
+}
+
+// RF-1 -- THE ACCEPTABLE LABEL IS THE PARENT'S ALONE. The reduction-resume fixture's off arm:
+// the sub-solve ends kNumericalError (its nested request refused) and the parent ends
+// restoration_failed at the entry point (h = 10). Under a tier wide enough to admit both points
+// the PARENT is labelled kAcceptable and the sub-solve is not: its status is read by the
+// parent's switch, and a label there would move the path.
+TEST(SqpLadderSeam, Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {1.0, 1.0};
+    SpreadMissModel model(kNoClaimMiss);
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75;
+    o.termination.acceptable_stationarity_tol = 1e10;
+    o.termination.acceptable_equality_tol = 1e10;
+    o.termination.acceptable_inequality_tol = 1e10;
+    o.termination.acceptable_complementarity_tol = 1e10;
+    const SqpResult wide =
+        SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    const SqpResult off = reduction_resume_solve(0.0);
+    EXPECT_EQ(wide.counters.restoration_sub_status, RestorationSubStatus::kNumericalError)
+        << "the sub-solve keeps its own status";
+    EXPECT_EQ(wide.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(wide.stop_reason, StopReason::kNone);
+    EXPECT_NE(wide.message.find("exit restoration_failed"), std::string::npos) << wide.message;
+    EXPECT_EQ(wide.counters.major_iters, off.counters.major_iters);
+    EXPECT_EQ(wide.counters.restoration_iters, off.counters.restoration_iters);
+    EXPECT_EQ(wide.counters.factorizations, off.counters.factorizations);
+    EXPECT_EQ(wide.f, off.f);
 }
 
 // QC-1 -- NO CERTIFICATE FROM A NEAR-FEASIBLE ENTRY WHOSE SLACKS SIT INSIDE feas_tol.

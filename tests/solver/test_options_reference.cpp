@@ -327,6 +327,7 @@ const char *header_of(const std::string &owner) {
         {"IpmOptions", "include/hven/ipm/ipm_options.h"},
         {"QpOptions", "include/hven/qp/qp_types.h"},
         {"IpqpOptions", "include/hven/qp/qp_options.h"},
+        {"SqpTerminationOptions", "include/hven/sqp/sqp_options.h"},
         {"SqpLinearOptions", "include/hven/sqp/sqp_options.h"},
         {"SqpAdvancedOptions", "include/hven/sqp/sqp_options.h"},
         {"SqpOptions", "include/hven/sqp/sqp_options.h"},

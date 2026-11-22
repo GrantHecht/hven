@@ -907,6 +907,25 @@ bool detail::qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, 
     return true;
 }
 
+bool detail::sqp_exit_is_labelable(SolveStatus status, StopReason reason) {
+    if (status == SolveStatus::kNumericalError) {
+        return reason == StopReason::kSubproblemFailure ||
+               reason == StopReason::kRestorationRefused ||
+               reason == StopReason::kRestorationFailed ||
+               reason == StopReason::kRestorationNoClaim;
+    }
+    return status == SolveStatus::kStalled && reason == StopReason::kSubproblemIterationLimit;
+}
+
+bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,
+                                  const SqpTerminationOptions &t) {
+    // Each comparison in the negation-safe form: a NaN reading fails it.
+    return kkt.finite && kkt.stationarity <= t.acceptable_stationarity_tol &&
+           kkt.complementarity <= t.acceptable_complementarity_tol &&
+           feasibility_e <= t.acceptable_equality_tol &&
+           feasibility_i <= t.acceptable_inequality_tol;
+}
+
 bool detail::ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol) {
     if (res.escape_reason != SsnEscape::kNone || res.status != QpStatus::kOptimal) {
         return false;
@@ -9990,9 +10009,21 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the pre-trial iterate `mj.qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
+            // THE MINOR-CAP EXIT IS NOT AN ARITHMETIC FAILURE (RF-1): a last QP stopped by its
+            // minor-iteration cap ends the solve kStalled beside kSubproblemIterationLimit. Read
+            // AFTER the cap retry and the elastic routing had their say (`mj.qs` is the answer
+            // they left). Top level only: a restoration sub-solve's status is read by the
+            // parent's status switch, which this relabel must not move. Same return-best
+            // applicability as kNumericalError (return_best.h), so the point is unchanged.
+            const bool minor_cap_exit = !is_restoration_sub_driver_ &&
+                                        st.exit_reason == StopReason::kNone &&
+                                        mj.qs.status == QpStatus::kIterationLimit;
+            const SolveStatus qp_exit_status =
+                minor_cap_exit ? SolveStatus::kStalled : map_status(mj.qs.status);
             publish_stop_at(iter,
                             st.exit_reason != StopReason::kNone ? st.exit_reason
-                                                                : StopReason::kSubproblemFailure,
+                            : minor_cap_exit ? StopReason::kSubproblemIterationLimit
+                                             : StopReason::kSubproblemFailure,
                             st.exit_detail);
             check_major_pushed_once(iter);
             // THE NON-FINITE SUBPROBLEM EXIT CLEARS THE MULTIPLIERS (M8 B5 riders),
@@ -10000,8 +10031,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // engine's non-finite exits do: the point's derivatives are not
             // finite, so no price at it is evidence. The residuals stay what was
             // measured at the point.
-            if (best_applies(map_status(mj.qs.status))) {
-                return finish_best(map_status(mj.qs.status), false);
+            if (best_applies(qp_exit_status)) {
+                return finish_best(qp_exit_status, false);
             }
             const bool nonfinite_exit = st.exit_reason == StopReason::kNonFiniteStart ||
                                         st.exit_reason == StopReason::kNonFiniteIterate;
@@ -10010,8 +10041,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 st.lambda_i.setZero();
             }
             SqpResult finished =
-                finish(seam, std::move(st.out), map_status(mj.qs.status), st.x, st.lambda_e,
-                       st.lambda_i, mj.kkt, mj.row.f,
+                finish(seam, std::move(st.out), qp_exit_status, st.x, st.lambda_e, st.lambda_i,
+                       mj.kkt, mj.row.f,
                        make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
                                        st.last_dual_mu, opts_.qp.primal_regularization,
                                        st.strategy.get(), engine_->hot_state()),
@@ -10780,6 +10811,27 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
             out.stationarity = declared.d.stationarity;
             out.complementarity = declared.d.complementarity;
         }
+    }
+    // THE ACCEPTABLE LABEL (RF-1; SqpOptions::termination). A failure exit whose RETURNED point
+    // passes the acceptable tier is reported kAcceptable, stop reason kNone, the exit it came
+    // from named in the detail -- the IPM's shape (resolve_ipm_phase_status: a stall at an
+    // acceptable iterate is kAcceptable). A label only: read here, after every field above is
+    // final, it moves no iterate and no counter. Stationarity and complementarity are the
+    // convergence test's own (engine) measure; the two feasibility halves are the declared,
+    // caller-unit ones just written (NaN when unmeasured, which fails the test). Top level only:
+    // a restoration sub-solve's status is read by the parent's switch. The best iterate is
+    // dropped as attach_best_iterate drops it for any kAcceptable.
+    if (!is_restoration_sub_driver_ &&
+        detail::sqp_exit_is_labelable(out.status, last_stop_reason_) &&
+        detail::sqp_point_acceptable(kkt, detail::engine_rows(out).feasibility_e,
+                                     detail::engine_rows(out).feasibility_i, opts_.termination)) {
+        std::string origin = fmt::format("exit {}", to_string(last_stop_reason_));
+        if (!stop_detail_.empty()) {
+            origin += fmt::format(" ({})", stop_detail_);
+        }
+        publish_stop(StopReason::kNone, std::move(origin));
+        out.status = SolveStatus::kAcceptable;
+        out.best_iterate.reset();
     }
     return out;
 }
