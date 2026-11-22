@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..d9dae5396 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9172,7 +9172,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         mj.qs.counters.certificate_row_refusals > 0 && !stop_phase_on_qp_failure_;
+     const bool bound_refusal_to_elastic =
+         mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
+-        (any_h_row_refusal ||
++        (false ||
+          ((mj.qs.counters.certificate_bound_refusals > 0 ||
+            mj.qs.counters.certificate_row_refusals > 0) &&
+           (linearization_violated ||

@@ -1,0 +1,10 @@
+# Cells requiring a SERIAL re-run before any regression claim.
+# Produced under parallel-tiered v1, RF-1 lane copy (one 4-core box lane; T2 solo within the lane, not machine-solo) (T1 4-wide pinned / T2 solo / T3 4-wide full-budget); contention is a live confound for every line here.
+# Re-run each alone: taskset -c 0 env MKL_NUM_THREADS=1 /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/bin/Cr3/hven_sqp_corpus --engine walk --cells <cell> --csv <row>
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+f7_n5000_path_physics	13-column mismatch
+f7_n5000_path_activity	13-column mismatch
+f7_n800_path_neutral	13-column mismatch
+f7_n800_path_corrupted	13-column mismatch
+f7_n800_path_warm	13-column mismatch

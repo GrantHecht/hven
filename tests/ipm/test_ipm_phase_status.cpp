@@ -183,6 +183,9 @@ TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
     EXPECT_STREQ(to_string(StopReason::kRestorationNonFinite), "restoration_non_finite");
     EXPECT_STREQ(to_string(StopReason::kRestorationNoClaim), "restoration_no_claim");
     EXPECT_STREQ(to_string(StopReason::kRestorationFailed), "restoration_failed");
+    EXPECT_STREQ(to_string(StopReason::kSubproblemIterationLimit), "subproblem_iteration_limit");
+    EXPECT_STREQ(to_string(StopReason::kTrustRegionFloor), "trust_region_floor");
+    EXPECT_STREQ(to_string(StopReason::kRestorationWorkLimit), "restoration_work_limit");
     // Out-of-range values are refused, not silently mapped: the CSV column and
     // the printed status come from these switches. Every switch in the TU has
     // its boundary here -- both to_string families, severity, and

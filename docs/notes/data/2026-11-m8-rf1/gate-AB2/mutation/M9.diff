@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..c1fdf5a34 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -945,7 +945,7 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
+ bool detail::trust_region_floor_exit_applies(double feasibility, double feasibility_tol, double f,
+                                              double pred) {
+     // Negation-safe: a NaN reading on either side refuses the exit.
+-    return feasibility <= feasibility_tol && pred <= kNoiseFloorFactor *
++    return feasibility <= feasibility_tol && pred <= 1e300 *
+                                                          std::numeric_limits<double>::epsilon() *
+                                                          std::max(1.0, std::abs(f));
+ }

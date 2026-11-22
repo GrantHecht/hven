@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..f0d3ae89d 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7196,8 +7196,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         opts_.advanced.restoration_resume_reduction > 0.0 && !feasible_resume &&
+         box_r <= opts_.common.feasibility_tol &&
+         h_r <= opts_.advanced.restoration_resume_reduction * excursion_h_in &&
+-        (rs.status == SolveStatus::kNumericalError || rs.status == SolveStatus::kStalled ||
+-         (rs.status == SolveStatus::kWorkLimit && phase_budget_binds) ||
++        (rs.status == SolveStatus::kNumericalError ||
+          (rs.status == SolveStatus::kOptimal && !optimal_claims));
+     // A STOPPED PHASE NEVER RESUMES (M8 AP-5 G2): the solve ends at the entry point
+     // through the not-feasible-enough exit below, with the phase's verdict computed

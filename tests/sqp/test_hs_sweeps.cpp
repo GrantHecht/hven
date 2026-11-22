@@ -1157,8 +1157,34 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // THE CORPUS MOVES, which is the control that says this is the routing gate
     // and not a trajectory change: HS10, HS26, HS33, HS40 and HS77 hold at their
     // Task-7b values, and every cold arm is untouched.
-    EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // RF-1 A+B2 (declared mover): 23/30 -> 22/40. The arm's failing chain at p = 1 (the LICQ
+    // point) now takes the retry rungs and a restoration before the same kNumericalError; the
+    // status, the stop point and every objective are unchanged (section (1) and (3b) hold).
+    // CONFIG-SPLIT: Debug reads 21/39, and so do the off-reference Release lanes (macOS and
+    // Windows, CI run 44991274789); the reference Release build reads 22/40. A Linux Release
+    // runner whose MKL dispatch probe says OFF-REFERENCE (AMD, avx512, mkl_auto_branch=2; CI run
+    // 45036848180) also reads 22/40, so Linux Release is pinned to that column whatever the probe
+    // says.
+    // AND AN INTEL ONE READS 21/39 (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI run 45064036804):
+    // off the reference build the two Linux columns are both observed, so either is accepted
+    // there and the pair is recorded; the reference build keeps 22/40 exactly.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    {
+        const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
+        hven::test_support::record_off_reference_route(
+            "HsSweepCorpus.hs15_warm_on_on",
+            fmt::format("full_step_majors={} majors={}", hs15.full_step_majors, hs15.majors));
+        EXPECT_TRUE((hs15.full_step_majors == 22 && hs15.majors == 40) ||
+                    (hs15.full_step_majors == 21 && hs15.majors == 39))
+            << hs15.full_step_majors << "/" << hs15.majors;
+    }
+#else
+    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#endif
     // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
     // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
     // full step, on the warm arm. This problem is rank-deficient at its solution
@@ -1427,10 +1453,12 @@ void check_soc_costs_what_it_costs() {
     // M8 kopt-1x r2: the first kopt-1x fix's re-pin (Release 3355 -> 3359, Debug 3346 -> 3355) is
     // withdrawn: it came from the two-sided read of a working inequality row; read one-sided the
     // corpus total is bit-identical to the base before kopt-1x.
+    // RF-1 A+B2 (declared mover): Release 3355 -> 3406, all of it HS15's warm arms (the rungs and
+    // the restoration of the failing chain at p = 1); Debug 3346 -> 3392.
 #ifdef NDEBUG
-    EXPECT_EQ(3355, total_minors) << corpus_table();
+    EXPECT_EQ(3406, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3346, total_minors) << corpus_table();
+    EXPECT_EQ(3392, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1612,42 +1640,58 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
                            c.factorizations, c.rejected, c.status_failures);
     };
     SCOPED_TRACE("held off: " + row(off) + " | default: " + row(on));
-    // MEASURED (MKL, clang++), majors / minors / factorizations / rejections. CONFIG-SPLIT
-    // like HS26's pin above: Release holds off at 30 / 91 / 31 / 3 and reads 34 / 99 / 39 / 7
-    // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
-    // M7 W2 BPS (declared mover): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, now
-    // Debug's own reading; the held-off arm, the failure count and every objective unchanged.
-    // M8 DN-3 flip (declared; HS15 now factors on the dense arm): Release's step arm
-    // 33 / 95 / 38 / 6 -> 34 / 99 / 39 / 7; Debug's and the held-off arm's majors unchanged.
-    EXPECT_EQ(off.majors, 30);
-    // macOS (Accelerate) Release reads the Debug column here: 33 / 95 / 38 / 6, observed on CI
-    // run 43485700149.
-    // Off the reference build (MKL, not macOS) the step arm's counts are a route (the dense
-    // arm's LAPACK kernels are MKL's per-CPU pick): the AVX-512 Intel runners of CI runs
-    // 43501262925 and 43655190606 read the Debug column, 33 / 95 / 38 / 6, in Release. Recorded,
-    // not pinned (WX design section 2.1); the held-off arm, the failure count and every
-    // objective below are the portable contract.
+    // RF-1 A+B2 (declared mover). The held-off arm's failing chain at p = 1 now takes the rungs
+    // and a restoration before the same honest kNumericalError: 30 -> 40 majors, the stop point
+    // (x = (-2.3e-5, -6.1e-3), f = 1.0038, not a KKT point: a cold re-solve from it fails with
+    // stationarity 2 -- the LICQ point argued at kTruncatedWarmArms) and the failure count
+    // unchanged. The STEP arm, at the same p = 1, is now RESCUED: its failed-subproblem steps
+    // carry it off the singular branch to x = (0.5, 0.25), f = 0.25 -- a KKT point (a cold
+    // re-solve from it converges in 0 majors with every residual 0: x1 at its bound 0.5, both
+    // swept rows slack) -- and the sweep reaches p1 = 1.5 there (f = 0.25 at p = 1.25 and 1.5,
+    // 0 majors each). So the step arm no longer stops where the held-off arm does, and the old
+    // "same answers, same status count" pin is replaced by this reading. CONFIG-SPLIT: Release
+    // held off 40 majors, step arm 43 / 149 / 64 / 6; Debug held off 39, step arm 42 / 142 / 58 /
+    // 4, and its stop near the origin reads f = 1.00343 (Release 1.00378): where the failing chain
+    // stops on the singular branch is a rounding matter, so the stop is pinned to its
+    // neighbourhood.
+    // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39; the
+    // off-reference Linux Release runner of CI run 45036848180 reads the reference 40, and the
+    // off-reference Intel runner of CI run 45064036804 reads 39: either, off the reference build.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(off.majors, 40);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
+#else
+    EXPECT_EQ(off.majors, 39);
+#endif
+    EXPECT_EQ(off.status_failures, 1);
+    EXPECT_FALSE(off.reached_p1);
+    ASSERT_EQ(off.fvals.size(), 5u);
+    EXPECT_NEAR(off.fvals[4], 1.0, 1e-2) << "the failing chain stops next to the origin";
 #if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
-    // M8 kopt-1x r2: Release's step arm is back at 34 / 99 / 39 / 7 (the first kopt-1x fix's
-    // 33 / 95 / 38 / 6 came from the two-sided working-row read).
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(on.majors, 34);
-    EXPECT_EQ(on.minors, 99);
-    EXPECT_EQ(on.factorizations, 39);
-    EXPECT_EQ(on.rejected, 7);
-#else
-    EXPECT_EQ(on.majors, 33);
-    EXPECT_EQ(on.minors, 95);
-    EXPECT_EQ(on.factorizations, 38);
+    EXPECT_EQ(on.majors, 43);
+    EXPECT_EQ(on.minors, 149);
+    EXPECT_EQ(on.factorizations, 64);
     EXPECT_EQ(on.rejected, 6);
+#else
+    EXPECT_EQ(on.majors, 42);
+    EXPECT_EQ(on.minors, 142);
+    EXPECT_EQ(on.factorizations, 58);
+    EXPECT_EQ(on.rejected, 4);
 #endif
 #endif
-    EXPECT_EQ(on.status_failures, off.status_failures);
-    EXPECT_EQ(on.fvals.size(), off.fvals.size());
-    for (std::size_t i = 0; i < std::min(on.fvals.size(), off.fvals.size()); ++i) {
-        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])));
+    EXPECT_EQ(on.status_failures, 0);
+    EXPECT_TRUE(on.reached_p1);
+    ASSERT_EQ(on.fvals.size(), 7u);
+    for (std::size_t i = 0; i < 4; ++i) {
+        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])))
+            << "the two arms agree before p = 1";
+    }
+    for (std::size_t i = 4; i < 7; ++i) {
+        EXPECT_NEAR(on.fvals[i], 0.25, 1e-9) << "the rescued branch's KKT point";
     }
 }
 

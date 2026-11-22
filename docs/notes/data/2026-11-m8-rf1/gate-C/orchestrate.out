@@ -1,0 +1,13 @@
+box-lane: lane 0 acquired 2026-11-21T20:27:00-05:00
+FOREGROUND_START 2026-11-21T20:27:00-05:00 lane=0 phys=0 1 2 3
+replay rc=0 2026-11-21T20:32:35-05:00
+train rc=0 2026-11-21T20:32:35-05:00
+walk: === REF-vs-C-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+ssn: === REF-vs-C-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+ipm: === REF-vs-C-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+c2 rc=0
+C2_SUMMARY rows 476; missing/capped 0; path movers 0; status movers 0 
+C2_AS_DECLARED
+FOREGROUND_END 2026-11-21T20:32:36-05:00
+
+[exited with code 0]

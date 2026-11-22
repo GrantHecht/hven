@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..ae45e4398 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -908,7 +908,7 @@ bool detail::qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs,
+ }
+ 
+ Index detail::restoration_phase_budget(const std::optional<Index> &configured, Index f_entry) {
+-    return configured.value_or(kRestorationWorkFloor + f_entry);
++    return configured.value_or(std::numeric_limits<Index>::max() / 4);
+ }
+ 
+ double detail::retry_regularization(double primal_regularization) {

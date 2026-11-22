@@ -38,6 +38,11 @@ struct SqpLadderSeam {
     static inline bool as_bound_refusal = false;
     /// Stamp the exit as a certificate row-half refusal (`certificate_row_refusals` = 1).
     static inline bool as_row_refusal = false;
+    /// RF-1: stamp the exit as a stagnation stop (`stagnation_stops` = 1).
+    static inline bool as_stagnation_stop = false;
+    /// RF-1: zero the exit's minor and factorization counts, so two forced exits at the same
+    /// forced point carry equal fingerprints (the replay guard's fixture).
+    static inline bool as_replay = false;
     /// How many exits were forced (read by the test).
     static inline int forced = 0;
     /// THE RESTORATION SUB-DRIVER'S OWN (M7 W2 RST): how many of ITS kOptimal walk
@@ -48,6 +53,14 @@ struct SqpLadderSeam {
     /// ladder end unusable (M7 W2 RST rider M1): the exhausted tier whose nested
     /// restoration request is refused. 0 = off.
     static inline int exhaust_restoration_elastic = 0;
+    /// RF-1: stamp the sub-driver's forced exits as certificate row-half refusals
+    /// (`certificate_row_refusals` = 1).
+    static inline bool restoration_as_row_refusal = false;
+    /// RF-1 (the M13 fixture): > 0 lets the restoration order capture at most this many
+    /// points per solve; later improvements leave the incumbent where it is. 0 = off.
+    static inline int restoration_capture_limit = 0;
+    /// How many points the restoration order captured (read by the test).
+    static inline int restoration_captures = 0;
     /// How many restoration sub-driver exits were forced (read by the test).
     static inline int forced_restoration = 0;
     /// M8 WALK CAP: how many elastic ladders (any caller, either rung engine) have their
@@ -80,10 +93,15 @@ struct SqpLadderSeam {
         as_e2_termination = true;
         as_bound_refusal = false;
         as_row_refusal = false;
+        as_stagnation_stop = false;
+        as_replay = false;
         forced = 0;
         fail_restoration_walk_qps = 0;
         exhaust_restoration_elastic = 0;
+        restoration_as_row_refusal = false;
         forced_restoration = 0;
+        restoration_capture_limit = 0;
+        restoration_captures = 0;
         off_rows_rungs = 0;
         off_rows_inloop_rungs = 0;
         report_reads_slacks_only = false;

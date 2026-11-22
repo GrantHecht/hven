@@ -101,6 +101,10 @@ Documented and stable between break windows; includes the `qp.` block.
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
+| `termination.acceptable_stationarity_tol` | `double` | `0.01` | finite, > 0 | Acceptable-level stationarity tolerance a failure exit's point is labelled against. |
+| `termination.acceptable_equality_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level equality tolerance. |
+| `termination.acceptable_inequality_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level inequality tolerance (bounds included). |
+| `termination.acceptable_complementarity_tol` | `double` | `0.001` | finite, > 0 | Acceptable-level complementarity tolerance. |
 | `trust_region_initial` | `double` | `1` | > 0 (+inf allowed) | The l-infinity trust-region radius the first subproblem is given. +inf means no trust region. |
 | `trust_region_max` | `double` | `10000000000` | > 0; >= trust_region_initial unless that is +inf | Ceiling the growth rule expands the radius toward; the value a +inf initial radius's first shrink lands on. |
 | `trust_region_min` | `double` | `1e-10` | finite, > 0 | The radius floor: a shrink below it raises a restoration request. Must be <= trust_region_initial and trust_region_max. |
@@ -183,7 +187,8 @@ The research tier (`advanced.`, including `advanced.ipqp.`): these fields may ch
 | `advanced.equality_basis` | `bool` | `true` | true or false | Split the equality rows into an independent set and a dependent set; every QP carries only the independent set. |
 | `advanced.elastic_witness_start` | `bool` | `false` | true or false | Start each elastic walk rung at the feasible witness point. |
 | `advanced.elastic_last_optimal_rung` | `bool` | `false` | true or false | A ladder rung that fails above a solved rung reports the solved rung instead. |
-| `advanced.restoration_resume_reduction` | `double` | `0` | [0, 1) | Sufficient-reduction resume fraction of the entry violation. 0 is off. |
+| `advanced.restoration_resume_reduction` | `double` | `0.1` | [0, 1) | Sufficient-reduction resume fraction of the entry violation. 0 is off. |
+| `advanced.restoration_stall_factorizations` | `Index` | `5000` | >= 0 | The restoration phase's stall window: the phase ends when its best violation has not fallen by 10% over this many factorizations. |
 | `advanced.lbfgs_update_on_reject` | `bool` | `false` | true or false | Under kLbfgsDamped, also offer the pair of a rejected trial. |
 | `advanced.lbfgs_nonlinear_only` | `bool` | `false` | true or false | Under kLbfgsDamped, let B act on the nonlinear variables only. |
 | `advanced.max_lbfgs_full_memory_dimension` | `Index` | `400` | >= 0 | Under kLbfgsDamped, a full-memory damped BFGS replaces the L-BFGS window at or below this dimension. 0 is never. |

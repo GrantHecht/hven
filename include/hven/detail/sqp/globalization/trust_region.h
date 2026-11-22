@@ -25,6 +25,10 @@ inline constexpr double kTrGrowFactor = 2.0;
 /// The contraction factor, applied on every kReject verdict. COUPLED to
 /// funnel.h's kRestoreMinRejections -- see RADIUS MANAGEMENT.
 inline constexpr double kTrShrinkFactor = 0.5;
+/// The trust-region floor exit's noise test (RF-1 design section 3.4): a rejected step whose
+/// predicted objective decrease is at most `kNoiseFloorFactor * eps * max(1, |f|)` promised
+/// nothing the objective's rounding can resolve.
+inline constexpr double kNoiseFloorFactor = 100.0;
 
 /// Whether an ACCEPTED step grows the radius under `rule`. `delta_finite` and `tr_binding` are the
 /// radius being finite and active at the step; `failure_step` marks a failed subproblem's own step,

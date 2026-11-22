@@ -2530,8 +2530,36 @@ struct SqpCounters {
     ///        and `backend_symbolic_repeats` each fall by the sparse hits; a hit on a
     ///        dense-selected pattern replaces only the dense session's set-up, which
     ///        neither backend counter sees. `symbolic_analyses` does not move.
-    ///        Appended last.
+    ///        Appended after PF-2b's twelve (RF-1's counters follow it).
     Index symbolic_analysis_reuses = 0;
+    /// qp_retry_rung_shrink: RF-1 -- retry rung R1 taken: the radius shrunk with the failed working
+    /// set as the seed, only when the shrink cuts the failed walk.
+    Index qp_retry_rung_shrink = 0;
+    /// qp_retry_rung_cold: RF-1 -- retry rung R2 taken: the re-solve started cold (no seed), only
+    /// after a warm-seeded failure with a non-empty working set.
+    Index qp_retry_rung_cold = 0;
+    /// qp_retry_rung_algebra: RF-1 -- retry rung R3 taken: the re-solve ran on a walk engine with
+    /// the other working-set algebra.
+    Index qp_retry_rung_algebra = 0;
+    /// qp_retry_rung_regularization: RF-1 -- retry rung R4 taken: the re-solve ran at 100x the
+    /// primal regularization (capped at 1e-4), only after a dependent-blocker or zero-motion
+    /// termination.
+    Index qp_retry_rung_regularization = 0;
+    /// qp_retry_replays: RF-1 -- routed failures whose outcome fingerprint equalled the attempt
+    /// before them at the same iterate (status, minors, factorizations, termination counters, the
+    /// iterate bitwise): not charged, the ladder moved on.
+    Index qp_retry_replays = 0;
+    /// qp_failure_box_projections: RF-1 -- failed subproblems ended by a stagnation stop whose
+    /// iterate was projected onto the subproblem's box (trust-region window included) before the
+    /// retryable test.
+    Index qp_failure_box_projections = 0;
+    /// trust_region_floor_exits: RF-1 -- solves ended at the trust-region floor at a feasible point
+    /// whose last rejected step promised less than the objective's rounding floor
+    /// (StopReason::kTrustRegionFloor).
+    Index trust_region_floor_exits = 0;
+    /// soc_qp_iteration_limits: RF-1 -- second-order-correction re-solves that ended at their
+    /// minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged.
+    Index soc_qp_iteration_limits = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2655,7 +2683,15 @@ struct SqpCounters {
     X(backend_solve_refine_detector, counter_never_absent)                                         \
     X(backend_solve_refine_polish, counter_never_absent)                                           \
     X(backend_solve_refine_border_refine, counter_never_absent)                                    \
-    X(symbolic_analysis_reuses, counter_never_absent)
+    X(symbolic_analysis_reuses, counter_never_absent)                                              \
+    X(qp_retry_rung_shrink, counter_never_absent)                                                  \
+    X(qp_retry_rung_cold, counter_never_absent)                                                    \
+    X(qp_retry_rung_algebra, counter_never_absent)                                                 \
+    X(qp_retry_rung_regularization, counter_never_absent)                                          \
+    X(qp_retry_replays, counter_never_absent)                                                      \
+    X(qp_failure_box_projections, counter_never_absent)                                            \
+    X(trust_region_floor_exits, counter_never_absent)                                              \
+    X(soc_qp_iteration_limits, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

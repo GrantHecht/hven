@@ -136,6 +136,28 @@ void validate(const SqpOptions &opts) {
     }
     enum_in_range(opts.qp.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder,
                   "qp.working_set_algebra");
+    // THE ACCEPTABLE TIER (RF-1): finite and > 0 each, and no tighter than the convergence tier,
+    // on the IPM's rule (ipm_options.cpp) -- an acceptable point a converged one would not be is
+    // the only order that makes the label weaker than kOptimal.
+    const SqpTerminationOptions &t = opts.termination;
+    const auto acceptable = [](double v, const char *name, double floor, const char *floor_name) {
+        if (!(v > 0.0) || std::isinf(v)) {
+            throw std::invalid_argument(
+                fmt::format("SqpSolver: termination.{} ({}) must be finite and > 0", name, v));
+        }
+        if (!(floor <= v)) {
+            throw std::invalid_argument(fmt::format(
+                "SqpSolver: {} ({}) must be <= termination.{} ({})", floor_name, floor, name, v));
+        }
+    };
+    acceptable(t.acceptable_stationarity_tol, "acceptable_stationarity_tol",
+               opts.common.optimality_tol, "common.optimality_tol");
+    acceptable(t.acceptable_equality_tol, "acceptable_equality_tol", opts.common.feasibility_tol,
+               "common.feasibility_tol");
+    acceptable(t.acceptable_inequality_tol, "acceptable_inequality_tol",
+               opts.common.feasibility_tol, "common.feasibility_tol");
+    acceptable(t.acceptable_complementarity_tol, "acceptable_complementarity_tol",
+               opts.common.optimality_tol, "common.optimality_tol");
     if (!(opts.qp.trust_region_radius >= 0.0)) { // +inf passes; NaN and negatives do not
         throw std::invalid_argument(fmt::format(
             "SqpSolver: qp.trust_region_radius ({}) must be >= 0 (+inf is legal and means none)",
@@ -322,6 +344,11 @@ void validate(const SqpOptions &opts) {
             "resumes, and 0 is OFF",
             opts.advanced.restoration_resume_reduction));
     }
+    if (opts.advanced.restoration_stall_factorizations < 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.restoration_stall_factorizations must be >= 0, got {}",
+                        opts.advanced.restoration_stall_factorizations));
+    }
 
     // THE CURVATURE SOURCE (M7 QN stage 3): the mode must be one of the two; the
     // window must hold a pair; and the restoration wrapper's exact zeta D^2 term has
@@ -451,6 +478,7 @@ SqpOptions worker_options(SqpOptions base) {
 #endif
 HVEN_CHECK_OPTIONS_TABLE(QpOptions, HVEN_QP_OPTIONS_FIELDS)
 HVEN_CHECK_OPTIONS_TABLE(IpqpOptions, HVEN_IPQP_OPTIONS_FIELDS)
+HVEN_CHECK_OPTIONS_TABLE(SqpTerminationOptions, HVEN_SQP_TERMINATION_OPTIONS_FIELDS)
 HVEN_CHECK_OPTIONS_TABLE(SqpLinearOptions, HVEN_SQP_LINEAR_OPTIONS_FIELDS)
 HVEN_CHECK_OPTIONS_TABLE_G(SqpAdvancedOptions, HVEN_SQP_ADVANCED_OPTIONS_FIELDS)
 HVEN_CHECK_OPTIONS_TABLE_G(SqpOptions, HVEN_SQP_OPTIONS_FIELDS)

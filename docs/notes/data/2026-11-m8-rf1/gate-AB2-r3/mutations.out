@@ -1,0 +1,134 @@
+FOREGROUND_START 2026-11-22T06:48:54-05:00
+PREFLIGHT every mutation applies and restores: [M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 M13 M14 M15 M16 M17 M18 M19 M20 R1]
+MUT control rc=0 killers=0
+MUT M1 rc=2 killers=27
+   Continuation.ProbeBudgetBoundsAFailingProposal
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits
+   QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters
+   QpCapBudget.TheDefaultIsThreeAndOneIsTheOldGate
+   QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   Rf1RetryLadder.EachRungIsTakenOnlyWhenItChangesTheQp
+   Rf1RetryLadderSeam.AnIdenticalFailureIsCountedAsAReplayAndNotCharged
+   Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+   SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+   SqpLadderSeam.QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow
+   SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+   SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+   SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+   SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates
+   SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+   SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne
+   SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+   SqpSolverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatusDenseArm
+   SqpSolverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm
+   SqpSolverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP
+   SqpSolverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+   SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+   SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+MUT M2 rc=2 killers=12
+   Continuation.ProbeBudgetBoundsAFailingProposal
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits
+   Rf1RetryLadder.EachRungIsTakenOnlyWhenItChangesTheQp
+   Rf1RetryLadderSeam.ADependentBlockerFailureReachesTheRegularizationRung
+   Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+   Rf1RetryLadderSeam.SpentRungsAtAnInfeasibleIterateGoElastic
+   SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+   SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+   SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne
+   SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+MUT M3 rc=2 killers=8
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   Rf1RetryLadder.EachRungIsTakenOnlyWhenItChangesTheQp
+   Rf1RetryLadderSeam.ADependentBlockerFailureReachesTheRegularizationRung
+   Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+   Rf1RetryLadderSeam.SpentRungsAtAnInfeasibleIterateGoElastic
+   SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+   SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+MUT M4 rc=1 killers=3
+   Rf1RetryLadderSeam.AnIdenticalFailureIsCountedAsAReplayAndNotCharged
+   Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+   SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+MUT M5 rc=1 killers=2
+   Rf1RetryLadderSeam.AnOffBoxFailureOfAnotherKindIsNotProjected
+   SqpLadderSeam.Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH
+MUT M6 rc=1 killers=1
+   Rf1RetryLadderSeam.AnOffBoxStagnationIterateIsProjectedAndRouted
+MUT M7 rc=2 killers=4
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   SqpLadderSeam.Rf1ARowRefusalAtAFeasibleIterateGoesElastic
+   SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep
+MUT M8 rc=2 killers=6
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   Rf1TrustRegionFloor.TheExitNeedsAFeasiblePointAndANoiseLevelPromise
+   SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+   SqpSolverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum
+   SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm
+MUT M9 rc=2 killers=10
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   Rf1RetryLadderSeam.ADependentBlockerFailureReachesTheRegularizationRung
+   Rf1RetryLadderSeam.AFailureThatPromisesADecreaseStillRequestsRestoration
+   Rf1RetryLadderSeam.AnIdenticalFailureIsCountedAsAReplayAndNotCharged
+   Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+   Rf1TrustRegionFloor.TheExitNeedsAFeasiblePointAndANoiseLevelPromise
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+   SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+MUT M10 rc=2 killers=4
+   Continuation.ProbeBudgetBoundsAFailingProposal
+   Rf1RetryLadderSeam.SpentRungsAtAnInfeasibleIterateGoElastic
+   SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+   SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne
+MUT M11 rc=2 killers=5
+   Rf1RestorationSeam.APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs
+   Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   Rf1RestorationStall.AFlatBestIsCutAtTheWindowAndAFallingOneIsNot
+   Rf1RestorationStall.TheBestIsARunningMinimumAndTheWindowSlides
+MUT M12 rc=1 killers=3
+   Rf1RestorationSeam.APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs
+   Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+MUT M13 rc=1 killers=1
+   Rf1RestorationSeam.ThePhaseHandsBackItsBestPointNotItsLast
+MUT M14 rc=1 killers=3
+   Rf1RestorationSeam.ThePhaseHandsBackItsBestPointNotItsLast
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+MUT M15 rc=1 killers=1
+   RestorationBestOrder.TheLowestParentHAmongPhaseFeasibleIteratesWins
+MUT M16 rc=1 killers=3
+   Rf1RestorationSeam.ThePhaseHandsBackItsBestPointNotItsLast
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+MUT M17 rc=3 killers=11
+   Rf1RestorationSeam.APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs
+   Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit
+   Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   SqpSolverRestorationExcursion.AWorkLimitBindingInsideTheSubSolvePropagates
+   SqpSolverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus
+   SqpSolverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatusDenseArm
+   SqpSolverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne
+   SqpSolverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm
+   SqpSolverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+   TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule
+MUT M18 rc=1 killers=1
+   SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart
+MUT M19 rc=1 killers=1
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+MUT M20 rc=1 killers=1
+   Rf1RestorationSeam.ARowRefusalOnTheSwitchRunTakesTheSwitch
+MUT R1 rc=1 killers=1
+   RestorationBestOrder.TheLowestParentHAmongPhaseFeasibleIteratesWins
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-22T07:14:59-05:00

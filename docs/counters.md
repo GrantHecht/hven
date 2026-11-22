@@ -220,6 +220,20 @@ one of those three therefore cannot silently miss the trace.
   `nonfinite_subproblems` (M7 W2 R2): a subproblem whose data was not finite,
   refused before any kernel ran.
 
+  **THE RETRY LADDER GROUP FOLDS WHOLE** (M8 RF-1). `qp_retry_rung_shrink`,
+  `qp_retry_rung_cold`, `qp_retry_rung_algebra` and `qp_retry_rung_regularization`
+  count the rungs a routed failure took (each at most once per iterate; the set
+  resets where `qp_failures_in_a_row` resets); `qp_retry_replays` counts routed
+  failures whose outcome equalled the attempt before them and were not charged;
+  `qp_failure_box_projections` counts stagnation-stop iterates projected onto
+  their box before the retryable test; `trust_region_floor_exits` counts the
+  floor exit (`trust_region_floor`); `soc_qp_iteration_limits` counts SOC re-solves that
+  ended at their minor cap (an observation, RF-1 design 4.5). All are events of a driver's own majors and
+  fold from the restoration sub-solve on `qp_cap_retries`' argument. The sum of
+  the four rung counters equals the routed failures that changed the QP; a
+  routed failure that took no rung (the radius floor, a judged failure step) is
+  in `qp_failures_routed` only.
+
   **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
   `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
   `nonfinite_subproblems` count work and events of the sub-solve's own majors, on

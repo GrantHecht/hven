@@ -1,0 +1,3 @@
+run 45036848180 at 0ee832a62: windows success; linux-coverage success; linux-clang-release FAILURE (HsSweepCorpus.Corpus, HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep; runner dispatch OFF-REFERENCE, read 22/40 and 40); macos FAILURE (Rf1RestorationSeam.APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs)
+pinned in 3242fedfe (tests only)
+run 45049552467 at 3242fedfe: windows-clang-release success; linux-clang-release success; macos-clang-release success; linux-clang-coverage success (run conclusion: success)

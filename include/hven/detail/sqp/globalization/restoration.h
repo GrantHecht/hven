@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <deque>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -36,6 +37,48 @@ namespace hven::detail {
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
+/// The fraction of the windowed best parent h the phase must reach to stay alive: a
+/// fall of at least 10% over the window (RF-1 ruling S-1).
+inline constexpr double kRestorationStallFraction = 0.9;
+
+/// @brief The restoration phase's stall test (RF-1 ruling S-1, replacing design 4.1's fixed
+///        budget): the phase is stalled when its best parent h has not fallen by at least
+///        10% over the last `window` factorizations.
+///
+/// `observe(F, h)` is called once per measured pass with the phase's cumulative
+/// factorizations F (across the phase's runs) and that pass's parent h. The window's
+/// best is the running minimum of every h observed, so a regularized restart whose own
+/// incumbent starts higher does not undo progress. Stalled at F iff F >= window (counted
+/// from the first observation's F) and best(F) > kRestorationStallFraction * best(F -
+/// window), where best(F - window) is the best at the latest observation made at or before
+/// F - window. A NaN observation never improves the best.
+class RestorationStallWindow {
+  public:
+    explicit RestorationStallWindow(Index window) : window_(window) {}
+
+    bool observe(Index factorizations, double best_h) {
+        if (best_h < best_) {
+            best_ = best_h;
+        }
+        samples_.push_back({factorizations, best_});
+        const Index horizon = factorizations - window_;
+        while (samples_.size() >= 2 && samples_[1].factorizations <= horizon) {
+            samples_.pop_front();
+        }
+        return samples_.front().factorizations <= horizon &&
+               !(best_ <= kRestorationStallFraction * samples_.front().best_h);
+    }
+
+  private:
+    struct Sample {
+        Index factorizations;
+        double best_h;
+    };
+    Index window_;
+    double best_ = std::numeric_limits<double>::infinity();
+    std::deque<Sample> samples_;
+};
+
 /// The upper bound on a slack: none. Written as +inf, the one spelling of an
 /// absent side under every CommonOptions::infinite_bound (a finite stand-in would
 /// become a real bound under a larger threshold). The restoration sub-solve's
@@ -49,6 +92,21 @@ inline constexpr double kRestorationSlackBound = std::numeric_limits<double>::in
 /// tolerance, the most violation a converged sub-solve can leave unpriced; the driver's
 /// CERT-1 arm states the argument.
 inline constexpr double kCertificateViolationMargin = 2.0;
+
+/// @brief The restoration phase's own best order (RF-1 ruling B2), in place of the shared
+///        `best_improves` on the restoration sub-driver.
+///
+/// A phase iterate replaces the incumbent only when it is feasible for the PHASE's own
+/// problem (@p phase_violation, the sub-solve's convergence feasibility measure, at most
+/// @p feasibility_tol) and its PARENT violation @p parent_h is strictly below the
+/// incumbent's @p best_parent_h. The incumbent starts at the parent h of the phase's start,
+/// so the start itself is never handed back: a phase in which no iterate improves on it
+/// returns its last point. The shared order put the phase's own feasibility first; with
+/// nonlinear rows the exactly-feasible start then beat every later point. NaN never wins.
+inline bool restoration_best_improves(double phase_violation, double parent_h, double best_parent_h,
+                                      double feasibility_tol) {
+    return phase_violation <= feasibility_tol && parent_h < best_parent_h;
+}
 
 /// @brief The l1 FEASIBILITY PROBLEM of the restoration phase, as an NlpModel
 /// wrapping the caller's own model:
@@ -158,6 +216,13 @@ class RestorationModel final : public NlpModel {
     /// The original variables of an augmented point -- what the driver takes
     /// back out of a restoration solve.
     Vec original_x(const Vec &y) const;
+    /// The WRAPPED model's l1 row violation h at an augmented point y, read off the
+    /// wrapper's own row values @p ce and @p ci at y (no model call): the slacks' terms
+    /// are taken back out, cE = ce - sigmaE (sp - sm) and cI = ci + sigmaI si, and
+    /// h = ||cE||_1 + sum max(0, cI). The restoration phase's best order reads it
+    /// (RF-1 ruling B2). NaN in, NaN out.
+    /// @throws std::invalid_argument if a size is not the wrapper's.
+    double original_violation_l1(const Vec &y, const Vec &ce, const Vec &ci) const;
     const Vec &slack_scale_e() const;
     const Vec &slack_scale_i() const;
 

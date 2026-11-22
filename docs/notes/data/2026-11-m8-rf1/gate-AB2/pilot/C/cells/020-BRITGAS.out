@@ -1,0 +1,9 @@
+label=default+advanced.adaptive_dual_regularization_max=1e-6
+rc=0
+CELL_BEGIN
+lane=hven-sqp
+problem=BRITGAS
+options_label=default+advanced.adaptive_dual_regularization_max=1e-6
+threw=1
+exception=cutest: cannot enter .scratch/h3/decoded/BRITGAS (No such file or directory). Run scripts/decode_cutest.sh first.
+CELL_END

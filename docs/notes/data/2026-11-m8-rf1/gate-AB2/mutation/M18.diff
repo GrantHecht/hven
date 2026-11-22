@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..475e3b924 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9309,7 +9309,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             // AN EXHAUSTED LADDER INSIDE THE PHASE IS A ROUTED FAILURE FIRST (RF-1 design
+             // 4.3): its nested restoration request is always refused, so a rung left at this
+             // iterate is tried before it. The curvature switch still reads the refusal.
+-            if (is_restoration_sub_driver_ && !stop_phase_on_qp_failure_ && mj.walk_owns_this_qp &&
++            if (false && is_restoration_sub_driver_ && !stop_phase_on_qp_failure_ && mj.walk_owns_this_qp &&
+                 st.qp_failures_in_a_row < opts_.advanced.max_consecutive_qp_failures &&
+                 mj.qs.x.size() == st.qp.n() && mj.qs.x.allFinite()) {
+                 const RetryRung rung = next_rung();

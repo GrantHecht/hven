@@ -1,0 +1,4 @@
+HsSweepCorpus.Corpus
+HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+SqpLadderSeam.Rf1ARowRefusalAtAFeasibleIterateGoesElastic
+SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep

@@ -1,0 +1,47 @@
+box-lane: lane 1 acquired 2026-11-22T06:46:58-05:00
+FOREGROUND_START 2026-11-22T06:46:58-05:00 lane=1
+head 0ee832a62eb10311032730274da37868d6764985 code b4f72e5a7
+build rel rc=0
+	882 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-22T06:48:54-05:00
+libhven.a: /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/libhven.a
+nm -C /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/libhven.a | grep -c -i capture_limit:
+0
+strings(count) restoration_capture_limit in libhven.a:
+0
+mutations rc=0
+MUT control rc=0 killers=0
+MUT M1 rc=2 killers=27
+MUT M2 rc=2 killers=12
+MUT M3 rc=2 killers=8
+MUT M4 rc=1 killers=3
+MUT M5 rc=1 killers=2
+MUT M6 rc=1 killers=1
+MUT M7 rc=2 killers=4
+MUT M8 rc=2 killers=6
+MUT M9 rc=2 killers=10
+MUT M10 rc=2 killers=4
+MUT M11 rc=2 killers=5
+MUT M12 rc=1 killers=3
+MUT M13 rc=1 killers=1
+MUT M14 rc=1 killers=3
+MUT M15 rc=1 killers=1
+MUT M16 rc=1 killers=3
+MUT M17 rc=3 killers=11
+MUT M18 rc=1 killers=1
+MUT M19 rc=1 killers=1
+MUT M20 rc=1 killers=1
+MUT R1 rc=1 killers=1
+VERDICT MUTATIONS_AS_DECLARED
+build dbg rc=0
+	1634 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-22T07:26:09-05:00
+smoke rc=0
+smoke default rc=0
+export-contract default rc=0
+smoke clang rc=0
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-22T07:29:30-05:00

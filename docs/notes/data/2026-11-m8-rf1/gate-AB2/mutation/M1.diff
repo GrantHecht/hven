@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..6a32e9491 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -919,7 +919,7 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
+     const auto unused = [&](RetryRung r) { return (in.used & static_cast<std::uint8_t>(r)) == 0; };
+     // R1 only when the shrink CUTS the failed walk: its window was active, or its reach exceeds
+     // the shrunk radius. Otherwise the retry would replay the failure.
+-    if (unused(RetryRung::kShrink) && (in.window_active || in.step_inf > in.shrunk_radius)) {
++    if (unused(RetryRung::kShrink) && !(in.window_active || in.step_inf > in.shrunk_radius)) {
+         return RetryRung::kShrink;
+     }
+     // R2 only after a warm start from a non-empty working set: else the cold start IS the seed.

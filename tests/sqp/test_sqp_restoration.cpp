@@ -52,6 +52,7 @@
 #include <limits>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -571,6 +572,55 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblem) {
         EXPECT_GT(r.eval_ci(y)(0), 0.0);
         EXPECT_LT(r.eval_f(y), 4.0) << "and the objective is smaller there, which is why the "
                                        "wrapper's own constraints are what keep it honest";
+    }
+}
+
+// RF-1 RULING B2 -- THE PHASE'S OWN BEST ORDER, at its edges. A candidate wins only when it is
+// feasible for the phase (its own measure at most feas_tol, the boundary included) AND its parent
+// h is STRICTLY below the incumbent's; the phase's own feasibility never ranks, so an
+// exactly-feasible point with a larger h loses (the entry-point defect); NaN never wins.
+TEST(RestorationBestOrder, TheLowestParentHAmongPhaseFeasibleIteratesWins) {
+    const double tol = 1e-6;
+    using hven::detail::restoration_best_improves;
+    EXPECT_TRUE(restoration_best_improves(0.0, 5.0, 10.0, tol));
+    EXPECT_TRUE(restoration_best_improves(tol, 5.0, 10.0, tol)) << "the tolerance is inclusive";
+    EXPECT_FALSE(restoration_best_improves(std::nextafter(tol, 1.0), 5.0, 10.0, tol))
+        << "phase-infeasible never wins, however low its h";
+    EXPECT_FALSE(restoration_best_improves(0.0, 10.0, 10.0, tol)) << "a tie keeps the incumbent";
+    EXPECT_TRUE(restoration_best_improves(tol, std::nextafter(10.0, 0.0), 10.0, tol));
+    EXPECT_FALSE(restoration_best_improves(0.0, 10.000015, 10.0, tol))
+        << "an exactly phase-feasible point with a larger parent h loses";
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(restoration_best_improves(nan, 1.0, 10.0, tol));
+    EXPECT_FALSE(restoration_best_improves(0.0, nan, 10.0, tol));
+    EXPECT_FALSE(restoration_best_improves(0.0, 1.0, nan, tol)) << "an unset incumbent";
+    const double inf = std::numeric_limits<double>::infinity();
+    EXPECT_TRUE(restoration_best_improves(0.0, 1.0, inf, tol));
+    EXPECT_FALSE(restoration_best_improves(0.0, inf, inf, tol));
+}
+
+// ... and the parent h it ranks by, read off the wrapper's own row values with the slack terms
+// taken back out: equal to h(x) at the start (where the wrapper is exactly feasible) and at a
+// moved point, on both row kinds.
+TEST(RestorationBestOrder, TheParentViolationIsTheWrappedModelsH) {
+    CircleInequalityModel ineq;
+    InfeasibleCircleLineModel eq;
+    for (const NlpModel *m :
+         {static_cast<const NlpModel *>(&eq), static_cast<const NlpModel *>(&ineq)}) {
+        Vec x(2);
+        x << 2.0, 2.0;
+        const NlpEval ev = eval_nlp(*m, x);
+        const RestorationModel r(*m, x, ev);
+        Vec y = r.start_point();
+        EXPECT_NEAR(r.original_violation_l1(y, r.eval_ce(y), r.eval_ci(y)),
+                    constraint_violation_l1(ev), 1e-12);
+        y(0) = 0.5; // move x; the slacks stay
+        y(1) = -0.25;
+        const NlpEval ev_moved = eval_nlp(*m, r.original_x(y));
+        EXPECT_NEAR(r.original_violation_l1(y, r.eval_ce(y), r.eval_ci(y)),
+                    constraint_violation_l1(ev_moved), 1e-12);
+        EXPECT_THROW((void)r.original_violation_l1(Vec::Zero(1), r.eval_ce(y), r.eval_ci(y)),
+                     std::invalid_argument);
     }
 }
 
@@ -3604,7 +3654,7 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
 // M7 W2 P1E -- the sufficient-reduction resume's boundary and its certificate guard.
 TEST(RestorationResumeReductionOption, RefusesAFractionOutsideTheUnitIntervalByNameAndValue) {
     SqpOptions o;
-    EXPECT_DOUBLE_EQ(o.advanced.restoration_resume_reduction, 0.0) << "OFF by default";
+    EXPECT_DOUBLE_EQ(o.advanced.restoration_resume_reduction, 0.1) << "0.1 by default (RF-1)";
     for (const double bad : {-0.5, 1.0, 2.0, std::numeric_limits<double>::infinity(),
                              std::numeric_limits<double>::quiet_NaN()}) {
         o.advanced.restoration_resume_reduction = bad;

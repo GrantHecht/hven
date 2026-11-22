@@ -1,0 +1,4 @@
+attached observers: callback=off trace=off
+running f7_n20000_path_corrupted (N=20000, path, corrupted, engine walk, wall budget 3600s per phase)...
+  -> dnf_setup at the 3600s deadline
+wrote 1 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/rf1/docs/notes/data/2026-11-m8-rf1/gate-AB2-r3/census/ABr3/rows/f7_n20000_path_corrupted.csv.part

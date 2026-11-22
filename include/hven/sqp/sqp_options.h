@@ -367,14 +367,23 @@ struct SqpAdvancedOptions {
     /// reconciles them.
     bool elastic_last_optimal_rung = false;
 
-    /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off (default).
+    /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off. Default 0.1 (RF-1).
     /// At k > 0 the restoration phase also resumes at a point with
     /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
-    /// nothing (kNumericalError, or a kOptimal inside the no-claim margin).
+    /// nothing (kNumericalError, kStalled, the phase's own work limit, or a kOptimal inside
+    /// the no-claim margin); the point read is the phase's best-h point.
     /// The funnel restoration exit (KLV Sec. 3) rather than feasibility; such an
     /// entry is counted in `SqpCounters::restoration_reduction_resumes`. `validate()`
     /// refuses a value outside [0, 1) and a NaN.
-    double restoration_resume_reduction = 0.0;
+    double restoration_resume_reduction = 0.1;
+
+    /// The restoration phase's stall window, in factorizations (RF-1); >= 0, default 5000.
+    /// The phase ends when its best parent violation (over every phase iterate) has not fallen by
+    /// at least 10% over the last this-many factorizations, counted across the phase's runs. A
+    /// stalled phase ends at its best-h point; one the resume tests refuse ends the solve kStalled
+    /// beside StopReason::kRestorationWorkLimit. The caller's `common.max_factorizations` stays the
+    /// hard cap on the whole solve.
+    Index restoration_stall_factorizations = 5000;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
     /// gradient/Jacobian evaluation per rejection). False (default) offers accepted
@@ -467,6 +476,26 @@ struct SqpAdvancedOptions {
     double adaptive_dual_regularization_max = 1e-8;
 };
 
+/// @brief The acceptable tier of the SQP engine: the same four tolerances, under the same names and
+///        defaults, as `IpmTerminationOptions`'s acceptable tier.
+///
+/// The SQP never stops EARLY at an acceptable point (it has no consecutive-iterate rule). A solve
+/// that ends through a failure exit -- a subproblem the retry ladder could not rescue, or a
+/// restoration request that was refused or failed -- reports `kAcceptable` instead of
+/// `kNumericalError` or `kStalled` when the point it returns passes all four: stationarity and
+/// complementarity as the convergence test measures them, the equality and inequality (box
+/// included) residuals in caller units. Each must be >= its convergence tolerance.
+struct SqpTerminationOptions {
+    /// Acceptable-level stationarity tolerance. Default 1e-2.
+    double acceptable_stationarity_tol = 1.0e-2;
+    /// Acceptable-level equality tolerance. Default 1e-3.
+    double acceptable_equality_tol = 1.0e-3;
+    /// Acceptable-level inequality tolerance (bounds included). Default 1e-3.
+    double acceptable_inequality_tol = 1.0e-3;
+    /// Acceptable-level complementarity tolerance. Default 1e-3.
+    double acceptable_complementarity_tol = 1.0e-3;
+};
+
 /// @brief The SQP engine's factorization settings.
 struct SqpLinearOptions {
     /// When the dense factorization arm is used: `kAuto` (the default; M8 DN-3):
@@ -511,6 +540,9 @@ struct SqpOptions {
     /// The shared options, at this engine's defaults: `max_iterations` 100,
     /// `threads` 0 (leave the backend alone).
     CommonOptions common;
+
+    /// The acceptable tier a failure exit is labelled against; see SqpTerminationOptions.
+    SqpTerminationOptions termination;
 
     /// The l-infinity trust-region radius the FIRST subproblem of a solve is
     /// given. Default 1.0. Must be > 0; +inf is legal and means "no trust

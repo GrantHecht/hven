@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..fb52e886f 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7423,7 +7423,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+     case SolveStatus::kWorkLimit:
+         // THE PHASE'S STALL WINDOW (RF-1 ruling S-1) is not the caller's limit: the phase
+         // stalled, and the point it handed back did not pass the resume gates above.
+-        if (phase_stalled) {
++        if (false && phase_stalled) {
+             st.resto.status = SolveStatus::kStalled;
+             st.resto.reason = StopReason::kRestorationWorkLimit;
+             st.resto.detail.clear();

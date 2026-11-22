@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..2c0c83c57 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9244,7 +9244,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+     // refuse (budget spent, no rung left) at h > feas_tol. Decided here, ahead of the
+     // failure-step trial, because the elastic tier runs here (declared in the A+B2 gate).
+     const bool rungs_exhausted_to_elastic =
+-        mj.walk_owns_this_qp && !stop_phase_on_qp_failure_ && linearization_violated &&
++        false && mj.walk_owns_this_qp && !stop_phase_on_qp_failure_ && linearization_violated &&
+         (mj.qs.status == QpStatus::kNumericalError || mj.qs.status == QpStatus::kIterationLimit) &&
+         !e2_termination_to_elastic && !bound_refusal_to_elastic &&
+         !(st.qp_failures_in_a_row < opts_.advanced.max_consecutive_qp_failures &&

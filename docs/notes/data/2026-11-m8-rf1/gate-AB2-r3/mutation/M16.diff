@@ -1,0 +1,16 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..dd4ed57af 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8345,8 +8345,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         const double parent_h =
+             restoration_wrapper_->original_violation_l1(st.x, st.ev.ce, st.ev.ci);
+         if (std::isnan(st.resto_best_parent_h)) {
+-            st.resto_best_parent_h = parent_h;
+-        } else if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
++            st.resto_best_parent_h = std::numeric_limits<double>::infinity();
++        }
++        if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
+                                                      st.resto_best_parent_h,
+                                                      opts_.common.feasibility_tol)) {
+             resto_better = true;

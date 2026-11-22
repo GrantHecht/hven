@@ -1,0 +1,5 @@
+libhven.a: /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/libhven.a
+nm -C /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/libhven.a | grep -c -i capture_limit:
+0
+strings(count) restoration_capture_limit in libhven.a:
+0

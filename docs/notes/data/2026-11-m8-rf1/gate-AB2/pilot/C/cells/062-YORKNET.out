@@ -1,0 +1,9 @@
+label=default+qp.working_set_algebra=kRefactorize
+rc=0
+CELL_BEGIN
+lane=hven-sqp
+problem=YORKNET
+options_label=default+qp.working_set_algebra=kRefactorize
+threw=1
+exception=cutest: cannot enter .scratch/h3/decoded/YORKNET (No such file or directory). Run scripts/decode_cutest.sh first.
+CELL_END
