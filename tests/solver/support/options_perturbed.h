@@ -185,7 +185,7 @@ inline SqpOptions sqp_all_perturbed() {
     a.elastic_witness_start = true;
     a.elastic_last_optimal_rung = true;
     a.restoration_resume_reduction = 0.5;
-    a.restoration_max_factorizations = 4321;
+    a.restoration_stall_factorizations = 4321;
     a.lbfgs_update_on_reject = true;
     a.lbfgs_nonlinear_only = true;
     a.max_lbfgs_full_memory_dimension = 200;

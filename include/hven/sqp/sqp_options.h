@@ -377,12 +377,13 @@ struct SqpAdvancedOptions {
     /// refuses a value outside [0, 1) and a NaN.
     double restoration_resume_reduction = 0.1;
 
-    /// The restoration phase's own factorization budget (RF-1). Unset (default) derives
-    /// 5000 plus the factorizations the solve had spent at the phase's entry; >= 0. A phase
-    /// that spends it ends at its best-h point; one the resume tests refuse ends the solve
-    /// kStalled beside StopReason::kRestorationWorkLimit. The caller's
-    /// `common.max_factorizations` still bounds the whole solve.
-    std::optional<Index> restoration_max_factorizations;
+    /// The restoration phase's stall window, in factorizations (RF-1); >= 0, default 5000.
+    /// The phase ends when its best parent violation (over every phase iterate) has not fallen by
+    /// at least 10% over the last this-many factorizations, counted across the phase's runs. A
+    /// stalled phase ends at its best-h point; one the resume tests refuse ends the solve kStalled
+    /// beside StopReason::kRestorationWorkLimit. The caller's `common.max_factorizations` stays the
+    /// hard cap on the whole solve.
+    Index restoration_stall_factorizations = 5000;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
     /// gradient/Jacobian evaluation per rejection). False (default) offers accepted

@@ -1683,14 +1683,14 @@ TEST(Rf1RetryLadderSeam, ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothi
     EXPECT_TRUE((wide.x.array() == tight.x.array()).all());
 }
 
-// RF-1 design 4.1: the phase's own budget spent ends the phase kWorkLimit at its best-h point;
-// the parent labels it kRestorationWorkLimit (kStalled), not the caller's kWorkLimit.
-TEST(Rf1RestorationSeam, ASpentPhaseBudgetIsTheRestorationWorkLimit) {
+// RF-1 ruling S-1: a stalled phase ends kWorkLimit at its best-h point; the parent labels it
+// kRestorationWorkLimit (kStalled), not the caller's kWorkLimit. A zero window stalls at once.
+TEST(Rf1RestorationSeam, AStalledPhaseIsTheRestorationWorkLimit) {
     const SeamReset guard;
     CountingCircleLineModel model;
     SqpOptions o = quiet();
     o.common.max_iterations = 200;
-    o.advanced.restoration_max_factorizations = 0;
+    o.advanced.restoration_stall_factorizations = 0;
     const SqpResult sol =
         SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.counters.restoration_entries, 1);
@@ -1705,7 +1705,7 @@ TEST(Rf1RestorationSeam, TheCallersCeilingInsideThePhaseStaysTheWorkLimit) {
     CountingCircleLineModel model;
     SqpOptions o = quiet();
     o.common.max_iterations = 200;
-    o.advanced.restoration_max_factorizations = 100000;
+    o.advanced.restoration_stall_factorizations = 100000;
     // Unforced, this fixture enters restoration once; a ceiling reached inside the phase.
     SqpOptions probe = o;
     const SqpResult free_run =
@@ -1716,6 +1716,39 @@ TEST(Rf1RestorationSeam, TheCallersCeilingInsideThePhaseStaysTheWorkLimit) {
     const SqpResult sol =
         SqpSolver(o).solve(hven::detail::problem_ref(model2), (model2).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kWorkLimit);
+}
+
+// RF-1 ruling S-1, both edges on one phase. The circle/line phase is entered at h_in = 1.0015 and
+// certifies at h = 0.5858 in 5 majors; its parent h falls 1.0015, 0.896, 0.722, 0.5615 over
+// its first factorizations. A window of 1 factorization sees the first fall (10.5%) taken over
+// 2 and cuts the phase after one major; a window of 2 sees at least 10% in every window, so the
+// phase runs on past its window -- where design 4.1's fixed budget of the same size would have
+// cut it -- and certifies.
+TEST(Rf1RestorationSeam, APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs) {
+    const auto solve = [](Index window) {
+        const SeamReset guard;
+        CountingCircleLineModel model;
+        SqpOptions o = quiet();
+        o.common.max_iterations = 200;
+        o.advanced.restoration_stall_factorizations = window;
+        return SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    };
+    const SqpResult none = solve(0);
+    const SqpResult cut = solve(1);
+    const SqpResult alive = solve(2);
+    ASSERT_EQ(none.counters.restoration_iters, 0);
+    EXPECT_EQ(cut.status, SolveStatus::kStalled);
+    EXPECT_EQ(cut.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_EQ(cut.counters.restoration_iters, 1);
+    EXPECT_FALSE(cut.infeasibility_certified);
+    EXPECT_EQ(alive.status, SolveStatus::kInfeasible);
+    EXPECT_TRUE(alive.infeasibility_certified);
+    EXPECT_EQ(alive.counters.restoration_iters, 5);
+    EXPECT_GT(alive.counters.factorizations - none.counters.factorizations, 2)
+        << "the phase spent more than its window";
+    const double t = 1.0 / std::sqrt(2.0);
+    EXPECT_NEAR(alive.x(0), t, 1e-5);
+    EXPECT_NEAR(alive.x(1), t, 1e-5);
 }
 
 } // namespace hven

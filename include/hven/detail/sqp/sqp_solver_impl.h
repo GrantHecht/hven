@@ -376,10 +376,6 @@ struct RetryRungInputs {
 /// @brief The first rung not yet used whose skip rule does not apply; kNone when none is left.
 RetryRung choose_retry_rung(const RetryRungInputs &in);
 
-/// @brief The restoration phase's own factorization budget (RF-1 design 4.1): the configured
-///        value, else kRestorationWorkFloor plus the solve's factorizations at entry.
-Index restoration_phase_budget(const std::optional<Index> &configured, Index f_entry);
-
 /// @brief R4's primal regularization: `min(kRetryRegularizationCap, 100 * configured)`.
 double retry_regularization(double primal_regularization);
 
@@ -2159,6 +2155,14 @@ class SqpSolverImpl {
     // for the length of one sub-solve: the best tracker reads the parent's violation off it
     // (`restoration_best_improves`). Null on every other driver, which keeps the shared order.
     const RestorationModel *restoration_wrapper_ = nullptr;
+    // THE PHASE'S STALL WINDOW (RF-1 ruling S-1), owned by the parent's phase and shared by
+    // its runs; null on every other driver. `restoration_stall_offset_` is the phase's
+    // factorizations spent before this run, so the window reads the phase's cumulative count.
+    // `restoration_stall_fired_` tells the parent that this sub-solve's kWorkLimit is the
+    // stall's, not the caller's ceiling.
+    RestorationStallWindow *restoration_stall_ = nullptr;
+    Index restoration_stall_offset_ = 0;
+    bool restoration_stall_fired_ = false;
     // eval_hess calls make_warm_start's exit probe made, folded by `finish` (whose arguments
     // include that call, so the probe cannot write the result it is evaluated beside).
     Index exit_probe_hess_calls_ = 0;

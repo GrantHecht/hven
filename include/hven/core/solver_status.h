@@ -205,8 +205,9 @@ enum class StopReason {
     /// promised less than the objective's rounding floor: restoration there would be a no-op.
     /// Verdict kStalled (kAcceptable at an acceptable point). SQP.
     kTrustRegionFloor = 16,
-    /// The restoration phase spent its own factorization budget
-    /// (SqpAdvancedOptions::restoration_max_factorizations) and handed back a point the resume
+    /// The restoration phase stalled: its best violation did not fall by 10% over its stall
+    /// window (SqpAdvancedOptions::restoration_stall_factorizations) and it handed back a point the
+    /// resume
     /// gates refused. Verdict kStalled (kAcceptable at an acceptable point). SQP.
     kRestorationWorkLimit = 17,
 };

@@ -13444,13 +13444,55 @@ TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
 }
 
-// RF-1 design 4.1: the phase budget's derivation.
-TEST(Rf1RestorationBudget, UnsetDerivesTheFloorPlusTheEntryWork) {
-    using hven::detail::restoration_phase_budget;
-    EXPECT_EQ(restoration_phase_budget(std::nullopt, 0), 5000);
-    EXPECT_EQ(restoration_phase_budget(std::nullopt, 84000), 89000);
-    EXPECT_EQ(restoration_phase_budget(Index{7}, 84000), 7);
-    EXPECT_EQ(restoration_phase_budget(Index{0}, 10), 0);
+// RF-1 ruling S-1: the phase's stall window. A flat best h is cut at exactly the window; a
+// best h falling by 10% per window never is; the comparison is inclusive at the 10% mark.
+TEST(Rf1RestorationStall, AFlatBestIsCutAtTheWindowAndAFallingOneIsNot) {
+    using hven::detail::RestorationStallWindow;
+    // Flat (BRITGAS's grind at h ~ 1e-5): alive until the window has elapsed, then cut.
+    RestorationStallWindow flat(5000);
+    EXPECT_FALSE(flat.observe(0, 1e-5));
+    EXPECT_FALSE(flat.observe(2500, 0.99e-5));
+    EXPECT_FALSE(flat.observe(4999, 0.98e-5));
+    EXPECT_TRUE(flat.observe(5000, 0.97e-5));
+    // Falling 10% per 4000 factorizations (CRESC100's phase, 1.67e5 -> 7e4): never cut, long
+    // past the window.
+    RestorationStallWindow falling(5000);
+    double h = 1.67e5;
+    for (Index f = 0; f <= 40000; f += 1000) {
+        EXPECT_FALSE(falling.observe(f, h)) << "f = " << f;
+        if (f % 4000 == 3000) {
+            h *= 0.85;
+        }
+    }
+    // The 10% mark is inclusive: a best exactly 0.9 of the windowed best stays alive.
+    RestorationStallWindow mark(100);
+    EXPECT_FALSE(mark.observe(0, 1.0));
+    EXPECT_FALSE(mark.observe(100, 0.9));
+    EXPECT_TRUE(mark.observe(200, 0.9 * 0.9 * 1.0000001));
+}
+
+TEST(Rf1RestorationStall, TheBestIsARunningMinimumAndTheWindowSlides) {
+    using hven::detail::RestorationStallWindow;
+    // A restart whose incumbent starts higher does not undo progress.
+    RestorationStallWindow w(1000);
+    EXPECT_FALSE(w.observe(0, 1.0));
+    EXPECT_FALSE(w.observe(500, 0.5));
+    EXPECT_FALSE(w.observe(900, 2.0)) << "a higher observation leaves the best at 0.5";
+    // At 1500 the reference is the best at the latest observation at or before 500 (0.5).
+    EXPECT_TRUE(w.observe(1500, 0.46));
+    // A NaN never improves the best.
+    RestorationStallWindow n(10);
+    EXPECT_FALSE(n.observe(0, 1.0));
+    EXPECT_TRUE(n.observe(10, std::numeric_limits<double>::quiet_NaN()));
+    // A zero window cuts at the first observation (no fall over no work).
+    RestorationStallWindow zero(0);
+    EXPECT_TRUE(zero.observe(0, 1.0));
+    // Sliding: progress made early in the window does not keep the phase alive forever.
+    RestorationStallWindow slide(1000);
+    EXPECT_FALSE(slide.observe(0, 1.0));
+    EXPECT_FALSE(slide.observe(100, 0.5));
+    EXPECT_FALSE(slide.observe(1000, 0.5)) << "reference = best at 0 (1.0)";
+    EXPECT_TRUE(slide.observe(1100, 0.5)) << "reference = best at 100 (0.5)";
 }
 
 // RF-1 design 3.4: both conjuncts, inclusive, NaN-safe.

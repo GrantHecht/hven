@@ -344,11 +344,10 @@ void validate(const SqpOptions &opts) {
             "resumes, and 0 is OFF",
             opts.advanced.restoration_resume_reduction));
     }
-    if (opts.advanced.restoration_max_factorizations &&
-        *opts.advanced.restoration_max_factorizations < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.restoration_max_factorizations must be empty or >= 0, got {}",
-            *opts.advanced.restoration_max_factorizations));
+    if (opts.advanced.restoration_stall_factorizations < 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.restoration_stall_factorizations must be >= 0, got {}",
+                        opts.advanced.restoration_stall_factorizations));
     }
 
     // THE CURVATURE SOURCE (M7 QN stage 3): the mode must be one of the two; the

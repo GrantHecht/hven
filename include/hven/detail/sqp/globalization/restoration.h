@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <deque>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -36,10 +37,47 @@ namespace hven::detail {
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
-/// The restoration phase's own factorization budget when
-/// SqpAdvancedOptions::restoration_max_factorizations is unset: this floor plus the
-/// factorizations the solve had spent at entry (RF-1 design 4.1).
-inline constexpr Index kRestorationWorkFloor = 5000;
+/// The fraction of the windowed best parent h the phase must reach to stay alive: a
+/// fall of at least 10% over the window (RF-1 ruling S-1).
+inline constexpr double kRestorationStallFraction = 0.9;
+
+/// @brief The restoration phase's stall test (RF-1 ruling S-1, replacing design 4.1's fixed
+///        budget): the phase is stalled when its best parent h has not fallen by at least
+///        10% over the last `window` factorizations.
+///
+/// `observe(F, h)` is called once per measured pass with the phase's cumulative
+/// factorizations F (across the phase's runs) and that pass's parent h. The window's
+/// best is the running minimum of every h observed, so a regularized restart whose own
+/// incumbent starts higher does not undo progress. Stalled at F iff F >= window (counted
+/// from the first observation's F) and best(F) > kRestorationStallFraction * best(F -
+/// window), where best(F - window) is the best at the latest observation made at or before
+/// F - window. A NaN observation never improves the best.
+class RestorationStallWindow {
+  public:
+    explicit RestorationStallWindow(Index window) : window_(window) {}
+
+    bool observe(Index factorizations, double best_h) {
+        if (best_h < best_) {
+            best_ = best_h;
+        }
+        samples_.push_back({factorizations, best_});
+        const Index horizon = factorizations - window_;
+        while (samples_.size() >= 2 && samples_[1].factorizations <= horizon) {
+            samples_.pop_front();
+        }
+        return samples_.front().factorizations <= horizon &&
+               !(best_ <= kRestorationStallFraction * samples_.front().best_h);
+    }
+
+  private:
+    struct Sample {
+        Index factorizations;
+        double best_h;
+    };
+    Index window_;
+    double best_ = std::numeric_limits<double>::infinity();
+    std::deque<Sample> samples_;
+};
 
 /// The upper bound on a slack: none. Written as +inf, the one spelling of an
 /// absent side under every CommonOptions::infinite_bound (a finite stand-in would

@@ -907,10 +907,6 @@ bool detail::qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, 
     return true;
 }
 
-Index detail::restoration_phase_budget(const std::optional<Index> &configured, Index f_entry) {
-    return configured.value_or(kRestorationWorkFloor + f_entry);
-}
-
 double detail::retry_regularization(double primal_regularization) {
     return std::min(kRetryRegularizationCap, kRetryRegularizationFactor * primal_regularization);
 }
@@ -4677,6 +4673,8 @@ struct SqpSolverImpl::SolveState {
     // violation of the last captured point, or of the phase's start before any capture. NaN
     // until the first measured pass sets it.
     double resto_best_parent_h = std::numeric_limits<double>::quiet_NaN();
+    // THE PHASE'S STALL WINDOW FIRED at the last measured pass (RF-1 ruling S-1).
+    bool resto_stalled = false;
     // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
     // `events_fired == rows_pushed` is what proves nothing but `push_history`
     // fires the callback, exactly as `rows_pushed == history.size()` proves
@@ -6666,13 +6664,13 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     StopReason sub_reason = StopReason::kNone;
     std::string sub_detail;
     Index phase_run = 0;
-    // THE PHASE BUDGET (RF-1 design 4.1): `advanced.restoration_max_factorizations`, or
-    // kRestorationWorkFloor plus the factorizations this solve had spent at entry, so one phase
-    // at most doubles the solve's work plus a floor. Spent across the phase's runs.
+    // THE PHASE'S STALL WINDOW (RF-1 ruling S-1, replacing design 4.1's fixed budget): the
+    // phase is cut only when its best parent h has not fallen by at least 10% over the last
+    // `advanced.restoration_stall_factorizations` factorizations, counted across its runs.
+    // The caller's `common.max_factorizations` stays the hard cap.
     const Index phase_f_entry = st.out.counters.factorizations;
-    const Index phase_budget = detail::restoration_phase_budget(
-        opts_.advanced.restoration_max_factorizations, phase_f_entry);
-    bool phase_budget_binds = false;
+    detail::RestorationStallWindow phase_stall(opts_.advanced.restoration_stall_factorizations);
+    bool phase_stalled = false;
     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
                                bool stop_on_qp_failure) -> SqpResult {
         SqpOptions phase_opts = ropts;
@@ -6682,15 +6680,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         if (opts_.common.max_factorizations) {
             phase_opts.common.max_factorizations = std::max<Index>(
                 0, *opts_.common.max_factorizations - st.out.counters.factorizations);
-        }
-        // THE PHASE'S OWN WORK BUDGET (RF-1 design 4.1): what is left of it, when it is the
-        // smaller bound. Which bound bound decides how the parent reads a kWorkLimit.
-        const Index phase_left =
-            std::max<Index>(0, phase_budget - (st.out.counters.factorizations - phase_f_entry));
-        phase_budget_binds = !phase_opts.common.max_factorizations ||
-                             phase_left < *phase_opts.common.max_factorizations;
-        if (phase_budget_binds) {
-            phase_opts.common.max_factorizations = phase_left;
         }
         if (opts_.common.time_limit_seconds) {
             const double spent_s = std::chrono::duration<double>(std::chrono::steady_clock::now() -
@@ -6702,6 +6691,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         SqpSolverImpl sub(phase_opts, SqpSolverImpl::RestorationSubDriverTag{});
         sub.stop_phase_on_qp_failure_ = stop_on_qp_failure;
         sub.restoration_wrapper_ = &wrapper;
+        sub.restoration_stall_ = &phase_stall;
+        sub.restoration_stall_offset_ = st.out.counters.factorizations - phase_f_entry;
         // THE PHASE'S QPs ARE LEDGERED: the prefix carries this solve's entry, the phase run within
         // it (a regularized restart is a second run) and this driver's lifetime run count, so
         // labels stay unique across runs, entries and solves.
@@ -6868,6 +6859,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         SqpResult phase_result = sub.solve(wrapper, wrapper.start_point(), sub_budget);
         sub_reason = sub.last_stop_reason();
         sub_detail = sub.last_stop_detail();
+        phase_stalled =
+            phase_result.status == SolveStatus::kWorkLimit && sub.restoration_stall_fired_;
         return phase_result;
     };
     SqpResult rs = run_phase(feasibility, ropts.common.max_iterations, regularize_on_failure);
@@ -7202,7 +7195,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         box_r <= opts_.common.feasibility_tol &&
         h_r <= opts_.advanced.restoration_resume_reduction * excursion_h_in &&
         (rs.status == SolveStatus::kNumericalError || rs.status == SolveStatus::kStalled ||
-         (rs.status == SolveStatus::kWorkLimit && phase_budget_binds) ||
+         (rs.status == SolveStatus::kWorkLimit && phase_stalled) ||
          (rs.status == SolveStatus::kOptimal && !optimal_claims));
     // A STOPPED PHASE NEVER RESUMES (M8 AP-5 G2): the solve ends at the entry point
     // through the not-feasible-enough exit below, with the phase's verdict computed
@@ -7428,9 +7421,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.detail.clear();
         break;
     case SolveStatus::kWorkLimit:
-        // THE PHASE'S OWN BUDGET (RF-1 design 4.1) is not the caller's limit: the phase
+        // THE PHASE'S STALL WINDOW (RF-1 ruling S-1) is not the caller's limit: the phase
         // stalled, and the point it handed back did not pass the resume gates above.
-        if (phase_budget_binds) {
+        if (phase_stalled) {
             st.resto.status = SolveStatus::kStalled;
             st.resto.reason = StopReason::kRestorationWorkLimit;
             st.resto.detail.clear();
@@ -8342,23 +8335,36 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // callback or a stop token that can fire, on the caller's own solve only: a
     // restoration sub-solve never tracks, so the best is always a caller-space
     // iterate of the parent. Tracking copies; it never steers.
+    // THE RESTORATION SUB-DRIVER HAS ITS OWN ORDER (RF-1 ruling B2): the lowest PARENT
+    // violation among the phase's feasible iterates, strictly below the phase start's. The
+    // first measured pass is the start; it only sets the incumbent, so a phase that never
+    // improves on it hands back its last point, never its entry. The incumbent is kept
+    // whether or not the hand-back is armed: the stall window reads it too.
+    bool resto_better = false;
+    if (restoration_wrapper_ != nullptr) {
+        const double parent_h =
+            restoration_wrapper_->original_violation_l1(st.x, st.ev.ce, st.ev.ci);
+        if (std::isnan(st.resto_best_parent_h)) {
+            st.resto_best_parent_h = parent_h;
+        } else if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
+                                                     st.resto_best_parent_h,
+                                                     opts_.common.feasibility_tol)) {
+            st.resto_best_parent_h = parent_h;
+            resto_better = true;
+        }
+        // THE STALL WINDOW (RF-1 ruling S-1) reads this pass's parent h, phase-feasible or not:
+        // it is the original rows' violation at x whatever the slacks carry, so a phase whose
+        // walk-tolerance iterates are not yet capturable still shows its progress. The window
+        // keeps the running minimum.
+        if (restoration_stall_ != nullptr) {
+            st.resto_stalled = restoration_stall_->observe(
+                restoration_stall_offset_ + st.out.counters.factorizations, parent_h);
+        }
+    }
     if (st.best_armed) {
-        // THE RESTORATION SUB-DRIVER HAS ITS OWN ORDER (RF-1 ruling B2): the lowest PARENT
-        // violation among the phase's feasible iterates, strictly below the phase start's. The
-        // first measured pass is the start; it only sets the incumbent, so a phase that never
-        // improves on it hands back its last point, never its entry.
         bool better = false;
         if (restoration_wrapper_ != nullptr) {
-            const double parent_h =
-                restoration_wrapper_->original_violation_l1(st.x, st.ev.ce, st.ev.ci);
-            if (std::isnan(st.resto_best_parent_h)) {
-                st.resto_best_parent_h = parent_h;
-            } else if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
-                                                         st.resto_best_parent_h,
-                                                         opts_.common.feasibility_tol)) {
-                st.resto_best_parent_h = parent_h;
-                better = true;
-            }
+            better = resto_better;
         } else {
             better = detail::best_improves(mj.kkt.feasibility, mj.row.f, st.mb.h, st.mb.f,
                                            opts_.common.feasibility_tol);
@@ -8474,6 +8480,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // are empty by default, and an empty limit reads nothing.
     const bool work_exhausted = !mj.converged && opts_.common.max_factorizations &&
                                 st.out.counters.factorizations >= *opts_.common.max_factorizations;
+    // THE RESTORATION PHASE'S STALL (RF-1 ruling S-1), on the sub-driver only: a work limit of
+    // the phase's own, labelled for the parent by `restoration_stall_fired_`. The caller's
+    // ceiling wins the label when both hold.
+    const bool stall_exhausted = !mj.converged && !work_exhausted && st.resto_stalled;
     const bool time_exhausted =
         !mj.converged && opts_.common.time_limit_seconds &&
         std::chrono::duration<double>(std::chrono::steady_clock::now() - st.limit_clock_start)
@@ -8504,7 +8514,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         return MajorOutcome::kFinishCurrent;
     };
     if (mj.converged || st.interrupted || token_stop || probe_exhausted || work_exhausted ||
-        time_exhausted || iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
+        stall_exhausted || time_exhausted ||
+        iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
         if ((st.interrupted || token_stop) && !mj.converged) {
             return stop_exit(token_stop);
         }
@@ -8523,6 +8534,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         if (!mj.converged) {
             if (probe_exhausted || work_exhausted) {
                 st.limit_exit = SolveStatus::kWorkLimit;
+            } else if (stall_exhausted) {
+                st.limit_exit = SolveStatus::kWorkLimit;
+                restoration_stall_fired_ = true;
             } else if (time_exhausted) {
                 st.limit_exit = SolveStatus::kTimeLimit;
             }
