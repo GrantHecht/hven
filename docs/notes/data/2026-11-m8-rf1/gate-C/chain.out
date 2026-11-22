@@ -1,0 +1,36 @@
+box-lane: lane 0 acquired 2026-11-21T20:32:58-05:00
+FOREGROUND_START 2026-11-21T20:32:58-05:00 lane=0
+head 4bab38b62f0a0640a8c5c48eed18447a86f34593 code c721dc32d
+build rel rc=0
+	873 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-21T20:34:54-05:00
+mutations rc=0
+MUT control rc=0 killers=0
+MUT C1 rc=1 killers=2
+MUT C2 rc=1 killers=1
+MUT C3 rc=1 killers=1
+MUT C4 rc=1 killers=1
+MUT C5 rc=1 killers=2
+MUT C6 rc=1 killers=1
+MUT C7 rc=1 killers=1
+MUT C8 rc=1 killers=10
+MUT C9 rc=2 killers=4
+MUT C10 rc=2 killers=4
+MUT C11 rc=1 killers=1
+MUT C12 rc=1 killers=1
+MUT R1 rc=0 killers=0
+VERDICT MUTATIONS_AS_DECLARED
+build dbg rc=0
+Errors while running CTest
+rc=8
+FOREGROUND_END 2026-11-21T20:56:33-05:00
+smoke rc=0
+smoke default rc=0
+export-contract default rc=0
+smoke clang rc=0
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-21T21:00:55-05:00
+
+[exited with code 0]

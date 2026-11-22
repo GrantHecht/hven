@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index c46ae936d..4748fb225 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -920,7 +920,7 @@ bool detail::sqp_exit_is_labelable(SolveStatus status, StopReason reason) {
+ bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,
+                                   const SqpTerminationOptions &t) {
+     // Each comparison in the negation-safe form: a NaN reading fails it.
+-    return kkt.finite && kkt.stationarity <= t.acceptable_stationarity_tol &&
++    return kkt.stationarity <= t.acceptable_stationarity_tol &&
+            kkt.complementarity <= t.acceptable_complementarity_tol &&
+            feasibility_e <= t.acceptable_equality_tol &&
+            feasibility_i <= t.acceptable_inequality_tol;

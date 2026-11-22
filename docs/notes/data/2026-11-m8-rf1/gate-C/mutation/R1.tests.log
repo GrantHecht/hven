@@ -1,0 +1,202 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Rf1*:QpCap*:QpFailureStep.*:SqpSolverQpFailure.*:Continuation.ProbeBudget*
+[==========] Running 37 tests from 9 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from Continuation
+[ RUN      ] Continuation.ProbeBudgetBoundsAFailingProposal
+[       OK ] Continuation.ProbeBudgetBoundsAFailingProposal (8345 ms)
+[----------] 1 test from Continuation (8345 ms total)
+
+[----------] 2 tests from QpCapCounters
+[ RUN      ] QpCapCounters.AHealthySolveCountsNoExitAndRoutesNothing
+[       OK ] QpCapCounters.AHealthySolveCountsNoExitAndRoutesNothing (0 ms)
+[ RUN      ] QpCapCounters.TheCappedExitIsCountedApartFromANumericalOne
+[       OK ] QpCapCounters.TheCappedExitIsCountedApartFromANumericalOne (0 ms)
+[----------] 2 tests from QpCapCounters (0 ms total)
+
+[----------] 4 tests from QpCapBudget
+[ RUN      ] QpCapBudget.TheDefaultIsThreeAndOneIsTheOldGate
+[       OK ] QpCapBudget.TheDefaultIsThreeAndOneIsTheOldGate (0 ms)
+[ RUN      ] QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits
+[       OK ] QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits (0 ms)
+[ RUN      ] QpCapBudget.ARaisedBudgetChangesNothingOnASolveThatNeverFails
+[       OK ] QpCapBudget.ARaisedBudgetChangesNothingOnASolveThatNeverFails (0 ms)
+[ RUN      ] QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters
+[       OK ] QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters (0 ms)
+[----------] 4 tests from QpCapBudget (0 ms total)
+
+[----------] 6 tests from QpCapRetry
+[ RUN      ] QpCapRetry.ADoubledCapThatSufficesRecoversTheSolve
+[       OK ] QpCapRetry.ADoubledCapThatSufficesRecoversTheSolve (0 ms)
+[ RUN      ] QpCapRetry.ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo
+[       OK ] QpCapRetry.ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo (0 ms)
+[ RUN      ] QpCapRetry.AStagnationStopIsNotRetried
+[       OK ] QpCapRetry.AStagnationStopIsNotRetried (0 ms)
+[ RUN      ] QpCapRetry.OffNeverRetriesAndIsTodaysSolveExactly
+[       OK ] QpCapRetry.OffNeverRetriesAndIsTodaysSolveExactly (0 ms)
+[ RUN      ] QpCapRetry.ItChangesNothingOnASolveThatNeverHitsTheCap
+[       OK ] QpCapRetry.ItChangesNothingOnASolveThatNeverHitsTheCap (0 ms)
+[ RUN      ] QpCapRetry.EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite
+[       OK ] QpCapRetry.EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite (0 ms)
+[----------] 6 tests from QpCapRetry (1 ms total)
+
+[----------] 3 tests from QpCapValidation
+[ RUN      ] QpCapValidation.ABudgetBelowOneIsRefusedByNameAndByValue
+[       OK ] QpCapValidation.ABudgetBelowOneIsRefusedByNameAndByValue (0 ms)
+[ RUN      ] QpCapValidation.ABudgetOfOneOrMoreIsAcceptedAndBothRetryStatesAre
+[       OK ] QpCapValidation.ABudgetOfOneOrMoreIsAcceptedAndBothRetryStatesAre (0 ms)
+[ RUN      ] QpCapValidation.TheDumpCarriesBothLinesInDeclarationPosition
+[       OK ] QpCapValidation.TheDumpCarriesBothLinesInDeclarationPosition (0 ms)
+[----------] 3 tests from QpCapValidation (0 ms total)
+
+[----------] 2 tests from QpFailureStep
+[ RUN      ] QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps
+[       OK ] QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps (0 ms)
+[ RUN      ] QpFailureStep.TheDumpCarriesTheLineAfterTheCapRetry
+[       OK ] QpFailureStep.TheDumpCarriesTheLineAfterTheCapRetry (0 ms)
+[----------] 2 tests from QpFailureStep (0 ms total)
+
+[----------] 2 tests from Rf1MinorCapExit
+[ RUN      ] Rf1MinorCapExit.TheCappedExitIsStalledBesideItsOwnStopReason
+[       OK ] Rf1MinorCapExit.TheCappedExitIsStalledBesideItsOwnStopReason (0 ms)
+[ RUN      ] Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves
+[       OK ] Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves (0 ms)
+[----------] 2 tests from Rf1MinorCapExit (0 ms total)
+
+[----------] 13 tests from SqpSolverQpFailure
+[ RUN      ] SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox
+[       OK ] SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox (0 ms)
+[ RUN      ] SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+[       OK ] SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (1 ms)
+[ RUN      ] SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure
+[       OK ] SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure (1 ms)
+[ RUN      ] SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver
+[       OK ] SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver (12 ms)
+[ RUN      ] SqpSolverQpFailure.RepeatedQpNumericalErrorStillPropagates
+[       OK ] SqpSolverQpFailure.RepeatedQpNumericalErrorStillPropagates (1 ms)
+[ RUN      ] SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+[       OK ] SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves (2 ms)
+[ RUN      ] SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+[       OK ] SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath (0 ms)
+[ RUN      ] SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers
+[       OK ] SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers (0 ms)
+[ RUN      ] SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep
+[       OK ] SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep (0 ms)
+[ RUN      ] SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall
+[       OK ] SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall (0 ms)
+[ RUN      ] SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded
+[ w1 ] bound rounding status=0 majors=14 x0=1e-16 x1=0.994861768914 projections=1 nonfinite=0
+[       OK ] SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded (0 ms)
+[ RUN      ] SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates
+[       OK ] SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates (0 ms)
+[ RUN      ] SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+[       OK ] SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate (0 ms)
+[----------] 13 tests from SqpSolverQpFailure (21 ms total)
+
+[----------] 4 tests from Rf1AcceptableLabel
+[ RUN      ] Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+[       OK ] Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable (0 ms)
+[ RUN      ] Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+[       OK ] Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails (0 ms)
+[ RUN      ] Rf1AcceptableLabel.TheTierIsValidatedOnTheConvergenceTiersOrder
+[       OK ] Rf1AcceptableLabel.TheTierIsValidatedOnTheConvergenceTiersOrder (0 ms)
+[ RUN      ] Rf1AcceptableLabel.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves
+[       OK ] Rf1AcceptableLabel.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves (1 ms)
+[----------] 4 tests from Rf1AcceptableLabel (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 37 tests from 9 test suites ran. (8372 ms total)
+[  PASSED  ] 37 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpLadderSeam.*
+[==========] Running 29 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 29 tests from SqpLadderSeam
+[ RUN      ] SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+[       OK ] SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible (3 ms)
+[ RUN      ] SqpLadderSeam.L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier
+[       OK ] SqpLadderSeam.L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.L3APlainNumericalErrorKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.L3APlainNumericalErrorKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.L3AtAFeasibleIterateTheShrinkLadderStays
+[       OK ] SqpLadderSeam.L3AtAFeasibleIterateTheShrinkLadderStays (0 ms)
+[ RUN      ] SqpLadderSeam.L3TheGuardReadsTheBox
+[       OK ] SqpLadderSeam.L3TheGuardReadsTheBox (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH
+[       OK ] SqpLadderSeam.Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElasticTier
+[       OK ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep
+[       OK ] SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep (0 ms)
+[ RUN      ] SqpLadderSeam.R2ACarriedPriceIsNotACertificate
+[       OK ] SqpLadderSeam.R2ACarriedPriceIsNotACertificate (0 ms)
+[ RUN      ] SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+[       OK ] SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget (0 ms)
+[ RUN      ] SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+[ snr ] cert-one: status=1 majors=34 resto_iters=0 h_out=5.38419e-06 feas_out=5.38419e-07
+[       OK ] SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate (3 ms)
+[ RUN      ] SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+[ p1e ] reduction resume k=0: h_in=10 h_out=1.52447e-05 status=6 majors=1 resumes=0
+[ p1e ] reduction resume k=0.5: h_in=10 h_out=1.52447e-05 status=6 majors=2 resumes=1
+[       OK ] SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt (2 ms)
+[ RUN      ] SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+[       OK ] SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly (2 ms)
+[ RUN      ] SqpLadderSeam.QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow
+[       OK ] SqpLadderSeam.QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow (0 ms)
+[ RUN      ] SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+[       OK ] SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap (1 ms)
+[ RUN      ] SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap
+[       OK ] SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap (5 ms)
+[ RUN      ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
+[       OK ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel (30 ms)
+[ RUN      ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart
+[       OK ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart (6 ms)
+[ RUN      ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch
+[       OK ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch (9 ms)
+[ RUN      ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart
+[       OK ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart (17 ms)
+[ RUN      ] SqpLadderSeam.WalkCapARungOffItsRowsIsNotClosed
+[       OK ] SqpLadderSeam.WalkCapARungOffItsRowsIsNotClosed (1 ms)
+[ RUN      ] SqpLadderSeam.WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion
+[       OK ] SqpLadderSeam.WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion (2 ms)
+[ RUN      ] SqpLadderSeam.WalkCapARungOffItsRowsDoesNotStopTheEscalation
+[       OK ] SqpLadderSeam.WalkCapARungOffItsRowsDoesNotStopTheEscalation (0 ms)
+[ RUN      ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds
+[       OK ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds (18 ms)
+[ RUN      ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver
+[       OK ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver (15 ms)
+[----------] 29 tests from SqpLadderSeam (124 ms total)
+
+[----------] Global test environment tear-down
+[==========] 29 tests from 1 test suite ran. (124 ms total)
+[  PASSED  ] 29 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TraceMessagesSqp.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from TraceMessagesSqp
+[ RUN      ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem
+[       OK ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem (8 ms)
+[ RUN      ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+[       OK ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict (6 ms)
+[ RUN      ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule
+[       OK ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule (220 ms)
+[ RUN      ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters
+[       OK ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters (0 ms)
+[ RUN      ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine
+[       OK ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine (0 ms)
+[ RUN      ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter
+[       OK ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter (1 ms)
+[----------] 6 tests from TraceMessagesSqp (238 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (238 ms total)
+[  PASSED  ] 6 tests.
