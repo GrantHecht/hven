@@ -345,12 +345,32 @@ TEST(TraceMessagesSqp, SubproblemFailureLinesMatchTheExitCounters) {
             }
         }
         // RF-1: the exit is spelled kSubproblemFailure or kSubproblemIterationLimit, or, labelled
-        // kAcceptable, named in the message.
-        const bool subproblem_exit = r.stop_reason == StopReason::kSubproblemFailure ||
-                                     r.stop_reason == StopReason::kSubproblemIterationLimit ||
-                                     (r.status == SolveStatus::kAcceptable &&
-                                      r.message.find("exit subproblem_") != std::string::npos);
-        EXPECT_EQ(warnings, subproblem_exit ? 1 : 0);
+        // kAcceptable, named in the message. RF-1 A (design 3.4, declared pin move): a failed QP
+        // with no rung left at a feasible point that promised nothing ends at the trust-region
+        // floor (kTrustRegionFloor, or kAcceptable naming it); that failure ends the solve too.
+        ASSERT_FALSE(r.history.empty());
+        const bool last_qp_failed = r.history.back().sqp.has_value() &&
+                                    r.history.back().sqp->qp_status.has_value() &&
+                                    *r.history.back().sqp->qp_status != QpStatus::kOptimal;
+        const bool floor_exit_on_a_failed_qp =
+            last_qp_failed && (r.stop_reason == StopReason::kTrustRegionFloor ||
+                               (r.status == SolveStatus::kAcceptable &&
+                                r.message.find("exit trust_region_floor") != std::string::npos));
+        const bool subproblem_exit =
+            r.stop_reason == StopReason::kSubproblemFailure ||
+            r.stop_reason == StopReason::kSubproblemIterationLimit ||
+            (r.status == SolveStatus::kAcceptable &&
+             r.message.find("exit subproblem_") != std::string::npos) ||
+            floor_exit_on_a_failed_qp ||
+            // RF-1 A (declared pin move): budget 1 now routes its first
+            // failure through the ladder to the floor and restoration,
+            // whose sub-solve ends on ITS failed QP -- the warning is the
+            // sub-solve's, and the parent says so in its message.
+            (r.stop_reason == StopReason::kRestorationFailed &&
+             r.message.find("its QP subproblem failed") != std::string::npos);
+        EXPECT_EQ(warnings, subproblem_exit ? 1 : 0)
+            << "budget " << budget << " status " << static_cast<int>(r.status) << " stop "
+            << static_cast<int>(r.stop_reason) << " message " << r.message;
     }
 }
 

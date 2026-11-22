@@ -187,7 +187,8 @@ The research tier (`advanced.`, including `advanced.ipqp.`): these fields may ch
 | `advanced.equality_basis` | `bool` | `true` | true or false | Split the equality rows into an independent set and a dependent set; every QP carries only the independent set. |
 | `advanced.elastic_witness_start` | `bool` | `false` | true or false | Start each elastic walk rung at the feasible witness point. |
 | `advanced.elastic_last_optimal_rung` | `bool` | `false` | true or false | A ladder rung that fails above a solved rung reports the solved rung instead. |
-| `advanced.restoration_resume_reduction` | `double` | `0` | [0, 1) | Sufficient-reduction resume fraction of the entry violation. 0 is off. |
+| `advanced.restoration_resume_reduction` | `double` | `0.1` | [0, 1) | Sufficient-reduction resume fraction of the entry violation. 0 is off. |
+| `advanced.restoration_max_factorizations` | `optional<Index>` | `unset` | unset, or >= 0 | The restoration phase's own factorization budget; unset derives 5000 plus the solve's factorizations at entry. |
 | `advanced.lbfgs_update_on_reject` | `bool` | `false` | true or false | Under kLbfgsDamped, also offer the pair of a rejected trial. |
 | `advanced.lbfgs_nonlinear_only` | `bool` | `false` | true or false | Under kLbfgsDamped, let B act on the nonlinear variables only. |
 | `advanced.max_lbfgs_full_memory_dimension` | `Index` | `400` | >= 0 | Under kLbfgsDamped, a full-memory damped BFGS replaces the L-BFGS window at or below this dimension. 0 is never. |

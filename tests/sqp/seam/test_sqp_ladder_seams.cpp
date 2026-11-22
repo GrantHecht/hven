@@ -524,9 +524,13 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
 }
 
 // A JUDGED, REJECTED FAILURE STEP IS NOT CHARGED TO THE BUDGET (R2 review, RIDER-5).
-// Three forced failures keep the walk's solved step p = Delta at x = 0: at Delta = 1
-// and 0.5 the trial raises f (rejected, routed, uncharged); at 0.25 it lowers f and is
-// taken. With the step off the same three failures are a charged run of three.
+// Three forced failures keep the walk's solved step p = Delta at x = 0. RF-1 A (declared pin
+// move, design 3.1): the retry ladder takes R1 once (Delta 1 -> 0.5), then R3 (the other
+// algebra) at the SAME radius, whose forced failure is the attempt before it again -- a replay,
+// counted and not charged (interpretation 1). So every trial (Delta = 1, 0.5, 0.5) raises f and
+// is rejected, routed and uncharged; the third failure has no rung left and the floor rule sends
+// the iterate to restoration, which converges at once and hands back to a solve that finishes.
+// With the step off the same three failures charge two (the replay is not charged).
 TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
     for (const bool on : {true, false}) {
         SCOPED_TRACE(on ? "qp_failure_step on" : "qp_failure_step off");
@@ -542,15 +546,18 @@ TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
         ASSERT_EQ(Seam::forced, 3);
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 1.0 / std::sqrt(30.0), 1e-6);
+        EXPECT_EQ(sol.counters.qp_retry_rung_shrink, 1);
+        EXPECT_EQ(sol.counters.qp_retry_rung_algebra, 1);
+        EXPECT_EQ(sol.counters.qp_retry_replays, 1);
+        EXPECT_EQ(sol.counters.restoration_entries, 1);
+        EXPECT_EQ(sol.counters.qp_failures_routed, 3);
         if (on) {
             EXPECT_EQ(sol.counters.qp_failure_steps_judged, 3);
-            EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
-            EXPECT_EQ(sol.counters.qp_failures_routed, 2) << "the two rejections are routed";
-            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 0) << "and never charged";
+            EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 0);
+            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 0) << "rejections are never charged";
         } else {
             EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
-            EXPECT_EQ(sol.counters.qp_failures_routed, 3);
-            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 3);
+            EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 2) << "the replay is not charged";
         }
     }
 }
@@ -624,7 +631,7 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     SpreadMissModel model;
     SqpOptions o = quiet();
     o.common.max_iterations = 200;
-    o.advanced.max_consecutive_qp_failures = 1000; // the shrink ladder runs to the floor
+    o.advanced.max_consecutive_qp_failures = 1000; // every failure is routed
     SqpSolver driver(o);
     // The nesting depth of every row event, in order: the sub-solve's rows arrive at depth 1.
     std::vector<Index> depths;
@@ -672,12 +679,16 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // THE CLAIM IS WITHHELD: no certificate and no kInfeasible at a point this
     // solve's own convergence test calls feasible.
     EXPECT_FALSE(sol.infeasibility_certified);
-    // RF-1 (declared pin move): the no-claim exit at a point inside the acceptable tier is labelled
-    // kAcceptable (was kNumericalError); the point and the withheld claim are unchanged.
-    EXPECT_EQ(sol.status, SolveStatus::kAcceptable);
+    // RF-1 A (declared pin move, design 3.1; was kAcceptable at C, kNumericalError before): the
+    // resumed solve's failed QPs no longer exhaust a shrink ladder into a refused second request.
+    // With the rungs spent at a violated linearization they go to the elastic tier, whose steps
+    // finish the solve at the restored point: kOptimal by the convergence test's own inf-norm
+    // reading -- the same reading that resumed it. The claim is still withheld.
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal) << sol.message;
     EXPECT_EQ(sol.stop_reason, StopReason::kNone);
-    EXPECT_NE(sol.message.find("exit restoration_"), std::string::npos) << sol.message;
-    EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0) << "the option is off";
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.restoration_reduction_resumes, 0)
+        << "a feasible resume, not a reduction";
 }
 
 // M7 W2 P1E -- THE SUFFICIENT-REDUCTION RESUME. The model above, entered at x0 = (1, 1)
@@ -784,9 +795,12 @@ TEST(SqpLadderSeam, Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly) {
 // slack sits at 2.5e-7 -- INSIDE feas_tol of its zero bound. ACOPR57's shape under a QN arm
 // (nonlinear-only, m = 50): the sub-solve read every slack as bound-active, converged at its
 // major 0 with zero multipliers, and the parent certified kInfeasible on a feasible problem.
-// The first kFails walk QPs are forced to fail and every failure halves the radius, so the
-// last one crosses trust_region_min and restoration is entered at the start point; the restart
-// radius (0.1) leaves the resumed solve room above the floor. Both curvature sources.
+// The first walk QP is forced to fail and trust_region_min sits above half the initial radius, so
+// the retry ladder's R1 crosses the floor and restoration is entered at the start point; the
+// restart radius (max(trust_region_min, 0.1 x)) is the floor itself, and the resumed solve's QPs
+// all succeed. Both curvature sources. RF-1 A (declared re-premise, design 3.1): the old premise
+// -- seven forced failures, each halving the radius down to a floor of 0.01 -- no longer reaches
+// restoration at the start point, since the ladder has four rungs and then goes elastic.
 namespace {
 QpAsNlpModel steep_line_model(const Vec &x0) {
     QpProblem qp;
@@ -810,7 +824,7 @@ QpAsNlpModel steep_line_model(const Vec &x0) {
 TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
     constexpr double kOff = 2.5e-7;
     constexpr double kSigma = 100.0; // max(1, ||grad cE||inf) at the entry
-    constexpr int kFails = 7;        // 1 / 2^7 < trust_region_min = 0.01 <= 1 / 2^6
+    constexpr int kFails = 1;        // R1's shrink 1 -> 0.5 crosses trust_region_min = 0.75
     for (const SqpHessianMode mode : {SqpHessianMode::kExact, SqpHessianMode::kLbfgsDamped}) {
         SCOPED_TRACE(mode == SqpHessianMode::kExact ? "exact" : "lbfgs");
         const SeamReset guard;
@@ -820,8 +834,7 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         SqpOptions o = quiet();
         o.hessian_mode = mode;
         o.trust_region_initial = 1.0;
-        o.trust_region_min = 0.01;
-        o.advanced.max_consecutive_qp_failures = 1000; // the shrink ladder runs to the floor
+        o.trust_region_min = 0.75;
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
@@ -1061,11 +1074,12 @@ TEST(SqpLadderSeam, UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch) 
 }
 
 // THE SWITCH'S SECOND TRIGGER (M7 W2 RST rider M1). The phase's first walk subproblem is
-// forced kInfeasible and its elastic ladder exhausted, so the sub-solve raises the NESTED
-// restoration request, which a phase never services. Under kModel that refusal ends the
-// sub-solve numerical_error, and the solve with it, no claim made. Under
-// kModelThenRegularized the refusal is the switch: the phase restarts from the unmoved
-// iterate on the regularized model and certifies the same infeasible point.
+// forced kInfeasible and its elastic ladder exhausted. Under kModelThenRegularized the
+// refusal of the nested request is the switch: the phase restarts from the unmoved iterate on
+// the regularized model and certifies the same infeasible point. RF-1 B2 (declared pin move,
+// design 4.3): under kModel the exhausted ladder is now a routed failure inside the phase -- a
+// rung is left at that iterate, so the phase goes on and certifies the same point (was: the
+// nested request refused, numerical_error, no claim).
 TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart) {
     for (const auto curvature :
          {SqpRestorationCurvature::kModelThenRegularized, SqpRestorationCurvature::kModel}) {
@@ -1085,20 +1099,11 @@ TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedResta
         EXPECT_GE(sol.counters.elastic_activations, 1) << "the elastic tier ran first";
         EXPECT_EQ(sol.counters.restoration_entries, 1);
         EXPECT_EQ(sol.counters.restoration_curvature_switches, switches ? 1 : 0);
-        if (switches) {
-            EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
-            EXPECT_TRUE(sol.infeasibility_certified);
-            const double t = 1.0 / std::sqrt(2.0);
-            EXPECT_NEAR(sol.x(0), t, 1e-5);
-            EXPECT_NEAR(sol.x(1), t, 1e-5);
-        } else {
-            EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
-            EXPECT_FALSE(sol.infeasibility_certified);
-            // The refused nested request ended the SUB-SOLVE numerical_error (M8 B5).
-            EXPECT_EQ(sol.message,
-                      "numerical error: the feasibility restoration sub-solve failed: a "
-                      "restoration request inside it could not be serviced");
-        }
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
         EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
     }
 }
