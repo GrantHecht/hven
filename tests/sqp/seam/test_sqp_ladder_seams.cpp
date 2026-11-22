@@ -643,6 +643,35 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
         IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
+    std::printf(
+        "[ snr ] cert-one premise: status=%d reason=%d majors=%ld routed=%ld rungs=%ld/%ld/%ld/%ld "
+        "elastic=%ld resto=%ld floor=%ld x=(%.9g, %.9g)\n",
+        static_cast<int>(sol.status), static_cast<int>(sol.stop_reason),
+        static_cast<long>(sol.counters.major_iters),
+        static_cast<long>(sol.counters.qp_failures_routed),
+        static_cast<long>(sol.counters.qp_retry_rung_shrink),
+        static_cast<long>(sol.counters.qp_retry_rung_cold),
+        static_cast<long>(sol.counters.qp_retry_rung_algebra),
+        static_cast<long>(sol.counters.qp_retry_rung_regularization),
+        static_cast<long>(sol.counters.elastic_activations),
+        static_cast<long>(sol.counters.restoration_entries),
+        static_cast<long>(sol.counters.trust_region_floor_exits), sol.x(0), sol.x(1));
+    // RF-1 A+B2 (declared, CONFIG-SPLIT): the after-rungs elastic route now answers every routed
+    // failure, and whether a ladder comes back unusable before x0 reaches 0 is decided by the last
+    // bits. Release (the reference build): 58 majors, 29 routed (R1 once, R3 28 times), one
+    // restoration at x0 = 2.3e-6 -- the premise below. Debug: 46 majors, 23 routed, the elastic
+    // steps alone carry x0 to 1.1e-12 and the solve converges without a restoration. Both end
+    // kOptimal with no claim; only the reference build reaches the premise, and the Debug route is
+    // pinned as read.
+#ifndef NDEBUG
+    if (sol.counters.restoration_entries == 0) {
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal) << sol.message;
+        EXPECT_FALSE(sol.infeasibility_certified);
+        EXPECT_GE(sol.counters.elastic_activations, 1);
+        EXPECT_LE(std::abs(sol.x(0)), 1e-9);
+        return;
+    }
+#endif
     // THE PREMISE: one restoration, its sub-solve converged at a point whose rows are
     // each inside feas_tol (inf) while their l1 sum is not.
     ASSERT_EQ(sol.counters.restoration_entries, 1);

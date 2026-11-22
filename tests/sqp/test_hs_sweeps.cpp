@@ -1160,8 +1160,14 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // RF-1 A+B2 (declared mover): 23/30 -> 22/40. The arm's failing chain at p = 1 (the LICQ
     // point) now takes the retry rungs and a restoration before the same kNumericalError; the
     // status, the stop point and every objective are unchanged (section (1) and (3b) hold).
+    // CONFIG-SPLIT: Debug reads 21/39.
+#ifdef NDEBUG
     EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#else
+    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#endif
     // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
     // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
     // full step, on the warm arm. This problem is rank-deficient at its solution
@@ -1431,11 +1437,11 @@ void check_soc_costs_what_it_costs() {
     // withdrawn: it came from the two-sided read of a working inequality row; read one-sided the
     // corpus total is bit-identical to the base before kopt-1x.
     // RF-1 A+B2 (declared mover): Release 3355 -> 3406, all of it HS15's warm arms (the rungs and
-    // the restoration of the failing chain at p = 1); Debug re-measured at the gate.
+    // the restoration of the failing chain at p = 1); Debug 3346 -> 3392.
 #ifdef NDEBUG
     EXPECT_EQ(3406, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3346, total_minors) << corpus_table();
+    EXPECT_EQ(3392, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1626,13 +1632,20 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // re-solve from it converges in 0 majors with every residual 0: x1 at its bound 0.5, both
     // swept rows slack) -- and the sweep reaches p1 = 1.5 there (f = 0.25 at p = 1.25 and 1.5,
     // 0 majors each). So the step arm no longer stops where the held-off arm does, and the old
-    // "same answers, same status count" pin is replaced by this reading. Release 43 / 149 / 64 / 6;
-    // Debug re-measured at the gate.
+    // "same answers, same status count" pin is replaced by this reading. CONFIG-SPLIT: Release
+    // held off 40 majors, step arm 43 / 149 / 64 / 6; Debug held off 39, step arm 42 / 142 / 58 /
+    // 4, and its stop near the origin reads f = 1.00343 (Release 1.00378): where the failing chain
+    // stops on the singular branch is a rounding matter, so the stop is pinned to its
+    // neighbourhood.
+#ifdef NDEBUG
     EXPECT_EQ(off.majors, 40);
+#else
+    EXPECT_EQ(off.majors, 39);
+#endif
     EXPECT_EQ(off.status_failures, 1);
     EXPECT_FALSE(off.reached_p1);
     ASSERT_EQ(off.fvals.size(), 5u);
-    EXPECT_NEAR(off.fvals[4], 1.003784785, 1e-6);
+    EXPECT_NEAR(off.fvals[4], 1.0, 1e-2) << "the failing chain stops next to the origin";
 #if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
@@ -1642,7 +1655,10 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     EXPECT_EQ(on.factorizations, 64);
     EXPECT_EQ(on.rejected, 6);
 #else
-    hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
+    EXPECT_EQ(on.majors, 42);
+    EXPECT_EQ(on.minors, 142);
+    EXPECT_EQ(on.factorizations, 58);
+    EXPECT_EQ(on.rejected, 4);
 #endif
 #endif
     EXPECT_EQ(on.status_failures, 0);

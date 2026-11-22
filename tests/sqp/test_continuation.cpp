@@ -1241,7 +1241,14 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // E2 fix6 (declared mover): 200 -> 18 on MKL -- the grey re-read (R-E)
     // reads the cap-pinned QPs' converged grey admissions dependent; majors,
     // minors and statuses unchanged. Accelerate UNOBSERVED.
-    EXPECT_EQ(off.steps[1].counters.factorizations, 559)
+    // RF-1 A+B2: CONFIG-SPLIT at the 200 cap -- Release 559, Debug 501 (the restoration phase's
+    // factorizations; majors, minors and the status agree).
+#ifdef NDEBUG
+    constexpr Index kArmAFactorizations = 559;
+#else
+    constexpr Index kArmAFactorizations = 501;
+#endif
+    EXPECT_EQ(off.steps[1].counters.factorizations, kArmAFactorizations)
         << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
            "re-adjudicated as M3-2)\n"
         << trajectory(off);
