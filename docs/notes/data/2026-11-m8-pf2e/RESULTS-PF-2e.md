@@ -53,7 +53,7 @@ threshold; a STEADY q >= 0.5 cannot reach kDepTol in the budget, which is what t
 | P2 TRAIN on E2 | **0 status movers, 0 path movers, 42 counter-only movers, 0 missing/capped, NO_LOST_FLIP**; L re-take = pf2d's L row for row (0 movers) (`gate/train-r1/`) |
 | P3 PF-2 re-measure | determinism: 56 arm x cell rows identical over three rounds; CONTROL_OK (newL re-take = PF-2d newL on counters and tally, instructions within 0.0004 %); table below (`measure/analysis.txt`) |
 | P4 mutations (rel tree) | control clean, **9/9 killed**: P1 (q threshold 0.01) by the ACOPR57 seam test; P2 (2.0) by 4; P3, P4, P5, P6, P7, P8, P9 each by named tests (`gate/mutation-E2.out`) |
-| CI | run 44961522205 at `2e5ae778d` (code = final): see hand-back |
+| CI | run **44961522205** at `2e5ae778d` (code and tests of the final head; later commits are docs/evidence only): **all four lanes green** (windows-clang-release, macos-clang-release, linux-clang-coverage, linux-clang-release) |
 
 ### TRAIN instruction ratios (hven-sqp, 238 rows x D/K; co-run, instructions only)
 
@@ -107,8 +107,8 @@ grey re-read plus the bordered detector solves.
 
 ## 6. Open items / not run
 
-- Accelerate and Windows: CI only (run in the hand-back). HOLDOUT not run. Replay not a leg here. `f7_n10000_path_physics` not run.
+- Accelerate and Windows: CI only (green, run 44961522205); no Accelerate value is quoted here. HOLDOUT not run. Replay not a leg here. `f7_n10000_path_physics` not run.
 - The border path's stagnant-then-collapse refinement (NET1) is observed, not explained beyond "the Schur-complement solve's
   refinement is not a steady contraction"; its mechanism inside the Schur solve is UNOBSERVED.
 - Scratch (git-ignored, not committed): `.scratch/diag` (diag tree), `.scratch/dlog` (36 MB raw event logs), the scratch lane binary
-  `.scratch/bin/diag` (pin `adf11f94c`, local branch `pf2e-diag-scratch`, never pushed), private hven-bench clone `.scratch/hb`.
+  `.scratch/bin/diag` (pin `adf11f94c`, its local branch deleted after use, never pushed), private hven-bench clone `.scratch/hb`.
