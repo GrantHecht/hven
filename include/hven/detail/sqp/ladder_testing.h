@@ -38,6 +38,11 @@ struct SqpLadderSeam {
     static inline bool as_bound_refusal = false;
     /// Stamp the exit as a certificate row-half refusal (`certificate_row_refusals` = 1).
     static inline bool as_row_refusal = false;
+    /// RF-1: stamp the exit as a stagnation stop (`stagnation_stops` = 1).
+    static inline bool as_stagnation_stop = false;
+    /// RF-1: zero the exit's minor and factorization counts, so two forced exits at the same
+    /// forced point carry equal fingerprints (the replay guard's fixture).
+    static inline bool as_replay = false;
     /// How many exits were forced (read by the test).
     static inline int forced = 0;
     /// THE RESTORATION SUB-DRIVER'S OWN (M7 W2 RST): how many of ITS kOptimal walk
@@ -80,6 +85,8 @@ struct SqpLadderSeam {
         as_e2_termination = true;
         as_bound_refusal = false;
         as_row_refusal = false;
+        as_stagnation_stop = false;
+        as_replay = false;
         forced = 0;
         fail_restoration_walk_qps = 0;
         exhaust_restoration_elastic = 0;

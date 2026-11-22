@@ -13361,7 +13361,7 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                                     SolveStatus::kWorkLimit,      SolveStatus::kTimeLimit};
     int labelable = 0;
     for (const SolveStatus s : statuses) {
-        for (int r = 0; r <= static_cast<int>(StopReason::kSubproblemIterationLimit); ++r) {
+        for (int r = 0; r <= static_cast<int>(StopReason::kTrustRegionFloor); ++r) {
             const auto reason = static_cast<StopReason>(r);
             const bool expect =
                 (s == SolveStatus::kNumericalError &&
@@ -13369,13 +13369,97 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                   reason == StopReason::kRestorationRefused ||
                   reason == StopReason::kRestorationFailed ||
                   reason == StopReason::kRestorationNoClaim)) ||
-                (s == SolveStatus::kStalled && reason == StopReason::kSubproblemIterationLimit);
+                (s == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
+                                                reason == StopReason::kTrustRegionFloor));
             EXPECT_EQ(sqp_exit_is_labelable(s, reason), expect)
                 << to_string(s) << " / " << to_string(reason);
             labelable += expect ? 1 : 0;
         }
     }
-    EXPECT_EQ(labelable, 5);
+    EXPECT_EQ(labelable, 6);
+}
+
+// RF-1 design 3.1: each rung's skip rule, and the order.
+TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
+    using hven::detail::choose_retry_rung;
+    using hven::detail::RetryRung;
+    using hven::detail::RetryRungInputs;
+    const auto bit = [](RetryRung r) { return static_cast<std::uint8_t>(r); };
+    RetryRungInputs in;
+    in.shrunk_radius = 1.0;
+    in.primal_regularization = 1e-8;
+    // R1: taken when the window was active, or when the failed reach exceeds the shrunk radius.
+    in.window_active = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kShrink);
+    in.window_active = false;
+    in.step_inf = 1.5;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kShrink);
+    in.step_inf = 1.0; // at the shrunk radius: the shrink cuts nothing
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kAlgebra);
+    // R2: only after a warm start from a non-empty working set.
+    in.warm_nonempty = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kCold);
+    in.used = bit(RetryRung::kCold);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kAlgebra);
+    // R3: always, once, on a walk failure.
+    in.used |= bit(RetryRung::kAlgebra);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kNone) << "R4 needs a dependent/zero-motion exit";
+    // R4: after a dependent-blocker or zero-motion termination, when the raise changes the value.
+    in.dependent_or_zero_motion = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kRegularization);
+    in.primal_regularization = 1e-4; // already at the cap
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kNone);
+    in.primal_regularization = 1e-8;
+    in.used |= bit(RetryRung::kRegularization);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kNone);
+    // A tier failure takes neither R3 nor R4.
+    RetryRungInputs tier;
+    tier.walk_owned = false;
+    tier.dependent_or_zero_motion = true;
+    tier.primal_regularization = 1e-8;
+    tier.shrunk_radius = 1.0;
+    EXPECT_EQ(choose_retry_rung(tier), RetryRung::kNone);
+    // A used R1 is skipped even when it would cut.
+    RetryRungInputs used;
+    used.window_active = true;
+    used.used = bit(RetryRung::kShrink);
+    EXPECT_EQ(choose_retry_rung(used), RetryRung::kAlgebra);
+    EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-8), 1e-6);
+    EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
+}
+
+// RF-1 design 3.4: both conjuncts, inclusive, NaN-safe.
+TEST(Rf1TrustRegionFloor, TheExitNeedsAFeasiblePointAndANoiseLevelPromise) {
+    using hven::detail::trust_region_floor_exit_applies;
+    const double eps = std::numeric_limits<double>::epsilon();
+    const double f = -7.1e6;
+    const double noise = 100.0 * eps * std::abs(f);
+    EXPECT_TRUE(trust_region_floor_exit_applies(1e-9, 1e-6, f, noise));
+    EXPECT_TRUE(trust_region_floor_exit_applies(1e-6, 1e-6, f, -1.0));
+    EXPECT_FALSE(trust_region_floor_exit_applies(1e-6, 1e-6, f, 2.0 * noise));
+    EXPECT_FALSE(trust_region_floor_exit_applies(2e-6, 1e-6, f, 0.0));
+    EXPECT_TRUE(trust_region_floor_exit_applies(0.0, 1e-6, 0.5, 100.0 * eps));
+    EXPECT_FALSE(trust_region_floor_exit_applies(0.0, 1e-6, 0.5, 101.0 * eps));
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(trust_region_floor_exit_applies(nan, 1e-6, f, 0.0));
+    EXPECT_FALSE(trust_region_floor_exit_applies(0.0, 1e-6, f, nan));
+}
+
+// RF-1 design 3.2: the projection onto the box, window included where it meets it.
+TEST(Rf1BoxProjection, TheIterateLandsInsideTheWindowedBox) {
+    QpProblem qp;
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec::Constant(3, 10.0);
+    qp.lower(2) = 5.0; // the window [-1, 1] around clamp(0) = 5 is [4, 6] -> [5, 6]
+    qp.H = SpMatRM(3, 3);
+    qp.g = Vec::Zero(3);
+    Vec x(3);
+    x << 0.5, -3.0, 7.0;
+    EXPECT_TRUE(hven::detail::project_onto_subproblem_box(qp, 1.0, x));
+    EXPECT_DOUBLE_EQ(x(0), 0.5);
+    EXPECT_DOUBLE_EQ(x(1), -1.0);
+    EXPECT_DOUBLE_EQ(x(2), 6.0);
+    EXPECT_FALSE(hven::detail::project_onto_subproblem_box(qp, 1.0, x));
 }
 
 TEST(Rf1AcceptableLabel, EachTierIsReadInclusivelyAndANanFails) {

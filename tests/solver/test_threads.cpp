@@ -462,7 +462,7 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // PF-2b appended the twelve `backend_solve*` tally counters; 125 since M8 PF-5 appended
 // `symbolic_analysis_reuses`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 125 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 132 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -586,6 +586,13 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, backend_solve_refine_polish);
     HVEN_EXPECT_SAME(a, b, backend_solve_refine_border_refine);
     HVEN_EXPECT_SAME(a, b, symbolic_analysis_reuses);
+    HVEN_EXPECT_SAME(a, b, qp_retry_rung_shrink);
+    HVEN_EXPECT_SAME(a, b, qp_retry_rung_cold);
+    HVEN_EXPECT_SAME(a, b, qp_retry_rung_algebra);
+    HVEN_EXPECT_SAME(a, b, qp_retry_rung_regularization);
+    HVEN_EXPECT_SAME(a, b, qp_retry_replays);
+    HVEN_EXPECT_SAME(a, b, qp_failure_box_projections);
+    HVEN_EXPECT_SAME(a, b, trust_region_floor_exits);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

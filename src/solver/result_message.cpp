@@ -160,6 +160,10 @@ std::string sqp_status_message(const SqpResult &result, StopReason reason,
             return "stalled: the QP subproblem reached its minor-iteration cap and its retry "
                    "budget was spent";
         }
+        if (reason == StopReason::kTrustRegionFloor) {
+            return "stalled: the trust region reached its floor at a feasible point whose rejected "
+                   "steps promised less than the objective's rounding floor";
+        }
         return "stalled: the iteration stopped making progress";
     case SolveStatus::kDiverging:
         return "diverging: the iterates grew without bound";

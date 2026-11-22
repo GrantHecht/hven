@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -349,11 +350,52 @@ SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &
 ///         kInfeasible, which are answers rather than failures.
 bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol);
 
+/// @brief The retry ladder's rungs (RF-1 design 3.1), in the order they are tried; a bit set.
+enum class RetryRung : std::uint8_t {
+    kNone = 0,
+    kShrink = 1,         ///< R1: radius x kTrShrinkFactor, seed = the failed working set.
+    kCold = 2,           ///< R2: no seed, radius unchanged.
+    kAlgebra = 4,        ///< R3: the other working-set algebra on a dedicated walk engine.
+    kRegularization = 8, ///< R4: primal regularization x kRetryRegularizationFactor.
+};
+inline constexpr double kRetryRegularizationFactor = 100.0;
+inline constexpr double kRetryRegularizationCap = 1e-4;
+
+/// @brief What the rung choice reads off one failed walk solve (RF-1 design 3.1).
+struct RetryRungInputs {
+    std::uint8_t used = 0;      ///< Rungs already taken at this iterate (RetryRung bits).
+    bool window_active = false; ///< The failed solve's trust-region window was active.
+    double step_inf = 0.0;      ///< ||qs.x||_inf of the failed solve (0 when unusable).
+    double shrunk_radius = 0.0; ///< The radius R1 would shrink to.
+    bool warm_nonempty = false; ///< The failed solve started from a non-empty working set.
+    bool walk_owned = true;     ///< The walk answered the failed subproblem.
+    bool dependent_or_zero_motion = false; ///< A dependent-blocker or zero-motion termination.
+    double primal_regularization = 0.0;    ///< The configured primal regularization.
+};
+
+/// @brief The first rung not yet used whose skip rule does not apply; kNone when none is left.
+RetryRung choose_retry_rung(const RetryRungInputs &in);
+
+/// @brief R4's primal regularization: `min(kRetryRegularizationCap, 100 * configured)`.
+double retry_regularization(double primal_regularization);
+
+/// @brief The trust-region floor exit's conjuncts (RF-1 design 3.4): the convergence test's
+///        feasibility within @p feasibility_tol and the last rejected step's predicted decrease
+///        at most `kNoiseFloorFactor * eps * max(1, |f|)`. A NaN on either side refuses.
+bool trust_region_floor_exit_applies(double feasibility, double feasibility_tol, double f,
+                                     double pred);
+
+/// @brief Project a failed subproblem's iterate onto its box, the trust-region window
+///        `[-window, window]` included where it meets the box (RF-1 design 3.2).
+/// @return True when any coordinate moved.
+bool project_onto_subproblem_box(const QpProblem &qp, double window, Vec &x);
+
 /// @brief May a top-level exit with @p status and @p reason be labelled kAcceptable (RF-1)?
 /// @return True for the failure exits the label is defined over: kNumericalError beside
 ///         kSubproblemFailure, kRestorationRefused, kRestorationFailed or kRestorationNoClaim, and
-///         kStalled beside kSubproblemIterationLimit. False for every other pair -- the limits,
-///         interrupts, kInfeasible and the non-finite exits name a cause the caller acts on.
+///         kStalled beside kSubproblemIterationLimit or kTrustRegionFloor. False for every other
+///         pair -- the limits, interrupts, kInfeasible and the non-finite exits name a cause the
+///         caller acts on.
 bool sqp_exit_is_labelable(SolveStatus status, StopReason reason);
 
 /// @brief Does a returned point pass SqpOptions::termination's acceptable tier (RF-1)?
@@ -1653,6 +1695,8 @@ class SqpSolverImpl {
     // The two halves of the shrink rule, kept as one pair so the floor test and
     // the shrink itself can never disagree about what the next radius is. A +inf
     // radius does NOT hit the floor -- its next value is trust_region_max.
+    // RF-1 design 3.4: the floor exit's two conjuncts at the current iterate.
+    bool trust_region_floor_exit(const MajorState &mj, double f, double pred) const;
     bool shrink_hits_floor(double delta) const;
     double shrunk_radius(double delta) const;
 
@@ -1732,6 +1776,8 @@ class SqpSolverImpl {
     // nothing is constructed -- no second backend session, exactly as the
     // elastic rung's toggle promises at ITS default.
     QpEngine &cap_retry_engine(Index cap);
+    // The retry ladder's R3 engine, built on first use (RF-1 design 3.1).
+    QpEngine &algebra_retry_engine();
 
     // The IpqpOptions ONE subproblem is solved under: forwarded, not derived,
     // with one exception. `ipqp_hoist_symbolic` is forced false for one entry
@@ -1950,6 +1996,9 @@ class SqpSolverImpl {
     // different one rebuilds rather than silently running at the old cap.
     // Meaningless while the pointer is null.
     Index cap_retry_engine_cap_ = 0;
+    // The retry ladder's R3 walk engine (RF-1 design 3.1): `opts_.qp` with the OTHER working-set
+    // algebra. Null unless a routed failure has taken that rung.
+    std::unique_ptr<QpEngine> algebra_retry_engine_;
 
     // --- The console composition (M6 W5 T8.7) ---
     //
@@ -2244,7 +2293,8 @@ struct SqpSolverAccess {
         const SqpSolverImpl &d = solver.impl();
         const auto off = [](const auto &e) { return e == nullptr || e->stop_flag() == nullptr; };
         return d.qp_stop_ == nullptr && off(d.engine_) && off(d.ssn_engine_) &&
-               off(d.ipqp_engine_) && off(d.elastic_ipqp_engine_) && off(d.cap_retry_engine_);
+               off(d.ipqp_engine_) && off(d.elastic_ipqp_engine_) && off(d.cap_retry_engine_) &&
+               off(d.algebra_retry_engine_);
     }
     /// The thread count in force on the SSN tier's live factor, or -1 before the
     /// solver has built that tier (the tiers are built lazily at first use).

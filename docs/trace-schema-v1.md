@@ -159,7 +159,9 @@ analysed).
 `columns_active`, `col_spread`, `start_level_used`.
 
 `stop_reason` is `to_string(StopReason)`'s spelling. M8 RF-1 (declared): `subproblem_iteration_limit` is new
-(SQP, beside `status` `stalled`: the last QP stopped at its minor-iteration cap), and an SQP failure exit whose
+(SQP, beside `status` `stalled`: the last QP stopped at its minor-iteration cap), as is `trust_region_floor`
+(SQP, beside `stalled`: the radius reached its floor at a feasible point whose rejected step promised less than
+the objective's rounding floor), and an SQP failure exit whose
 returned point passes `termination`'s acceptable tier is written `status` `acceptable`, `stop_reason` `none`,
 with the exit it came from named at the end of `message` (`exit restoration_refused`, ...).
 

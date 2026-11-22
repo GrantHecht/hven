@@ -362,7 +362,9 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalIsNotOfferedAsAFailureStep) {
 
 // SDL-6's guard: at a FEASIBLE iterate the QP is feasible (d = 0), so a row refusal there is the
 // walk's, and the shrink ladder stays.
-TEST(SqpLadderSeam, Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
+// RF-1 design 3.3 (declared move of the SDL-6 pin): a row refusal at a feasible iterate goes to
+// the elastic tier, at any h, instead of the shrink ladder.
+TEST(SqpLadderSeam, Rf1ARowRefusalAtAFeasibleIterateGoesElastic) {
     const SeamReset guard;
     Seam::fail_walk_qps = 1;
     Seam::as_e2_termination = false;
@@ -372,14 +374,14 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder) {
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(Seam::forced, 1);
-    EXPECT_EQ(sol.counters.elastic_activations, 0);
-    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    EXPECT_EQ(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
     expect_line_optimum(sol);
 }
 
 // SDL-6 x R2: a row refusal at a feasible iterate is not a point of the subproblem's feasible
-// set; it is not offered as the failed subproblem's step (qp_failure_step ON), so the shrink
-// ladder routes it and nothing is judged.
+// set; it is not offered as the failed subproblem's step (qp_failure_step ON), and nothing is
+// judged.
 TEST(SqpLadderSeam, Sdl6ARowRefusalIsNotOfferedAsAFailureStep) {
     const SeamReset guard;
     Seam::fail_walk_qps = 1;
@@ -393,8 +395,9 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalIsNotOfferedAsAFailureStep) {
 
     EXPECT_EQ(Seam::forced, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 0);
-    EXPECT_EQ(sol.counters.elastic_activations, 0);
-    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    // RF-1 design 3.3: routed to the elastic tier, not the shrink ladder.
+    EXPECT_EQ(sol.counters.elastic_activations, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
     expect_line_optimum(sol);
 }
 
@@ -1427,6 +1430,141 @@ TEST(SqpLadderSeam, ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriv
             EXPECT_LT(sol.counters.major_iters, o.common.max_iterations);
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// RF-1 -- the retry ladder, the stagnation projection and the floor exit (design 3.1-3.4)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+Index rungs_taken(const SqpResult &r) {
+    return r.counters.qp_retry_rung_shrink + r.counters.qp_retry_rung_cold +
+           r.counters.qp_retry_rung_algebra + r.counters.qp_retry_rung_regularization;
+}
+
+SqpResult solve_line(const Vec &x0, const SqpOptions &o = quiet()) {
+    QpAsNlpModel model = line_model(x0);
+    SqpSolver driver(o);
+    return driver.solve(hven::detail::problem_ref(model), (model).start_point());
+}
+
+} // namespace
+
+// Routed failures at one feasible iterate each take a different rung: R1 (the forced step reaches
+// past the shrunk radius), R3 (no seed to drop, so R2 is skipped), then none (R4 needs a dependent
+// or zero-motion exit), so the floor rule requests restoration. The forced iterate is the same
+// point each time and the shrink left the walk's counts unchanged: the second attempt is a replay.
+TEST(Rf1RetryLadderSeam, EachRoutedFailureTakesADifferentRung) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 3;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.5, 1.5};
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(Seam::forced, 3);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 3);
+    EXPECT_EQ(sol.counters.qp_retry_replays, 1);
+    EXPECT_EQ(sol.counters.qp_retry_rung_shrink, 1);
+    EXPECT_EQ(sol.counters.qp_retry_rung_cold, 0);
+    EXPECT_EQ(sol.counters.qp_retry_rung_algebra, 1);
+    EXPECT_EQ(rungs_taken(sol), 2);
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    expect_line_optimum(sol);
+}
+
+// A dependent-blocker failure reaches R4 once the others are spent (budget raised to four).
+TEST(Rf1RetryLadderSeam, ADependentBlockerFailureReachesTheRegularizationRung) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 4;
+    Seam::as_e2_termination = true; // at a feasible iterate the E2 route does not apply
+    Seam::forced_point = {0.5, 1.5};
+    SqpOptions o = quiet();
+    o.advanced.max_consecutive_qp_failures = 4;
+    const SqpResult sol = solve_line(vec2(0.0, 2.0), o);
+    EXPECT_EQ(Seam::forced, 4);
+    EXPECT_EQ(sol.counters.qp_retry_rung_regularization, 1);
+    EXPECT_EQ(rungs_taken(sol), 3); // R1, R3, R4
+    expect_line_optimum(sol);
+}
+
+// THE REPLAY GUARD: three failures with one fingerprint are one charged failure and two replays.
+TEST(Rf1RetryLadderSeam, AnIdenticalFailureIsCountedAsAReplayAndNotCharged) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 3;
+    Seam::as_e2_termination = false;
+    Seam::as_replay = true;
+    Seam::forced_point = {0.5, 1.5};
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(Seam::forced, 3);
+    EXPECT_EQ(sol.counters.qp_retry_replays, 2);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 3);
+    EXPECT_EQ(sol.counters.qp_failures_in_a_row_peak, 1);
+    expect_line_optimum(sol);
+}
+
+// AFTER THE RUNGS, an infeasible linearization goes to the elastic tier (design 3.1).
+TEST(Rf1RetryLadderSeam, SpentRungsAtAnInfeasibleIterateGoElastic) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 4;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.5, 0.5};
+    const SqpResult sol = solve_line(vec2(0.0, 0.0));
+    EXPECT_EQ(Seam::forced, 4);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 3);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    expect_line_optimum(sol);
+}
+
+// THE STAGNATION PROJECTION (design 3.2): an off-box stagnation iterate is projected and routed.
+TEST(Rf1RetryLadderSeam, AnOffBoxStagnationIterateIsProjectedAndRouted) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::as_stagnation_stop = true;
+    Seam::forced_point = {0.0, 15.0}; // outside the box [-10, 10]
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.qp_failure_box_projections, 1);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+    expect_line_optimum(sol);
+}
+
+// ... and only a stagnation stop: any other off-box failure is refused as before.
+TEST(Rf1RetryLadderSeam, AnOffBoxFailureOfAnotherKindIsNotProjected) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.0, 15.0};
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(Seam::forced, 1);
+    EXPECT_EQ(sol.counters.qp_failure_box_projections, 0);
+    EXPECT_EQ(sol.counters.qp_failures_routed, 0);
+    EXPECT_NE(sol.status, SolveStatus::kOptimal);
+}
+
+// THE FLOOR EXIT (design 3.4): failures that promise nothing at a feasible point end the solve
+// stalled at the floor instead of entering a no-op restoration.
+TEST(Rf1RetryLadderSeam, ANoMotionFailureAtAFeasiblePointEndsAtTheFloor) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.0, 2.0}; // the iterate itself: a zero step, pred 0
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(sol.counters.trust_region_floor_exits, 1);
+    EXPECT_EQ(sol.counters.restoration_entries, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kTrustRegionFloor);
+}
+
+// ... and a failure that still promises a decrease requests restoration as before.
+TEST(Rf1RetryLadderSeam, AFailureThatPromisesADecreaseStillRequestsRestoration) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.5, 1.5};
+    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    EXPECT_EQ(sol.counters.trust_region_floor_exits, 0);
+    EXPECT_GE(sol.counters.restoration_entries, 1);
 }
 
 } // namespace hven
