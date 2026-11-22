@@ -131,6 +131,7 @@
 
 #include "model/support/parametric_families.h"
 #include "model/support/scale_problems.h"
+#include "support/route_reference.h"
 
 namespace hven {
 namespace {
@@ -1244,6 +1245,8 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // RF-1 A+B2: CONFIG-SPLIT at the 200 cap -- Release 559, Debug 501 (the restoration phase's
     // factorizations; majors, minors and the status agree).
     // macOS (Accelerate) Release reads 686 (CI run 44991274789); Windows Release reads 559.
+    // An off-reference Intel Linux Release runner (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI
+    // run 45064036804) reads 558: off the reference build, 558 or 559 is accepted (recorded).
 #if defined(USE_ACCELERATE_SPARSE)
     constexpr Index kArmAFactorizations = 686;
 #elif defined(NDEBUG)
@@ -1251,7 +1254,15 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 #else
     constexpr Index kArmAFactorizations = 501;
 #endif
+#if defined(NDEBUG) && !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route(
+        "Continuation.probe_budget_arm_a_factorizations",
+        std::to_string(off.steps[1].counters.factorizations));
+    EXPECT_TRUE(off.steps[1].counters.factorizations == kArmAFactorizations ||
+                off.steps[1].counters.factorizations == kArmAFactorizations - 1)
+#else
     EXPECT_EQ(off.steps[1].counters.factorizations, kArmAFactorizations)
+#endif
         << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
            "re-adjudicated as M3-2)\n"
         << trajectory(off);

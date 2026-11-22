@@ -1165,10 +1165,22 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // runner whose MKL dispatch probe says OFF-REFERENCE (AMD, avx512, mkl_auto_branch=2; CI run
     // 45036848180) also reads 22/40, so Linux Release is pinned to that column whatever the probe
     // says.
-#if defined(NDEBUG) && (HVEN_TEST_ROUTE_REFERENCE || defined(__linux__)) &&                        \
-    !defined(USE_ACCELERATE_SPARSE)
+    // AND AN INTEL ONE READS 21/39 (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI run 45064036804):
+    // off the reference build the two Linux columns are both observed, so either is accepted
+    // there and the pair is recorded; the reference build keeps 22/40 exactly.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    {
+        const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
+        hven::test_support::record_off_reference_route(
+            "HsSweepCorpus.hs15_warm_on_on",
+            fmt::format("full_step_majors={} majors={}", hs15.full_step_majors, hs15.majors));
+        EXPECT_TRUE((hs15.full_step_majors == 22 && hs15.majors == 40) ||
+                    (hs15.full_step_majors == 21 && hs15.majors == 39))
+            << hs15.full_step_majors << "/" << hs15.majors;
+    }
 #else
     EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
@@ -1643,10 +1655,12 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // stops on the singular branch is a rounding matter, so the stop is pinned to its
     // neighbourhood.
     // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39; the
-    // off-reference Linux Release runner of CI run 45036848180 reads the reference 40.
-#if defined(NDEBUG) && (HVEN_TEST_ROUTE_REFERENCE || defined(__linux__)) &&                        \
-    !defined(USE_ACCELERATE_SPARSE)
+    // off-reference Linux Release runner of CI run 45036848180 reads the reference 40, and the
+    // off-reference Intel runner of CI run 45064036804 reads 39: either, off the reference build.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(off.majors, 40);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
 #else
     EXPECT_EQ(off.majors, 39);
 #endif
