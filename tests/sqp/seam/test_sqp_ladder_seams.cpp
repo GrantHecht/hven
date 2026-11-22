@@ -1751,4 +1751,30 @@ TEST(Rf1RestorationSeam, APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneI
     EXPECT_NEAR(alive.x(1), t, 1e-5);
 }
 
+// RF-1 ruling F-1 (the CRESC50 must-kill): a row refusal on the phase's curvature-switch run
+// takes the switch, exactly as a plain failure does; RF-1's any-h elastic route would run the
+// elastic tier at the phase's feasible start instead and bypass the regularized restart.
+TEST(Rf1RestorationSeam, ARowRefusalOnTheSwitchRunTakesTheSwitch) {
+    const auto solve = [](bool row_refusal) {
+        const SeamReset guard;
+        Seam::fail_restoration_walk_qps = 1;
+        Seam::restoration_as_row_refusal = row_refusal;
+        CountingCircleLineModel model;
+        SqpOptions o = quiet();
+        o.common.max_iterations = 200;
+        SqpResult r = SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+        EXPECT_EQ(Seam::forced_restoration, 1);
+        return r;
+    };
+    const SqpResult plain = solve(false);
+    const SqpResult refused = solve(true);
+    ASSERT_EQ(plain.counters.restoration_curvature_switches, 1);
+    EXPECT_EQ(refused.counters.restoration_curvature_switches, 1);
+    EXPECT_EQ(refused.counters.elastic_activations, plain.counters.elastic_activations);
+    EXPECT_EQ(refused.counters.restoration_iters, plain.counters.restoration_iters);
+    EXPECT_EQ(refused.status, SolveStatus::kInfeasible);
+    EXPECT_TRUE(refused.infeasibility_certified);
+}
+
+
 } // namespace hven

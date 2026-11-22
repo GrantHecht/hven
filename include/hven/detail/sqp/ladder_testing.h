@@ -53,6 +53,9 @@ struct SqpLadderSeam {
     /// ladder end unusable (M7 W2 RST rider M1): the exhausted tier whose nested
     /// restoration request is refused. 0 = off.
     static inline int exhaust_restoration_elastic = 0;
+    /// RF-1: stamp the sub-driver's forced exits as certificate row-half refusals
+    /// (`certificate_row_refusals` = 1).
+    static inline bool restoration_as_row_refusal = false;
     /// How many restoration sub-driver exits were forced (read by the test).
     static inline int forced_restoration = 0;
     /// M8 WALK CAP: how many elastic ladders (any caller, either rung engine) have their
@@ -90,6 +93,7 @@ struct SqpLadderSeam {
         forced = 0;
         fail_restoration_walk_qps = 0;
         exhaust_restoration_elastic = 0;
+        restoration_as_row_refusal = false;
         forced_restoration = 0;
         off_rows_rungs = 0;
         off_rows_inloop_rungs = 0;

@@ -9101,6 +9101,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             mj.qs.lambda_e.setZero();
             mj.qs.lambda_i.setZero();
             mj.qs.z.setZero();
+            if (SqpLadderSeam::restoration_as_row_refusal) {
+                mj.qs.counters.certificate_row_refusals = 1;
+            }
             // ... or as an infeasible subproblem whose elastic ladder is exhausted.
             if (SqpLadderSeam::exhaust_restoration_elastic > 0) {
                 --SqpLadderSeam::exhaust_restoration_elastic;
@@ -9147,10 +9150,18 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // feas_tol): the certificate's box includes the window, the ladder's does not. A ROW-HALF
     // refusal (SDL-6, formerly kInfeasible without a verified certificate) goes to elastic AT ANY
     // h (RF-1 design 3.3): at h <= feas_tol the shrink ladder replayed it (MSS2 sqp-qn).
+    // NOT ON THE PHASE'S CURVATURE-SWITCH RUN (RF-1 ruling F-1), as the other RF-1 routes are
+    // not: there a failed walk subproblem is the switch's trigger, and a row refusal keeps the
+    // bound refusal's rule. Routed to elastic at the phase's feasible start, it bypassed the
+    // regularized restart (CRESC50: the phase went on, on the exact model, to another resume
+    // point, and the solve later certified a local infeasibility of a feasible problem).
+    const bool any_h_row_refusal =
+        mj.qs.counters.certificate_row_refusals > 0 && !stop_phase_on_qp_failure_;
     const bool bound_refusal_to_elastic =
         mj.walk_owns_this_qp && mj.qs.status == QpStatus::kNumericalError &&
-        (mj.qs.counters.certificate_row_refusals > 0 ||
-         (mj.qs.counters.certificate_bound_refusals > 0 &&
+        (any_h_row_refusal ||
+         ((mj.qs.counters.certificate_bound_refusals > 0 ||
+           mj.qs.counters.certificate_row_refusals > 0) &&
           (linearization_violated ||
            !qp_failure_is_retryable(st.qp, mj.qs, opts_.common.feasibility_tol))));
     // THE RETRY LADDER'S NEXT RUNG (RF-1 design 3.1), read and not taken: each rung is used at
