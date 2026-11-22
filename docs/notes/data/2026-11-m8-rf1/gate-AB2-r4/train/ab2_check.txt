@@ -1,0 +1,7 @@
+STATUS_MOVER sd-hven-sqp-HS99EXP.D max_iter->stalled quality=worse f -42266901.69->-65792.25 h 3.99e+05->4.05e+05 stat 1.3e+04->514 it 50->50 fact 11111->6543
+STATUS_MOVER sd-hven-sqp-HS99EXP.K max_iter->stalled quality=worse f -42266901.69->-65792.25 h 3.99e+05->4.05e+05 stat 1.3e+04->514 it 50->50 fact 12550->7013
+STATUS_MOVER sd-hven-sqp-LEWISPOL.D infeasible->numerical_error quality=same f 3.000376849->3.000376849 h 4->4 stat 2->2 it 3->3 fact 26->26
+STATUS_MOVER sd-hven-sqp-LEWISPOL.K infeasible->numerical_error quality=same f 3.000138288->3.000138288 h 4->4 stat 2->2 it 3->3 fact 35->35
+TOTALS hven-ipm: rows 238 optimal 224->224 optimal+acceptable 225->225 factorizations 13477->13477 (+0) iterations 9415->9415 (+0)
+TOTALS hven-sqp: rows 238 optimal 210->210 optimal+acceptable 210->210 factorizations 200718->200407 (-311) iterations 4480->4599 (+119)
+AB2_SUMMARY status movers 4; lost solves 0; missing 0

@@ -1,0 +1,18 @@
+box-lane: lane 1 acquired 2026-11-22T14:16:35-05:00
+FOREGROUND_START 2026-11-22T14:16:35-05:00 lane=1
+head 690c2dfabaf6d1a5d91ad64cd54f60ed3618ef60 code 994619746
+build rel rc=0
+	882 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-22T14:18:40-05:00
+mutations rc=0
+MUT control rc=0 killers=0
+MUT M19 rc=1 killers=1
+MUT M20 rc=1 killers=1
+MUT M21 rc=1 killers=1
+VERDICT MUTATIONS_AS_DECLARED
+build dbg rc=0
+	1634 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-22T14:31:23-05:00
+FOREGROUND_END 2026-11-22T14:31:23-05:00
