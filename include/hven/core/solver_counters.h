@@ -2530,7 +2530,7 @@ struct SqpCounters {
     ///        and `backend_symbolic_repeats` each fall by the sparse hits; a hit on a
     ///        dense-selected pattern replaces only the dense session's set-up, which
     ///        neither backend counter sees. `symbolic_analyses` does not move.
-    ///        Appended last.
+    ///        Appended after PF-2b's twelve (RF-1's counters follow it).
     Index symbolic_analysis_reuses = 0;
     /// qp_retry_rung_shrink: RF-1 -- retry rung R1 taken: the radius shrunk with the failed working
     /// set as the seed, only when the shrink cuts the failed walk.

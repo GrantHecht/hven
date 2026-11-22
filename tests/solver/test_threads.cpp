@@ -460,7 +460,7 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `sparse_scaled_retakes`, `sparse_matched_retakes` and `sparse_retake_refusals`; 112 since M8
 // PF-4 appended `backend_symbolic_analyses` and `backend_symbolic_repeats`; 124 since M8
 // PF-2b appended the twelve `backend_solve*` tally counters; 125 since M8 PF-5 appended
-// `symbolic_analysis_reuses`.)
+// `symbolic_analysis_reuses`; 133 since M8 RF-1 appended its eight after it.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     static_assert(sizeof(SqpCounters) == 133 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
