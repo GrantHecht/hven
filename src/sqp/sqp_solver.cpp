@@ -8349,8 +8349,21 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         } else if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
                                                      st.resto_best_parent_h,
                                                      opts_.common.feasibility_tol)) {
-            st.resto_best_parent_h = parent_h;
             resto_better = true;
+#ifdef HVEN_TESTING
+            // THE CAPTURE LIMIT (RF-1, the M13 fixture): past it the order keeps its incumbent,
+            // so a later, lower iterate is the phase's last point but not its best.
+            using detail::testing::SqpLadderSeam;
+            if (SqpLadderSeam::restoration_capture_limit > 0 &&
+                SqpLadderSeam::restoration_captures >= SqpLadderSeam::restoration_capture_limit) {
+                resto_better = false;
+            } else {
+                ++SqpLadderSeam::restoration_captures;
+            }
+#endif
+            if (resto_better) {
+                st.resto_best_parent_h = parent_h;
+            }
         }
         // THE STALL WINDOW (RF-1 ruling S-1) reads this pass's parent h, phase-feasible or not:
         // it is the original rows' violation at x whatever the slacks carry, so a phase whose

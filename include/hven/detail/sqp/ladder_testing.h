@@ -56,6 +56,11 @@ struct SqpLadderSeam {
     /// RF-1: stamp the sub-driver's forced exits as certificate row-half refusals
     /// (`certificate_row_refusals` = 1).
     static inline bool restoration_as_row_refusal = false;
+    /// RF-1 (the M13 fixture): > 0 lets the restoration order capture at most this many
+    /// points per solve; later improvements leave the incumbent where it is. 0 = off.
+    static inline int restoration_capture_limit = 0;
+    /// How many points the restoration order captured (read by the test).
+    static inline int restoration_captures = 0;
     /// How many restoration sub-driver exits were forced (read by the test).
     static inline int forced_restoration = 0;
     /// M8 WALK CAP: how many elastic ladders (any caller, either rung engine) have their
@@ -95,6 +100,8 @@ struct SqpLadderSeam {
         exhaust_restoration_elastic = 0;
         restoration_as_row_refusal = false;
         forced_restoration = 0;
+        restoration_capture_limit = 0;
+        restoration_captures = 0;
         off_rows_rungs = 0;
         off_rows_inloop_rungs = 0;
         report_reads_slacks_only = false;

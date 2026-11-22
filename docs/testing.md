@@ -1291,7 +1291,12 @@ the switch's second trigger -- the exhausted tier's nested restoration request, 
 inside a phase -- has a fixture too. A third, `restoration_as_row_refusal` (RF-1 ruling
 F-1), stamps those forced exits `certificate_row_refusals = 1`, so the rule that a row refusal
 on the phase's curvature-switch run takes the switch, not RF-1's any-h elastic route, has a
-fixture. The small models the suite does run unseamed do not
+fixture. A fourth, `restoration_capture_limit` (RF-1, the M13 fixture), lets the restoration
+order capture at most that many points per solve, counting them in `restoration_captures`: on
+a phase whose every iterate improves, the order then holds an earlier point than the phase's
+last, which is what tells the sub-driver's best-point hand-back from a last-point one (no
+unseamed small model ends a phase at a limit after a captured point worse than its last). It
+moves no iterate. The small models the suite does run unseamed do not
 reach the switch: `SecondOrderInfeasibleModel` under kSsn at the shipped levers is a
 SECOND-ENTRY fixture, not a switch one -- its phase QPs all solve on the exact model, and
 `SqpSolverSsnMode.AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch` pins that

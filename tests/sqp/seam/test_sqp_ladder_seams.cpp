@@ -1776,5 +1776,112 @@ TEST(Rf1RestorationSeam, ARowRefusalOnTheSwitchRunTakesTheSwitch) {
     EXPECT_TRUE(refused.infeasibility_certified);
 }
 
+// RF-1 design 4.4 as extended (the M19 must-kill): the reduction resume reads the stall's
+// kWorkLimit. reduction_resume_solve's fixture, its phase bouncing around x0 = 0 at h ~ 1e-5
+// (h_in = 10): with a window of 2 factorizations the phase stalls and hands back a point below
+// 0.1 h_in, which resumes and is counted. With the reduction resume off, the same stall ends
+// the solve kStalled / kRestorationWorkLimit: the stall, not another exit, ended the phase.
+TEST(Rf1RestorationSeam, TheStallExitTakesTheReductionResume) {
+    const auto solve = [](double k) {
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::as_e2_termination = false;
+        Seam::forced_point = {1.0, 1.0};
+        SpreadMissModel model(kNoClaimMiss);
+        SqpOptions o = quiet();
+        o.common.max_iterations = 200;
+        o.trust_region_initial = 1.0;
+        o.trust_region_min = 0.75;
+        o.advanced.restoration_stall_factorizations = 2;
+        o.advanced.restoration_resume_reduction = k;
+        return SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    };
+    const SqpResult off = solve(0.0);
+    EXPECT_EQ(off.status, SolveStatus::kStalled);
+    EXPECT_EQ(off.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_EQ(off.counters.restoration_reduction_resumes, 0);
+    const SqpResult on = solve(0.1);
+    EXPECT_EQ(on.counters.restoration_entries, 1);
+    EXPECT_EQ(on.counters.restoration_reduction_resumes, 1);
+    EXPECT_LE(on.counters.restoration_h_out, 0.1 * on.counters.restoration_h_in);
+    EXPECT_GT(on.counters.major_iters, off.counters.major_iters) << "the solve went on";
+    EXPECT_FALSE(on.infeasibility_certified);
+}
+
+// RF-1 design 4.2 / ruling B2-1 (the M13 must-kill): the sub-driver hands back the point its
+// order holds, not its last one. One linear row x0 = 0 entered at x0 = 20: every walk QP of the
+// parent fails at its start point and every elastic ladder ends unusable (`off_rows_rungs`), so
+// the parent requests restoration at major 0 (h_in = 20). Every phase iterate is feasible for the
+// phase and lowers h (19, 17, 13 as the radius doubles), so unseamed the last point IS the best.
+// The solve is capped at 4 majors, so the phase ends at the cap after three. With the seam's
+// capture limit of 1 the order keeps the phase's first improvement (h = 19), and that point --
+// worse than the phase's last (h = 13) -- is the one handed back. No unseamed small model was
+// found that ends a phase at a non-optimal exit after a captured point worse than its last (the
+// bouncing spread phase is never phase-feasible before it converges; the circle phase's
+// walk-tolerance iterates are not capturable; RunawayValley's second phase bounces but captures
+// nothing), so the limit makes the two points differ.
+namespace {
+class LinearRowModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return vec2(0.0, 2.0 * x(1)); }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0)); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -100.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 100.0);
+        return u;
+    }
+    Vec start_point() const override { return vec2(20.0, 1.0); }
+};
+
+SqpResult linear_row_hand_back(int capture_limit) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {20.0, 1.0};
+    Seam::off_rows_rungs = 1000;
+    Seam::restoration_capture_limit = capture_limit;
+    LinearRowModel model;
+    SqpOptions o = quiet();
+    o.common.max_iterations = 4;
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75;
+    return SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+}
+} // namespace
+
+TEST(Rf1RestorationSeam, ThePhaseHandsBackItsBestPointNotItsLast) {
+    const SqpResult free_run = linear_row_hand_back(0);
+    ASSERT_EQ(free_run.counters.restoration_entries, 1);
+    ASSERT_EQ(free_run.counters.restoration_iters, 3);
+    EXPECT_EQ(free_run.status, SolveStatus::kIterationLimit);
+    EXPECT_DOUBLE_EQ(free_run.counters.restoration_h_in, 20.0);
+    EXPECT_DOUBLE_EQ(free_run.counters.restoration_h_out, 13.0) << "the last point is the best";
+    const SqpResult limited = linear_row_hand_back(1);
+    ASSERT_EQ(limited.counters.restoration_iters, 3) << "the limit moves no iterate";
+    EXPECT_DOUBLE_EQ(limited.counters.restoration_h_out, 19.0)
+        << "the order's point (the first improvement), not the phase's last";
+    EXPECT_DOUBLE_EQ(limited.x(0), 19.0);
+}
 
 } // namespace hven
