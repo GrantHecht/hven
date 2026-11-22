@@ -1895,4 +1895,60 @@ TEST(Rf1RestorationSeam, ThePhaseHandsBackItsBestPointNotItsLast) {
     EXPECT_DOUBLE_EQ(limited.x(0), 19.0);
 }
 
+// RF-1b (ruling C481; the YORKNET 055-057 must-kill): the curvature-switch run's switch exit hands
+// back no best point, so the regularized restart starts from the SWITCH point, as before RF-1.
+// linear_row_hand_back's phase (h 19, 17, 13 as the radius doubles), but its third walk subproblem
+// fails, so the first run switches after two steps: its last point is h = 17. With the seam's
+// capture limit of 1 the restoration order's best point is the first improvement (h = 19), worse
+// than the switch point. The restart's start is the point the run handed back, so a solve with
+// the limit must be the solve without it: the same phase rows (read off a callback at depth 1: the
+// restart's first row stands at the point it was started from), the same counters, the same point.
+// Handing the best point back instead starts the restart at h = 19 and moves them.
+TEST(Rf1RestorationSeam, TheSwitchRunHandsBackItsSwitchPointNotItsBestPoint) {
+    std::vector<double> rows_free, rows_limited;
+    const auto solve = [](int capture_limit, std::vector<double> &phase_rows) {
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::as_e2_termination = false;
+        Seam::forced_point = {20.0, 1.0};
+        Seam::off_rows_rungs = 1000;
+        Seam::pass_restoration_walk_qps = 2;
+        Seam::fail_restoration_walk_qps = 1;
+        Seam::restoration_capture_limit = capture_limit;
+        LinearRowModel model;
+        SqpOptions o = quiet();
+        o.common.max_iterations = 40;
+        o.trust_region_initial = 1.0;
+        o.trust_region_min = 0.75;
+        SqpSolver solver(o);
+        solver.set_iteration_callback(
+            [&phase_rows](const IterationEvent &e) {
+                if ((e.sqp ? e.sqp->depth : Index{0}) >= 1) {
+                    phase_rows.push_back(e.x(0));
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        const SqpResult r = solver.solve(hven::detail::problem_ref(model), (model).start_point());
+        EXPECT_EQ(Seam::forced_restoration, 1) << "the switch fired once";
+        if (capture_limit > 0) {
+            EXPECT_EQ(Seam::restoration_captures, 1) << "the premise: the order held h = 19";
+        }
+        return r;
+    };
+    const SqpResult free_run = solve(0, rows_free);
+    ASSERT_EQ(free_run.counters.restoration_entries, 1);
+    ASSERT_EQ(free_run.counters.restoration_curvature_switches, 1) << "fixture premise";
+    const SqpResult limited = solve(1, rows_limited);
+    EXPECT_EQ(rows_limited, rows_free) << "the restart starts where the switch run ended";
+    ASSERT_EQ(limited.counters.restoration_curvature_switches, 1);
+    EXPECT_EQ(limited.counters.restoration_iters, free_run.counters.restoration_iters);
+    EXPECT_EQ(limited.counters.factorizations, free_run.counters.factorizations);
+    EXPECT_EQ(limited.counters.major_iters, free_run.counters.major_iters);
+    EXPECT_EQ(limited.counters.restoration_h_out, free_run.counters.restoration_h_out);
+    EXPECT_EQ(limited.status, free_run.status);
+    EXPECT_EQ(limited.x(0), free_run.x(0));
+    EXPECT_EQ(limited.x(1), free_run.x(1));
+}
+
 } // namespace hven

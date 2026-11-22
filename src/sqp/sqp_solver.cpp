@@ -9129,7 +9129,11 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // THE RESTORATION SUB-DRIVER'S OWN KNOB (M7 W2 RST): a walk subproblem of the
         // phase that fails on the exact model, which is what kModelThenRegularized reads.
         if (SqpLadderSeam::fail_restoration_walk_qps > 0 && is_restoration_sub_driver_ &&
-            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal) {
+            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal &&
+            SqpLadderSeam::pass_restoration_walk_qps > 0) {
+            --SqpLadderSeam::pass_restoration_walk_qps;
+        } else if (SqpLadderSeam::fail_restoration_walk_qps > 0 && is_restoration_sub_driver_ &&
+                   mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal) {
             --SqpLadderSeam::fail_restoration_walk_qps;
             ++SqpLadderSeam::forced_restoration;
             mj.qs.status = QpStatus::kNumericalError;
@@ -10208,7 +10212,19 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         // THE NON-LIMIT NON-OPTIMAL EXITS (M8 AP-5 G-RB, kOnAnyNonOptimal): the shared rule
         // decides, by the status the exit would report. kInfeasible and kInterrupted never
         // substitute; no recorded best falls back to the ordinary exit.
+        //
+        // THE CURVATURE-SWITCH RUN'S SWITCH EXIT HANDS BACK NO BEST POINT (RF-1b ruling C481, as
+        // F-1): a run told to switch that took the switch ends at its switch point -- the iterate
+        // the parent restarts the phase from on the regularized model, as before RF-1. The best-h
+        // point of design 4.2 is for the run whose result the resume gates read. Handed back from
+        // the switch run, the best captured point (YORKNET 055-057: h 23136, the switch point
+        // being a later, phase-infeasible iterate) started a restart that cost ~690 factorizations
+        // a major, hit the stall window and ended the solve at major 1. A switch run that ends
+        // otherwise (a limit, a stall) is the phase's only run and keeps the hand-back.
         const auto best_applies = [&](SolveStatus status) {
+            if (stop_phase_on_qp_failure_ && st.out.counters.restoration_curvature_switches > 0) {
+                return false;
+            }
             return st.mb.snap_valid &&
                    detail::return_best_applies(opts_.common.return_best, status);
         };

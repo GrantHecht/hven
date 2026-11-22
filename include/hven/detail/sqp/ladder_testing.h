@@ -49,6 +49,10 @@ struct SqpLadderSeam {
     /// subproblems to end kNumericalError the same way (multipliers cleared, the iterate
     /// kept, no E2 stamp); 0 = off. The knobs above never touch the sub-driver.
     static inline int fail_restoration_walk_qps = 0;
+    /// RF-1b: how many of the sub-driver's kOptimal walk subproblems to let through BEFORE
+    /// `fail_restoration_walk_qps` starts failing them, so a phase can take steps (and capture
+    /// points) before its curvature switch. 0 = off.
+    static inline int pass_restoration_walk_qps = 0;
     /// Of those forced exits, how many instead read kInfeasible and have their elastic
     /// ladder end unusable (M7 W2 RST rider M1): the exhausted tier whose nested
     /// restoration request is refused. 0 = off.
@@ -97,6 +101,7 @@ struct SqpLadderSeam {
         as_replay = false;
         forced = 0;
         fail_restoration_walk_qps = 0;
+        pass_restoration_walk_qps = 0;
         exhaust_restoration_elastic = 0;
         restoration_as_row_refusal = false;
         forced_restoration = 0;
