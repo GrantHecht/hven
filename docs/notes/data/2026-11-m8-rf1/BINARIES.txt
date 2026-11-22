@@ -1,0 +1,4 @@
+# frozen binaries of DECLARATION-RF-1-C, sha256, recorded before the first leg
+corpus C (hven_sqp_corpus, c721dc32d) 68d43c2191c2f3408939b331a8a3fea3b90d21d5dbb61180549d8cc323939706
+lane C (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin c721dc32d) 5458e592a6d484fcb06446e18513123905f01d63750f7c4ba03369f67e1f828c
+REF: pf2d arm L (lane L 33183386bed750fba23ec49ec976411b8828b226d9716dd76d28c54068e9be09, corpus L d02b72853b3a689cd2653bc18d6bab8c2089cc3b8839ad6d9a6b4001abd5b62b), committed rows only
