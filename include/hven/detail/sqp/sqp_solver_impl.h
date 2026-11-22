@@ -2155,6 +2155,10 @@ class SqpSolverImpl {
     // elastic tier's refused nested request is counted the same way
     // (`restoration_curvature_switches`), for the parent to restart on the regularized model.
     bool stop_phase_on_qp_failure_ = false;
+    // THE PHASE'S WRAPPER (RF-1 ruling B2), set by the restoration phase on its sub-driver
+    // for the length of one sub-solve: the best tracker reads the parent's violation off it
+    // (`restoration_best_improves`). Null on every other driver, which keeps the shared order.
+    const RestorationModel *restoration_wrapper_ = nullptr;
     // eval_hess calls make_warm_start's exit probe made, folded by `finish` (whose arguments
     // include that call, so the probe cannot write the result it is evaluated beside).
     Index exit_probe_hess_calls_ = 0;

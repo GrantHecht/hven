@@ -428,6 +428,25 @@ Vec RestorationModel::original_x(const Vec &y) const {
     return y.size() >= nx_ ? Vec(y.head(nx_)) : Vec::Zero(nx_);
 }
 
+double RestorationModel::original_violation_l1(const Vec &y, const Vec &ce, const Vec &ci) const {
+    if (y.size() != n_ || ce.size() != me_ || ci.size() != mi_) {
+        throw std::invalid_argument(fmt::format(
+            "RestorationModel::original_violation_l1: sizes (y {}, ce {}, ci {}) are not the "
+            "wrapper's ({}, {}, {})",
+            y.size(), ce.size(), ci.size(), n_, me_, mi_));
+    }
+    double h = 0.0;
+    for (Index k = 0; k < me_; ++k) {
+        h += std::abs(ce(k) - sigma_e_(k) * (y(nx_ + k) - y(nx_ + me_ + k)));
+    }
+    for (Index j = 0; j < mi_; ++j) {
+        const double c = ci(j) + sigma_i_(j) * y(nx_ + 2 * me_ + j);
+        // std::max would drop a NaN row; the comparison keeps it.
+        h += c > 0.0 ? c : (std::isnan(c) ? c : 0.0);
+    }
+    return h;
+}
+
 const Vec &RestorationModel::slack_scale_e() const { return sigma_e_; }
 
 const Vec &RestorationModel::slack_scale_i() const { return sigma_i_; }

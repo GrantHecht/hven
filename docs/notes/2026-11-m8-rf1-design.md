@@ -311,3 +311,28 @@ Accelerate and Windows readings: CI only.
 - **The acceptable test reads the result's caller-unit `feasibility_e`/`feasibility_i`** after `finish` has
   written them (the stash on an unscaled solve, the caller-scale re-measurement on a scaled one), and the engine
   `kkt` passed to `finish` for stationarity and complementarity. The label is applied last in `finish`.
+
+## Amendment B2-1 (settler ruling, at A+B2's pin work; the text above is kept)
+
+**The restoration hand-back point.** Section 4.2 assumed the wrapper stays feasible throughout, so the shared order
+(`best_improves`: the phase's own feasibility first, then its objective) would rank by the penalty h. With nonlinear rows
+it does not: the phase's start is exactly feasible for the wrapper by construction, a later iterate is feasible only to
+the walk's tolerance, and the shared order then hands back the START -- the entry point -- whatever h the phase bought
+(`SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt`: h_out = h_in = 10.000015, so the reduction resume
+could not fire). Ruling:
+
+- Restoration has its own comparator, `detail::restoration_best_improves` (`globalization/restoration.h`), used by the
+  restoration sub-driver's best tracker only. The hand-back point is the iterate with the lowest PARENT violation h
+  (the wrapped model's l1 row violation, `RestorationModel::original_violation_l1`, read off the wrapper's own row
+  values with the slack terms taken back out; no model call) among the phase iterates feasible to the phase's own
+  tolerance (its convergence feasibility measure <= feas_tol). Strict: a tie keeps the incumbent; NaN never wins.
+- The incumbent starts at the parent h of the phase's start, which is never itself captured. If no iterate improves on
+  it, nothing is captured and the phase returns its LAST point (the C-head behaviour). It never falls back to the entry
+  point. A captured-nothing phase that ends at a limit takes the ordinary limit exit (the budget-best exit requires a
+  capture).
+- The generic `best_improves` for ordinary solves is unchanged.
+- Each run of a phase (the regularized restart included) tracks its own incumbent from its own start.
+- Must-kill: `TheReductionResumeTakesTheNoClaimPointAndCountsIt` (h_out <= 5 with the reduction resume firing); the
+  comparator's edges are unit-tested (`RestorationBestOrder.*`).
+- The h it ranks by is that of the rows the phase restores: on a solve whose equality basis reduced the rows, the
+  retained rows only (the parent's own resume test reads all rows at the handed-back point, as before).

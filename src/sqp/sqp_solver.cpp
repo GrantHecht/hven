@@ -4673,6 +4673,10 @@ struct SqpSolverImpl::SolveState {
     // THE BEST TRACKER IS ARMED, latched at the solve's entry (M8 AP-5 G3): a
     // callback that uninstalls itself mid-solve does not stop the tracking.
     bool best_armed = false;
+    // THE RESTORATION ORDER'S INCUMBENT (RF-1 ruling B2), on the sub-driver only: the parent
+    // violation of the last captured point, or of the phase's start before any capture. NaN
+    // until the first measured pass sets it.
+    double resto_best_parent_h = std::numeric_limits<double>::quiet_NaN();
     // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
     // `events_fired == rows_pushed` is what proves nothing but `push_history`
     // fires the callback, exactly as `rows_pushed == history.size()` proves
@@ -6697,6 +6701,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         }
         SqpSolverImpl sub(phase_opts, SqpSolverImpl::RestorationSubDriverTag{});
         sub.stop_phase_on_qp_failure_ = stop_on_qp_failure;
+        sub.restoration_wrapper_ = &wrapper;
         // THE PHASE'S QPs ARE LEDGERED: the prefix carries this solve's entry, the phase run within
         // it (a regularized restart is a second run) and this driver's lifetime run count, so
         // labels stay unique across runs, entries and solves.
@@ -8338,8 +8343,26 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // restoration sub-solve never tracks, so the best is always a caller-space
     // iterate of the parent. Tracking copies; it never steers.
     if (st.best_armed) {
-        const bool better = detail::best_improves(mj.kkt.feasibility, mj.row.f, st.mb.h, st.mb.f,
-                                                  opts_.common.feasibility_tol);
+        // THE RESTORATION SUB-DRIVER HAS ITS OWN ORDER (RF-1 ruling B2): the lowest PARENT
+        // violation among the phase's feasible iterates, strictly below the phase start's. The
+        // first measured pass is the start; it only sets the incumbent, so a phase that never
+        // improves on it hands back its last point, never its entry.
+        bool better = false;
+        if (restoration_wrapper_ != nullptr) {
+            const double parent_h =
+                restoration_wrapper_->original_violation_l1(st.x, st.ev.ce, st.ev.ci);
+            if (std::isnan(st.resto_best_parent_h)) {
+                st.resto_best_parent_h = parent_h;
+            } else if (detail::restoration_best_improves(mj.kkt.feasibility, parent_h,
+                                                         st.resto_best_parent_h,
+                                                         opts_.common.feasibility_tol)) {
+                st.resto_best_parent_h = parent_h;
+                better = true;
+            }
+        } else {
+            better = detail::best_improves(mj.kkt.feasibility, mj.row.f, st.mb.h, st.mb.f,
+                                           opts_.common.feasibility_tol);
+        }
         if (better) {
             // The pre-update best is kept (swap), every field of `mb` is rewritten below.
             std::swap(st.mb, st.mb_before);
@@ -8516,7 +8539,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // converged > interrupted > probe-exhausted > cap.
         // WIDENED (M8 AP-5 G-RB) from the iteration cap to the work and time limits: the limit
         // status decides, by the shared rule. A probe-budget stop is not one (above).
-        if (!mj.converged && !probe_exhausted &&
+        // `st.mb.snap_valid`: the restoration order (RF-1 ruling B2) may have captured nothing,
+        // and the phase then hands back its last point. The shared order captures the first
+        // measured pass, so on every other driver the conjunct is true here.
+        if (!mj.converged && !probe_exhausted && st.mb.snap_valid &&
             detail::return_best_applies(opts_.common.return_best,
                                         st.limit_exit != SolveStatus::kOptimal
                                             ? st.limit_exit
