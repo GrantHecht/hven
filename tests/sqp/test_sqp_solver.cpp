@@ -4356,7 +4356,8 @@ TEST(SqpSolverQpFailure, RepeatedQpMaxIterStillPropagates) {
 // there. Same terminal contract, longer chain: the fixture's "needs more than
 // 3 minors at every radius" premise is Pardiso-specific.
 #ifdef USE_ACCELERATE_SPARSE
-    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move, -r1): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
     ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
               QpStatus::kIterationLimit);
@@ -4402,7 +4403,8 @@ TEST(SqpSolverQpFailure, RepeatedQpMaxIterStillPropagates) {
     // through, which is the row that was missing. The split is KEPT rather than
     // collapsed because the chain's length is build-arithmetic-dependent by the note
     // above and a future divergence needs somewhere to land.
-    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // RF-1 (declared pin move, -r1): a minor-cap exit is kStalled, was kNumericalError.
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
     ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
               QpStatus::kIterationLimit);
