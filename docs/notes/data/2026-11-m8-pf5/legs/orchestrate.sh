@@ -10,6 +10,9 @@ BOX=$HOME/.local/bin/box-lane
 CODE=${1:?}; CA=${2:?}; CB=${3:?}; LA=${4:?}; LB=${5:?}; NT=${6:?}; FIRST=${7:-P1}
 BIN=$WT/.scratch/bin
 mkdir -p "$G"
+# r2: the job files name their outputs under .../gate/; derive this run's copies under $G so cells land where the checkers read.
+for j in train nlp; do sed "s#/2026-11-m8-pf5/gate/#/2026-11-m8-pf5/${GATE_DIR:-gate}/#" "$L/jobs-$j.txt" > "$G/jobs-$j.txt"; done
+grep -q "/${GATE_DIR:-gate}/" "$G/jobs-train.txt" || { echo JOBS_PATH_REWRITE_FAILED; exit 2; }
 cd "$WT" || exit 1
 echo "ORCHESTRATE_START $(date -Is) head $(git rev-parse HEAD)"
 # The code paths of the leg HEAD must equal the code commit.
@@ -38,12 +41,13 @@ if leg P2; then
   echo "LEG_PASS P2 $(date -Is)"
 fi
 if leg P3; then
-  $BOX -- bash "$L/corun.sh" "$L/jobs-train.txt" "$BIN/A/hven_bench_cell" "$LA" "$BIN/B/hven_bench_cell" "$LB" > "$G/P3.out" 2>&1 || fail "P3 run"
+  $BOX -- bash "$L/corun.sh" "$G/jobs-train.txt" "$BIN/A/hven_bench_cell" "$LA" "$BIN/B/hven_bench_cell" "$LB" > "$G/P3.out" 2>&1 || fail "P3 run"
+  [ "$(ls "$G/train/A/cells"/*.result | wc -l)" = 476 ] || fail "P3 rows not under $G"
   python3 "$L/pf5_check.py" train "$G/train/A" "$G/train/B" "$WT/docs/notes/data/2026-11-m8-dn3/roster.tsv" > "$G/train-check.txt" 2>&1 || fail P3
   echo "LEG_PASS P3 $(date -Is)"
 fi
 if leg P4; then
-  $BOX -- bash "$L/corun.sh" "$L/jobs-nlp.txt" "$BIN/A/hven_bench_cell" "$LA" "$BIN/B/hven_bench_cell" "$LB" > "$G/P4.out" 2>&1 || fail "P4 run"
+  $BOX -- bash "$L/corun.sh" "$G/jobs-nlp.txt" "$BIN/A/hven_bench_cell" "$LA" "$BIN/B/hven_bench_cell" "$LB" > "$G/P4.out" 2>&1 || fail "P4 run"
   python3 "$L/pf5_check.py" nlp "$G/nlp/A" "$G/nlp/B" STEENBRC STEENBRG YORKNET STEENBRB STEENBRE STEENBRD BIGBANK ACOPP118 ACOPR57 DALLASM READING6 SAWPATH ZAMB2-8 SMBANK ACOPP57 > "$G/nlp-check.txt" 2>&1 || fail P4
   echo "LEG_PASS P4 $(date -Is)"
 fi
