@@ -768,6 +768,10 @@ TEST(SqpLadderSeam, Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly) {
     o.common.max_iterations = 200;
     o.trust_region_initial = 1.0;
     o.trust_region_min = 0.75;
+    // The off arm's resume rule (RF-1 ruling B2): with the phase now handing back its best-h
+    // point the default reduction resume (0.1) would fire, and the two arms must differ in the
+    // tier only.
+    o.advanced.restoration_resume_reduction = 0.0;
     o.termination.acceptable_stationarity_tol = 1e10;
     o.termination.acceptable_equality_tol = 1e10;
     o.termination.acceptable_inequality_tol = 1e10;
@@ -1570,6 +1574,84 @@ TEST(Rf1RetryLadderSeam, AFailureThatPromisesADecreaseStillRequestsRestoration) 
     const SqpResult sol = solve_line(vec2(0.0, 2.0));
     EXPECT_EQ(sol.counters.trust_region_floor_exits, 0);
     EXPECT_GE(sol.counters.restoration_entries, 1);
+}
+
+// THE FAILURE STILL PROPAGATES (moved here from SqpSolverQpFailure.RepeatedQpNumericalErrorStill
+// Propagates, whose TwinSaddle fixture the RF-1 rungs now rescue -- that rescue is pinned on its
+// own, SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne). Every walk QP is forced to
+// fail at a feasible iterate whose forced step still promises a decrease (so the floor exit does
+// not apply) with a budget of one routed failure: the first failure takes a rung, the second finds
+// the budget spent at h <= feas_tol and ends the solve kSubproblemFailure at the start point, in
+// both algebras.
+namespace {
+SqpResult propagating_failure_solve(QpWorkingSetAlgebra algebra, double acceptable) {
+    SqpOptions o = quiet();
+    o.qp.working_set_algebra = algebra;
+    o.advanced.max_consecutive_qp_failures = 1;
+    o.termination.acceptable_stationarity_tol = std::max(acceptable, o.common.optimality_tol);
+    o.termination.acceptable_equality_tol = std::max(acceptable, o.common.feasibility_tol);
+    o.termination.acceptable_inequality_tol = std::max(acceptable, o.common.feasibility_tol);
+    o.termination.acceptable_complementarity_tol = std::max(acceptable, o.common.optimality_tol);
+    Seam::reset();
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.5, 1.5};
+    return solve_line(vec2(0.0, 2.0), o);
+}
+} // namespace
+
+TEST(Rf1RetryLadderSeam, ARepeatedSubproblemFailureStillPropagates) {
+    const SeamReset guard;
+    for (const auto algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
+        const SqpResult sol = propagating_failure_solve(algebra, 0.0);
+        std::printf("[ rf1 ] propagate: status=%d reason=%d rows=%zu routed=%ld rungs=%ld "
+                    "resto=%ld floor=%ld elastic=%ld msg=%s\n",
+                    static_cast<int>(sol.status), static_cast<int>(sol.stop_reason),
+                    sol.history.size(), static_cast<long>(sol.counters.qp_failures_routed),
+                    static_cast<long>(rungs_taken(sol)),
+                    static_cast<long>(sol.counters.restoration_entries),
+                    static_cast<long>(sol.counters.trust_region_floor_exits),
+                    static_cast<long>(sol.counters.elastic_activations), sol.message.c_str());
+        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_EQ(sol.stop_reason, StopReason::kSubproblemFailure);
+        EXPECT_EQ(sol.message,
+                  "numerical error: the QP subproblem failed and its retry budget was spent");
+        ASSERT_EQ(sol.history.size(), 2u);
+        for (const IterationRecord &row : sol.history) {
+            EXPECT_EQ(row.sqp->qp_status.value_or(QpStatus::kOptimal), QpStatus::kNumericalError);
+            EXPECT_TRUE(row.sqp->qp_solved);
+        }
+        EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+        EXPECT_EQ(rungs_taken(sol), 1);
+        EXPECT_EQ(sol.counters.steps_accepted, 0);
+        EXPECT_EQ(sol.counters.restoration_entries, 0);
+        EXPECT_EQ(sol.counters.trust_region_floor_exits, 0);
+        EXPECT_EQ(sol.counters.elastic_activations, 0);
+        EXPECT_EQ(sol.x(0), 0.0) << "the exit is at the start point";
+        EXPECT_EQ(sol.x(1), 2.0);
+    }
+}
+
+// The same exit under a tier wide enough to admit its point (moved here with the fixture above
+// from Rf1AcceptableLabel, test_sqp_solver.cpp): the label moves, nothing else does.
+TEST(Rf1RetryLadderSeam, ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves) {
+    const SeamReset guard;
+    const SqpResult tight = propagating_failure_solve(QpWorkingSetAlgebra::kSchurBorder, 0.0);
+    const SqpResult wide = propagating_failure_solve(QpWorkingSetAlgebra::kSchurBorder, 1e10);
+    ASSERT_EQ(tight.status, SolveStatus::kNumericalError);
+    ASSERT_EQ(tight.stop_reason, StopReason::kSubproblemFailure);
+    EXPECT_EQ(wide.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(wide.stop_reason, StopReason::kNone);
+    EXPECT_EQ(wide.message, "converged to an acceptable level: the solve stopped at a point "
+                            "inside the acceptable tolerances: exit subproblem_failure");
+    EXPECT_EQ(wide.counters.major_iters, tight.counters.major_iters);
+    EXPECT_EQ(wide.counters.factorizations, tight.counters.factorizations);
+    EXPECT_EQ(wide.history.size(), tight.history.size());
+    EXPECT_EQ(wide.f, tight.f);
+    ASSERT_EQ(wide.x.size(), tight.x.size());
+    EXPECT_TRUE((wide.x.array() == tight.x.array()).all());
 }
 
 // RF-1 design 4.1: the phase's own budget spent ends the phase kWorkLimit at its best-h point;

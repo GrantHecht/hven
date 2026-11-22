@@ -1123,6 +1123,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
 // parameter values, and the converged steps are identical between them.
 TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     const auto make_options = [] {
+        constexpr int kFailingProposalCap = 200;
         // The bench's own settings (bench/bench_scale.cpp bench_options), so
         // this fixture and the measured sweeps it stands in for are solved by
         // the same driver configuration.
@@ -1150,6 +1151,14 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // testing the PROBE BUDGET, which is what this test is about, on the
         // failure they were pinned against.
         opts.qp.max_iterations = 500;
+        // THE SAME CORRECTION AGAIN (RF-1 A+B2, declared fixture move). At 500 the RF-1 retry
+        // ladder RESCUES the failing proposal (R3, the other working-set algebra, then the
+        // after-rungs elastic route: 0.3 -> 0.7 converges in 5 majors), so there is nothing left
+        // for the probe budget to abandon. Arms A-C are about the PROBE BUDGET over a proposal
+        // that FAILS, so the cap is lowered to 200, the largest of {500, 300, 200, 100} at which
+        // the proposal still fails (measured); the rescue at 500 is pinned on its own as ARM F.
+        // Every arm-A/B/C number below is re-measured at 200.
+        opts.qp.max_iterations = kFailingProposalCap;
         // THE SAME CORRECTION, ONE TASK LATER (M7 W2 M1). This line is NEW for
         // the same reason the one above is: the failure-routing gate's budget
         // was 1 when this fixture's numbers were pinned, and the CUTEst TRAIN
@@ -1183,16 +1192,21 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 
     ASSERT_TRUE(off.reached_p1) << trajectory(off);
     ASSERT_EQ(off.steps.size(), 4u) << trajectory(off);
-    // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
-    EXPECT_EQ(off.steps[1].status, SolveStatus::kStalled) << trajectory(off);
+    // RF-1 A+B2 (declared, at the 200 cap): the failed proposal routes one capped QP (R1, then
+    // R3), takes the after-rungs elastic route, enters restoration, and the phase fails there:
+    // kNumericalError (kRestorationFailed). At C (cap 500) it was the minor-cap exit, kStalled.
+    EXPECT_EQ(off.steps[1].status, SolveStatus::kNumericalError) << trajectory(off);
+    EXPECT_EQ(off.steps[1].counters.restoration_entries, 1) << trajectory(off);
     EXPECT_EQ(off.proposals_abandoned, 0) << "nothing can be abandoned with the budget off";
     EXPECT_EQ(off.proposals_full_cost, 1) << trajectory(off);
     // OBSERVED VALUES (MKL Pardiso, clang++, Release AND Debug): the failed
     // proposal costs 3 majors / 1002 minors / 303 factorizations. 1002 is two
     // full QP minor caps (QpOptions::max_iterations = 500) plus two -- the shape
     // section 4.5(b) calls "cap-pinned".
+    // RF-1 A+B2 (declared): at the 200 cap, 3 majors / 1202 minors / 559 factorizations (the
+    // restoration phase's work folded in). The history below is the 500-cap fixture's.
     EXPECT_EQ(off.steps[1].counters.major_iters, 3) << trajectory(off);
-    EXPECT_EQ(off.steps[1].counters.qp_minor_iters, 1002) << trajectory(off);
+    EXPECT_EQ(off.steps[1].counters.qp_minor_iters, 1202) << trajectory(off);
     // PER-BACKEND, origin entry D19, re-adjudicated at M3 gate B and recorded
     // as M3-2 in docs/notes/2026-08-14-accelerate-divergence-register.md. (The
     // origin note this used to cite, docs/notes/2026-08-01-accelerate-
@@ -1227,7 +1241,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // E2 fix6 (declared mover): 200 -> 18 on MKL -- the grey re-read (R-E)
     // reads the cap-pinned QPs' converged grey admissions dependent; majors,
     // minors and statuses unchanged. Accelerate UNOBSERVED.
-    EXPECT_EQ(off.steps[1].counters.factorizations, 18)
+    EXPECT_EQ(off.steps[1].counters.factorizations, 559)
         << "MKL Pardiso (303 before M7 W2 E2); Accelerate observed 304 pre-E2 (origin D19, "
            "re-adjudicated as M3-2)\n"
         << trajectory(off);
@@ -1273,9 +1287,11 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // unchanged. MKL-observed; no Accelerate value exists for this line.
     // E2 fix6 (declared mover): factorizations 11 -> 9 (the arm-A comparator
     // 200 -> 18), the grey re-read (R-E); majors and minors unchanged.
+    // RF-1 A+B2 (declared, at the 200 cap): 2 majors / 202 minors / 5 factorizations -- one
+    // capped QP, its R1 retry crossing the 200-minor floor.
     EXPECT_EQ(on.steps[1].counters.major_iters, 2) << trajectory(on);
-    EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 502) << trajectory(on);
-    EXPECT_EQ(on.steps[1].counters.factorizations, 9) << trajectory(on);
+    EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 202) << trajectory(on);
+    EXPECT_EQ(on.steps[1].counters.factorizations, 5) << trajectory(on);
 
     // ---- ARM C: the same budget under SqpOptions::return_best_on_max_iterations -------------
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part
@@ -1395,6 +1411,24 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         << trajectory(both);
     EXPECT_GT(both_minors, off_minors) << "both=" << both_minors << " off=" << off_minors << "\n"
                                        << trajectory(both);
+
+    // ---- ARM F: THE RF-1 RESCUE OF THE 500-CAP PROPOSAL ------------------
+    // The fixture arms A-C were pinned on until RF-1: cap 500, where the proposal 0.3 -> 0.7
+    // failed at the minor cap. The retry ladder now rescues it, so the sweep reaches p1 in three
+    // steps with nothing to abandon, the failure rescued rather than bounded.
+    SqpOptions rescued = make_options();
+    rescued.qp.max_iterations = 500;
+    F7CollocationChain model_rescued(100, 3, 2, 0.3, 1.0);
+    SqpSolver driver_rescued(rescued);
+    const ContinuationResult rf = run_continuation(model_rescued, p_vec(0.3), p_vec(0.9),
+                                                   driver_rescued, make_continuation_options(0));
+    ASSERT_TRUE(rf.reached_p1) << trajectory(rf);
+    ASSERT_EQ(rf.steps.size(), 3u) << trajectory(rf);
+    EXPECT_EQ(rf.proposals_full_cost, 0) << trajectory(rf);
+    for (const auto &step : rf.steps) {
+        EXPECT_EQ(step.status, SolveStatus::kOptimal) << trajectory(rf);
+    }
+    EXPECT_EQ(rf.steps[1].counters.major_iters, 5) << trajectory(rf);
 
     // AND THE CONVERGED STEPS ARE UNTOUCHED -- what was bought was thrown-away
     // work, not answers. (This is also what makes the sweep's own product,

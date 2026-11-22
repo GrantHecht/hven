@@ -3617,13 +3617,19 @@ TEST(SqpSolverQpFailure, SuspectEscalationsAggregateToTheDriver) {
     }
 }
 
-// THE OTHER HALF OF THE CONTRACT: the retry is ONE-SHOT, so a subproblem that
-// fails again at the shrunken radius still propagates. Three blocks need
-// three engine restarts and get one, and the box is [-2,2] on every variable,
-// so BOTH Delta = 4 and Delta = 2 leave the window equal to the box and hand
-// back the same unrepairable saddle. Without a propagation rule this fixture
-// would shrink forever until max_iter.
-TEST(SqpSolverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
+// THE RF-1 RUNGS RESCUE THE TWINSADDLE AT A BUDGET OF ONE (declared pin move, RF-1 A+B2).
+// Until RF-1 this fixture pinned the other half of the one-shot retry contract: at Delta = 4 and
+// Delta = 2 the window equals the box [-2, 2] and the shrink hands back the same unrepairable
+// saddle, so the second consecutive failure at x = 0 propagated (kNumericalError,
+// kSubproblemFailure, two rows). That statement -- a failure that no retry changes still
+// propagates -- now lives on a fixture that still fails,
+// Rf1RetryLadderSeam.ARepeatedSubproblemFailureStillPropagates (the seam executable). HERE the
+// ladder's first rung is R3, the other working-set algebra (R1 is skipped: the shrink would not
+// cut the failed walk; R2 is skipped: the solve was cold), its retry fails too, the budget is then
+// spent at h = 7.5 > feas_tol, and the after-rungs route takes the violated linearization to the
+// elastic tier, whose step is accepted on h and lands on the sole local minimizer
+// (0, -2, 0.5) per block, f = -1.125. A rescue, pinned as one.
+TEST(SqpSolverQpFailure, TheRungsRescueTheTwinSaddleAtABudgetOfOne) {
     TwinSaddleModel model(3);
     for (const auto algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
@@ -3634,38 +3640,34 @@ TEST(SqpSolverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         opts.common.max_iterations = 40;
         opts.qp.working_set_algebra = algebra;
         twin_saddle_premise(opts);
-        // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
-        // mechanism the ONE-retry gate has: the second consecutive failure at an
-        // iterate ends the solve. The SHIPPED default is now
-        // `max_consecutive_qp_failures = 3` (the CUTEst TRAIN reading,
-        // docs/notes/data/2026-09-m7-w2-m1-qp-cap/), which routes two more, so
-        // the budget is written out here rather than defaulted -- the pins below
-        // are unchanged and are still the statement about the mechanism.
         opts.advanced.max_consecutive_qp_failures = 1;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
-        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
-        EXPECT_EQ(sol.stop_reason, StopReason::kSubproblemFailure);
-        EXPECT_EQ(sol.message,
-                  "numerical error: the QP subproblem failed and its retry budget was spent");
-        ASSERT_EQ(sol.history.size(), 2u);
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal) << sol.message;
+        ASSERT_EQ(sol.history.size(), 3u);
         EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
                   QpStatus::kNumericalError);
-        EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
-                  QpStatus::kNumericalError);
         EXPECT_DOUBLE_EQ(sol.history[0].sqp->trust_radius, 4.0);
-        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 2.0);
-        EXPECT_EQ(sol.counters.major_iters, 2);
-        EXPECT_EQ(sol.counters.rejected_steps, 1);
-        EXPECT_EQ(sol.counters.steps_accepted, 0);
-
-        // The exit is AT the start point -- nothing was ever accepted.
-        EXPECT_EQ(sol.x.lpNorm<Eigen::Infinity>(), 0.0);
-        // This is the qp_solved == true kNumericalError shape (see
-        // sqp_solver.h's SUBPROBLEM FAILURE ROUTING): the SUBPROBLEM failed, not the
-        // iterate.
-        EXPECT_TRUE(sol.history.back().sqp->qp_solved);
+        EXPECT_DOUBLE_EQ(sol.history[1].sqp->trust_radius, 4.0) << "R3 does not shrink";
+        EXPECT_EQ(sol.history[1].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                  StepVerdict::kAcceptFeasibilityStep)
+            << "the elastic step, accepted on h";
+        EXPECT_EQ(sol.counters.qp_failures_routed, 1);
+        EXPECT_EQ(sol.counters.qp_retry_rung_algebra, 1);
+        EXPECT_EQ(sol.counters.qp_retry_rung_shrink, 0);
+        EXPECT_EQ(sol.counters.qp_retry_rung_cold, 0);
+        EXPECT_EQ(sol.counters.qp_retry_rung_regularization, 0);
+        EXPECT_EQ(sol.counters.qp_retry_replays, 0);
+        EXPECT_EQ(sol.counters.elastic_activations, 1);
+        EXPECT_EQ(sol.counters.restoration_entries, 0);
+        EXPECT_EQ(sol.counters.steps_accepted, 1);
+        EXPECT_NEAR(sol.f, -1.125, 1e-12);
+        for (Index b = 0; b < 3; ++b) {
+            EXPECT_NEAR(sol.x(3 * b), 0.0, 1e-12);
+            EXPECT_NEAR(sol.x(3 * b + 1), -2.0, 1e-12);
+            EXPECT_NEAR(sol.x(3 * b + 2), 0.5, 1e-12);
+        }
     }
 }
 
@@ -3693,7 +3695,15 @@ TEST(SqpSolverQpFailure, TheShippedBudgetRoutesMoreAndThisFixtureThenSolves) {
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
-    ASSERT_EQ(sol.history.size(), 5u);
+    // RF-1 A+B2 (declared pin move, 5 -> 6 rows): the routed failures now take the rungs --
+    // R2 (cold) then R3 (algebra), neither shrinking -- and the third failure at x = 0 requests
+    // restoration, which resumes; the solve then converges at the minimizer. Was: three shrinks,
+    // the third small enough to pose a subproblem the kernel answers.
+    ASSERT_EQ(sol.history.size(), 6u);
+    EXPECT_EQ(sol.counters.qp_retry_rung_cold, 1);
+    EXPECT_EQ(sol.counters.qp_retry_rung_algebra, 1);
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    EXPECT_NEAR(sol.f, -1.125, 1e-12);
     // The routing half of M1's counter group reads the budget directly: the
     // consecutive run this solve reached is what the raised budget admitted, and
     // it is above the 1 the old gate allowed -- which is the non-vacuous part.
@@ -4504,42 +4514,51 @@ TEST(SqpSolverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*hs.model), (*hs.model).start_point());
 
-        ASSERT_EQ(sol.history.size(), 5u);
+        // RF-1 A+B2 RE-DERIVATION (declared pin move). The routed failures now take the rungs,
+        // and R3 (the other algebra) does not shrink, so the trajectory is one row longer:
+        //
+        //   trial 0, Delta = 12   kOptimal, accepted
+        //   trial 1, Delta = 12   kIterationLimit, ROUTED via R3 (radius kept) -> rejections 1
+        //   trial 2, Delta = 12   kOptimal, kReject                            -> rejections 2
+        //   trial 3, Delta =  6   kOptimal, kReject                            -> rejections 3
+        //   trial 4, Delta =  3   kIterationLimit, ROUTED via R1 (shrink)      -> rejections 4
+        //   trial 5, Delta =  1.5 kIterationLimit -> budget spent, kStalled
+        //
+        // The count now REACHES kRestoreMinRejections = 4, with two of its four entries routed:
+        // half, never a majority -- funnel.h's argument (II) is exactly that bound (routed rows
+        // cannot be adjacent, so at most ceil(r/2) of r), now met with equality at r = 4. The
+        // gate is not opened here because trial 5's subproblem fails and is never judged.
+        ASSERT_EQ(sol.history.size(), 6u);
         // Trial 0 moved the iterate, so the rejection count restarts from it.
         EXPECT_EQ(sol.history[0].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
                   QpStatus::kOptimal);
         EXPECT_NE(sol.history[0].sqp->verdict.value_or(hven::StepVerdict::kReject),
                   StepVerdict::kReject);
-
-        // Trials 1..3 are the three that fill the gate, all at ONE iterate
-        // (same f, bit for bit) with the radius halving on every one.
-        for (std::size_t k = 1; k <= 3; ++k) {
+        const double radius[] = {12.0, 12.0, 12.0, 6.0, 3.0, 1.5};
+        const QpStatus qp[] = {QpStatus::kOptimal,        QpStatus::kIterationLimit,
+                               QpStatus::kOptimal,        QpStatus::kOptimal,
+                               QpStatus::kIterationLimit, QpStatus::kIterationLimit};
+        for (std::size_t k = 0; k < 6; ++k) {
             SCOPED_TRACE("trial " + std::to_string(k));
-            EXPECT_TRUE(sol.history[k].sqp->qp_solved);
-            EXPECT_DOUBLE_EQ(sol.history[k].f.value(), sol.history[1].f.value())
-                << "the iterate must not move";
-            EXPECT_EQ(sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject),
-                      StepVerdict::kReject);
-            EXPECT_DOUBLE_EQ(sol.history[k].sqp->trust_radius, 12.0 / std::pow(2.0, k - 1));
+            EXPECT_DOUBLE_EQ(sol.history[k].sqp->trust_radius, radius[k]);
+            EXPECT_EQ(sol.history[k].sqp->qp_status.value_or(hven::QpStatus::kOptimal), qp[k]);
+            if (k >= 1) {
+                EXPECT_TRUE(sol.history[k].sqp->qp_solved);
+                EXPECT_DOUBLE_EQ(sol.history[k].f.value(), sol.history[1].f.value())
+                    << "the iterate must not move";
+                EXPECT_EQ(sol.history[k].sqp->verdict.value_or(hven::StepVerdict::kReject),
+                          StepVerdict::kReject);
+            }
         }
-        // TWO OF THE THREE ARE ROUTED FAILURES, and the middle one is a genuine
-        // judged rejection -- which is exactly what resets the failure chain
-        // and lets the third routed failure happen at all.
-        EXPECT_EQ(sol.history[1].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
-                  QpStatus::kIterationLimit);
-        EXPECT_EQ(sol.history[2].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
-                  QpStatus::kOptimal);
-        EXPECT_EQ(sol.history[3].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
-                  QpStatus::kIterationLimit);
-
-        // rejections_at_iterate is driver-internal, but at this iterate it is
-        // exactly the rejections counted since trial 0's acceptance, i.e. the
-        // whole of counters.rejected_steps. It reaches the gate's threshold.
-        EXPECT_EQ(sol.counters.rejected_steps, 3);
-        EXPECT_EQ(sol.counters.rejected_steps, kRestoreMinRejections - 1)
-            << "conjunct (e) reads exactly this count. Two of its three entries were never "
-               "judged by any strategy, and the re-derived gate (funnel.h, argument "
-               "(II)) is one higher precisely so that a mix like this one cannot open it";
+        EXPECT_EQ(sol.counters.qp_retry_rung_algebra, 1);
+        EXPECT_EQ(sol.counters.qp_retry_rung_shrink, 1);
+        EXPECT_EQ(sol.counters.qp_failures_routed, 2);
+        EXPECT_EQ(sol.counters.rejected_steps, 4);
+        EXPECT_EQ(sol.counters.rejected_steps, kRestoreMinRejections)
+            << "conjunct (e) reads exactly this count, and it is reached";
+        EXPECT_LE(2 * sol.counters.qp_failures_routed, sol.counters.rejected_steps)
+            << "routed entries are at most half of the count, never a majority";
+        EXPECT_EQ(sol.counters.restoration_entries, 0);
         // THE NON-ADJACENCY THE DERIVATION RESTS ON, pinned directly: no two
         // consecutive rows are both routed failures, because the second
         // failure of one chain propagates instead of shrinking.
@@ -4555,13 +4574,9 @@ TEST(SqpSolverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
                 << "rows " << k << "," << k + 1 << " are adjacent routed failures, which the "
                 << "one-shot chain must make impossible except on the terminating pair";
         }
-
-        // Trial 4 is the SECOND consecutive failure of one chain, so it
-        // propagates rather than shrinking a fourth time.
-        EXPECT_EQ(sol.history[4].sqp->qp_status.value_or(hven::QpStatus::kOptimal),
-                  QpStatus::kIterationLimit);
         // RF-1 (declared pin move): a minor-cap exit is kStalled, was kNumericalError.
         EXPECT_EQ(sol.status, SolveStatus::kStalled);
+        EXPECT_EQ(sol.stop_reason, StopReason::kSubproblemIterationLimit);
 
         // AND THE ELASTIC TIER NEVER ACTIVATED (fix round 1): every failure
         // above is kIterationLimit, so this trajectory is bit-identical to Task 7's.
@@ -13529,42 +13544,8 @@ TEST(Rf1AcceptableLabel, TheTierIsValidatedOnTheConvergenceTiersOrder) {
     EXPECT_NO_THROW(validate(at_floor)) << "the convergence tier itself is a legal floor";
 }
 
-// The subproblem-failure exit (RepeatedQpNumericalErrorStillPropagates' fixture) under a
-// tier wide enough to admit its point: the label moves, nothing else does.
-TEST(Rf1AcceptableLabel, ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves) {
-    TwinSaddleModel model(3);
-    const auto run = [&](double acceptable) {
-        SqpOptions opts;
-        opts.trust_region_initial = 4.0;
-        opts.trust_region_max = 100.0;
-        opts.common.max_iterations = 40;
-        twin_saddle_premise(opts);
-        opts.advanced.max_consecutive_qp_failures = 1;
-        opts.termination.acceptable_stationarity_tol =
-            std::max(acceptable, opts.common.optimality_tol);
-        opts.termination.acceptable_equality_tol =
-            std::max(acceptable, opts.common.feasibility_tol);
-        opts.termination.acceptable_inequality_tol =
-            std::max(acceptable, opts.common.feasibility_tol);
-        opts.termination.acceptable_complementarity_tol =
-            std::max(acceptable, opts.common.optimality_tol);
-        SqpSolver driver(opts);
-        return driver.solve(hven::detail::problem_ref(model), model.start_point());
-    };
-    const SqpResult tight = run(0.0);
-    const SqpResult wide = run(1e10);
-    ASSERT_EQ(tight.status, SolveStatus::kNumericalError);
-    ASSERT_EQ(tight.stop_reason, StopReason::kSubproblemFailure);
-    EXPECT_EQ(wide.status, SolveStatus::kAcceptable);
-    EXPECT_EQ(wide.stop_reason, StopReason::kNone);
-    EXPECT_EQ(wide.message, "converged to an acceptable level: the solve stopped at a point "
-                            "inside the acceptable tolerances: exit subproblem_failure");
-    EXPECT_EQ(wide.counters.major_iters, tight.counters.major_iters);
-    EXPECT_EQ(wide.counters.factorizations, tight.counters.factorizations);
-    EXPECT_EQ(wide.history.size(), tight.history.size());
-    EXPECT_EQ(wide.f, tight.f);
-    ASSERT_EQ(wide.x.size(), tight.x.size());
-    EXPECT_TRUE((wide.x.array() == tight.x.array()).all());
-}
+// The subproblem-failure exit under a wide tier (was here on the TwinSaddle fixture, which the
+// RF-1 rungs now rescue): moved with its still-failing fixture to the seam executable,
+// Rf1RetryLadderSeam.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves.
 
 HVEN_SUPPRESS_DEPRECATED_END
