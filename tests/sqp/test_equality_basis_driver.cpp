@@ -736,6 +736,84 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
     EXPECT_LE((res.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
 
+// c0 = x0 - 1, c1 = x0 (1 + x1) - 1: at the start (0, 0.1) the two gradients are (1, 0) and
+// (1.1, 0), so the basis drops one row; away from x0 = 0 the dependence is gone. The problem is
+// feasible (the minimiser of (x0 - 1)^2 + x1^2 is (1, 0), where both rows vanish).
+class StaleSplit final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return (x(0) - 1.0) * (x(0) - 1.0) + (x(1) - 0.1) * (x(1) - 0.1);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 2.0 * (x(0) - 1.0), 2.0 * (x(1) - 0.1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) - 1.0, x(0) * (1.0 + x(1)) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        // Upper triangle, fixed pattern: 2 obj_scale I, plus lambda_1 on (0, 1).
+        SpMatRM S(2, 2);
+        std::vector<Eigen::Triplet<double>> t = {
+            {0, 0, 2.0 * obj_scale}, {0, 1, lambda_e(1)}, {1, 1, 2.0 * obj_scale}};
+        S.setFromTriplets(t.begin(), t.end());
+        S.makeCompressed();
+        return S;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM S(2, 2);
+        std::vector<Eigen::Triplet<double>> t = {
+            {0, 0, 1.0}, {0, 1, 0.0}, {1, 0, 1.0 + x(1)}, {1, 1, x(0)}};
+        S.setFromTriplets(t.begin(), t.end());
+        S.makeCompressed();
+        return S;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lo_; }
+    const Vec &upper() const override { return up_; }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 0.0, 0.1;
+        return x;
+    }
+
+  private:
+    Vec lo_ = Vec::Constant(2, -1e20);
+    Vec up_ = Vec::Constant(2, 1e20);
+};
+
+// RF-1 F-2 (YORKNET 054, a certificate on a feasible problem): a phase over the retained rows
+// that makes them feasible has priced no violation, whatever the dropped row reads at its point.
+// Forced at the first judgement from the start, the phase restores the retained row only and
+// ends where the dropped row is violated by ~0.1 with its gradient out of the retained row's
+// span -- not a stationary point of h. That is no certificate: the phase hands the point back
+// through the reduction resume (h 2 -> 0.1) and the solve converges.
+TEST(SqpEqualityBasis, F6bAPhaseThatFeasesOnlyTheRetainedRowsCertifiesNothing) {
+    const StaleSplit model;
+    SqpOptions o = opts_for(QpMode::kWalk);
+    o.advanced.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
+        return std::make_unique<RestoreOnce>();
+    };
+    SqpSolver solver(o);
+    const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
+    EXPECT_TRUE(res.equality_basis.computed);
+    EXPECT_EQ(res.counters.restoration_entries, 1);
+    EXPECT_FALSE(res.infeasibility_certified);
+    EXPECT_NE(res.status, SolveStatus::kInfeasible);
+    EXPECT_EQ(res.counters.restoration_reduction_resumes, 1);
+    EXPECT_EQ(res.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(res.x(0), 1.0, 1e-6);
+    EXPECT_NEAR(res.x(1), 0.0, 1e-6);
+}
+
 // T5 (E1b): with equality_basis = false, a dependent and consistent network QP (F1's
 // two networks plus a duplicate balance row) solves byte-identically to E1's
 // pre-merge base 8fdeed3e under every qp_mode: status, six counters, x and lambda_e

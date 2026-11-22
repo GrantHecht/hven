@@ -7188,8 +7188,30 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // A kOptimal SUB-SOLVE CLAIMS INFEASIBILITY ONLY BEYOND 2 * feas_tol (QC-1; the CERT-1
     // arm of the switch below has the argument). Read here too, so "certifies nothing" means
     // one thing in both places.
+    //
+    // AND ON THE ROWS THE PHASE PRICED (RF-1 F-2): on a solve whose equality basis reduced the
+    // rows the phase restores the retained rows only (E1-R), so a violation left on a DROPPED row
+    // is one its multipliers never priced -- the phase converges once the retained rows are
+    // feasible, wherever the dropped rows stand. YORKNET 054: kkt_r.feasibility 8.7e-6 on two
+    // dropped rows whose gradients had left the retained rows' span (the split was stale), the
+    // retained rows at 1.8e-10, and the linearized h fell by 100% within a 1e-2 step: certified on
+    // a feasible problem. The claim's measure is the convergence test's with the dropped rows
+    // left out; without a reduced basis it is `kkt_r.feasibility` itself.
+    double priced_feasibility = kkt_r.feasibility;
+    if (resto_rows) {
+        NlpEval ev_priced = ev_r;
+        Vec retained_ce = Vec::Zero(ev_priced.ce.size());
+        for (const Index i : st.eqb.basis.retained()) {
+            retained_ce(i) = ev_priced.ce(i);
+        }
+        ev_priced.ce = std::move(retained_ce);
+        priced_feasibility =
+            evaluate_kkt(seam, ev_priced, x_r, rs_lambda_e, detail::engine_rows(rs).lambda_i,
+                         opts_.common.feasibility_tol)
+                .feasibility;
+    }
     const bool optimal_claims =
-        kkt_r.feasibility > kCertificateViolationMargin * opts_.common.feasibility_tol;
+        priced_feasibility > kCertificateViolationMargin * opts_.common.feasibility_tol;
     const bool reduction_resume =
         opts_.advanced.restoration_resume_reduction > 0.0 && !feasible_resume &&
         box_r <= opts_.common.feasibility_tol &&
