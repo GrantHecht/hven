@@ -1,0 +1,57 @@
+rows compared 476; skipped 0 
+TOTAL ALL                rows  476  A 1.154807e+12  B 1.144859e+12  B/A 0.991385
+TOTAL hven-ipm           rows  238  A 7.934457e+09  B 7.934393e+09  B/A 0.999992
+TOTAL hven-ipm.D         rows  119  A 4.278739e+09  B 4.278782e+09  B/A 1.000010
+TOTAL hven-ipm.K         rows  119  A 3.655717e+09  B 3.655611e+09  B/A 0.999971
+TOTAL hven-sqp           rows  238  A 1.146873e+12  B 1.136924e+12  B/A 0.991326
+TOTAL hven-sqp.D         rows  119  A 4.953899e+11  B 4.923022e+11  B/A 0.993767
+TOTAL hven-sqp.K         rows  119  A 6.514827e+11  B 6.446222e+11  B/A 0.989469
+
+focus rows:
+  sd-hven-ipm-CRESC100.D                   A 3.858470e+08 B 3.858396e+08 B/A 1.0000
+  sd-hven-ipm-CRESC100.K                   A 3.858458e+08 B 3.858464e+08 B/A 1.0000
+  sd-hven-ipm-CRESC50.D                    A 1.307906e+09 B 1.307906e+09 B/A 1.0000
+  sd-hven-ipm-CRESC50.K                    A 1.307901e+09 B 1.307901e+09 B/A 1.0000
+  sd-hven-ipm-DNIEPER.D                    A 4.553221e+07 B 4.553225e+07 B/A 1.0000
+  sd-hven-ipm-DNIEPER.K                    A 3.020925e+07 B 3.020940e+07 B/A 1.0000
+  sd-hven-ipm-MESH.D                       A 3.901464e+08 B 3.901456e+08 B/A 1.0000
+  sd-hven-ipm-MESH.K                       A 8.176341e+07 B 8.175845e+07 B/A 0.9999
+  sd-hven-ipm-MSS1.D                       A 8.636524e+07 B 8.636499e+07 B/A 1.0000
+  sd-hven-ipm-MSS1.K                       A 1.004146e+08 B 1.004271e+08 B/A 1.0001
+  sd-hven-ipm-SPANHYD.D                    A 4.030208e+08 B 4.030270e+08 B/A 1.0000
+  sd-hven-ipm-SPANHYD.K                    A 1.053162e+08 B 1.053119e+08 B/A 1.0000
+  sd-hven-sqp-CRESC100.D                   A 1.330225e+11 B 1.328992e+11 B/A 0.9991
+  sd-hven-sqp-CRESC100.K                   A 1.597286e+11 B 1.597739e+11 B/A 1.0003
+  sd-hven-sqp-CRESC50.D                    A 3.655113e+10 B 3.653653e+10 B/A 0.9996
+  sd-hven-sqp-CRESC50.K                    A 4.630558e+10 B 4.625721e+10 B/A 0.9990
+  sd-hven-sqp-DNIEPER.D                    A 7.326944e+08 B 7.336388e+08 B/A 1.0013
+  sd-hven-sqp-DNIEPER.K                    A 1.167658e+09 B 1.161298e+09 B/A 0.9946
+  sd-hven-sqp-MESH.D                       A 2.026906e+10 B 2.022740e+10 B/A 0.9979
+  sd-hven-sqp-MESH.K                       A 8.240394e+09 B 8.154764e+09 B/A 0.9896
+  sd-hven-sqp-MSS1.D                       A 5.029871e+10 B 4.746542e+10 B/A 0.9437
+  sd-hven-sqp-MSS1.K                       A 1.191041e+11 B 1.149414e+11 B/A 0.9650
+  sd-hven-sqp-SPANHYD.D                    A 1.733549e+11 B 1.732641e+11 B/A 0.9995
+  sd-hven-sqp-SPANHYD.K                    A 1.956609e+11 B 1.933600e+11 B/A 0.9882
+
+largest savings:
+  sd-hven-sqp-HS84.K                       A 3.288089e+07 B 2.963747e+07 B/A 0.9014
+  sd-hven-sqp-MSS1.D                       A 5.029871e+10 B 4.746542e+10 B/A 0.9437
+  sd-hven-sqp-MSS1.K                       A 1.191041e+11 B 1.149414e+11 B/A 0.9650
+  sd-hven-sqp-LAUNCH.K                     A 1.952983e+08 B 1.923033e+08 B/A 0.9847
+  sd-hven-sqp-HS83.K                       A 1.171892e+08 B 1.154629e+08 B/A 0.9853
+  sd-hven-sqp-SPANHYD.K                    A 1.956609e+11 B 1.933600e+11 B/A 0.9882
+  sd-hven-sqp-MESH.K                       A 8.240394e+09 B 8.154764e+09 B/A 0.9896
+  sd-hven-sqp-HS99EXP.K                    A 2.510228e+10 B 2.487337e+10 B/A 0.9909
+  sd-hven-sqp-CRESC4.K                     A 6.715495e+08 B 6.660894e+08 B/A 0.9919
+  hs-hven-sqp-hs071.K                      A 1.824288e+07 B 1.809782e+07 B/A 0.9920
+largest increases:
+  hs-hven-sqp-hs010.D                      A 2.137135e+07 B 2.142645e+07 B/A 1.0026
+  sd-hven-sqp-HS56.D                       A 1.255439e+08 B 1.258823e+08 B/A 1.0027
+  sd-hven-ipm-ZECEVIC4.D                   A 7.083290e+06 B 7.103381e+06 B/A 1.0028
+  sd-hven-sqp-BURKEHAN.D                   A 7.230312e+07 B 7.252548e+07 B/A 1.0031
+  hs-hven-sqp-hs043.D                      A 8.636636e+06 B 8.668474e+06 B/A 1.0037
+  sd-hven-sqp-BT7.D                        A 2.469297e+08 B 2.480283e+08 B/A 1.0044
+  sd-hven-sqp-BT7.K                        A 1.189325e+09 B 1.194833e+09 B/A 1.0046
+  sd-hven-sqp-HS84.D                       A 1.134598e+07 B 1.139968e+07 B/A 1.0047
+  sd-hven-sqp-HS59.D                       A 1.833173e+07 B 1.842265e+07 B/A 1.0050
+  sd-hven-sqp-HS83.D                       A 2.623662e+07 B 2.638345e+07 B/A 1.0056

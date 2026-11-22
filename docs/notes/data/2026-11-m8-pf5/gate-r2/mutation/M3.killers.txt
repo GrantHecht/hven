@@ -1,0 +1,2 @@
+RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns

@@ -1,0 +1,3 @@
+KktFactor.NeedsAnalysisPreservesCallSiteCounting
+QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt
+RetainedAnalyses.TheCountsCarryAcrossSwaps

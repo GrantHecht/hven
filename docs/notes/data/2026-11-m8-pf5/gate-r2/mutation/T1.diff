@@ -1,0 +1,13 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index ff16313be..e79e20f8f 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -579,7 +579,7 @@ AnalysisReuseTally::~AnalysisReuseTally() {
+ }
+ 
+ void AnalysisReuseTally::record() noexcept {
+-    for (AnalysisReuseTally *t = t_reuse_innermost; t != nullptr; t = t->outer_) {
++    for (AnalysisReuseTally *t = t_reuse_innermost; t != nullptr; t = nullptr) {
+         ++t->reuses_;
+     }
+ }
