@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..a0dc31564 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8569,7 +8569,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         // `st.mb.snap_valid`: the restoration order (RF-1 ruling B2) may have captured nothing,
+         // and the phase then hands back its last point. The shared order captures the first
+         // measured pass, so on every other driver the conjunct is true here.
+-        if (!mj.converged && !probe_exhausted && st.mb.snap_valid &&
++        if (!mj.converged && !probe_exhausted &&
+             detail::return_best_applies(opts_.common.return_best,
+                                         st.limit_exit != SolveStatus::kOptimal
+                                             ? st.limit_exit

@@ -1,0 +1,311 @@
+2026-11-22T11:00:25Z === walk census: parallel-tiered v1, RF-1 lane copy (one 4-core box lane; T2 solo within the lane, not machine-solo) (T1 4-wide pinned / T2 solo / T3 4-wide full-budget) ===
+2026-11-22T11:00:25Z binary   : /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/bin/Cr3/hven_sqp_corpus
+2026-11-22T11:00:25Z baseline : /home/ghecht/Projects/hven/.claude/worktrees/rf1/bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+2026-11-22T11:00:25Z topology : 4 physical cores; representatives (one sibling each): 0,1,2,3
+tier assignment (from frozen baseline /home/ghecht/Projects/hven/.claude/worktrees/rf1/bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv)
+  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+  T3 deep-DNF 4-wide      : baseline status dnf_*, full budget each
+  T1 remainder 4-wide     : everything else
+  counts: T1=42  T2=3  T3=12  (total 57)
+  tier cell                             base_status    base_wall_s
+  T1   f7_n5000_path_activity           Optimal        794.793
+  T1   f7_n5000_path_physics            Optimal        592.315
+  T1   f7_n1000_path_corrupted          Optimal        452.004
+  T1   f7_n1000_path_neutral            Optimal        181.256
+  T1   f7_n800_path_neutral             Optimal        127.603
+  T1   f7_n825_path_neutral_control     Optimal        118.477
+  T1   f7_n750_path_neutral_control     Optimal        109.259
+  T1   f7_n2000_path_physics            Optimal        73.050
+  T1   f7_n2000_path_activity           Optimal        65.571
+  T1   f7_n2000_path_warm               Optimal        44.085
+  T1   f7_n800_path_corrupted           Optimal        30.413
+  T1   f7_n1000_path_physics            Optimal        14.554
+  T1   f7_n800_path_physics             Optimal        9.296
+  T1   f7_n1000_path_activity           Optimal        8.497
+  T1   f7_n800_path_activity            Optimal        4.878
+  T1   f7_n20000_bound_neutral          Optimal        1.301
+  T1   f7_n20000_bound_corrupted        Optimal        1.162
+  T1   f7_n20000_bound_physics          Optimal        1.162
+  T1   f7_n20000_bound_warm             Optimal        1.162
+  T1   f7_n20000_bound_activity         Optimal        1.160
+  T1   f7_n10000_bound_neutral          Optimal        0.630
+  T1   f7_n10000_bound_corrupted        Optimal        0.565
+  T1   f7_n10000_bound_warm             Optimal        0.563
+  T1   f7_n10000_bound_activity         Optimal        0.560
+  T1   f7_n10000_bound_physics          Optimal        0.559
+  T1   f7_n5000_bound_neutral           Optimal        0.310
+  T1   f7_n5000_bound_physics           Optimal        0.277
+  T1   f7_n5000_bound_corrupted         Optimal        0.276
+  T1   f7_n5000_bound_activity          Optimal        0.274
+  T1   f7_n5000_bound_warm              Optimal        0.274
+  T1   f7_n1000_path_warm               Optimal        0.230
+  T1   f7_n2000_bound_neutral           Optimal        0.124
+  T1   f7_n800_path_warm                Optimal        0.114
+  T1   f7_n2000_bound_physics           Optimal        0.111
+  T1   f7_n2000_bound_activity          Optimal        0.110
+  T1   f7_n2000_bound_corrupted         Optimal        0.109
+  T1   f7_n2000_bound_warm              Optimal        0.108
+  T1   f7_n1000_bound_neutral           Optimal        0.061
+  T1   f7_n1000_bound_activity          Optimal        0.054
+  T1   f7_n1000_bound_corrupted         Optimal        0.054
+  T1   f7_n1000_bound_physics           Optimal        0.054
+  T1   f7_n1000_bound_warm              Optimal        0.053
+  T2   f7_n10000_path_physics           dnf_budget     3600.000
+  T2   f7_n2000_path_corrupted          WorkLimit      1946.434
+  T2   f7_n2000_path_neutral            WorkLimit      1881.027
+  T3   f7_n10000_path_activity          dnf_budget     3600.000
+  T3   f7_n10000_path_corrupted         dnf_setup      3600.000
+  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+  T3   f7_n10000_path_warm              dnf_setup      3600.000
+  T3   f7_n20000_path_activity          dnf_budget     3600.000
+  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+  T3   f7_n20000_path_physics           dnf_budget     3600.000
+  T3   f7_n20000_path_warm              dnf_setup      3600.000
+  T3   f7_n5000_path_corrupted          dnf_setup      3600.000
+  T3   f7_n5000_path_neutral            dnf_budget     3600.000
+  T3   f7_n5000_path_warm               dnf_setup      3600.000
+2026-11-22T11:00:25Z --- tier 1: 42 cells, 4 worker(s), started 11:00:25Z ---
+2026-11-22T11:00:25Z [strt] T1 slot0 cpu0 f7_n5000_path_activity
+2026-11-22T11:00:25Z [strt] T1 slot1 cpu1 f7_n5000_path_physics
+2026-11-22T11:00:25Z [strt] T1 slot2 cpu2 f7_n1000_path_corrupted
+2026-11-22T11:00:25Z [strt] T1 slot3 cpu3 f7_n1000_path_neutral
+2026-11-22T11:03:21Z [ ok ] T1 slot3 cpu3 f7_n1000_path_neutral rc=0 wall=176s status=Optimal
+2026-11-22T11:03:21Z [strt] T1 slot3 cpu3 f7_n800_path_neutral
+2026-11-22T11:04:25Z [ ok ] T1 slot2 cpu2 f7_n1000_path_corrupted rc=0 wall=240s status=Optimal
+2026-11-22T11:04:25Z [skip] T1 slot2 cpu2 f7_n1000_path_neutral (row exists)
+2026-11-22T11:04:25Z [strt] T1 slot2 cpu2 f7_n825_path_neutral_control
+2026-11-22T11:05:22Z [ ok ] T1 slot3 cpu3 f7_n800_path_neutral rc=0 wall=121s status=Optimal
+2026-11-22T11:05:22Z [strt] T1 slot3 cpu3 f7_n750_path_neutral_control
+2026-11-22T11:06:22Z [ ok ] T1 slot2 cpu2 f7_n825_path_neutral_control rc=0 wall=117s status=Optimal
+2026-11-22T11:06:22Z [strt] T1 slot2 cpu2 f7_n2000_path_physics
+2026-11-22T11:07:08Z [ ok ] T1 slot3 cpu3 f7_n750_path_neutral_control rc=0 wall=106s status=Optimal
+2026-11-22T11:07:08Z [strt] T1 slot3 cpu3 f7_n2000_path_activity
+2026-11-22T11:07:36Z [ ok ] T1 slot2 cpu2 f7_n2000_path_physics rc=0 wall=74s status=Optimal
+2026-11-22T11:07:36Z [strt] T1 slot2 cpu2 f7_n2000_path_warm
+2026-11-22T11:08:16Z [ ok ] T1 slot3 cpu3 f7_n2000_path_activity rc=0 wall=68s status=Optimal
+2026-11-22T11:08:16Z [strt] T1 slot3 cpu3 f7_n800_path_corrupted
+2026-11-22T11:10:16Z [ ok ] T1 slot1 cpu1 f7_n5000_path_physics rc=0 wall=591s status=Optimal
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n1000_path_corrupted (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n1000_path_neutral (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n800_path_neutral (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n825_path_neutral_control (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n750_path_neutral_control (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n2000_path_physics (row exists)
+2026-11-22T11:10:16Z [skip] T1 slot1 cpu1 f7_n2000_path_activity (row exists)
+2026-11-22T11:10:16Z [strt] T1 slot1 cpu1 f7_n1000_path_physics
+2026-11-22T11:10:31Z [ ok ] T1 slot3 cpu3 f7_n800_path_corrupted rc=0 wall=135s status=Optimal
+2026-11-22T11:10:31Z [strt] T1 slot3 cpu3 f7_n800_path_physics
+2026-11-22T11:10:31Z [ ok ] T1 slot1 cpu1 f7_n1000_path_physics rc=0 wall=15s status=Optimal
+2026-11-22T11:10:31Z [strt] T1 slot1 cpu1 f7_n1000_path_activity
+2026-11-22T11:10:39Z [ ok ] T1 slot3 cpu3 f7_n800_path_physics rc=0 wall=8s status=Optimal
+2026-11-22T11:10:39Z [strt] T1 slot3 cpu3 f7_n800_path_activity
+2026-11-22T11:10:39Z [ ok ] T1 slot1 cpu1 f7_n1000_path_activity rc=0 wall=8s status=Optimal
+2026-11-22T11:10:39Z [strt] T1 slot1 cpu1 f7_n20000_bound_neutral
+2026-11-22T11:10:41Z [ ok ] T1 slot1 cpu1 f7_n20000_bound_neutral rc=0 wall=2s status=Optimal
+2026-11-22T11:10:41Z [strt] T1 slot1 cpu1 f7_n20000_bound_corrupted
+2026-11-22T11:10:43Z [ ok ] T1 slot1 cpu1 f7_n20000_bound_corrupted rc=0 wall=2s status=Optimal
+2026-11-22T11:10:43Z [strt] T1 slot1 cpu1 f7_n20000_bound_physics
+2026-11-22T11:10:45Z [ ok ] T1 slot3 cpu3 f7_n800_path_activity rc=0 wall=5s status=Optimal
+2026-11-22T11:10:45Z [skip] T1 slot3 cpu3 f7_n20000_bound_neutral (row exists)
+2026-11-22T11:10:45Z [skip] T1 slot3 cpu3 f7_n20000_bound_corrupted (row exists)
+2026-11-22T11:10:45Z [strt] T1 slot3 cpu3 f7_n20000_bound_warm
+2026-11-22T11:10:45Z [ ok ] T1 slot1 cpu1 f7_n20000_bound_physics rc=0 wall=2s status=Optimal
+2026-11-22T11:10:45Z [strt] T1 slot1 cpu1 f7_n20000_bound_activity
+2026-11-22T11:10:46Z [ ok ] T1 slot1 cpu1 f7_n20000_bound_activity rc=0 wall=1s status=Optimal
+2026-11-22T11:10:46Z [strt] T1 slot1 cpu1 f7_n10000_bound_neutral
+2026-11-22T11:10:47Z [ ok ] T1 slot1 cpu1 f7_n10000_bound_neutral rc=0 wall=1s status=Optimal
+2026-11-22T11:10:47Z [strt] T1 slot1 cpu1 f7_n10000_bound_corrupted
+2026-11-22T11:10:47Z [ ok ] T1 slot3 cpu3 f7_n20000_bound_warm rc=0 wall=2s status=Optimal
+2026-11-22T11:10:47Z [skip] T1 slot3 cpu3 f7_n20000_bound_activity (row exists)
+2026-11-22T11:10:47Z [skip] T1 slot3 cpu3 f7_n10000_bound_neutral (row exists)
+2026-11-22T11:10:47Z [strt] T1 slot3 cpu3 f7_n10000_bound_warm
+2026-11-22T11:10:48Z [ ok ] T1 slot1 cpu1 f7_n10000_bound_corrupted rc=0 wall=1s status=Optimal
+2026-11-22T11:10:48Z [strt] T1 slot1 cpu1 f7_n10000_bound_activity
+2026-11-22T11:10:48Z [ ok ] T1 slot3 cpu3 f7_n10000_bound_warm rc=0 wall=1s status=Optimal
+2026-11-22T11:10:48Z [strt] T1 slot3 cpu3 f7_n10000_bound_physics
+2026-11-22T11:10:49Z [ ok ] T1 slot1 cpu1 f7_n10000_bound_activity rc=0 wall=1s status=Optimal
+2026-11-22T11:10:49Z [strt] T1 slot1 cpu1 f7_n5000_bound_neutral
+2026-11-22T11:10:49Z [ ok ] T1 slot1 cpu1 f7_n5000_bound_neutral rc=0 wall=0s status=Optimal
+2026-11-22T11:10:49Z [strt] T1 slot1 cpu1 f7_n5000_bound_physics
+2026-11-22T11:10:49Z [ ok ] T1 slot3 cpu3 f7_n10000_bound_physics rc=0 wall=1s status=Optimal
+2026-11-22T11:10:49Z [skip] T1 slot3 cpu3 f7_n5000_bound_neutral (row exists)
+2026-11-22T11:10:49Z [strt] T1 slot3 cpu3 f7_n5000_bound_corrupted
+2026-11-22T11:10:49Z [ ok ] T1 slot1 cpu1 f7_n5000_bound_physics rc=0 wall=0s status=Optimal
+2026-11-22T11:10:49Z [strt] T1 slot1 cpu1 f7_n5000_bound_activity
+2026-11-22T11:10:50Z [ ok ] T1 slot1 cpu1 f7_n5000_bound_activity rc=0 wall=1s status=Optimal
+2026-11-22T11:10:50Z [strt] T1 slot1 cpu1 f7_n5000_bound_warm
+2026-11-22T11:10:50Z [ ok ] T1 slot3 cpu3 f7_n5000_bound_corrupted rc=0 wall=1s status=Optimal
+2026-11-22T11:10:50Z [skip] T1 slot3 cpu3 f7_n5000_bound_activity (row exists)
+2026-11-22T11:10:50Z [strt] T1 slot3 cpu3 f7_n1000_path_warm
+2026-11-22T11:10:50Z [ ok ] T1 slot1 cpu1 f7_n5000_bound_warm rc=0 wall=0s status=Optimal
+2026-11-22T11:10:50Z [strt] T1 slot1 cpu1 f7_n2000_bound_neutral
+2026-11-22T11:10:50Z [ ok ] T1 slot1 cpu1 f7_n2000_bound_neutral rc=0 wall=0s status=Optimal
+2026-11-22T11:10:50Z [strt] T1 slot1 cpu1 f7_n800_path_warm
+2026-11-22T11:12:33Z [ ok ] T1 slot1 cpu1 f7_n800_path_warm rc=0 wall=103s status=Optimal
+2026-11-22T11:12:33Z [strt] T1 slot1 cpu1 f7_n2000_bound_physics
+2026-11-22T11:12:33Z [ ok ] T1 slot1 cpu1 f7_n2000_bound_physics rc=0 wall=0s status=Optimal
+2026-11-22T11:12:33Z [strt] T1 slot1 cpu1 f7_n2000_bound_activity
+2026-11-22T11:12:33Z [ ok ] T1 slot1 cpu1 f7_n2000_bound_activity rc=0 wall=0s status=Optimal
+2026-11-22T11:12:33Z [strt] T1 slot1 cpu1 f7_n2000_bound_corrupted
+2026-11-22T11:12:33Z [ ok ] T1 slot1 cpu1 f7_n2000_bound_corrupted rc=0 wall=0s status=Optimal
+2026-11-22T11:12:33Z [strt] T1 slot1 cpu1 f7_n2000_bound_warm
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n2000_bound_warm rc=0 wall=1s status=Optimal
+2026-11-22T11:12:34Z [strt] T1 slot1 cpu1 f7_n1000_bound_neutral
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n1000_bound_neutral rc=0 wall=0s status=Optimal
+2026-11-22T11:12:34Z [strt] T1 slot1 cpu1 f7_n1000_bound_activity
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n1000_bound_activity rc=0 wall=0s status=Optimal
+2026-11-22T11:12:34Z [strt] T1 slot1 cpu1 f7_n1000_bound_corrupted
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n1000_bound_corrupted rc=0 wall=0s status=Optimal
+2026-11-22T11:12:34Z [strt] T1 slot1 cpu1 f7_n1000_bound_physics
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n1000_bound_physics rc=0 wall=0s status=Optimal
+2026-11-22T11:12:34Z [strt] T1 slot1 cpu1 f7_n1000_bound_warm
+2026-11-22T11:12:34Z [ ok ] T1 slot1 cpu1 f7_n1000_bound_warm rc=0 wall=0s status=Optimal
+2026-11-22T11:12:34Z [exit] T1 slot1 cpu1 drained
+2026-11-22T11:13:31Z [ ok ] T1 slot0 cpu0 f7_n5000_path_activity rc=0 wall=786s status=Optimal
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_path_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_path_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_path_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n800_path_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n825_path_neutral_control (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n750_path_neutral_control (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_path_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_path_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n800_path_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_path_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n800_path_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_path_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n800_path_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n20000_bound_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n20000_bound_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n20000_bound_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n20000_bound_warm (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n20000_bound_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n10000_bound_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n10000_bound_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n10000_bound_warm (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n10000_bound_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n10000_bound_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_bound_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_bound_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_bound_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_bound_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n5000_bound_warm (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_bound_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n800_path_warm (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_bound_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_bound_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_bound_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n2000_bound_warm (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_bound_neutral (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_bound_activity (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_bound_corrupted (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_bound_physics (row exists)
+2026-11-22T11:13:31Z [skip] T1 slot0 cpu0 f7_n1000_bound_warm (row exists)
+2026-11-22T11:13:31Z [exit] T1 slot0 cpu0 drained
+2026-11-22T11:13:39Z [ ok ] T1 slot3 cpu3 f7_n1000_path_warm rc=0 wall=169s status=Optimal
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n2000_bound_neutral (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n800_path_warm (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n2000_bound_physics (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n2000_bound_activity (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n2000_bound_corrupted (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n2000_bound_warm (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n1000_bound_neutral (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n1000_bound_activity (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n1000_bound_corrupted (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n1000_bound_physics (row exists)
+2026-11-22T11:13:39Z [skip] T1 slot3 cpu3 f7_n1000_bound_warm (row exists)
+2026-11-22T11:13:39Z [exit] T1 slot3 cpu3 drained
+2026-11-22T11:36:32Z [ ok ] T1 slot2 cpu2 f7_n2000_path_warm rc=0 wall=1736s status=Optimal
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n800_path_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_path_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n800_path_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_path_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n800_path_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n20000_bound_neutral (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n20000_bound_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n20000_bound_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n20000_bound_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n20000_bound_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n10000_bound_neutral (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n10000_bound_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n10000_bound_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n10000_bound_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n10000_bound_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n5000_bound_neutral (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n5000_bound_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n5000_bound_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n5000_bound_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n5000_bound_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_path_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n2000_bound_neutral (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n800_path_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n2000_bound_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n2000_bound_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n2000_bound_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n2000_bound_warm (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_bound_neutral (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_bound_activity (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_bound_corrupted (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_bound_physics (row exists)
+2026-11-22T11:36:32Z [skip] T1 slot2 cpu2 f7_n1000_bound_warm (row exists)
+2026-11-22T11:36:32Z [exit] T1 slot2 cpu2 drained
+2026-11-22T11:36:32Z --- tier 1: complete 11:36:32Z ---
+2026-11-22T11:36:32Z --- tier 2: 3 cells, 1 worker(s), started 11:36:32Z ---
+2026-11-22T11:36:32Z [strt] T2 slot0 cpu0 f7_n10000_path_physics
+2026-11-22T12:36:33Z [ ok ] T2 slot0 cpu0 f7_n10000_path_physics rc=0 wall=3601s status=dnf_budget
+2026-11-22T12:36:33Z [strt] T2 slot0 cpu0 f7_n2000_path_corrupted
+2026-11-22T13:38:30Z [ ok ] T2 slot0 cpu0 f7_n2000_path_corrupted rc=0 wall=3717s status=WorkLimit
+2026-11-22T13:38:30Z [strt] T2 slot0 cpu0 f7_n2000_path_neutral
+2026-11-22T14:09:44Z [ ok ] T2 slot0 cpu0 f7_n2000_path_neutral rc=0 wall=1874s status=WorkLimit
+2026-11-22T14:09:44Z [exit] T2 slot0 cpu0 drained
+2026-11-22T14:09:44Z --- tier 2: complete 14:09:44Z ---
+2026-11-22T14:09:44Z --- tier 3: 12 cells, 4 worker(s), started 14:09:44Z ---
+2026-11-22T14:09:44Z [strt] T3 slot0 cpu0 f7_n10000_path_activity
+2026-11-22T14:09:44Z [strt] T3 slot1 cpu1 f7_n10000_path_corrupted
+2026-11-22T14:09:44Z [strt] T3 slot2 cpu2 f7_n10000_path_neutral
+2026-11-22T14:09:44Z [strt] T3 slot3 cpu3 f7_n10000_path_warm
+2026-11-22T15:09:44Z [ ok ] T3 slot2 cpu2 f7_n10000_path_neutral rc=0 wall=3600s status=dnf_budget
+2026-11-22T15:09:44Z [strt] T3 slot2 cpu2 f7_n20000_path_activity
+2026-11-22T15:09:44Z [ ok ] T3 slot1 cpu1 f7_n10000_path_corrupted rc=0 wall=3600s status=dnf_setup
+2026-11-22T15:09:44Z [ ok ] T3 slot3 cpu3 f7_n10000_path_warm rc=0 wall=3600s status=dnf_setup
+2026-11-22T15:09:44Z [skip] T3 slot1 cpu1 f7_n10000_path_neutral (row exists)
+2026-11-22T15:09:44Z [skip] T3 slot1 cpu1 f7_n10000_path_warm (row exists)
+2026-11-22T15:09:44Z [strt] T3 slot3 cpu3 f7_n20000_path_corrupted
+2026-11-22T15:09:44Z [strt] T3 slot1 cpu1 f7_n20000_path_neutral
+2026-11-22T15:09:44Z [ ok ] T3 slot0 cpu0 f7_n10000_path_activity rc=0 wall=3600s status=dnf_budget
+2026-11-22T15:09:44Z [skip] T3 slot0 cpu0 f7_n10000_path_corrupted (row exists)
+2026-11-22T15:09:44Z [skip] T3 slot0 cpu0 f7_n10000_path_neutral (row exists)
+2026-11-22T15:09:44Z [skip] T3 slot0 cpu0 f7_n10000_path_warm (row exists)
+2026-11-22T15:09:44Z [strt] T3 slot0 cpu0 f7_n20000_path_physics
+2026-11-22T16:09:44Z [ ok ] T3 slot3 cpu3 f7_n20000_path_corrupted rc=0 wall=3600s status=dnf_setup
+2026-11-22T16:09:44Z [strt] T3 slot3 cpu3 f7_n20000_path_warm
+2026-11-22T16:09:44Z [ ok ] T3 slot1 cpu1 f7_n20000_path_neutral rc=0 wall=3600s status=dnf_budget
+2026-11-22T16:09:44Z [strt] T3 slot1 cpu1 f7_n5000_path_corrupted
+2026-11-22T16:09:44Z [ ok ] T3 slot0 cpu0 f7_n20000_path_physics rc=0 wall=3600s status=dnf_budget
+2026-11-22T16:09:44Z [strt] T3 slot0 cpu0 f7_n5000_path_neutral
+2026-11-22T16:09:44Z [ ok ] T3 slot2 cpu2 f7_n20000_path_activity rc=0 wall=3600s status=dnf_budget
+2026-11-22T16:09:44Z [skip] T3 slot2 cpu2 f7_n20000_path_corrupted (row exists)
+2026-11-22T16:09:44Z [skip] T3 slot2 cpu2 f7_n20000_path_neutral (row exists)
+2026-11-22T16:09:44Z [skip] T3 slot2 cpu2 f7_n20000_path_physics (row exists)
+2026-11-22T16:09:44Z [strt] T3 slot2 cpu2 f7_n5000_path_warm
+2026-11-22T17:09:45Z [ ok ] T3 slot1 cpu1 f7_n5000_path_corrupted rc=0 wall=3601s status=dnf_setup
+2026-11-22T17:09:45Z [exit] T3 slot1 cpu1 drained
+2026-11-22T17:09:45Z [ ok ] T3 slot0 cpu0 f7_n5000_path_neutral rc=0 wall=3601s status=dnf_budget
+2026-11-22T17:09:45Z [exit] T3 slot0 cpu0 drained
+2026-11-22T17:09:45Z [ ok ] T3 slot3 cpu3 f7_n20000_path_warm rc=0 wall=3601s status=dnf_setup
+2026-11-22T17:09:45Z [skip] T3 slot3 cpu3 f7_n5000_path_corrupted (row exists)
+2026-11-22T17:09:45Z [skip] T3 slot3 cpu3 f7_n5000_path_neutral (row exists)
+2026-11-22T17:09:45Z [exit] T3 slot3 cpu3 drained
+2026-11-22T17:09:45Z [ ok ] T3 slot2 cpu2 f7_n5000_path_warm rc=0 wall=3601s status=dnf_setup
+2026-11-22T17:09:45Z [exit] T3 slot2 cpu2 drained
+2026-11-22T17:09:45Z --- tier 3: complete 17:09:45Z ---
+2026-11-22T17:09:45Z merging 57 row files
+2026-11-22T17:09:45Z merge+score exit: 0
+2026-11-22T17:09:45Z compare exit: 1
+2026-11-22T17:09:45Z WARN: 7 cell(s) disagree with the baseline on the 13 asserted columns.
+2026-11-22T17:09:45Z WARN: that is a REPORT, not a runner failure -- each one is listed in
+2026-11-22T17:09:45Z WARN: serial_confirm_list.txt and is NOT a regression until it has been
+2026-11-22T17:09:45Z WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+2026-11-22T17:09:45Z serial-confirm list: 7 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/rf1/docs/notes/data/2026-11-m8-rf1/gate-AB2-r3/census/Cr3/serial_confirm_list.txt
+2026-11-22T17:09:45Z === census done (merge_rc=0 compare_rc=1 rows=57/57) ===
