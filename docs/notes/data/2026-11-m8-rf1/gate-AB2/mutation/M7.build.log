@@ -1,0 +1,36 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- MKL threading layer = intel
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- hven tests: 198 test sources, each in exactly one executable or recorded absent
+-- Configuring done (2.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel
+[0/4] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+FAILED: [code=1] CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o 
+/usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_VERSION_STRING=\"0.2.0\" -I/home/ghecht/Projects/hven/.claude/worktrees/rf1/include -I/opt/intel/oneapi/mkl/latest/include -isystem /home/ghecht/Projects/hven/.claude/worktrees/rf1/dep/eigen -isystem /home/ghecht/Projects/hven/.claude/worktrees/rf1/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -MD -MT CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o -MF CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o.d -o CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp:9136:82: error: extraneous ')' before ';'
+ 9136 |            !qp_failure_is_retryable(st.qp, mj.qs, opts_.common.feasibility_tol))));
+      |                                                                                  ^
+1 error generated.
+[2/9] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o
+FAILED: [code=1] tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o 
+/usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_TESTING=1 -DHVEN_TEST_MKL_SEQUENTIAL=0 -DHVEN_TEST_REFERENCE_DISPATCH=1 -DHVEN_TEST_RELEASE_BUILD=1 -DHVEN_VERSION_STRING=\"0.2.0\" -I/home/ghecht/Projects/hven/.claude/worktrees/rf1/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/.claude/worktrees/rf1/tests -isystem /home/ghecht/Projects/hven/.claude/worktrees/rf1/dep/eigen -isystem /home/ghecht/Projects/hven/.claude/worktrees/rf1/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -MD -MT tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o -MF tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o.d -o tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp:9136:82: error: extraneous ')' before ';'
+ 9136 |            !qp_failure_is_retryable(st.qp, mj.qs, opts_.common.feasibility_tol))));
+      |                                                                                  ^
+1 error generated.
+ninja: build stopped: subcommand failed.

@@ -1,0 +1,40 @@
+box-lane: lane 0 acquired 2026-11-22T00:55:08-05:00
+FOREGROUND_START 2026-11-22T00:55:08-05:00 lane=0
+head aa3460b78ce3ccb6265faaf73887a45e5f302b40 code 7d66b5e60
+build rel rc=0
+	873 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-22T00:57:01-05:00
+mutations rc=1
+MUT control rc=0 killers=0
+MUT M1 rc=2 killers=26
+MUT M2 rc=2 killers=12
+MUT M3 rc=2 killers=8
+MUT M4 rc=1 killers=3
+MUT M5 rc=1 killers=2
+MUT M6 rc=1 killers=1
+MUT M8 rc=2 killers=5
+MUT M9 rc=2 killers=10
+MUT M10 rc=2 killers=4
+MUT M11 rc=1 killers=1
+MUT M12 rc=1 killers=1
+MUT M13 rc=0 killers=0
+MUT M14 rc=1 killers=1
+MUT M15 rc=1 killers=1
+MUT M16 rc=1 killers=1
+MUT M17 rc=3 killers=9
+MUT M18 rc=1 killers=1
+MUT M19 rc=0 killers=0
+MUT R1 rc=1 killers=1
+VERDICT MUTATION_SURVIVED_M19
+build dbg rc=0
+	1621 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-22T01:30:04-05:00
+smoke rc=0
+smoke default rc=0
+export-contract default rc=0
+smoke clang rc=0
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-22T01:33:22-05:00

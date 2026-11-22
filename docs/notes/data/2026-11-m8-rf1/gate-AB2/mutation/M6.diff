@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..3f88b67f8 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9097,7 +9097,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+     // subproblem's box, trust-region window included, before any consumer reads it Only this
+     // termination kind and only a finite iterate: elsewhere an off-box iterate is evidence of a
+     // broken solve, which is what the retryable test exists to refuse.
+-    if (mj.walk_owns_this_qp && mj.qs.counters.stagnation_stops > 0 &&
++    if (false && mj.walk_owns_this_qp && mj.qs.counters.stagnation_stops > 0 &&
+         (mj.qs.status == QpStatus::kNumericalError || mj.qs.status == QpStatus::kIterationLimit) &&
+         mj.qs.x.size() == st.qp.n() && mj.qs.x.allFinite()) {
+         if (project_onto_subproblem_box(st.qp, std::min(st.delta, opts_.qp.trust_region_radius),

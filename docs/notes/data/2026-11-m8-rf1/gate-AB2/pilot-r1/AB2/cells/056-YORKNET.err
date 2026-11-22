@@ -1,0 +1,1 @@
+DIAGQP #1 label=cell_qp_0 status=2 factorizations=3 schur_updates=10 minor_iters=7 border_refine_steps=11 symbolic_analyses=1 ws_adds=5 degenerate_steps=5 degenerate_run_max=5 ws_adds_bound=5 distinct_bound_added=5 ratio_ties=6 dep_test_solves=36 dep_tests=8 dep_dependent=1 dep_infeasible_certificates=1 dep_stall_admits=7 dep_inertia_rereads=1 inertia_wrong_verdicts=1

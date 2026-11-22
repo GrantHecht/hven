@@ -1,0 +1,11 @@
+box-lane: lane 1 acquired 2026-11-22T01:49:39-05:00
+FOREGROUND_START 2026-11-22T01:49:39-05:00
+PREFLIGHT every mutation applies and restores: [M7]
+MUT control rc=0 killers=0
+MUT M7 rc=2 killers=4
+   HsSweepCorpus.Corpus
+   HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+   SqpLadderSeam.Rf1ARowRefusalAtAFeasibleIterateGoesElastic
+   SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-22T01:51:22-05:00

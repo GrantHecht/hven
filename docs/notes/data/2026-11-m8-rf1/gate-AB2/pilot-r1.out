@@ -1,0 +1,7 @@
+box-lane: lane 1 acquired 2026-11-22T01:01:56-05:00
+FOREGROUND_START 2026-11-22T01:01:56-05:00 lane=1 phys=4 5 6 7
+pilot C rc=0 2026-11-22T01:49:38-05:00
+pilot AB2 rc=0 2026-11-22T01:49:38-05:00
+P rc=0
+cells that threw: 0
+FOREGROUND_END 2026-11-22T01:49:38-05:00

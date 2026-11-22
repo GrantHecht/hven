@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..89ae35c80 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8343,7 +8343,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         // first measured pass is the start; it only sets the incumbent, so a phase that never
+         // improves on it hands back its last point, never its entry.
+         bool better = false;
+-        if (restoration_wrapper_ != nullptr) {
++        if (false) {
+             const double parent_h =
+                 restoration_wrapper_->original_violation_l1(st.x, st.ev.ce, st.ev.ci);
+             if (std::isnan(st.resto_best_parent_h)) {

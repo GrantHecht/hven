@@ -1,0 +1,9 @@
+label=sqp-qn+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep
+rc=0
+CELL_BEGIN
+lane=hven-sqp
+problem=ACOPR57
+options_label=sqp-qn+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep
+threw=1
+exception=cutest: cannot enter .scratch/h3/decoded/ACOPR57 (No such file or directory). Run scripts/decode_cutest.sh first.
+CELL_END
