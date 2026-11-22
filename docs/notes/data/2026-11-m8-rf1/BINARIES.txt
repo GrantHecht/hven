@@ -14,3 +14,8 @@ lane Cr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b1fe115d0) beca893b9
 lane ABr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b4f72e5a7) 01ca466dcf4d4e9b77e8c1b9c1b74492c2af454764bfc80a112d00644d281f4b
 pilot Cr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b1fe115d0) ba9e8685783b5868fedd3a81070ff9080ff6d68d28ba68139ca1ad98b37a6e9e
 pilot ABr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b4f72e5a7) 19b09b3953b388e90257107c188cb9e66e265ca485757b9601bc2bd447e9c35c
+# frozen binaries of DECLARATION-RF-1-AB2-r4, sha256, recorded before the first leg (C' = rf1-C-rebased b1fe115d0, r3's binaries re-listed unchanged; ABr4 = 994619746, F-2)
+lane Cr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b1fe115d0) beca893b9ac5cb668e5660fb48607a3e8fe5c69055b6967c425a1a93e184c607
+pilot Cr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b1fe115d0) ba9e8685783b5868fedd3a81070ff9080ff6d68d28ba68139ca1ad98b37a6e9e
+lane ABr4 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 994619746) edebcdea56c74d1e217f8b2a25aebc0553f8c8c162bb1fb0aa83a1f582bb6052
+pilot ABr4 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin 994619746) 1616aa1c01ced27dcc9e89d23fddd64163c28bd39b73684eb97712813b82e832
