@@ -1,0 +1,14 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index ff16313be..c95ac016b 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -82,8 +82,7 @@ bool holds_pattern(const RetainedAnalysis &e, std::uint64_t pattern, const SpMat
+         e.inner.size() != static_cast<std::size_t>(K.nonZeros())) {
+         return false;
+     }
+-    return std::equal(e.outer.begin(), e.outer.end(), K.outerIndexPtr()) &&
+-           std::equal(e.inner.begin(), e.inner.end(), K.innerIndexPtr());
++    return true;
+ }
+ 
+ // Installs `incoming` (analyzed on `pattern`, whose index arrays are `outer` and

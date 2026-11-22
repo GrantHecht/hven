@@ -82,6 +82,7 @@ hven_add_seam_executable(hven_qp_seam_tests
         seam/test_qp_latch_reason.cpp
         seam/test_qp_platform_retake.cpp
         seam/test_qp_rank_repair.cpp
+        seam/test_qp_retained_analyses.cpp
         seam/test_qp_refused_exchange.cpp
         seam/test_qp_release_readmission.cpp
         seam/test_qp_saddle_exit.cpp

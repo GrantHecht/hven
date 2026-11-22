@@ -1,0 +1,12 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index ff16313be..95636192d 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -96,7 +96,6 @@ bool holds_pattern(const RetainedAnalysis &e, std::uint64_t pattern, const SpMat
+ void swap_in(KktFactor &k, hven::linear::SymmetricFactor &incoming, const Counters &handover,
+              std::uint64_t pattern, std::vector<SpMatRM::StorageIndex> &outer,
+              std::vector<SpMatRM::StorageIndex> &inner) noexcept {
+-    accumulate(k.departed_counters, k.factor.counters(), +1);
+     accumulate(k.departed_counters, handover, -1);
+     std::swap(k.factor, incoming); // `incoming` now holds the outgoing session
+     k.retained.insert(k.retained.begin(),

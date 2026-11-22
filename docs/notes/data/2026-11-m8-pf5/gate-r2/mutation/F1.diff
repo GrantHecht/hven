@@ -1,0 +1,12 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index ad223aa60..ea652d423 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -468,7 +468,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                 detail::clear_platform_retake_request(border->kkt);
+                 detail::release_idle_retake_sessions(border->kkt);
+                 // THE RETAINED ANALYSES (kkt_factor.h) never outlive the QP solve.
+-                detail::release_retained_analyses(border->kkt);
+             }
+         }
+     } border_retake_exit(border_);

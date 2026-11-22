@@ -539,6 +539,18 @@ where it does:
   however many successful factorizations preceded it, so a test may establish
   real evidence first and still inject faithfully afterwards.
 
+  M8 PF-5 uses it OUTSIDE that scope, on purpose, and says so: a `KktFactor` keeps
+  retained analyzed sessions and refactorizes into one when its pattern returns
+  (`kkt_factor.h`, THE RETAINED ANALYSES), so the injected failure lands on a session
+  that HAS succeeded (`tests/qp/seam/test_qp_retained_analyses.cpp`). What that test
+  asserts is the `KktFactor`'s response, not the session's state: after a
+  `kBackendError` outcome the adapter reports the same `(session_id, epoch)` whether the
+  failure is real or injected (the epoch does not advance on a failure), and that stale
+  pair is what the discard must remove. The numerics left underneath differ -- invalid
+  after a real failure, the previous ones still inside the session after an injected one
+  -- and the injected state is the stricter case: a stale pair that still solves is the
+  hazard the discard closes.
+
 ## A read-only variant: observing internal state instead of injecting a fault
 
 Not every gap this seam closes is a fault path. `PardisoIparmObserver`

@@ -1,0 +1,12 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index ad223aa60..649ac97ff 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -56,7 +56,6 @@ namespace {
+ template <class Run> QpSolution tally_reuses(Run &&run_solve) {
+     const detail::AnalysisReuseTally reuses;
+     QpSolution s = run_solve();
+-    s.counters.symbolic_analysis_reuses = reuses.reuses();
+     return s;
+ }
+ 

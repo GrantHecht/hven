@@ -459,9 +459,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // appended seven `Index` and a five-`Index` array; 110 after M8 sparse-equil-v4 appended
 // `sparse_scaled_retakes`, `sparse_matched_retakes` and `sparse_retake_refusals`; 112 since M8
 // PF-4 appended `backend_symbolic_analyses` and `backend_symbolic_repeats`; 124 since M8
-// PF-2b appended the twelve `backend_solve*` tally counters.)
+// PF-2b appended the twelve `backend_solve*` tally counters; 125 since M8 PF-5 appended
+// `symbolic_analysis_reuses`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 124 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 125 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -584,6 +585,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, backend_solve_refine_detector);
     HVEN_EXPECT_SAME(a, b, backend_solve_refine_polish);
     HVEN_EXPECT_SAME(a, b, backend_solve_refine_border_refine);
+    HVEN_EXPECT_SAME(a, b, symbolic_analysis_reuses);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

@@ -916,6 +916,7 @@ group; `SqpOptions::hessian_mode`).
 | `backend_solve_refine_detector` | integer | `SqpCounters::backend_solve_refine_detector` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued inside ws_independence.cpp (dependency tests, entry detector, certificate, face probes, rank repair) (`hven::linear::SolveTally`, M8 PF-2b) |
 | `backend_solve_refine_polish` | integer | `SqpCounters::backend_solve_refine_polish` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued by the unregularized polish loops (`hven::linear::SolveTally`, M8 PF-2b) |
 | `backend_solve_refine_border_refine` | integer | `SqpCounters::backend_solve_refine_border_refine` | iterative-refinement steps the backend reported inside those calls (Pardiso iparm[6]; dense arm and Accelerate report none), issued by the bordered answer's refinement (refine_bordered_solve_iterated) (`hven::linear::SolveTally`, M8 PF-2b) |
+| `symbolic_analysis_reuses` | integer | `SqpCounters::symbolic_analysis_reuses` | symbolic analyses not paid because a QP-side KKT factor refactorized into a session it had already analyzed on the same pattern in the same QP solve (`detail/kkt/kkt_factor.h`, THE RETAINED ANALYSES); over the same scope as `backend_symbolic_analyses`; a sparse-arm hit is a platform analysis (a repeat) that `backend_symbolic_analyses` and `backend_symbolic_repeats` no longer count, a dense-arm hit replaces only the dense session's set-up (M8 PF-5). No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -1014,6 +1015,10 @@ golden `sqp.solve.end` lines and the two counters-object goldens re-derived once
 above), after `backend_symbolic_repeats`, the same route: twelve keys before the `ssn` object, the
 nested tables' distinct values up by twelve, no sentinel, both v1 golden `sqp.solve.end` lines and the
 two counters-object goldens re-derived once.
+**THE DIRECT COUNTER M8 PF-5 APPENDED — ONE** (`symbolic_analysis_reuses`, the table row above), after
+`backend_symbolic_repeats`, the same route: one key before the `ssn` object, the nested tables' distinct
+values up by one, no sentinel, both v1 golden `sqp.solve.end` lines and the two counters-object goldens
+re-derived once.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

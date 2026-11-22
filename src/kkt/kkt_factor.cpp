@@ -6,7 +6,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <optional>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -32,8 +36,129 @@ bool needs_analysis(const KktFactor &k, const SpMatRM &K) { return analysis_deci
 
 namespace {
 
-void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &decision) {
-    if (decision.needed) {
+using Counters = hven::linear::SymmetricFactor::Counters;
+
+// The thirteen fields of SymmetricFactor::Counters, in declaration order.
+#define HVEN_KKT_FACTOR_COUNTERS(X)                                                                \
+    X(analyze_count)                                                                               \
+    X(factorize_count)                                                                             \
+    X(solve_count)                                                                                 \
+    X(partial_solve_count)                                                                         \
+    X(pattern_verify_count)                                                                        \
+    X(dense_factorize_count)                                                                       \
+    X(dense_fallback_count)                                                                        \
+    X(dense_singular_count)                                                                        \
+    X(dense_flagged_count)                                                                         \
+    X(dense_condition_estimate_count)                                                              \
+    X(dense_equilibrated_estimate_count)                                                           \
+    X(dense_shift_refactor_count)                                                                  \
+    X(dense_retake_count)
+
+#define HVEN_KKT_COUNT_ONE(f) +1
+static_assert(sizeof(Counters) == (0 HVEN_KKT_FACTOR_COUNTERS(HVEN_KKT_COUNT_ONE)) * sizeof(Index),
+              "SymmetricFactor::Counters gained or lost a field: update "
+              "HVEN_KKT_FACTOR_COUNTERS in kkt/kkt_factor.cpp.");
+#undef HVEN_KKT_COUNT_ONE
+
+// acc += sign * c, field by field.
+void accumulate(Counters &acc, const Counters &c, Index sign) noexcept {
+#define HVEN_KKT_ACCUMULATE(f) acc.f += sign * c.f;
+    HVEN_KKT_FACTOR_COUNTERS(HVEN_KKT_ACCUMULATE)
+#undef HVEN_KKT_ACCUMULATE
+}
+
+thread_local AnalysisReuseTally *t_reuse_innermost = nullptr;
+
+void copy_pattern(const SpMatRM &K, std::vector<SpMatRM::StorageIndex> &outer,
+                  std::vector<SpMatRM::StorageIndex> &inner) {
+    outer.assign(K.outerIndexPtr(), K.outerIndexPtr() + K.rows() + 1);
+    inner.assign(K.innerIndexPtr(), K.innerIndexPtr() + K.nonZeros());
+}
+
+// THE KEY (kkt_factor.h, THE RETAINED ANALYSES): the hash, the order and the
+// stored-entry count, then the exact pattern. K is compressed (it was hashed).
+bool holds_pattern(const RetainedAnalysis &e, std::uint64_t pattern, const SpMatRM &K) {
+    if (e.pattern_hash != pattern || e.outer.size() != static_cast<std::size_t>(K.rows()) + 1 ||
+        e.inner.size() != static_cast<std::size_t>(K.nonZeros())) {
+        return false;
+    }
+    return std::equal(e.outer.begin(), e.outer.end(), K.outerIndexPtr()) &&
+           std::equal(e.inner.begin(), e.inner.end(), K.innerIndexPtr());
+}
+
+// Installs `incoming` (analyzed on `pattern`, whose index arrays are `outer` and
+// `inner`) as k.factor. `handover` is what incoming's counters read when it
+// entered (zero for a session built on this miss), so the counts it already
+// contributed to departed_counters are not counted twice. The outgoing analyzed
+// session becomes the most recently used retained entry and the least recently
+// used one past the cap is freed. Nothrow once `k.retained` has room for one
+// more entry, which the caller reserves before anything moves.
+void swap_in(KktFactor &k, hven::linear::SymmetricFactor &incoming, const Counters &handover,
+             std::uint64_t pattern, std::vector<SpMatRM::StorageIndex> &outer,
+             std::vector<SpMatRM::StorageIndex> &inner) noexcept {
+    accumulate(k.departed_counters, k.factor.counters(), +1);
+    accumulate(k.departed_counters, handover, -1);
+    std::swap(k.factor, incoming); // `incoming` now holds the outgoing session
+    k.retained.insert(k.retained.begin(),
+                      RetainedAnalysis{k.analyzed_pattern, std::move(k.analyzed_outer),
+                                       std::move(k.analyzed_inner), std::move(incoming)});
+    if (k.retained.size() > kRetainedAnalyses) {
+        k.retained.pop_back();
+    }
+    k.analyzed_outer = std::move(outer);
+    k.analyzed_inner = std::move(inner);
+    k.analyzed_pattern = pattern;
+    k.analyzed = true;
+}
+
+// A retained session swapped into k.factor by analyze_if_needed(), and the
+// unanalyzed session that replaces it should its refactorization not commit
+// (built before the swap, so the discard itself cannot fail).
+struct SwapIn {
+    std::uint64_t session_id = 0;
+    std::uint64_t epoch = 0;
+    hven::linear::SymmetricFactor spare;
+};
+
+// THE DISCARD (kkt_factor.h, THE RETAINED ANALYSES). Armed by a hit; on every
+// exit from factorize_checked() it checks whether the swapped-in session is
+// still in k.factor at the (session_id, epoch) it was retained with -- no
+// factorization committed after the swap (a kBackendError outcome, or a throw
+// from factorize() or a response) -- and if so replaces it by the spare, an
+// unanalyzed session (session id 0, which no record carries).
+class SwapGuard {
+  public:
+    explicit SwapGuard(KktFactor &k) : k_(k) {}
+    ~SwapGuard() {
+        if (in_ && k_.factor.session_id() == in_->session_id && k_.factor.epoch() == in_->epoch) {
+            accumulate(k_.departed_counters, k_.factor.counters(), +1);
+            std::swap(k_.factor, in_->spare);
+            k_.analyzed = false;
+            k_.analyzed_pattern = 0;
+            k_.analyzed_outer.clear();
+            k_.analyzed_inner.clear();
+        }
+    }
+    SwapGuard(const SwapGuard &) = delete;
+    SwapGuard &operator=(const SwapGuard &) = delete;
+
+    std::optional<SwapIn> &in() { return in_; }
+
+  private:
+    KktFactor &k_;
+    std::optional<SwapIn> in_;
+};
+
+// Analyzes K when the decision says so -- or swaps in a retained session
+// analyzed on K's pattern (THE RETAINED ANALYSES), arming `guard`.
+void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &decision,
+                       SwapGuard &guard) {
+    if (!decision.needed) {
+        return;
+    }
+    if (!k.analyzed && k.retained.empty()) {
+        // Nothing to look up and nothing to retain: the session analyzes in
+        // place, as it always has.
         k.factor.analyze(K);
         // The record reuses the hash the decision was taken on. Only the
         // short-circuit path (nothing analyzed yet, so K was never hashed)
@@ -41,7 +166,52 @@ void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &d
         // a second one -- the count is the same either way.
         k.analyzed_pattern = decision.pattern ? *decision.pattern : hven::pattern_hash(K);
         k.analyzed = true;
+        copy_pattern(K, k.analyzed_outer, k.analyzed_inner);
+        return;
     }
+    const std::uint64_t pattern = decision.pattern ? *decision.pattern : hven::pattern_hash(K);
+    for (auto it = k.retained.begin(); it != k.retained.end(); ++it) {
+        if (!holds_pattern(*it, pattern, K)) {
+            continue;
+        }
+        // Everything that can throw comes before anything moves.
+        guard.in().emplace(SwapIn{0, 0, hven::linear::SymmetricFactor(k.options)});
+        RetainedAnalysis hit = std::move(*it);
+        k.retained.erase(it);
+        const Counters handover = hit.factor.counters();
+        if (k.analyzed) {
+            swap_in(k, hit.factor, handover, pattern, hit.outer, hit.inner);
+        } else {
+            // A discarded session left k.factor unanalyzed: nothing to retain.
+            accumulate(k.departed_counters, k.factor.counters(), +1);
+            accumulate(k.departed_counters, handover, -1);
+            std::swap(k.factor, hit.factor);
+            k.analyzed_outer = std::move(hit.outer);
+            k.analyzed_inner = std::move(hit.inner);
+            k.analyzed_pattern = pattern;
+            k.analyzed = true;
+        }
+        guard.in()->session_id = k.factor.session_id();
+        guard.in()->epoch = k.factor.epoch();
+        AnalysisReuseTally::record();
+        return;
+    }
+    if (!k.analyzed) {
+        k.factor.analyze(K);
+        k.analyzed_pattern = pattern;
+        k.analyzed = true;
+        copy_pattern(K, k.analyzed_outer, k.analyzed_inner);
+        return;
+    }
+    // A miss: K is analyzed on a fresh session, committed only once that
+    // analysis has succeeded (a throw leaves `k` exactly as it was).
+    hven::linear::SymmetricFactor fresh(k.options);
+    fresh.analyze(K);
+    std::vector<SpMatRM::StorageIndex> outer;
+    std::vector<SpMatRM::StorageIndex> inner;
+    copy_pattern(K, outer, inner);
+    k.retained.reserve(kRetainedAnalyses + 1);
+    swap_in(k, fresh, Counters{}, pattern, outer, inner);
 }
 
 [[noreturn]] void throw_failed(const hven::linear::FactorizeOutcome &outcome) {
@@ -191,7 +361,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
     // (both commit only on success), so the marker describing them is cleared
     // only once factorize() has returned -- by then the old numerics are gone.
     const PlatformRetake request = take_request(k);
-    analyze_if_needed(k, K, decision);
+    SwapGuard guard(k);
+    analyze_if_needed(k, K, decision, guard);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     clear_shift_marker(k);
     if (flagged(outcome)) {
@@ -231,7 +402,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
     using Status = hven::linear::FactorizeOutcome::Status;
     // Cleared only once factorize() has returned, as in the overload above.
     const PlatformRetake request = take_request(k);
-    analyze_if_needed(k, K, decision);
+    SwapGuard guard(k);
+    analyze_if_needed(k, K, decision, guard);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     clear_shift_marker(k);
     if (flagged(outcome)) {
@@ -387,6 +559,29 @@ void request_platform_retake(KktFactor &k, PlatformRetake tier) {
     }
     k.requested = tier;
     k.rebuild_pending = true;
+}
+
+hven::linear::SymmetricFactor::Counters kkt_counters(const KktFactor &k) {
+    Counters c = k.departed_counters;
+    accumulate(c, k.factor.counters(), +1);
+    return c;
+}
+
+void release_retained_analyses(KktFactor &k) noexcept { k.retained.clear(); }
+
+AnalysisReuseTally::AnalysisReuseTally() noexcept : outer_(t_reuse_innermost) {
+    t_reuse_innermost = this;
+}
+
+AnalysisReuseTally::~AnalysisReuseTally() {
+    // Tallies are scoped objects, so they close in reverse order of opening.
+    t_reuse_innermost = outer_;
+}
+
+void AnalysisReuseTally::record() noexcept {
+    for (AnalysisReuseTally *t = t_reuse_innermost; t != nullptr; t = t->outer_) {
+        ++t->reuses_;
+    }
 }
 
 void release_idle_retake_sessions(KktFactor &k) {

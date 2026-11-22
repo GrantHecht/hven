@@ -1,0 +1,13 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index ff16313be..dc9b2b746 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -99,7 +99,7 @@ void swap_in(KktFactor &k, hven::linear::SymmetricFactor &incoming, const Counte
+     accumulate(k.departed_counters, k.factor.counters(), +1);
+     accumulate(k.departed_counters, handover, -1);
+     std::swap(k.factor, incoming); // `incoming` now holds the outgoing session
+-    k.retained.insert(k.retained.begin(),
++    k.retained.insert(k.retained.end(),
+                       RetainedAnalysis{k.analyzed_pattern, std::move(k.analyzed_outer),
+                                        std::move(k.analyzed_inner), std::move(incoming)});
+     if (k.retained.size() > kRetainedAnalyses) {

@@ -1,0 +1,42 @@
+box-lane: lane 0 acquired 2026-11-21T23:49:32-05:00
+BOX_LANE=0 phys=[0 1 2 3] jobs=4
+FOREGROUND_START 2026-11-21T23:49:32-05:00
+PREFLIGHT every mutation applies and restores: MUST=[X1 D1 F1 F2 M1 M2 M3 C1 T1 Q1] REC=[S1]
+MUT control rc=0 killers=0
+APPLIED X1 to src/kkt/kkt_factor.cpp
+MUT X1 rc=1 killers=1
+   RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+APPLIED D1 to src/kkt/kkt_factor.cpp
+MUT D1 rc=1 killers=1
+   QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt
+APPLIED F1 to src/qp/walk/walk_engine.cpp
+MUT F1 rc=1 killers=1
+   QpRetainedAnalyses.TheWalkFreesK0sRetainedSessionsAtSolveExit
+APPLIED F2 to src/qp/ssn/ssn_engine.cpp
+MUT F2 rc=1 killers=1
+   QpRetainedAnalyses.TheSsnEngineFreesItsRetainedSessionsAtSolveExit
+APPLIED M1 to src/kkt/kkt_factor.cpp
+MUT M1 rc=1 killers=1
+   RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+APPLIED M2 to src/kkt/kkt_factor.cpp
+MUT M2 rc=1 killers=1
+   RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+APPLIED M3 to src/kkt/kkt_factor.cpp
+MUT M3 rc=1 killers=2
+   RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+   RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+APPLIED C1 to src/kkt/kkt_factor.cpp
+MUT C1 rc=1 killers=3
+   KktFactor.NeedsAnalysisPreservesCallSiteCounting
+   QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt
+   RetainedAnalyses.TheCountsCarryAcrossSwaps
+APPLIED T1 to src/kkt/kkt_factor.cpp
+MUT T1 rc=1 killers=2
+   QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+   RetainedAnalyses.EveryOpenTallyRecordsAHit
+APPLIED Q1 to src/qp/walk/walk_engine.cpp
+MUT Q1 rc=1 killers=1
+   QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+S1 rc=1 (recorded); killers: 0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-21T23:53:00-05:00

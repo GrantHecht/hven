@@ -615,6 +615,10 @@ struct SsnResult {
     // structure on this engine, 0 for every later solve of the same structure
     // -- banner section 3.
     Index symbolic_analyses = 0;
+    // Retained-analysis hits on the engine's factor (QpCounters::symbolic_analysis_reuses;
+    // detail/kkt/kkt_factor.h, THE RETAINED ANALYSES). The retained list is freed at this
+    // solve's exit, so a hit needs a pattern that recurs within one solve.
+    Index symbolic_analysis_reuses = 0;
     // TRIPLET REBUILDS of K's sparsity pattern paid by this solve: 1 when the
     // structure differs from the one this engine currently holds, 0 when it
     // was reused and only VALUES were refreshed. The sibling of

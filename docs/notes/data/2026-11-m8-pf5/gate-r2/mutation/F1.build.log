@@ -1,0 +1,29 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- MKL threading layer = intel
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- hven tests: 200 test sources, each in exactly one executable or recorded absent
+-- Configuring done (2.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel
+[0/4] Re-checking globbed directories...
+[1/11] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/kkt/kkt_factor.cpp.o
+[2/11] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_factor.cpp.o
+[3/11] Building CXX object CMakeFiles/hven.dir/src/qp/walk/walk_engine.cpp.o
+[4/11] Linking CXX static library libhven.a
+[5/11] Linking CXX executable tests/kkt/hven_kkt_tests
+[6/11] Linking CXX executable tests/sqp/hven_sqp_tests
+[7/11] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/qp/walk/walk_engine.cpp.o
+[8/11] Linking CXX executable tests/qp/hven_qp_seam_tests

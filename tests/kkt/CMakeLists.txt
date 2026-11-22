@@ -12,6 +12,7 @@ list(APPEND _hven_kkt_sources
     test_kkt_factor.cpp
     test_kkt_inertia_probe.cpp
     test_kkt_partial_solve.cpp
+    test_kkt_retained_analyses.cpp
     test_schur.cpp
 )
 

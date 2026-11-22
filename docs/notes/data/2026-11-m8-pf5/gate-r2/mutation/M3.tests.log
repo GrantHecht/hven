@@ -1,0 +1,175 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = RetainedAnalyses.*:PF5/*:KktFactor.*
+[==========] Running 13 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from KktFactor
+[ RUN      ] KktFactor.IsConstructedAtTheThreadCountItIsGiven
+[       OK ] KktFactor.IsConstructedAtTheThreadCountItIsGiven (0 ms)
+[ RUN      ] KktFactor.FreshAnalyzeFactorizeAndSolve
+[       OK ] KktFactor.FreshAnalyzeFactorizeAndSolve (2 ms)
+[ RUN      ] KktFactor.RefactorizesAValueChangeWithoutReanalyzing
+[       OK ] KktFactor.RefactorizesAValueChangeWithoutReanalyzing (0 ms)
+[ RUN      ] KktFactor.NeedsAnalysisPreservesCallSiteCounting
+[       OK ] KktFactor.NeedsAnalysisPreservesCallSiteCounting (0 ms)
+[----------] 4 tests from KktFactor (2 ms total)
+
+[----------] 5 tests from RetainedAnalyses
+[ RUN      ] RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:214: Failure
+Expected equality of these values:
+  k.retained[0].pattern_hash
+    Which is: 14229471399859447351
+  hven::pattern_hash(B)
+    Which is: 4563708256094185483
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:215: Failure
+Expected equality of these values:
+  k.retained[1].pattern_hash
+    Which is: 4563708256094185483
+  hven::pattern_hash(C)
+    Which is: 14229471399859447351
+
+[  FAILED  ] RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss (0 ms)
+[ RUN      ] RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 572038754685344906
+  hven::pattern_hash(P[8 - i])
+    Which is: 9102308902986636382
+entry 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 14776794586770393511
+  hven::pattern_hash(P[8 - i])
+    Which is: 16018988083163634830
+entry 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 4246627594993478580
+  hven::pattern_hash(P[8 - i])
+    Which is: 18164182290197443087
+entry 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 12881128280182931925
+  hven::pattern_hash(P[8 - i])
+    Which is: 9145303116344188684
+entry 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 9145303116344188684
+  hven::pattern_hash(P[8 - i])
+    Which is: 12881128280182931925
+entry 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 18164182290197443087
+  hven::pattern_hash(P[8 - i])
+    Which is: 4246627594993478580
+entry 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:249: Failure
+Expected equality of these values:
+  k.retained[i].pattern_hash
+    Which is: 16018988083163634830
+  hven::pattern_hash(P[8 - i])
+    Which is: 14776794586770393511
+entry 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:257: Failure
+Expected equality of these values:
+  k.retained[0].pattern_hash
+    Which is: 572038754685344906
+  hven::pattern_hash(P[9])
+    Which is: 2197125577402160670
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:263: Failure
+Expected equality of these values:
+  reuses.reuses()
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:264: Failure
+Expected equality of these values:
+  analyses.analyses()
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:266: Failure
+Expected equality of these values:
+  k.retained[0].pattern_hash
+    Which is: 4246627594993478580
+  hven::pattern_hash(P[1])
+    Which is: 14776794586770393511
+
+[  FAILED  ] RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns (1 ms)
+[ RUN      ] RetainedAnalyses.ReleaseFreesTheListAndKeepsTheCurrentNumerics
+[       OK ] RetainedAnalyses.ReleaseFreesTheListAndKeepsTheCurrentNumerics (0 ms)
+[ RUN      ] RetainedAnalyses.TheCountsCarryAcrossSwaps
+[       OK ] RetainedAnalyses.TheCountsCarryAcrossSwaps (0 ms)
+[ RUN      ] RetainedAnalyses.EveryOpenTallyRecordsAHit
+[       OK ] RetainedAnalyses.EveryOpenTallyRecordsAHit (0 ms)
+[----------] 5 tests from RetainedAnalyses (2 ms total)
+
+[----------] 4 tests from PF5/RetainedAnalysesIdentity
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_regularized
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_regularized (5 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_saddle
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_saddle (5 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized (1 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized_platform
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized_platform (2 ms)
+[----------] 4 tests from PF5/RetainedAnalysesIdentity (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 3 test suites ran. (20 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+[  FAILED  ] RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+
+ 2 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRetainedAnalyses.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from QpRetainedAnalyses
+[ RUN      ] QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt
+[       OK ] QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt (2 ms)
+[ RUN      ] QpRetainedAnalyses.TheWalkFreesK0sRetainedSessionsAtSolveExit
+[       OK ] QpRetainedAnalyses.TheWalkFreesK0sRetainedSessionsAtSolveExit (1 ms)
+[ RUN      ] QpRetainedAnalyses.TheSsnEngineFreesItsRetainedSessionsAtSolveExit
+[       OK ] QpRetainedAnalyses.TheSsnEngineFreesItsRetainedSessionsAtSolveExit (0 ms)
+[ RUN      ] QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+[       OK ] QpRetainedAnalyses.AWalkSubproblemCountsItsReuses (482 ms)
+[----------] 4 tests from QpRetainedAnalyses (486 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (486 ms total)
+[  PASSED  ] 4 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendAnalysisTally.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from SqpBackendAnalysisTally
+[ RUN      ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+[       OK ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession (5 ms)
+[ RUN      ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis
+[       OK ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis (0 ms)
+[----------] 2 tests from SqpBackendAnalysisTally (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 2 tests.

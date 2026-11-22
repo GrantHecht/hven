@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index d46cd487c..b283113c6 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -3674,7 +3674,6 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
+     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
+     out.counters.backend_symbolic_analyses = analysis_tally.analyses();
+     out.counters.backend_symbolic_repeats = analysis_tally.repeats();
+-    out.counters.symbolic_analysis_reuses = reuse_tally.reuses();
+     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+     //
+     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
