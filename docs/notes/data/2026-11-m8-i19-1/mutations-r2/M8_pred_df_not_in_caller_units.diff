@@ -1,0 +1,4 @@
+9847c9847
+<         mj.row.pred_df = sc.active ? mj.ctx.pred_df / sc.obj : mj.ctx.pred_df;
+---
+>         mj.row.pred_df = mj.ctx.pred_df;

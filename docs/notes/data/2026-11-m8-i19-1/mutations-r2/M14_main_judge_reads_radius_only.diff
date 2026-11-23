@@ -1,0 +1,8 @@
+9674c9674
+<                 mj.ctx.tr_active = mj.row.region_limited;
+---
+>                 mj.ctx.tr_active = mj.row.radius_binding;
+9839c9839
+<     mj.ctx.tr_active = mj.row.region_limited;
+---
+>     mj.ctx.tr_active = mj.row.radius_binding;

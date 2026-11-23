@@ -1,0 +1,36 @@
+box-lane: lane 0 acquired 2026-11-23T15:29:49-05:00
+base sha256 cd4633e9aebf6c54b4f096b5fafde5145e70481ba99dfb549cfccf005a10da3b
+head sha256 f013f5c3ca063011bdf90ae1021a8b0cd4eaa0c5573f8fe1712b3207f9d74aae
+FOREGROUND_START 2026-11-23T15:29:49-05:00
+base walk rc=0
+base ssn rc=0
+base ipm rc=0
+head k=1 walk rc=0
+=== I19-1-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=1 ssn rc=0
+=== I19-1-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=1 ipm rc=0
+=== I19-1-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=2 walk rc=0
+=== I19-1-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=2 ssn rc=0
+=== I19-1-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=2 ipm rc=0
+=== I19-1-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=3 walk rc=0
+=== I19-1-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=3 ssn rc=0
+=== I19-1-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+head k=3 ipm rc=0
+=== I19-1-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare rc=0
+worst=0
+FOREGROUND_END 2026-11-23T15:51:50-05:00

@@ -1,0 +1,4 @@
+10020c10020
+<             soc_ctx.tr_active = mj.row.region_limited;
+---
+>             soc_ctx.tr_active = mj.row.radius_binding;

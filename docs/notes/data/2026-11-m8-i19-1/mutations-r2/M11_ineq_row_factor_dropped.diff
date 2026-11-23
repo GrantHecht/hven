@@ -1,0 +1,4 @@
+461c461
+<         const double v = sc.active ? ci(j) / sc.ineq_rows(j) : ci(j);
+---
+>         const double v = ci(j);

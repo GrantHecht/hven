@@ -1,0 +1,300 @@
+Running main() from /home/ghecht/Projects/hven/.scratch/i19-1-build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IterationTelemetry.*:CallerStepLimit*
+[==========] Running 30 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (4 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (5 ms total)
+
+[----------] 10 tests from CallerStepLimitSolve
+[ RUN      ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum
+[       OK ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum (1 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+[       OK ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder
+[       OK ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder (3 ms)
+[ RUN      ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox
+[       OK ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox (0 ms)
+[ RUN      ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit
+[       OK ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit (1 ms)
+[ RUN      ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit
+[       OK ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit
+[       OK ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit (0 ms)
+[ RUN      ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit
+[       OK ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits
+[       OK ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits (28 ms)
+[ RUN      ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit
+[       OK ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit (1 ms)
+[----------] 10 tests from CallerStepLimitSolve (42 ms total)
+
+[----------] 15 tests from IterationTelemetry
+[ RUN      ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation
+[       OK ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep
+[       OK ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep (0 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn
+[       OK ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn (1 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 11308.333333333334, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 191.66666666666666,
+h_trial evaluates to 11500, and
+1e-9 * (1.0 + h_trial) evaluates to 1.1501000000000001e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:370: Failure
+The difference between *h.sqp->h_lin and h_lin is 10816.666666666666, which exceeds 1e-9 * (1.0 + h_lin), where
+*h.sqp->h_lin evaluates to 183.33333333333331,
+h_lin evaluates to 11000, and
+1e-9 * (1.0 + h_lin) evaluates to 1.1001e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 11308.333333333334, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 11500,
+*h.sqp->h_trial evaluates to 191.66666666666666, and
+1e-9 * (1.0 + h_trial) evaluates to 1.1501000000000001e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 3441.6666666666665, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 58.333333333333336,
+h_trial evaluates to 3500, and
+1e-9 * (1.0 + h_trial) evaluates to 3.501e-06.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:370: Failure
+The difference between *h.sqp->h_lin and h_lin is 1475, which exceeds 1e-9 * (1.0 + h_lin), where
+*h.sqp->h_lin evaluates to 25,
+h_lin evaluates to 1500, and
+1e-9 * (1.0 + h_lin) evaluates to 1.5010000000000001e-06.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 3441.6666666666665, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 3500,
+*h.sqp->h_trial evaluates to 58.333333333333336, and
+1e-9 * (1.0 + h_trial) evaluates to 3.501e-06.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 669.21296296336334, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 11.342592592599381,
+h_trial evaluates to 680.55555555596277, and
+1e-9 * (1.0 + h_trial) evaluates to 6.8155555555596277e-07.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 669.21296296336345, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 680.55555555596288,
+*h.sqp->h_trial evaluates to 11.342592592599381, and
+1e-9 * (1.0 + h_trial) evaluates to 6.8155555555596277e-07.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 1372.118951764995, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 23.256253419745683,
+h_trial evaluates to 1395.3752051847407, and
+1e-9 * (1.0 + h_trial) evaluates to 1.3963752051847409e-06.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 1372.1189517649952, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 1395.3752051847409,
+*h.sqp->h_trial evaluates to 23.256253419745683, and
+1e-9 * (1.0 + h_trial) evaluates to 1.3963752051847409e-06.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 1234.47162809049, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 20.923247933737123,
+h_trial evaluates to 1255.3948760242272, and
+1e-9 * (1.0 + h_trial) evaluates to 1.2563948760242273e-06.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 1234.4716280904902, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 1255.3948760242274,
+*h.sqp->h_trial evaluates to 20.923247933737123, and
+1e-9 * (1.0 + h_trial) evaluates to 1.2563948760242273e-06.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 1055.1079007756507, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 17.88318475890933,
+h_trial evaluates to 1072.9910855345599, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0739910855345599e-06.
+row 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 1055.1079007756505, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 1072.9910855345597,
+*h.sqp->h_trial evaluates to 17.88318475890933, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0739910855345599e-06.
+row 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 231.24819314555251, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 3.9194609007720751,
+h_trial evaluates to 235.16765404632457, and
+1e-9 * (1.0 + h_trial) evaluates to 2.3616765404632459e-07.
+row 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 231.24819314555245, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 235.16765404632451,
+*h.sqp->h_trial evaluates to 3.9194609007720751, and
+1e-9 * (1.0 + h_trial) evaluates to 2.3616765404632459e-07.
+row 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 13.521911547154842, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 0.22918494147720025,
+h_trial evaluates to 13.751096488632042, and
+1e-9 * (1.0 + h_trial) evaluates to 1.4751096488632042e-08.
+row 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 13.521911547154815, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 13.751096488632015,
+*h.sqp->h_trial evaluates to 0.22918494147720025, and
+1e-9 * (1.0 + h_trial) evaluates to 1.4751096488632042e-08.
+row 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 0.084159390786727545, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 0.0014264303523172353,
+h_trial evaluates to 0.085585821139044782, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0855858211390448e-09.
+row 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 0.084159390786716887, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 0.085585821139034124,
+*h.sqp->h_trial evaluates to 0.0014264303523172353, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0855858211390448e-09.
+row 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:369: Failure
+The difference between *h.sqp->h_trial and h_trial is 1.4251922408803352e-05, which exceeds 1e-9 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 2.4155800701919363e-07,
+h_trial evaluates to 1.4493480415822546e-05, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0000144934804159e-09.
+row 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:377: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 1.4251922414132424e-05, which exceeds 1e-9 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 1.4493480421151618e-05,
+*h.sqp->h_trial evaluates to 2.4155800701919363e-07, and
+1e-9 * (1.0 + h_trial) evaluates to 1.0000144934804159e-09.
+row 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+[  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (1 ms)
+[ RUN      ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:463: Failure
+The difference between *h.sqp->h_trial and h_trial is 1800, which exceeds 1e-7 * (1.0 + h_trial), where
+*h.sqp->h_trial evaluates to 200,
+h_trial evaluates to 2000, and
+1e-7 * (1.0 + h_trial) evaluates to 0.00020009999999999998.
+row 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:464: Failure
+The difference between *h.sqp->h_lin and h_lin is 1800, which exceeds 1e-7 * (1.0 + h_lin), where
+*h.sqp->h_lin evaluates to 200,
+h_lin evaluates to 2000, and
+1e-7 * (1.0 + h_lin) evaluates to 0.00020009999999999998.
+row 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:468: Failure
+The difference between r.history[k + 1].sqp->violation_l1 and *h.sqp->h_trial is 1800, which exceeds 1e-7 * (1.0 + h_trial), where
+r.history[k + 1].sqp->violation_l1 evaluates to 2000,
+*h.sqp->h_trial evaluates to 200, and
+1e-7 * (1.0 + h_trial) evaluates to 0.00020009999999999998.
+row 0
+
+[  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction
+[       OK ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction (0 ms)
+[ RUN      ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere
+[       OK ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere (0 ms)
+[ RUN      ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+[       OK ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+[ RUN      ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding
+[       OK ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding (0 ms)
+[ RUN      ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep
+[       OK ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep (0 ms)
+[ RUN      ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+[       OK ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+[ RUN      ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+[       OK ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+[ RUN      ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+[       OK ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+[ RUN      ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost
+[       OK ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost (1 ms)
+[ RUN      ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve
+[       OK ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve (0 ms)
+[----------] 15 tests from IterationTelemetry (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 3 test suites ran. (56 ms total)
+[  PASSED  ] 28 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+
+ 2 FAILED TESTS
