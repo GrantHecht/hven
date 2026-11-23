@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 33565a213..047ee32b2 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10222,7 +10222,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+         // a major, hit the stall window and ended the solve at major 1. A switch run that ends
+         // otherwise (a limit, a stall) is the phase's only run and keeps the hand-back.
+         const auto best_applies = [&](SolveStatus status) {
+-            if (stop_phase_on_qp_failure_ && st.out.counters.restoration_curvature_switches > 0) {
++            if (false && stop_phase_on_qp_failure_ && st.out.counters.restoration_curvature_switches > 0) {
+                 return false;
+             }
+             return st.mb.snap_valid &&
