@@ -22,6 +22,7 @@ list(APPEND _hven_sqp_sources
     test_hs_battery.cpp
     test_hs_sweeps.cpp
     test_ipqp_dispatch.cpp
+    test_iteration_telemetry.cpp
     test_lbfgs_damped.cpp
     test_nlp_kkt_check.cpp
     test_predictor.cpp

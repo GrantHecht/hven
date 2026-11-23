@@ -416,7 +416,7 @@ static_assert(::hven::detail::kAggregateArity<IpmIterationRow> == 23,
               "IpmIterationRow gained or lost a member: give it a key in the `ipm` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
-static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 25,
+static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 36,
               "SqpIterationRow gained or lost a member: give it a key in the `sqp` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
@@ -822,6 +822,9 @@ void key_opt_ladder(std::string &b, bool &f, const std::optional<ElasticLadderRo
     key_bool(o, lf, "promises_f", l.promises_f);
     key_double(o, lf, "slack_l1", l.slack_l1);
     key_bool(o, lf, "exhausted", l.exhausted);
+    key_double(o, lf, "rho_0", l.rho_0);
+    key_index(o, lf, "minor_iterations", l.minor_iterations);
+    key_index(o, lf, "factorizations", l.factorizations);
     key(b, f, "ladder");
     b += "{" + o + "}";
 }
@@ -861,6 +864,17 @@ void write_sqp_row(std::string &b, const SqpIterationRow &r) {
     key_index(b, f, "active_upper_sides", r.active_upper_sides);
     key_opt_double(b, f, "switching_ratio", r.switching_ratio);
     key_opt_ladder(b, f, r.ladder);
+    key_bool(b, f, "cap_binding", r.cap_binding);
+    key_opt_double(b, f, "pred_df", r.pred_df);
+    key_opt_double(b, f, "f_trial", r.f_trial);
+    key_opt_double(b, f, "h_trial", r.h_trial);
+    key_opt_double(b, f, "soc_f", r.soc_f);
+    key_opt_double(b, f, "soc_h", r.soc_h);
+    key_opt_double(b, f, "h_lin", r.h_lin);
+    key_index(b, f, "qp_minor_iterations_total", r.qp_minor_iterations_total);
+    key_index(b, f, "qp_factorizations_total", r.qp_factorizations_total);
+    key_index(b, f, "factorizations_delta", r.factorizations_delta);
+    key_double(b, f, "t_s", r.t_s);
 }
 
 } // namespace

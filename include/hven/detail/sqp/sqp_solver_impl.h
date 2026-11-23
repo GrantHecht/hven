@@ -569,6 +569,11 @@ struct ElasticLadderReport {
     ///        report it is the entry's clamp: a retry at the floor carries the
     ///        original attempt's flag.
     bool rho0_ceiling_hit = false;
+    /// I19-1, report-only: QP minor iterations and factorizations summed over EVERY rung this
+    /// ladder solved (`qp_minor_iters`/`qp_factorizations` above are the final rung's alone). On
+    /// a certified-fallback report they also include a floor retry's first ladder.
+    Index total_minor_iters = 0;
+    Index total_factorizations = 0;
 };
 
 /// @brief Where `run_elastic_ladder` takes its FIRST rung's seed from -- a SOURCE, not a mapped

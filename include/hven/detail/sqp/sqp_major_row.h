@@ -162,8 +162,17 @@ struct SqpMajorRow {
     Index qp_minor_iters = 0;
     /// @brief Meaningful iff qp_solved.
     Index qp_factorizations = 0;
-    /// @brief Any QpSolution::tr_active entry set (radius bit).
-    bool tr_binding = false;
+    /// @brief THE DECISION INPUT: any QpSolution::tr_active entry set AFTER the caller-step-limit
+    /// pins were folded in (release_step_limit_pins) -- the radius OR the cap limited the step.
+    /// Every strategy / growth / zero-step read is of THIS flag, unchanged by I19-1; it is
+    /// never exported as such. The exported `tr_binding` is `radius_binding`.
+    bool region_limited = false;
+    /// @brief I19-1, report-only: a QpSolution::tr_active entry was set BEFORE the cap pins were
+    /// folded in (the trust radius's own pin).
+    bool radius_binding = false;
+    /// @brief I19-1, report-only: release_step_limit_pins turned at least one caller-step-limit
+    /// pin into a tr_active entry.
+    bool cap_binding = false;
     /// The globalization strategy's verdict on this trial. It is the strategy's
     /// OWN verdict iff `qp_solved && qp_status == QpStatus::kOptimal`; on any
     /// other row no strategy was consulted.
@@ -196,7 +205,7 @@ struct SqpMajorRow {
     /// `qp_minor_iters`/`qp_factorizations` are the ladder's. On a rung-A-owned major they are
     /// the ladder's own counts.
     ///
-    /// tr_binding IS STILL MEANINGFUL: the elastic solve gets its trust region as
+    /// region_limited IS STILL MEANINGFUL: the elastic solve gets its trust region as
     /// REAL bounds on the original variables rather than through QpSolveOverrides,
     /// and the driver re-derives the radius bit exactly as the engine would have.
     bool elastic_applied = false;
@@ -240,7 +249,7 @@ struct SqpMajorRow {
     /// row is a census of where the first subproblem landed rather than a 0. The
     /// restoration sub-solve is a separate sequence with its own empty start.
     ///
-    /// All six fields are meaningful exactly where `tr_binding` IS: they read 0 on
+    /// All six fields are meaningful exactly where `region_limited` IS: they read 0 on
     /// any row whose QpSolution never became this major's answer -- the
     /// stopped-AT-iterate and non-finite-iterate rows, and the exhausted-ladder
     /// row. Such a row also leaves the previous set unchanged, so the next
@@ -252,7 +261,7 @@ struct SqpMajorRow {
     /// sides only, and a change of radius that moves a variable between a real
     /// bound and a TR pin DOES move this delta.
     ///
-    /// ON A SOC-corrected row the set IS THE ORIGINAL QP's, on `tr_binding`'s own
+    /// ON A SOC-corrected row the set IS THE ORIGINAL QP's, on `region_limited`'s own
     /// convention and for the same reason.
     Index active_set_delta = 0;
     /// Active inequality rows whose price is negligible beside the largest one:
@@ -294,6 +303,19 @@ struct SqpMajorRow {
     /// solved to kOptimal (the point the strategy was shown, zero-step rows included); nullopt
     /// otherwise. At h_old == 0 it is +/-inf (pred_df != 0) or NaN (pred_df == 0).
     std::optional<double> switching_ratio;
+
+    // --- I19-1 telemetry (report-only; see SqpIterationRow). Caller units. ---
+    std::optional<double> pred_df;
+    std::optional<double> f_trial;
+    std::optional<double> h_trial;
+    std::optional<double> soc_f;
+    std::optional<double> soc_h;
+    std::optional<double> h_lin;
+    /// Set by push_history from the solve's counters and clock.
+    Index qp_minor_iterations_total = 0;
+    Index qp_factorizations_total = 0;
+    Index factorizations_delta = 0;
+    double t_s = 0.0;
 };
 
 } // namespace hven

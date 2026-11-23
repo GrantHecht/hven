@@ -160,7 +160,7 @@ void expect_same_run(const RunResult &a, const RunResult &b) {
 // Masks the informational wall-clock keys (spec 2.2 rule 3) so streams compare byte for byte.
 std::string mask_wall(const std::string &s) {
     static const std::regex re("\"(wall_s|[a-z_]*_time_s|[a-z_]*analysis_time_s|total_s|func_s|kkt_"
-                               "s|print_s|phase_seconds)\":[-+0-9.eE]+");
+                               "s|print_s|phase_seconds|t_s)\":[-+0-9.eE]+");
     return std::regex_replace(s, re, "\"$1\":0");
 }
 

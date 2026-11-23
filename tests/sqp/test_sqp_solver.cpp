@@ -10222,8 +10222,9 @@ IpqpInfeasibilityEvidence w2_hand_built_evidence() {
 auto w2_row_identity(const SqpMajorRow &r) {
     return std::tie(r.trial, r.f, r.stationarity, r.feasibility, r.complementarity, r.kkt_residual,
                     r.violation_l1, r.tr_radius, r.mu, r.step_norm, r.qp_solved, r.qp_status,
-                    r.qp_minor_iters, r.qp_factorizations, r.tr_binding, r.verdict, r.soc_applied,
-                    r.elastic_applied, r.elastic_rho0_ceiling_hit, r.watchdog_restored);
+                    r.qp_minor_iters, r.qp_factorizations, r.region_limited, r.verdict,
+                    r.soc_applied, r.elastic_applied, r.elastic_rho0_ceiling_hit,
+                    r.watchdog_restored);
 }
 
 /// FIELD-COMPLETE IDENTITY (T3-B, X-4): every member of the output objects, and a

@@ -448,6 +448,42 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
     return m;
 }
 
+// I19-1, REPORT-ONLY (no decision reads these): the l1 violation of constraint values in the
+// caller's row units, spelled exactly as detail::constraint_violation_l1 (so an unscaled solve's
+// value is bit-equal to the engine's own h), and the same measure over the QP's linearized rows at
+// the step p. `sc.active` divides by the row factor, as caller_scale_row_measures does.
+double violation_l1_caller_units(const Vec &ce, const Vec &ci, const detail::ProblemScaling &sc) {
+    double h = 0.0;
+    for (Index i = 0; i < ce.size(); ++i) {
+        h += std::abs(sc.active ? ce(i) / sc.eq_rows(i) : ce(i));
+    }
+    for (Index j = 0; j < ci.size(); ++j) {
+        const double v = sc.active ? ci(j) / sc.ineq_rows(j) : ci(j);
+        h += (v > 0.0 || std::isnan(v)) ? v : 0.0;
+    }
+    return h;
+}
+
+// h at the linearization: sum |Ae p - be| + sum max(0, Ai p - bi) over the QP's own rows. Null
+// when the step is not finite or the QP's rows are not row-for-row the model's (an equality-basis
+// reduction changes the row set), so it never reports a number of a different problem.
+std::optional<double> linearized_violation_l1(const QpProblem &qp, const Vec &p, Index model_me,
+                                              Index model_mi, const detail::ProblemScaling &sc) {
+    if (p.size() != qp.n() || !p.allFinite() || qp.me() != model_me || qp.mi() != model_mi ||
+        (sc.active && (sc.eq_rows.size() != model_me || sc.ineq_rows.size() != model_mi))) {
+        return std::nullopt;
+    }
+    Vec ce = Vec::Zero(model_me);
+    Vec ci = Vec::Zero(model_mi);
+    if (model_me > 0) {
+        ce = qp.Ae * p - qp.be;
+    }
+    if (model_mi > 0) {
+        ci = qp.Ai * p - qp.bi;
+    }
+    return violation_l1_caller_units(ce, ci, sc);
+}
+
 } // namespace
 
 // THE SHARED DECLARED DIAGNOSTICS OF ONE POINT (M6 W5 T8.4). Declared in
@@ -1530,6 +1566,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     QpSolution qs_e_prev;
     bool has_prev_rung = false;
     double rho = rho_0;
+    Index ladder_minor_total = 0; // I19-1, report-only
+    Index ladder_fact_total = 0;
     for (;;) {
         // WHICH ENGINE SOLVES THIS RUNG (M7 W0 T3). `tier` is non-null iff the
         // caller resolved `SqpOptions::elastic_rung_engine` to kTier; a caller
@@ -1550,6 +1588,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
                                : engine.solve(elastic.qp, seed_elastic, elastic_overrides);
         out.qp_minor_iters += qs_e.counters.minor_iters;
         out.factorizations += qs_e.counters.factorizations;
+        ladder_minor_total += qs_e.counters.minor_iters;
+        ladder_fact_total += qs_e.counters.factorizations;
         out.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
         out.border_refine_steps += qs_e.counters.border_refine_steps;
         out.eqp_refine_iters += qs_e.counters.eqp_refine_iters;
@@ -1723,6 +1763,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     report.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
     report.rho_0 = rho_0;
     report.rho0_ceiling_hit = rho0_ceiling_hit;
+    report.total_minor_iters = ladder_minor_total;
+    report.total_factorizations = ladder_fact_total;
     report.rungs_climbed = rungs_climbed;
     report.rho_final = rho;
     report.elastic = std::move(elastic);
@@ -1790,8 +1832,12 @@ QpSolution detail::certified_feasibility_fallback(
         ++out.elastic_floor_retries;
         ++out.elastic_from_ipqp_escape;
         verdict.floor_retry = true;
+        const Index first_minor = report.total_minor_iters; // I19-1, report-only
+        const Index first_fact = report.total_factorizations;
         report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out,
                                     kElasticRhoInit, sink, tier, qn);
+        report.total_minor_iters += first_minor;
+        report.total_factorizations += first_fact;
     }
     // ONE BOOL ACROSS THE RETRY, so the row, the event and `elastic_rho0_ceiling_hits` all read
     // THIS ENTRY's placement rather than the surviving ladder's.
@@ -2013,7 +2059,8 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
         row.qp_minor_iterations = r.qp_minor_iters;
         row.qp_factorizations = r.qp_factorizations;
     }
-    row.tr_binding = r.tr_binding;
+    row.tr_binding = r.radius_binding;
+    row.cap_binding = r.cap_binding;
     row.elastic = r.elastic_applied;
     row.elastic_clamped = r.elastic_rho0_ceiling_hit;
     row.restoration_seed_used = r.restoration_seed_used;
@@ -2030,6 +2077,16 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.active_upper_sides = r.active_upper_sides;
     row.switching_ratio = r.switching_ratio;
     row.ladder = r.ladder;
+    row.pred_df = r.pred_df;
+    row.f_trial = r.f_trial;
+    row.h_trial = r.h_trial;
+    row.soc_f = r.soc_f;
+    row.soc_h = r.soc_h;
+    row.h_lin = r.h_lin;
+    row.qp_minor_iterations_total = r.qp_minor_iterations_total;
+    row.qp_factorizations_total = r.qp_factorizations_total;
+    row.factorizations_delta = r.factorizations_delta;
+    row.t_s = r.t_s;
     rec.sqp = row;
     return rec;
 }
@@ -4622,6 +4679,12 @@ struct SqpSolverImpl::SolveState {
     // A branch added later that returns or continues without pushing trips the
     // check below.
     Index rows_pushed = 0;
+    // I19-1, report-only: the solve's running QP counters as of the previous pushed row, so a row
+    // reports the work charged since. `row_work_base_*` also advance past a restoration phase's
+    // folded work (a depth-1 solve's own rows carry it); `row_delta_base_fact` does not.
+    Index row_work_base_minor = 0;
+    Index row_work_base_fact = 0;
+    Index row_delta_base_fact = 0;
     Index rows_at_major_entry = 0;
 
     // ---- the previous major's activity carry -------------------------------
@@ -6160,14 +6223,18 @@ static void apply_caller_step_limit(QpProblem &qp, const Vec &x, const Vec *d, d
 // exported as the trust region's pins are -- kFree, z == 0, tr_active set -- so the warm seed,
 // the activity census and the next major never read it as bound activity, and `tr_binding`
 // tells the strategy the step was region-limited.
-static void release_step_limit_pins(QpSolution &qs, const std::vector<std::uint8_t> &sides) {
+//
+// Returns whether any pin was released (I19-1: the row's report-only `cap_binding`); the fold into
+// `tr_active` is unchanged and still what every decision reads.
+static bool release_step_limit_pins(QpSolution &qs, const std::vector<std::uint8_t> &sides) {
     const std::size_t n = sides.size();
     if (n == 0 || qs.bound_state.size() != n || static_cast<std::size_t>(qs.z.size()) != n) {
-        return;
+        return false;
     }
     if (qs.tr_active.size() != n) {
         qs.tr_active.assign(n, false);
     }
+    bool released = false;
     for (std::size_t j = 0; j < n; ++j) {
         const BoundState b = qs.bound_state[j];
         if ((b == BoundState::kAtLower && (sides[j] & 1) != 0) ||
@@ -6175,8 +6242,10 @@ static void release_step_limit_pins(QpSolution &qs, const std::vector<std::uint8
             qs.bound_state[j] = BoundState::kFree;
             qs.z(static_cast<Index>(j)) = 0.0;
             qs.tr_active[j] = true;
+            released = true;
         }
     }
+    return released;
 }
 
 // The caller step limit on this driver's subproblem: the primary driver's whole x in its own
@@ -6883,6 +6952,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.restoration_iters += phase.counters.major_iters;
         st.out.counters.qp_minor_iters += phase.counters.qp_minor_iters;
         st.out.counters.factorizations += phase.counters.factorizations;
+        st.row_work_base_minor += phase.counters.qp_minor_iters; // I19-1: not this row's work
+        st.row_work_base_fact += phase.counters.factorizations;
         st.out.counters.eqp_refine_steps += phase.counters.eqp_refine_steps;
         st.out.counters.border_refine_steps += phase.counters.border_refine_steps;
         st.out.counters.eqp_refine_iters += phase.counters.eqp_refine_iters;
@@ -7547,6 +7618,8 @@ SqpIterationInfo sqp_iteration_info(const SqpMajorRow &row, Index depth) {
     info.active_set_size = row.active_rows + row.active_lower_sides + row.active_upper_sides;
     info.verdict = row.verdict;
     info.elastic = row.elastic_applied;
+    info.tr_binding = row.radius_binding;
+    info.cap_binding = row.cap_binding;
     return info;
 }
 
@@ -7963,6 +8036,17 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             exported.violation_l1 = mj.caller_row.violation_l1;
             exported.kkt_residual = std::max(exported.stationarity, exported.feasibility);
         }
+        // I19-1, REPORT-ONLY: this row's work since the previous row, and the clock. Nothing
+        // reads these back.
+        exported.qp_minor_iterations_total =
+            st.out.counters.qp_minor_iters - st.row_work_base_minor;
+        exported.qp_factorizations_total = st.out.counters.factorizations - st.row_work_base_fact;
+        exported.factorizations_delta = st.out.counters.factorizations - st.row_delta_base_fact;
+        st.row_work_base_minor = st.out.counters.qp_minor_iters;
+        st.row_work_base_fact = st.out.counters.factorizations;
+        st.row_delta_base_fact = st.out.counters.factorizations;
+        exported.t_s =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count();
         // THE STREAM EQUALS `history`, IN CALLER UNITS: emitted here, after
         // the map and before the push, so `major` is this row's index in
         // the vector and all six push sites are covered by one site.
@@ -9292,6 +9376,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         lr.promises_f = report.promises_f;
         lr.slack_l1 = report.slack_l1;
         lr.exhausted = !usable;
+        lr.rho_0 = report.rho_0;
+        lr.minor_iterations = report.total_minor_iters;
+        lr.factorizations = report.total_factorizations;
         return lr;
     };
     std::optional<ElasticLadderRow> ladder_row;
@@ -9453,13 +9540,17 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     mj.row.qp_factorizations =
         mj.fallback_report ? mj.fallback_report->qp_factorizations : mj.qs.counters.factorizations;
     mj.row.step_norm = mj.qs.x.size() > 0 ? mj.qs.x.lpNorm<Eigen::Infinity>() : 0.0;
-    release_step_limit_pins(mj.qs, st.step_limit_sides);
-    mj.row.tr_binding =
+    // I19-1 (report-only): the radius's own pins, read BEFORE the cap's are folded in. The merged
+    // flag below is what every decision reads, exactly as before.
+    mj.row.radius_binding =
+        std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
+    mj.row.cap_binding = release_step_limit_pins(mj.qs, st.step_limit_sides);
+    mj.row.region_limited =
         std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
 
     // THE MODE-SELECTION TELEMETRY (M6 W4 T3), here because THIS is where
     // `qs` is this major's answer -- the same statement block that gives
-    // `tr_binding` its meaning, which is the rule the six fields carry.
+    // `region_limited` its meaning, which is the rule the six fields carry.
     census_major_activity(st.qp, mj.qs, st.prev_ineq_active, st.prev_bound_state, st.activity_slack,
                           mj.row);
     st.prev_ineq_active = mj.qs.ineq_active;
@@ -9580,7 +9671,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 mj.ctx.h_old = mj.row.violation_l1;
                 mj.ctx.h_new = h_trial;
                 mj.ctx.pred_df = pred;
-                mj.ctx.tr_active = mj.row.tr_binding;
+                mj.ctx.tr_active = mj.row.region_limited;
                 mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
                 ++st.out.counters.qp_failure_steps_judged;
                 const StepVerdict verdict = st.strategy->judge(mj.ctx);
@@ -9745,10 +9836,19 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     mj.ctx.h_new = constraint_violation_l1(mj.ev_trial);
     mj.ctx.pred_df = st.qn_bridge ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)
                                   : predicted_decrease(st.qp, mj.qs.x);
-    mj.ctx.tr_active = mj.row.tr_binding;
+    mj.ctx.tr_active = mj.row.region_limited;
     mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
     mj.row.switching_ratio = detail::switching_ratio_value(
         mj.ctx.pred_df, detail::kFunnelDelta * mj.ctx.h_old * mj.ctx.h_old);
+    // I19-1, REPORT-ONLY: what the judgement below sees, in the caller's units. Nothing in this
+    // block is read back, and `mj.ctx` is untouched.
+    {
+        const detail::ProblemScaling &sc = st.solve_scaling;
+        mj.row.pred_df = sc.active ? mj.ctx.pred_df / sc.obj : mj.ctx.pred_df;
+        mj.row.f_trial = sc.active ? mj.ev_trial.f / sc.obj : mj.ev_trial.f;
+        mj.row.h_trial = violation_l1_caller_units(mj.ev_trial.ce, mj.ev_trial.ci, sc);
+        mj.row.h_lin = linearized_violation_l1(st.qp, mj.qs.x, seam.me(), seam.mi(), sc);
+    }
 
     // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (docs/migration-0.2.md, "Zero-step
     // short-circuit", for why it is here and not left to the convergence test at the top
@@ -9759,7 +9859,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // that is zero because the SUBPROBLEM's answer is zero has the
     // radius strictly inactive.
     const bool zero_step =
-        !mj.row.tr_binding &&
+        !mj.row.region_limited &&
         mj.row.step_norm <= qp_no_motion_tol(opts_.qp.feasibility_tol, mj.row.step_norm);
 
     // A ZERO STEP AT A SUSPECTED INCONSISTENCY (SqpOptions::equality_basis) would
@@ -9906,6 +10006,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // soc_ctx below reads only f/h, so judge() never needs a
             // derivative at x_soc either.
             mj.ev_soc = trial_values(seam, mj.x_soc, st.out.evaluation_errors);
+            // I19-1, REPORT-ONLY: the correction point's own objective and violation.
+            mj.row.soc_f =
+                st.solve_scaling.active ? mj.ev_soc.f / st.solve_scaling.obj : mj.ev_soc.f;
+            mj.row.soc_h = violation_l1_caller_units(mj.ev_soc.ce, mj.ev_soc.ci, st.solve_scaling);
 
             StepContext soc_ctx;
             soc_ctx.f_old = st.ev.f;
@@ -9913,7 +10017,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             soc_ctx.h_old = mj.row.violation_l1;
             soc_ctx.h_new = constraint_violation_l1(mj.ev_soc);
             soc_ctx.pred_df = mj.ctx.pred_df; // UNCHANGED; see the note
-            soc_ctx.tr_active = mj.row.tr_binding;
+            soc_ctx.tr_active = mj.row.region_limited;
             soc_ctx.rejections_at_iterate = st.rejections_at_iterate;
 
             const StepVerdict soc_verdict = st.strategy->judge(soc_ctx);
@@ -10289,10 +10393,10 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
 
             // ACCEPTED (kAcceptObjectiveStep or kAcceptFeasibilityStep), possibly via SOC. The
             // radius grows only on the evidence described in RADIUS MANAGEMENT, and it is computed
-            // BEFORE the move so `ev` is still the old iterate's. ctx.pred_df/row.tr_binding are
-            // ALWAYS the ORIGINAL QP's -- see the SECOND-ORDER CORRECTION note on why pred_df is
-            // not recomputed from p_soc -- so this growth test is unaffected
-            // by whether SOC fired; only ctx.f_new (hence actual_df) differs.
+            // BEFORE the move so `ev` is still the old iterate's. ctx.pred_df/row.region_limited
+            // are ALWAYS the ORIGINAL QP's -- see the SECOND-ORDER CORRECTION note on why pred_df
+            // is not recomputed from p_soc -- so this growth test is unaffected by whether SOC
+            // fired; only ctx.f_new (hence actual_df) differs.
             //
             // std::isfinite(delta) is not decoration: at the +inf "no trust
             // region" setting min(+inf * 2, trust_region_max) is trust_region_max, so an unguarded
@@ -10303,7 +10407,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // radius it was taken under is the one its subproblem failed at.
             const double actual_df = st.ev.f - mj.ctx.f_new;
             if (trust_region_grows(opts_.advanced.trust_region_growth, mj.failure_step,
-                                   mj.row.tr_binding, std::isfinite(st.delta), mj.ctx.pred_df,
+                                   mj.row.region_limited, std::isfinite(st.delta), mj.ctx.pred_df,
                                    actual_df,
                                    mj.row.verdict == StepVerdict::kAcceptFeasibilityStep)) {
                 st.delta = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);

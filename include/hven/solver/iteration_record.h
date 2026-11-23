@@ -40,6 +40,14 @@ struct ElasticLadderRow {
     bool promises_f = false;
     double slack_l1 = 0.0; ///< l1 of the final rung's violations; 0 unless it is kOptimal.
     bool exhausted = false;
+    /// I19-1: the first rung's penalty, as the placement rule resolved it (`rho` is the final
+    /// rung's). Report-only.
+    double rho_0 = 0.0;
+    /// I19-1: the ladder's own work -- QP minor iterations and factorizations summed over every
+    /// rung it solved (a certified fallback's floor retry included). The row's
+    /// `qp_minor_iterations` / `qp_factorizations` are the LAST rung's only.
+    Index minor_iterations = 0;
+    Index factorizations = 0;
 };
 
 enum class IterationTier { kBarrier, kIpqp, kSsn, kWalk, kElastic, kRestoration };
@@ -83,6 +91,9 @@ struct SqpIterationRow {
     std::optional<QpStatus> qp_status;
     std::optional<Index> qp_minor_iterations;
     std::optional<Index> qp_factorizations;
+    /// I19-1: the trust RADIUS limited the step (a variable held by the radius's own pin). A
+    /// `caller_step_limit` pin is `cap_binding`, not this; the pre-I19-1 meaning (radius OR cap)
+    /// is `tr_binding || cap_binding`.
     bool tr_binding = false;
     bool elastic = false;
     bool elastic_clamped = false;
@@ -102,6 +113,37 @@ struct SqpIterationRow {
     std::optional<double> switching_ratio;
     /// The elastic ladder's outcome; present on a row whose major ran one.
     std::optional<ElasticLadderRow> ladder;
+
+    // --- I19-1 telemetry: REPORT-ONLY. No decision reads any of it. ---
+
+    /// A `caller_step_limit` pin was active on the step (see `tr_binding`).
+    bool cap_binding = false;
+    /// The model's predicted objective decrease for the QP step, the number the switching test
+    /// and the radius-growth test read (caller objective scale). Present where `switching_ratio`
+    /// is (the row's QP solved to kOptimal).
+    std::optional<double> pred_df;
+    /// Objective and l1 constraint violation at the trial point x + p (caller scale); present
+    /// where `pred_df` is.
+    std::optional<double> f_trial;
+    std::optional<double> h_trial;
+    /// The same two at the second-order-correction point; present only when a SOC re-solve
+    /// solved and its point was evaluated.
+    std::optional<double> soc_f;
+    std::optional<double> soc_h;
+    /// The l1 violation of the QP's own linearized rows at the step p, in `h_trial`'s units; null
+    /// when the QP's rows are not the model's rows (equality-basis reduction) or p is not finite.
+    std::optional<double> h_lin;
+    /// QP minor iterations and factorizations charged since the previous row, EXCLUDING a
+    /// restoration phase's folded work: the main QP, any cap retry, every ladder rung and the SOC
+    /// re-solve of this row.
+    Index qp_minor_iterations_total = 0;
+    Index qp_factorizations_total = 0;
+    /// The change in the solve's running `factorizations` since the previous row of this solve
+    /// (the record's `factorizations` is the running total).
+    Index factorizations_delta = 0;
+    /// Seconds since this solve's entry on a monotonic clock; informational, never asserted. A
+    /// depth-1 row counts from the nested solve's own entry.
+    double t_s = 0.0;
 };
 
 /// @brief One iteration row: the shared core plus exactly one engine block.

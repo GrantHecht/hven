@@ -694,7 +694,8 @@ TEST(CallerStepLimitSolve, AConvergingSolveKeepsEveryStepWithinTheLimitAndReache
 
 TEST(CallerStepLimitSolve, ALimitPinIsReportedFreeAndTheStepRegionLimited) {
     // Free variables pulled far from the start: the first step stops at the limit on both. The
-    // trust region is far wider, so `tr_binding` can only come from the limit.
+    // trust region is far wider, so the binding can only come from the limit (I19-1: reported as
+    // `cap_binding`, not `tr_binding`).
     auto m = small_model(Vec{{1.0, 1.0}}, Vec{{10.0, 10.0}}, {{1.0, -1.0}}, {0.0});
     Problem p(m);
     SqpOptions o = limit_options(0.1);
@@ -705,7 +706,8 @@ TEST(CallerStepLimitSolve, ALimitPinIsReportedFreeAndTheStepRegionLimited) {
     ASSERT_GE(r.history.size(), 1u);
     const IterationRecord &h = r.history.front();
     ASSERT_TRUE(h.sqp && h.sqp->qp_solved);
-    EXPECT_TRUE(h.sqp->tr_binding) << "the limit-limited step is region-limited for the strategy";
+    EXPECT_TRUE(h.sqp->cap_binding) << "the limit-limited step is cap-bound";
+    EXPECT_FALSE(h.sqp->tr_binding) << "the radius is far wider: only the limit binds";
     EXPECT_EQ(h.sqp->active_lower_sides, 0) << "no declared bound exists";
     EXPECT_EQ(h.sqp->active_upper_sides, 0) << "the limit side is not bound activity";
     EXPECT_NEAR(r.x[0], 0.1, 1e-12);

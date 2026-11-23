@@ -67,7 +67,14 @@ inline bool same_block(const SqpIterationRow &a, const SqpIterationRow &b) {
            a.active_set_size == b.active_set_size && a.active_set_delta == b.active_set_delta &&
            a.weak_active_rows == b.weak_active_rows && a.near_active_rows == b.near_active_rows &&
            a.active_rows == b.active_rows && a.active_lower_sides == b.active_lower_sides &&
-           a.active_upper_sides == b.active_upper_sides;
+           a.active_upper_sides == b.active_upper_sides && a.cap_binding == b.cap_binding &&
+           same_value(a.pred_df, b.pred_df) && same_value(a.f_trial, b.f_trial) &&
+           same_value(a.h_trial, b.h_trial) && same_value(a.soc_f, b.soc_f) &&
+           same_value(a.soc_h, b.soc_h) && same_value(a.h_lin, b.h_lin) &&
+           a.qp_minor_iterations_total == b.qp_minor_iterations_total &&
+           a.qp_factorizations_total == b.qp_factorizations_total &&
+           a.factorizations_delta == b.factorizations_delta;
+    // `t_s` is wall-clock and is deliberately not compared.
 }
 
 template <class Block>

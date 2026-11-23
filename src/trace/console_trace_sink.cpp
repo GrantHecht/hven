@@ -151,7 +151,9 @@ std::string sqp_codes(const IterationRecord &r, const SqpIterationRow &row) {
     if (r.rolled_back) {
         c += 'r';
     }
-    if (row.tr_binding) {
+    // `b` keeps its pre-I19-1 meaning (the step was region-limited): the radius OR a step-limit
+    // pin.
+    if (row.tr_binding || row.cap_binding) {
         c += 'b';
     }
     if (row.elastic_clamped) {

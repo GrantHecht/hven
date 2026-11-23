@@ -2481,7 +2481,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "\"ipqp_least_infeasible_primal\":3.25,\"ipqp_farkas_corroborated\":true,\"active_set_"
         "size\":10,\"active_set_delta\":17,\"weak_active_rows\":1,\"near_active_rows\":2,\"active_"
         "rows\":3,\"active_lower_sides\":5,\"active_upper_sides\":8,\"switching_ratio\":1.25,"
-        "\"ladder\":null}}\n");
+        "\"ladder\":null,"
+        "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":null,"
+        "\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_factorizations_total\":"
+        "0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier) {
@@ -2500,7 +2503,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTh
               "\"ipqp_least_infeasible_primal\":\"-inf\",\"ipqp_farkas_corroborated\":true,"
               "\"active_set_size\":6,\"active_set_delta\":6,\"weak_active_rows\":5,\"near_active_"
               "rows\":4,\"active_rows\":3,\"active_lower_sides\":2,\"active_upper_sides\":1,"
-              "\"switching_ratio\":\"inf\",\"ladder\":null}}\n");
+              "\"switching_ratio\":\"inf\",\"ladder\":null,"
+              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
@@ -2519,7 +2525,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
               "infeasible_primal\":-1.5,\"ipqp_farkas_corroborated\":false,\"active_set_size\":9,"
               "\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_rows\":7,\"active_"
               "rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"switching_ratio\":null,"
-              "\"ladder\":null}}\n");
+              "\"ladder\":null,"
+              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) {
@@ -2536,7 +2545,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "\"ipqp_least_infeasible_primal\":12,\"ipqp_farkas_corroborated\":true,\"active_set_"
               "size\":57,\"active_set_delta\":15,\"weak_active_rows\":16,\"near_active_rows\":17,"
               "\"active_rows\":18,\"active_lower_sides\":19,\"active_upper_sides\":20,\"switching_"
-              "ratio\":-0.5,\"ladder\":null}}\n");
+              "ratio\":-0.5,\"ladder\":null,"
+              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
@@ -2571,7 +2583,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
               "infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":1,"
               "\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_"
               "rows\":1,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,"
-              "\"ladder\":null}}\n");
+              "\"ladder\":null,"
+              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
     const std::string line = iter_line(r);
     for (const char *k : {"step", "accepted", "verdict", "regularization_dual", "qp_status",
                           "qp_minor_iterations", "qp_factorizations"}) {
@@ -2619,7 +2634,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
               "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,"
               "\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_"
               "rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,"
-              "\"switching_ratio\":null,\"ladder\":null}}\n");
+              "\"switching_ratio\":null,\"ladder\":null,"
+              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
@@ -2671,7 +2689,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
         "false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_"
         "set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,"
         "\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":"
-        "null,\"ladder\":null}}");
+        "null,\"ladder\":null,"
+        "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":null,"
+        "\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_factorizations_total\":"
+        "0,\"factorizations_delta\":0,\"t_s\":0}}");
     EXPECT_EQ(raw_field(lines[2], "depth"), "1");
     EXPECT_EQ(raw_field(lines[2], "f"), "null");
 }
@@ -2688,7 +2709,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
 void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, Index major,
                              QpTraceMode mode, Index depth) {
     static_assert(
-        ::hven::detail::kAggregateArity<SqpIterationRow> == 25,
+        ::hven::detail::kAggregateArity<SqpIterationRow> == 36,
         "SqpIterationRow gained a field: compare it below, and in the writer's own key list.");
     const bool stepped = r.sqp->qp_solved &&
                          r.sqp->qp_status.value_or(hven::QpStatus::kOptimal) == QpStatus::kOptimal;
@@ -2781,6 +2802,27 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
     if (!r.sqp->ladder.has_value()) {
         EXPECT_EQ(raw_field(line, "ladder"), "null") << line;
     }
+    // I19-1: the report-only telemetry.
+    EXPECT_EQ(raw_field(line, "cap_binding"), r.sqp->cap_binding ? "true" : "false");
+    const auto opt_field = [&](const char *key, const std::optional<double> &v) {
+        if (v.has_value()) {
+            expect_double_field(line, key, *v);
+        } else {
+            EXPECT_EQ(raw_field(line, key), "null") << key << " in " << line;
+        }
+    };
+    opt_field("pred_df", r.sqp->pred_df);
+    opt_field("f_trial", r.sqp->f_trial);
+    opt_field("h_trial", r.sqp->h_trial);
+    opt_field("soc_f", r.sqp->soc_f);
+    opt_field("soc_h", r.sqp->soc_h);
+    opt_field("h_lin", r.sqp->h_lin);
+    EXPECT_EQ(raw_field(line, "qp_minor_iterations_total"),
+              std::to_string(r.sqp->qp_minor_iterations_total));
+    EXPECT_EQ(raw_field(line, "qp_factorizations_total"),
+              std::to_string(r.sqp->qp_factorizations_total));
+    EXPECT_EQ(raw_field(line, "factorizations_delta"), std::to_string(r.sqp->factorizations_delta));
+    expect_double_field(line, "t_s", r.sqp->t_s);
 }
 
 /// The depth-0 `iter` lines of a stream, in order.
@@ -5179,6 +5221,9 @@ TEST(JsonLinesTraceSink, TheElasticExhaustionMessageCarriesTheRowsLadderBlockAnd
     l.promises_f = true;
     l.slack_l1 = 0.25;
     l.exhausted = true;
+    l.rho_0 = 100.0;
+    l.minor_iterations = 37;
+    l.factorizations = 11;
     m.ladder = l;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -5187,7 +5232,8 @@ TEST(JsonLinesTraceSink, TheElasticExhaustionMessageCarriesTheRowsLadderBlockAnd
     EXPECT_NE(line.find("\"expected_n\":null,\"ladder\":{\"entry\":\"verified_infeasible\","
                         "\"main_status\":\"infeasible\",\"rung_status\":\"numerical_error\","
                         "\"rho\":100000000,\"rungs\":5,\"closed\":false,\"reduced\":false,"
-                        "\"promises_f\":true,\"slack_l1\":0.25,\"exhausted\":true}"),
+                        "\"promises_f\":true,\"slack_l1\":0.25,\"exhausted\":true,"
+                        "\"rho_0\":100,\"minor_iterations\":37,\"factorizations\":11}"),
               std::string::npos)
         << line;
     EXPECT_EQ(raw_field(line, "k"), "5");
@@ -5215,6 +5261,9 @@ TEST(JsonLinesTraceSink, ARowsLadderBlockIsAnObjectAndNullWithoutOne) {
     l.promises_f = false;
     l.slack_l1 = 0.0;
     l.exhausted = false;
+    l.rho_0 = 1.0;
+    l.minor_iterations = 9;
+    l.factorizations = 4;
     r.sqp->ladder = l;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -5223,7 +5272,8 @@ TEST(JsonLinesTraceSink, ARowsLadderBlockIsAnObjectAndNullWithoutOne) {
     EXPECT_NE(
         line.find("\"ladder\":{\"entry\":\"refused_certificate\",\"main_status\":\"numerical_"
                   "error\",\"rung_status\":\"optimal\",\"rho\":100,\"rungs\":4,\"closed\":true,"
-                  "\"reduced\":true,\"promises_f\":false,\"slack_l1\":0,\"exhausted\":false}"),
+                  "\"reduced\":true,\"promises_f\":false,\"slack_l1\":0,\"exhausted\":false,"
+                  "\"rho_0\":1,\"minor_iterations\":9,\"factorizations\":4}"),
         std::string::npos)
         << line;
 }
@@ -5393,8 +5443,9 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         // `wall_s` is wall-clock and informational: a deterministic solve's stream is
         // byte-reproducible once it is masked.
+        // The SQP `iter` rows' `t_s` (I19-1) is the same kind of key.
         const std::string masked =
-            std::regex_replace(os.str(), std::regex("\"wall_s\":[^,}]*"), "\"wall_s\":0");
+            std::regex_replace(os.str(), std::regex("\"(wall_s|t_s)\":[^,}]*"), "\"$1\":0");
         return std::pair<std::string, Index>{masked, sol.counters.restoration_iters};
     };
     const auto silent = run(hven::Verbosity::kSilent);

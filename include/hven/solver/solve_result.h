@@ -186,6 +186,10 @@ struct SqpIterationInfo {
     StepVerdict verdict = StepVerdict::kReject;
     /// An elastic solve supplied this major (SqpIterationRow::elastic).
     bool elastic = false;
+    /// The trust RADIUS limited the step (SqpIterationRow::tr_binding).
+    bool tr_binding = false;
+    /// A `caller_step_limit` pin limited the step (SqpIterationRow::cap_binding).
+    bool cap_binding = false;
 };
 
 /// @brief One iterate, owned: the copy of an IterationEvent a consumer may keep.
