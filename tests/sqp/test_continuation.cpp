@@ -1247,6 +1247,11 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // macOS (Accelerate) Release reads 686 (CI run 44991274789); Windows Release reads 559.
     // An off-reference Intel Linux Release runner (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI
     // run 45064036804) reads 558: off the reference build, 558 or 559 is accepted (recorded).
+    // RF-1b: a Windows Release runner (clang-cl, MKL 2026.1, off-reference; CI run 45090941397 at
+    // 6dea31140, reading from the run's gtest XML) reads 560 -- Windows flips run to run (WX-R11)
+    // and read 559 at r4. The reference build still reads 559 with RF-1b (this test passes at 559
+    // on the reference Linux runner of that run and on the box, Release and Debug 501): off the
+    // reference build 558, 559 or 560 is accepted (recorded).
 #if defined(USE_ACCELERATE_SPARSE)
     constexpr Index kArmAFactorizations = 686;
 #elif defined(NDEBUG)
@@ -1259,7 +1264,8 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         "Continuation.probe_budget_arm_a_factorizations",
         std::to_string(off.steps[1].counters.factorizations));
     EXPECT_TRUE(off.steps[1].counters.factorizations == kArmAFactorizations ||
-                off.steps[1].counters.factorizations == kArmAFactorizations - 1)
+                off.steps[1].counters.factorizations == kArmAFactorizations - 1 ||
+                off.steps[1].counters.factorizations == kArmAFactorizations + 1)
 #else
     EXPECT_EQ(off.steps[1].counters.factorizations, kArmAFactorizations)
 #endif
