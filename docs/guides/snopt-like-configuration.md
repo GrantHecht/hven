@@ -91,7 +91,7 @@ Caller-unit step limit. `caller_step_limit = r` (default 0, off) narrows every Q
 to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode, including
 the restoration phase's steps in the original variables (its elastic slacks are not limited). A
 variable stopped by the limit is reported free (zero bound multiplier) and the step counts as
-trust-region-limited. The trust region stays in the engine's units. These options are SQP-only:
+trust-region-limited for the radius-growth decision, but the row reports it as `cap_binding`, not `tr_binding`. The trust region stays in the engine's units. These options are SQP-only:
 the interior-point solver has no trust region, column layer or walk QP.
 
 Console and trace units. With column scaling firing, the console `step` and `radius` columns
@@ -102,9 +102,29 @@ columns were scaled and the factors' range.
 Elastic-ladder diagnostics. When the elastic ladder is exhausted the console line and the
 `message`/`elastic_exhausted` record state how it was entered (verified infeasible in the trust
 region, working-set numerical termination, refused certificate, IPQP fallback), the main QP's
-status, the final rung's status and penalty, and `closed`/`reduced`/`promises_f`/`slack_l1`; the
-`sqp.major` row keeps the MAIN QP's `qp_status` and carries the ladder in its `ladder` block
-(`docs/trace-schema-v1.md`).
+status, the final rung's status and penalty, and `closed`/`reduced`/`promises_f`/`slack_l1`.
+
+Whenever a major runs the elastic ladder (exhausted or not) its `iter` row carries a non-null
+`ladder` block, and that is the whole test for "an elastic activation happened on this row".
+`ladder.main_status` is the main QP's status before the ladder. The row's own `qp_status` depends on
+the outcome: on an exhausted ladder it is the main QP's status (equal to `main_status`); on a usable
+ladder it is the status of the rung that supplied the step (normally `optimal`). So `qp_status:
+optimal` with `ladder.main_status: infeasible` means the main QP was infeasible and an elastic rung
+produced the step; it is not a contradiction. On a ladder row the row's `qp_minor_iterations` and
+`qp_factorizations` are the LAST rung's, not the major's total: read `qp_minor_iterations_total` and
+`qp_factorizations_total` (main QP, every rung, the SOC re-solve) for the work the row cost, and
+`ladder.minor_iterations` / `ladder.factorizations` for the ladder's own share. The row's
+`factorizations` key is the solve's running total, not the row's: `factorizations_delta` is the
+row's own. Full definitions are in `docs/trace-schema-v1.md`.
+
+Per-row step diagnostics. The `sqp` block also reports `pred_df` (the model's predicted objective
+decrease, the number the switching and trust-region-growth tests use), `f_trial` and `h_trial`
+(objective and l1 violation at the trial point), `soc_f` / `soc_h` (the same at the second-order-
+correction point when one was tried), `h_lin` (the l1 violation the QP step leaves in the
+linearized constraints), and the two binding flags `tr_binding` (the trust radius limited the step)
+and `cap_binding` (a `caller_step_limit` pin did). `tr_binding` and `cap_binding` are also on
+`SqpIterationInfo` in the iteration callback. All of these are report-only: no decision reads them.
+Row `t_s` is seconds since the solve began on a monotonic clock, informational.
 
 Failed-QP dump. `advanced.qp_dump_dir` plus `advanced.qp_dump_policy` (`QpDumpPolicy::kOff`
 default, `kFailed`, `kAll`) write each qualifying walk solve (the major's QP, SOC, cap retry, the
@@ -301,9 +321,10 @@ lower bound before the shim negates anything. Do not assume the two agree.
   not take the same number.
 - **Different globalization and failure paths.** No augmented-Lagrangian merit,
   no line-search step-length reporting, no SNOPT "elastic mode" log, no
-  warm-start-from-basis (hven's warm starts are its own `SqpWarmStart` /
-  `WarmStart` objects, not SNOPT's Hot/Warm start tokens). The solver may exit in
-  restoration where SNOPT would continue in elastic mode.
+  warm-start-from-basis token (hven's warm starts are its own `WarmStart` /
+  `SqpWarmStart` objects and carry different things than SNOPT's `hs`/`Lamda`
+  basis; see section 5). The solver may exit in restoration where SNOPT would
+  continue in elastic mode.
 - **No derivative check, no finite differences.** hven never differences user
   functions. Every gradient entry and every declared Jacobian nonzero must be
   supplied. SNOPT's Verify level has no analogue.
@@ -332,3 +353,89 @@ lower bound before the shim negates anything. Do not assume the two agree.
   Linux with MKL; the shim should treat an `std::invalid_argument` from
   `SqpSolver(o)` or `solve()` as a programming/boundary error and report it as
   an invalid-input INFO.
+
+## 5. Warm starts
+
+Two objects, for two situations. Both are accepted by `SqpSolver::solve`; neither carries SNOPT's
+`hs` basis array or its quasi-Newton matrix.
+
+**SNOPT `Start = Warm` from stored values: `WarmStart::seed(problem, x, lambda, z)`**
+(`hven/warmstart/warm_start.h`). Build the value from the point and prices the caller kept
+(SNOPT's `x`, `pi`, `rc`: `pi` goes to `lambda`, one per row of the problem's row space, in hven's
+sign convention of section 3 -- verify the sign mapping numerically before negating anything -- and
+`rc` goes to `z`), and pass it to `solve(problem, x0, warm)`. What the SQP engine does with it:
+
+- It takes `x` (when given; an empty `x` builds the multipliers-only form and the solve starts from
+  its own `x0`) and the row multipliers `lambda`. The level is `StartLevel::kSeeded`
+  (`SqpCounters::start_level_used`, `n_seeded`).
+- It does NOT read `z`: this engine never ingests bound multipliers on any route (it derives its
+  own at the first subproblem).
+- `hs` is NOT implied by nonzero prices. A seeded value carries no activity, the engine does not
+  infer any, so the first QP is left unseeded (a cold working set, or the crash basis when
+  `advanced.crash_basis` is on) and rediscovers the active set. (The interior-point crossover, `to_sqp_warm_start`, is the route that
+  infers an active set; it does so from interior-point output, not from SNOPT prices.)
+- It cleans the prices at the ingested point: a price on an inequality row that is strictly slack
+  at `x` is cleared to zero, a slightly negative inequality price (within `kSeededDualClampTol`) is
+  clamped to zero and counted in `seeded_clamped`, and a larger negative price degrades the whole
+  value to a cold start.
+- The globalization state is NOT carried: the trust radius starts at `trust_region_initial`, and
+  the funnel starts fresh.
+
+**In-process re-solves: `SqpResult::sqp_warm_start`.** After any solve (a failed one included, except
+one that could not evaluate its own start point) `SqpResult::sqp_warm_start` is the engine's native,
+opaque exit state. Pass it back through `solve(problem, x0, const SqpWarmStart&)` to re-solve a
+nearby problem (changed bounds or parameters, the same structure). `x0` is ignored once the value
+resolves above cold: the solve starts at the stored point. It is same-process only and is never
+serialized. When the problem's sparsity structure matches, the level is `kWarm`, or `kHot` when the
+stored factorization can also be reused; a structure mismatch degrades to `kSeeded`, and it never
+refuses a stale value. It carries:
+
+- the point `x` and the row multipliers `lambda_e`, `lambda_i` (`z` is stored but, as above, not
+  read by this engine at ingest);
+- the exit active set: which inequality rows and which variable bounds were active, as the QP's
+  working set, so the first QP starts there;
+- the funnel width;
+- the trust radius the solve exited with, clamped at ingest into
+  `[trust_region_min, trust_region_initial]` (a radius larger than `trust_region_initial` is NOT
+  restored);
+- the QP regularization actually used (primal and dual) and, for the semismooth-Newton tier, its
+  proximal level;
+- the hot factorization handle, for `kHot`.
+
+The state carry (funnel, radius, regularization, hot factorization) is declined on a solve with
+row/objective scaling active; the point, the prices and the working set are still taken.
+
+**Not carried by either object:** the quasi-Newton matrix. Every solve under
+`hessian_mode = kLbfgsDamped` starts from a fresh `B0 = sigma0 * I` (`sigma0 = max(1,
+||grad L||inf / radius)` at the first iterate) and re-learns curvature from its own steps, so a
+warm start from a good point still pays the early iterations of a first-derivative solve. The
+trust radius is also not carried beyond `trust_region_initial` (above). If a trajectory study
+re-solves many nearby problems sequentially, set `trust_region_initial` to the radius you want
+each re-solve to open with.
+
+## 6. Feasibility tolerance and row scaling
+
+`feasibility_tol` is a per-row infinity-norm test in MODEL units: the solve is feasible when every
+equality residual `|c_i(x)|`, every inequality violation, and every bound violation is at most the
+tolerance. It is not a norm over a group of rows, and there is no per-row tolerance option. The
+tolerance therefore means what you want only if the rows are scaled so that "one unit of residual in
+any row" is the same size of error to you.
+
+To make the tolerance mean your acceptance gate, scale the rows in the model (a physical
+transformation of `g`, bounds included), not with `row_scaling`, which is derivative-based and
+chooses its own factors.
+
+Worked example. Three position residuals `r = (rx, ry, rz)` in km, with an acceptance gate of
+`||r||_2 <= 1 km` and `feasibility_tol = 1e-3`. Declare the rows as `r_i / s` with
+`s = 1000 / sqrt(3)` km (about 577 km; the bounds scale the same way). The solve stops when each
+scaled residual is at most `1e-3`, i.e. each `|r_i| <= 1e-3 * s = 0.577 km`, and then
+`||r||_2 <= sqrt(3) * 0.577 km = 1 km`. So `1e-3` on the scaled rows implies the L2 gate: the
+infinity-norm box inscribed in the L2 ball of radius 1 km. It is conservative (a residual `(1, 0, 0)`
+km passes your gate but not the solver's), which is the right direction for an acceptance gate.
+
+Why not a squared-norm constraint `||r||^2 <= 1`? It is one nonlinear row where there were three
+linear-in-`r` rows, so the model changes: its gradient `2 r^T J` vanishes at `r = 0`, so the
+constraint qualification (LICQ) is lost exactly at the solutions you want, the multipliers become
+unbounded there, and the Jacobian degenerates. Keep the three scaled rows. A single global
+`feasibility_tol = 1e-3 / sqrt(3)` also works but tightens every other row in the problem by the
+same factor, which is blunt.

@@ -35,8 +35,8 @@ tightens:
 1. **A field the emitting site did not compute is `null`.** Never a default, sentinel or projection.
 2. **No vector-valued field.** Vectors belong to the callback (`IterationPayload`).
 3. **Units.** A double is on the caller's objective scale unless its row says "engine scale". `_s` keys are
-   wall-clock. Only `solve.end`, `ipm.phase.exit` and `ipm.kkt_analysis` carry them, so a deterministic
-   solve's stream is byte-reproducible once those keys are masked. `solver_initialized` carries no
+   wall-clock. Only `solve.end`, `ipm.phase.exit`, `ipm.kkt_analysis` and the SQP `iter` block's `t_s`
+   carry them, so a deterministic solve's stream is byte-reproducible once those keys are masked. `solver_initialized` carries no
    milliseconds on the wire; a byte comparison drops that one kind.
 
 ## 3. Records
@@ -77,7 +77,7 @@ Core, in wire order:
 | `soc` | bool | SOC won this iteration's step (`resolved_depth == kRecoveryDepthSoc`) | `soc_applied` | never |
 | `watchdog` | bool | the watchdog **armed** this iteration | the watchdog **restored** this pass | never; the meanings differ by engine |
 | `rolled_back` | bool | a non-finite step rollback happened at this iteration | `rolled_back` | never |
-| `factorizations` | int | the call's running KKT factorization count at the row; each stepped row's count exceeds the previous row's by exactly `1 + inertia_corrections` | the (sub-)solve's running `counters.factorizations` | never |
+| `factorizations` | int | the call's running KKT factorization count at the row; each stepped row's count exceeds the previous row's by exactly `1 + inertia_corrections` | the (sub-)solve's running `counters.factorizations` (the SOLVE'S TOTAL so far, not the row's own work: the `sqp` block's `factorizations_delta` is the row's) | never |
 | `stationarity_caller` | double | `kkt_inf / obj_scale`: the caller's objective scale | `SqpKkt::stationarity / obj_scale` when row scaling is active, else as `stationarity` | never |
 | `feasibility_caller` | double | `max(econ_inf, icon_inf)` (the IPM scales no rows: equal to `feasibility`) | feasibility of the caller's rows and box (row/column factors removed); equals `feasibility` on an unscaled solve | never |
 | `complementarity_caller` | double | `barr_inf / obj_scale` | `SqpKkt::complementarity / obj_scale` when row scaling is active, else as `complementarity` | never |
@@ -106,7 +106,9 @@ direction (`inertia_corrections`); the backend does not report it (`perturbed_pi
 `qp_factorizations`; `tr_binding`; `elastic`; `elastic_clamped`; `restoration_seed_used`;
 `ipqp_least_infeasible_primal`; `ipqp_farkas_corroborated`; `active_set_size` (= `active_rows +
 active_lower_sides + active_upper_sides`); `active_set_delta`; `weak_active_rows`; `near_active_rows`;
-`active_rows`; `active_lower_sides`; `active_upper_sides`; `switching_ratio` (GL-0); `ladder` (M8 I17; the last key). `null` when `!qp_solved`: `verdict`,
+`active_rows`; `active_lower_sides`; `active_upper_sides`; `switching_ratio` (GL-0); `ladder` (M8 I17); then the I19-1
+keys, in order: `cap_binding`; `pred_df`; `f_trial`; `h_trial`; `soc_f`; `soc_h`; `h_lin`; `qp_minor_iterations_total`;
+`qp_factorizations_total`; `factorizations_delta`; `t_s` (the last key). `null` when `!qp_solved`: `verdict`,
 `regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. `switching_ratio` is
 `pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10): `>= 1` selects an f-type trial), `null` on a row whose
 subproblem did not solve to `kOptimal` (so a judged `qp_failure_step` row is `null`), and `"inf"`/`"-inf"`/`"nan"` at `h == 0`. The two `ipqp_*` keys are
@@ -116,11 +118,50 @@ ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 `ladder` is `null` unless the row's major ran an elastic ladder; then an object with `entry` (`verified_infeasible`
 -- the main QP was verified infeasible in box and trust region; `working_set_termination` -- its working set ended
 numerically at a violated iterate; `refused_certificate` -- its infeasibility certificate was refused;
-`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's `qp_status`, before the ladder; on
+`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's status, before the ladder -- not necessarily the row's `qp_status`, see below; on
 `ipqp_fallback` the interior-point tier's status at its escape),
 `rung_status` (the final rung's), `rho` (the final rung's penalty), `rungs` (climbed above the first), `closed`,
-`reduced`, `promises_f`, `slack_l1` (0 unless the final rung is optimal) and `exhausted`. On an exhausted ladder the
-row's `qp_status` is the MAIN QP's, never the final rung's; on a usable ladder it is the rung that supplied the step.
+`reduced`, `promises_f`, `slack_l1` (0 unless the final rung is optimal), `exhausted`, then (I19-1) `rho_0` (the
+first rung's penalty), `minor_iterations` and `factorizations` (the ladder's own QP work over every rung it
+solved; a certified fallback's floor retry includes its first ladder). The same object is the `message`
+`ladder` slot. `main_status` is the main QP's status BEFORE the ladder, which is not necessarily the row's
+`qp_status`: on an exhausted ladder the row's `qp_status` is the MAIN QP's (equal to `main_status`); on a
+usable ladder it is the status of the rung that supplied the step (normally `optimal`). So `qp_status:
+"optimal"` with `ladder.main_status: "infeasible"` is a main QP that was infeasible and an elastic rung that
+produced the step.
+
+**Binding flags (I19-1).** `tr_binding` is true when the trust RADIUS held at least one variable of the
+step; `cap_binding` is true when a `caller_step_limit` pin did. Before I19-1 `tr_binding` was the merged flag
+(radius or cap); that merged value, `tr_binding || cap_binding`, is still the one the radius-growth rule, the
+switching strategy and the zero-step test read, unchanged, but it is no longer exported under one key. The
+console code `b` keeps the merged meaning. Both flags are on `SqpIterationInfo` in the iteration callback.
+
+**Row work (I19-1).** The row's `qp_minor_iterations` and `qp_factorizations` are the QP that SUPPLIED the step:
+on a ladder row the last rung's, on an exhausted ladder the ladder's own counts (see `qp_status` above). The
+total work the row cost is `qp_minor_iterations_total` / `qp_factorizations_total`: the QP minors and
+factorizations charged since the previous row of the same solve and depth (main QP, a cap retry, every ladder
+rung, the SOC re-solve), excluding the work a restoration phase folded into the solve (that phase writes its own
+depth-1 rows). `factorizations_delta` is the change in the core `factorizations` (the solve's running total)
+since the previous row, restoration work included; the two agree except across a restoration phase. The
+first row of a solve counts from zero, so it carries whatever the solve charged before its first row.
+
+**Trial diagnostics (I19-1).** All in the caller's units (objective divided by the objective scale; violations
+in the caller's rows), all report-only: no decision reads them. `pred_df` is the model's predicted objective
+decrease for the QP step `p` (the quantity the switching test and the trust-region growth rule use; the
+funnel's SOC test reuses it for the SOC point); `f_trial` and `h_trial` are the objective and l1 constraint
+violation at `x + p`, and `pred_df`, `f_trial`, `h_trial` are present exactly where `switching_ratio` is (the
+row's QP solved to `optimal`). `soc_f` and `soc_h` are the same two at the second-order-correction point and are
+`null` unless a SOC re-solve solved and its point was evaluated (the row's `soc` flag says the correction won the
+step; `soc_*` can be present on a row where it did not). `h_lin` is the l1 violation the QP step leaves in the
+QP's own linearized rows (`sum |Ae p - be| + sum max(0, Ai p - bi)`), so `h_old - h_lin` is the violation the
+model promised to remove; `null` when the step is not finite or the QP's rows are not row for row the model's
+(an equality-basis reduction). Bound violations are not in `h_*`.
+
+**Elastic activation.** A row's major ran an elastic ladder if and only if its `ladder` block is non-null (the
+`elastic` flag marks the narrower case that an elastic solve supplied the step).
+
+**Clock.** `t_s` is seconds since the solve's entry on a monotonic clock, informational: it is wall-clock, so
+mask it when comparing streams byte for byte. A depth-1 row counts from the nested solve's own entry.
 
 Join rules (v0 section 7 carries over): QP-tier lines belong to the next `iter` at the same depth; a
 restoration-requesting row follows its nested solve(s); an IPM row joins its phase events on
@@ -245,6 +286,7 @@ meaning) is v2.
 | new trailing key | M8 GL-0 | `iter`, `sqp` block | `switching_ratio` (double or `null`), after `active_upper_sides`; the `sqp` block's arity pin moves 23 -> 24. `solve.end.counters` (SQP) gains eight trailing keys after `payload_ignored`: `reject_funnel_ceiling`, `reject_f_armijo`, `reject_h_funnel`, `reject_qp_failed`, `reject_other`, `accepted_f_type`, `accepted_h_type`, `rejection_run_histogram` (a 5-integer array); the three golden lines are re-derived |
 | new trailing key | M8 I17 | `iter` `sqp` block; `message` | `ladder` (object or `null`), after `switching_ratio`; the `sqp` block's arity pin moves 24 -> 25. `message` gains the same `ladder` key after `expected_n`, `null` on every kind but `elastic_exhausted` (the `MessageTraceEvent` arity pin moves 14 -> 15); the exhausted row's `qp_status` is the main QP's. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | meaning change + new trailing keys (pre-tag) | M8 TR-S1 | `iter` | the core keys `stationarity`, `feasibility`, `complementarity` carry the scaled problem's measures, the quantities the termination tests compare with the tolerances (IPM: `kkt_inf`, `max(econ_inf, icon_inf)`, `barr_inf`, previously divided by the objective scale; SQP: the engine-unit `SqpKkt` measures, previously mapped to caller units). New trailing core keys after `factorizations`: `stationarity_caller`, `feasibility_caller`, `complementarity_caller` carry the former values. Equal to the former values on an unscaled solve. The v1 freeze has not been tagged (same ground as the TR-D rider), so this is a pre-tag correction, not a v2. The golden `ipm_complete.jsonl`, `sqp_complete.jsonl` and `ipm_aborted.jsonl` lines are re-derived |
+| meaning change + new trailing keys (pre-tag) | M8 I19-1 | `iter` `sqp` block; `message` | `tr_binding` now means the trust RADIUS held the step (a `caller_step_limit` pin no longer counts): the old merged value is `tr_binding \|\| cap_binding`. The decision input is unchanged (an internal merged flag). New trailing `sqp`-block keys after `ladder`: `cap_binding`, `pred_df`, `f_trial`, `h_trial`, `soc_f`, `soc_h`, `h_lin`, `qp_minor_iterations_total`, `qp_factorizations_total`, `factorizations_delta`, `t_s` (wall-clock: mask it); the `sqp` block's arity pin moves 25 -> 36. The `ladder` object gains `rho_0`, `minor_iterations`, `factorizations` after `exhausted` (also in `message`). The v1 freeze has not been tagged (same ground as TR-S1), so a pre-tag correction, not a v2. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map
