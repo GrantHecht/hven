@@ -1,0 +1,4 @@
+1767c1767
+<     report.total_factorizations = ladder_fact_total;
+---
+>     report.total_factorizations = qs_e.counters.factorizations;
