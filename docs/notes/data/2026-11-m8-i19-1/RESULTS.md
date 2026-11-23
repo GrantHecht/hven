@@ -129,7 +129,7 @@ box protocol as r1 (every build, ctest and replay under `box-lane`, shared lane,
 | counter replay vs `origin/m8` base, x3 | same protocol as r1; 9 comparisons, 0 differences (`replay-r2/`). The head corpus binary's sha256 is `f013f5c3...` (r1: `b9d24094...`): `src/` is unchanged but the header edits move the compiled object, so the binary was re-measured rather than reused | MET |
 | mutation must-kills | M1-M11 and M13 killed, with the r1 kills re-run on the r2 tests (`mutations-r2/`); M12, M14, M15 survive as argued above | MET (M12/M14/M15 argued) |
 | install smoke + export contract | default and clang front ends: PASSED, export contract rc 0 (`install-smoke-r2/`) | MET |
-| CI | see the commit that follows this one for the run id | recorded below |
+| CI (`workflow_dispatch` on the branch, run 45264434451 at `8653a4f59`) | linux-clang-release, linux-clang-coverage, windows-clang-release: success on the first attempt; macos-clang-release: the first attempt was cancelled after 15 min with no runner picked up (queue timeout, no step ran), the re-run of that job (`gh run rerun --failed`) succeeded; all four green | MET |
 
 Reader scan (read-only, `hven-bench` main and its tu1 / tu2 working trees, and hven `examples/`, `bindings/`,
 `bench/`, `scripts/`): no live reader of the trace key `tr_binding` assumes the old merged meaning. The harness's trace
