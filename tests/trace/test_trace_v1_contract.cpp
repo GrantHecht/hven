@@ -243,6 +243,8 @@ TEST(TraceV1Contract, SqpEventAndRowAgreeRowForRow) {
             EXPECT_EQ(info.qp_solved, row.sqp->qp_solved);
             EXPECT_TRUE(bit_equal(info.trust_radius, row.sqp->trust_radius));
             EXPECT_EQ(info.elastic, row.sqp->elastic);
+            EXPECT_EQ(info.tr_binding, row.sqp->tr_binding);
+            EXPECT_EQ(info.cap_binding, row.sqp->cap_binding);
             EXPECT_EQ(info.active_set_size, row.sqp->active_set_size);
         }
     }

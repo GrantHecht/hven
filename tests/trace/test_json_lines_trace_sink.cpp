@@ -2310,13 +2310,15 @@ QpTraceMode mode_of_token(const std::string &token) {
 // ===========================================================================
 // Trace v1 `iter`, the SQP block: THE ROW, IN CALLER UNITS
 // ===========================================================================
-// FOUR LINES, NOT ONE, AND THE REASON IS THE ELEVEN BOOLS: one line cannot tell
-// two `true`s apart. Bool i (1-based, in `bool_slots`' order) is true on line
-// j (0..3) iff bit j of i is set, so all eleven carry DISTINCT four-line
-// signatures and any swap of two of them changes at least one line's bytes.
+// FOUR LINES, NOT ONE, AND THE REASON IS THE TWELVE BOOLS: one line cannot tell
+// two `true`s apart. Bool i (1-based, in `set_sqp_signature`'s order) is true on line
+// j (0..3) iff bit j of i is set, so all twelve carry DISTINCT four-line
+// signatures and any swap of two of them changes at least one line's bytes. In
+// particular `tr_binding` (7) and `cap_binding` (12) each hold true on a line where
+// the other is false, so a writer swapping the two keys changes bytes.
 
-/// The eleven bools of an SQP row (core plus block), by pointer-to-setter so a
-/// swap in the writer is visible against a stable slot order.
+/// The twelve bools of an SQP row (core plus block), in a stable slot order so a
+/// swap in the writer is visible.
 void set_sqp_signature(IterationRecord &r, int line) {
     const auto bit = [line](int i) { return ((i >> line) & 1) != 0; };
     r.recovering = bit(1);
@@ -2330,6 +2332,7 @@ void set_sqp_signature(IterationRecord &r, int line) {
     r.sqp->elastic_clamped = bit(9);
     r.sqp->restoration_seed_used = bit(10);
     r.sqp->ipqp_farkas_corroborated = bit(11);
+    r.sqp->cap_binding = bit(12);
 }
 
 IterationRecord golden_sqp_row(int line) {
@@ -2365,6 +2368,14 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->active_lower_sides = 5;
         r.sqp->active_upper_sides = 8;
         r.sqp->switching_ratio = 1.25;
+        r.sqp->pred_df = 0.5;
+        r.sqp->f_trial = -2.25;
+        r.sqp->h_trial = 0.375;
+        r.sqp->h_lin = 0.0625;
+        r.sqp->qp_minor_iterations_total = 7;
+        r.sqp->qp_factorizations_total = 4;
+        r.sqp->factorizations_delta = 5;
+        r.sqp->t_s = 1.5;
         break;
     case 1:
         // The numeric contract: -0.0, a subnormal, DBL_MAX, 1e-300 and the three
@@ -2452,6 +2463,8 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->active_lower_sides = 19;
         r.sqp->active_upper_sides = 20;
         r.sqp->switching_ratio = -0.5;
+        r.sqp->soc_f = -0.75;
+        r.sqp->soc_h = 0.125;
         break;
     }
     return r;
@@ -2482,9 +2495,10 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "size\":10,\"active_set_delta\":17,\"weak_active_rows\":1,\"near_active_rows\":2,\"active_"
         "rows\":3,\"active_lower_sides\":5,\"active_upper_sides\":8,\"switching_ratio\":1.25,"
         "\"ladder\":null,"
-        "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":null,"
-        "\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_factorizations_total\":"
-        "0,\"factorizations_delta\":0,\"t_s\":0}}\n");
+        "\"cap_binding\":false,\"pred_df\":0.5,\"f_trial\":-2.25,\"h_trial\":0.375,\"soc_f\":null,"
+        "\"soc_h\":null,\"h_lin\":0.0625,\"qp_minor_iterations_total\":7,\"qp_factorizations_"
+        "total\":"
+        "4,\"factorizations_delta\":5,\"t_s\":1.5}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier) {
@@ -2526,7 +2540,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
               "\"active_set_delta\":101,\"weak_active_rows\":0,\"near_active_rows\":7,\"active_"
               "rows\":0,\"active_lower_sides\":9,\"active_upper_sides\":0,\"switching_ratio\":null,"
               "\"ladder\":null,"
-              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "\"cap_binding\":true,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
               "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
@@ -2546,8 +2560,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "size\":57,\"active_set_delta\":15,\"weak_active_rows\":16,\"near_active_rows\":17,"
               "\"active_rows\":18,\"active_lower_sides\":19,\"active_upper_sides\":20,\"switching_"
               "ratio\":-0.5,\"ladder\":null,"
-              "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
-              "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
+              "\"cap_binding\":true,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
+              "-0.75,\"soc_h\":0.125,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
               "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0}}\n");
 }
 

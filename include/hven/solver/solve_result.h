@@ -176,8 +176,8 @@ struct SqpIterationInfo {
     double violation_l1 = std::numeric_limits<double>::quiet_NaN();
     /// The subproblem's dual regularization (SqpIterationRow::regularization_dual).
     double regularization_dual = 0.0;
-    /// False on a row whose subproblem was not solved; the four fields below
-    /// are then not meaningful.
+    /// False on a row whose subproblem was not solved; the fields below are
+    /// then not meaningful (the two binding flags read false).
     bool qp_solved = false;
     QpStatus qp_status = QpStatus::kOptimal;
     Index qp_minor_iterations = 0;

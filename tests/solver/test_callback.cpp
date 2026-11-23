@@ -139,6 +139,8 @@ void expect_same_info(const std::optional<hven::SqpIterationInfo> &a,
     EXPECT_EQ(a->active_set_size, b->active_set_size);
     EXPECT_EQ(a->verdict, b->verdict);
     EXPECT_EQ(a->elastic, b->elastic);
+    EXPECT_EQ(a->tr_binding, b->tr_binding);
+    EXPECT_EQ(a->cap_binding, b->cap_binding);
 }
 
 /// @brief Records every event and never stops.

@@ -40,12 +40,12 @@ struct ElasticLadderRow {
     bool promises_f = false;
     double slack_l1 = 0.0; ///< l1 of the final rung's violations; 0 unless it is kOptimal.
     bool exhausted = false;
-    /// I19-1: the first rung's penalty, as the placement rule resolved it (`rho` is the final
-    /// rung's). Report-only.
+    /// The first rung's penalty of the surviving ladder, as the placement rule resolved it (`rho`
+    /// is the final rung's); after a certified fallback's floor retry, the floor. Report-only.
     double rho_0 = 0.0;
-    /// I19-1: the ladder's own work -- QP minor iterations and factorizations summed over every
-    /// rung it solved (a certified fallback's floor retry included). The row's
-    /// `qp_minor_iterations` / `qp_factorizations` are the LAST rung's only.
+    /// The ladder's own work -- QP minor iterations and factorizations summed over every rung it
+    /// solved (a certified fallback's floor retry included). The row's `qp_minor_iterations` /
+    /// `qp_factorizations` are those of the rung that supplied the step only.
     Index minor_iterations = 0;
     Index factorizations = 0;
 };
@@ -91,9 +91,9 @@ struct SqpIterationRow {
     std::optional<QpStatus> qp_status;
     std::optional<Index> qp_minor_iterations;
     std::optional<Index> qp_factorizations;
-    /// I19-1: the trust RADIUS limited the step (a variable held by the radius's own pin). A
-    /// `caller_step_limit` pin is `cap_binding`, not this; the pre-I19-1 meaning (radius OR cap)
-    /// is `tr_binding || cap_binding`.
+    /// The trust RADIUS limited the step (a variable held by the radius's own pin). A
+    /// `caller_step_limit` pin is `cap_binding`, not this; radius OR cap is `tr_binding ||
+    /// cap_binding`.
     bool tr_binding = false;
     bool elastic = false;
     bool elastic_clamped = false;
@@ -114,7 +114,7 @@ struct SqpIterationRow {
     /// The elastic ladder's outcome; present on a row whose major ran one.
     std::optional<ElasticLadderRow> ladder;
 
-    // --- I19-1 telemetry: REPORT-ONLY. No decision reads any of it. ---
+    // --- Step telemetry: REPORT-ONLY. No decision reads any of it. ---
 
     /// A `caller_step_limit` pin was active on the step (see `tr_binding`).
     bool cap_binding = false;

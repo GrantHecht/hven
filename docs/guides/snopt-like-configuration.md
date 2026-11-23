@@ -91,8 +91,9 @@ Caller-unit step limit. `caller_step_limit = r` (default 0, off) narrows every Q
 to `|dx_j| <= r * (1 + |x_j|)` in the caller's units, whatever the scaling and QP mode, including
 the restoration phase's steps in the original variables (its elastic slacks are not limited). A
 variable stopped by the limit is reported free (zero bound multiplier) and the step counts as
-trust-region-limited for the radius-growth decision, but the row reports it as `cap_binding`, not `tr_binding`. The trust region stays in the engine's units. These options are SQP-only:
-the interior-point solver has no trust region, column layer or walk QP.
+trust-region-limited for the radius-growth decision, but the row reports it as `cap_binding`, not
+`tr_binding`. The trust region stays in the engine's units. These options are SQP-only: the
+interior-point solver has no trust region, column layer or walk QP.
 
 Console and trace units. With column scaling firing, the console `step` and `radius` columns
 (and `sqp.major`'s `step` and `trust_radius`) are in the engine's SCALED units; the returned
@@ -111,8 +112,9 @@ the outcome: on an exhausted ladder it is the main QP's status (equal to `main_s
 ladder it is the status of the rung that supplied the step (normally `optimal`). So `qp_status:
 optimal` with `ladder.main_status: infeasible` means the main QP was infeasible and an elastic rung
 produced the step; it is not a contradiction. On a ladder row the row's `qp_minor_iterations` and
-`qp_factorizations` are the LAST rung's, not the major's total: read `qp_minor_iterations_total` and
-`qp_factorizations_total` (main QP, every rung, the SOC re-solve) for the work the row cost, and
+`qp_factorizations` are those of the rung that supplied the step (the last rung), not the major's
+total: read `qp_minor_iterations_total` and `qp_factorizations_total` (main QP, every rung, the SOC
+re-solve) for the work the row cost, and
 `ladder.minor_iterations` / `ladder.factorizations` for the ladder's own share. The row's
 `factorizations` key is the solve's running total, not the row's: `factorizations_delta` is the
 row's own. Full definitions are in `docs/trace-schema-v1.md`.
@@ -372,8 +374,9 @@ sign convention of section 3 -- verify the sign mapping numerically before negat
   own at the first subproblem).
 - `hs` is NOT implied by nonzero prices. A seeded value carries no activity, the engine does not
   infer any, so the first QP is left unseeded (a cold working set, or the crash basis when
-  `advanced.crash_basis` is on) and rediscovers the active set. (The interior-point crossover, `to_sqp_warm_start`, is the route that
-  infers an active set; it does so from interior-point output, not from SNOPT prices.)
+  `advanced.crash_basis` is on) and rediscovers the active set. (The interior-point crossover,
+  `to_sqp_warm_start`, is the route that infers an active set; it does so from interior-point
+  output, not from SNOPT prices.)
 - It cleans the prices at the ingested point: a price on an inequality row that is strictly slack
   at `x` is cleared to zero, a slightly negative inequality price (within `kSeededDualClampTol`) is
   clamped to zero and counted in `seeded_clamped`, and a larger negative price degrades the whole
@@ -403,7 +406,9 @@ refuses a stale value. It carries:
 - the hot factorization handle, for `kHot`.
 
 The state carry (funnel, radius, regularization, hot factorization) is declined on a solve with
-row/objective scaling active; the point, the prices and the working set are still taken.
+ANY scaling layer active, row/objective or column; the point, the prices and the working set are
+still taken. (With the column layer the stored scaled-space state is dropped and the radius
+restarts at `trust_region_initial`.)
 
 **Not carried by either object:** the quasi-Newton matrix. Every solve under
 `hessian_mode = kLbfgsDamped` starts from a fresh `B0 = sigma0 * I` (`sigma0 = max(1,

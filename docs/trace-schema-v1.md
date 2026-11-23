@@ -36,8 +36,8 @@ tightens:
 2. **No vector-valued field.** Vectors belong to the callback (`IterationPayload`).
 3. **Units.** A double is on the caller's objective scale unless its row says "engine scale". `_s` keys are
    wall-clock. Only `solve.end`, `ipm.phase.exit`, `ipm.kkt_analysis` and the SQP `iter` block's `t_s`
-   carry them, so a deterministic solve's stream is byte-reproducible once those keys are masked. `solver_initialized` carries no
-   milliseconds on the wire; a byte comparison drops that one kind.
+   carry them, so a deterministic solve's stream is byte-reproducible once those keys are masked.
+   `solver_initialized` carries no milliseconds on the wire; a byte comparison drops that one kind.
 
 ## 3. Records
 
@@ -111,18 +111,21 @@ keys, in order: `cap_binding`; `pred_df`; `f_trial`; `h_trial`; `soc_f`; `soc_h`
 `qp_factorizations_total`; `factorizations_delta`; `t_s` (the last key). `null` when `!qp_solved`: `verdict`,
 `regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. `switching_ratio` is
 `pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10): `>= 1` selects an f-type trial), `null` on a row whose
-subproblem did not solve to `kOptimal` (so a judged `qp_failure_step` row is `null`), and `"inf"`/`"-inf"`/`"nan"` at `h == 0`. The two `ipqp_*` keys are
+subproblem did not solve to `kOptimal` (so a judged `qp_failure_step` row is `null`), and `"inf"`/`"-inf"`/`"nan"`
+at `h == 0`. It is computed in ENGINE scale (the scaled `pred_df` and `h`), so on a solve with row/objective scaling
+active it does not reproduce from the caller-unit `pred_df` and `violation_l1` of the same row. The two `ipqp_*` keys are
 `null` unless the row is an IPQP escape row, which is observable as `ipqp_least_infeasible_primal != 0 ||
 ipqp_farkas_corroborated` (the engine writes zero/false on every other row).
 
 `ladder` is `null` unless the row's major ran an elastic ladder; then an object with `entry` (`verified_infeasible`
 -- the main QP was verified infeasible in box and trust region; `working_set_termination` -- its working set ended
 numerically at a violated iterate; `refused_certificate` -- its infeasibility certificate was refused;
-`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's status, before the ladder -- not necessarily the row's `qp_status`, see below; on
-`ipqp_fallback` the interior-point tier's status at its escape),
+`ipqp_fallback` -- the certified fallback's rung A), `main_status` (the main QP's status, before the ladder -- not necessarily the row's `qp_status`, see below;
+on `ipqp_fallback` the interior-point tier's status at its escape),
 `rung_status` (the final rung's), `rho` (the final rung's penalty), `rungs` (climbed above the first), `closed`,
 `reduced`, `promises_f`, `slack_l1` (0 unless the final rung is optimal), `exhausted`, then (I19-1) `rho_0` (the
-first rung's penalty), `minor_iterations` and `factorizations` (the ladder's own QP work over every rung it
+surviving ladder's first penalty: after a certified fallback's floor retry that is the floor, not the first
+attempt's value), `minor_iterations` and `factorizations` (the ladder's own QP work over every rung it
 solved; a certified fallback's floor retry includes its first ladder). The same object is the `message`
 `ladder` slot. `main_status` is the main QP's status BEFORE the ladder, which is not necessarily the row's
 `qp_status`: on an exhausted ladder the row's `qp_status` is the MAIN QP's (equal to `main_status`); on a
@@ -134,10 +137,13 @@ produced the step.
 step; `cap_binding` is true when a `caller_step_limit` pin did. Before I19-1 `tr_binding` was the merged flag
 (radius or cap); that merged value, `tr_binding || cap_binding`, is still the one the radius-growth rule, the
 switching strategy and the zero-step test read, unchanged, but it is no longer exported under one key. The
-console code `b` keeps the merged meaning. Both flags are on `SqpIterationInfo` in the iteration callback.
+active-side census (`active_lower_sides`, `active_upper_sides`, `active_set_size`) counts real bound activity
+and leaves out both kinds of pin, so `tr_binding || cap_binding` is what separates a pinned variable from a
+bound-active one there. The console code `b` keeps the merged meaning. Both flags are on `SqpIterationInfo` in the iteration callback.
 
 **Row work (I19-1).** The row's `qp_minor_iterations` and `qp_factorizations` are the QP that SUPPLIED the step:
-on a ladder row the last rung's, on an exhausted ladder the ladder's own counts (see `qp_status` above). The
+on a ladder row the rung that supplied the step (the last rung, or, under `elastic_last_optimal_rung`, the
+retained earlier optimal rung), and on an exhausted ladder the final rung's counts (see `qp_status` above). The
 total work the row cost is `qp_minor_iterations_total` / `qp_factorizations_total`: the QP minors and
 factorizations charged since the previous row of the same solve and depth (main QP, a cap retry, every ladder
 rung, the SOC re-solve), excluding the work a restoration phase folded into the solve (that phase writes its own
@@ -150,7 +156,9 @@ in the caller's rows), all report-only: no decision reads them. `pred_df` is the
 decrease for the QP step `p` (the quantity the switching test and the trust-region growth rule use; the
 funnel's SOC test reuses it for the SOC point); `f_trial` and `h_trial` are the objective and l1 constraint
 violation at `x + p`, and `pred_df`, `f_trial`, `h_trial` are present exactly where `switching_ratio` is (the
-row's QP solved to `optimal`). `soc_f` and `soc_h` are the same two at the second-order-correction point and are
+row's QP solved to `optimal`). A trial the model could not evaluate has a NaN objective, written as the string `"nan"` (never `null`; `null` means
+the quantity was not computed): `f_trial` and `soc_f` read `"nan"` and `h_trial` / `soc_h` reflect the unevaluable
+bundle's violation (`"inf"` or `"nan"`). `soc_f` and `soc_h` are the same two at the second-order-correction point and are
 `null` unless a SOC re-solve solved and its point was evaluated (the row's `soc` flag says the correction won the
 step; `soc_*` can be present on a row where it did not). `h_lin` is the l1 violation the QP step leaves in the
 QP's own linearized rows (`sum |Ae p - be| + sum max(0, Ai p - bi)`), so `h_old - h_lin` is the violation the

@@ -164,13 +164,13 @@ struct SqpMajorRow {
     Index qp_factorizations = 0;
     /// @brief THE DECISION INPUT: any QpSolution::tr_active entry set AFTER the caller-step-limit
     /// pins were folded in (release_step_limit_pins) -- the radius OR the cap limited the step.
-    /// Every strategy / growth / zero-step read is of THIS flag, unchanged by I19-1; it is
-    /// never exported as such. The exported `tr_binding` is `radius_binding`.
+    /// Every strategy / growth / zero-step read is of THIS flag; it is never exported as such.
+    /// The exported `tr_binding` is `radius_binding`.
     bool region_limited = false;
-    /// @brief I19-1, report-only: a QpSolution::tr_active entry was set BEFORE the cap pins were
+    /// @brief Report-only: a QpSolution::tr_active entry was set BEFORE the cap pins were
     /// folded in (the trust radius's own pin).
     bool radius_binding = false;
-    /// @brief I19-1, report-only: release_step_limit_pins turned at least one caller-step-limit
+    /// @brief Report-only: release_step_limit_pins turned at least one caller-step-limit
     /// pin into a tr_active entry.
     bool cap_binding = false;
     /// The globalization strategy's verdict on this trial. It is the strategy's
@@ -304,7 +304,7 @@ struct SqpMajorRow {
     /// otherwise. At h_old == 0 it is +/-inf (pred_df != 0) or NaN (pred_df == 0).
     std::optional<double> switching_ratio;
 
-    // --- I19-1 telemetry (report-only; see SqpIterationRow). Caller units. ---
+    // --- Step telemetry (report-only; see SqpIterationRow). Caller units. ---
     std::optional<double> pred_df;
     std::optional<double> f_trial;
     std::optional<double> h_trial;
