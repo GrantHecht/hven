@@ -45,7 +45,7 @@ Source: `docs/migration-0.2.md` section "RF-1", `docs/notes/2026-11-m8-rf1-desig
 - RF-1c semantics of `advanced.restoration_stall_factorizations` (default 5000, >= 0): the phase ends when its best
   parent violation has not fallen by 10% over that many factorizations AND the reference sample lies at least five
   passes back, so a stall verdict rests on at least six passes of the current run. A window of 0 now means "after
-  five passes" (it previously meant an immediate stall test, and one pass costing more than the window could fire
+  five passes" (before RF-1c the window counted across the phase's runs, and one pass costing more than the window could fire
   it). The window is per run: a regularized restart starts a fresh window but keeps the best. A stalled phase ends
   at its best-h point; a stall the resume tests refuse ends the solve `kStalled` with
   `StopReason::kRestorationWorkLimit`. `common.max_factorizations` stays the hard cap on the whole solve.
