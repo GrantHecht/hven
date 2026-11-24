@@ -9,6 +9,7 @@
 
 set(_hven_linear_sources
     test_analysis_tally.cpp
+    test_equality_basis_boundaries.cpp
     test_dense_symmetric_factor.cpp
     test_dense_symmetric_factor_growth.cpp
     test_matching_scaling.cpp
@@ -17,9 +18,9 @@ set(_hven_linear_sources
     test_symmetric_factor_pardiso_only_options.cpp
 )
 if(NOT APPLE)
-    list(APPEND _hven_linear_sources test_symmetric_factor.cpp)
+    list(APPEND _hven_linear_sources test_symmetric_factor.cpp test_symmetric_factor_refusals.cpp)
 else()
-    hven_test_sources_absent("Apple (MKL-only suite)" test_symmetric_factor.cpp)
+    hven_test_sources_absent("Apple (MKL-only suite)" test_symmetric_factor.cpp test_symmetric_factor_refusals.cpp)
 endif()
 list(APPEND _hven_linear_sources
     test_accelerate_probes.cpp

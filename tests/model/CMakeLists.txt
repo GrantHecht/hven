@@ -17,15 +17,21 @@ set(_hven_model_sources
     test_claim_stream_restatement.cpp
     test_claim_stream_state.cpp
     test_contract_flags.cpp
+    test_function_handles.cpp
     test_identity_probe.cpp
+    test_local_block_claims.cpp
     test_local_block_include.cpp
     test_model_structure_key.cpp
     test_nlp_adapter.cpp
+    test_nlp_boundaries.cpp
     test_nlp_assembly_contract.cpp
     test_nlp_model_assembly.cpp
+    test_nlp_model_assembly_boundaries.cpp
     test_nlp_problem_model.cpp
     test_pieces.cpp
     test_problem.cpp
+    test_request_destinations.cpp
+    test_solver_indexing_data.cpp
     test_solver_interface_adapter.cpp
     test_string_piece.cpp
     test_structure_epoch.cpp
