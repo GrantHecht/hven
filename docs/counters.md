@@ -400,7 +400,7 @@ one of those three therefore cannot silently miss the trace.
   a resume) with no step from a solved subproblem accepted since that resume -- a
   main QP that ended `optimal`, an optimal elastic rung, a SOC on either; a failed
   subproblem's own step does not count -- whether serviced or refused.
-  `restoration_no_progress_refusals` counts the later requests the progress test
+  `restoration_no_progress_requests` counts the later requests the progress test
   across entries finds inadmissible (`SqpOptions::max_unproductive_restoration_entries`),
   whether or not it refused them. None of the three folds: the sub-solve never restores.
 

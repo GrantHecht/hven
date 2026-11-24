@@ -2560,17 +2560,17 @@ struct SqpCounters {
     /// soc_qp_iteration_limits: RF-1 -- second-order-correction re-solves that ended at their
     /// minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged.
     Index soc_qp_iteration_limits = 0;
-    /// restoration_factorizations: RST-B -- factorizations spent inside restoration phases (every
+    /// restoration_factorizations: factorizations spent inside restoration phases (every
     /// run of every phase), the part of `factorizations` the sub-solves added.
     Index restoration_factorizations = 0;
-    /// restoration_unproductive_entries: RST-B -- later restoration requests (after a resume) with
+    /// restoration_unproductive_entries: later restoration requests (after a resume) with
     /// no step from a solved subproblem accepted since that resume, serviced or refused.
     Index restoration_unproductive_entries = 0;
-    /// restoration_no_progress_refusals: RST-B -- later restoration requests the progress test
+    /// restoration_no_progress_requests: later restoration requests the progress test
     /// across entries finds inadmissible: the unproductive run past
     /// SqpAdvancedOptions::max_unproductive_restoration_entries. Counted whether or not the
     /// request was refused (a request the entry cap refuses first is counted too).
-    Index restoration_no_progress_refusals = 0;
+    Index restoration_no_progress_requests = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2705,7 +2705,7 @@ struct SqpCounters {
     X(soc_qp_iteration_limits, counter_never_absent)                                               \
     X(restoration_factorizations, counter_never_absent)                                            \
     X(restoration_unproductive_entries, counter_never_absent)                                      \
-    X(restoration_no_progress_refusals, counter_never_absent)
+    X(restoration_no_progress_requests, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

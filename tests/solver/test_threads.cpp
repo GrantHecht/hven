@@ -597,7 +597,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, soc_qp_iteration_limits);
     HVEN_EXPECT_SAME(a, b, restoration_factorizations);
     HVEN_EXPECT_SAME(a, b, restoration_unproductive_entries);
-    HVEN_EXPECT_SAME(a, b, restoration_no_progress_refusals);
+    HVEN_EXPECT_SAME(a, b, restoration_no_progress_requests);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

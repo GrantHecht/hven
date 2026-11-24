@@ -927,7 +927,7 @@ group; `SqpOptions::hessian_mode`).
 | `soc_qp_iteration_limits` | integer | `SqpCounters::soc_qp_iteration_limits` | second-order-correction re-solves that ended at their minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged (M8 RF-1) |
 | `restoration_factorizations` | integer | `SqpCounters::restoration_factorizations` | factorizations the restoration phases' sub-solves added to `factorizations` (M8 RST-B) |
 | `restoration_unproductive_entries` | integer | `SqpCounters::restoration_unproductive_entries` | later restoration requests with no step from a solved subproblem accepted since the previous resume, serviced or refused (M8 RST-B) |
-| `restoration_no_progress_refusals` | integer | `SqpCounters::restoration_no_progress_refusals` | later restoration requests the progress test across entries finds inadmissible, refused or not (M8 RST-B) |
+| `restoration_no_progress_requests` | integer | `SqpCounters::restoration_no_progress_requests` | later restoration requests the progress test across entries finds inadmissible, refused or not (M8 RST-B) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two

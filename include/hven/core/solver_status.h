@@ -319,7 +319,7 @@ const char *to_string(IpmKktFactorStatus status);
 ///        `stop_reason` spelling).
 /// @param reason The stop reason.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the sixteen.
+/// @throws std::invalid_argument if @p reason is not one of the nineteen.
 const char *to_string(StopReason reason);
 
 /// @brief The reporting order over all ten statuses, weakest verdict first.

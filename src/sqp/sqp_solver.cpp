@@ -6425,7 +6425,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             ++st.out.counters.restoration_unproductive_entries;
         }
         if (!progress.admissible) {
-            ++st.out.counters.restoration_no_progress_refusals;
+            ++st.out.counters.restoration_no_progress_requests;
         }
         progress_admissible = progress.admissible;
     }

@@ -3208,7 +3208,7 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // appended after PF-5's one, the same route, by eight keys.
     //
     // 129 -> 132 at M8 RST-B, `restoration_factorizations`, `restoration_unproductive_entries` and
-    // `restoration_no_progress_refusals`, appended after RF-1's eight, the same route, by three
+    // `restoration_no_progress_requests`, appended after RF-1's eight, the same route, by three
     // keys.
     EXPECT_EQ(kSqpCountersFieldCount, 132u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
@@ -3859,7 +3859,7 @@ std::string distinct_counters_json() {
            "p_retry_rung_cold\":127,\"qp_retry_rung_algebra\":128,\"qp_retry_rung_regularizati"
            "on\":129,\"qp_retry_replays\":130,\"qp_failure_box_projections\":131,\"trust_regio"
            "n_floor_exits\":132,\"soc_qp_iteration_limits\":133,\"restoration_factorizations\""
-           ":134,\"restoration_unproductive_entries\":135,\"restoration_no_progress_refusals\""
+           ":134,\"restoration_unproductive_entries\":135,\"restoration_no_progress_requests\""
            ":136,\"ssn\":{\"ssn_iters\":137,\"ssn_bulk_flips\":138,\"ssn_backtracks\":139,\"ss"
            "n_prox_updates\":140,\"ssn_escapes\":141,\"ssn_uncertain_peak\":142,\"ssn_refineme"
            "nts\":143,\"ssn_refine_refused\":144,\"ssn_refine_factorizations\":145,\"ssn_refin"
@@ -3929,7 +3929,7 @@ std::string default_counters_json() {
            "ung_shrink\":0,\"qp_retry_rung_cold\":0,\"qp_retry_rung_algebra\":0,\"qp_retry_run"
            "g_regularization\":0,\"qp_retry_replays\":0,\"qp_failure_box_projections\":0,\"tru"
            "st_region_floor_exits\":0,\"soc_qp_iteration_limits\":0,\"restoration_factorizatio"
-           "ns\":0,\"restoration_unproductive_entries\":0,\"restoration_no_progress_refusals\""
+           "ns\":0,\"restoration_unproductive_entries\":0,\"restoration_no_progress_requests\""
            ":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_u"
            "pdates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_"
            "refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ss"

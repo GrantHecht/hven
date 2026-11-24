@@ -93,13 +93,13 @@ class RestorationStallWindow {
 };
 
 /// The cumulative restoration budget's floor and ratio when
-/// SqpAdvancedOptions::restoration_max_total_factorizations is unset (RST-B B2): at each entry
+/// SqpAdvancedOptions::restoration_max_total_factorizations is unset: at each entry
 /// the budget is max(floor, ratio * the main loop's factorizations so far). The ratio is the
-/// declared parameter of the RST-B round, chosen from {2, 4, 8}.
+/// measured round's declared parameter, chosen from {2, 4, 8}.
 inline constexpr Index kRestorationTotalWorkFloor = 20000;
 inline constexpr Index kRestorationTotalWorkRatio = 4;
 
-/// @brief The cumulative restoration budget (RST-B B2): @p configured when set, else
+/// @brief The cumulative restoration budget: @p configured when set, else
 ///        max(kRestorationTotalWorkFloor, kRestorationTotalWorkRatio * @p main_factorizations).
 inline Index restoration_total_budget(const std::optional<Index> &configured,
                                       Index main_factorizations) {
@@ -115,7 +115,7 @@ struct RestorationEntryVerdict {
     bool admissible = true;  ///< Untested, or the unproductive run is within the tolerance.
 };
 
-/// @brief The progress test across restoration entries (RST-B).
+/// @brief The progress test across restoration entries.
 ///
 /// `record_resume()` marks a phase handing a point back to the main loop and
 /// `note_accept(solved)` each step the loop then accepts, `solved` true for a step from a

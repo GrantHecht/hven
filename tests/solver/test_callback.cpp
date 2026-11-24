@@ -2840,7 +2840,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(soc_qp_iteration_limits)                                                                     \
     X(restoration_factorizations)                                                                  \
     X(restoration_unproductive_entries)                                                            \
-    X(restoration_no_progress_refusals)
+    X(restoration_no_progress_requests)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.

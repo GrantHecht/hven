@@ -40,7 +40,7 @@ struct SqpLadderSeam {
     static inline bool as_row_refusal = false;
     /// RF-1: stamp the exit as a stagnation stop (`stagnation_stops` = 1).
     static inline bool as_stagnation_stop = false;
-    /// RST-B: stamp the exit as a zero-motion exhaustion (`zero_motion_exhausted` = 1).
+    /// Stamp the exit as a zero-motion exhaustion (`zero_motion_exhausted` = 1).
     static inline bool as_zero_motion_exhausted = false;
     /// RF-1: zero the exit's minor and factorization counts, so two forced exits at the same
     /// forced point carry equal fingerprints (the replay guard's fixture).

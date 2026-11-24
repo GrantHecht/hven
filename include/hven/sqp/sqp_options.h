@@ -324,7 +324,7 @@ struct SqpAdvancedOptions {
 
     /// At true, retry rung R4 (100x the primal regularization) is taken ahead of R2 and R3 after
     /// a dependent-blocker or zero-motion walk termination, so `max_consecutive_qp_failures` = 3
-    /// reaches it (RST-B F2). False (default) keeps the order R1, R2, R3, R4.
+    /// reaches it. False (default) keeps the order R1, R2, R3, R4.
     bool qp_retry_regularization_first = false;
 
     /// The restoration proximity weight `zeta`: the coefficient on the
@@ -392,7 +392,7 @@ struct SqpAdvancedOptions {
     /// The caller's `common.max_factorizations` stays the hard cap on the whole solve.
     Index restoration_stall_factorizations = 5000;
 
-    /// The consecutive unproductive restoration re-entries a solve tolerates (RST-B); >= 0,
+    /// The consecutive unproductive restoration re-entries a solve tolerates; >= 0,
     /// default 1. A re-entry is unproductive when the main loop accepted no step from a solved
     /// subproblem (a main QP that ended kOptimal, an optimal elastic rung, a SOC on either) since
     /// the previous resume: a failed subproblem's own step (`qp_failure_step`) does not count. A
@@ -401,7 +401,7 @@ struct SqpAdvancedOptions {
     /// unproductive re-entry.
     Index max_unproductive_restoration_entries = 1;
 
-    /// The cumulative restoration budget, in factorizations over every phase of the solve (RST-B);
+    /// The cumulative restoration budget, in factorizations over every phase of the solve;
     /// >= 0. Unset (default) derives, at each entry, max(20000, 4 x the main loop's
     /// factorizations so far). Each phase run is handed what is left of it (or the caller's
     /// remaining `common.max_factorizations` when smaller); a run it cuts ends at its best-h

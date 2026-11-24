@@ -928,7 +928,7 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.common.feasibility_tol);
         // The second request is the first one tested: unproductive, within the tolerance.
         EXPECT_EQ(sol.counters.restoration_unproductive_entries, 1);
-        EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 0);
+        EXPECT_EQ(sol.counters.restoration_no_progress_requests, 0);
     }
 }
 
@@ -2193,7 +2193,7 @@ void print_entries(const char *tag, const SqpResult &r, const EntryScript &scrip
                 tag, static_cast<int>(r.status), static_cast<int>(r.stop_reason),
                 static_cast<long>(r.counters.restoration_entries),
                 static_cast<long>(r.counters.restoration_unproductive_entries),
-                static_cast<long>(r.counters.restoration_no_progress_refusals), script.resumes,
+                static_cast<long>(r.counters.restoration_no_progress_requests), script.resumes,
                 static_cast<long>(r.counters.steps_accepted),
                 static_cast<long>(r.counters.qp_failure_steps_accepted), script.accepted_solved,
                 static_cast<long>(r.counters.restoration_factorizations),
@@ -2217,7 +2217,7 @@ TEST(RstbEntrySeam, FailureStepOnlyCyclesAreCountedAsUnproductive) {
     ASSERT_EQ(sol.counters.restoration_entries, cap);
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, cap) << "one per resumed interval";
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, cap) << "requests 2 .. cap + 1";
-    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 0) << "never past 1000000";
+    EXPECT_EQ(sol.counters.restoration_no_progress_requests, 0) << "never past 1000000";
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the cap's refusal";
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationRefused);
     EXPECT_FALSE(sol.infeasibility_certified);
@@ -2236,7 +2236,7 @@ TEST(RstbEntrySeam, FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntr
     EXPECT_EQ(sol.counters.restoration_entries, 2);
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 2);
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, 2);
-    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 1);
+    EXPECT_EQ(sol.counters.restoration_no_progress_requests, 1);
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
     EXPECT_FALSE(sol.infeasibility_certified);
@@ -2275,7 +2275,7 @@ TEST(RstbEntrySeam, AProductiveIntervalClearsTheRun) {
     EXPECT_EQ(script.accepted_solved, 1);
     EXPECT_EQ(sol.counters.restoration_entries, 4);
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, 3);
-    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 1);
+    EXPECT_EQ(sol.counters.restoration_no_progress_requests, 1);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
 }
 
