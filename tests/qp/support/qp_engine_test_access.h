@@ -101,7 +101,7 @@ struct QpEngineTestAccess {
                                   QpCounters &counters, const QpOptions &opts) {
         EliminatedFace face;
         InertiaVerdict verdict = InertiaVerdict::kOk;
-        return eng.border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict,
+        return eng.border_solve_or_fall_back(qp, ws, x_k, EqpDualCentre{}, kkt, face, border, counters, verdict,
                                              /*rebuilt=*/false, opts);
     }
     static bool rebuild_would_be_noop(const WorkingSet &ws, const BorderState &border) {

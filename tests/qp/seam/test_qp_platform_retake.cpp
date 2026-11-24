@@ -111,7 +111,7 @@ TEST(QpPlatformRetake, TheCoupledScaledFixtureIsSolvedAtEveryScale) {
         const QpOptions o = mu_free();
         const WorkingSet ws(3, 0);
         KktFactor k(0, DensePolicy::kNever);
-        const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), k, o);
+        const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), EqpDualCentre{}, k, o);
         Vec ye(5);
         ye << e.x, e.lambda_e;
         EXPECT_FALSE(e.residual_refused);
@@ -489,7 +489,7 @@ TEST(QpPlatformRetake, TheBorderedAnswerCarriesTheVerdict) {
     ASSERT_EQ(border.ledger.size(), 1u);
     const auto solve = [&] {
         return solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws,
-                                  Vec::Zero(4), o, nullptr);
+                                  Vec::Zero(4), EqpDualCentre{}, o, nullptr);
     };
     const EqpResult first = solve();
 #ifndef __APPLE__

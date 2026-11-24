@@ -2942,7 +2942,7 @@ struct GreyBandFixture {
         qp.upper = Vec::Constant(3, 10.0);
         o.dual_regularization = 1e-8;
         ws.add_ineq(0);
-        (void)solve_eqp(qp, ws, Vec::Zero(3), kkt, o);
+        (void)solve_eqp(qp, ws, Vec::Zero(3), EqpDualCentre{}, kkt, o);
     }
 
     detail::DepTest candidate(QpCounters &c) const {
