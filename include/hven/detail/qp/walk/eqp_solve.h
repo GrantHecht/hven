@@ -345,7 +345,22 @@ struct EqpDualCentre {
     const Vec *lambda_e = nullptr; // me
     const Vec *lambda_i = nullptr; // mi
     const Vec *z = nullptr;        // n
+    // P1A-1b (scratch): the EQP-site residual scale and the bordered stopping rule read the
+    // footprint as mu*|y - c| (footprint_dual) when set; unset, as mu*|y| (step-1 arms).
+    bool footprint_centred = false;
 };
+
+// P1A-1b (scratch, p1a-diag): THE FOOTPRINT MULTIPLIER -- the one definition of the
+// regularization footprint's currency (design section 3). A row solved with dual centre c
+// leaves residual mu*(lambda - c); centre-free (c == nullptr) the multiplier is returned
+// untouched, so every consumer reads today's mu*|lambda| bit for bit.
+inline double footprint_dual(double lambda, const Vec *centre, Index j) {
+    return centre != nullptr ? lambda - (*centre)(j) : lambda;
+}
+
+inline bool dual_centre_live(const EqpDualCentre &c) {
+    return c.lambda_e != nullptr || c.lambda_i != nullptr || c.z != nullptr;
+}
 
 inline void validate_dual_centre(const QpProblem &qp, const EqpDualCentre &c, const char *who) {
     const auto check = [&](const Vec *v, Index want, const char *name) {
@@ -596,13 +611,31 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // construction and their residual is not evidence about the solve. The
     // non-finite answers the free block would have caught are caught where they
     // belong, on the answer itself (walk_engine.h section 5).
+    // P1A-1b: the rows' footprint multipliers, centred (footprint_dual) when the centre is live
+    // and the re-reading is on; else the rows of yy themselves, bit for bit.
+    const bool fp_centred = dual_k.footprint_centred && dual_centre_live(dual_k);
+    const auto fp_rows = [&](const Vec &yy) {
+        Vec rows = yy.segment(n_free, nc);
+        if (fp_centred) {
+            for (Index j = 0; j < me; ++j) {
+                rows(j) = footprint_dual(rows(j), dual_k.lambda_e, j);
+            }
+            if (dual_k.lambda_i != nullptr) {
+                for (Index k = 0; k < n_working; ++k) {
+                    rows(me + k) = footprint_dual(rows(me + k), dual_k.lambda_i,
+                                                  aw[static_cast<std::size_t>(k)]);
+                }
+            }
+        }
+        return rows;
+    };
     const auto ratio_of = [&](const Vec &yy, const Vec &r) {
         if (nc == 0) {
             return 0.0;
         }
         const double scale = std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
                                       opts.dual_regularization *
-                                          detail::nan_sticky_inf_norm(yy.segment(n_free, nc)));
+                                          detail::nan_sticky_inf_norm(fp_rows(yy)));
         return detail::nan_sticky_inf_norm(r.segment(n_free, nc)) / scale;
     };
 

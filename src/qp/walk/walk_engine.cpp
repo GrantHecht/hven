@@ -63,6 +63,8 @@ struct Env {
     bool safeboot = false;  // strict safeguard, but an update with no live centre is unconditional
     double ymax = 0.0;      // centre bound (0 = none)
     int trace = 0;
+    bool fpread = false;    // P1A-1b: every footprint consumer reads mu*|lambda - c| (design section 3)
+    bool firstfree = false; // P1A-1b: the solve's first commit skips the row test (y_max still applies)
 };
 inline Env read_env() {
     Env e;
@@ -94,7 +96,38 @@ inline Env read_env() {
     if (const char *t = get("HVEN_P1_TRACE")) {
         e.trace = std::atoi(t);
     }
+    e.fpread = get("HVEN_P1_FPREAD") != nullptr;
+    e.firstfree = get("HVEN_P1_FIRSTFREE") != nullptr;
     return e;
+}
+
+// P1A-1b: THE WALK'S FOOTPRINT MULTIPLIERS -- one block of (lambda_e | lambda_i | z) read through
+// footprint_dual (eqp_solve.h) against the centre `c`, a row off the working set and a free
+// variable at centre 0 (a dropped row's centre is discarded). Centre-free it returns `lam` itself,
+// so the consumer reads today's value bit for bit.
+enum class FpBlock { kEq, kIneq, kBound };
+inline const Vec &footprint_vec(const Vec &lam, const Vec *c, FpBlock b, const WorkingSet &ws,
+                                Vec &buf) {
+    if (c == nullptr) {
+        return lam;
+    }
+    buf = lam;
+    if (b == FpBlock::kEq) {
+        for (Index j = 0; j < lam.size(); ++j) {
+            buf(j) = footprint_dual(lam(j), c, j);
+        }
+    } else if (b == FpBlock::kIneq) {
+        for (const Index j : ws.active_ineq()) {
+            buf(j) = footprint_dual(lam(j), c, j);
+        }
+    } else {
+        for (Index i = 0; i < lam.size(); ++i) {
+            if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                buf(i) = footprint_dual(lam(i), c, i);
+            }
+        }
+    }
+    return buf;
 }
 } // namespace p1s
 
@@ -685,6 +718,39 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             ++p1_reset;
         }
     };
+    // P1A-1b: THE FOOTPRINT'S CENTRE -- a copy of the dual centre the latest walk EQP was solved
+    // with (null: centre-free, or the re-reading off). FE/FI/FZ are the walk's multipliers in the
+    // footprint currency (p1s::footprint_vec); FEQP the candidate's own.
+    Vec fce = Vec::Zero(me);
+    Vec fci = Vec::Zero(mi);
+    Vec fcz = Vec::Zero(n);
+    EqpDualCentre fpc{};
+    Vec fpb_e, fpb_i, fpb_z;
+    const auto FE = [&]() -> const Vec & {
+        return p1s::footprint_vec(lambda_e, fpc.lambda_e, p1s::FpBlock::kEq, ws, fpb_e);
+    };
+    const auto FI = [&]() -> const Vec & {
+        return p1s::footprint_vec(lambda_i, fpc.lambda_i, p1s::FpBlock::kIneq, ws, fpb_i);
+    };
+    const auto FZ = [&]() -> const Vec & {
+        return p1s::footprint_vec(z, fpc.z, p1s::FpBlock::kBound, ws, fpb_z);
+    };
+    EqpResult fpb_eqp;
+    const auto FEQP = [&](const EqpResult &r) -> const EqpResult & {
+        if (!dual_centre_live(fpc)) {
+            return r;
+        }
+        fpb_eqp = r;
+        for (Index j = 0; j < me; ++j) {
+            fpb_eqp.lambda_e(j) = footprint_dual(r.lambda_e(j), fpc.lambda_e, j);
+        }
+        const auto &aw_f = ws.active_ineq();
+        for (std::size_t k = 0; k < aw_f.size() && static_cast<Index>(k) < r.lambda_w.size(); ++k) {
+            fpb_eqp.lambda_w(static_cast<Index>(k)) =
+                footprint_dual(r.lambda_w(static_cast<Index>(k)), fpc.lambda_i, aw_f[k]);
+        }
+        return fpb_eqp;
+    };
 
     Vec shift = Vec::Zero(mi);
     Vec Aix = Vec::Zero(mi);
@@ -710,7 +776,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // rounding floor) behind a kInfeasible, toleranced behind a kNumericalError.
     QpFarkasCertificate farkas;
 
-    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen, eff_opts);
 
     // Decide whether border_ may be trusted for THIS solve, per the header
     // contract's HOT-START REUSE conditions (a)-(e). `ws` here is exactly
@@ -1039,7 +1105,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // so no separate recomputation is needed. The shifts are refreshed
             // because x moved, the same way every other x-moving branch of
             // this loop refreshes them.
-            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+            refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen, eff_opts);
             Ac::note_reset(); // §4.3 step (3): delta <- delta_0, new sequence
         }
 #endif
@@ -1085,6 +1151,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
             }
             dual_k = c_on ? EqpDualCentre{&ce, &ci, &cz} : EqpDualCentre{};
+        }
+        if (p1.fpread) { // P1A-1b: snapshot the centre this solve uses -- the footprint's reference
+            dual_k.footprint_centred = true;
+            if (dual_centre_live(dual_k)) {
+                fce = dual_k.lambda_e != nullptr ? *dual_k.lambda_e : Vec(Vec::Zero(me));
+                fci = dual_k.lambda_i != nullptr ? *dual_k.lambda_i : Vec(Vec::Zero(mi));
+                fcz = dual_k.z != nullptr ? *dual_k.z : Vec(Vec::Zero(n));
+                fpc = EqpDualCentre{&fce, &fci, &fcz};
+            } else {
+                fpc = EqpDualCentre{};
+            }
         }
         const EqpResult eqp =
             eliminated_only
@@ -1156,7 +1233,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // eqp_answer_drifts_off_met_rows for the measurement.
         const bool eqp_not_finite = !eqp.x.allFinite();
         const bool eqp_drifted =
-            !eqp_not_finite && eqp_answer_drifts_off_met_rows(qp, ws, x, eqp, Aix, ai_row_norm1,
+            !eqp_not_finite && eqp_answer_drifts_off_met_rows(qp, ws, x, FEQP(eqp), Aix, ai_row_norm1,
                                                               ae_row_norm1, eff_opts);
         const bool drift_only = eqp_drifted && !eqp.residual_refused && !eqp_not_finite;
         if (eqp.residual_refused || eqp_not_finite || eqp_drifted) {
@@ -1322,7 +1399,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // Pinning moved x onto bounds, which can violate general
                 // rows; the homotopy picks them up exactly as at a start
                 // point.
-                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                eff_opts);
                 continue;
             }
@@ -1380,16 +1457,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         bool p1_ok = true;
         if (p1.mode != p1s::kZero) {
             const bool p1_live_c = p1_copy ? c_on : (dual_k.lambda_e != nullptr || dual_k.lambda_i != nullptr);
-            if (!p1.nosafe && !(p1.safeboot && !p1_live_c)) {
+            if (!p1.nosafe && !(p1.safeboot && !p1_live_c) && !(p1.firstfree && p1_upd == 0)) {
                 if (p1.strictsafe) {
                     p1_ok = eqp.x.allFinite();
                     const double xmag = eqp.x.lpNorm<Eigen::Infinity>();
-                    const auto cval = [&](const Vec *v, Index j) { return v != nullptr ? (*v)(j) : 0.0; };
+
                     if (me > 0 && p1_ok) {
                         const Vec r = qp.Ae * eqp.x - qp.be;
                         for (Index j = 0; j < me && p1_ok; ++j) {
                             const double rs = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-                            p1_ok = std::abs(r(j)) <= row_tolerance(rs, eqp.lambda_e(j) - cval(dual_k.lambda_e, j), eff_opts);
+                            p1_ok = std::abs(r(j)) <= row_tolerance(rs, footprint_dual(eqp.lambda_e(j), dual_k.lambda_e, j), eff_opts);
                         }
                     }
                     const auto &aw_s = ws.active_ineq();
@@ -1397,7 +1474,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         const Index j = aw_s[k];
                         const double rs = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
                         p1_ok = std::abs(qp.Ai.row(j).dot(eqp.x) - qp.bi(j)) <=
-                                row_tolerance(rs, eqp.lambda_w(static_cast<Index>(k)) - cval(dual_k.lambda_i, j), eff_opts);
+                                row_tolerance(rs, footprint_dual(eqp.lambda_w(static_cast<Index>(k)), dual_k.lambda_i, j), eff_opts);
                     }
                 } else {
                     p1_ok = eqp_answer_meets_working_rows(qp, ws, eqp, ai_row_norm1, ae_row_norm1,
@@ -1448,11 +1525,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             const Vec eq_resid = qp.Ae * x - qp.be;
             const double xmag = x.lpNorm<Eigen::Infinity>();
             bool eq_structural = false;
+            const Vec &fle_d = FE(); // P1A-1b
             for (Index j = 0; j < me && !eq_structural; ++j) {
                 const double v = std::abs(eq_resid(j));
                 const double row_scale =
                     std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-                eq_structural = violation_is_structural(v, row_scale, lambda_e(j), eff_opts);
+                eq_structural = violation_is_structural(v, row_scale, fle_d(j), eff_opts);
             }
             eq_rows_violated = eq_structural;
             if (!eq_structural) {
@@ -1595,7 +1673,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
         const bool stationary_proper =
             !zero_motion && detail::free_block_is_stationary(stat_free_inf, stat_scale, eff_opts) &&
-            worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+            worst_structural_violation(qp, x, Aix, ai_row_norm1, FI(), ae_row_norm1, FE(),
                                        eff_opts) == 0.0;
         // THE STAGNATION READING (walk_engine.h): this pass is a KKT point of the working set for
         // the drop rule alone, never for the classification.
@@ -1623,7 +1701,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
             if (zero_motion) {
                 x = eqp.x;
-                refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                eff_opts);
             }
 #ifdef HVEN_TESTING
@@ -1653,7 +1731,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // iterate (that pass's KKT-point test reads it).
                 const Vec x_before_refine = x;
                 if (eff_opts.dual_regularization > 0.0 &&
-                    mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                    mu_footprint_open(qp, ws, x, ai_row_norm1, FI(), ae_row_norm1, FE(),
                                       eff_opts) &&
                     refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
                     // x is now the adopted point: the pass never reaches the guard or the ordinary
@@ -1663,7 +1741,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         moved.lpNorm<Eigen::Infinity>() > step_tol) {
                         pt_clear(seen); // the iterate moved
                     }
-                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                    eff_opts);
                     exempt_worst = 0.0;
                     if (drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters, &seen,
@@ -1720,8 +1798,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             const bool gray_hold =
                 !dropped_one && !stagnation_only && stationary_proper &&
                 (gray_return_pending ||
-                 (!gray_hold_prev && worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i,
-                                                     ae_row_norm1, lambda_e, eff_opts) > 1.0));
+                 (!gray_hold_prev && worst_row_ratio(qp, ws, x, ai_row_norm1, FI(),
+                                                     ae_row_norm1, FE(), eff_opts) > 1.0));
             gray_hold_forced = gray_hold && gray_return_pending;
             if (!dropped_one && !stagnation_only) {
                 gray_return_pending = false;
@@ -1743,27 +1821,27 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // (adding rows only shrinks the null space, so a kOk read
                 // cannot become kWrong), but a kWrong read can be one
                 // iteration stale.
-                double worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
-                                                          ae_row_norm1, lambda_e, eff_opts);
+                double worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, FI(),
+                                                          ae_row_norm1, FE(), eff_opts);
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
                 // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
                 // -- section 5, and the two refine_*_for_verdict declarations.
                 const bool refined =
                     worst > 0.0 && (eqp.refine_steps > 0
                                         ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
-                                                                  lambda_i, ae_row_norm1, lambda_e,
+                                                                  FI(), ae_row_norm1, FE(),
                                                                   *border_, counters, eff_opts)
                                         : refine_eliminated_face_for_verdict(
-                                              qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                              lambda_e, kkt, face, counters, eff_opts));
+                                              qp, ws, x, Aix, ai_row_norm1, FI(), ae_row_norm1,
+                                              FE(), kkt, face, counters, eff_opts));
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
                     // a kInfeasible exit now returns.
-                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                    eff_opts);
-                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
-                                                       ae_row_norm1, lambda_e, eff_opts);
+                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, FI(),
+                                                       ae_row_norm1, FE(), eff_opts);
                 }
                 // THE TERMINAL MU-FREE REFINEMENT (E2 fix4): before any
                 // kInfeasible-by-violation verdict, a residual the dual_mu
@@ -1773,10 +1851,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // below again. See refine_terminal_mu_free.
                 if (worst > 0.0 && eff_opts.independent_working_set &&
                     eff_opts.dual_regularization > 0.0 &&
-                    mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
+                    mu_footprint_open(qp, ws, x, ai_row_norm1, FI(), ae_row_norm1, FE(),
                                       eff_opts) &&
                     refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
-                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                    eff_opts);
                     exempt_worst = 0.0;
                     if (drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters, &seen,
@@ -1790,8 +1868,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                         continue;
                     }
-                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
-                                                       ae_row_norm1, lambda_e, eff_opts);
+                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, FI(),
+                                                       ae_row_norm1, FE(), eff_opts);
                 }
                 // THE CONVEX CERTIFICATE (section 4c): set iff the trusted kWrong
                 // below was overruled by a structurally convex H; the point then
@@ -1843,7 +1921,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // Pinning moved x onto bounds, exactly as at the
                         // start-of-solve repair: general rows may now be
                         // violated and the homotopy picks them up.
-                        refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters,
+                        refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters,
                                        seen, eff_opts);
                         continue;
                     }
@@ -1902,7 +1980,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 pt_clear(seen);
                             }
                             (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
-                            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters,
+                            refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters,
                                            seen, eff_opts);
 #ifdef HVEN_TESTING
                             walk_obs.record().action = detail::testing::QpWalkAction::kRideStepped;
@@ -2074,14 +2152,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             bool row_triggered = false;
                             if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z,
                                                       ai_row_norm1, ae_row_norm1, eff_opts,
-                                                      row_triggered)) {
+                                                      row_triggered, fpc)) {
                                 x_inc = x;
                                 lambda_e_inc = lambda_e;
                                 lambda_i_inc = lambda_i;
                                 z_inc = z;
                                 polish_adopted =
                                     polish_terminal_point(qp, ws, eqp, row_triggered, x, lambda_e,
-                                                          lambda_i, z, counters, eff_opts);
+                                                          lambda_i, z, counters, eff_opts, fpc);
                             }
                         }
                         // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
@@ -2110,6 +2188,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                             const double xmag = x.lpNorm<Eigen::Infinity>();
                             double bound_worst = 0.0;
+                            const Vec &fz_c = FZ(); // P1A-1b
                             for (Index i = 0; i < n; ++i) {
                                 const double below = qp.lower(i) - x(i);
                                 const double above = x(i) - qp.upper(i);
@@ -2117,7 +2196,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 const double bound = below >= above ? qp.lower(i) : qp.upper(i);
                                 const double row_scale = std::max({1.0, std::abs(bound), xmag});
                                 if (v > 0.0 &&
-                                    violation_is_structural(v, row_scale, z(i), eff_opts)) {
+                                    violation_is_structural(v, row_scale, fz_c(i), eff_opts)) {
                                     bound_worst = std::max(bound_worst, v);
                                 }
                             }
@@ -2159,14 +2238,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             // (after polish adoption, refusal or revert). Past 1x, the walk goes
                             // back for an ordinary step, a bounded number of times; the exit that
                             // remains is counted.
-                            if (!(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
-                                                  lambda_e, eff_opts) <= 1.0)) {
+                            if (!(worst_row_ratio(qp, ws, x, ai_row_norm1, FI(), ae_row_norm1,
+                                                  FE(), eff_opts) <= 1.0)) {
                                 if (gray_returns_left > 0 && gray_return_progress &&
                                     iter + 1 < eff_max_iter) {
                                     --gray_returns_left;
                                     gray_return_pending = true;
                                     gray_return_progress = false;
-                                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift,
+                                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift,
                                                    counters, seen, eff_opts);
                                     pt_clear(seen);
                                     continue;
@@ -2400,7 +2479,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         pt_clear(seen);
                     }
                     (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
-                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                    eff_opts);
                     continue;
                 }
@@ -2496,8 +2575,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             bool guard = false;
             if (slope > detail::kEngineDenomTol * gx.norm() * p.norm() &&
                 php <= -curvature_tol * p.squaredNorm() &&
-                iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                           lambda_e, eff_opts)) {
+                iterate_meets_working_face(qp, ws, x, Aix, ai_row_norm1, FI(), ae_row_norm1,
+                                           FE(), eff_opts)) {
                 if (ride_stays_in_working_set(qp, ws, p)) {
                     guard = either_moves();
                 } else if (!p1.nofprung && eff_opts.dual_regularization > 0.0 &&
@@ -2560,7 +2639,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                     .Aix = Aix,
                                     .gx = gx,
                                     .d = p,
-                                    .mu = eff_opts.dual_regularization});
+                                    .mu = eff_opts.dual_regularization,
+                                    .ce = fpc.lambda_e,
+                                    .ci = fpc.lambda_i});
                                !(along_p.slope > along_p.tol)) {
 #ifdef HVEN_TESTING
                         walk_obs.record().ascent_footprint =
@@ -2591,7 +2672,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         pt_clear(seen);
                     }
                     (void)pt_admit(seen, counters, ride.kind == BlockKind::kIneq, ride.idx);
-                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                    refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen,
                                    eff_opts);
 #ifdef HVEN_TESTING
                     walk_obs.record().action = detail::testing::QpWalkAction::kRideStepped;
@@ -2846,7 +2927,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                       block_idx, o.scale, eff_opts);
                     if (implied) {
                         implied_allow = implied_leak_allowance(
-                            qp, ws, xpick, x, ai_row_norm1, ae_row_norm1, lambda_e, lambda_i, z,
+                            qp, ws, xpick, x, ai_row_norm1, ae_row_norm1, FE(), FI(), FZ(),
                             pass_view.schur != nullptr, o.scale, eff_opts);
                         if (xpick.found && !set_aside.has_value()) {
                             set_aside = SetAside{kind,
@@ -3190,10 +3271,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 const double a_norm = kind == BlockKind::kBound ? 1.0 : qp.Ai.row(block_idx).norm();
                 double lam_inf = 0.0;
                 if (lambda_e.size() > 0) {
-                    lam_inf = std::max(lam_inf, lambda_e.lpNorm<Eigen::Infinity>());
+                    lam_inf = std::max(lam_inf, FE().lpNorm<Eigen::Infinity>());
                 }
                 if (lambda_i.size() > 0) {
-                    lam_inf = std::max(lam_inf, lambda_i.lpNorm<Eigen::Infinity>());
+                    lam_inf = std::max(lam_inf, FI().lpNorm<Eigen::Infinity>());
                 }
                 const Index dep_rows = qp.me() + detail::testing::qp_walk_ws_size(ws);
                 r.add_a_dot_p = a_dot_p;
@@ -3413,7 +3494,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         const std::size_t working_rows_before_refresh = ws.active_ineq().size();
         const bool released_row_out = eff_opts.independent_working_set && dropped.active &&
                                       dropped.is_ineq && !in_working(ws, dropped.idx);
-        refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+        refresh_shifts(qp, x, ai_row_norm1, FI(), ws, Aix, shift, counters, seen, eff_opts);
         // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
         // the previous pass released, so the residual the row was released with was dual_mu's
         // footprint. The first answer is THE DUAL PROXIMAL CENTRE (M8 P-1): the rhs moves, the
@@ -5051,7 +5132,7 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
                                         const EqpResult &cand, const detail::TerminalKkt &before,
                                         const QpOptions &opts, bool row_triggered, Vec &x,
                                         Vec &lambda_e, Vec &lambda_i, Vec &z,
-                                        bool require_clean) const {
+                                        bool require_clean, const EqpDualCentre &fpc) const {
     if (cand.x.size() != qp.n() || !cand.x.allFinite() || !cand.lambda_e.allFinite() ||
         !cand.lambda_w.allFinite()) {
         return false;
@@ -5105,10 +5186,14 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     for (Index j = 0; j < qp.me(); ++j) {
         ae_norm1(j) = qp.Ae.row(j).cwiseAbs().sum();
     }
-    const double inc_ratio =
-        worst_row_ratio(qp, ws, x, ai_norm1, lambda_i, ae_norm1, lambda_e, opts);
-    const double cand_ratio =
-        worst_row_ratio(qp, ws, cand.x, ai_norm1, cand_li, ae_norm1, cand_le, opts);
+    // P1A-1b: both sides in the footprint currency (p1s::footprint_vec against fpc).
+    Vec fb_ie, fb_ii, fb_ce, fb_ci;
+    const double inc_ratio = worst_row_ratio(
+        qp, ws, x, ai_norm1, p1s::footprint_vec(lambda_i, fpc.lambda_i, p1s::FpBlock::kIneq, ws, fb_ii),
+        ae_norm1, p1s::footprint_vec(lambda_e, fpc.lambda_e, p1s::FpBlock::kEq, ws, fb_ie), opts);
+    const double cand_ratio = worst_row_ratio(
+        qp, ws, cand.x, ai_norm1, p1s::footprint_vec(cand_li, fpc.lambda_i, p1s::FpBlock::kIneq, ws, fb_ci),
+        ae_norm1, p1s::footprint_vec(cand_le, fpc.lambda_e, p1s::FpBlock::kEq, ws, fb_ce), opts);
     const bool row_contract =
         cand_ratio <= std::max(1.0, inc_ratio) && (!require_clean || cand_ratio <= 1.0);
     // A row-triggered entry floors the incumbent's stationarity at the entry test's own
@@ -5136,7 +5221,8 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
 bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                      const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
                                      const Vec &ai_row_norm1, const Vec &ae_row_norm1,
-                                     const QpOptions &opts, bool &row_triggered) const {
+                                     const QpOptions &opts, bool &row_triggered,
+                                     const EqpDualCentre &fpc) const {
     // THREE DISJUNCTS, each written as !(v <= t) so a NaN is "open" -- the acceptance
     // test refuses a non-finite candidate anyway, so the cost of being wrong here is
     // one factorization and never an answer.
@@ -5144,8 +5230,13 @@ bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, 
     // (c) A ROW PAST ITS TOLERANCE comes first: kOptimal promises every equality and
     // working row within 1x of row_tolerance, and a gray-zone row (1x-10x) carries no
     // complementarity or stationarity signal, so nothing else would ever repair it.
-    row_triggered =
-        !(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts) <= 1.0);
+    Vec fb_e, fb_i; // P1A-1b
+    row_triggered = !(worst_row_ratio(
+                          qp, ws, x, ai_row_norm1,
+                          p1s::footprint_vec(lambda_i, fpc.lambda_i, p1s::FpBlock::kIneq, ws, fb_i),
+                          ae_row_norm1,
+                          p1s::footprint_vec(lambda_e, fpc.lambda_e, p1s::FpBlock::kEq, ws, fb_e),
+                          opts) <= 1.0);
     if (row_triggered) {
         return true;
     }
@@ -5168,7 +5259,7 @@ bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, 
 bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
                                      const EqpResult &pass_answer, bool row_triggered, Vec &x,
                                      Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
-                                     const QpOptions &opts) const {
+                                     const QpOptions &opts, const EqpDualCentre &fpc) const {
     const detail::TerminalKkt before = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
 
     // STAGE 1, FREE: the pass's OWN EQP answer, which solve_eqp has already taken
@@ -5184,13 +5275,14 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // A row-triggered entry prefers a stage-1 candidate that closes every row (R2); one that
     // does not is kept as the fallback if stage 2 adopts nothing.
     if (adopt_polished_candidate(qp, ws, pass_answer, before, opts, row_triggered, x, lambda_e,
-                                 lambda_i, z, /*require_clean=*/row_triggered)) {
+                                 lambda_i, z, /*require_clean=*/row_triggered, fpc)) {
         ++counters.terminal_polish_adopted;
         return true;
     }
     const auto stage1_fallback = [&]() {
         return row_triggered && adopt_polished_candidate(qp, ws, pass_answer, before, opts,
-                                                         row_triggered, x, lambda_e, lambda_i, z);
+                                                         row_triggered, x, lambda_e, lambda_i, z,
+                                                         false, fpc);
     };
 
     // STAGE 2, ONE FACTORIZATION: the face re-solved with the DUAL regularization
@@ -5285,7 +5377,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     }
 
     if (!adopt_polished_candidate(qp, ws, r, before, opts, row_triggered, x, lambda_e, lambda_i,
-                                  z)) {
+                                  z, false, fpc)) {
         if (stage1_fallback()) {
             ++counters.terminal_polish_adopted;
             return true;

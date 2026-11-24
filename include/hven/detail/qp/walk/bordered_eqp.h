@@ -310,7 +310,8 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
                                const Vec &rhs, const Vec &sol, const QpOptions &opts,
                                Index *steps_out = nullptr,
                                const BorderedResolution *resolution = nullptr,
-                               BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
+                               BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false,
+                               const Vec *fp_centre = nullptr) {
     const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kBorderRefine);
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
@@ -378,7 +379,9 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
     Vec best_residual = residual_of(best);
     double best_norm = detail::nan_sticky_inf_norm(best_residual);
     for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
-        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
+        // P1A-1b: the footprint is reg*(y - c) with a live centre (footprint_dual's currency).
+        const double footprint = detail::nan_sticky_inf_norm(
+            fp_centre != nullptr ? Vec(reg.cwiseProduct(Vec(best - *fp_centre))) : Vec(reg.cwiseProduct(best)));
         const bool on_target = !(best_norm > std::max(footprint, rel_floor));
         if (on_target && step_resolved()) {
             break; // the first step did its job (or NaN, which no step can mend)
@@ -409,7 +412,8 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         *steps_out = steps;
     }
     if (outcome != nullptr) {
-        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
+        const double footprint = detail::nan_sticky_inf_norm(
+            fp_centre != nullptr ? Vec(reg.cwiseProduct(Vec(best - *fp_centre))) : Vec(reg.cwiseProduct(best)));
         outcome->target_met = !(best_norm > std::max(footprint, rel_floor));
     }
     return best;
@@ -729,6 +733,9 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     }
     const Vec rhs_reg =
         sys.rhs + bordered_regularization(n0, n, sys.border_d, opts).cwiseProduct(centre);
+    // P1A-1b: the footprint re-reading (EqpDualCentre::footprint_centred); `centre` holds
+    // c(j) = footprint_dual's centre on every row it was formed for, 0 elsewhere.
+    const bool fp_centred = dual_k.footprint_centred && dual_centre_live(dual_k);
 
     Vec sol = schur.solve(rhs_reg);
     const bool shifted_refused = k0_shift_scale != nullptr &&
@@ -750,9 +757,11 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         if (nc == 0) {
             return 0.0;
         }
-        const double scale =
-            std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                     opts.dual_regularization * detail::nan_sticky_inf_norm(ss.segment(n, nc)));
+        const double scale = std::max(
+            detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
+            opts.dual_regularization *
+                detail::nan_sticky_inf_norm(fp_centred ? Vec(ss.segment(n, nc) - centre.segment(n, nc))
+                                                       : Vec(ss.segment(n, nc))));
         return detail::nan_sticky_inf_norm(r.segment(n, nc)) / scale;
     };
     Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, rhs_reg, sol);
@@ -792,7 +801,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
                                          opts, &refine_steps,
                                          opts.independent_working_set ? &resolution : nullptr,
-                                         certify ? &outcome : nullptr, k0_shift_scale != nullptr);
+                                         certify ? &outcome : nullptr, k0_shift_scale != nullptr,
+                                         fp_centred ? &centre : nullptr);
     // THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h), the bordered twin of
     // solve_eqp's: the answer refined against the bordered K (the residual loop's,
     // or at dual_mu = 0 the refinement's), judged on the bordered system in K0's

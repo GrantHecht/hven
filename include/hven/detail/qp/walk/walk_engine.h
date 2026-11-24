@@ -1482,18 +1482,24 @@ struct FootprintSlopeArgs {
     const Vec &gx;  ///< H x + g
     const Vec &d;
     double mu;
+    // P1A-1b (scratch): the centre of the EQP the pass solved (null: centre-free). Centred, the
+    // footprint merit is f + |A_W x - b_W + mu*c|^2 / (2 mu) -- the row multiplier c + r/mu.
+    const Vec *ce = nullptr;
+    const Vec *ci = nullptr;
 };
 inline FootprintSlope footprint_merit_slope(const QpProblem &qp, const WorkingSet &ws,
                                             const FootprintSlopeArgs &a) {
     double rows = 0.0;
     double rows_abs = 0.0;
     for (Index j = 0; j < qp.me(); ++j) {
-        const double t = (qp.Ae.row(j).dot(a.x) - qp.be(j)) * qp.Ae.row(j).dot(a.d);
+        const double r = qp.Ae.row(j).dot(a.x) - qp.be(j);
+        const double t = (a.ce != nullptr ? r + a.mu * (*a.ce)(j) : r) * qp.Ae.row(j).dot(a.d);
         rows += t;
         rows_abs += std::abs(t);
     }
     for (const Index j : ws.active_ineq()) {
-        const double t = (a.Aix(j) - qp.bi(j)) * qp.Ai.row(j).dot(a.d);
+        const double r = a.Aix(j) - qp.bi(j);
+        const double t = (a.ci != nullptr ? r + a.mu * (*a.ci)(j) : r) * qp.Ai.row(j).dot(a.d);
         rows += t;
         rows_abs += std::abs(t);
     }
@@ -2548,7 +2554,8 @@ class QpEngine {
     bool polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
                                const Vec &ai_row_norm1, const Vec &ae_row_norm1,
-                               const QpOptions &opts, bool &row_triggered) const;
+                               const QpOptions &opts, bool &row_triggered,
+                               const EqpDualCentre &fpc = EqpDualCentre{}) const; // P1A-1b
     // The acceptance test, shared by both stages: prices `cand`, measures
     // detail::terminal_kkt at it, and ADOPTS (x and all three multiplier blocks)
     // only if the candidate is finite, keeps feasibility, worsens none of the
@@ -2560,11 +2567,13 @@ class QpEngine {
     bool adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws, const EqpResult &cand,
                                   const detail::TerminalKkt &before, const QpOptions &opts,
                                   bool row_triggered, Vec &x, Vec &lambda_e, Vec &lambda_i, Vec &z,
-                                  bool require_clean = false) const;
+                                  bool require_clean = false,
+                                  const EqpDualCentre &fpc = EqpDualCentre{}) const; // P1A-1b
     bool polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
                                const EqpResult &pass_answer, bool row_triggered, Vec &x,
                                Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
-                               const QpOptions &opts) const;
+                               const QpOptions &opts,
+                               const EqpDualCentre &fpc = EqpDualCentre{}) const; // P1A-1b
 
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run
