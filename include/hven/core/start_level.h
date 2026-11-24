@@ -101,7 +101,7 @@ struct StartLevelHistogram {
     /// @brief Solves that resolved to kHot.
     Index hot = 0;
 
-    /// The number of SqpSolveRecords the histogram was built from: the four
+    /// The number of solve records (of either engine's record kind) the histogram was built from: the four
     /// columns account for every solve iff this equals their sum.
     Index total() const { return cold + seeded + warm + hot; }
 };

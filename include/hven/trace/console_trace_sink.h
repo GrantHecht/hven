@@ -43,6 +43,10 @@ enum class ConsoleColor {
 class ConsoleTraceSink final : public TraceSink {
   public:
     struct Format {
+        /// A hand-built sink is meant to print, so this defaults to `kIterations`;
+        /// `common.verbosity` defaults to `kSilent`. A hand-built console sink attached
+        /// to a solver whose `common.verbosity` is not `kSilent` prints twice: the
+        /// solver composes its own console behind the caller's sink.
         Verbosity verbosity = Verbosity::kIterations;
         ConsoleColor color = ConsoleColor::kAuto;
         bool timing = true; ///< Print the footer's wall-clock line (informational).

@@ -1196,7 +1196,7 @@ class Factorization {
     DenseSingularPolicy dense_singular_policy_ = DenseSingularPolicy::kSparseFallback;
 };
 
-// THE ANALYSIS TALLY (PF-4): an exact count, taken at this boundary, of the
+// THE ANALYSIS TALLY: an exact count, taken at this boundary, of the
 // symbolic analyses the PLATFORM (sparse) backend completes on the calling
 // thread while a tally is open -- every SymmetricFactor instance, including the
 // short-lived ones an engine builds and drops inside one call, which no
@@ -1239,13 +1239,13 @@ class AnalysisTally {
     std::unique_ptr<Seen> seen_;
 };
 
-// THE SOLVE TALLY (M8 PF-2b): an exact count, taken at this boundary, of the
+// THE SOLVE TALLY: an exact count, taken at this boundary, of the
 // backend solves -- sparse Pardiso/Accelerate and the dense arm alike, full
 // solves and partial solves, through a SymmetricFactor or a Factorization
 // handle -- completed on the calling thread while a tally is open, split by
 // the SolveContext open at the time the solve ran. Three quantities per
 // context: solves (one per backend call, whatever its column count), right-hand
-// side columns (a PF-4 batch is one solve of many columns), and the iterative-
+// side columns (a batched solve is one solve of many columns), and the iterative-
 // refinement steps the backend reports having performed inside those solves
 // (Pardiso's own refinement sweeps; the dense arm and Accelerate report none).
 //

@@ -198,7 +198,7 @@ class SqpSolver {
     ///
     /// Returning `CallbackAction::kStop` stops the solve with `kInterrupted`
     /// and `StopReason::kCallbackStop`, returning the point the stopping row
-    /// describes, and no further step is taken (M8 AP-5 G1). On a row that
+    /// describes, and no further step is taken. On a row that
     /// records an ACCEPTED step the stop is honoured right after the row is
     /// recorded: the step is not committed, the history ends on that row
     /// (`qp_solved == true`, `history.size() == counters.major_iters`) and the
@@ -268,10 +268,12 @@ class SqpSolver {
     /// Attaches a trace sink; `nullptr` detaches. The sink is borrowed and must
     /// outlive every solve made while it is attached.
     ///
-    /// When `common.print_level` enables printing, the solver composes its own
+    /// When `common.verbosity` enables printing, the solver composes its own
     /// console sink behind the caller's, so attaching a console never displaces
     /// a caller's sink and the caller's stream is the same with printing on and
-    /// off. The restoration phase's internal sub-solver never prints. The sink
+    /// off. A console sink the caller attaches itself prints in addition to that
+    /// one: a hand-built `ConsoleTraceSink` together with a non-silent
+    /// `common.verbosity` prints twice. The restoration phase's internal sub-solver never prints. The sink
     /// is also forwarded to the internal IPQP engine.
     /// @throws std::logic_error if a solve is in flight. The composition is
     ///         fixed for the solve, so a call from inside a callback or a sink

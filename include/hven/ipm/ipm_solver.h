@@ -279,10 +279,12 @@ class IpmSolver {
     /// Attaches a trace sink; `nullptr` detaches. The sink is borrowed and must
     /// outlive every solve made while it is attached.
     ///
-    /// When `common.print_level` enables printing, the solver composes its own
+    /// When `common.verbosity` enables printing, the solver composes its own
     /// console sink behind the caller's, so attaching a console never displaces
     /// a caller's sink and the caller's stream is the same with printing on
-    /// and off.
+    /// and off. A console
+    /// sink the caller attaches itself prints in addition to that one: a hand-built
+    /// `ConsoleTraceSink` together with a non-silent `common.verbosity` prints twice.
     /// @throws std::logic_error if a solve is in flight. The composition is
     ///         fixed for the solve, so a call from inside a callback, a hook or
     ///         a sink could not take effect in it.

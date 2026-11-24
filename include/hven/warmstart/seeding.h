@@ -4,7 +4,7 @@
 #pragma once
 
 // seeding.h -- the three constants that govern how a warm start's MULTIPLIERS
-// are admitted, in one place and DELIBERATELY NOT UNIFIED (design 2.4).
+// are admitted, in one place and DELIBERATELY NOT UNIFIED.
 //
 // Each of the three is a policy of ONE engine, with its own derivation, and
 // they are gathered here because a reader looking for "what does this project
@@ -20,11 +20,7 @@
 //                              inequality price is a rounding artefact rather
 //                              than a corrupt object.
 //
-// COMPATIBILITY, AND ITS END: the two IPM values were also reachable as static
-// members of the solver class -- `InteriorPointSolver::kSeededInequalityMultiplierFloor` and
-// `::kSeededMultiplierMax` -- until those aliases were DROPPED.
-// `hven::kSeededInequalityMultiplierFloor` and `::kSeededMultiplierMax` are the only names for them
-// now. `hven::kSeededDualClampTol` was already at this namespace scope and is simply defined here.
+// All three are defined at namespace scope in `hven`.
 
 namespace hven {
 

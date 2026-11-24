@@ -93,7 +93,7 @@ struct IpmResult : SolveResult {
     ///        ran under.
     ///
     /// Always equals the option's value at the time the call ran --
-    /// configure_variable_treatment runs the requested treatment or throws,
+    /// the engine runs the requested treatment or throws,
     /// never substitutes. Overwritten unconditionally at the start of every
     /// call. Recorded here because it decides whether the internal fixing rows
     /// below exist.
@@ -114,7 +114,7 @@ struct IpmResult : SolveResult {
     // sign the stationarity convention grad f + J'lambda - z = 0 forces.
     /// @brief Residuals of the internal fixing rows, one per bound-fixed
     ///        variable, in the order of
-    ///        NonLinearProgram::fixed_variable_indices().
+    ///        the bound-fixed variables' indices, ascending.
     Vec internal_fixed_ce;
     /// @brief Multipliers of those same rows, same order.
     Vec internal_fixed_lambda_e;

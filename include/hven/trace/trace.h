@@ -410,13 +410,13 @@ struct SolveEndTraceEvent {
 /// consulting `ipm.solve.begin`'s `phases` count.
 ///
 /// WHERE THE KKT ANALYSIS SITS, and it is not inside this bracket: the engine
-/// re-initializes BEFORE the phase's `begin` (the entry `init_impl`, and the
-/// inter-phase one at the end of the PREVIOUS phase's body), so the stream
+/// re-initializes BEFORE the phase's `begin` (the entry analysis, and the
+/// inter-phase one at the end of the PREVIOUS phase), so the stream
 /// reads `kkt_analysis, phase.begin, rows..., phase.exit, phase.end`. See
 /// `IpmKktAnalysisTraceEvent`.
 struct IpmPhaseTraceEvent {
     /// The phase's 0-based index into `IpmResult::phases`, on
-    /// `IpmIterTraceEvent::phase`'s reading.
+    /// the same reading as the `phase` field of the `ipm.iter` rows.
     Index phase = 0;
     /// The engine's own label for this phase, and the bytes the console
     /// prints: `"Optimization Algorithm "` or `"Solve Algorithm "`, WITH the
@@ -430,16 +430,15 @@ struct IpmPhaseTraceEvent {
 /// @brief One KKT-matrix analysis or re-initialization (schema
 /// `ipm.kkt_analysis`).
 ///
-/// ONE EVENT FOR BOTH HALVES of what the console prints. `init_impl` wrote a
+/// ONE EVENT FOR BOTH HALVES of what the console prints: a
 /// `Beginning: KKT-Matrix Analysis` line before the factorization and the size,
-/// FLOPs and time lines plus `Finished` after it; nothing can interleave
-/// between them (no message site lives in `init_impl`), so a single event
-/// emitted AFTER the analysis renders both halves in the same order and the
-/// same bytes.
+/// FLOPs and time lines plus `Finished` after it. Nothing can interleave
+/// between them, so a single event emitted AFTER the analysis renders both
+/// halves in the same order and the same bytes.
 ///
-/// ONE PER `init_impl`, which is NOT one per phase that RAN: the entry call
-/// runs before the loop and the inter-phase call is the LAST statement of a
-/// phase's body, ahead of the next iteration's conditional-skip test. A
+/// ONE PER ANALYSIS OR RE-INITIALIZATION, which is NOT one per phase that RAN:
+/// the entry analysis runs before the first phase and the inter-phase one runs
+/// at the end of a phase, ahead of the next phase's conditional-skip test. A
 /// sequence whose second phase is skipped therefore carries TWO of these and
 /// one phase bracket. The count identity is
 /// `1 + #{phases that ran, were not the last step, and did not break}`.
@@ -482,17 +481,13 @@ struct IpmKktAnalysisTraceEvent {
 /// construction and the pin is `event.report == result.phases[phase]` field for
 /// field on a live solve.
 ///
-/// EMITTED FROM `run_phase_sequence`, right after the report is filled and
-/// before the phase's `end` line. The block it renders was printed at the tail
-/// of `alg_impl`, one statement earlier; nothing between the two writes to the
-/// console, so the transcript's byte ORDER is unchanged.
+/// EMITTED right after the phase's report is filled and before the phase's
+/// `end` line, at the tail of the phase.
 ///
-/// THE STATUS IS THE RESOLVED ONE (`report.status`), which is a DECLARED change
-/// of key and not of bytes. The old verdict line keyed on `alg_impl`'s RAW exit
-/// code, printed before `resolve_ipm_phase_status` ran; resolution only ever
+/// THE STATUS IS THE RESOLVED ONE (`report.status`): the status the phase
+/// returns, not the raw exit code of its iteration loop. Resolution only ever
 /// rewrites `kIterationLimit`, into `kStalled` or `kInterrupted`, and the console
-/// prints `No Solution Found` for all three -- which is the branch the raw
-/// `kIterationLimit` took. The three door fixtures pin that equality.
+/// prints `No Solution Found` for all three.
 ///
 /// THE SELECTED ROW IS BORROWED, on `ipm.iter`'s own convention: the five
 /// values the block prints are read off it and the record's other keys are not
@@ -502,8 +497,8 @@ struct IpmKktAnalysisTraceEvent {
 /// CALLBACK's `f` does not apply to this block and never did.
 ///
 /// THE ROW'S INDEX IN THE HISTORY IS NOT CARRIED, and there is nothing to carry:
-/// the phase loop stamps `Citer.iter = i` and pushes exactly one row per
-/// iteration, so a row's index in the history IS its `iter`. A `selected_iter`
+/// the phase pushes exactly one row per iteration, so a row's index in the
+/// history IS its `iter`. A `selected_iter`
 /// key beside `iter` would be the same number under a second name.
 /// The join to the selected row's `ipm.iter` line is (`phase`, `iter`).
 struct IpmPhaseExitTraceEvent {
@@ -516,20 +511,19 @@ struct IpmPhaseExitTraceEvent {
     Index phase = 0;
     /// True when `return_best` substituted the best iterate for the last one.
     bool best_substituted = false;
-    /// The last non-Success factorization status observed during THIS PHASE
-    /// `alg_impl` resets its status to `Eigen::Success` once per phase, so this
-    /// is a per-phase fact and not a per-call one. Named rather than raw.
+    /// The last non-Success factorization status observed during THIS PHASE.
+    /// It resets once per phase, so this is a per-phase fact and not a per-call
+    /// one. Named rather than raw.
     /// The console prints a line for it only when it is not `kSuccess`.
     IpmKktFactorStatus kkt_factor_status = IpmKktFactorStatus::kSuccess;
-    /// The phase's own four clocks, in SECONDS, from `alg_impl`'s internal
+    /// The phase's own four clocks, in SECONDS, from the phase's internal
     /// timers -- the console multiplies by 1000 and divides by
     /// `report.iterations` for its `ms/iter` column. INFORMATIONAL.
     ///
-    /// TWO CLOCKS, AND THEY ARE NOT THE SAME ONE: `total_s` is `alg_impl`'s own
-    /// `Runtimer` (what the block printed as `Total Time`), while
-    /// `report.phase_seconds` is `run_phase_sequence`'s timer AROUND the
-    /// `alg_impl` call. They differ by the call's own overhead; neither is
-    /// asserted anywhere.
+    /// TWO CLOCKS, AND THEY ARE NOT THE SAME ONE: `total_s` is the phase's own
+    /// timer (what the block prints as `Total Time`), while
+    /// `report.phase_seconds` is a timer around the whole phase. They differ by
+    /// the call's own overhead; neither is asserted anywhere.
     double total_s = 0.0;
     double func_s = 0.0;  ///< NLP function evaluation.
     double kkt_s = 0.0;   ///< KKT factor/solve.

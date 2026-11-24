@@ -48,7 +48,7 @@ struct ResultAccess;
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
-/// "No limit" is an empty optional. An engaged member must be >= 1 (and
+/// "No limit" is an empty optional on every limit. An engaged member must be >= 1 (and
 /// `max_iterations` at most INT_MAX); the solve refuses another value with
 /// std::invalid_argument at entry. With both empty
 /// (the default) the engine's own options decide.
@@ -100,7 +100,7 @@ void validate(const SolveBudget &budget);
 ///
 /// The evaluation counts are model callbacks, counted at the boundary the
 /// solver calls through, and they are PER SOLVE (reset at solve entry).
-///   * An Nlp problem (Problem::from_nlp): every call to the user's Nlp
+///   * An Nlp problem (a Problem built from a shared Nlp): every call to the user's Nlp
 ///     eval_f / eval_grad_f / eval_g / eval_jacobian / eval_hessian made on
 ///     behalf of this solve, by either engine, counts once. Structure, bounds
 ///     and dimension queries are not counted. A value an engine re-uses from
@@ -295,7 +295,7 @@ struct SolveResult {
     /// exceed `2 * feasibility_tol`; a point at or below that takes the no-claim exit
     /// (kNumericalError). At `SqpOptions::restoration_proximity > 0` the driver
     /// also recomputes the certificate residual explicitly at the restored point
-    /// and requires it to be <= kkt_tol.
+    /// and requires it to be <= common.optimality_tol.
     ///
     /// Never set on an interrupted exit: a stop landing on the restoration phase's
     /// converged row leaves that phase's verdict alone (converged beats stop), so the

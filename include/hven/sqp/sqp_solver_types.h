@@ -70,38 +70,6 @@ inline constexpr Index kWarmFullStepWindow = 5;
 /// any lambda and so never flags a small multiplier on an active row.
 inline constexpr double kWeakActivityMargin = 1e-6;
 
-/// @brief Result of a whole SQP solve.
-///
-/// MULTIPLIERS. lambda_e/lambda_i are the LAST SUBPROBLEM'S multipliers, carried
-/// out unchanged -- nlp_model.h's sign convention makes them the NLP's
-/// multipliers at the returned point with no flip. z is NOT the subproblem's z;
-/// it is the MODEL-IMPLIED bound multiplier at the returned point, computed from
-/// grad L there, because the QP's z is forced to 0 at a TR-pinned index.
-///
-/// On a non-kOptimal exit x is the FINAL ITERATE reached and the multipliers are
-/// whatever the last successful subproblem priced -- NOT cleared, because here
-/// they are the caller's evidence about where the driver stopped.
-///
-/// On a certified kInfeasible exit the multipliers mean something stronger and
-/// DIFFERENT, and must not be read as prices of the NLP's own constraints: they
-/// are the RESTORATION problem's multipliers, a SUBGRADIENT CERTIFICATE that the
-/// returned x is a stationary point of h(x) = ||cE(x)||_1 + sum_j max(0, cI_j(x)).
-/// They satisfy
-///     Je(x)^T lambda_e + Ji(x)^T lambda_i - z = 0,
-///     lambda_e in [-1, 1]^me,  lambda_i in [0, 1]^mi,
-///     lambda_e(i) = sign(cE_i(x)) wherever cE_i(x) != 0,
-///     lambda_i(j) = 1 wherever cI_j(x) > 0 and 0 wherever cI_j(x) < 0,
-/// with no grad f term -- which is what makes it a certificate of infeasibility
-/// rather than of optimality. z on this exit is the RESTORATION problem's bound
-/// price for the same reason: grad f is precisely the term a subgradient of h
-/// must not contain.
-///
-/// The one exception is the non-finite-iterate kNumericalError exit, where
-/// lambda_e/lambda_i/z are all cleared: at a NaN iterate nothing was measured. f
-/// is still reported as the model returned it, which is to say possibly NaN.
-///
-/// history describes every iterate visited; whether the last row is an iterate
-/// row or a failing-subproblem row depends on the exit -- see SqpCounters.
 /// @brief What the problem-scaling layer did to a solve, reported on its
 ///        solution.
 ///
@@ -282,7 +250,7 @@ struct SqpConvergence {
     double stationarity = std::numeric_limits<double>::quiet_NaN();
     /// max(||cE||inf, max(cI)+, bound violation) at the returned point.
     double feasibility = std::numeric_limits<double>::quiet_NaN();
-    /// max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at kkt_tol on
+    /// max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at common.optimality_tol on
     /// a kOptimal exit -- see IterationRecord::complementarity.
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// max(stationarity, feasibility). Not the whole convergence test:
@@ -290,6 +258,36 @@ struct SqpConvergence {
     double kkt_residual = std::numeric_limits<double>::quiet_NaN();
 };
 
+/// @brief Result of a whole SQP solve: the base's answer plus this engine's own members.
+///
+/// MULTIPLIERS. `lambda` is one vector over the problem's rows, in the sign
+/// convention documented at SolveResult::lambda, and is the NLP's multiplier vector at the returned
+/// point with no flip. `z` is the model-implied bound multiplier at the returned
+/// point, computed from the Lagrangian gradient there.
+///
+/// On a non-kOptimal exit `x` is the FINAL ITERATE reached and the multipliers
+/// are whatever the last successful subproblem priced -- NOT cleared, because they
+/// are the caller's evidence about where the solve stopped.
+///
+/// On a certified kInfeasible exit the multipliers mean something stronger and
+/// DIFFERENT, and must not be read as prices of the NLP's own constraints: they
+/// are the RESTORATION problem's multipliers, a SUBGRADIENT CERTIFICATE that the
+/// returned x is a stationary point of h(x) = the sum of the rows' violations
+/// (the l1 norm of the equality residuals plus the positive parts of the
+/// inequality ones). Over the rows: the Jacobian-transpose product of `lambda`
+/// minus `z` is zero; an equality row's multiplier lies in [-1, 1] and equals the
+/// sign of its residual wherever that is nonzero; an inequality row's multiplier
+/// lies in [0, 1], is 1 where the row is violated and 0 where it is slack. There
+/// is no objective-gradient term, which is what makes it a certificate of
+/// infeasibility rather than of optimality. `z` on this exit is likewise the
+/// restoration problem's bound price.
+///
+/// The one exception is the non-finite-iterate kNumericalError exit, where
+/// `lambda` and `z` are cleared: at a NaN iterate nothing was measured. `f` is
+/// still reported as the model returned it, which is to say possibly NaN.
+///
+/// `history` describes every iterate visited; whether the last row is an iterate
+/// row or a failing-subproblem row depends on the exit -- see SqpCounters.
 struct SqpResult : SolveResult {
     // The base carries the ANSWER -- status, message, x, lambda, z, f, the
     // shared declared diagnostics, g, iterations, work, wall_seconds and the
@@ -316,7 +314,7 @@ struct SqpResult : SolveResult {
     /// residuals against another solve's: all of those are reported on the
     /// CALLER's scale whatever this says, so they are directly comparable -- but
     /// `scaled_kkt_residual` is the number the convergence test gated on, and on
-    /// an active solve it is the one that was required to be <= kkt_tol.
+    /// an active solve it is the one that was required to be <= common.optimality_tol.
     SqpScalingReport scaling;
 
     /// What SqpOptions::equality_basis did on this solve.

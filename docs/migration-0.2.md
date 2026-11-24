@@ -739,8 +739,8 @@ The source tree was reorganised by engine: public headers that lived in the
 `drivers/` catch-all now live with the component that owns them, the interior
 engine's `interior/` and the `globalization/` directories became `ipm/` and
 per-engine `globalization/` subdirectories, and the tests were re-laid to mirror
-the components. Nothing changed but paths: no symbol, namespace, option or
-behaviour moved (the proof is the P-SYM and counter-identity gates recorded
+the components. Paths moved: no symbol, namespace or option moved; the behaviour
+movers RS-R1 declared are listed in its RESULT (the proof is the P-SYM and counter-identity gates recorded
 under `docs/notes/data/2026-11-m8-rs/gates/`). `docs/notes/data/2026-11-m8-rs/RS-move-map-v2-amended.txt`
 is the complete file-by-file map; the commits are listed in `.git-blame-ignore-revs`.
 

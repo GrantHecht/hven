@@ -168,7 +168,7 @@ class WarmStart {
 };
 
 /// @brief The serialized-format version this build writes, and the only one
-///        `deserialize` accepts.
+///        `deserialize_warm_start` accepts.
 ///
 /// v2 is the DECLARATION-IDENTITY STAMP's format: the key slot is two u64
 /// conjuncts where v1 carried three (u64, i32, u64). v1 payloads are REFUSED
@@ -186,7 +186,7 @@ inline constexpr std::uint32_t kWarmStartFormatVersion = 2;
 ///         The encoding depends on the value alone, never on this process.
 std::vector<std::byte> serialize_warm_start(const WarmStart &data);
 
-/// @brief Decodes a byte sequence written by `serialize`.
+/// @brief Decodes a byte sequence written by `serialize_warm_start`.
 /// @param bytes The encoding, which must be the whole of one value: trailing
 ///        bytes are a refusal, not slack.
 /// @return The decoded value, bit-identical to the one encoded.

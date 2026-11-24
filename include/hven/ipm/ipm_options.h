@@ -69,7 +69,7 @@ struct IpmLinearOptions {
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-    /// When the dense factorization arm is used: `kAuto` (the default; M8 DN-3):
+    /// When the dense factorization arm is used: `kAuto` (the default):
     /// the dense arm for a KKT pattern of order n_kkt <= 167, the library's
     /// threshold for this engine, the sparse backend above it; `kNever`: the
     /// sparse backend always; or `kAlways`, which allocates 8*n_kkt^2 bytes per

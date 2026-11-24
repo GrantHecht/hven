@@ -97,7 +97,7 @@ inline constexpr double kFunnelDelta = 0.999;
 inline constexpr double kFunnelSigma = 1.0e-4;
 
 /// beta and kappa live one level down, in detail::, unlike their five KLV
-/// siblings above: the IPM engine's funnel (detail/globalization/
+/// siblings above: the IPM engine's funnel (detail/ipm/globalization/
 /// funnel_acceptance.h) already defines hven::detail::kFunnelBeta and
 /// hven::detail::kFunnelKappa WITH A DIFFERENT BETA (0.9999 vs KLV's 0.99),
 /// so leaving these at namespace scope would be an ODR violation the linker

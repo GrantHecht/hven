@@ -14,7 +14,8 @@ namespace hven::linear {
 /// `SymmetricFactor::Options` implements all three. Both engines accept all
 /// three; under `kAuto` each supplies its own dimension threshold.
 enum class DensePolicy {
-    /// Always the sparse backend. The default.
+    /// Always the sparse backend. The factor layer's default
+    /// (`SymmetricFactor::Options`); both engines default to `kAuto`.
     kNever,
     /// Always the dense factor.
     kAlways,
