@@ -286,4 +286,6 @@ About 3 hours for the judgement spots; add 1-2 hours if you want to spot-check e
 7. (optional, 60-90 min) Read three `RESULT.txt` files in full, in this order: `RS-1e` (cumulative moves), `RS-6a-r6` (the executable restructure), `RS-R1` (the declared movers). Pick one gate and replay one leg from its `VERDICTS.txt` yourself.
 
 A quick spot-check that needs no build: `git grep -n "hven/drivers\|hven/interior\|detail/globalization" origin/m8 -- include src tests bench examples scripts cmake CMakeLists.txt`
-should find only the intentionally frozen strings (the CSV provenance line at `bench/bench_corpus.cpp`, migration-note tables).
+finds two comment-only hits at `origin/m8`: `include/hven/detail/sqp/globalization/funnel.h:100` (a stale
+`detail/globalization/` reference) and `tests/core/test_layering.cpp:24` (a historical comment). Both are stale prose RS-3 and
+RS-R1 missed; no include or CMake path uses an old directory.
