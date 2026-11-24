@@ -41,7 +41,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ############### Options #########################################################
 ################################################################################
 
-option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
+# ON when hven is the top-level project; OFF under add_subdirectory(), so a consumer does
+# not pull Google Test over the network (FetchContent) just by adding hven to its tree.
+option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ${PROJECT_IS_TOP_LEVEL})
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
 # ON when hven is the top-level project (the examples are part of the normal build and

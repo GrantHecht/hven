@@ -4,6 +4,40 @@
 
 include(FetchContent)
 
+# Fail early and legibly when Google Test cannot be fetched. FetchContent's own
+# failure is a git-clone error deep in a sub-build; this names the switch that
+# makes the network unnecessary. Skipped when googletest is already available
+# without a download: a populated cache, or a user-supplied source directory.
+set(_hven_gtest_url "https://github.com/google/googletest.git")
+set(_hven_gtest_tag "v1.17.0")
+if(NOT FETCHCONTENT_SOURCE_DIR_GOOGLETEST
+   AND NOT EXISTS "${FETCHCONTENT_BASE_DIR}/googletest-src/CMakeLists.txt")
+    set(_hven_gtest_reachable FALSE)
+    if(NOT FETCHCONTENT_FULLY_DISCONNECTED AND NOT FETCHCONTENT_UPDATES_DISCONNECTED)
+        find_package(Git QUIET)
+        if(GIT_FOUND)
+            execute_process(
+                COMMAND "${GIT_EXECUTABLE}" ls-remote --exit-code "${_hven_gtest_url}" "${_hven_gtest_tag}"
+                RESULT_VARIABLE _hven_gtest_probe_result
+                OUTPUT_QUIET ERROR_QUIET
+                TIMEOUT 30)
+            if(_hven_gtest_probe_result EQUAL 0)
+                set(_hven_gtest_reachable TRUE)
+            endif()
+        else()
+            # No git to probe with; let FetchContent try (and report) itself.
+            set(_hven_gtest_reachable TRUE)
+        endif()
+    endif()
+    if(NOT _hven_gtest_reachable)
+        message(FATAL_ERROR
+            "hven: HVEN_BUILD_TESTS=ON needs Google Test (${_hven_gtest_tag}) from "
+            "${_hven_gtest_url}, which could not be reached (no network?). "
+            "Configure with -DHVEN_BUILD_TESTS=OFF to build hven without its test suite, "
+            "or point -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=<path> at a local googletest checkout.")
+    endif()
+endif()
+
 # EXCLUDE_FROM_ALL is a CMake >= 3.28 FetchContent_Declare keyword; this
 # project's floor is cmake_minimum_required(VERSION 3.24) (root
 # CMakeLists.txt), so it is omitted here rather than silently accepted-but-
@@ -15,8 +49,8 @@ include(FetchContent)
 # gmock_main compile even though the test executables below link gtest_main only.
 FetchContent_Declare(
     googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.17.0
+    GIT_REPOSITORY ${_hven_gtest_url}
+    GIT_TAG        ${_hven_gtest_tag}
     GIT_SHALLOW    TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

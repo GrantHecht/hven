@@ -47,7 +47,9 @@ needs) and the CMake package files under `<prefix>/lib64/cmake/hven` (or
 `lib/cmake/hven`, depending on your platform's `GNUInstallDirs`).
 
 A build in tree also builds `examples/` and the test suite; pass
-`-DHVEN_BUILD_TESTS=OFF` to skip the latter. Developing hven itself: prefer a
+`-DHVEN_BUILD_TESTS=OFF` to skip the latter (the tests fetch Google Test over
+the network at configure time; when hven is added with `add_subdirectory` the
+test suite defaults to OFF). Developing hven itself: prefer a
 Debug build, which keeps Eigen's runtime asserts on, and verify in Release.
 
 ### Use it from your CMake project
