@@ -191,4 +191,4 @@ NEW 20) and TU-2 `TU2_NO_LOSS_NO_FALSE_CERT`, output byte-identical to the origi
 
 ## (g) CI
 
-CI_PLACEHOLDER
+`gh workflow run ci.yml --ref rf1c`, run **45350559259** at head `352fa177f` (code `130baf690` plus the test fixture commit; src/include unchanged since `130baf690`), watched with `gh run watch --interval 120`: **linux-clang-release, linux-clang-coverage, macos-clang-release and windows-clang-release all green** on the first pass (no re-run). Nothing UNOBSERVED. The commit recording this line is docs-only.
