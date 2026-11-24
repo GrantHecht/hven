@@ -14,6 +14,12 @@
 // F4MovingConstraints, F6PathBoundQuadrature, F7CollocationChain; `size` is the family's size
 // (F3 chain length, F6 mesh nodes, F7 collocation nodes; ignored by F2 and F4); `p` is the
 // design point.
+//
+// The `sensfix` family (sets sensfix-x, sensfix-q): `family` is one of F-CYC, F-H, F-SOC, F-CAP,
+// the four radius fixtures of tests/sqp/support/i19_radius_fixtures.h, each solved at the
+// parameters pinned there (objective scale, SOC, iteration limit, cap, start point). `p` is the
+// fixture's radius rho and `caller_step_limit` its cap, both written in the file for the reader
+// and checked against the fixture (a drifted file is refused); `size` is 0.
 
 #include <cmath>
 #include <cstdlib>
@@ -32,6 +38,7 @@
 
 #include "model/support/parametric_families.h"
 #include "model/support/scale_problems.h"
+#include "sqp/support/i19_radius_fixtures.h"
 
 namespace hven::bench::i19 {
 
@@ -131,8 +138,36 @@ inline std::vector<SensCell> parse_cells(std::istream &in) {
     return cells;
 }
 
+/// The in-repo radius fixtures (the `sensfix` family), by the `family` column.
+inline bool is_fixture(const SensCell &c) {
+    return c.family == "F-CYC" || c.family == "F-H" || c.family == "F-SOC" || c.family == "F-CAP";
+}
+
+/// The fixture a `sensfix` cell names, in the cell's Hessian mode. Throws when the cell's `p`
+/// (rho) or `caller_step_limit` disagrees with the pinned fixture.
+inline hven::test_support::I19Fixture make_fixture(const SensCell &c) {
+    using namespace hven::test_support;
+    const SqpHessianMode mode =
+        c.base == "sqp-qn" ? SqpHessianMode::kLbfgsDamped : SqpHessianMode::kExact;
+    I19Fixture f = c.family == "F-CYC"   ? f_cyc(mode)
+                   : c.family == "F-H"   ? f_h(mode)
+                   : c.family == "F-SOC" ? f_soc(mode)
+                                         : f_cap(mode);
+    if (c.p != f.model->rho || c.caller_step_limit != f.options.caller_step_limit) {
+        throw std::invalid_argument(fmt::format(
+            "i19 grid: cell {} (p {}, cap {}) disagrees with the pinned {} (rho {}, cap {})",
+            c.cell_id, c.p, c.caller_step_limit, c.family, f.model->rho,
+            f.options.caller_step_limit));
+    }
+    return f;
+}
+
 inline std::unique_ptr<detail::ParametricNlpModel> make_model(const SensCell &c) {
     using namespace hven::test_support;
+    if (is_fixture(c)) {
+        (void)make_fixture(c); // validation only: the fixture is solved through run_cell
+        return nullptr;
+    }
     if (c.family == "F2CircleNlp") {
         return std::make_unique<F2CircleNlp>(c.p);
     }
@@ -211,7 +246,7 @@ inline void apply_set(SqpOptions &o, const std::string &kv) {
 /// The cell's options: silent, the base's Hessian mode, the cell's cap, then every `--set` in
 /// order (a `--set caller_step_limit` overrides the cell's). Validated.
 inline SqpOptions cell_options(const SensCell &c, const std::vector<std::string> &sets) {
-    SqpOptions o;
+    SqpOptions o = is_fixture(c) ? make_fixture(c).options : SqpOptions{};
     o.common.verbosity = Verbosity::kSilent;
     o.hessian_mode = c.base == "sqp-qn" ? SqpHessianMode::kLbfgsDamped : SqpHessianMode::kExact;
     o.caller_step_limit = c.caller_step_limit;
@@ -310,6 +345,11 @@ inline std::string csv_row(const SensCell &c, const std::vector<std::string> &se
 /// One cold solve of one cell.
 inline SqpResult run_cell(const SensCell &c, const std::vector<std::string> &sets) {
     const SqpOptions o = cell_options(c, sets);
+    if (is_fixture(c)) {
+        const hven::test_support::I19Fixture f = make_fixture(c);
+        Problem p(f.model);
+        return SqpSolver(o).solve(p, f.x0);
+    }
     std::unique_ptr<detail::ParametricNlpModel> model = make_model(c);
     return SqpSolver(o).solve(detail::problem_ref(*model), model->start_point());
 }

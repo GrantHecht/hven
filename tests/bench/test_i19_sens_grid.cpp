@@ -110,15 +110,56 @@ TEST(I19SensGrid, TheFrozenCellFileParsesAndEveryCellBuilds) {
     std::ifstream in(HVEN_I19_SENS_P_CELLS);
     ASSERT_TRUE(in) << HVEN_I19_SENS_P_CELLS;
     const std::vector<SensCell> cells = bench::i19::parse_cells(in);
-    EXPECT_EQ(cells.size(), 96u);
+    EXPECT_EQ(cells.size(), 104u) << "96 parametric cells + 8 sensfix cells";
     std::set<std::string> sets;
     for (const SensCell &c : cells) {
         sets.insert(c.set);
         EXPECT_NO_THROW((void)bench::i19::make_model(c)) << c.cell_id;
-        EXPECT_EQ(c.caller_step_limit > 0.0, c.set.rfind("senscap", 0) == 0) << c.cell_id;
+        EXPECT_EQ(c.caller_step_limit > 0.0, c.set.rfind("senscap", 0) == 0 || c.family == "F-CAP")
+            << c.cell_id;
+        EXPECT_EQ(bench::i19::is_fixture(c), c.set.rfind("sensfix", 0) == 0) << c.cell_id;
         EXPECT_EQ(c.base == "sqp-qn", c.set.back() == 'q') << c.cell_id;
     }
-    EXPECT_EQ(sets, (std::set<std::string>{"sens-x", "sens-q", "senscap-x", "senscap-q"}));
+    EXPECT_EQ(sets, (std::set<std::string>{"sens-x", "sens-q", "senscap-x", "senscap-q",
+                                           "sensfix-x", "sensfix-q"}));
+}
+
+TEST(I19SensGrid, TheSensfixCellsRunTheFourFixturesAtTheirPinnedParameters) {
+    std::ifstream in(HVEN_I19_SENS_P_CELLS);
+    ASSERT_TRUE(in);
+    std::size_t fixtures = 0;
+    for (const SensCell &c : bench::i19::parse_cells(in)) {
+        if (!bench::i19::is_fixture(c)) {
+            continue;
+        }
+        ++fixtures;
+        const hven::test_support::I19Fixture f = bench::i19::make_fixture(c);
+        const SqpOptions o = bench::i19::cell_options(c, {});
+        EXPECT_EQ(o.advanced.second_order_correction, f.options.advanced.second_order_correction)
+            << c.cell_id;
+        EXPECT_EQ(o.common.max_iterations, f.options.common.max_iterations) << c.cell_id;
+        EXPECT_EQ(o.caller_step_limit, f.options.caller_step_limit) << c.cell_id;
+        EXPECT_EQ(o.hessian_mode, f.options.hessian_mode) << c.cell_id;
+        EXPECT_EQ(o.common.verbosity, Verbosity::kSilent);
+        // The grid solve is the fixture's own solve (same options, same start): same counters.
+        const SqpResult g = bench::i19::run_cell(c, {});
+        const SqpResult ref = test_support::i19_solve(f);
+        EXPECT_EQ(g.status, SolveStatus::kOptimal) << c.cell_id;
+        EXPECT_EQ(g.counters.major_iters, ref.counters.major_iters) << c.cell_id;
+        EXPECT_EQ(g.work.factorizations, ref.work.factorizations) << c.cell_id;
+        EXPECT_EQ(g.counters.rejected_steps, ref.counters.rejected_steps) << c.cell_id;
+        // An arm's --set reaches the fixture's options.
+        EXPECT_TRUE(bench::i19::cell_options(c, {"advanced.trust_region_shrink_to_step=true"})
+                        .advanced.trust_region_shrink_to_step);
+    }
+    EXPECT_EQ(fixtures, 8u);
+    // A cell whose rho or cap drifts from the fixture is refused.
+    EXPECT_THROW(bench::i19::make_fixture(
+                     SensCell{"c", "sensfix-x", "F-CAP", "default", "F-CAP", 0, 100.0, 0.0}),
+                 std::invalid_argument);
+    EXPECT_THROW(
+        bench::i19::make_fixture(SensCell{"c", "sensfix-x", "F-H", "default", "F-H", 0, 31.0, 0.0}),
+        std::invalid_argument);
 }
 
 TEST(I19SensGrid, ACellSolvesAndItsRowMatchesTheHeader) {

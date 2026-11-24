@@ -97,3 +97,13 @@ senscap-x-F7-n30-p0.68	senscap-x	F7-n30-p0.68	default	F7CollocationChain	30	0.68
 senscap-q-F7-n30-p0.68	senscap-q	F7-n30-p0.68	sqp-qn	F7CollocationChain	30	0.68	0.1
 senscap-x-F7-n30-p0.85	senscap-x	F7-n30-p0.85	default	F7CollocationChain	30	0.85	0.1
 senscap-q-F7-n30-p0.85	senscap-q	F7-n30-p0.85	sqp-qn	F7CollocationChain	30	0.85	0.1
+# sensfix: the four radius fixtures (tests/sqp/support/i19_radius_fixtures.h) at their pinned parameters,
+# both Hessian modes; p = rho, caller_step_limit = the fixture cap (checked against the fixture).
+sensfix-x-F-CYC	sensfix-x	F-CYC	default	F-CYC	0	100	0
+sensfix-q-F-CYC	sensfix-q	F-CYC	sqp-qn	F-CYC	0	100	0
+sensfix-x-F-H	sensfix-x	F-H	default	F-H	0	30	0
+sensfix-q-F-H	sensfix-q	F-H	sqp-qn	F-H	0	30	0
+sensfix-x-F-SOC	sensfix-x	F-SOC	default	F-SOC	0	100	0
+sensfix-q-F-SOC	sensfix-q	F-SOC	sqp-qn	F-SOC	0	100	0
+sensfix-x-F-CAP	sensfix-x	F-CAP	default	F-CAP	0	100	0.1
+sensfix-q-F-CAP	sensfix-q	F-CAP	sqp-qn	F-CAP	0	100	0.1
