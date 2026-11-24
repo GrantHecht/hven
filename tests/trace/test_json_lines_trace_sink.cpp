@@ -842,6 +842,8 @@ const char *spec_spelling(StopReason v) {
         return "\"trust_region_floor\"";
     case StopReason::kRestorationWorkLimit:
         return "\"restoration_work_limit\"";
+    case StopReason::kRestorationNoProgress:
+        return "\"restoration_no_progress\"";
     }
     return kUnspelled;
 }
@@ -997,7 +999,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpmRestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
-    static_assert(static_cast<int>(StopReason::kRestorationWorkLimit) == 18 - 1, "18 stop reasons");
+    static_assert(static_cast<int>(StopReason::kRestorationNoProgress) == 19 - 1,
+                  "19 stop reasons");
     static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
                   "4 factorization statuses");
     static_assert(static_cast<int>(MessageKind::kStopAtIteration) == 17 - 1, "17 message kinds");
@@ -1231,7 +1234,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
           StopReason::kInconsistentEqualities, StopReason::kRestorationRefused,
           StopReason::kRestorationNonFinite, StopReason::kRestorationNoClaim,
           StopReason::kRestorationFailed, StopReason::kSubproblemIterationLimit,
-          StopReason::kTrustRegionFloor, StopReason::kRestorationWorkLimit}) {
+          StopReason::kTrustRegionFloor, StopReason::kRestorationWorkLimit,
+          StopReason::kRestorationNoProgress}) {
         stop_reason(v);
     }
 
@@ -3202,7 +3206,11 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 121 -> 129 at M8 RF-1 (A + B2), the four `qp_retry_rung_*` counters, `qp_retry_replays`,
     // `qp_failure_box_projections`, `trust_region_floor_exits` and `soc_qp_iteration_limits`,
     // appended after PF-5's one, the same route, by eight keys.
-    EXPECT_EQ(kSqpCountersFieldCount, 129u);
+    //
+    // 129 -> 132 at M8 RST-B, `restoration_factorizations`, `restoration_unproductive_entries` and
+    // `restoration_no_progress_refusals`, appended after RF-1's eight, the same route, by three
+    // keys.
+    EXPECT_EQ(kSqpCountersFieldCount, 132u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -3850,29 +3858,30 @@ std::string distinct_counters_json() {
            "der_refine\":124,\"symbolic_analysis_reuses\":125,\"qp_retry_rung_shrink\":126,\"q"
            "p_retry_rung_cold\":127,\"qp_retry_rung_algebra\":128,\"qp_retry_rung_regularizati"
            "on\":129,\"qp_retry_replays\":130,\"qp_failure_box_projections\":131,\"trust_regio"
-           "n_floor_exits\":132,\"soc_qp_iteration_limits\":133,\"ssn\":{\"ssn_iters\":134,\"s"
-           "sn_bulk_flips\":135,\"ssn_backtracks\":136,\"ssn_prox_updates\":137,\"ssn_escapes\""
-           ":138,\"ssn_uncertain_peak\":139,\"ssn_refinements\":140,\"ssn_refine_refused\":141"
-           ",\"ssn_refine_factorizations\":142,\"ssn_refine_neg_duals\":143,\"ssn_sign_swept\""
-           ":144,\"ssn_sign_sweep_max\":145,\"ssn_escape_budget\":146,\"ssn_escape_singular\":"
-           "147,\"ssn_escape_no_contraction\":148,\"ssn_escape_infeasible_suspect\":149,\"ssn_"
-           "escape_indefinite\":150,\"ssn_escape_gate_refused\":151},\"ipqp\":{\"ipqp_iters\":"
-           "152,\"ipqp_factorizations\":153,\"ipqp_symbolic_analyses\":154,\"ipqp_solves\":155"
-           ",\"ipqp_pattern_verifies\":156,\"ipqp_rho_demanded_max\":157,\"ipqp_rho_demanded_l"
-           "ast\":158,\"ipqp_inertia_retries\":159,\"ipqp_iters_at_elevated_rho\":160,\"ipqp_l"
-           "adder_reclimbs\":161,\"ipqp_pivot_reroute_primal\":162,\"ipqp_pivot_reroute_dual_f"
-           "allback\":163,\"ipqp_iters_ladder_armed_no_advance\":164,\"ipqp_final_inertia_read"
-           "\":165,\"ipqp_reg_decreases\":166,\"ipqp_reg_increases\":167,\"ipqp_prox_center_up"
-           "dates\":168,\"ipqp_restart_repairs\":169,\"ipqp_restart_shift_max\":170,\"ipqp_mu_"
-           "adopted\":171,\"ipqp_warm_restart_abandoned\":172,\"ipqp_declined_pinned\":173,\"i"
-           "pqp_tier_retired_after\":174,\"ipqp_face_uncertain\":175,\"ipqp_refine_accepted\":"
-           "176,\"ipqp_refine_refused\":177,\"ipqp_to_refine\":178,\"ipqp_to_ssn\":179,\"ipqp_"
-           "to_walk\":180,\"ipqp_escapes\":181,\"ipqp_escape_budget\":182,\"ipqp_escape_stall\""
-           ":183,\"ipqp_escape_indefinite\":184,\"ipqp_escape_numerical\":185,\"ipqp_escape_in"
-           "feasible_suspect\":186,\"ipqp_alpha_p_min\":187,\"ipqp_alpha_d_min\":188,\"ipqp_re"
-           "ad_kept_tight_sides\":189,\"ipqp_read_barrier_noise_sides\":190,\"ipqp_mu0_derived"
-           "\":191,\"ipqp_mu0_fallbacks\":192,\"ipqp_mu_floor_binds\":193,\"ipqp_ladder_zero_t"
-           "rial_skips\":194}}";
+           "n_floor_exits\":132,\"soc_qp_iteration_limits\":133,\"restoration_factorizations\""
+           ":134,\"restoration_unproductive_entries\":135,\"restoration_no_progress_refusals\""
+           ":136,\"ssn\":{\"ssn_iters\":137,\"ssn_bulk_flips\":138,\"ssn_backtracks\":139,\"ss"
+           "n_prox_updates\":140,\"ssn_escapes\":141,\"ssn_uncertain_peak\":142,\"ssn_refineme"
+           "nts\":143,\"ssn_refine_refused\":144,\"ssn_refine_factorizations\":145,\"ssn_refin"
+           "e_neg_duals\":146,\"ssn_sign_swept\":147,\"ssn_sign_sweep_max\":148,\"ssn_escape_b"
+           "udget\":149,\"ssn_escape_singular\":150,\"ssn_escape_no_contraction\":151,\"ssn_es"
+           "cape_infeasible_suspect\":152,\"ssn_escape_indefinite\":153,\"ssn_escape_gate_refu"
+           "sed\":154},\"ipqp\":{\"ipqp_iters\":155,\"ipqp_factorizations\":156,\"ipqp_symboli"
+           "c_analyses\":157,\"ipqp_solves\":158,\"ipqp_pattern_verifies\":159,\"ipqp_rho_dema"
+           "nded_max\":160,\"ipqp_rho_demanded_last\":161,\"ipqp_inertia_retries\":162,\"ipqp_"
+           "iters_at_elevated_rho\":163,\"ipqp_ladder_reclimbs\":164,\"ipqp_pivot_reroute_prim"
+           "al\":165,\"ipqp_pivot_reroute_dual_fallback\":166,\"ipqp_iters_ladder_armed_no_adv"
+           "ance\":167,\"ipqp_final_inertia_read\":168,\"ipqp_reg_decreases\":169,\"ipqp_reg_i"
+           "ncreases\":170,\"ipqp_prox_center_updates\":171,\"ipqp_restart_repairs\":172,\"ipq"
+           "p_restart_shift_max\":173,\"ipqp_mu_adopted\":174,\"ipqp_warm_restart_abandoned\":"
+           "175,\"ipqp_declined_pinned\":176,\"ipqp_tier_retired_after\":177,\"ipqp_face_uncer"
+           "tain\":178,\"ipqp_refine_accepted\":179,\"ipqp_refine_refused\":180,\"ipqp_to_refi"
+           "ne\":181,\"ipqp_to_ssn\":182,\"ipqp_to_walk\":183,\"ipqp_escapes\":184,\"ipqp_esca"
+           "pe_budget\":185,\"ipqp_escape_stall\":186,\"ipqp_escape_indefinite\":187,\"ipqp_es"
+           "cape_numerical\":188,\"ipqp_escape_infeasible_suspect\":189,\"ipqp_alpha_p_min\":1"
+           "90,\"ipqp_alpha_d_min\":191,\"ipqp_read_kept_tight_sides\":192,\"ipqp_read_barrier"
+           "_noise_sides\":193,\"ipqp_mu0_derived\":194,\"ipqp_mu0_fallbacks\":195,\"ipqp_mu_f"
+           "loor_binds\":196,\"ipqp_ladder_zero_trial_skips\":197}}";
 }
 
 /// The `counters` object for a default-constructed `SqpCounters`.
@@ -3919,27 +3928,29 @@ std::string default_counters_json() {
            "backend_solve_refine_border_refine\":0,\"symbolic_analysis_reuses\":0,\"qp_retry_r"
            "ung_shrink\":0,\"qp_retry_rung_cold\":0,\"qp_retry_rung_algebra\":0,\"qp_retry_run"
            "g_regularization\":0,\"qp_retry_replays\":0,\"qp_failure_box_projections\":0,\"tru"
-           "st_region_floor_exits\":0,\"soc_qp_iteration_limits\":0,\"ssn\":{\"ssn_iters\":0,\""
-           "ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\""
-           "ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine"
-           "_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_swe"
-           "ep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contr"
-           "action\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_e"
-           "scape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipq"
-           "p_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_d"
-           "emanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_ite"
-           "rs_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,"
-           "\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\""
-           "ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ip"
-           "qp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0"
-           ",\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":"
-           "0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepte"
-           "d\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_w"
-           "alk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp"
-           "_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspec"
-           "t\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_s"
-           "ides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fal"
-           "lbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}}";
+           "st_region_floor_exits\":0,\"soc_qp_iteration_limits\":0,\"restoration_factorizatio"
+           "ns\":0,\"restoration_unproductive_entries\":0,\"restoration_no_progress_refusals\""
+           ":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_u"
+           "pdates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_"
+           "refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ss"
+           "n_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_sin"
+           "gular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ss"
+           "n_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,"
+           "\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pa"
+           "ttern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp"
+           "_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\""
+           "ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_"
+           "ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0"
+           ",\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":"
+           "0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned"
+           "\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncer"
+           "tain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0"
+           ",\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,"
+           "\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\""
+           "ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":"
+           "null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_m"
+           "u0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_ze"
+           "ro_trial_skips\":0}}";
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSolveEndSqpBlockWithEveryCounterDistinct) {

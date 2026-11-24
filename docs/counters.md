@@ -393,6 +393,17 @@ one of those three therefore cannot silently miss the trace.
   handed back their last solved rung (`SqpOptions::elastic_last_optimal_rung`);
   it folds from the restoration sub-solve like `elastic_escalations`.
 
+  **THE ENTRY GROUP** (M8 RST-B, appended last). `restoration_factorizations` counts
+  the factorizations the phases' sub-solves added to `factorizations` (every run of
+  every phase), so `factorizations - restoration_factorizations` is the main loop's
+  own. `restoration_unproductive_entries` counts the later restoration requests (after
+  a resume) with no step from a solved subproblem accepted since that resume -- a
+  main QP that ended `optimal`, an optimal elastic rung, a SOC on either; a failed
+  subproblem's own step does not count -- whether serviced or refused.
+  `restoration_no_progress_refusals` counts the later requests the progress test
+  across entries finds inadmissible, whether or not it refused them. None of the
+  three folds: the sub-solve never restores.
+
   **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
   and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN
   stages 1-3 review, `qn_dimension` at the QN-quality riders). `eval_hess_calls` counts every Lagrangian-Hessian
@@ -423,7 +434,8 @@ one of those three therefore cannot silently miss the trace.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the entry rule (`SqpOptions::max_restoration_entries` and its
-  progress guard) and a spent budget never enter the phase;
+  progress guard, whose refusal is `restoration_no_progress`) and a spent budget never
+  enter the phase;
   the non-finite exit entered it and measured nothing, and the driver's rule
   there is that nothing unmeasured may be reported as evidence. Nothing folds
   from the restoration sub-solve either: nested restoration is refused, so its

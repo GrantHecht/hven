@@ -925,6 +925,9 @@ group; `SqpOptions::hessian_mode`).
 | `qp_failure_box_projections` | integer | `SqpCounters::qp_failure_box_projections` | failed subproblems ended by a stagnation stop whose iterate was projected onto the subproblem's box (trust-region window included) before the retryable test (M8 RF-1) |
 | `trust_region_floor_exits` | integer | `SqpCounters::trust_region_floor_exits` | solves ended at the trust-region floor at a feasible point whose last rejected step promised less than the objective's rounding floor (StopReason::kTrustRegionFloor) (M8 RF-1) |
 | `soc_qp_iteration_limits` | integer | `SqpCounters::soc_qp_iteration_limits` | second-order-correction re-solves that ended at their minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged (M8 RF-1) |
+| `restoration_factorizations` | integer | `SqpCounters::restoration_factorizations` | factorizations the restoration phases' sub-solves added to `factorizations` (M8 RST-B) |
+| `restoration_unproductive_entries` | integer | `SqpCounters::restoration_unproductive_entries` | later restoration requests with no step from a solved subproblem accepted since the previous resume, serviced or refused (M8 RST-B) |
+| `restoration_no_progress_refusals` | integer | `SqpCounters::restoration_no_progress_refusals` | later restoration requests the progress test across entries finds inadmissible, refused or not (M8 RST-B) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two

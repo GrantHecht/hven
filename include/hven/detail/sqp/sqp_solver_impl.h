@@ -393,8 +393,8 @@ bool project_onto_subproblem_box(const QpProblem &qp, double window, Vec &x);
 /// @brief May a top-level exit with @p status and @p reason be labelled kAcceptable (RF-1)?
 /// @return True for the failure exits the label is defined over: kNumericalError beside
 ///         kSubproblemFailure, kRestorationRefused, kRestorationFailed or kRestorationNoClaim, and
-///         kStalled beside kSubproblemIterationLimit, kTrustRegionFloor or
-///         kRestorationWorkLimit. False for every other
+///         kStalled beside kSubproblemIterationLimit, kTrustRegionFloor,
+///         kRestorationWorkLimit or kRestorationNoProgress. False for every other
 ///         pair -- the limits, interrupts, kInfeasible and the non-finite exits name a cause the
 ///         caller acts on.
 bool sqp_exit_is_labelable(SolveStatus status, StopReason reason);

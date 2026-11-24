@@ -13377,7 +13377,7 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                                     SolveStatus::kWorkLimit,      SolveStatus::kTimeLimit};
     int labelable = 0;
     for (const SolveStatus s : statuses) {
-        for (int r = 0; r <= static_cast<int>(StopReason::kRestorationWorkLimit); ++r) {
+        for (int r = 0; r <= static_cast<int>(StopReason::kRestorationNoProgress); ++r) {
             const auto reason = static_cast<StopReason>(r);
             const bool expect =
                 (s == SolveStatus::kNumericalError &&
@@ -13387,13 +13387,14 @@ TEST(Rf1AcceptableLabel, OnlyTheFailureExitsAreLabelable) {
                   reason == StopReason::kRestorationNoClaim)) ||
                 (s == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
                                                 reason == StopReason::kTrustRegionFloor ||
-                                                reason == StopReason::kRestorationWorkLimit));
+                                                reason == StopReason::kRestorationWorkLimit ||
+                                                reason == StopReason::kRestorationNoProgress));
             EXPECT_EQ(sqp_exit_is_labelable(s, reason), expect)
                 << to_string(s) << " / " << to_string(reason);
             labelable += expect ? 1 : 0;
         }
     }
-    EXPECT_EQ(labelable, 7);
+    EXPECT_EQ(labelable, 8);
 }
 
 // RF-1 design 3.1: each rung's skip rule, and the order.
@@ -13443,6 +13444,70 @@ TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
     EXPECT_EQ(choose_retry_rung(used), RetryRung::kAlgebra);
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-8), 1e-6);
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
+}
+
+// RST-B: the progress test across restoration entries, on the ledger object. A request before any
+// resume is not tested; a later one is productive iff a step from a solved subproblem was accepted
+// since the last resume; failure steps do not count; a productive interval clears the run.
+TEST(RstbEntryLedger, TheFirstRequestIsNeverTested) {
+    hven::detail::RestorationEntryLedger ledger;
+    ledger.note_accept(false);
+    const hven::detail::RestorationEntryVerdict v = ledger.judge(0);
+    EXPECT_FALSE(v.tested);
+    EXPECT_TRUE(v.admissible) << "even at a tolerance of 0";
+    EXPECT_EQ(ledger.unproductive_run(), 0);
+}
+
+TEST(RstbEntryLedger, FailureStepsAloneAreUnproductiveAndTheSecondRunIsRefusedAtOne) {
+    hven::detail::RestorationEntryLedger ledger;
+    EXPECT_TRUE(ledger.judge(1).admissible); // the first entry
+    ledger.record_resume();
+    ledger.note_accept(false);
+    ledger.note_accept(false);
+    const hven::detail::RestorationEntryVerdict first = ledger.judge(1);
+    EXPECT_TRUE(first.tested);
+    EXPECT_FALSE(first.productive);
+    EXPECT_TRUE(first.admissible) << "one unproductive re-entry is tolerated at 1";
+    ledger.record_resume();
+    ledger.note_accept(false);
+    const hven::detail::RestorationEntryVerdict second = ledger.judge(1);
+    EXPECT_FALSE(second.productive);
+    EXPECT_FALSE(second.admissible) << "the second in a row is not";
+    EXPECT_EQ(ledger.unproductive_run(), 2);
+}
+
+TEST(RstbEntryLedger, ASolvedStepMakesTheIntervalProductiveAndClearsTheRun) {
+    hven::detail::RestorationEntryLedger ledger;
+    (void)ledger.judge(1);
+    ledger.record_resume();
+    EXPECT_TRUE(ledger.judge(1).admissible); // unproductive, run 1
+    ledger.record_resume();
+    ledger.note_accept(false);
+    ledger.note_accept(true);
+    const hven::detail::RestorationEntryVerdict v = ledger.judge(1);
+    EXPECT_TRUE(v.productive);
+    EXPECT_TRUE(v.admissible);
+    EXPECT_EQ(ledger.unproductive_run(), 0);
+    ledger.record_resume();
+    EXPECT_TRUE(ledger.judge(1).admissible) << "the run starts again from zero";
+    EXPECT_EQ(ledger.unproductive_run(), 1);
+    // A resume forgets the previous interval's solved step.
+    ledger.note_accept(true);
+    ledger.record_resume();
+    EXPECT_FALSE(ledger.judge(1).productive);
+}
+
+TEST(RstbEntryLedger, ToleranceZeroRefusesEveryUnproductiveReEntryAndALargeOneNone) {
+    hven::detail::RestorationEntryLedger zero;
+    hven::detail::RestorationEntryLedger large;
+    EXPECT_TRUE(zero.judge(0).admissible);
+    EXPECT_TRUE(large.judge(1000).admissible);
+    for (int k = 0; k < 20; ++k) {
+        zero.record_resume();
+        large.record_resume();
+        EXPECT_FALSE(zero.judge(0).admissible) << k;
+        EXPECT_TRUE(large.judge(1000).admissible) << k;
+    }
 }
 
 // RF-1 ruling S-1 as amended by RF-1c: the phase's stall window. A flat best h is cut at the window

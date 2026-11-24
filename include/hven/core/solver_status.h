@@ -35,8 +35,8 @@ enum class QpStatus {
 /// subproblem or restoration exit that would otherwise be kNumericalError or
 /// kStalled -- whose returned point passes SqpOptions::termination's acceptable
 /// tier (stop reason kNone; the exit it came from is named in the message), and
-/// kStalled only through StopReason::kSubproblemIterationLimit, kTrustRegionFloor and
-/// kRestorationWorkLimit. Both report
+/// kStalled only through StopReason::kSubproblemIterationLimit, kTrustRegionFloor,
+/// kRestorationWorkLimit and kRestorationNoProgress. Both report
 /// kInterrupted -- what a per-iteration callback returning CallbackAction::kStop gets, at the point
 /// the engine was standing on
 /// -- and both report kWorkLimit and kTimeLimit.
@@ -51,8 +51,8 @@ enum class QpStatus {
 /// - Not certified: the sub-solve converged with h above feasibility_tol but the
 ///   certificate gate refused it (restoration_proximity > 0), or the
 ///   inconsistent-equalities exit. No claim is made about the model.
-/// An unserviceable restoration request (nested, or refused by the entry rule)
-/// is kNumericalError (kAcceptable at an acceptable point), never kInfeasible.
+/// An unserviceable restoration request is never kInfeasible: nested or past the entry cap it is
+/// kNumericalError, refused for want of progress kStalled (kAcceptable at an acceptable point).
 ///
 /// A solve that exhausts its major-iteration cap reports kIterationLimit;
 /// SolveResult::returned_best_iterate says whether the point returned is the
@@ -210,6 +210,10 @@ enum class StopReason {
     /// resume
     /// gates refused. Verdict kStalled (kAcceptable at an acceptable point). SQP.
     kRestorationWorkLimit = 17,
+    /// A later restoration request was refused because the main loop accepted no step since the
+    /// previous resume. Verdict kStalled (kAcceptable at an acceptable point), never
+    /// kInfeasible. SQP.
+    kRestorationNoProgress = 18,
 };
 
 /// @brief The kind of a trace/console `message` (both engines).
@@ -242,7 +246,7 @@ enum class MessageKind {
     /// A restoration ended: `s` resumed|locally_infeasible|failed|non_finite|interrupted,
     /// `a` the violation at exit, `b` the threshold judged against.
     kRestorationExited = 9,
-    /// (SQP) A restoration was refused: `s` nested|entry_rule|budget.
+    /// (SQP) A restoration was refused: `s` nested|entry_rule|budget|no_progress.
     kRestorationRefused = 10,
     /// (SQP) A subproblem failed: `s` iteration_limit|numerical_error|non_finite, `k` in a row.
     kSubproblemFailure = 11,

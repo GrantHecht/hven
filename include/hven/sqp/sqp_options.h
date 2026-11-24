@@ -440,13 +440,14 @@ struct SqpAdvancedOptions {
     /// Restoration entries allowed per SOLVE (the interior-point engine's
     /// `max_restoration_entries` counts per phase). Default 10; must be >= 0; 0
     /// refuses restoration: the first request ends the solve kNumericalError, as
-    /// a refused later request does.
+    /// a request past the cap does.
     ///
     /// 1 is the once-per-solve rule: a second restoration request is refused and
     /// the solve ends kNumericalError. Above 1 a later request is serviced, as in
     /// the filter and funnel methods (Fletcher & Leyffer, Math. Program. 91 (2002);
     /// [KLV], funnel.h), but only when the main loop has accepted at least one
-    /// step since the previous resume. Every phase draws on the same
+    /// step since the previous resume; one with no accepted step ends the solve
+    /// kStalled beside StopReason::kRestorationNoProgress. Every phase draws on the same
     /// `common.max_iterations` budget, and each resume re-bases the funnel (KLV
     /// Algorithm 2).
     Index max_restoration_entries = 10;

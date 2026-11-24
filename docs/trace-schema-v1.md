@@ -211,7 +211,9 @@ analysed).
 (SQP, beside `status` `stalled`: the last QP stopped at its minor-iteration cap), as is `trust_region_floor`
 (SQP, beside `stalled`: the radius reached its floor at a feasible point whose rejected step promised less than
 the objective's rounding floor), as is `restoration_work_limit` (SQP, beside `stalled`: the restoration phase
-spent its own factorization budget), and an SQP failure exit whose
+spent its own factorization budget). M8 RST-B (declared): `restoration_no_progress` is new (SQP, beside
+`stalled`: a later restoration request refused because the main loop made no progress since the previous
+resume). An SQP failure exit whose
 returned point passes `termination`'s acceptable tier is written `status` `acceptable`, `stop_reason` `none`,
 with the exit it came from named at the end of `message` (`exit restoration_refused`, ...).
 
@@ -237,7 +239,7 @@ object (section 3.1), set on `elastic_exhausted` only.
 | `stop_requested_skipping_phases` | notice | `phase` |
 | `restoration_entered` | notice | both engines. `a` = violation at entry (IPM theta, SQP `h`), `iter` = the requesting row. Lines == `counters.restoration_entries` on the IPM; on the SQP the counter counts completed excursions, so lines == `restoration_entries` + the `restoration_exited{s: non_finite}` lines |
 | `restoration_exited` | warning unless `s == resumed` | both engines; one per entered. `s` = `resumed`/`locally_infeasible`/`failed`/`non_finite`/`interrupted`; `a` = violation at exit (absent for `non_finite` on the SQP), `b` = the threshold judged against (IPM: 100x `feasibility_tol`; SQP: `feasibility_tol`) |
-| `restoration_refused` | warning | SQP. `s` = `nested`/`entry_rule`/`budget`; written at both depths (a refusal inside a restoration sub-solve is `nested`) |
+| `restoration_refused` | warning | SQP. `s` = `nested`/`entry_rule`/`budget`/`no_progress`; written at both depths (a refusal inside a restoration sub-solve is `nested`; `entry_rule` is the entry cap, `no_progress` a later request after no progress since the resume) |
 | `subproblem_failure` | notice while the solve continues, warning when it ends it | SQP, both depths. `s` = `iteration_limit`/`numerical_error`/`non_finite`; `k` = the driver's run of consecutive failures once the exit was handled. Lines == `qp_maxiter_exits + qp_numerical_exits + nonfinite_subproblems` (the spec's `- nonfinite_box_projections` does not apply: the projection precedes the guard and is not in `nonfinite_subproblems`) |
 | `elastic_exhausted` | warning | SQP. `k` = rungs climbed above the first; `ladder` = the exhausted ladder's block |
 | `inconsistent_equalities` | warning | SQP, depth 0, at most once |
@@ -296,6 +298,7 @@ meaning) is v2.
 | meaning change + new trailing keys (pre-tag) | M8 TR-S1 | `iter` | the core keys `stationarity`, `feasibility`, `complementarity` carry the scaled problem's measures, the quantities the termination tests compare with the tolerances (IPM: `kkt_inf`, `max(econ_inf, icon_inf)`, `barr_inf`, previously divided by the objective scale; SQP: the engine-unit `SqpKkt` measures, previously mapped to caller units). New trailing core keys after `factorizations`: `stationarity_caller`, `feasibility_caller`, `complementarity_caller` carry the former values. Equal to the former values on an unscaled solve. The v1 freeze has not been tagged (same ground as the TR-D rider), so this is a pre-tag correction, not a v2. The golden `ipm_complete.jsonl`, `sqp_complete.jsonl` and `ipm_aborted.jsonl` lines are re-derived |
 | meaning change + new trailing keys (pre-tag) | M8 I19-1 | `iter` `sqp` block; `message` | `tr_binding` now means the trust RADIUS held the step (a `caller_step_limit` pin no longer counts): the old merged value is `tr_binding \|\| cap_binding`. The decision input is unchanged (an internal merged flag). New trailing `sqp`-block keys after `ladder`: `cap_binding`, `pred_df`, `f_trial`, `h_trial`, `soc_f`, `soc_h`, `h_lin`, `qp_minor_iterations_total`, `qp_factorizations_total`, `factorizations_delta`, `t_s` (wall-clock: mask it); the `sqp` block's arity pin moves 25 -> 36. The `ladder` object gains `rho_0`, `minor_iterations`, `factorizations` after `exhausted` (also in `message`). The v1 freeze has not been tagged (same ground as TR-S1), so a pre-tag correction, not a v2. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
+| new enum value + new trailing keys | M8 RST-B | `message`, `solve.end` | `restoration_refused` gains `s` = `no_progress` (formerly spelled `entry_rule` when no step was accepted since the resume); `stop_reason` gains `restoration_no_progress`; `solve.end.counters` (SQP) gains three trailing keys after `soc_qp_iteration_limits`: `restoration_factorizations`, `restoration_unproductive_entries`, `restoration_no_progress_refusals`. The golden `sqp_complete.jsonl` and the counters unit lines are re-derived |
 
 ## 7. v0 to v1 map
 

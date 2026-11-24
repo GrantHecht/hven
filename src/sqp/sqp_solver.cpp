@@ -1012,9 +1012,10 @@ bool detail::sqp_exit_is_labelable(SolveStatus status, StopReason reason) {
                reason == StopReason::kRestorationFailed ||
                reason == StopReason::kRestorationNoClaim;
     }
-    return status == SolveStatus::kStalled &&
-           (reason == StopReason::kSubproblemIterationLimit ||
-            reason == StopReason::kTrustRegionFloor || reason == StopReason::kRestorationWorkLimit);
+    return status == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
+                                               reason == StopReason::kTrustRegionFloor ||
+                                               reason == StopReason::kRestorationWorkLimit ||
+                                               reason == StopReason::kRestorationNoProgress);
 }
 
 bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,
@@ -4360,6 +4361,9 @@ struct SqpSolverImpl::SolveState {
         // step since that resume (`enter_restoration`).
         Index entries = 0;
         Index accepted_at_resume = 0;
+        // THE PROGRESS TEST ACROSS ENTRIES (RST-B): which accepted steps since the last resume
+        // came from solved subproblems.
+        detail::RestorationEntryLedger progress;
         // Written by `enter_restoration` on the exits it decides, and read
         // only by the caller's two tagged restoration finish arms.
         SolveStatus status = SolveStatus::kInfeasible;
@@ -6405,19 +6409,34 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // Majors already spent, on both phases, at this point.
     const Index spent = iter + 1 + st.out.counters.restoration_iters;
 
+    // THE PROGRESS TEST ACROSS ENTRIES (RST-B), read once per top-level request. Report-only:
+    // the counters record what a refusal at its default tolerance would refuse.
+    if (allow_restoration_) {
+        const detail::RestorationEntryVerdict progress =
+            st.resto.progress.judge(detail::kReportedUnproductiveRestorationEntries);
+        if (progress.tested && !progress.productive) {
+            ++st.out.counters.restoration_unproductive_entries;
+        }
+        if (!progress.admissible) {
+            ++st.out.counters.restoration_no_progress_refusals;
+        }
+    }
     // THE ENTRY RULE (M7 W2 RST; SqpOptions::max_restoration_entries). A first
     // request is serviced. A later one is serviced only below the cap AND only when
     // the main loop has accepted a step since the previous resume: a request from
     // the very point the last phase handed back, with nothing done there, would
     // restore a point the phase has just restored, so it is refused as the
     // once-per-solve rule refused every second request.
-    const bool entry_admissible =
-        st.resto.entries < opts_.advanced.max_restoration_entries &&
-        (st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume);
-    if (!allow_restoration_ || !entry_admissible) {
+    const bool below_entry_cap = st.resto.entries < opts_.advanced.max_restoration_entries;
+    const bool accepted_since_resume =
+        st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume;
+    if (!allow_restoration_ || !below_entry_cap || !accepted_since_resume) {
+        // THE NO-PROGRESS REFUSAL (RST-B): below the cap, a request with no step accepted since
+        // the resume. The cap outranks it.
+        const bool no_progress = allow_restoration_ && below_entry_cap;
         emit_message([&] {
             MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);
-            m.s = !allow_restoration_ ? "nested" : "entry_rule";
+            m.s = !allow_restoration_ ? "nested" : no_progress ? "no_progress" : "entry_rule";
             return m;
         });
         // The nested case (a restoration solve raising its own
@@ -6427,13 +6446,14 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // restoration_iters tells the two apart (0 for the nested
         // case, nonzero for the cap).
         //
-        // SPELLED kNumericalError, NEVER kInfeasible (M7 W2 ladder, L1):
-        // nothing was measured about the model, and the point may well be
-        // feasible (E2-D3: DALLASM at h = 3.6e-13, SAWPATH at h = 0).
-        // kInfeasible is the certified arm's alone. kStalled is not used:
-        // the SQP engine reports it on no exit (solver_status.h).
-        st.resto.status = SolveStatus::kNumericalError;
-        st.resto.reason = StopReason::kRestorationRefused;
+        // NEVER kInfeasible (M7 W2 ladder, L1): nothing was measured about the
+        // model, and the point may well be feasible (E2-D3: DALLASM at
+        // h = 3.6e-13, SAWPATH at h = 0). kInfeasible is the certified arm's
+        // alone. The no-progress refusal is kStalled: the loop stopped making
+        // progress; nothing failed.
+        st.resto.status = no_progress ? SolveStatus::kStalled : SolveStatus::kNumericalError;
+        st.resto.reason =
+            no_progress ? StopReason::kRestorationNoProgress : StopReason::kRestorationRefused;
         st.resto.detail.clear();
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
@@ -6957,6 +6977,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.restoration_iters += phase.counters.major_iters;
         st.out.counters.qp_minor_iters += phase.counters.qp_minor_iters;
         st.out.counters.factorizations += phase.counters.factorizations;
+        st.out.counters.restoration_factorizations += phase.counters.factorizations;
         st.row_work_base_minor += phase.counters.qp_minor_iters; // I19-1: not this row's work
         st.row_work_base_fact += phase.counters.factorizations;
         st.out.counters.eqp_refine_steps += phase.counters.eqp_refine_steps;
@@ -7330,6 +7351,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // THE ENTRY RULE'S MARK (M7 W2 RST): a later request needs a step accepted
         // after this point.
         st.resto.accepted_at_resume = st.out.counters.steps_accepted;
+        st.resto.progress.record_resume();
         st.full_step_funnel = nullptr;
         st.delta = restoration_restart_radius();
         st.rejections_at_iterate = 0;
@@ -10476,6 +10498,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 st.seed = std::move(mj.qs);
             }
             ++st.out.counters.steps_accepted;
+            // A failed subproblem's own step is no evidence of progress (RST-B).
+            st.resto.progress.note_accept(!mj.failure_step);
             if (mj.row.verdict == StepVerdict::kAcceptObjectiveStep) {
                 ++st.out.counters.accepted_f_type;
             } else {

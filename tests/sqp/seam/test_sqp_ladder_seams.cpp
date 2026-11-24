@@ -35,6 +35,7 @@
 
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/globalization/funnel.h>
 #include <hven/detail/sqp/ladder_testing.h>
 #include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/sqp/sqp_solver_types.h>
@@ -156,8 +157,10 @@ void expect_line_optimum(const SqpResult &r) {
 } // namespace
 
 // L1: the DALLASM shape (E2-D3 Q3). Restoration resumes at a feasible point; every QP
-// after it fails; the shrink ladder reaches the radius floor; the cap refuses the
-// second request. Before the ladder round that refusal was spelled kInfeasible.
+// after it fails; the shrink ladder reaches the radius floor; the second request, with no
+// step accepted since the resume, is refused. Before the ladder round that refusal was
+// spelled kInfeasible; since RST-B it is kStalled beside kRestorationNoProgress (it was
+// kNumericalError).
 TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     const SeamReset guard;
     Seam::fail_walk_qps = 1000;
@@ -177,8 +180,9 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     ASSERT_LE(sol.counters.restoration_feas_out, o.common.feasibility_tol)
         << "the resume decision's reading";
     ASSERT_GE(Seam::forced, 1);
-    // The refused second request: an honest failure, no claim about the model.
-    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // The refused second request: no progress, no claim about the model.
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
     EXPECT_FALSE(sol.infeasibility_certified);
     // ...at a point inside feas_tol, which is what made kInfeasible false.
     EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.common.feasibility_tol);
@@ -898,8 +902,9 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
 // THE ENTRY RULE'S PROGRESS GUARD (M7 W2 RST; SqpOptions::max_restoration_entries).
 // L1A's shape with the cap well above one: restoration resumes at a feasible point,
 // every QP after it fails, and the loop accepts NO step before it asks again. The
-// request comes from the point the phase has just restored, so it is refused exactly
-// as the once-per-solve rule refused it -- one entry, kNumericalError, no claim.
+// request comes from the point the phase has just restored, so it is refused -- one
+// entry, no claim: at a cap of one by the cap (kNumericalError), above it as no progress
+// (RST-B: kStalled beside kRestorationNoProgress, formerly kNumericalError).
 TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
     for (const Index cap : {Index{1}, Index{10}}) {
         SCOPED_TRACE(cap);
@@ -916,9 +921,14 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_GE(Seam::forced, 1);
         EXPECT_EQ(sol.counters.restoration_entries, 1);
-        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_EQ(sol.status, cap == 1 ? SolveStatus::kNumericalError : SolveStatus::kStalled);
+        EXPECT_EQ(sol.stop_reason,
+                  cap == 1 ? StopReason::kRestorationRefused : StopReason::kRestorationNoProgress);
         EXPECT_FALSE(sol.infeasibility_certified);
         EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.common.feasibility_tol);
+        // The second request is the first one tested: unproductive, within the tolerance.
+        EXPECT_EQ(sol.counters.restoration_unproductive_entries, 1);
+        EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 0);
     }
 }
 
@@ -1720,6 +1730,9 @@ TEST(Rf1RestorationSeam, TheCallersCeilingInsideThePhaseStaysTheWorkLimit) {
     const SqpResult free_run =
         SqpSolver(probe).solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(free_run.counters.restoration_entries, 1);
+    // RST-B: the phase's own share of the solve's factorizations.
+    EXPECT_GT(free_run.counters.restoration_factorizations, 0);
+    EXPECT_LT(free_run.counters.restoration_factorizations, free_run.counters.factorizations);
     CountingCircleLineModel model2;
     o.common.max_factorizations = free_run.counters.factorizations - 1;
     const SqpResult sol =
@@ -2044,6 +2057,112 @@ TEST(Rf1RestorationSeam, ARestartNeedsTheFloorsPassesOfItsOwn) {
     // it). Rows of the first run play no part in this count.
     const std::size_t restart_rows = statuses.size() - first_run_rows;
     EXPECT_EQ(restart_rows, hven::detail::kRestorationStallMinPasses + 1);
+}
+
+// =========================================================================
+// RST-B: THE PROGRESS TEST ACROSS RESTORATION ENTRIES, on scripted verdicts.
+//
+// The line model (feasible start, linear row) under a seam that fails every main walk QP: each
+// failed QP's step is offered as a failure step, and a strategy built through
+// `advanced.make_strategy` decides it. Interval k (k = 0 before the first resume) accepts the
+// first `accepts[k]` judged steps and rejects every later one; `solved[k]` of its QPs are let
+// through by the seam first (`pass_walk_qps`), so those judged steps come from solved
+// subproblems. A rejected failure step is routed through the rungs, and with none left the floor
+// branch requests restoration (the step still promises a decrease), which on the line model
+// resumes at once. The restoration phase runs the default funnel (`make_strategy` is not copied).
+// =========================================================================
+namespace {
+
+struct EntryScript {
+    std::vector<int> accepts; // per interval; past the end, `accepts_after`
+    std::vector<int> solved;  // per interval; past the end, 0
+    int accepts_after = 1;
+    int resumes = 0;
+    int judged = 0;
+    int accepted_solved = 0; // accepted judged steps of solved QPs (read by the test)
+};
+
+class ScriptedEntryStrategy final : public GlobalizationStrategy {
+  public:
+    explicit ScriptedEntryStrategy(EntryScript *script) : script_(script) {}
+    void reset(double) override { begin_interval(); }
+    void resume_from_restoration(double) override {
+        ++script_->resumes;
+        begin_interval();
+    }
+    StepVerdict judge(const StepContext &) override {
+        const auto k = static_cast<std::size_t>(script_->resumes);
+        const int accepts =
+            k < script_->accepts.size() ? script_->accepts[k] : script_->accepts_after;
+        const bool accept = script_->judged < accepts;
+        if (accept && script_->judged < solved_in_interval_) {
+            ++script_->accepted_solved;
+        }
+        ++script_->judged;
+        return accept ? StepVerdict::kAcceptObjectiveStep : StepVerdict::kReject;
+    }
+
+  private:
+    void begin_interval() {
+        script_->judged = 0;
+        const auto k = static_cast<std::size_t>(script_->resumes);
+        solved_in_interval_ = k < script_->solved.size() ? script_->solved[k] : 0;
+        Seam::pass_walk_qps = solved_in_interval_;
+    }
+    EntryScript *script_;
+    int solved_in_interval_ = 0;
+};
+
+SqpResult scripted_entry_solve(EntryScript &script, const SqpOptions &base) {
+    Seam::reset();
+    Seam::fail_walk_qps = 100000;
+    Seam::as_e2_termination = false;
+    SqpOptions o = base;
+    o.advanced.qp_failure_step = true;
+    o.trust_region_initial = 0.25;
+    o.common.max_iterations = 400;
+    o.advanced.make_strategy = [&script]() -> std::unique_ptr<GlobalizationStrategy> {
+        return std::make_unique<ScriptedEntryStrategy>(&script);
+    };
+    return solve_line(vec2(0.0, 2.0), o);
+}
+
+void print_entries(const char *tag, const SqpResult &r, const EntryScript &script) {
+    std::printf("[ rstb ] %s: status=%d reason=%d entries=%ld unproductive=%ld no_progress=%ld "
+                "resumes=%d accepted=%ld failure_accepted=%ld solved_accepted=%d resto_facts=%ld "
+                "facts=%ld\n",
+                tag, static_cast<int>(r.status), static_cast<int>(r.stop_reason),
+                static_cast<long>(r.counters.restoration_entries),
+                static_cast<long>(r.counters.restoration_unproductive_entries),
+                static_cast<long>(r.counters.restoration_no_progress_refusals), script.resumes,
+                static_cast<long>(r.counters.steps_accepted),
+                static_cast<long>(r.counters.qp_failure_steps_accepted), script.accepted_solved,
+                static_cast<long>(r.counters.restoration_factorizations),
+                static_cast<long>(r.counters.factorizations));
+}
+
+} // namespace
+
+// THE COUNTERS (C'): every re-entry follows an interval whose only accepted step is a failure
+// step, so each later request is unproductive, and from the third on past the default tolerance
+// of one -- counted, not refused: the solve runs to the entry cap.
+TEST(RstbEntrySeam, FailureStepOnlyCyclesAreCountedAsUnproductive) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0};
+    const SqpOptions o = quiet();
+    const SqpResult sol = scripted_entry_solve(script, o);
+    print_entries("report", sol, script);
+    const Index cap = o.advanced.max_restoration_entries;
+    ASSERT_EQ(sol.counters.restoration_entries, cap);
+    EXPECT_EQ(sol.counters.qp_failure_steps_accepted, cap) << "one per resumed interval";
+    EXPECT_EQ(sol.counters.restoration_unproductive_entries, cap) << "requests 2 .. cap + 1";
+    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, cap - 1) << "requests 3 .. cap + 1";
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the cap's refusal";
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationRefused);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    // Each phase starts feasible on the line model and converges before it factorizes.
+    EXPECT_EQ(sol.counters.restoration_factorizations, 0);
 }
 
 } // namespace hven

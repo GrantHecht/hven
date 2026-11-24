@@ -160,6 +160,10 @@ std::string sqp_status_message(const SqpResult &result, StopReason reason,
             return "stalled: the QP subproblem reached its minor-iteration cap and its retry "
                    "budget was spent";
         }
+        if (reason == StopReason::kRestorationNoProgress) {
+            return "stalled: a restoration request was refused because the main loop made no "
+                   "progress since the previous resume";
+        }
         if (reason == StopReason::kRestorationWorkLimit) {
             return "stalled: the restoration phase spent its own factorization budget at a point "
                    "the resume tests refused";

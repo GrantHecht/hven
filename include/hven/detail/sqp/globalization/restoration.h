@@ -91,6 +91,64 @@ class RestorationStallWindow {
     std::deque<Sample> samples_;
 };
 
+/// The consecutive unproductive restoration re-entries the progress test tolerates when it only
+/// reports (RST-B C'): the value its refusal would read by default.
+inline constexpr Index kReportedUnproductiveRestorationEntries = 1;
+
+/// @brief One restoration request's reading by RestorationEntryLedger::judge.
+struct RestorationEntryVerdict {
+    bool tested = false;     ///< A request after a resume; the first request is never tested.
+    bool productive = false; ///< A step from a solved subproblem was accepted since that resume.
+    bool admissible = true;  ///< Untested, or the unproductive run is within the tolerance.
+};
+
+/// @brief The progress test across restoration entries (RST-B).
+///
+/// `record_resume()` marks a phase handing a point back to the main loop and
+/// `note_accept(solved)` each step the loop then accepts, `solved` true for a step from a
+/// solved subproblem (a main QP that ended kOptimal, an optimal elastic rung, a SOC on either)
+/// and false for a failed subproblem's own step. `judge(max_unproductive)` reads one later
+/// request: productive iff a solved step was accepted since the last resume, which clears the
+/// run of unproductive requests; otherwise the run grows by one. Admissible iff untested or the
+/// run is at most `max_unproductive`. A request before any resume is not tested.
+class RestorationEntryLedger {
+  public:
+    void record_resume() {
+        resumed_ = true;
+        solved_since_resume_ = false;
+    }
+
+    void note_accept(bool from_solved_subproblem) {
+        if (from_solved_subproblem) {
+            solved_since_resume_ = true;
+        }
+    }
+
+    RestorationEntryVerdict judge(Index max_unproductive) {
+        RestorationEntryVerdict v;
+        if (!resumed_) {
+            return v;
+        }
+        v.tested = true;
+        v.productive = solved_since_resume_;
+        if (v.productive) {
+            unproductive_run_ = 0;
+        } else {
+            ++unproductive_run_;
+        }
+        v.admissible = unproductive_run_ <= max_unproductive;
+        return v;
+    }
+
+    /// Consecutive unproductive requests judged so far.
+    Index unproductive_run() const { return unproductive_run_; }
+
+  private:
+    bool resumed_ = false;
+    bool solved_since_resume_ = false;
+    Index unproductive_run_ = 0;
+};
+
 /// The upper bound on a slack: none. Written as +inf, the one spelling of an
 /// absent side under every CommonOptions::infinite_bound (a finite stand-in would
 /// become a real bound under a larger threshold). The restoration sub-solve's
