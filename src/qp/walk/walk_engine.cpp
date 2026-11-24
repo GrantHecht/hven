@@ -54,6 +54,8 @@ struct Env {
     bool keep = false;      // a refused update keeps the previous centre (else reset to 0)
     bool seed = false;      // pass-0 centre from the seed's multipliers
     bool norung = false;    // release rung + WA-1 footprint ride/rung/decline retired
+    bool norelrung = false; // release re-admission rung only
+    bool nofprung = false;  // WA-1 footprint ride/rung/decline only
     bool nosafe = false;    // no safeguard
     bool facefull = false;  // kFace also commits at a full unblocked step
     bool strictsafe = false;// safeguard reads mu*|lambda - c| (else mu*|lambda|)
@@ -74,6 +76,8 @@ inline Env read_env() {
     e.keep = get("HVEN_P1_KEEP") != nullptr;
     e.seed = get("HVEN_P1_SEED") != nullptr;
     e.norung = get("HVEN_P1_NORUNG") != nullptr;
+    e.norelrung = e.norung || get("HVEN_P1_NORELRUNG") != nullptr;
+    e.nofprung = e.norung || get("HVEN_P1_NOFPRUNG") != nullptr;
     e.nosafe = get("HVEN_P1_NOSAFE") != nullptr;
     e.facefull = get("HVEN_P1_FACEFULL") != nullptr;
     e.strictsafe = get("HVEN_P1_STRICTSAFE") != nullptr;
@@ -2474,7 +2478,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                            lambda_e, eff_opts)) {
                 if (ride_stays_in_working_set(qp, ws, p)) {
                     guard = either_moves();
-                } else if (!p1.norung && eff_opts.dual_regularization > 0.0 &&
+                } else if (!p1.nofprung && eff_opts.dual_regularization > 0.0 &&
                            verdict != detail::InertiaVerdict::kSuspect) {
                     // p holds its pins exactly here: both EQP producers write a pinned entry at
                     // its bound, and the walk puts x on a pin whenever one joins.
@@ -3411,7 +3415,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         if (readmitted && p1.mode == p1s::kTrig && !dual_centring) {
             dual_centring = true;
             ++counters.dual_centre_arms;
-        } else if (readmitted && !p1.norung &&
+        } else if (readmitted && !p1.norelrung &&
                    counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
                    eff_opts.dual_regularization > 0.0) {
             ++p1_relrung;
