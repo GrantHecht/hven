@@ -59,6 +59,7 @@ struct Env {
     bool nosafe = false;    // no safeguard
     bool facefull = false;  // kFace also commits at a full unblocked step
     bool strictsafe = false;// safeguard reads mu*|lambda - c| (else mu*|lambda|)
+    bool safeboot = false;  // strict safeguard, but an update with no live centre is unconditional
     double ymax = 0.0;      // centre bound (0 = none)
     int trace = 0;
 };
@@ -81,6 +82,10 @@ inline Env read_env() {
     e.nosafe = get("HVEN_P1_NOSAFE") != nullptr;
     e.facefull = get("HVEN_P1_FACEFULL") != nullptr;
     e.strictsafe = get("HVEN_P1_STRICTSAFE") != nullptr;
+    e.safeboot = get("HVEN_P1_SAFEBOOT") != nullptr; // strict test only once a centre is live
+    if (e.safeboot) {
+        e.strictsafe = true;
+    }
     if (const char *y = get("HVEN_P1_YMAX")) {
         e.ymax = std::atof(y);
     }
@@ -1371,7 +1376,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         price(qp, ws, eqp, lambda_e, lambda_i, z);
         bool p1_ok = true;
         if (p1.mode != p1s::kZero) {
-            if (!p1.nosafe) {
+            const bool p1_live_c = p1_copy ? c_on : (dual_k.lambda_e != nullptr || dual_k.lambda_i != nullptr);
+            if (!p1.nosafe && !(p1.safeboot && !p1_live_c)) {
                 if (p1.strictsafe) {
                     p1_ok = eqp.x.allFinite();
                     const double xmag = eqp.x.lpNorm<Eigen::Infinity>();
