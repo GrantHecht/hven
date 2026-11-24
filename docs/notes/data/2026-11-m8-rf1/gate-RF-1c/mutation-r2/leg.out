@@ -1,0 +1,16 @@
+box-lane: lane 0 acquired 2026-11-24T00:19:17-05:00
+FOREGROUND_START 2026-11-24T00:19:17-05:00
+PREFLIGHT every mutation applies and restores: [M1 M2 R1]
+MUT control rc=0 killers=0
+MUT M1 rc=2 killers=6
+   Rf1RestorationSeam.APhaseShorterThanThePassFloorIsNotCutAtAnyWindow
+   Rf1RestorationSeam.ARestartNeedsTheFloorsPassesOfItsOwn
+   Rf1RestorationStall.AFlatBestIsCutAtTheWindowAndTheFloorAndAFallingOneIsNot
+   Rf1RestorationStall.ANewRunKeepsTheBestAndForgetsTheSamples
+   Rf1RestorationStall.OnePassCostingMoreThanTheWindowIsNotAStall
+   Rf1RestorationStall.TheBestIsARunningMinimumAndTheWindowSlides
+MUT M2 rc=1 killers=1
+   Rf1RestorationSeam.ARestartNeedsTheFloorsPassesOfItsOwn
+MUT R1 rc=0 killers=0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-24T00:29:18-05:00

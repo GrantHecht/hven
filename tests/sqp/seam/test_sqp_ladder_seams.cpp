@@ -1949,11 +1949,13 @@ TEST(Rf1RestorationSeam, TheSwitchRunHandsBackItsSwitchPointNotItsBestPoint) {
 
 // RF-1c: a phase that keeps falling survives its window by the fall test, not by the pass floor
 // (the pin the five-pass circle/line fixture could no longer give). LinearRowModel's phase, run to
-// its end: its h falls from 20 by far more than 10% every few passes. With a window of one
-// factorization the window is spanned by every pass, so the phase is open only while its best h
-// keeps falling against the sample the floor's five passes back; it runs at least
-// kRestorationStallMinPasses + 1 rows and is not cut. A window that never binds gives the same
-// solve.
+// its end from a small trust radius (0.25, doubling), takes eight passes with h falling 20 -> 0,
+// far more than 10% over any five passes. With a window of one factorization every pass spans the
+// window, so only the pass floor and the fall test decide: the phase is past the floor from the
+// sixth pass and survives it because its best h has fallen against the reference five passes back.
+// It is not cut and the solve equals the solve under a window that never binds. (A radius of 1.0
+// ends the phase on its sixth pass, before the floor can be told from the fall test; a radius of
+// 0.02 falls under 10% per five passes and is rightly cut.)
 TEST(Rf1RestorationSeam, AFallingPhaseSurvivesItsWindowByTheFallTest) {
     const auto solve = [](Index window, std::size_t &phase_rows) {
         const SeamReset guard;
@@ -1964,8 +1966,8 @@ TEST(Rf1RestorationSeam, AFallingPhaseSurvivesItsWindowByTheFallTest) {
         LinearRowModel model;
         SqpOptions o = quiet();
         o.common.max_iterations = 60;
-        o.trust_region_initial = 1.0;
-        o.trust_region_min = 0.75;
+        o.trust_region_initial = 0.25;
+        o.trust_region_min = 0.01;
         o.advanced.restoration_stall_factorizations = window;
         SqpSolver solver(o);
         phase_rows = 0;
@@ -1982,7 +1984,8 @@ TEST(Rf1RestorationSeam, AFallingPhaseSurvivesItsWindowByTheFallTest) {
     std::size_t rows_never = 0, rows_one = 0;
     const SqpResult never = solve(1000000, rows_never);
     ASSERT_EQ(never.counters.restoration_entries, 1);
-    ASSERT_GE(rows_never, hven::detail::kRestorationStallMinPasses + 1) << "fixture premise";
+    ASSERT_GE(rows_never, hven::detail::kRestorationStallMinPasses + 3)
+        << "fixture premise: the phase outlives the floor by two passes";
     const SqpResult one = solve(1, rows_one);
     EXPECT_NE(one.stop_reason, StopReason::kRestorationWorkLimit);
     EXPECT_EQ(rows_one, rows_never);

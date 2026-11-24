@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index bbe1abb3c..6d4aef05a 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -79,7 +79,7 @@ class RestorationStallWindow {
+     }
+ 
+     /// A regularized restart's passes must not inherit the failed run's span.
+-    void new_run() { samples_.clear(); }
++    void new_run() { samples_.clear(); best_ = std::numeric_limits<double>::infinity(); }
+ 
+   private:
+     struct Sample {
