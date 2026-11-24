@@ -954,6 +954,14 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
     if (unused(RetryRung::kShrink) && (in.window_active || in.step_inf > in.shrunk_radius)) {
         return RetryRung::kShrink;
     }
+    // R4 only on a walk failure after a dependent-blocker or zero-motion termination, and only
+    // when the raised value differs from the configured one. Last, or (RST-B F2) ahead of R2.
+    const bool r4 = unused(RetryRung::kRegularization) && in.walk_owned &&
+                    in.dependent_or_zero_motion &&
+                    retry_regularization(in.primal_regularization) != in.primal_regularization;
+    if (in.regularization_first && r4) {
+        return RetryRung::kRegularization;
+    }
     // R2 only after a warm start from a non-empty working set: else the cold start IS the seed.
     if (unused(RetryRung::kCold) && in.warm_nonempty) {
         return RetryRung::kCold;
@@ -965,13 +973,7 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
     if (unused(RetryRung::kAlgebra)) {
         return RetryRung::kAlgebra;
     }
-    // R4 only after a dependent-blocker or zero-motion termination, and only when the raised
-    // value differs from the configured one.
-    if (unused(RetryRung::kRegularization) && in.dependent_or_zero_motion &&
-        retry_regularization(in.primal_regularization) != in.primal_regularization) {
-        return RetryRung::kRegularization;
-    }
-    return RetryRung::kNone;
+    return r4 ? RetryRung::kRegularization : RetryRung::kNone;
 }
 
 bool detail::trust_region_floor_exit_applies(double feasibility, double feasibility_tol, double f,
@@ -6409,17 +6411,23 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // Majors already spent, on both phases, at this point.
     const Index spent = iter + 1 + st.out.counters.restoration_iters;
 
-    // THE PROGRESS TEST ACROSS ENTRIES (RST-B), read once per top-level request. Report-only:
-    // the counters record what a refusal at its default tolerance would refuse.
+    // THE PROGRESS TEST ACROSS ENTRIES (RST-B B1), read once per top-level request: a later
+    // request is refused once `max_unproductive_restoration_entries` consecutive re-entries
+    // followed intervals with no step from a solved subproblem. A failure step carries no
+    // certified model decrease, so it is not the progress the filter and funnel arguments for
+    // finitely many restoration entries rest on (Fletcher & Leyffer 2002; Waechter & Biegler
+    // 2006, sections 2-3; [KLV]).
+    bool progress_admissible = true;
     if (allow_restoration_) {
         const detail::RestorationEntryVerdict progress =
-            st.resto.progress.judge(detail::kReportedUnproductiveRestorationEntries);
+            st.resto.progress.judge(opts_.advanced.max_unproductive_restoration_entries);
         if (progress.tested && !progress.productive) {
             ++st.out.counters.restoration_unproductive_entries;
         }
         if (!progress.admissible) {
             ++st.out.counters.restoration_no_progress_refusals;
         }
+        progress_admissible = progress.admissible;
     }
     // THE ENTRY RULE (M7 W2 RST; SqpOptions::max_restoration_entries). A first
     // request is serviced. A later one is serviced only below the cap AND only when
@@ -6430,9 +6438,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     const bool below_entry_cap = st.resto.entries < opts_.advanced.max_restoration_entries;
     const bool accepted_since_resume =
         st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume;
-    if (!allow_restoration_ || !below_entry_cap || !accepted_since_resume) {
+    if (!allow_restoration_ || !below_entry_cap || !accepted_since_resume || !progress_admissible) {
         // THE NO-PROGRESS REFUSAL (RST-B): below the cap, a request with no step accepted since
-        // the resume. The cap outranks it.
+        // the resume, or one the progress test refuses. The cap outranks it.
         const bool no_progress = allow_restoration_ && below_entry_cap;
         emit_message([&] {
             MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);
@@ -6762,15 +6770,29 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     const Index phase_f_entry = st.out.counters.factorizations;
     detail::RestorationStallWindow phase_stall(opts_.advanced.restoration_stall_factorizations);
     bool phase_stalled = false;
+    // THE CUMULATIVE RESTORATION BUDGET (RST-B B2), derived at this entry from the main loop's
+    // own factorizations; each run is handed what is left of it, or the caller's remaining
+    // ceiling when that is smaller. A run it cut ends kWorkLimit; the parent spells that
+    // kRestorationWorkLimit, the caller's ceiling staying kWorkLimit.
+    const Index total_budget = detail::restoration_total_budget(
+        opts_.advanced.restoration_max_total_factorizations,
+        st.out.counters.factorizations - st.out.counters.restoration_factorizations);
+    bool phase_budget_cut = false;
     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
                                bool stop_on_qp_failure) -> SqpResult {
         SqpOptions phase_opts = ropts;
         phase_opts.common.max_iterations = max_iter;
         // THE WORK AND TIME LIMITS BOUND THE WHOLE SOLVE, restoration included, on
         // the iteration cap's terms: the sub-solve gets what is left of each.
+        const Index budget_left =
+            std::max<Index>(0, total_budget - st.out.counters.restoration_factorizations);
+        bool budget_binds = true;
+        phase_opts.common.max_factorizations = budget_left;
         if (opts_.common.max_factorizations) {
-            phase_opts.common.max_factorizations = std::max<Index>(
-                0, *opts_.common.max_factorizations - st.out.counters.factorizations);
+            const Index caller_left = std::max<Index>(0, *opts_.common.max_factorizations -
+                                                             st.out.counters.factorizations);
+            budget_binds = budget_left < caller_left;
+            phase_opts.common.max_factorizations = std::min(budget_left, caller_left);
         }
         if (opts_.common.time_limit_seconds) {
             const double spent_s = std::chrono::duration<double>(std::chrono::steady_clock::now() -
@@ -6955,6 +6977,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         sub_detail = sub.last_stop_detail();
         phase_stalled =
             phase_result.status == SolveStatus::kWorkLimit && sub.restoration_stall_fired_;
+        phase_budget_cut =
+            phase_result.status == SolveStatus::kWorkLimit && !phase_stalled && budget_binds;
         return phase_result;
     };
     SqpResult rs = run_phase(feasibility, ropts.common.max_iterations, regularize_on_failure);
@@ -7314,7 +7338,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         box_r <= opts_.common.feasibility_tol &&
         h_r <= opts_.advanced.restoration_resume_reduction * excursion_h_in &&
         (rs.status == SolveStatus::kNumericalError || rs.status == SolveStatus::kStalled ||
-         (rs.status == SolveStatus::kWorkLimit && phase_stalled) ||
+         (rs.status == SolveStatus::kWorkLimit && (phase_stalled || phase_budget_cut)) ||
          (rs.status == SolveStatus::kOptimal && !optimal_claims));
     // A STOPPED PHASE NEVER RESUMES (M8 AP-5 G2): the solve ends at the entry point
     // through the not-feasible-enough exit below, with the phase's verdict computed
@@ -7541,9 +7565,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.detail.clear();
         break;
     case SolveStatus::kWorkLimit:
-        // THE PHASE'S STALL WINDOW (RF-1 ruling S-1) is not the caller's limit: the phase
-        // stalled, and the point it handed back did not pass the resume gates above.
-        if (phase_stalled) {
+        // THE PHASE'S STALL WINDOW (RF-1 ruling S-1) and THE CUMULATIVE BUDGET (RST-B B2) are
+        // not the caller's limit, and the point handed back did not pass the resume gates above.
+        if (phase_stalled || phase_budget_cut) {
             st.resto.status = SolveStatus::kStalled;
             st.resto.reason = StopReason::kRestorationWorkLimit;
             st.resto.detail.clear();
@@ -9219,6 +9243,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             if (SqpLadderSeam::as_stagnation_stop) {
                 mj.qs.counters.stagnation_stops = 1;
             }
+            if (SqpLadderSeam::as_zero_motion_exhausted) {
+                mj.qs.counters.zero_motion_exhausted = 1;
+            }
             if (SqpLadderSeam::as_replay) {
                 mj.qs.counters.minor_iters = 0;
                 mj.qs.counters.factorizations = 0;
@@ -9326,9 +9353,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         in.shrunk_radius = shrunk_radius(st.delta);
         in.warm_nonempty = st.last_solve_warm_nonempty;
         in.walk_owned = mj.walk_owns_this_qp;
-        in.dependent_or_zero_motion =
-            q.counters.dep_blocker_terminations > 0 || q.counters.zero_motion_cap_hits > 0;
+        // RST-B F1: a zero-motion exhaustion is a zero-motion termination too (the E2 elastic
+        // route above does not read it).
+        in.dependent_or_zero_motion = q.counters.dep_blocker_terminations > 0 ||
+                                      q.counters.zero_motion_cap_hits > 0 ||
+                                      q.counters.zero_motion_exhausted > 0;
         in.primal_regularization = opts_.qp.primal_regularization;
+        in.regularization_first = opts_.advanced.qp_retry_regularization_first;
         return detail::choose_retry_rung(in);
     };
     // THE RUNG, TAKEN (RF-1 design 3.1): the change it makes to the next solve and the seed it
@@ -9759,7 +9790,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             ++st.out.counters.qp_failures_routed;
             st.out.counters.qp_failures_in_a_row_peak =
                 std::max(st.out.counters.qp_failures_in_a_row_peak, st.qp_failures_in_a_row);
-            note_failure(false);
+            // The failure's line is written once its outcome is known (RST-B F3: a warning when
+            // it ends the solve), and before anything the outcome itself writes.
             ++st.rejections_at_iterate;
             ++st.counted_run_at_iterate;
             ++st.out.counters.rejected_steps;
@@ -9784,11 +9816,18 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                         ? st.qn_bridge->predicted_decrease(st.qp, mj.qs.x)
                                         : predicted_decrease(st.qp, mj.qs.x);
                 if (trust_region_floor_exit(mj, st.ev.f, pred)) {
-                    ++st.out.counters.trust_region_floor_exits;
-                    st.exit_reason = StopReason::kTrustRegionFloor;
+                    // RST-B F3: with no rung left ABOVE the floor the exit is the subproblem's
+                    // own (kSubproblemFailure / kSubproblemIterationLimit), not the floor's.
+                    const bool at_floor = shrink_hits_floor(st.delta);
+                    if (at_floor) {
+                        ++st.out.counters.trust_region_floor_exits;
+                        st.exit_reason = StopReason::kTrustRegionFloor;
+                    }
+                    note_failure(!at_floor);
                     push_history(mj.row);
                     return MajorOutcome::kFinishQpFailure;
                 }
+                note_failure(false);
                 if (st.qn) {
                     qn_reset(*st.qn, *st.qn_bridge, st.qn_skip_streak,
                              detail::ResetReason::kRadiusFloor, st.out.counters);
@@ -9811,6 +9850,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 // the caller's kFinishRestorationQp arm decides.
                 return MajorOutcome::kFinishRestorationQp;
             }
+            note_failure(false);
             push_history(mj.row);
             take_rung(rung);
             // THE SHRINK AND THE SEED ARE THIS MAJOR'S OWN WORK and are done

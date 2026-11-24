@@ -1168,22 +1168,26 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // AND AN INTEL ONE READS 21/39 (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI run 45064036804):
     // off the reference build the two Linux columns are both observed, so either is accepted
     // there and the pair is recorded; the reference build keeps 22/40 exactly.
+    // RST-B F1 (declared mover): the failing chain's zero-motion exhaustions now reach R4, which
+    // ends the chain sooner on the reference Release build (22/40 -> 23/30) and one major later in
+    // Debug (21/39 -> 21/40); status and failure count unchanged. The off-reference lanes are
+    // UNOBSERVED under RST-B: the Linux lanes accept either new column, the others read Debug's.
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
 #elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
     {
         const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
         hven::test_support::record_off_reference_route(
             "HsSweepCorpus.hs15_warm_on_on",
             fmt::format("full_step_majors={} majors={}", hs15.full_step_majors, hs15.majors));
-        EXPECT_TRUE((hs15.full_step_majors == 22 && hs15.majors == 40) ||
-                    (hs15.full_step_majors == 21 && hs15.majors == 39))
+        EXPECT_TRUE((hs15.full_step_majors == 23 && hs15.majors == 30) ||
+                    (hs15.full_step_majors == 21 && hs15.majors == 40))
             << hs15.full_step_majors << "/" << hs15.majors;
     }
 #else
     EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
 #endif
     // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
     // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
@@ -1455,10 +1459,12 @@ void check_soc_costs_what_it_costs() {
     // corpus total is bit-identical to the base before kopt-1x.
     // RF-1 A+B2 (declared mover): Release 3355 -> 3406, all of it HS15's warm arms (the rungs and
     // the restoration of the failing chain at p = 1); Debug 3346 -> 3392.
+    // RST-B F1 (declared mover, HS15's warm arms, R4 reached): Release 3406 -> 3359, Debug
+    // 3392 -> 3396.
 #ifdef NDEBUG
-    EXPECT_EQ(3406, total_minors) << corpus_table();
+    EXPECT_EQ(3359, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3392, total_minors) << corpus_table();
+    EXPECT_EQ(3396, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1657,25 +1663,29 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39; the
     // off-reference Linux Release runner of CI run 45036848180 reads the reference 40, and the
     // off-reference Intel runner of CI run 45064036804 reads 39: either, off the reference build.
+    // RST-B F1 (declared mover): the held-off chain's zero-motion exhaustions reach R4 -- Release
+    // 40 -> 30 majors, its stop at f = 1.0652 (was 1.0038); Debug 39 -> 40; the step arm Release
+    // 43 / 149 / 64 / 6 -> 44 / 153 / 65 / 7, Debug unchanged. Off-reference lanes UNOBSERVED
+    // under RST-B (Linux accepts either new column, the others read Debug's).
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(off.majors, 40);
+    EXPECT_EQ(off.majors, 30);
 #elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
+    EXPECT_TRUE(off.majors == 30 || off.majors == 40) << off.majors;
 #else
-    EXPECT_EQ(off.majors, 39);
+    EXPECT_EQ(off.majors, 40);
 #endif
     EXPECT_EQ(off.status_failures, 1);
     EXPECT_FALSE(off.reached_p1);
     ASSERT_EQ(off.fvals.size(), 5u);
-    EXPECT_NEAR(off.fvals[4], 1.0, 1e-2) << "the failing chain stops next to the origin";
+    EXPECT_NEAR(off.fvals[4], 1.0, 1e-1) << "the failing chain stops next to the origin";
 #if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(on.majors, 43);
-    EXPECT_EQ(on.minors, 149);
-    EXPECT_EQ(on.factorizations, 64);
-    EXPECT_EQ(on.rejected, 6);
+    EXPECT_EQ(on.majors, 44);
+    EXPECT_EQ(on.minors, 153);
+    EXPECT_EQ(on.factorizations, 65);
+    EXPECT_EQ(on.rejected, 7);
 #else
     EXPECT_EQ(on.majors, 42);
     EXPECT_EQ(on.minors, 142);

@@ -76,6 +76,9 @@
       "Re-solve a subproblem that spent its whole minor budget, once, at twice the cap.")          \
     X(qp_failure_step, r_any(),                                                                    \
       "Judge a failed walk subproblem's usable iterate as a trial step.")                          \
+    X(qp_retry_regularization_first, r_any(),                                                      \
+      "Take the regularization retry rung ahead of the cold and algebra rungs after a "            \
+      "dependent-blocker or zero-motion termination.")                                             \
     X(restoration_proximity, r_ge(0.0),                                                            \
       "Restoration proximity weight zeta on 1/2 zeta ||D (x - x_k)||^2. 0 is off. "                \
       "Experimental. Refused with kLbfgsDamped when > 0.")                                         \
@@ -91,6 +94,12 @@
       "The restoration phase's stall window: the phase ends when its best violation has not "     \
       "fallen by 10% over this many factorizations and at least five passes; a window of 0 "      \
       "means after five passes.")                                                                 \
+    X(max_unproductive_restoration_entries, r_ge(0.0),                                             \
+      "Consecutive restoration re-entries with no step from a solved subproblem accepted since "   \
+      "the previous resume that a solve tolerates.")                                               \
+    X(restoration_max_total_factorizations, r_ge(0.0),                                             \
+      "The cumulative restoration budget in factorizations; unset derives max(20000, 4 x the "     \
+      "main loop's factorizations) at each entry.")                                                \
     X(lbfgs_update_on_reject, r_any(),                                                             \
       "Under kLbfgsDamped, also offer the pair of a rejected trial.")                              \
     X(lbfgs_nonlinear_only, r_any(),                                                               \

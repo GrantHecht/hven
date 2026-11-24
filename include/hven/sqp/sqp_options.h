@@ -322,6 +322,11 @@ struct SqpAdvancedOptions {
     /// @see docs/counters.md (the failed-subproblem step group)
     bool qp_failure_step = true;
 
+    /// At true, retry rung R4 (100x the primal regularization) is taken ahead of R2 and R3 after
+    /// a dependent-blocker or zero-motion walk termination, so `max_consecutive_qp_failures` = 3
+    /// reaches it (RST-B F2). False (default) keeps the order R1, R2, R3, R4.
+    bool qp_retry_regularization_first = false;
+
     /// The restoration proximity weight `zeta`: the coefficient on the
     /// `1/2 zeta ||D (x - x_k)||^2` term in the restoration phase's feasibility
     /// wrapper objective, `D = diag(d_i)`, `d_i = min(1, 1/|x_{k,i}|)`, `x_k` the
@@ -386,6 +391,23 @@ struct SqpAdvancedOptions {
     /// resume tests refuse ends the solve kStalled beside StopReason::kRestorationWorkLimit.
     /// The caller's `common.max_factorizations` stays the hard cap on the whole solve.
     Index restoration_stall_factorizations = 5000;
+
+    /// The consecutive unproductive restoration re-entries a solve tolerates (RST-B); >= 0,
+    /// default 1. A re-entry is unproductive when the main loop accepted no step from a solved
+    /// subproblem (a main QP that ended kOptimal, an optimal elastic rung, a SOC on either) since
+    /// the previous resume: a failed subproblem's own step (`qp_failure_step`) does not count. A
+    /// productive interval clears the run; the first entry is never tested. A refused request
+    /// ends the solve kStalled beside StopReason::kRestorationNoProgress. 0 refuses every
+    /// unproductive re-entry.
+    Index max_unproductive_restoration_entries = 1;
+
+    /// The cumulative restoration budget, in factorizations over every phase of the solve (RST-B);
+    /// >= 0. Unset (default) derives, at each entry, max(20000, 4 x the main loop's
+    /// factorizations so far). Each phase run is handed what is left of it (or the caller's
+    /// remaining `common.max_factorizations` when smaller); a run it cuts ends at its best-h
+    /// point, and one the resume tests refuse ends the solve kStalled beside
+    /// StopReason::kRestorationWorkLimit.
+    std::optional<Index> restoration_max_total_factorizations;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
     /// gradient/Jacobian evaluation per rejection). False (default) offers accepted
@@ -757,8 +779,9 @@ struct SqpOptions {
 ///         `restoration_resume_reduction` outside [0, 1) or NaN, a `lbfgs_memory`
 ///         below 1, a negative `max_lbfgs_full_memory_dimension`, `kLbfgsDamped` with
 ///         `restoration_proximity > 0`, a `max_restoration_entries` below 0, a
-///         `max_consecutive_qp_failures` below 1, a reserved dense-arm value, a `qp` regularization
-///         or tolerance that is NaN, infinite or out of its range, a
+///         `max_unproductive_restoration_entries` or `restoration_max_total_factorizations` below
+///         0, a `max_consecutive_qp_failures` below 1, a reserved dense-arm value, a `qp`
+///         regularization or tolerance that is NaN, infinite or out of its range, a
 ///         `qp.max_schur_border_dimension` below 0, a `qp.trust_region_radius` that is negative or
 ///         NaN, or an out-of-range `advanced` lever (`trust_region_growth`,
 ///         `ssn_farkas_residual_tol`, `ssn_uncertain_tol`, `ssn_lm_sigma_c`,

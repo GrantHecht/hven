@@ -401,8 +401,8 @@ one of those three therefore cannot silently miss the trace.
   main QP that ended `optimal`, an optimal elastic rung, a SOC on either; a failed
   subproblem's own step does not count -- whether serviced or refused.
   `restoration_no_progress_refusals` counts the later requests the progress test
-  across entries finds inadmissible, whether or not it refused them. None of the
-  three folds: the sub-solve never restores.
+  across entries finds inadmissible (`SqpOptions::max_unproductive_restoration_entries`),
+  whether or not it refused them. None of the three folds: the sub-solve never restores.
 
   **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
   and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN

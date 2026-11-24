@@ -371,9 +371,11 @@ struct RetryRungInputs {
     bool walk_owned = true;     ///< The walk answered the failed subproblem.
     bool dependent_or_zero_motion = false; ///< A dependent-blocker or zero-motion termination.
     double primal_regularization = 0.0;    ///< The configured primal regularization.
+    bool regularization_first = false;     ///< SqpAdvancedOptions::qp_retry_regularization_first.
 };
 
 /// @brief The first rung not yet used whose skip rule does not apply; kNone when none is left.
+///        The order is R1, R2, R3, R4; under `regularization_first` R4 moves ahead of R2.
 RetryRung choose_retry_rung(const RetryRungInputs &in);
 
 /// @brief R4's primal regularization: `min(kRetryRegularizationCap, 100 * configured)`.

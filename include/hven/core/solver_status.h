@@ -210,9 +210,10 @@ enum class StopReason {
     /// resume
     /// gates refused. Verdict kStalled (kAcceptable at an acceptable point). SQP.
     kRestorationWorkLimit = 17,
-    /// A later restoration request was refused because the main loop accepted no step since the
-    /// previous resume. Verdict kStalled (kAcceptable at an acceptable point), never
-    /// kInfeasible. SQP.
+    /// A later restoration request was refused because the main loop made no progress since the
+    /// previous resume: it accepted no step, or no step from a solved subproblem over more
+    /// consecutive resumes than SqpAdvancedOptions::max_unproductive_restoration_entries.
+    /// Verdict kStalled (kAcceptable at an acceptable point), never kInfeasible. SQP.
     kRestorationNoProgress = 18,
 };
 

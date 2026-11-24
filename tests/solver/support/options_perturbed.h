@@ -180,12 +180,15 @@ inline SqpOptions sqp_all_perturbed() {
     a.max_consecutive_qp_failures = 4;
     a.qp_iteration_limit_retry = true;
     a.qp_failure_step = false;
+    a.qp_retry_regularization_first = true;
     a.restoration_proximity = 0.5;
     a.equality_basis = false;
     a.elastic_witness_start = true;
     a.elastic_last_optimal_rung = true;
     a.restoration_resume_reduction = 0.5;
     a.restoration_stall_factorizations = 4321;
+    a.max_unproductive_restoration_entries = 3;
+    a.restoration_max_total_factorizations = 98765;
     a.lbfgs_update_on_reject = true;
     a.lbfgs_nonlinear_only = true;
     a.max_lbfgs_full_memory_dimension = 200;

@@ -1591,17 +1591,76 @@ TEST(Rf1RetryLadderSeam, AnOffBoxFailureOfAnotherKindIsNotProjected) {
 }
 
 // THE FLOOR EXIT (design 3.4): failures that promise nothing at a feasible point end the solve
-// stalled at the floor instead of entering a no-op restoration.
+// instead of entering a no-op restoration -- at the floor as the floor exit, and (RST-B F3; the
+// RF-1 pin read trust_region_floor here) with no rung left above the floor as the subproblem's
+// own failure, the same point and path under its honest label.
 TEST(Rf1RetryLadderSeam, ANoMotionFailureAtAFeasiblePointEndsAtTheFloor) {
     const SeamReset guard;
     Seam::fail_walk_qps = 1000;
     Seam::as_e2_termination = false;
     Seam::forced_point = {0.0, 2.0}; // the iterate itself: a zero step, pred 0
-    const SqpResult sol = solve_line(vec2(0.0, 2.0));
+    SqpOptions o = quiet();
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75; // one shrink of 1.0 crosses the floor
+    const SqpResult sol = solve_line(vec2(0.0, 2.0), o);
     EXPECT_EQ(sol.counters.trust_region_floor_exits, 1);
     EXPECT_EQ(sol.counters.restoration_entries, 0);
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kTrustRegionFloor);
+}
+
+TEST(Rf1RetryLadderSeam, ANoMotionFailureAboveTheFloorIsTheSubproblemFailure) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {0.0, 2.0};
+    SqpOptions o = quiet();
+    o.trust_region_initial = 1.0; // the rungs are spent at Delta = 1, ten orders above the floor
+    const SqpResult sol = solve_line(vec2(0.0, 2.0), o);
+    EXPECT_EQ(sol.counters.trust_region_floor_exits, 0);
+    EXPECT_EQ(sol.counters.restoration_entries, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.stop_reason, StopReason::kSubproblemFailure);
+    EXPECT_EQ(sol.x(0), 0.0);
+    EXPECT_EQ(sol.x(1), 2.0);
+}
+
+// RST-B F1: a zero-motion exhaustion reaches R4 once R1 and R3 are spent (three forced failures);
+// F2: under qp_retry_regularization_first it is taken ahead of R3 (two forced failures, the third
+// QP solves); without F1 neither happens.
+TEST(Rf1RetryLadderSeam, AZeroMotionExhaustionReachesTheRegularizationRung) {
+    const SeamReset guard;
+    const auto run = [](int failures, bool first) {
+        Seam::reset();
+        Seam::fail_walk_qps = failures;
+        Seam::as_e2_termination = false;
+        Seam::as_zero_motion_exhausted = true;
+        Seam::forced_point = {0.5, 1.5};
+        SqpOptions o = quiet();
+        o.advanced.qp_retry_regularization_first = first;
+        o.advanced.max_restoration_entries = 0; // a ladder with no rung left ends the solve
+        const SqpResult r = solve_line(vec2(0.0, 2.0), o);
+        std::printf("[ rstb ] zero-motion failures=%d first=%d: shrink=%ld cold=%ld algebra=%ld "
+                    "reg=%ld status=%d\n",
+                    failures, first ? 1 : 0, static_cast<long>(r.counters.qp_retry_rung_shrink),
+                    static_cast<long>(r.counters.qp_retry_rung_cold),
+                    static_cast<long>(r.counters.qp_retry_rung_algebra),
+                    static_cast<long>(r.counters.qp_retry_rung_regularization),
+                    static_cast<int>(r.status));
+        return r;
+    };
+    const SqpResult f1 = run(3, false);
+    EXPECT_EQ(Seam::forced, 3);
+    EXPECT_EQ(f1.counters.qp_retry_rung_algebra, 1);
+    EXPECT_EQ(f1.counters.qp_retry_rung_regularization, 1) << "F1: R4 after R3";
+    expect_line_optimum(f1);
+    const SqpResult ordered = run(2, false);
+    EXPECT_EQ(ordered.counters.qp_retry_rung_algebra, 1);
+    EXPECT_EQ(ordered.counters.qp_retry_rung_regularization, 0);
+    const SqpResult f2 = run(2, true);
+    EXPECT_EQ(f2.counters.qp_retry_rung_algebra, 0);
+    EXPECT_EQ(f2.counters.qp_retry_rung_regularization, 1) << "F2: R4 ahead of R3";
+    expect_line_optimum(f2);
 }
 
 // ... and a failure that still promises a decrease requests restoration as before.
@@ -2144,25 +2203,183 @@ void print_entries(const char *tag, const SqpResult &r, const EntryScript &scrip
 } // namespace
 
 // THE COUNTERS (C'): every re-entry follows an interval whose only accepted step is a failure
-// step, so each later request is unproductive, and from the third on past the default tolerance
-// of one -- counted, not refused: the solve runs to the entry cap.
+// step, so each later request is unproductive, and from the third on past a tolerance of one --
+// counted; refused only by the entry cap under a tolerance too large to bind.
 TEST(RstbEntrySeam, FailureStepOnlyCyclesAreCountedAsUnproductive) {
     const SeamReset guard;
     EntryScript script;
     script.accepts = {0};
-    const SqpOptions o = quiet();
+    SqpOptions o = quiet();
+    o.advanced.max_unproductive_restoration_entries = 1000000;
     const SqpResult sol = scripted_entry_solve(script, o);
     print_entries("report", sol, script);
     const Index cap = o.advanced.max_restoration_entries;
     ASSERT_EQ(sol.counters.restoration_entries, cap);
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, cap) << "one per resumed interval";
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, cap) << "requests 2 .. cap + 1";
-    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, cap - 1) << "requests 3 .. cap + 1";
+    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 0) << "never past 1000000";
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError) << "the cap's refusal";
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationRefused);
     EXPECT_FALSE(sol.infeasibility_certified);
     // Each phase starts feasible on the line model and converges before it factorizes.
     EXPECT_EQ(sol.counters.restoration_factorizations, 0);
+}
+
+// B1 (default 1): the same cycles are refused at the second unproductive re-entry -- the third
+// request -- kStalled beside kRestorationNoProgress, with no claim about the model.
+TEST(RstbEntrySeam, FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0};
+    const SqpResult sol = scripted_entry_solve(script, quiet());
+    print_entries("b1", sol, script);
+    EXPECT_EQ(sol.counters.restoration_entries, 2);
+    EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 2);
+    EXPECT_EQ(sol.counters.restoration_unproductive_entries, 2);
+    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 1);
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    EXPECT_EQ(sol.message, "stalled: a restoration request was refused because the main loop made "
+                           "no progress since the previous resume");
+}
+
+// ... and under a tier wide enough to admit the point the refusal is labelled kAcceptable.
+TEST(RstbEntrySeam, TheRefusalAtAnAcceptablePointIsLabelled) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0};
+    SqpOptions o = quiet();
+    o.termination.acceptable_stationarity_tol = 1e10;
+    o.termination.acceptable_equality_tol = 1e10;
+    o.termination.acceptable_inequality_tol = 1e10;
+    o.termination.acceptable_complementarity_tol = 1e10;
+    const SqpResult sol = scripted_entry_solve(script, o);
+    EXPECT_EQ(sol.counters.restoration_entries, 2);
+    EXPECT_EQ(sol.status, SolveStatus::kAcceptable);
+    EXPECT_EQ(sol.stop_reason, StopReason::kNone);
+    EXPECT_NE(sol.message.find("exit restoration_no_progress"), std::string::npos) << sol.message;
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
+// A productive interval -- one accepted step from a solved subproblem -- clears the run: the
+// intervals read unproductive, productive, unproductive, unproductive, so the refusal moves from
+// the third request to the fifth.
+TEST(RstbEntrySeam, AProductiveIntervalClearsTheRun) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0, 1, 1, 1, 1};
+    script.solved = {0, 0, 1, 0, 0};
+    const SqpResult sol = scripted_entry_solve(script, quiet());
+    print_entries("reset", sol, script);
+    EXPECT_EQ(script.accepted_solved, 1);
+    EXPECT_EQ(sol.counters.restoration_entries, 4);
+    EXPECT_EQ(sol.counters.restoration_unproductive_entries, 3);
+    EXPECT_EQ(sol.counters.restoration_no_progress_refusals, 1);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
+}
+
+// The tolerance's two ends: 0 refuses the first unproductive re-entry (the first entry itself is
+// never tested, so it is serviced), and a large value never binds (the entry cap ends the solve).
+TEST(RstbEntrySeam, ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone) {
+    const SeamReset guard;
+    EntryScript zero_script;
+    zero_script.accepts = {0};
+    SqpOptions zero = quiet();
+    zero.advanced.max_unproductive_restoration_entries = 0;
+    const SqpResult z = scripted_entry_solve(zero_script, zero);
+    print_entries("zero", z, zero_script);
+    EXPECT_EQ(z.counters.restoration_entries, 1) << "the first entry is exempt";
+    EXPECT_EQ(z.stop_reason, StopReason::kRestorationNoProgress);
+    EntryScript large_script;
+    large_script.accepts = {0};
+    SqpOptions large = quiet();
+    large.advanced.max_unproductive_restoration_entries = 1000000;
+    const SqpResult l = scripted_entry_solve(large_script, large);
+    EXPECT_EQ(l.counters.restoration_entries, large.advanced.max_restoration_entries);
+    EXPECT_EQ(l.stop_reason, StopReason::kRestorationRefused);
+}
+
+// B2: the cumulative budget, when it is the binding bound, cuts the phase and is labelled
+// kRestorationWorkLimit (kStalled); the caller's own ceiling, when smaller, stays kWorkLimit.
+TEST(RstbBudgetSeam, ACumulativeBudgetCutIsTheRestorationWorkLimit) {
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {1.0, 1.0};
+    SpreadMissModel model(kNoClaimMiss);
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75;
+    o.advanced.restoration_stall_factorizations = 1000000; // the window never fires
+    o.advanced.restoration_resume_reduction = 0.0;
+    o.advanced.restoration_max_total_factorizations = 2;
+    const SqpResult sol =
+        SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    std::printf("[ rstb ] b2 cut: status=%d reason=%d entries=%ld resto_facts=%ld\n",
+                static_cast<int>(sol.status), static_cast<int>(sol.stop_reason),
+                static_cast<long>(sol.counters.restoration_entries),
+                static_cast<long>(sol.counters.restoration_factorizations));
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    EXPECT_LE(sol.counters.restoration_factorizations, 2);
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
+TEST(RstbBudgetSeam, TheCallersSmallerCeilingStaysTheWorkLimit) {
+    const SeamReset guard;
+    CountingCircleLineModel model;
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.advanced.restoration_stall_factorizations = 100000;
+    const SqpResult free_run =
+        SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(free_run.counters.restoration_entries, 1);
+    ASSERT_GT(free_run.counters.restoration_factorizations, 1);
+    // A budget larger than what the phase needs and a caller ceiling one short of the free run:
+    // the caller's ceiling is the smaller bound inside the phase.
+    CountingCircleLineModel model2;
+    o.common.max_factorizations = free_run.counters.factorizations - 1;
+    o.advanced.restoration_max_total_factorizations = free_run.counters.factorizations;
+    const SqpResult sol =
+        SqpSolver(o).solve(hven::detail::problem_ref(model2), (model2).start_point());
+    EXPECT_EQ(sol.status, SolveStatus::kWorkLimit);
+    EXPECT_EQ(sol.stop_reason, StopReason::kNone);
+}
+
+// B1: an accepted step from an optimal elastic rung is progress. Interval 1 accepts a failure step
+// to an infeasible point (the seam's forced step), then the elastic tier's step there: the main QP
+// at h > feas_tol fails through an E2 termination and the elastic ladder answers. At a tolerance of
+// 0 the next request is tested and found productive, so it is serviced; interval 2 accepts nothing.
+TEST(RstbEntrySeam, AnElasticRungAcceptIsProgress) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0, 2};
+    script.accepts_after = 0;
+    SqpOptions o = quiet();
+    o.advanced.max_unproductive_restoration_entries = 0;
+    Seam::reset();
+    Seam::fail_walk_qps = 100000;
+    Seam::as_e2_termination = true;
+    Seam::forced_point = {0.6, 0.6};
+    o.advanced.qp_failure_step = true;
+    o.trust_region_initial = 0.25;
+    o.common.max_iterations = 400;
+    o.advanced.make_strategy = [&script]() -> std::unique_ptr<GlobalizationStrategy> {
+        return std::make_unique<ScriptedEntryStrategy>(&script);
+    };
+    const SqpResult sol = solve_line(vec2(0.0, 2.0), o);
+    print_entries("elastic", sol, script);
+    std::printf("[ rstb ] elastic: activations=%ld\n",
+                static_cast<long>(sol.counters.elastic_activations));
+    ASSERT_GE(sol.counters.elastic_activations, 1);
+    ASSERT_EQ(sol.counters.qp_failure_steps_accepted, 1);
+    ASSERT_EQ(sol.counters.steps_accepted, 2) << "the failure step and the elastic step";
+    EXPECT_EQ(sol.counters.restoration_entries, 2) << "the second request is productive";
+    EXPECT_EQ(sol.counters.restoration_unproductive_entries, 1) << "the third is not";
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
 }
 
 } // namespace hven

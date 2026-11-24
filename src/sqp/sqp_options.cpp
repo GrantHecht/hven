@@ -349,6 +349,18 @@ void validate(const SqpOptions &opts) {
             fmt::format("SqpSolver: advanced.restoration_stall_factorizations must be >= 0, got {}",
                         opts.advanced.restoration_stall_factorizations));
     }
+    if (opts.advanced.max_unproductive_restoration_entries < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.max_unproductive_restoration_entries must be >= 0, got {}",
+            opts.advanced.max_unproductive_restoration_entries));
+    }
+    if (opts.advanced.restoration_max_total_factorizations &&
+        *opts.advanced.restoration_max_total_factorizations < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.restoration_max_total_factorizations must be empty or >= 0, "
+            "got {}",
+            *opts.advanced.restoration_max_total_factorizations));
+    }
 
     // THE CURVATURE SOURCE (M7 QN stage 3): the mode must be one of the two; the
     // window must hold a pair; and the restoration wrapper's exact zeta D^2 term has

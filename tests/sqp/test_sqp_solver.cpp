@@ -13446,9 +13446,71 @@ TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
 }
 
+// RST-B F2: under `regularization_first` R4 moves ahead of R2 and R3 after a dependent or
+// zero-motion walk termination, and nowhere else.
+TEST(RstbRetryLadder, RegularizationFirstTakesR4AheadOfTheColdAndAlgebraRungs) {
+    using hven::detail::choose_retry_rung;
+    using hven::detail::RetryRung;
+    using hven::detail::RetryRungInputs;
+    const auto bit = [](RetryRung r) { return static_cast<std::uint8_t>(r); };
+    RetryRungInputs in;
+    in.shrunk_radius = 1.0;
+    in.primal_regularization = 1e-8;
+    in.warm_nonempty = true;
+    in.dependent_or_zero_motion = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kCold) << "the default order";
+    in.regularization_first = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kRegularization);
+    in.window_active = true;
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kShrink) << "R1 stays first";
+    in.window_active = false;
+    in.used = bit(RetryRung::kRegularization);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kCold);
+    in.used |= bit(RetryRung::kCold);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kAlgebra);
+    in.used |= bit(RetryRung::kAlgebra);
+    EXPECT_EQ(choose_retry_rung(in), RetryRung::kNone);
+    // Not without a dependent or zero-motion termination, not on a tier failure, not at the cap.
+    RetryRungInputs plain = in;
+    plain.used = 0;
+    plain.dependent_or_zero_motion = false;
+    EXPECT_EQ(choose_retry_rung(plain), RetryRung::kCold);
+    RetryRungInputs tier = in;
+    tier.used = 0;
+    tier.walk_owned = false;
+    EXPECT_EQ(choose_retry_rung(tier), RetryRung::kCold);
+    tier.used = bit(RetryRung::kCold);
+    EXPECT_EQ(choose_retry_rung(tier), RetryRung::kNone);
+    RetryRungInputs capped = in;
+    capped.used = 0;
+    capped.primal_regularization = 1e-4;
+    EXPECT_EQ(choose_retry_rung(capped), RetryRung::kCold);
+}
+
 // RST-B: the progress test across restoration entries, on the ledger object. A request before any
 // resume is not tested; a later one is productive iff a step from a solved subproblem was accepted
 // since the last resume; failure steps do not count; a productive interval clears the run.
+TEST(RstbEntryLedger, TheOptionsShipAtOneUnsetAndOffAndRefuseANegativeValue) {
+    SqpOptions o;
+    EXPECT_EQ(o.advanced.max_unproductive_restoration_entries, 1);
+    EXPECT_FALSE(o.advanced.restoration_max_total_factorizations.has_value());
+    EXPECT_FALSE(o.advanced.qp_retry_regularization_first);
+    o.advanced.max_unproductive_restoration_entries = -1;
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
+    o.advanced.max_unproductive_restoration_entries = 0;
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.advanced.restoration_max_total_factorizations = -1;
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
+    o.advanced.restoration_max_total_factorizations = 0;
+    EXPECT_NO_THROW(SqpSolver{o});
+    // The derived budget: the floor, or the ratio times the main loop's factorizations.
+    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 10),
+              hven::detail::kRestorationTotalWorkFloor);
+    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 100000),
+              hven::detail::kRestorationTotalWorkRatio * 100000);
+    EXPECT_EQ(hven::detail::restoration_total_budget(Index{7}, 100000), 7);
+}
+
 TEST(RstbEntryLedger, TheFirstRequestIsNeverTested) {
     hven::detail::RestorationEntryLedger ledger;
     ledger.note_accept(false);

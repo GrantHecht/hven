@@ -183,12 +183,15 @@ The research tier (`advanced.`, including `advanced.ipqp.`): these fields may ch
 | `advanced.max_consecutive_qp_failures` | `Index` | `3` | >= 1 | Subproblem failures in a row the driver routes at one iterate before the next one ends the solve. |
 | `advanced.qp_iteration_limit_retry` | `bool` | `false` | true or false | Re-solve a subproblem that spent its whole minor budget, once, at twice the cap. |
 | `advanced.qp_failure_step` | `bool` | `true` | true or false | Judge a failed walk subproblem's usable iterate as a trial step. |
+| `advanced.qp_retry_regularization_first` | `bool` | `false` | true or false | Take the regularization retry rung ahead of the cold and algebra rungs after a dependent-blocker or zero-motion termination. |
 | `advanced.restoration_proximity` | `double` | `0` | finite, >= 0 | Restoration proximity weight zeta on 1/2 zeta \|\|D (x - x_k)\|\|^2. 0 is off. Experimental. Refused with kLbfgsDamped when > 0. |
 | `advanced.equality_basis` | `bool` | `true` | true or false | Split the equality rows into an independent set and a dependent set; every QP carries only the independent set. |
 | `advanced.elastic_witness_start` | `bool` | `false` | true or false | Start each elastic walk rung at the feasible witness point. |
 | `advanced.elastic_last_optimal_rung` | `bool` | `false` | true or false | A ladder rung that fails above a solved rung reports the solved rung instead. |
 | `advanced.restoration_resume_reduction` | `double` | `0.1` | [0, 1) | Sufficient-reduction resume fraction of the entry violation. 0 is off. |
 | `advanced.restoration_stall_factorizations` | `Index` | `5000` | >= 0 | The restoration phase's stall window: the phase ends when its best violation has not fallen by 10% over this many factorizations and at least five passes; a window of 0 means after five passes. |
+| `advanced.max_unproductive_restoration_entries` | `Index` | `1` | >= 0 | Consecutive restoration re-entries with no step from a solved subproblem accepted since the previous resume that a solve tolerates. |
+| `advanced.restoration_max_total_factorizations` | `optional<Index>` | `unset` | unset, or >= 0 | The cumulative restoration budget in factorizations; unset derives max(20000, 4 x the main loop's factorizations) at each entry. |
 | `advanced.lbfgs_update_on_reject` | `bool` | `false` | true or false | Under kLbfgsDamped, also offer the pair of a rejected trial. |
 | `advanced.lbfgs_nonlinear_only` | `bool` | `false` | true or false | Under kLbfgsDamped, let B act on the nonlinear variables only. |
 | `advanced.max_lbfgs_full_memory_dimension` | `Index` | `400` | >= 0 | Under kLbfgsDamped, a full-memory damped BFGS replaces the L-BFGS window at or below this dimension. 0 is never. |

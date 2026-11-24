@@ -76,12 +76,12 @@ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 768, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 792, "SqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpTerminationOptions) == 32,
               "SqpTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::SqpAdvancedOptions) == 440,
+static_assert(sizeof(hven::SqpAdvancedOptions) == 464,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");

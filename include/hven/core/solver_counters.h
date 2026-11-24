@@ -2567,8 +2567,9 @@ struct SqpCounters {
     /// no step from a solved subproblem accepted since that resume, serviced or refused.
     Index restoration_unproductive_entries = 0;
     /// restoration_no_progress_refusals: RST-B -- later restoration requests the progress test
-    /// across entries finds inadmissible: the unproductive run past its tolerance (1 while the test
-    /// only reports). Counted whether or not the request was refused.
+    /// across entries finds inadmissible: the unproductive run past
+    /// SqpAdvancedOptions::max_unproductive_restoration_entries. Counted whether or not the
+    /// request was refused (a request the entry cap refuses first is counted too).
     Index restoration_no_progress_refusals = 0;
 };
 
