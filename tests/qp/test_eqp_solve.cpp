@@ -84,7 +84,7 @@ TEST(EqpSolve, MatchesOracleOnItsOptimalWorkingSet) {
     // assembly, the sign convention and the refinement rather than about the
     // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
     // model and not of this solve.
-    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
+    auto eqp = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
 }
@@ -102,7 +102,7 @@ TEST(EqpSolve, MatchesOracleOnEqualityOnlyProblem) {
     // assembly, the sign convention and the refinement rather than about the
     // model's O(delta*||x* - x_k||) proximal bias, which is a property of the
     // model and not of this solve.
-    auto eqp = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{});
+    auto eqp = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
     ASSERT_EQ(eqp.lambda_e.size(), 1);
@@ -141,7 +141,7 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
     // Centred at the point under test, as above: what this fixture is about is the
     // refinement step removing the O(mu*|lambda_e|) DUAL error, which the centring
     // does not touch (it is still 1e-7 here before the step).
-    auto refined = solve_eqp(qp, ws, oracle.x, kkt, QpOptions{}, &unrefined);
+    auto refined = solve_eqp(qp, ws, oracle.x, EqpDualCentre{}, kkt, QpOptions{}, &unrefined);
 
     const double unrefined_err = (unrefined.x - oracle.x).norm();
     const double refined_err = (refined.x - oracle.x).norm();

@@ -268,7 +268,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
     detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
-    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
+    EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), EqpDualCentre{}, kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
     EXPECT_LT((x_border - eqp.x).norm(), 1e-9);

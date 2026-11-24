@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -175,4 +176,30 @@ TEST(QpReleaseReadmission, TheOptionOffWalkKeepsItsRegularization) {
                 static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
                 static_cast<long>(s.counters.dual_regularization_decreases));
     EXPECT_EQ(s.counters.dual_regularization_decreases, 0);
+}
+
+// P1 SCRATCH PROBE (never committed): HVEN_P1_DUMP=<file under e2-d4> HVEN_P1_MAXIT=<n> runs a dump to the end.
+TEST(P1Probe, RunDump) {
+    const char *f = std::getenv("HVEN_P1_DUMP");
+    if (f == nullptr) {
+        GTEST_SKIP();
+    }
+    const QpDump d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + f);
+    QpOptions o = d.opts;
+    if (const char *m = std::getenv("HVEN_P1_MAXIT")) {
+        o.max_iterations = std::atol(m);
+    }
+    if (const char *m = std::getenv("HVEN_P1_MU")) {
+        o.dual_regularization = std::atof(m);
+    }
+    if (const char *m = std::getenv("HVEN_P1_ALG")) {
+        o.working_set_algebra = std::string(m) == "border" ? QpWorkingSetAlgebra::kSchurBorder
+                                                           : QpWorkingSetAlgebra::kRefactorize;
+    }
+    const QpSolution s = hven::test_support::solve_qp_dump(d, o);
+    const double fv = hven::test_support::qp_dump_objective(d, s.x);
+    std::printf("[ p1 ] %s status=%d minors=%ld facts=%ld rungs=%ld f=%.16g in-cell: %s\n", f,
+                static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
+                static_cast<long>(s.counters.factorizations),
+                static_cast<long>(s.counters.dual_regularization_decreases), fv, d.result.c_str());
 }

@@ -237,7 +237,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
             out.counters.dense_singular_refactors, out.counters.dense_platform_retakes);
         const detail::RetakeTallyScope retakes(kkt, out.counters.sparse_scaled_retakes,
                                                out.counters.sparse_matched_retakes);
-        return solve_eqp(qp, ws, face.x, kkt, eff_opts);
+        return solve_eqp(qp, ws, face.x, EqpDualCentre{}, kkt, eff_opts);
     }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
@@ -583,6 +583,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     Vec lambda_e = Vec::Zero(me);
     Vec lambda_i = Vec::Zero(mi);
     Vec z = Vec::Zero(n);
+    // THE DUAL PROXIMAL CENTRE of every pass's EQP (eqp_solve.h, M8 P-1): the
+    // walk's current multiplier estimate, i.e. the last pass's priced answer; a
+    // row or pin new to the working set is centred at 0. Re-armed at each price()
+    // under the safeguard (eqp_answer_meets_working_rows); 0 until then.
+    EqpDualCentre dual_k{};
 
     Vec shift = Vec::Zero(mi);
     Vec Aix = Vec::Zero(mi);
@@ -968,8 +973,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
         const EqpResult eqp =
             eliminated_only
-                ? eliminated_candidate(qp, ws, x, kkt, face, counters, verdict, eff_opts)
-                : eqp_candidate(qp, ws, x, kkt, face, *border_, counters, verdict, eff_opts);
+                ? eliminated_candidate(qp, ws, x, dual_k, kkt, face, counters, verdict, eff_opts)
+                : eqp_candidate(qp, ws, x, dual_k, kkt, face, *border_, counters, verdict, eff_opts);
         if (verdict == detail::InertiaVerdict::kSuspect) {
             ++counters.inertia_suspect_verdicts;
         } else if (verdict == detail::InertiaVerdict::kWrong) {
@@ -1244,6 +1249,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 
         price(qp, ws, eqp, lambda_e, lambda_i, z);
+        dual_k = eqp_answer_meets_working_rows(qp, ws, eqp, ai_row_norm1, ae_row_norm1, eff_opts)
+                     ? EqpDualCentre{&lambda_e, &lambda_i, &z}
+                     : EqpDualCentre{};
 
         // THE EQUALITY DRIFT (section 4c): once the iterate has met its equality
         // rows it keeps meeting them -- a CHECKED invariant, counted. "Met" is
@@ -2036,7 +2044,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     detail::InertiaVerdict diag_verdict = detail::InertiaVerdict::kOk;
                     bool diag_ok = true;
                     try {
-                        (void)eliminated_candidate(qp, ws, x, *diag_kkt, diag_face, counters,
+                        (void)eliminated_candidate(qp, ws, x, dual_k, *diag_kkt, diag_face, counters,
                                                    diag_verdict, eff_opts);
                     } catch (...) {
                         // SWALLOWED AND COUNTED. A diagnostic may not end a
@@ -3639,6 +3647,34 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
 // restoration pass. The lambdas priced here are the CANDIDATE's own
 // (eqp.lambda_e / eqp.lambda_w), because the drift being measured is the one
 // THOSE multipliers produce.
+bool QpEngine::eqp_answer_meets_working_rows(const QpProblem &qp, const WorkingSet &ws,
+                                             const EqpResult &eqp, const Vec &ai_row_norm1,
+                                             const Vec &ae_row_norm1, const QpOptions &opts) const {
+    if (!eqp.x.allFinite()) {
+        return false;
+    }
+    const double xmag = eqp.x.lpNorm<Eigen::Infinity>();
+    if (qp.me() > 0) {
+        const Vec r = qp.Ae * eqp.x - qp.be;
+        for (Index j = 0; j < qp.me(); ++j) {
+            const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+            if (!(std::abs(r(j)) <= row_tolerance(row_scale, eqp.lambda_e(j), opts))) {
+                return false;
+            }
+        }
+    }
+    const auto &aw = ws.active_ineq();
+    for (std::size_t k = 0; k < aw.size(); ++k) {
+        const Index j = aw[k];
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        if (!(std::abs(qp.Ai.row(j).dot(eqp.x) - qp.bi(j)) <=
+              row_tolerance(row_scale, eqp.lambda_w(static_cast<Index>(k)), opts))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool QpEngine::eqp_answer_drifts_off_met_rows(const QpProblem &qp, const WorkingSet &ws,
                                               const Vec &x, const EqpResult &eqp, const Vec &Aix,
                                               const Vec &ai_row_norm1, const Vec &ae_row_norm1,
@@ -4003,7 +4039,7 @@ bool QpEngine::in_working(const WorkingSet &ws, Index row) {
     return std::binary_search(aw.begin(), aw.end(), row);
 }
 
-EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
                                   detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
                                   QpCounters &counters, detail::InertiaVerdict &verdict,
                                   const QpOptions &opts) const {
@@ -4012,12 +4048,12 @@ EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, con
     // no call of this iteration produced.
     face.factorized = false;
     if (opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder) {
-        return border_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
+        return border_candidate(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict, opts);
     }
-    return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+    return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
 }
 
-EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
                                          detail::KktFactor &kkt, EliminatedFace &face,
                                          QpCounters &counters, detail::InertiaVerdict &verdict,
                                          const QpOptions &opts) const {
@@ -4054,7 +4090,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
             counters.dense_singular_refactors, counters.dense_platform_retakes);
         const detail::RetakeTallyScope retakes(kkt, counters.sparse_scaled_retakes,
                                                counters.sparse_matched_retakes);
-        return solve_eqp(qp, ws, x_k, kkt, opts);
+        return solve_eqp(qp, ws, x_k, dual_k, kkt, opts);
     }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
@@ -4114,7 +4150,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     return res;
 }
 
-EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
+EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k, const EqpDualCentre &dual_k,
                                      detail::KktFactor &kkt, EliminatedFace &face,
                                      BorderState &border, QpCounters &counters,
                                      detail::InertiaVerdict &verdict, const QpOptions &opts) const {
@@ -4137,7 +4173,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
     // work the dominant cost.
     if (border.latched) {
         if (detail::latch_still_holds(ws, border, counters, opts.max_schur_border_dimension)) {
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
         // Bordering may be possible again: a cap latch's pin count fell back to
         // schur_cap or below, or a conditioning latch's rule let it go (see
@@ -4149,7 +4185,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
         ++counters.border_latch_releases;
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
-        return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict,
+        return border_solve_or_fall_back(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict,
                                          /*rebuilt=*/true, opts);
     }
 
@@ -4183,12 +4219,12 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
         rebuilt = true;
     }
     sync_borders(qp, ws, border, counters, opts);
-    return border_solve_or_fall_back(qp, ws, x_k, kkt, face, border, counters, verdict, rebuilt,
+    return border_solve_or_fall_back(qp, ws, x_k, dual_k, kkt, face, border, counters, verdict, rebuilt,
                                      opts);
 }
 
 EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
-                                              const Vec &x_k, detail::KktFactor &kkt,
+                                              const Vec &x_k, const EqpDualCentre &dual_k, detail::KktFactor &kkt,
                                               EliminatedFace &face, BorderState &border,
                                               QpCounters &counters, detail::InertiaVerdict &verdict,
                                               bool rebuilt, const QpOptions &opts) const {
@@ -4215,13 +4251,13 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // eliminable, and stop maintaining a border stack nothing reads.
         if (rebuild_would_be_noop(ws, border)) {
             detail::take_latch(ws, border, counters, opts, /*rebuilt=*/rebuilt);
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
         // A rebuild that has already been spent this iteration, or one
         // that did not clear the flag, also falls back -- but only latches
         // if the state it left behind is the pins-only dead end.
         if (rebuilt) {
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
@@ -4229,7 +4265,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             if (rebuild_would_be_noop(ws, border)) {
                 detail::take_latch(ws, border, counters, opts, /*rebuilt=*/true);
             }
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
     }
 
@@ -4259,7 +4295,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // (solve_bordered_eqp).
         EqpResult res =
             solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
-                               opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
+                               dual_k, opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
         counters.eqp_refine_iters += res.residual_refine_iters;
@@ -4284,7 +4320,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             // A refusal of kScaled K0 numerics that escalates (kkt_factor.h) still
             // requests the kMatched retake for K0's next factorization.
             detail::request_platform_retake(border.kkt, res.platform_retake);
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
         if (res.platform_retake != detail::PlatformRetake::kNone) {
             // THE PLATFORM SOLVE CHECK FAILED on K0 (kkt_factor.h): the retake is
@@ -4292,7 +4328,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             // the next pass, which takes it) and this pass takes the eliminated
             // twin, the retreat the refusal above takes.
             detail::request_platform_retake(border.kkt, res.platform_retake);
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
         if (res.border_uncertified) {
             // THE BORDERED ANSWER'S CERTIFICATE FAILED (bordered_eqp.h; M7 W2 BPS): the
@@ -4300,7 +4336,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             // above, for the same reason -- an answer this factor cannot vouch for -- for
             // this pass only.
             ++counters.border_uncertified_fallbacks;
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
         }
 #ifdef HVEN_TESTING
         // The seam's record that the direction THIS pass used came through the
@@ -4323,7 +4359,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         if (!border.schur->needs_refactorization()) {
             throw;
         }
-        return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+        return eliminated_candidate(qp, ws, x_k, dual_k, kkt, face, counters, verdict, opts);
     }
 }
 
@@ -4389,7 +4425,7 @@ detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const Workin
     // THE LOOP'S OWN KEY, not a throwaway: this call re-factorizes `kkt` for a
     // HYPOTHETICAL working set, so the key must follow it there -- disarmed on
     // the border path, re-armed on the PROBED set otherwise. See EliminatedFace.
-    (void)eqp_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
+    (void)eqp_candidate(qp, ws, x_k, EqpDualCentre{}, kkt, face, border, counters, verdict, opts);
     return verdict;
 }
 
@@ -4630,7 +4666,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
         o.dual_regularization = mu;
         detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
         try {
-            (void)eliminated_candidate(qp, ws, x_k, local, local_face, counters, v, o);
+            (void)eliminated_candidate(qp, ws, x_k, EqpDualCentre{}, local, local_face, counters, v, o);
         } catch (const std::runtime_error &) {
             v = detail::InertiaVerdict::kWrong; // no read: the kWrong stands
         }
@@ -4712,7 +4748,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     EqpResult r;
     try {
-        r = eliminated_candidate(qp, ws, x, local, local_face, counters, v, o);
+        r = eliminated_candidate(qp, ws, x, EqpDualCentre{}, local, local_face, counters, v, o);
     } catch (const std::runtime_error &) {
         return false; // no mu-free solve: the existing classification stands
     }
@@ -4960,7 +4996,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     QpCounters local_counters;
     EqpResult r;
     try {
-        r = eliminated_candidate(qp, ws, x, local, local_face, local_counters, v, o);
+        r = eliminated_candidate(qp, ws, x, EqpDualCentre{}, local, local_face, local_counters, v, o);
     } catch (const std::runtime_error &) {
         counters.eqp_refine_iters += local_counters.eqp_refine_iters;
         counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
@@ -5870,7 +5906,7 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
     EliminatedFace own_face;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     try {
-        (void)eliminated_candidate(qp, ws, x, own, own_face, counters, v, opts);
+        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, own, own_face, counters, v, opts);
     } catch (const std::runtime_error &) {
         return false;
     }
@@ -6673,7 +6709,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     o.dual_regularization = 0.0;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     try {
-        (void)eliminated_candidate(qp, ws, x, kkt, face, counters, v, o);
+        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, kkt, face, counters, v, o);
     } catch (const std::runtime_error &) {
         return Vec(); // no factor: no direction, and the exit stands
     }
@@ -6696,7 +6732,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     detail::KktFactor shifted(threads_, dense_policy_);
     EliminatedFace shifted_face;
     try {
-        (void)eliminated_candidate(qp, ws, x, shifted, shifted_face, counters, v, os);
+        (void)eliminated_candidate(qp, ws, x, EqpDualCentre{}, shifted, shifted_face, counters, v, os);
     } catch (const std::runtime_error &) {
         return Vec();
     }

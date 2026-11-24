@@ -15,6 +15,7 @@ list(APPEND _hven_qp_sources
     test_dense_oracle.cpp
     test_eqp_refine_ab.cpp
     test_eqp_solve.cpp
+    test_qp_dual_centre.cpp
     test_ipqp_acceptance.cpp
     test_ipqp_certification.cpp
     test_ipqp_counters.cpp
