@@ -8,6 +8,8 @@ algebra, KKT assembly, the QP engines, warm-start currency). Globalization is
 engine-private (`detail/ipm/globalization/`, `detail/sqp/globalization/`), not shared.
 Written in C++20, licensed Apache-2.0, under active development.
 
+**The goal is state of the art.** hven is meant to become the open-source solver that outperforms IPOPT on second-derivative problems and replaces SNOPT where only first derivatives are available — a tool that can move engineering and research forward across many fields. It gets there only if it is done properly: correct before fast, no false certificates or flattering labels, claims backed by pre-registered evidence a hostile reviewer cannot pick apart. When a shortcut would weaken that, take the longer road.
+
 Built so far: both engines — the interior-point solver (`ipm`) and the SQP
 solver (`sqp`) — with the three QP engines they use (`walk`, `ssn`, `ipqp`,
 under `qp/`) and the infrastructure they share: the core vocabulary, sparse
