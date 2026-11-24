@@ -70,9 +70,13 @@ void dense_lower_hessian_structure(Index n, IndexVecRef rows, IndexVecRef cols);
 /// eval_jacobian and eval_hessian once, at the origin projected onto the variable
 /// bounds, and keeps only the sparsity pattern; both must be defined there.
 ///
-/// Evaluation failure. A callback that cannot evaluate at a point throws. The
-/// interior-point engine treats a throw at a trial point as a rejected trial; the
-/// SQP engine propagates it.
+/// Evaluation failure. A callback that cannot evaluate at a point throws
+/// hven::EvaluationError. On both engines a throw at a trial point is a rejected
+/// trial, counted in evaluation_errors; a throw at the start point propagates out
+/// of solve. A non-finite value (NaN or +-Inf) in the objective, a constraint value
+/// or a derivative entry counts as an EvaluationError. Any other exception type
+/// propagates out of solve unchanged, with its type. See core/errors.h for the
+/// full contract.
 ///
 /// Thread safety. Problems that share one Nlp may solve concurrently on separate
 /// threads only if the Nlp's const members are safe to call concurrently.
