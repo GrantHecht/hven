@@ -115,3 +115,65 @@ were false. (The two cells are the same point: the `kRatioOrFeasibilityStep` add
   relaxed copy above was run instead. No cell ran under the strict copy.
 * Stops (declaration section 11): none fired.
 * Nothing touched HOLDOUT. No SNOPT, IPOPT, PIQP or HSL source was read or used.
+
+## Addendum (2026-11-24): settler ruling, independent review, and the BRITGAS/NET3 cause
+
+This addendum is appended after the results above; the earlier text is unchanged. Where they conflict, the addendum governs.
+
+### V3
+
+V3 was vacuous by construction and never passed. The sentence in section 1 that reads "Its V3 census read survived (0 losses,
+section 5)" is superseded by this addendum, and so is the conclusion in the same paragraph that A4 and B1 move to default events on
+that basis. A read that cannot fail does not support a ship decision.
+
+### Ruling: defaults unchanged
+
+- A4 (the ranked winner: SOC off plus uniform `kAnyAccepted`) is not shipped. A4 and SOC-off fold into a later growth-rule round,
+  measured on the repaired pin with extended scoring: majors, rejected_steps, reject_funnel_ceiling, eval_f, eval_jac and
+  evals_values alongside factorizations; quasi-Newton coverage; an in-repo radius-cycling fixture; and an owner replay.
+- A1 is not shipped.
+- B1 is deferred until the IPM ship rule has a strict-optimal column and an objective comparison.
+
+### Independent review findings
+
+- V1 held only because BRITGAS and NET3 were broken at the pin for every arm; with every arm failing the same cells, no arm could
+  lose on them.
+- ACOPR118, default mode, A0 to A4: majors 22 to 192, rejected steps 6 to 98 (88 of them at the funnel ceiling), eval_f 29 to 193.
+  The scoring recorded this as a single 23% factorization loss.
+- The gain is concentrated. ACOPP118 is 56% of the log gain, and the fold-wise held-out CUTEst sign is 0.
+- The quasi-Newton evidence is about nil: the cutest-q +1 is READING6 alone.
+- A1 ranks 16 of 16, and TRAIN barely exercises SOC.
+- B1's reach of 17 to 18 hides strict-optimal falling from 14 to 10 (STEENBRB, STEENBRD, STEENBRE, STEENBRG, and YORKNET moving from
+  optimal to acceptable). A strict reading gives CUTEst sign -1.
+- Integrity notes, both disclosed and of low severity: an undeclared calibration K build, and a relaxed roster check (see the
+  closing notes above for the C(k) attempt).
+
+### The BRITGAS/NET3 cause
+
+At the pin fd1e318b5, the SQP restoration stall window (added by the RF-1 merge 641dedeab) was observed once per restoration pass
+with cumulative factorizations. A single pass that cost more than the 5000-factorization window fired it, and a regularized
+restart inherited the failed run's samples.
+
+The fix landed on m8 at 67effac74 (RF-1c): a five-pass floor plus a fresh window per restart. See
+`docs/notes/data/2026-11-m8-rf1/RESULTS-RF-1c.md`, leg U and the TU-2 cell table, with evidence under
+`docs/notes/data/2026-11-m8-rf1/gate-RF-1c/tu2/`.
+
+On the 48 TU-2 cells (BRITGAS, NET3, SAWPATH, YORKNET x default/sqp-qn x A0-A5), solved went from 12 to 26 with 0 lost and no false
+certificate; `stalled` went from 21 to 0. BRITGAS default is optimal under A0 and A1 and numerical_error under A2 to A5. NET3
+default is optimal under all six arms. The arm ranking at fd1e318b5 is therefore not valid on the repaired pin, which supports
+holding the defaults.
+
+### Default-event instrument list for any future default flip
+
+1. Re-pin after the fix, plus the 90 TRAIN cells, with V1 re-read.
+2. TRAIN 238 x 2 exact and quasi-Newton counter legs.
+3. nlp-35.
+4. An SQP-sensitive corpus gated by a sensitivity precheck: the flipped build must move at least one row, otherwise the leg is
+   recorded as vacuous.
+5. RF-1 pilot cells, for certificates.
+6. The radius-cycling owner replay plus the in-repo fixture.
+7. The IPM corpus plus TRAIN IPM strict-optimal and objective columns.
+
+### DALLASM 028/029
+
+NOT STATIONARY stays as recorded above and is registered separately.
