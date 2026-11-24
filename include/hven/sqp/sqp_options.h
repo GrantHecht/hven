@@ -100,7 +100,11 @@ enum class SqpTrustRegionGrowth {
     /// `kRatio`, or the accepted step was a feasibility (h-type) step.
     kRatioOrFeasibilityStep,
     /// Any accepted step, with no ratio test.
-    kAnyAccepted
+    kAnyAccepted,
+    /// An f-type step: kRatio's test. An h-type step: the violation ratio
+    /// (h_old - h_new) / (h_old - h_lin) is at least 0.75, h_lin the l1 violation of the model's
+    /// linearization at the step; no positive predicted violation decrease, no growth.
+    kStepTypeRatio
 };
 
 /// @brief The SQP engine's research tier.
@@ -454,6 +458,30 @@ struct SqpAdvancedOptions {
     /// The trust-region growth rule. Default kRatio.
     SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kRatio;
 
+    // The I19-2a growth and shrink levers. Each only refuses a growth the rule grants, or
+    // shrinks a rejected step's radius further; none touches acceptance.
+
+    /// false: an acceptance through second-order correction never grows the radius.
+    bool trust_region_growth_after_soc = true;
+
+    /// N >= 1: a growth reaching the smallest radius a grown step was rejected at is refused
+    /// until N acceptances pass without such a rejection. 0 is off. Must be >= 0.
+    Index trust_region_rejection_memory = 0;
+
+    /// A ratio-granted growth whose ratio exceeds this is refused. +inf is off. Must be > 1.
+    double trust_region_ratio_ceiling = std::numeric_limits<double>::infinity();
+
+    /// true: a rejected step the radius did not hold shrinks the radius to
+    /// min(0.5 * min(radius, qp.trust_region_radius), 0.5 * ||p||inf) instead of halving it.
+    bool trust_region_shrink_to_step = false;
+
+    /// false: a step held only by caller_step_limit pins does not grow the radius.
+    bool trust_region_growth_on_cap_pins = true;
+
+    /// true: a growth is refused when the violation predicted at twice the radius,
+    /// h_lin + 4 * max(0, h_trial - h_lin), exceeds 0.99 of the funnel width.
+    bool trust_region_funnel_headroom = false;
+
     /// SSN Farkas certificate's relative-residual threshold (kFarkasGated only). In (0, 1).
     double ssn_farkas_residual_tol = 1e-6;
 
@@ -760,6 +788,7 @@ struct SqpOptions {
 ///         or tolerance that is NaN, infinite or out of its range, a
 ///         `qp.max_schur_border_dimension` below 0, a `qp.trust_region_radius` that is negative or
 ///         NaN, or an out-of-range `advanced` lever (`trust_region_growth`,
+///         `trust_region_rejection_memory`, `trust_region_ratio_ceiling`,
 ///         `ssn_farkas_residual_tol`, `ssn_uncertain_tol`, `ssn_lm_sigma_c`,
 ///         `ssn_lm_sigma_exponent`, `elastic_rho0_headroom_rungs`,
 ///         `adaptive_dual_regularization_max`).

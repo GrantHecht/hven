@@ -194,7 +194,13 @@ The research tier (`advanced.`, including `advanced.ipqp.`): these fields may ch
 | `advanced.max_lbfgs_full_memory_dimension` | `Index` | `400` | >= 0 | Under kLbfgsDamped, a full-memory damped BFGS replaces the L-BFGS window at or below this dimension. 0 is never. |
 | `advanced.restoration_curvature` | `SqpRestorationCurvature` | `kModelThenRegularized` | one of kModel, kRegularized, kModelThenRegularized | The curvature the restoration phase's QPs carry. |
 | `advanced.max_restoration_entries` | `Index` | `10` | >= 0 | Restoration entries allowed per solve. 0 refuses restoration. |
-| `advanced.trust_region_growth` | `SqpTrustRegionGrowth` | `kRatio` | one of kRatio, kRatioOrFeasibilityStep, kAnyAccepted | When an accepted step earns the trust-region radius a larger value. |
+| `advanced.trust_region_growth` | `SqpTrustRegionGrowth` | `kRatio` | one of kRatio, kRatioOrFeasibilityStep, kAnyAccepted, kStepTypeRatio | When an accepted step earns the trust-region radius a larger value. |
+| `advanced.trust_region_growth_after_soc` | `bool` | `true` | true or false | Let an acceptance through second-order correction grow the trust-region radius. |
+| `advanced.trust_region_rejection_memory` | `Index` | `0` | >= 0 | Refuse a growth reaching the smallest radius a grown step was rejected at until this many acceptances pass. 0 is off. |
+| `advanced.trust_region_ratio_ceiling` | `double` | `inf` | > 1 (+inf allowed) | Refuse a ratio-granted growth whose ratio exceeds this. +inf is off. |
+| `advanced.trust_region_shrink_to_step` | `bool` | `false` | true or false | On a rejection whose step the radius did not hold, shrink to half the step's inf-norm. |
+| `advanced.trust_region_growth_on_cap_pins` | `bool` | `true` | true or false | Count a step held only by caller step-limit pins as growth-eligible. |
+| `advanced.trust_region_funnel_headroom` | `bool` | `false` | true or false | Refuse a growth whose predicted violation at twice the radius leaves the funnel width. |
 | `advanced.ssn_farkas_residual_tol` | `double` | `1e-06` | (0, 1) | SSN Farkas certificate's relative-residual threshold (kFarkasGated only). |
 | `advanced.ssn_uncertain_tol` | `double` | `0.1` | [0, 1) | SSN uncertain-set entering threshold on \|alpha - beta\|. 0 disables the set. |
 | `advanced.ssn_lm_sigma_c` | `double` | `1` | finite, > 0 | SSN Levenberg-Marquardt sizing coefficient c (residual sigma rules only). |
@@ -235,6 +241,6 @@ The research tier (`advanced.`, including `advanced.ipqp.`): these fields may ch
 | `SsnHintRule` | kIterationZeroFree, kWatchdog |
 | `SsnInfeasibilityRule` | kSymptoms, kFarkasGated |
 | `SqpRestorationCurvature` | kModel, kRegularized, kModelThenRegularized |
-| `SqpTrustRegionGrowth` | kRatio, kRatioOrFeasibilityStep, kAnyAccepted |
+| `SqpTrustRegionGrowth` | kRatio, kRatioOrFeasibilityStep, kAnyAccepted, kStepTypeRatio |
 
 `IpmOptions::phases` is a list of `kOptimize` and `kSolve`.

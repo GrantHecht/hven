@@ -15,12 +15,14 @@
 
 namespace hven::test_support {
 
-/// f = a . x + k (|x|^2 - rho^2) on the sphere |x|^2 = rho^2 (one equality row), x in R^n.
+/// f = a . x + k (|x|^2 - rho^2) on the sphere s |x|^2 = s rho^2 (one equality row), x in R^n.
 struct I19Sphere final : Nlp {
     Vec a;
     double k = 0.0;
     double rho = 1.0;
-    I19Sphere(Vec a_, double k_, double rho_) : a(std::move(a_)), k(k_), rho(rho_) {}
+    double s = 1.0;
+    I19Sphere(Vec a_, double k_, double rho_, double s_ = 1.0)
+        : a(std::move(a_)), k(k_), rho(rho_), s(s_) {}
     NlpDimensions dimensions() const override {
         const Index n = a.size();
         return {.n = n, .m = 1, .jacobian_nonzeros = n, .hessian_nonzeros = n};
@@ -28,29 +30,29 @@ struct I19Sphere final : Nlp {
     void bounds(VecRef l, VecRef u, VecRef gl, VecRef gu) const override {
         l.setConstant(-kInfinity);
         u.setConstant(kInfinity);
-        gl[0] = rho * rho;
-        gu[0] = rho * rho;
+        gl[0] = s * rho * rho;
+        gu[0] = s * rho * rho;
     }
     double eval_f(ConstVecRef x) const override {
         return a.dot(x) + k * (x.squaredNorm() - rho * rho);
     }
     void eval_grad_f(ConstVecRef x, VecRef g) const override { g = a + 2.0 * k * x; }
-    void eval_g(ConstVecRef x, VecRef g) const override { g[0] = x.squaredNorm(); }
+    void eval_g(ConstVecRef x, VecRef g) const override { g[0] = s * x.squaredNorm(); }
     void jacobian_structure(IndexVecRef r, IndexVecRef c) const override {
         for (Index j = 0; j < a.size(); ++j) {
             r[j] = 0;
             c[j] = static_cast<int>(j);
         }
     }
-    void eval_jacobian(ConstVecRef x, VecRef v) const override { v = 2.0 * x; }
+    void eval_jacobian(ConstVecRef x, VecRef v) const override { v = 2.0 * s * x; }
     void hessian_structure(IndexVecRef r, IndexVecRef c) const override {
         for (Index j = 0; j < a.size(); ++j) {
             r[j] = static_cast<int>(j);
             c[j] = static_cast<int>(j);
         }
     }
-    void eval_hessian(ConstVecRef, double s, ConstVecRef lambda, VecRef v) const override {
-        v.setConstant(2.0 * s * k + 2.0 * lambda[0]);
+    void eval_hessian(ConstVecRef, double sigma, ConstVecRef lambda, VecRef v) const override {
+        v.setConstant(2.0 * sigma * k + 2.0 * s * lambda[0]);
     }
 };
 
@@ -97,6 +99,15 @@ inline I19Fixture f_soc(SqpHessianMode mode) {
 /// the identical QP. Default options otherwise. Pins G5/G6.
 inline I19Fixture f_cap(SqpHessianMode mode) {
     return i19_circle(100.0, 1.0, /*soc=*/true, 0.1, 300, mode);
+}
+
+/// F-H with its row scaled by 1e3 and the row-scaling layer on: the growth levers' violations
+/// must be read in one unit system.
+inline I19Fixture f_h_scaled(SqpHessianMode mode) {
+    I19Fixture f = i19_circle(30.0, 1.0, /*soc=*/false, 0.0, 200, mode);
+    f.model = std::make_shared<I19Sphere>(Vec{{0.0, 1.0}}, 0.0, 30.0, 1e3);
+    f.options.row_scaling = true;
+    return f;
 }
 
 inline SqpResult i19_solve(const I19Fixture &f) {

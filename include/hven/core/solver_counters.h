@@ -2560,6 +2560,24 @@ struct SqpCounters {
     /// soc_qp_iteration_limits: RF-1 -- second-order-correction re-solves that ended at their
     /// minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged.
     Index soc_qp_iteration_limits = 0;
+
+    // I19-2a: the trust radius's growth and shrink. Counted on the caller's own iterate, as GL-0's
+    // are, and NOT folded from a restoration sub-solve.
+
+    /// Accepted steps that grew the radius; a step rolled back as non-finite after its growth is
+    /// not one.
+    Index tr_growths = 0;
+    /// Accepted steps whose growth, granted by the growth rule, at least one
+    /// SqpAdvancedOptions::trust_region_* lever refused. 0 at the default levers.
+    Index tr_growth_refusals = 0;
+    /// Rejections whose radius trust_region_shrink_to_step set from the step, not by halving.
+    Index tr_shrinks_to_step = 0;
+    /// Rejections of a trial solved at a radius the previous major's growth set.
+    Index tr_grow_then_reject = 0;
+    /// Rejections of a step the trust radius did not hold.
+    Index tr_unbound_rejections = 0;
+    /// Majors whose QP step a caller_step_limit pin held (SqpIterationRow::cap_binding).
+    Index tr_cap_binding_majors = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2691,7 +2709,13 @@ struct SqpCounters {
     X(qp_retry_replays, counter_never_absent)                                                      \
     X(qp_failure_box_projections, counter_never_absent)                                            \
     X(trust_region_floor_exits, counter_never_absent)                                              \
-    X(soc_qp_iteration_limits, counter_never_absent)
+    X(soc_qp_iteration_limits, counter_never_absent)                                               \
+    X(tr_growths, counter_never_absent)                                                            \
+    X(tr_growth_refusals, counter_never_absent)                                                    \
+    X(tr_shrinks_to_step, counter_never_absent)                                                    \
+    X(tr_grow_then_reject, counter_never_absent)                                                   \
+    X(tr_unbound_rejections, counter_never_absent)                                                 \
+    X(tr_cap_binding_majors, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

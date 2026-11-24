@@ -4171,6 +4171,75 @@ TEST(SqpSolverNonfiniteRollback, NoRollbackIsTakenAcrossTheRadiusFloor) {
     ASSERT_EQ(sol.history.size(), 2u);
 }
 
+// I19-2a: A ROLLED-BACK STEP IS A REJECTION FOR THE RADIUS'S BOOKKEEPING. The rollback restores
+// the radius the step was taken under and halves it exactly (shrink-to-step is not consulted); a
+// growth the commit made never stood (tr_growths does not count it); and with the rejection
+// memory on, the rolled-back radius is recorded when a growth set it.
+TEST(SqpSolverNonfiniteRollback, TheRollbackHalvesTheRadiusEvenUnderShrinkToStep) {
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.advanced.trust_region_shrink_to_step = true;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+    ASSERT_GE(sol.history.size(), 3u);
+    EXPECT_TRUE(sol.history[1].rolled_back);
+    EXPECT_EQ(sol.history[2].sqp->trust_radius, 0.5 * sol.history[0].sqp->trust_radius);
+}
+
+TEST(SqpSolverNonfiniteRollback, AGrowthTheRollbackUndidIsNotCounted) {
+    // kAnyAccepted and a caller step limit: the step that lands on x0 = 0 is held by a cap pin,
+    // so it grows the radius; the next major rolls it back.
+    NonfiniteAtTheBoundModel model(0.0);
+    SqpOptions opts = nonfinite_rollback_options();
+    opts.trust_region_initial = 9.0;
+    opts.caller_step_limit = 0.9;
+    opts.advanced.trust_region_growth = hven::SqpTrustRegionGrowth::kAnyAccepted;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    Index growths = 0;
+    Index undone = 0;
+    for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
+        const auto &h = sol.history[k];
+        const bool accepted = h.sqp->verdict == StepVerdict::kAcceptObjectiveStep ||
+                              h.sqp->verdict == StepVerdict::kAcceptFeasibilityStep;
+        if (accepted && sol.history[k + 1].sqp->trust_radius > h.sqp->trust_radius) {
+            ++growths;
+            undone += sol.history[k + 1].rolled_back ? 1 : 0;
+        }
+    }
+    ASSERT_GE(undone, 1) << "premise: a rollback undid a growth";
+    EXPECT_EQ(sol.counters.tr_growths, growths - undone);
+}
+
+TEST(SqpSolverNonfiniteRollback, TheMemoryRecordsARolledBackRadiusAGrowthSet) {
+    // 3 -> 6 (a growth), the step at 6 lands on x0 = 0 and is rolled back to 3: with the memory
+    // on, 6 is remembered and the next radius-bound acceptance at 3 cannot grow back to it.
+    const auto run = [](Index memory) {
+        NonfiniteAtTheBoundModel model(0.0);
+        SqpOptions opts = nonfinite_rollback_options();
+        opts.trust_region_initial = 3.0;
+        opts.advanced.trust_region_growth = hven::SqpTrustRegionGrowth::kAnyAccepted;
+        opts.advanced.trust_region_rejection_memory = memory;
+        SqpSolver driver(opts);
+        return driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    };
+    const SqpResult off = run(0);
+    const SqpResult on = run(3);
+    ASSERT_EQ(off.status, SolveStatus::kOptimal);
+    ASSERT_EQ(on.status, SolveStatus::kOptimal);
+    ASSERT_GE(off.history.size(), 5u);
+    ASSERT_GE(on.history.size(), 5u);
+    ASSERT_TRUE(off.history[2].rolled_back);
+    ASSERT_TRUE(on.history[2].rolled_back);
+    EXPECT_EQ(off.history[3].sqp->trust_radius, 3.0);
+    EXPECT_EQ(off.history[4].sqp->trust_radius, 6.0) << "off: the radius grows straight back";
+    EXPECT_EQ(on.history[4].sqp->trust_radius, 3.0) << "on: 6 is remembered";
+    EXPECT_EQ(on.history[3].sqp->tr_growth_refusal, hven::detail::kTrRefusalMemory);
+}
+
 // THE FUNNEL IS PUT BACK (R2-1 rider R4). With one equality violated by 100 at the start
 // the first step is h-TYPE (pred_df < 0.999 h^2): the funnel width goes 125 -> 62.5 when it
 // is accepted onto x0 = 0, and the rollback must restore 125 -- a rejected step never moves
@@ -4585,6 +4654,36 @@ TEST(SqpSolverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         // this test is measuring.
         EXPECT_EQ(sol.counters.elastic_activations, 0);
     }
+}
+
+// I19-2a: THE RETRY LADDER'S SHRINK RUNG HALVES THE RADIUS UNDER shrink-to-step TOO. The lever
+// governs a JUDGED rejection only; a routed failure's R1 rung keeps today's arithmetic.
+TEST(SqpSolverQpFailure, TheShrinkRungHalvesTheRadiusUnderShrinkToStep) {
+    const HsProblem hs = make_hs(1);
+    SqpOptions opts;
+    opts.trust_region_initial = 12.0;
+    opts.trust_region_max = 100.0;
+    opts.common.max_iterations = 60;
+    opts.qp.max_iterations = 2;
+    opts.advanced.max_consecutive_qp_failures = 1;
+    opts.advanced.qp_failure_step = false;
+    opts.advanced.trust_region_shrink_to_step = true;
+    SqpSolver driver(opts);
+    const SqpResult sol =
+        driver.solve(hven::detail::problem_ref(*hs.model), (*hs.model).start_point());
+    ASSERT_GE(sol.counters.qp_retry_rung_shrink, 1);
+    int checked = 0;
+    for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
+        const auto &h = sol.history[k];
+        const bool routed = h.sqp->qp_solved && h.sqp->qp_status.value_or(
+                                                    hven::QpStatus::kOptimal) != QpStatus::kOptimal;
+        const double next = sol.history[k + 1].sqp->trust_radius;
+        if (routed && next != h.sqp->trust_radius) {
+            EXPECT_EQ(next, 0.5 * h.sqp->trust_radius) << "row " << k;
+            ++checked;
+        }
+    }
+    EXPECT_GE(checked, 1);
 }
 
 // =========================================================================

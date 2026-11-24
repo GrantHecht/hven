@@ -144,6 +144,11 @@ struct SqpIterationRow {
     /// Seconds since this solve's entry on a monotonic clock; informational, never asserted. A
     /// depth-1 row counts from the nested solve's own entry.
     double t_s = 0.0;
+    /// The SqpAdvancedOptions::trust_region_* levers that refused this accepted step's growth, as
+    /// bits: 1 the violation ratio (kStepTypeRatio), 2 after SOC, 4 the rejection memory, 8 the
+    /// ratio ceiling, 16 cap pins, 32 the funnel headroom. 0 when no growth the rule granted was
+    /// refused, and on every row that was not accepted.
+    Index tr_growth_refusal = 0;
 };
 
 /// @brief One iteration row: the shared core plus exactly one engine block.

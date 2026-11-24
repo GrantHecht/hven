@@ -416,7 +416,7 @@ static_assert(::hven::detail::kAggregateArity<IpmIterationRow> == 23,
               "IpmIterationRow gained or lost a member: give it a key in the `ipm` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
-static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 36,
+static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 37,
               "SqpIterationRow gained or lost a member: give it a key in the `sqp` block of "
               "JsonLinesTraceSink::on_iter, add it to the freeze table of "
               "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
@@ -875,6 +875,7 @@ void write_sqp_row(std::string &b, const SqpIterationRow &r) {
     key_index(b, f, "qp_factorizations_total", r.qp_factorizations_total);
     key_index(b, f, "factorizations_delta", r.factorizations_delta);
     key_double(b, f, "t_s", r.t_s);
+    key_index(b, f, "tr_growth_refusal", r.tr_growth_refusal);
 }
 
 } // namespace

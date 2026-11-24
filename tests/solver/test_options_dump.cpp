@@ -76,12 +76,12 @@ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(SqpOptions) == 768, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 792, "SqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpTerminationOptions) == 32,
               "SqpTerminationOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::SqpAdvancedOptions) == 440,
+static_assert(sizeof(hven::SqpAdvancedOptions) == 464,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
@@ -149,6 +149,29 @@ TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
     const std::string text = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(text, "common.threads = 0")) << text;
     EXPECT_TRUE(has_line(text, "common.verbosity = kSilent")) << text;
+}
+
+TEST(OptionsDump, SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly) {
+    // Every I19-2a lever key is in the dump (the harness's pre-flight diffs it per arm).
+    const std::string text = dump_to_string(SqpOptions{});
+    for (const char *line :
+         {"advanced.trust_region_growth = kRatio", "advanced.trust_region_growth_after_soc = true",
+          "advanced.trust_region_rejection_memory = 0", "advanced.trust_region_ratio_ceiling = inf",
+          "advanced.trust_region_shrink_to_step = false",
+          "advanced.trust_region_growth_on_cap_pins = true",
+          "advanced.trust_region_funnel_headroom = false", "caller_step_limit = 0"}) {
+        EXPECT_TRUE(has_line(text, line)) << line << "\n" << text;
+    }
+    // The placebo arm P perturbs trust_region_initial in the last digits: the dump must tell it
+    // from the default (shortest round-trip spelling).
+    SqpOptions p;
+    p.trust_region_initial = 1.000000000000001;
+    const std::string ptext = dump_to_string(p);
+    EXPECT_TRUE(has_line(ptext, "trust_region_initial = 1.000000000000001")) << ptext;
+    EXPECT_TRUE(has_line(text, "trust_region_initial = 1")) << text;
+    SqpOptions g;
+    g.advanced.trust_region_growth = hven::SqpTrustRegionGrowth::kStepTypeRatio;
+    EXPECT_TRUE(has_line(dump_to_string(g), "advanced.trust_region_growth = kStepTypeRatio"));
 }
 
 TEST(OptionsDump, SqpDumpsTheTu0LeversAtTheirOldConstants) {

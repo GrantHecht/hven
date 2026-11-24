@@ -66,6 +66,8 @@ const char *EnumTraits<hven::SqpTrustRegionGrowth>::name(hven::SqpTrustRegionGro
         return "kRatioOrFeasibilityStep";
     case E::kAnyAccepted:
         return "kAnyAccepted";
+    case E::kStepTypeRatio:
+        return "kStepTypeRatio";
     }
     return "unknown";
 }

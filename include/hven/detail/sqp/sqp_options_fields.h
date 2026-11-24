@@ -103,6 +103,19 @@
       "Restoration entries allowed per solve. 0 refuses restoration.")                             \
     X(trust_region_growth, r_any(),                                                                \
       "When an accepted step earns the trust-region radius a larger value.")                       \
+    X(trust_region_growth_after_soc, r_any(),                                                      \
+      "Let an acceptance through second-order correction grow the trust-region radius.")          \
+    X(trust_region_rejection_memory, r_ge(0.0),                                                    \
+      "Refuse a growth reaching the smallest radius a grown step was rejected at until this many " \
+      "acceptances pass. 0 is off.")                                                               \
+    X(trust_region_ratio_ceiling, r_gt(1.0, false),                                                \
+      "Refuse a ratio-granted growth whose ratio exceeds this. +inf is off.")                      \
+    X(trust_region_shrink_to_step, r_any(),                                                        \
+      "On a rejection whose step the radius did not hold, shrink to half the step's inf-norm.")   \
+    X(trust_region_growth_on_cap_pins, r_any(),                                                    \
+      "Count a step held only by caller step-limit pins as growth-eligible.")                      \
+    X(trust_region_funnel_headroom, r_any(),                                                       \
+      "Refuse a growth whose predicted violation at twice the radius leaves the funnel width.")    \
     X(ssn_farkas_residual_tol, r_open(0.0, 1.0),                                                   \
       "SSN Farkas certificate's relative-residual threshold (kFarkasGated only).")                 \
     X(ssn_uncertain_tol, r_closed_open(0.0, 1.0),                                                  \

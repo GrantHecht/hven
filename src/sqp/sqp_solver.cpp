@@ -484,6 +484,27 @@ std::optional<double> linearized_violation_l1(const QpProblem &qp, const Vec &p,
     return violation_l1_caller_units(ce, ci, sc);
 }
 
+// I19-2a: the l1 violation of the model's own linearization at the iterate, cE + Je p and
+// cI + Ji p, in engine units and spelled as detail::constraint_violation_l1. Read only by the
+// growth levers. Null when p is not finite or not of the evaluation's dimension.
+std::optional<double> model_linearized_violation_l1(const NlpEval &ev, const Vec &p) {
+    if (p.size() != ev.grad.size() || !p.allFinite() ||
+        (ev.ce.size() > 0 && ev.Je.cols() != p.size()) ||
+        (ev.ci.size() > 0 && ev.Ji.cols() != p.size())) {
+        return std::nullopt;
+    }
+    NlpEval lin;
+    lin.ce = ev.ce;
+    lin.ci = ev.ci;
+    if (lin.ce.size() > 0) {
+        lin.ce += ev.Je * p;
+    }
+    if (lin.ci.size() > 0) {
+        lin.ci += ev.Ji * p;
+    }
+    return detail::constraint_violation_l1(lin);
+}
+
 } // namespace
 
 // THE SHARED DECLARED DIAGNOSTICS OF ONE POINT (M6 W5 T8.4). Declared in
@@ -2087,6 +2108,7 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.qp_factorizations_total = r.qp_factorizations_total;
     row.factorizations_delta = r.factorizations_delta;
     row.t_s = r.t_s;
+    row.tr_growth_refusal = r.tr_growth_refusal;
     rec.sqp = row;
     return rec;
 }
@@ -4569,6 +4591,11 @@ struct SqpSolverImpl::SolveState {
 
     // ---- radius, prices, budgets and retry counts -------------------------
     double delta = 0.0;
+    // I19-2a: `delta` was set by the previous major's growth (read once per major into
+    // MajorState::radius_from_growth), and trust_region_rejection_memory's state. Cleared at a
+    // restoration resume and a watchdog rebase.
+    bool radius_from_growth = false;
+    detail::TrustRegionRejectionMemory tr_memory;
     // THE PROBE BUDGET'S SSN CHARGE.
     //
     // WHY IT EXISTS. The probe budget (the 4-argument solve()'s
@@ -4665,6 +4692,12 @@ struct SqpSolverImpl::SolveState {
         double delta = 0.0;
         Index rejections_at_iterate = 0;
         Index counted_run_at_iterate = 0;
+        // I19-2a: the memory before the commit, whether `delta` came from a growth, and whether
+        // the commit grew it -- a rolled-back step is a rejection for the memory and its growth
+        // never stood.
+        detail::TrustRegionRejectionMemory tr_memory;
+        bool radius_from_growth = false;
+        bool grew = false;
     };
     NonfiniteRollback rollback;
 
@@ -4910,6 +4943,15 @@ struct SqpSolverImpl::MajorState {
     // THE ACCEPTED TRIAL IS A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2): the
     // commit keeps the multipliers and does not grow the radius.
     bool failure_step = false;
+
+    // I19-2a: this major's radius came from the previous major's growth; the uncorrected
+    // trial's h (engine units, before a promoted SOC replaces `ctx`); the model linearization's
+    // l1 violation at the step, computed only when a lever reads it; the growth decision, made
+    // before the accepted row is pushed and applied at the commit.
+    bool radius_from_growth = false;
+    double trial_h_new = 0.0;
+    std::optional<double> h_lin_model;
+    detail::TrustRegionGrowthDecision growth;
 
     // THE STOP TOKEN, NOT THE CALLBACK, ENDED THIS MAJOR (M8 AP-5 G1): set with
     // `interrupted_exit` at the exit conjunction, and at the post-push poll of
@@ -7332,6 +7374,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.accepted_at_resume = st.out.counters.steps_accepted;
         st.full_step_funnel = nullptr;
         st.delta = restoration_restart_radius();
+        st.radius_from_growth = false;
+        st.tr_memory.clear(); // I19-2a: a fresh phase, a fresh memory
         st.rejections_at_iterate = 0;
         st.counted_run_at_iterate = 0;
         st.qp_failures_in_a_row = 0;
@@ -7809,6 +7853,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // hand and calls the model not at all.
     mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
 
+    // I19-2a: whether this major's radius is the previous major's growth.
+    mj.radius_from_growth = st.radius_from_growth;
+    st.radius_from_growth = false;
+
     mj.row.trial = iter;
     // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the
     // CONFIGURED mode -- which is what a row with `qp_solved == false`
@@ -8135,6 +8183,16 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.lambda_e = st.rollback.lambda_e;
         st.lambda_i = st.rollback.lambda_i;
         st.delta = shrunk_radius(st.rollback.delta);
+        // I19-2a: a rejection for the memory, at the radius the step was taken under; the growth
+        // the commit made never stood.
+        st.tr_memory = st.rollback.tr_memory;
+        if (opts_.advanced.trust_region_rejection_memory > 0) {
+            st.tr_memory.record_rejection(st.rollback.delta, st.rollback.radius_from_growth);
+        }
+        if (st.rollback.grew) {
+            --st.out.counters.tr_growths;
+        }
+        st.radius_from_growth = false;
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
         st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;
         st.subproblem_is_stale = true;
@@ -8393,6 +8451,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.full_step_funnel = nullptr;
             st.rejections_at_iterate = 0;
             st.counted_run_at_iterate = 0;
+            st.tr_memory.clear(); // I19-2a: the rebase restarts the radius's history
+            mj.radius_from_growth = false;
             // The iterate moved (or, on the stall exit, may not have
             // -- either way the subproblem in hand was built at some
             // other point or at some other multipliers, so it is
@@ -9550,6 +9610,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     mj.row.radius_binding =
         std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
     mj.row.cap_binding = release_step_limit_pins(mj.qs, st.step_limit_sides);
+    if (mj.row.cap_binding) {
+        ++st.out.counters.tr_cap_binding_majors; // I19-2a
+    }
     mj.row.region_limited =
         std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
 
@@ -9854,6 +9917,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         mj.row.h_trial = violation_l1_caller_units(mj.ev_trial.ce, mj.ev_trial.ci, sc);
         mj.row.h_lin = linearized_violation_l1(st.qp, mj.qs.x, seam.me(), seam.mi(), sc);
     }
+    // I19-2a: the uncorrected trial's h, and the model's linearization at the step for the two
+    // levers that read it (nothing new is computed at the default levers).
+    mj.trial_h_new = mj.ctx.h_new;
+    if (opts_.advanced.trust_region_growth == SqpTrustRegionGrowth::kStepTypeRatio ||
+        opts_.advanced.trust_region_funnel_headroom) {
+        mj.h_lin_model = model_linearized_violation_l1(st.ev, mj.qs.x);
+    }
 
     // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (docs/migration-0.2.md, "Zero-step
     // short-circuit", for why it is here and not left to the convergence test at the top
@@ -10109,11 +10179,30 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                               lagrangian_gradient(st.ev, le_qp, mj.qs.lambda_i),
                           st.x.head(ns).lpNorm<Eigen::Infinity>(), st.out.counters);
         }
+        // I19-2a: a grown radius rejected, a step the radius did not hold, the memory's record
+        // (the radius the trial was solved at, before the shrink), and the shrink itself:
+        // halving, or with trust_region_shrink_to_step half the step the radius did not hold.
+        if (mj.radius_from_growth) {
+            ++st.out.counters.tr_grow_then_reject;
+        }
+        if (!mj.row.radius_binding) {
+            ++st.out.counters.tr_unbound_rejections;
+        }
+        if (opts_.advanced.trust_region_rejection_memory > 0) {
+            st.tr_memory.record_rejection(st.delta, mj.radius_from_growth);
+        }
+        const detail::TrustRegionShrink shrink = detail::trust_region_rejection_shrink(
+            opts_.advanced.trust_region_shrink_to_step, mj.row.radius_binding, mj.failure_step,
+            st.delta, opts_.qp.trust_region_radius, mj.row.step_norm, opts_.trust_region_min,
+            opts_.trust_region_max);
+        if (shrink.to_step) {
+            ++st.out.counters.tr_shrinks_to_step;
+        }
         // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
         // trigger in trust-region form. The shrink is NOT taken and
         // NOT clamped: crossing the floor IS the request. See RADIUS
         // MANAGEMENT.
-        if (shrink_hits_floor(st.delta)) {
+        if (shrink.hits_floor) {
             // THE TRUST-REGION FLOOR EXIT (RF-1 design 3.4), read off the rejected step's own
             // predicted decrease.
             if (trust_region_floor_exit(mj, st.ev.f, mj.ctx.pred_df)) {
@@ -10146,7 +10235,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             return MajorOutcome::kFinishRestorationQp;
         }
         push_history(mj.row);
-        st.delta = shrunk_radius(st.delta);
+        st.delta = shrink.radius;
         st.seed = std::move(mj.qs);
         st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
         st.have_seed = true;
@@ -10184,6 +10273,32 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         return MajorOutcome::kFinishRestorationQp;
     }
 
+    // I19-2a: THE GROWTH DECISION, made here so the pushed row carries its refusal; the commit
+    // applies it. Nothing between here and the commit moves `delta`, `ev` or the funnel.
+    {
+        detail::TrustRegionGrowthInputs gin;
+        gin.failure_step = mj.failure_step;
+        gin.radius_finite = std::isfinite(st.delta);
+        gin.region_limited = mj.row.region_limited;
+        gin.radius_binding = mj.row.radius_binding;
+        gin.feasibility_step = mj.row.verdict == StepVerdict::kAcceptFeasibilityStep;
+        gin.soc_applied = mj.soc_applied;
+        gin.pred_df = mj.ctx.pred_df;
+        gin.actual_df = st.ev.f - mj.ctx.f_new;
+        gin.h_old = mj.ctx.h_old;
+        gin.h_new = mj.ctx.h_new;
+        gin.h_trial = mj.trial_h_new;
+        gin.h_lin = mj.h_lin_model;
+        if (opts_.advanced.trust_region_funnel_headroom) {
+            if (const auto *funnel = dynamic_cast<const FunnelStrategy *>(st.strategy.get())) {
+                gin.width = funnel->width();
+            }
+        }
+        gin.grown_radius = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
+        gin.rejection_cap = st.tr_memory.cap();
+        mj.growth = detail::trust_region_growth_decision(opts_.advanced, gin);
+        mj.row.tr_growth_refusal = mj.growth.refusal;
+    }
     push_history(mj.row);
     // THE ROW IS IN THE STREAM AND IN `history` BEFORE ANY COMMIT RUNS, and
     // that is the whole reason the outcome leaves HERE rather than after the
@@ -10395,6 +10510,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             st.rollback.counted_run_at_iterate = st.counted_run_at_iterate;
             st.rollback.lambda_e = st.lambda_e;
             st.rollback.lambda_i = st.lambda_i;
+            st.rollback.tr_memory = st.tr_memory;
+            st.rollback.radius_from_growth = mj.radius_from_growth;
 
             // ACCEPTED (kAcceptObjectiveStep or kAcceptFeasibilityStep), possibly via SOC. The
             // radius grows only on the evidence described in RADIUS MANAGEMENT, and it is computed
@@ -10410,12 +10527,23 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             //
             // A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2) earns no growth: the
             // radius it was taken under is the one its subproblem failed at.
-            const double actual_df = st.ev.f - mj.ctx.f_new;
-            if (trust_region_grows(opts_.advanced.trust_region_growth, mj.failure_step,
-                                   mj.row.region_limited, std::isfinite(st.delta), mj.ctx.pred_df,
-                                   actual_df,
-                                   mj.row.verdict == StepVerdict::kAcceptFeasibilityStep)) {
-                st.delta = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
+            //
+            // I19-2a: the decision was made before the row was pushed (the growth levers); at
+            // the default levers it is trust_region_grows on the same inputs.
+            const double grown = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
+            st.rollback.grew = mj.growth.grows && grown > st.delta;
+            if (mj.growth.grows) {
+                if (grown > st.delta) {
+                    ++st.out.counters.tr_growths;
+                    st.radius_from_growth = true;
+                }
+                st.delta = grown;
+            }
+            if (mj.growth.refusal != 0) {
+                ++st.out.counters.tr_growth_refusals;
+            }
+            if (opts_.advanced.trust_region_rejection_memory > 0) {
+                st.tr_memory.after_acceptance(opts_.advanced.trust_region_rejection_memory);
             }
             // THE QN PAIR'S OLD HALF (M7 QN stage 3), taken before the commit moves the iterate.
             Vec qn_x_old;

@@ -73,7 +73,8 @@ inline bool same_block(const SqpIterationRow &a, const SqpIterationRow &b) {
            same_value(a.soc_h, b.soc_h) && same_value(a.h_lin, b.h_lin) &&
            a.qp_minor_iterations_total == b.qp_minor_iterations_total &&
            a.qp_factorizations_total == b.qp_factorizations_total &&
-           a.factorizations_delta == b.factorizations_delta;
+           a.factorizations_delta == b.factorizations_delta &&
+           a.tr_growth_refusal == b.tr_growth_refusal;
     // `t_s` is wall-clock and is deliberately not compared.
 }
 

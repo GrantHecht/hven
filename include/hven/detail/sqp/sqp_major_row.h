@@ -316,6 +316,9 @@ struct SqpMajorRow {
     Index qp_factorizations_total = 0;
     Index factorizations_delta = 0;
     double t_s = 0.0;
+    /// I19-2a: the kTrRefusal* bits (trust_region.h) of the levers that refused this accepted
+    /// step's growth; 0 on every other row.
+    Index tr_growth_refusal = 0;
 };
 
 } // namespace hven

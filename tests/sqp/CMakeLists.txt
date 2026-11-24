@@ -21,6 +21,7 @@ list(APPEND _hven_sqp_sources
     test_funnel.cpp
     test_hs_battery.cpp
     test_hs_sweeps.cpp
+    test_i19_growth.cpp
     test_i19_radius_cycle.cpp
     test_ipqp_dispatch.cpp
     test_iteration_telemetry.cpp

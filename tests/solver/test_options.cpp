@@ -896,16 +896,35 @@ TEST(Options, SqpValidateRefusesTheQpBlocksIllFormedFields) {
 
 TEST(Options, SqpValidateRefusesTheTuningLeversOutOfRange) {
     using hven::SqpTrustRegionGrowth;
-    // trust_region_growth: enumerators 0..2.
-    for (const int bad : {-1, 3}) {
+    // trust_region_growth: enumerators 0..3 (kStepTypeRatio appended by I19-2a).
+    for (const int bad : {-1, 4}) {
         expect_sqp_refused("advanced.trust_region_growth", [&](SqpOptions &o) {
             o.advanced.trust_region_growth = static_cast<SqpTrustRegionGrowth>(bad);
         });
     }
     for (const auto g :
          {SqpTrustRegionGrowth::kRatio, SqpTrustRegionGrowth::kRatioOrFeasibilityStep,
-          SqpTrustRegionGrowth::kAnyAccepted}) {
+          SqpTrustRegionGrowth::kAnyAccepted, SqpTrustRegionGrowth::kStepTypeRatio}) {
         expect_sqp_accepted("growth", [&](SqpOptions &o) { o.advanced.trust_region_growth = g; });
+    }
+
+    // I19-2a: trust_region_rejection_memory >= 0; trust_region_ratio_ceiling > 1, +inf allowed.
+    // The four bools have no refusable value.
+    for (const hven::Index bad : {hven::Index{-1}, hven::Index{-5}}) {
+        expect_sqp_refused("advanced.trust_region_rejection_memory",
+                           [&](SqpOptions &o) { o.advanced.trust_region_rejection_memory = bad; });
+    }
+    for (const hven::Index ok : {hven::Index{0}, hven::Index{1}, hven::Index{3}}) {
+        expect_sqp_accepted("memory",
+                            [&](SqpOptions &o) { o.advanced.trust_region_rejection_memory = ok; });
+    }
+    for (const double bad : {1.0, 0.5, 0.0, -2.0, kNanValue, -kInfValue}) {
+        expect_sqp_refused("advanced.trust_region_ratio_ceiling",
+                           [&](SqpOptions &o) { o.advanced.trust_region_ratio_ceiling = bad; });
+    }
+    for (const double ok : {1.0 + 1e-12, 3.0, kInfValue}) {
+        expect_sqp_accepted("ceiling",
+                            [&](SqpOptions &o) { o.advanced.trust_region_ratio_ceiling = ok; });
     }
 
     // ssn_farkas_residual_tol: in (0, 1), open at both ends.
@@ -976,6 +995,13 @@ TEST(Options, SqpValidateRefusesTheTuningLeversOutOfRange) {
 TEST(Options, SqpTheTuningLeversDefaultToTheirOldConstants) {
     const SqpOptions o;
     EXPECT_EQ(o.advanced.trust_region_growth, hven::SqpTrustRegionGrowth::kRatio);
+    // The I19-2a levers default to today's rule: every lever off.
+    EXPECT_TRUE(o.advanced.trust_region_growth_after_soc);
+    EXPECT_EQ(o.advanced.trust_region_rejection_memory, 0);
+    EXPECT_EQ(o.advanced.trust_region_ratio_ceiling, std::numeric_limits<double>::infinity());
+    EXPECT_FALSE(o.advanced.trust_region_shrink_to_step);
+    EXPECT_TRUE(o.advanced.trust_region_growth_on_cap_pins);
+    EXPECT_FALSE(o.advanced.trust_region_funnel_headroom);
     EXPECT_EQ(o.advanced.ssn_farkas_residual_tol, hven::detail::kSsnFarkasResidualTol);
     EXPECT_EQ(o.advanced.ssn_uncertain_tol, hven::detail::kSsnUncertainEnter);
     EXPECT_EQ(o.advanced.ssn_lm_sigma_c, hven::detail::kSsnLmSigmaC);

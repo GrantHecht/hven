@@ -192,6 +192,12 @@ inline SqpOptions sqp_all_perturbed() {
     a.restoration_curvature = SqpRestorationCurvature::kRegularized;
     a.max_restoration_entries = 7;
     a.trust_region_growth = SqpTrustRegionGrowth::kAnyAccepted;
+    a.trust_region_growth_after_soc = false;
+    a.trust_region_rejection_memory = 3;
+    a.trust_region_ratio_ceiling = 3.0;
+    a.trust_region_shrink_to_step = true;
+    a.trust_region_growth_on_cap_pins = false;
+    a.trust_region_funnel_headroom = true;
     a.ssn_farkas_residual_tol = 1e-5;
     a.ssn_uncertain_tol = 0.2;
     a.ssn_lm_sigma_c = 2.0;
