@@ -1,0 +1,9 @@
+P1live         moved=229 better=0 worse=3 QMgeo=1.0063 LAgeo=0.9905 QMsum 81194->81581 QM10%w/l=7/10
+    - ALLINITC-default:optimal->max_iter
+    - ALLINITC-never-default:optimal->max_iter
+    - DEMBO7-default:optimal->numerical_error
+faceSB         moved=113 better=0 worse=0 QMgeo=1.0109 LAgeo=0.9897 QMsum 82662->85856 QM10%w/l=7/5
+faceSBfp       moved=113 better=0 worse=0 QMgeo=0.9991 LAgeo=0.9793 QMsum 82662->78361 QM10%w/l=7/3
+faceSBKfp      moved=113 better=0 worse=0 QMgeo=1.0045 LAgeo=0.9935 QMsum 82662->78943 QM10%w/l=5/5
+TGK            moved=125 better=0 worse=0 QMgeo=1.0217 LAgeo=0.9805 QMsum 82662->86081 QM10%w/l=5/10
+TGR            moved=125 better=0 worse=0 QMgeo=1.0210 LAgeo=0.9811 QMsum 82662->79363 QM10%w/l=6/10

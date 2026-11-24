@@ -1,0 +1,141 @@
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 1
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget (6 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+ 1 FAILED TEST
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 6
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 7
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd (6 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+ 1 FAILED TEST
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp7Refactorize
+[ qc8 ] QC8_DALLASM_qp7.txt refactorize status=0 minors=131 facts=131 f=-92397.2848118 implied=28 blkterm=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_implied_blocker.cpp:67: Failure
+Expected: (std::abs(f - f_oracle)) <= (1e-9 * std::max(1.0, std::abs(f_oracle))), actual: 0.014963363006245345 vs 9.2397269848473512e-05
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_implied_blocker.cpp:70: Failure
+Expected: (k.eq) <= (1e-8), actual: 7.2849471972334274e-08 vs 1e-08
+[  FAILED  ] QpQc8ImpliedBlocker.DallasmQp7Refactorize (437 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpQc8ImpliedBlocker.DallasmQp7Refactorize
+ 1 FAILED TEST
+[ RUN      ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:283: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:284: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:286: Failure
+Expected equality of these values:
+    Which is: 1
+[  FAILED  ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve (8 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+ 1 FAILED TEST
+[ RUN      ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:283: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:284: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:285: Failure
+Expected equality of these values:
+    Which is: 4
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:286: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:329: Failure
+[  FAILED  ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff (7 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+ 1 FAILED TEST
+[ RUN      ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1661: Failure
+Expected equality of these values:
+    Which is: 42
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1675: Failure
+Expected equality of these values:
+    Which is: 42
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1676: Failure
+Expected equality of these values:
+    Which is: 269
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1677: Failure
+Expected equality of these values:
+    Which is: 75
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1678: Failure
+Expected equality of these values:
+    Which is: 8
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1686: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1687: Failure
+Expected: true
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1688: Failure
+Expected equality of these values:
+    Which is: 5
+    Which is: 7
+[  FAILED  ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep (15 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+ 1 FAILED TEST
+[ RUN      ] HsSweepCorpus.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1173: Failure
+Expected equality of these values:
+    Which is: 42
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1459: Failure
+Expected equality of these values:
+    Which is: 3533
+[  FAILED  ] HsSweepCorpus.Corpus (274 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HsSweepCorpus.Corpus
+ 1 FAILED TEST
+[ RUN      ] F7ColdScaleSmoke.SchurCapExhaustionBuysFactorizationsNotIterations
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_scale_smoke.cpp:709: Failure
+Expected equality of these values:
+    Which is: 281
+    Which is: 280
+[  FAILED  ] F7ColdScaleSmoke.SchurCapExhaustionBuysFactorizationsNotIterations (287 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] F7ColdScaleSmoke.SchurCapExhaustionBuysFactorizationsNotIterations
+ 1 FAILED TEST
+[ RUN      ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2369: Failure
+Expected equality of these values:
+    Which is: 588
+    Which is: 586
+[  FAILED  ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 (3763 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+ 1 FAILED TEST
+[ RUN      ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.134433878513888 f_cap=0.139462433848742
+[ pf1 ] post-rung: passes_with_verdict=0 not_kOk=0 perturbed_pivots_total=0 perturbed_unobserved=0; pre-rung perturbed_pivots_total=0
+[ pf1 ] post-rung: kSuspect=0 kWrong=0 max_perturbed_in_a_pass=0 max_primal_delta=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_release_readmission.cpp:132: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_release_readmission.cpp:135: Failure
+Expected equality of these values:
+    Which is: 400
+    Which is: 313
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (8841 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+ 1 FAILED TEST
+80% tests passed, 10 tests failed out of 49
+The following tests FAILED:

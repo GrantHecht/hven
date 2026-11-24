@@ -1,0 +1,16 @@
+P1live         moved=229 better=0 worse=3 QMgeo=1.0063 LAgeo=0.9905 QMsum 81194->81581 QM10%w/l=7/10
+everyNR        moved=229 better=1 worse=2 QMgeo=1.0086 LAgeo=0.9856 QMsum 82548->96320 QM10%w/l=7/11
+everyKeep      moved=229 better=1 worse=2 QMgeo=0.9953 LAgeo=0.9921 QMsum 82548->90734 QM10%w/l=9/10
+everyY         moved=228 better=0 worse=2 QMgeo=1.0072 LAgeo=0.9750 QMsum 82548->92392 QM10%w/l=6/9
+everyYNR       moved=228 better=0 worse=2 QMgeo=1.0053 LAgeo=0.9724 QMsum 82548->91518 QM10%w/l=6/9
+everyNSYNR     moved=229 better=0 worse=4 QMgeo=1.0098 LAgeo=0.9753 QMsum 81584->89750 QM10%w/l=4/11
+face           moved=112 better=0 worse=0 QMgeo=1.0042 LAgeo=0.9946 QMsum 82662->78871 QM10%w/l=5/5
+faceNS         moved=115 better=1 worse=0 QMgeo=1.0059 LAgeo=0.9952 QMsum 82662->84233 QM10%w/l=7/5
+faceNSrung     moved=115 better=1 worse=0 QMgeo=0.9951 LAgeo=0.9862 QMsum 82662->78065 QM10%w/l=7/3
+faceNSY        moved=113 better=0 worse=0 QMgeo=1.0060 LAgeo=0.9954 QMsum 82662->84275 QM10%w/l=7/5
+faceNSYrung    moved=113 better=0 worse=0 QMgeo=0.9952 LAgeo=0.9863 QMsum 82662->78107 QM10%w/l=7/3
+faceNSYkeep    moved=113 better=0 worse=0 QMgeo=1.0060 LAgeo=0.9954 QMsum 82662->84275 QM10%w/l=7/5
+faceFullNSY    moved=224 better=0 worse=2 QMgeo=1.0009 LAgeo=0.9757 QMsum 82548->80517 QM10%w/l=7/10
+seedonlyNSY    moved=214 better=0 worse=1 QMgeo=0.9988 LAgeo=1.0000 QMsum 55809->59523 QM10%w/l=3/3
+faceSeedNSY    moved=215 better=0 worse=1 QMgeo=0.9986 LAgeo=0.9851 QMsum 66714->69870 QM10%w/l=7/5
+baseNR         moved= 10 better=0 worse=0 QMgeo=1.0031 LAgeo=1.0007 QMsum 82662->83921 QM10%w/l=0/1

@@ -1,0 +1,311 @@
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:437: Failure
+Expected equality of these values:
+    Which is: 1
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget (5 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+ 1 FAILED TEST
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:439: Failure
+Expected: (static_cast<int>(w.solution.status)) != (static_cast<int>(QpStatus::kIterationLimit)), actual: 1 vs 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_ascent_footprint.cpp:439: Failure
+Expected: (static_cast<int>(w.solution.status)) != (static_cast<int>(QpStatus::kIterationLimit)), actual: 1 vs 1
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd (13 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+ 1 FAILED TEST
+[ RUN      ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:283: Failure
+Expected equality of these values:
+    Which is: 1
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:284: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:286: Failure
+Expected equality of these values:
+    Which is: 1
+[  FAILED  ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve (6 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+ 1 FAILED TEST
+[ RUN      ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_stagnation_stop.cpp:285: Failure
+Expected equality of these values:
+    Which is: 1
+[  FAILED  ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff (9 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+ 1 FAILED TEST
+[ RUN      ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1661: Failure
+Expected equality of these values:
+    Which is: 43
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1676: Failure
+Expected equality of these values:
+    Which is: 745
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1677: Failure
+Expected equality of these values:
+    Which is: 71
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1678: Failure
+Expected equality of these values:
+    Which is: 9
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1686: Failure
+Expected equality of these values:
+    Which is: 1
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1687: Failure
+Expected: true
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1688: Failure
+Expected equality of these values:
+    Which is: 5
+    Which is: 7
+[  FAILED  ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep (22 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+ 1 FAILED TEST
+[ RUN      ] HsSweepCorpus.Corpus
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1173: Failure
+Expected equality of these values:
+    Which is: 43
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/sqp/test_hs_sweeps.cpp:1459: Failure
+Expected equality of these values:
+    Which is: 4009
+[  FAILED  ] HsSweepCorpus.Corpus (440 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HsSweepCorpus.Corpus
+ 1 FAILED TEST
+[ RUN      ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_anti_cycling_arm.cpp:2369: Failure
+Expected equality of these values:
+    Which is: 588
+    Which is: 586
+[  FAILED  ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 (3915 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+ 1 FAILED TEST
+[ RUN      ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.133027876145231 f_cap=0.139462433848742
+[ pf1 ] post-rung: passes_with_verdict=0 not_kOk=0 perturbed_pivots_total=0 perturbed_unobserved=0; pre-rung perturbed_pivots_total=0
+[ pf1 ] post-rung: kSuspect=0 kWrong=0 max_perturbed_in_a_pass=0 max_primal_delta=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_release_readmission.cpp:132: Failure
+Expected equality of these values:
+    Which is: 0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_release_readmission.cpp:135: Failure
+Expected equality of these values:
+    Which is: 400
+    Which is: 313
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (9722 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+ 1 FAILED TEST
+          Start 3201: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure
+  23/4116 Test #3201: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure .......................................................................................................................................................................   Passed    5.86 sec
+          Start  633: PiecesEvaluationFailure.ARejectedTrialOnAPiece
+  52/4116 Test  #633: PiecesEvaluationFailure.ARejectedTrialOnAPiece ...............................................................................................................................................................................   Passed    0.46 sec
+          Start  634: PiecesEvaluationFailure.AForeignExceptionFromAPiecePropagates
+ 157/4116 Test  #634: PiecesEvaluationFailure.AForeignExceptionFromAPiecePropagates ................................................................................................................................................................   Passed    0.02 sec
+[ RUN      ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+[ sdl ] DALLASM_QN_qp10 alg=1 status=3 minors=30 refusals=0 zmx=0 reverts=1 bound_refusals=1
+[ sdl ] DALLASM_QN_qp10 alg=0 status=1 minors=1960 refusals=0 zmx=0 reverts=0 bound_refusals=0
+/home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/tests/qp/seam/test_qp_certificate_sign.cpp:428: Failure
+Expected: true
+[  FAILED  ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign (2846 ms)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+ 1 FAILED TEST
+          Start 3634: SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver
+ 334/4116 Test #3634: SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver ....................................................................................................................................................................   Passed    0.03 sec
+          Start  910: IpqpCertificationTest.AHealthySolveNeverArmsTheEvidenceFailurePath
+ 497/4116 Test  #910: IpqpCertificationTest.AHealthySolveNeverArmsTheEvidenceFailurePath ...........................................................................................................................................................   Passed    0.01 sec
+          Start  273: DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError
+ 559/4116 Test  #273: DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError ....................................................................................................................................................   Passed    0.01 sec
+          Start 3636: SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+ 572/4116 Test #3636: SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves ........................................................................................................................................................   Passed    0.02 sec
+          Start 3926: SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+ 582/4116 Test #3926: SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly ..............................................................................................................................................................   Passed    0.01 sec
+          Start 3635: SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne
+ 754/4116 Test #3635: SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne .................................................................................................................................................................   Passed    0.01 sec
+          Start 3633: SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure
+ 762/4116 Test #3633: SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure ...........................................................................................................................................................   Passed    0.01 sec
+          Start  871: KktFactorizationFaultTest.SymbolicFailureLeavesTheObjectAnalyzableAgain
+ 852/4116 Test  #871: KktFactorizationFaultTest.SymbolicFailureLeavesTheObjectAnalyzableAgain ......................................................................................................................................................   Passed    0.01 sec
+          Start 3632: SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+ 884/4116 Test #3632: SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting ..................................................................................................................................................................   Passed    0.01 sec
+          Start 3784: SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne
+ 985/4116 Test #3784: SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne ............................................................................................................................................................................   Passed    0.01 sec
+          Start 3637: SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+1013/4116 Test #3637: SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath ......................................................................................................................................................................   Passed    0.01 sec
+          Start  298: ThreadScope.TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope
+1083/4116 Test  #298: ThreadScope.TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope ..........................................................................................................................................   Passed    0.01 sec
+          Start 3785: SqpGl0.ARoutedQpFailureIsItsOwnCause
+1102/4116 Test #3785: SqpGl0.ARoutedQpFailureIsItsOwnCause .........................................................................................................................................................................................   Passed    0.01 sec
+          Start 3638: SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers
+1179/4116 Test #3638: SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers ..................................................................................................................................................   Passed    0.01 sec
+          Start 2383: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 04-00 00-00>
+1208/4116 Test #2383: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2398: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 03-00 00-00>
+          Start 1351: IpqpSeamTest.AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated
+1275/4116 Test #2398: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+1277/4116 Test #1351: IpqpSeamTest.AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated ....................................................................................................................................   Passed    0.01 sec
+          Start 3493: SqpQnVariants.TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpectedDimension
+1321/4116 Test #3493: SqpQnVariants.TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpectedDimension ........................................................................................................................................   Passed    0.01 sec
+          Start 3641: SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded
+1338/4116 Test #3641: SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded .......................................................................................................................................................   Passed    0.01 sec
+          Start 3466: QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps
+1344/4116 Test #3466: QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps .........................................................................................................................................................................   Passed    0.01 sec
+          Start 2147: TrialFailure.ANonFiniteHessianAtAReachedPointRollsTheStepBackOnBothEngines
+1354/4116 Test #2147: TrialFailure.ANonFiniteHessianAtAReachedPointRollsTheStepBackOnBothEngines ...................................................................................................................................................   Passed    0.01 sec
+          Start 2409: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 02-00 00-00>
+          Start 2387: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 04-00 00-00>
+1397/4116 Test #2409: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+1398/4116 Test #2387: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2411: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 04-00 00-00>
+1417/4116 Test #2411: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2400: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 01-00 00-00>
+1449/4116 Test #2400: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3193: Continuation.NearEndpointFailureDoesNotRepeatTheSameProposal
+1452/4116 Test #3193: Continuation.NearEndpointFailureDoesNotRepeatTheSameProposal .................................................................................................................................................................   Passed    0.01 sec
+          Start 2393: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 02-00 00-00>
+1458/4116 Test #2393: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2397: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 02-00 00-00>
+1521/4116 Test #2397: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2414: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 03-00 00-00>
+1535/4116 Test #2414: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2403: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 04-00 00-00>
+1544/4116 Test #2403: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2401: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 02-00 00-00>
+1579/4116 Test #2401: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3939: Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung
+1594/4116 Test #3939: Rf1RetryLadderSeam.EachRoutedFailureTakesADifferentRung ......................................................................................................................................................................   Passed    0.01 sec
+          Start 2408: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 01-00 00-00>
+1607/4116 Test #2408: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2492: TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine
+1644/4116 Test #2492: TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine ...............................................................................................................................................................   Passed    0.01 sec
+          Start 3946: Rf1RetryLadderSeam.AFailureThatPromisesADecreaseStillRequestsRestoration
+1664/4116 Test #3946: Rf1RetryLadderSeam.AFailureThatPromisesADecreaseStillRequestsRestoration .....................................................................................................................................................   Passed    0.01 sec
+          Start  276: MklFactorizeFaultInjection.FirstFactorizeFailureLeavesNoUsableNumericsAndDoesNotBumpEpoch
+1688/4116 Test  #276: MklFactorizeFaultInjection.FirstFactorizeFailureLeavesNoUsableNumericsAndDoesNotBumpEpoch ....................................................................................................................................   Passed    0.01 sec
+          Start 2407: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 04-00 00-00>
+1711/4116 Test #2407: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3940: Rf1RetryLadderSeam.ADependentBlockerFailureReachesTheRegularizationRung
+1719/4116 Test #3940: Rf1RetryLadderSeam.ADependentBlockerFailureReachesTheRegularizationRung ......................................................................................................................................................   Passed    0.01 sec
+          Start 2406: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 03-00 00-00>
+          Start 2405: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 02-00 00-00>
+1722/4116 Test #2406: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+1723/4116 Test #2405: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3639: SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep
+1729/4116 Test #3639: SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep .......................................................................................................................................................................   Passed    0.01 sec
+          Start 2413: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 02-00 00-00>
+1759/4116 Test #2413: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2491: TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters
+1764/4116 Test #2491: TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters ..................................................................................................................................................................   Passed    0.01 sec
+          Start 2378: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 03-00 00-00>
+1770/4116 Test #2378: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2410: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 03-00 00-00>
+1791/4116 Test #2410: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 03-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3656: SqpSolverSoc.SocIsSkippedOnRoutedFailures
+          Start 2412: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 01-00 00-00>
+          Start 3945: Rf1RetryLadderSeam.ANoMotionFailureAtAFeasiblePointEndsAtTheFloor
+1801/4116 Test #3656: SqpSolverSoc.SocIsSkippedOnRoutedFailures ....................................................................................................................................................................................   Passed    0.01 sec
+1802/4116 Test #2412: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+1803/4116 Test #3945: Rf1RetryLadderSeam.ANoMotionFailureAtAFeasiblePointEndsAtTheFloor ............................................................................................................................................................   Passed    0.01 sec
+          Start 3643: SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+1822/4116 Test #3643: SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate ...............................................................................................................................................................   Passed    0.01 sec
+          Start 3782: SqpGl0.AnArmijoFailureIsCountedAsOne
+1826/4116 Test #3782: SqpGl0.AnArmijoFailureIsCountedAsOne .........................................................................................................................................................................................   Passed    0.02 sec
+          Start 2415: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 04-00 00-00>
+1837/4116 Test #2415: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 04-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2388: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 01-00 00-00>
+1842/4116 Test #2388: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2396: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 01-00 00-00>
+1856/4116 Test #2396: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2379: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 04-00 00-00>
+1914/4116 Test #2379: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2381: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 02-00 00-00>
+1924/4116 Test #2381: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2404: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 01-00 00-00>
+1929/4116 Test #2404: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 02-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2392: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 01-00 00-00>
+          Start 2389: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 02-00 00-00>
+1947/4116 Test #2392: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+1948/4116 Test #2389: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2399: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 04-00 00-00>
+1956/4116 Test #2399: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 00-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2385: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 02-00 00-00>
+          Start 2146: TrialFailure.ANegativeInfiniteObjectiveIsNeverAcceptedByTheInteriorPointEngine
+1960/4116 Test #2385: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+1961/4116 Test #2146: TrialFailure.ANegativeInfiniteObjectiveIsNeverAcceptedByTheInteriorPointEngine ...............................................................................................................................................   Passed    0.01 sec
+          Start 3941: Rf1RetryLadderSeam.AnIdenticalFailureIsCountedAsAReplayAndNotCharged
+          Start 2394: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 03-00 00-00>
+1966/4116 Test #3941: Rf1RetryLadderSeam.AnIdenticalFailureIsCountedAsAReplayAndNotCharged .........................................................................................................................................................   Passed    0.01 sec
+1967/4116 Test #2394: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2376: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 01-00 00-00>
+1971/4116 Test #2376: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2159: RiderRollback.AFailureAtAPhasesFirstIterateEndsTheSolveWithoutARollback
+1983/4116 Test #2159: RiderRollback.AFailureAtAPhasesFirstIterateEndsTheSolveWithoutARollback ......................................................................................................................................................   Passed    0.01 sec
+          Start 2386: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 03-00 00-00>
+2020/4116 Test #2386: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2402: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 03-00 00-00>
+2025/4116 Test #2402: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <01-00 00-00 01-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2390: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 03-00 00-00>
+2036/4116 Test #2390: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3642: SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates
+2048/4116 Test #3642: SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates ..........................................................................................................................................................................   Passed    0.01 sec
+          Start 2377: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 02-00 00-00>
+2056/4116 Test #2377: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 00-00 00-00 02-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3947: Rf1RetryLadderSeam.ARepeatedSubproblemFailureStillPropagates
+          Start 2384: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 01-00 00-00>
+2093/4116 Test #3947: Rf1RetryLadderSeam.ARepeatedSubproblemFailureStillPropagates .................................................................................................................................................................   Passed    0.01 sec
+2095/4116 Test #2384: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 02-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2158: RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack
+2117/4116 Test #2158: RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack ..............................................................................................................................................................   Passed    0.01 sec
+          Start 2380: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 01-00 00-00>
+2156/4116 Test #2380: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 01-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3921: SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep
+2207/4116 Test #3921: SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep ......................................................................................................................................................................   Passed    0.01 sec
+          Start 2391: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 04-00 00-00>
+2211/4116 Test #2391: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 03-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 2382: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 03-00 00-00>
+2220/4116 Test #2382: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 01-00 00-00 03-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start 3948: Rf1RetryLadderSeam.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves
+2261/4116 Test #3948: Rf1RetryLadderSeam.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves ........................................................................................................................................   Passed    0.01 sec
+          Start 2395: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 04-00 00-00>
+2268/4116 Test #2395: BothEngines/TrialFailure.IsARejectedTrialAndTheSolveRecovers/12-byte object <00-00 00-00 04-00 00-00 04-00 00-00> ............................................................................................................   Passed    0.01 sec
+          Start  869: KktFactorizationFaultTest.SymbolicFailureIsRecordedRatherThanPropagated
+2273/4116 Test  #869: KktFactorizationFaultTest.SymbolicFailureIsRecordedRatherThanPropagated ......................................................................................................................................................   Passed    0.00 sec
+          Start 3919: SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep
+2311/4116 Test #3919: SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep ....................................................................................................................................................................   Passed    0.01 sec
+          Start 3944: Rf1RetryLadderSeam.AnOffBoxFailureOfAnotherKindIsNotProjected
+2320/4116 Test #3944: Rf1RetryLadderSeam.AnOffBoxFailureOfAnotherKindIsNotProjected ................................................................................................................................................................   Passed    0.01 sec
+          Start 1358: IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure
+2503/4116 Test #1358: IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure ...................................................................................................................................................   Passed    0.01 sec
+          Start 1264: QpEngineIndefinite.FreeBlockStationarityTreatsNanAsAFailure
+2709/4116 Test #1264: QpEngineIndefinite.FreeBlockStationarityTreatsNanAsAFailure ..................................................................................................................................................................   Passed    0.01 sec
+          Start 3640: SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall
+3028/4116 Test #3640: SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall ........................................................................................................................................................   Passed    0.01 sec
+          Start 3467: QpFailureStep.TheDumpCarriesTheLineAfterTheCapRetry
+3071/4116 Test #3467: QpFailureStep.TheDumpCarriesTheLineAfterTheCapRetry ..........................................................................................................................................................................   Passed    0.01 sec
+          Start 3794: Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+3116/4116 Test #3794: Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable ...........................................................................................................................................................................   Passed    0.01 sec
+          Start 3631: SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox
+3202/4116 Test #3631: SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox .........................................................................................................................................................................   Passed    0.01 sec
+          Start 3261: FunnelFType.ArmijoFailureRejectsWithoutFallingBackToTheHTypeBranch
+3249/4116 Test #3261: FunnelFType.ArmijoFailureRejectsWithoutFallingBackToTheHTypeBranch ...........................................................................................................................................................   Passed    0.01 sec
+          Start 3454: QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits
+3312/4116 Test #3454: QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits ....................................................................................................................................................................   Passed    0.01 sec
+          Start 3456: QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters
+3366/4116 Test #3456: QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters ......................................................................................................................................................   Passed    0.01 sec
+          Start 3439: DenseDampedBfgs.CholeskyFailureSkipKeepsBAndCounts
+3401/4116 Test #3439: DenseDampedBfgs.CholeskyFailureSkipKeepsBAndCounts ...........................................................................................................................................................................   Passed    0.01 sec
+          Start 2154: ExceptionContract.EveryRuntimeFailureHvenRaisesIsAnError
+3606/4116 Test #2154: ExceptionContract.EveryRuntimeFailureHvenRaisesIsAnError .....................................................................................................................................................................   Passed    0.01 sec
+          Start 2898: MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure
+3633/4116 Test #2898: MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure .......................................................................................................................................................................   Passed    0.01 sec
+          Start 2540: JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure
+4033/4116 Test #2540: JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure ..........................................................................................................................................................   Passed    0.01 sec
+99% tests passed, 9 tests failed out of 4114
+The following tests FAILED:

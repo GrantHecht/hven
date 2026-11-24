@@ -1,0 +1,3 @@
+qp26m42 YRK_YORKNET_qp26_m42.txt
+qp26 YRK_YORKNET_qp26.txt
+qp25 YRK_YORKNET_qp25.txt

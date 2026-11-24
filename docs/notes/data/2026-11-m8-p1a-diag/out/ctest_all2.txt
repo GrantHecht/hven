@@ -1,0 +1,5 @@
+box-lane: lane 0 acquired 2026-11-24T10:50:18-05:00
+ctest faceSBfp rc=8 99% tests passed, 9 tests failed out of 4114
+box-lane: lane 0 acquired 2026-11-24T10:51:47-05:00
+ctest faceSB rc=8 99% tests passed, 19 tests failed out of 4114
+ALLDONE

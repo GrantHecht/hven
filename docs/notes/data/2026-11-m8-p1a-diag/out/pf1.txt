@@ -1,0 +1,41 @@
+box-lane: lane 0 acquired 2026-11-24T09:32:47-05:00
+P1live border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=3735 upd=4462 ref=435 reset=0 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+P1live border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 arms=0 rungs=0 f=-0.003231904984786684 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+base refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4758 facts=4758 upd=0 ref=0 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=0.000e+00 mu_end=1.0e-10
+base refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4758 facts=4758 arms=0 rungs=1 f=-0.003231904984786682 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+P1live refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=4898 upd=4462 ref=435 reset=0 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+P1live refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 arms=0 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+base border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4758 facts=3588 upd=0 ref=0 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=0.000e+00 mu_end=1.0e-10
+base border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4758 facts=3588 arms=0 rungs=1 f=-0.003231904984786679 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+trig refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4757 facts=4757 upd=4440 ref=4 reset=0 readm=2 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-10
+trig refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4757 facts=4757 arms=1 rungs=1 f=-0.00323190498478668 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+every refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=4898 upd=4462 ref=435 reset=1 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+every refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 arms=0 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+trig border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4757 facts=3587 upd=4440 ref=4 reset=0 readm=2 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-10
+trig border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4757 facts=3587 arms=1 rungs=1 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+every border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=3735 upd=4462 ref=435 reset=1 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+every border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 arms=0 rungs=0 f=-0.003231904984786684 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+everyNR refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=4898 upd=4462 ref=435 reset=1 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+everyNR refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=4898 arms=0 rungs=0 f=-0.003231904984786683 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+everyNR border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4898 facts=3735 upd=4462 ref=435 reset=1 readm=0 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+everyNR border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4898 facts=3735 arms=0 rungs=0 f=-0.003231904984786684 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+everyKeep refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=9336 facts=9336 upd=8094 ref=1195 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=1.840e+05 lam_max=1.774e+05 mu_end=1.0e-10
+everyKeep refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=9336 facts=9336 arms=0 rungs=1 f=-0.003231904984786681 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+face refactorize: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4752 facts=4752 upd=1557 ref=26 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-10
+face refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4752 facts=4752 arms=0 rungs=1 f=-0.00323190498478668 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+everyKeep border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=9337 facts=8389 upd=8094 ref=1196 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=1.840e+05 lam_max=1.774e+05 mu_end=1.0e-10
+everyKeep border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=9337 facts=8389 arms=0 rungs=1 f=-0.003231904984786682 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+face border: [p1q] n=5000 me=3000 mi=1000 status=0 minors=4752 facts=3582 upd=1557 ref=26 reset=0 readm=1 relrung=1 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-10
+face border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=0 minors=4752 facts=3582 arms=0 rungs=1 f=-0.003231904984786681 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+faceNR refactorize: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=20000 upd=0 ref=4948 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+faceNR refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=20000 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+faceNR border: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=19871 upd=0 ref=4948 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+faceNR border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=19871 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+faceKeepNR refactorize: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=20000 upd=0 ref=4948 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+faceKeepNR refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=20000 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+faceKeepNR border: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=19871 upd=0 ref=4948 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=3.042e+04 mu_end=1.0e-08
+faceKeepNR border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=19871 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+baseNR refactorize: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=20000 upd=0 ref=0 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=0.000e+00 mu_end=1.0e-08
+baseNR refactorize: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=20000 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0
+baseNR border: [p1q] n=5000 me=3000 mi=1000 status=1 minors=20000 facts=19871 upd=0 ref=0 reset=0 readm=4922 relrung=0 fprung=0 fpride=0 fpdecl=0 dlam_max=3.042e+04 lam_max=0.000e+00 mu_end=1.0e-08
+baseNR border: [ p1 ] PF1_f7_n1000_path_corrupted_qp1.txt status=1 minors=20000 facts=19871 arms=0 rungs=0 f=0.1394624338487414 in-cell: result status=1 minors=20000 facts=19871 hkc=0

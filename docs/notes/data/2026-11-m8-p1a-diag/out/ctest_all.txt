@@ -1,0 +1,9 @@
+box-lane: lane 0 acquired 2026-11-24T10:19:23-05:00
+ctest default rc=0 100% tests passed, 0 tests failed out of 4114
+box-lane: lane 0 acquired 2026-11-24T10:22:08-05:00
+ctest P1live rc=8 99% tests passed, 39 tests failed out of 4114
+box-lane: lane 0 acquired 2026-11-24T10:23:38-05:00
+ctest faceNSY rc=8 99% tests passed, 20 tests failed out of 4114
+box-lane: lane 0 acquired 2026-11-24T10:25:06-05:00
+ctest faceNSYfp rc=8 99% tests passed, 10 tests failed out of 4114
+ALLDONE

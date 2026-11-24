@@ -1,0 +1,60 @@
+          Start  634: PiecesEvaluationFailure.AForeignExceptionFromAPiecePropagates
+ 158/4116 Test  #634: PiecesEvaluationFailure.AForeignExceptionFromAPiecePropagates ................................................................................................................................................................   Passed    0.16 sec
+          Start 1119: QpWarmStart.ExceptionBetweenSolvesInvalidatesReuseCache
+ 235/4116 Test #1119: QpWarmStart.ExceptionBetweenSolvesInvalidatesReuseCache ......................................................................................................................................................................   Passed    0.02 sec
+          Start 3307: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions
+ 294/4116 Test #3307: HsBattery.CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions ....................................................................................................................................................   Passed    0.04 sec
+          Start 2162: RiderForeignException.ThrownInsideRestorationPropagatesUnchangedOnBothEngines
+ 488/4116 Test #2162: RiderForeignException.ThrownInsideRestorationPropagatesUnchangedOnBothEngines ................................................................................................................................................   Passed    0.02 sec
+          Start  101: Ledger.ExceptionDoesNotAdvanceCounter
+ 845/4116 Test  #101: Ledger.ExceptionDoesNotAdvanceCounter ........................................................................................................................................................................................   Passed    0.01 sec
+          Start 2149: ForeignException.PropagatesUnchangedAndLastResultHoldsTheInterruptedSolve
+1074/4116 Test #2149: ForeignException.PropagatesUnchangedAndLastResultHoldsTheInterruptedSolve ....................................................................................................................................................   Passed    0.02 sec
+          Start 2163: RiderForeignException.ThrownByATraceSinkPropagatesUnchangedOnBothEngines
+1410/4116 Test #2163: RiderForeignException.ThrownByATraceSinkPropagatesUnchangedOnBothEngines .....................................................................................................................................................   Passed    0.01 sec
+          Start 2153: InterruptKinds.TheStopReasonAndTheMessageTellTheCallbackFromAnException
+1547/4116 Test #2153: InterruptKinds.TheStopReasonAndTheMessageTellTheCallbackFromAnException ......................................................................................................................................................   Passed    0.01 sec
+          Start 2155: ExceptionContract.AnAbsorbedEvaluationErrorLeavesTheSolverReusable
+1594/4116 Test #2155: ExceptionContract.AnAbsorbedEvaluationErrorLeavesTheSolverReusable ...........................................................................................................................................................   Passed    0.01 sec
+          Start 2152: InterruptKinds.T11AThrowAfterAStopRequestKeepsTheExceptionContractAndHandsBackZ
+1606/4116 Test #2152: InterruptKinds.T11AThrowAfterAStopRequestKeepsTheExceptionContractAndHandsBackZ ..............................................................................................................................................   Passed    0.01 sec
+          Start 2996: SocRecovery.AForeignExceptionAtTheSeedPropagates
+1688/4116 Test #2996: SocRecovery.AForeignExceptionAtTheSeedPropagates .............................................................................................................................................................................   Passed    0.01 sec
+          Start 2150: ForeignException.ANonStdExceptionPropagatesAsThrownOnBothEngines
+1759/4116 Test #2150: ForeignException.ANonStdExceptionPropagatesAsThrownOnBothEngines .............................................................................................................................................................   Passed    0.01 sec
+          Start 2269: Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+1951/4116 Test #2269: Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve ...............................................................................................................................................................   Passed    0.01 sec
+          Start 2151: ForeignException.TheInteriorPointEngineNoLongerAbsorbsAStandardException
+2038/4116 Test #2151: ForeignException.TheInteriorPointEngineNoLongerAbsorbsAStandardException .....................................................................................................................................................   Passed    0.01 sec
+          Start 2164: RiderForeignException.ThrownByTheKktHookPropagatesUnchanged
+2315/4116 Test #2164: RiderForeignException.ThrownByTheKktHookPropagatesUnchanged ..................................................................................................................................................................   Passed    0.01 sec
+          Start 2261: Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+2614/4116 Test #2261: Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve ...............................................................................................................................................................   Passed    0.01 sec
+          Start 2999: SocRecovery.AForeignExceptionAtTheAccumulationPointPropagates
+2674/4116 Test #2999: SocRecovery.AForeignExceptionAtTheAccumulationPointPropagates ................................................................................................................................................................   Passed    0.01 sec
+          Start 2542: JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign
+3358/4116 Test #2542: JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign .......................................................................................................................................................   Passed    0.01 sec
+          Start 2165: RiderThreadPool.AForeignExceptionFromAnyLaneIsRethrownOverAnEvaluationError
+3372/4116 Test #2165: RiderThreadPool.AForeignExceptionFromAnyLaneIsRethrownOverAnEvaluationError ..................................................................................................................................................   Passed    0.01 sec
+          Start 2154: ExceptionContract.EveryRuntimeFailureHvenRaisesIsAnError
+3690/4116 Test #2154: ExceptionContract.EveryRuntimeFailureHvenRaisesIsAnError .....................................................................................................................................................................   Passed    0.01 sec
+	1399 - QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 (Failed)
+	1416 - QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget (Failed)
+	1417 - QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget (Failed)
+	1418 - QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent (Failed)
+	1419 - QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd (Failed)
+	1420 - QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused (Failed)
+	1421 - QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines (Failed)
+	1422 - QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep (Failed)
+	1423 - QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted (Failed)
+	1425 - QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder (Failed)
+	1426 - QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize (Failed)
+	1549 - QpQc8ImpliedBlocker.DallasmQp7Refactorize (Failed)
+	1604 - QpYrkRefusedExchange.YorknetRestorationQp25Border (Failed)
+	1605 - QpYrkRefusedExchange.YorknetRestorationQp25Refactorize (Failed)
+	1606 - QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (Failed)
+	1628 - QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve (Failed)
+	1629 - QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff (Failed)
+	3315 - HsSweepCorpus.Corpus (Failed)
+	3316 - HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep (Failed)
+	3486 - F7ColdScaleSmoke.SchurCapExhaustionBuysFactorizationsNotIterations (Failed)
