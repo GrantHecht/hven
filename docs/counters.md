@@ -236,12 +236,12 @@ one of those three therefore cannot silently miss the trace.
 
   **THE TRUST-RADIUS GROUP DOES NOT FOLD** (M8 I19-2a). `tr_growths` counts accepted
   steps that grew the radius (a step rolled back as non-finite after its growth is
-  not one); `tr_growth_refusals` counts accepted steps whose growth, granted by the
-  growth rule, at least one `SqpAdvancedOptions::trust_region_*` lever refused (0 at
+  not one); `tr_growth_refusals` counts accepted steps at which a candidate growth (one the
+  growth rule or the base rule would have made) was refused by at least one `SqpAdvancedOptions::trust_region_*` lever (0 at
   the default levers; the row's `tr_growth_refusal` bits name the levers);
-  `tr_shrinks_to_step` counts rejections whose radius `trust_region_shrink_to_step`
-  set from the step; `tr_grow_then_reject` counts rejections of a trial solved at a
-  radius the previous major's growth set; `tr_unbound_rejections` counts rejections
+  `tr_shrinks_to_step` counts rejections whose shrink `trust_region_shrink_to_step`
+  took from the step (a rejection that crosses the radius floor takes none); `tr_grow_then_reject` counts rejections of a trial solved at a
+  radius the previous major's growth set, and non-finite rollbacks of a step taken at such a radius; `tr_unbound_rejections` counts rejections
   of a step the radius did not hold; `tr_cap_binding_majors` counts majors whose step
   a `caller_step_limit` pin held. Like GL-0's they describe the caller's own iterate
   and radius, so a restoration sub-solve's are not folded. On the depth-0 history:

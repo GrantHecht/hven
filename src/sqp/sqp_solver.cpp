@@ -8192,7 +8192,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         if (st.rollback.grew) {
             --st.out.counters.tr_growths;
         }
-        st.radius_from_growth = false;
+        // A step taken at a grown radius and rolled back is a grown radius rejected.
+        if (st.rollback.radius_from_growth) {
+            ++st.out.counters.tr_grow_then_reject;
+        }
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
         st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;
         st.subproblem_is_stale = true;
@@ -10195,9 +10198,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             opts_.advanced.trust_region_shrink_to_step, mj.row.radius_binding, mj.failure_step,
             st.delta, opts_.qp.trust_region_radius, mj.row.step_norm, opts_.trust_region_min,
             opts_.trust_region_max);
-        if (shrink.to_step) {
-            ++st.out.counters.tr_shrinks_to_step;
-        }
         // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
         // trigger in trust-region form. The shrink is NOT taken and
         // NOT clamped: crossing the floor IS the request. See RADIUS
@@ -10235,6 +10235,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             return MajorOutcome::kFinishRestorationQp;
         }
         push_history(mj.row);
+        if (shrink.to_step) {
+            ++st.out.counters.tr_shrinks_to_step; // counted only when the shrink is taken
+        }
         st.delta = shrink.radius;
         st.seed = std::move(mj.qs);
         st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
@@ -10486,6 +10489,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 }
                 if (mj.soc_applied) {
                     --st.out.counters.soc_applied;
+                }
+                // The pushed row carries its refusal mask, so the counter counts it here too (the
+                // commit that owns it is never reached).
+                if (mj.growth.refusal != 0) {
+                    ++st.out.counters.tr_growth_refusals;
                 }
                 publish_stop_at(iter, interrupt_reason(mj), std::string());
                 if (st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid) {

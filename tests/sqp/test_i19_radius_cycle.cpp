@@ -765,5 +765,45 @@ TEST(I19RadiusCycle, OnElasticMajorsTheRadiusAndTheCapStaySeparated) {
     }
 }
 
+// Counter nits fixed before freeze (counter-only; the lever-off path is untouched).
+// A rejection that crosses the radius floor takes NO shrink, so it is not a shrink to the step.
+TEST(I19RadiusCycle, ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep) {
+    I19Fixture f = test_support::f_cap(kExact);
+    f.options.advanced.trust_region_shrink_to_step = true;
+    // The first trial (step 6.02) is judged unbound at radius 10 and rejected; its shrink to the
+    // step, 3.01, is below the floor.
+    f.options.trust_region_initial = 10.0;
+    f.options.trust_region_min = 4.0;
+    const SqpResult r = test_support::i19_solve(f);
+    ASSERT_GE(r.counters.tr_unbound_rejections, 1) << "premise: an unbound rejection was judged";
+    EXPECT_EQ(r.counters.tr_shrinks_to_step, 0);
+}
+
+// The stop poll honours a stop at an accepted row without running its commit, so the counter that
+// the commit owns is counted at the stop exit: tr_growth_refusals = the pushed rows with a refusal.
+TEST(I19RadiusCycle, AStopPollExitCountsThePushedRowsRefusal) {
+    bool stopped_on_a_refusal = false;
+    for (Index k = 0; k < 40; ++k) {
+        I19Fixture f = test_support::f_cyc(kExact);
+        f.options.advanced.trust_region_funnel_headroom = true;
+        Problem p(f.model);
+        SqpSolver s(f.options);
+        s.set_iteration_callback([k](const IterationEvent &ev) {
+            return ev.event_index == k ? CallbackAction::kStop : CallbackAction::kContinue;
+        });
+        const SqpResult r = s.solve(p, f.x0);
+        Index refused_rows = 0;
+        for (const auto &h : r.history) {
+            refused_rows += (h.sqp && h.sqp->depth == 0 && h.sqp->tr_growth_refusal != 0) ? 1 : 0;
+        }
+        EXPECT_EQ(r.counters.tr_growth_refusals, refused_rows) << "stop at event " << k;
+        if (r.status == SolveStatus::kInterrupted && !r.history.empty() &&
+            r.history.back().sqp->tr_growth_refusal != 0) {
+            stopped_on_a_refusal = true;
+        }
+    }
+    EXPECT_TRUE(stopped_on_a_refusal) << "premise: a stop landed on a row carrying a refusal";
+}
+
 } // namespace
 } // namespace hven

@@ -4212,6 +4212,20 @@ TEST(SqpSolverNonfiniteRollback, AGrowthTheRollbackUndidIsNotCounted) {
     }
     ASSERT_GE(undone, 1) << "premise: a rollback undid a growth";
     EXPECT_EQ(sol.counters.tr_growths, growths - undone);
+    // A step taken at a grown radius and rolled back is a grown radius rejected, as a judged
+    // rejection of one is: tr_grow_then_reject counts both.
+    Index grown_then_rejected = 0;
+    for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
+        const auto &h = sol.history[k];
+        const auto &next = sol.history[k + 1];
+        const bool accepted = h.sqp->verdict == StepVerdict::kAcceptObjectiveStep ||
+                              h.sqp->verdict == StepVerdict::kAcceptFeasibilityStep;
+        if (accepted && next.sqp->trust_radius > h.sqp->trust_radius &&
+            (next.rolled_back || next.sqp->verdict == StepVerdict::kReject)) {
+            ++grown_then_rejected;
+        }
+    }
+    EXPECT_EQ(sol.counters.tr_grow_then_reject, grown_then_rejected);
 }
 
 TEST(SqpSolverNonfiniteRollback, TheMemoryRecordsARolledBackRadiusAGrowthSet) {

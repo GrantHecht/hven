@@ -2567,12 +2567,15 @@ struct SqpCounters {
     /// Accepted steps that grew the radius; a step rolled back as non-finite after its growth is
     /// not one.
     Index tr_growths = 0;
-    /// Accepted steps whose growth, granted by the growth rule, at least one
-    /// SqpAdvancedOptions::trust_region_* lever refused. 0 at the default levers.
+    /// Accepted steps at which a candidate growth (one the growth rule or the base rule would have
+    /// made) was refused by at least one SqpAdvancedOptions::trust_region_* lever. 0 at the
+    /// default levers.
     Index tr_growth_refusals = 0;
-    /// Rejections whose radius trust_region_shrink_to_step set from the step, not by halving.
+    /// Rejections whose shrink trust_region_shrink_to_step took from the step, not by halving (a
+    /// rejection that crosses the radius floor takes no shrink and is not counted).
     Index tr_shrinks_to_step = 0;
-    /// Rejections of a trial solved at a radius the previous major's growth set.
+    /// Rejections of a trial solved at a radius the previous major's growth set, including a
+    /// non-finite rollback of a step taken at such a radius.
     Index tr_grow_then_reject = 0;
     /// Rejections of a step the trust radius did not hold.
     Index tr_unbound_rejections = 0;
