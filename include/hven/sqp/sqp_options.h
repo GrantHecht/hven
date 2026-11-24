@@ -379,7 +379,8 @@ struct SqpAdvancedOptions {
 
     /// The restoration phase's stall window, in factorizations (RF-1); >= 0, default 5000.
     /// The phase ends when its best parent violation (over every phase iterate) has not fallen by
-    /// at least 10% over the last this-many factorizations, counted across the phase's runs. A
+    /// at least 10% over the last this-many factorizations and at least five passes (RF-1c); a
+    /// regularized restart starts a fresh window but keeps the best. A
     /// stalled phase ends at its best-h point; one the resume tests refuse ends the solve kStalled
     /// beside StopReason::kRestorationWorkLimit. The caller's `common.max_factorizations` stays the
     /// hard cap on the whole solve.

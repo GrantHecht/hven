@@ -13445,16 +13445,28 @@ TEST(Rf1RetryLadder, EachRungIsTakenOnlyWhenItChangesTheQp) {
     EXPECT_DOUBLE_EQ(hven::detail::retry_regularization(1e-3), 1e-4);
 }
 
-// RF-1 ruling S-1: the phase's stall window. A flat best h is cut at exactly the window; a
-// best h falling by 10% per window never is; the comparison is inclusive at the 10% mark.
-TEST(Rf1RestorationStall, AFlatBestIsCutAtTheWindowAndAFallingOneIsNot) {
+// RF-1 ruling S-1 as amended by RF-1c: the phase's stall window. A flat best h is cut at the window
+// AND only once the reference sample is kRestorationStallMinPasses passes back; a best h falling
+// by 10% per window never is; the comparison is inclusive at the 10% mark.
+TEST(Rf1RestorationStall, AFlatBestIsCutAtTheWindowAndTheFloorAndAFallingOneIsNot) {
     using hven::detail::RestorationStallWindow;
-    // Flat (BRITGAS's grind at h ~ 1e-5): alive until the window has elapsed, then cut.
+    // Flat (BRITGAS's grind at h ~ 1e-5): alive until the window has elapsed AND five passes
+    // lie behind the reference, then cut. Six passes cover 5000 factorizations here.
     RestorationStallWindow flat(5000);
     EXPECT_FALSE(flat.observe(0, 1e-5));
-    EXPECT_FALSE(flat.observe(2500, 0.99e-5));
-    EXPECT_FALSE(flat.observe(4999, 0.98e-5));
+    EXPECT_FALSE(flat.observe(1000, 0.99e-5));
+    EXPECT_FALSE(flat.observe(2000, 0.98e-5));
+    EXPECT_FALSE(flat.observe(3000, 0.975e-5));
+    EXPECT_FALSE(flat.observe(4000, 0.973e-5));
     EXPECT_TRUE(flat.observe(5000, 0.97e-5));
+    // The window still binds when passes are plentiful: ten passes inside 100 factorizations
+    // of a 5000 window are not a stall.
+    RestorationStallWindow dense(5000);
+    for (Index f = 0; f < 100; f += 10) {
+        EXPECT_FALSE(dense.observe(f, 1e-5)) << "f = " << f;
+    }
+    EXPECT_FALSE(dense.observe(4999, 1e-5));
+    EXPECT_TRUE(dense.observe(5000, 1e-5));
     // Falling 10% per 4000 factorizations (CRESC100's phase, 1.67e5 -> 7e4): never cut, long
     // past the window.
     RestorationStallWindow falling(5000);
@@ -13465,11 +13477,61 @@ TEST(Rf1RestorationStall, AFlatBestIsCutAtTheWindowAndAFallingOneIsNot) {
             h *= 0.85;
         }
     }
-    // The 10% mark is inclusive: a best exactly 0.9 of the windowed best stays alive.
-    RestorationStallWindow mark(100);
-    EXPECT_FALSE(mark.observe(0, 1.0));
-    EXPECT_FALSE(mark.observe(100, 0.9));
-    EXPECT_TRUE(mark.observe(200, 0.9 * 0.9 * 1.0000001));
+    // The 10% mark is inclusive: a best exactly 0.9 of the windowed best stays alive. The
+    // reference is the sample five passes back, so these passes sit one per factorization.
+    for (const auto &[best, stalled] : {std::pair{0.9, false}, std::pair{0.9000001, true}}) {
+        RestorationStallWindow mark(1);
+        for (Index f = 0; f <= 4; ++f) {
+            EXPECT_FALSE(mark.observe(f, 1.0));
+        }
+        EXPECT_EQ(mark.observe(5, best), stalled) << "best = " << best;
+    }
+}
+
+// RF-1c (the M1 must-kill): one pass costing more than the window must not fire it. The NET3 and
+// BRITGAS passes cost thousands of factorizations each; before the floor, the second observation
+// of a flat best was already a stall.
+TEST(Rf1RestorationStall, OnePassCostingMoreThanTheWindowIsNotAStall) {
+    using hven::detail::kRestorationStallMinPasses;
+    using hven::detail::RestorationStallWindow;
+    RestorationStallWindow w(5000);
+    EXPECT_FALSE(w.observe(0, 1.0));
+    EXPECT_FALSE(w.observe(6000, 1.0)) << "one 6000-factorization pass spans the window";
+    Index f = 6000;
+    for (std::size_t pass = 2; pass < kRestorationStallMinPasses; ++pass) {
+        f += 6000;
+        EXPECT_FALSE(w.observe(f, 1.0)) << "pass " << pass;
+    }
+    f += 6000;
+    EXPECT_TRUE(w.observe(f, 1.0)) << "the floor reached on a flat best";
+}
+
+// RF-1c: a new run keeps the running best but forgets the samples, so the restart's passes are
+// measured against the restart's own history.
+TEST(Rf1RestorationStall, ANewRunKeepsTheBestAndForgetsTheSamples) {
+    using hven::detail::RestorationStallWindow;
+    RestorationStallWindow w(10);
+    for (Index f = 0; f <= 50; f += 10) {
+        w.observe(f, 1.0);
+    }
+    EXPECT_TRUE(w.observe(60, 1.0)) << "the first run is flat";
+    w.new_run();
+    // The restart's incumbent is higher; the running best (1.0) stays.
+    EXPECT_FALSE(w.observe(60, 5.0));
+    for (Index f = 70; f <= 100; f += 10) {
+        EXPECT_FALSE(w.observe(f, 5.0)) << "f = " << f;
+    }
+    EXPECT_TRUE(w.observe(110, 5.0)) << "five passes of its own, still no 10% fall from the best";
+    // A restart that does fall is not cut: the reference sample carries the old best (1.0 at
+    // the restart's start), so a new best of 0.5 falls more than 10% against it.
+    RestorationStallWindow p(10);
+    p.observe(0, 1.0);
+    p.new_run();
+    for (Index f = 0; f <= 40; f += 10) {
+        EXPECT_FALSE(p.observe(f, 4.0));
+    }
+    EXPECT_FALSE(p.observe(50, 0.5));
+    EXPECT_FALSE(p.observe(60, 0.4));
 }
 
 TEST(Rf1RestorationStall, TheBestIsARunningMinimumAndTheWindowSlides) {
@@ -13479,19 +13541,30 @@ TEST(Rf1RestorationStall, TheBestIsARunningMinimumAndTheWindowSlides) {
     EXPECT_FALSE(w.observe(0, 1.0));
     EXPECT_FALSE(w.observe(500, 0.5));
     EXPECT_FALSE(w.observe(900, 2.0)) << "a higher observation leaves the best at 0.5";
-    // At 1500 the reference is the best at the latest observation at or before 500 (0.5).
-    EXPECT_TRUE(w.observe(1500, 0.46));
+    EXPECT_FALSE(w.observe(1500, 0.46));
+    EXPECT_FALSE(w.observe(1600, 3.0));
+    EXPECT_FALSE(w.observe(2500, 3.0)) << "reference = best at 0 (1.0), a 54% fall";
+    // At 2600 the reference is the best at the latest observation at or before 1600 that keeps
+    // five passes behind it (0.5, at 500): 0.46 falls less than 10% against it.
+    EXPECT_TRUE(w.observe(2600, 3.0));
     // A NaN never improves the best.
     RestorationStallWindow n(10);
     EXPECT_FALSE(n.observe(0, 1.0));
-    EXPECT_TRUE(n.observe(10, std::numeric_limits<double>::quiet_NaN()));
-    // A zero window cuts at the first observation (no fall over no work).
+    for (Index f = 10; f <= 40; f += 10) {
+        EXPECT_FALSE(n.observe(f, std::numeric_limits<double>::quiet_NaN()));
+    }
+    EXPECT_TRUE(n.observe(50, std::numeric_limits<double>::quiet_NaN()));
+    // A zero window cuts once the floor's passes lie behind the reference (no fall over no work).
     RestorationStallWindow zero(0);
-    EXPECT_TRUE(zero.observe(0, 1.0));
+    for (Index f = 0; f < 5; ++f) {
+        EXPECT_FALSE(zero.observe(f, 1.0));
+    }
+    EXPECT_TRUE(zero.observe(5, 1.0));
     // Sliding: progress made early in the window does not keep the phase alive forever.
     RestorationStallWindow slide(1000);
-    EXPECT_FALSE(slide.observe(0, 1.0));
-    EXPECT_FALSE(slide.observe(100, 0.5));
+    for (Index f = 0; f <= 400; f += 100) {
+        EXPECT_FALSE(slide.observe(f, f == 0 ? 1.0 : 0.5));
+    }
     EXPECT_FALSE(slide.observe(1000, 0.5)) << "reference = best at 0 (1.0)";
     EXPECT_TRUE(slide.observe(1100, 0.5)) << "reference = best at 100 (0.5)";
 }

@@ -1684,13 +1684,22 @@ TEST(Rf1RetryLadderSeam, ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothi
 }
 
 // RF-1 ruling S-1: a stalled phase ends kWorkLimit at its best-h point; the parent labels it
-// kRestorationWorkLimit (kStalled), not the caller's kWorkLimit. A zero window stalls at once.
+// kRestorationWorkLimit (kStalled), not the caller's kWorkLimit. RF-1c re-pin: a window no longer
+// cuts before the phase has made kRestorationStallMinPasses passes, so the circle/line fixture
+// (a phase of five passes) is not cut at any window, and the phase that is cut here is the
+// bouncing spread phase of TheStallExitTakesTheReductionResume, whose best h goes flat.
 TEST(Rf1RestorationSeam, AStalledPhaseIsTheRestorationWorkLimit) {
     const SeamReset guard;
-    CountingCircleLineModel model;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {1.0, 1.0};
+    SpreadMissModel model(kNoClaimMiss);
     SqpOptions o = quiet();
     o.common.max_iterations = 200;
-    o.advanced.restoration_stall_factorizations = 0;
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75;
+    o.advanced.restoration_stall_factorizations = 2;
+    o.advanced.restoration_resume_reduction = 0.0;
     const SqpResult sol =
         SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.counters.restoration_entries, 1);
@@ -1718,13 +1727,12 @@ TEST(Rf1RestorationSeam, TheCallersCeilingInsideThePhaseStaysTheWorkLimit) {
     EXPECT_EQ(sol.status, SolveStatus::kWorkLimit);
 }
 
-// RF-1 ruling S-1, both edges on one phase. The circle/line phase is entered at h_in = 1.0015 and
-// certifies at h = 0.5858 in 5 majors; its parent h falls 1.0015, 0.896, 0.722, 0.5615 over
-// its first factorizations. A window of 1 factorization sees the first fall (10.5%) taken over
-// 2 and cuts the phase after one major; a window of 2 sees at least 10% in every window, so the
-// phase runs on past its window -- where design 4.1's fixed budget of the same size would have
-// cut it -- and certifies.
-TEST(Rf1RestorationSeam, APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneIs) {
+// RF-1c re-pin of RF-1 ruling S-1's two edges on one phase. The circle/line phase is entered at
+// h_in = 1.0015 and certifies at h = 0.5858 in 5 majors; before RF-1c a window of 1 factorization
+// cut it after one major and a window of 2 let it run. The window now needs
+// kRestorationStallMinPasses + 1 observed passes, so a five-pass phase is never cut, at a window of
+// 0, 1 or 2 alike (the fall test itself is pinned on the window object, Rf1RestorationStall).
+TEST(Rf1RestorationSeam, APhaseShorterThanThePassFloorIsNotCutAtAnyWindow) {
     const auto solve = [](Index window) {
         const SeamReset guard;
         CountingCircleLineModel model;
@@ -1733,33 +1741,21 @@ TEST(Rf1RestorationSeam, APhaseFallingTenPercentPerWindowIsNotCutAndAFlatterOneI
         o.advanced.restoration_stall_factorizations = window;
         return SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
     };
-    const SqpResult none = solve(0);
-    const SqpResult cut = solve(1);
-    const SqpResult alive = solve(2);
-    ASSERT_EQ(none.counters.restoration_iters, 0);
-    EXPECT_EQ(cut.status, SolveStatus::kStalled);
-    EXPECT_EQ(cut.stop_reason, StopReason::kRestorationWorkLimit);
-#if defined(USE_ACCELERATE_SPARSE)
-    // macOS (Accelerate) reads the window's two edges differently (CI run 45036848180, real Mac
-    // hardware): a window of 1 factorization cuts the phase after 4 majors, and a window of 2
-    // also cuts it (kStalled, not certified) -- the factorization count per major differs from
-    // MKL's, so the window's fall test fires at other majors. Only the observed values are pinned.
-    EXPECT_EQ(cut.counters.restoration_iters, 4);
-    EXPECT_FALSE(cut.infeasibility_certified);
-    EXPECT_EQ(alive.status, SolveStatus::kStalled);
-    EXPECT_FALSE(alive.infeasibility_certified);
-#else
-    EXPECT_EQ(cut.counters.restoration_iters, 1);
-    EXPECT_FALSE(cut.infeasibility_certified);
-    EXPECT_EQ(alive.status, SolveStatus::kInfeasible);
-    EXPECT_TRUE(alive.infeasibility_certified);
-#endif
-    EXPECT_EQ(alive.counters.restoration_iters, 5);
-    EXPECT_GT(alive.counters.factorizations - none.counters.factorizations, 2)
-        << "the phase spent more than its window";
+    const SqpResult none = solve(1000000);
+    ASSERT_EQ(none.status, SolveStatus::kInfeasible) << "fixture premise: the phase certifies";
+    for (const Index window : {Index{0}, Index{1}, Index{2}}) {
+        SCOPED_TRACE(window);
+        const SqpResult cut = solve(window);
+        EXPECT_NE(cut.status, SolveStatus::kStalled);
+        EXPECT_NE(cut.stop_reason, StopReason::kRestorationWorkLimit);
+        EXPECT_EQ(cut.status, none.status);
+        EXPECT_EQ(cut.counters.restoration_iters, none.counters.restoration_iters);
+        EXPECT_EQ(cut.counters.factorizations, none.counters.factorizations);
+        EXPECT_EQ(cut.infeasibility_certified, none.infeasibility_certified);
+    }
     const double t = 1.0 / std::sqrt(2.0);
-    EXPECT_NEAR(alive.x(0), t, 1e-5);
-    EXPECT_NEAR(alive.x(1), t, 1e-5);
+    EXPECT_NEAR(none.x(0), t, 1e-5);
+    EXPECT_NEAR(none.x(1), t, 1e-5);
 }
 
 // RF-1 ruling F-1 (the CRESC50 must-kill): a row refusal on the phase's curvature-switch run
@@ -1949,6 +1945,46 @@ TEST(Rf1RestorationSeam, TheSwitchRunHandsBackItsSwitchPointNotItsBestPoint) {
     EXPECT_EQ(limited.status, free_run.status);
     EXPECT_EQ(limited.x(0), free_run.x(0));
     EXPECT_EQ(limited.x(1), free_run.x(1));
+}
+
+// RF-1c (the M2 must-kill): a regularized restart starts a fresh window. LinearRowModel's phase
+// is the RF-1b fixture's; the spread phase here is the one whose best h goes flat. The first run
+// takes `pass` walk subproblems and fails the next, which switches to the regularized restart; the
+// stall window is one factorization, so only the pass floor holds the phase open. A restart that
+// inherited the first run's samples would be cut after the passes it needs to reach six in total;
+// a fresh window needs five passes of the restart's own. Measured on this fixture: 19 phase rows
+// with the fresh window, 16 without.
+TEST(Rf1RestorationSeam, ARestartNeedsTheFloorsPassesOfItsOwn) {
+    constexpr int kFirstRunPasses = 12;
+    std::size_t rows = 0;
+    const SeamReset guard;
+    Seam::fail_walk_qps = 1000;
+    Seam::as_e2_termination = false;
+    Seam::forced_point = {1.0, 1.0};
+    Seam::pass_restoration_walk_qps = kFirstRunPasses;
+    Seam::fail_restoration_walk_qps = 1;
+    SpreadMissModel model(kNoClaimMiss);
+    SqpOptions o = quiet();
+    o.common.max_iterations = 200;
+    o.trust_region_initial = 1.0;
+    o.trust_region_min = 0.75;
+    o.advanced.restoration_stall_factorizations = 1;
+    o.advanced.restoration_resume_reduction = 0.0;
+    SqpSolver solver(o);
+    solver.set_iteration_callback(
+        [&rows](const IterationEvent &e) {
+            if ((e.sqp ? e.sqp->depth : Index{0}) >= 1) {
+                ++rows;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = solver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(sol.counters.restoration_curvature_switches, 1) << "fixture premise: a restart ran";
+    EXPECT_EQ(sol.status, SolveStatus::kStalled);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_GE(rows, static_cast<std::size_t>(kFirstRunPasses +
+                                             hven::detail::kRestorationStallMinPasses + 1));
 }
 
 } // namespace hven

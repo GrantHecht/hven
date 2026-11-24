@@ -41,6 +41,10 @@ inline constexpr double kRestoreRadiusFactor = 0.1;
 /// fall of at least 10% over the window (RF-1 ruling S-1).
 inline constexpr double kRestorationStallFraction = 0.9;
 
+/// The fewest passes a stall verdict may rest on (RF-1c): the reference sample must lie at least
+/// this many passes back, so one pass costing more than the window cannot fire it alone.
+inline constexpr std::size_t kRestorationStallMinPasses = 5;
+
 /// @brief The restoration phase's stall test (RF-1 ruling S-1, replacing design 4.1's fixed
 ///        budget): the phase is stalled when its best parent h has not fallen by at least
 ///        10% over the last `window` factorizations.
@@ -62,12 +66,17 @@ class RestorationStallWindow {
         }
         samples_.push_back({factorizations, best_});
         const Index horizon = factorizations - window_;
-        while (samples_.size() >= 2 && samples_[1].factorizations <= horizon) {
+        while (samples_.size() > kRestorationStallMinPasses + 1 &&
+               samples_[1].factorizations <= horizon) {
             samples_.pop_front();
         }
-        return samples_.front().factorizations <= horizon &&
+        return samples_.size() > kRestorationStallMinPasses &&
+               samples_.front().factorizations <= horizon &&
                !(best_ <= kRestorationStallFraction * samples_.front().best_h);
     }
+
+    /// A regularized restart's passes must not inherit the failed run's span.
+    void new_run() { samples_.clear(); }
 
   private:
     struct Sample {

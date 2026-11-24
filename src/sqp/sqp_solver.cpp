@@ -6765,6 +6765,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // THE PHASE'S QPs ARE LEDGERED: the prefix carries this solve's entry, the phase run within
         // it (a regularized restart is a second run) and this driver's lifetime run count, so
         // labels stay unique across runs, entries and solves.
+        if (phase_run > 0) {
+            phase_stall.new_run(); // a restart starts a fresh window; the best stays (RF-1c)
+        }
         ++phase_run;
         ++restoration_phase_runs_;
         if (ledger_ != nullptr) {
