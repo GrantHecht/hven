@@ -79,6 +79,29 @@ struct IpmIterationRow {
     Index eval_exceptions = 0;
 };
 
+/// The growth levers (SqpAdvancedOptions::trust_region_growth_*, trust_region_rejection_memory,
+/// trust_region_growth_after_soc) that refused a growth the trust-region rule had granted, as a bit
+/// set (SqpIterationRow::trust_region_growth_refusal_reasons).
+enum class SqpTrustRegionGrowthRefusal : unsigned {
+    kNone = 0,
+    kViolationRatio = 1,  ///< kRatioByStepType's violation-ratio test on an h-type step
+    kAfterSoc = 2,        ///< trust_region_growth_after_soc
+    kRejectionMemory = 4, ///< trust_region_rejection_memory
+    kRatioCeiling = 8,    ///< trust_region_growth_ratio_max
+    kStepLimitPins = 16,  ///< trust_region_growth_on_step_limit
+    kFunnelHeadroom = 32, ///< trust_region_growth_funnel_guard
+};
+
+constexpr SqpTrustRegionGrowthRefusal operator|(SqpTrustRegionGrowthRefusal a,
+                                                SqpTrustRegionGrowthRefusal b) {
+    return static_cast<SqpTrustRegionGrowthRefusal>(static_cast<unsigned>(a) |
+                                                    static_cast<unsigned>(b));
+}
+constexpr SqpTrustRegionGrowthRefusal &operator|=(SqpTrustRegionGrowthRefusal &a,
+                                                  SqpTrustRegionGrowthRefusal b) {
+    return a = a | b;
+}
+
 /// @brief The SQP block of an iteration row.
 struct SqpIterationRow {
     Index depth = 0;
@@ -144,11 +167,11 @@ struct SqpIterationRow {
     /// Seconds since this solve's entry on a monotonic clock; informational, never asserted. A
     /// depth-1 row counts from the nested solve's own entry.
     double t_s = 0.0;
-    /// The SqpAdvancedOptions::trust_region_* levers that refused this accepted step's growth, as
-    /// bits: 1 the violation ratio (kStepTypeRatio), 2 after SOC, 4 the rejection memory, 8 the
-    /// ratio ceiling, 16 cap pins, 32 the funnel headroom. 0 when no growth the rule granted was
-    /// refused, and on every row that was not accepted.
-    Index tr_growth_refusal = 0;
+    /// The SqpAdvancedOptions::trust_region_growth_* levers that refused this accepted step's
+    /// growth (a bit set; kNone when no candidate growth was refused, and on every row that was
+    /// not accepted).
+    SqpTrustRegionGrowthRefusal trust_region_growth_refusal_reasons =
+        SqpTrustRegionGrowthRefusal::kNone;
 };
 
 /// @brief One iteration row: the shared core plus exactly one engine block.

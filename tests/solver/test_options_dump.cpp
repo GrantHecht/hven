@@ -156,10 +156,11 @@ TEST(OptionsDump, SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly) {
     const std::string text = dump_to_string(SqpOptions{});
     for (const char *line :
          {"advanced.trust_region_growth = kRatio", "advanced.trust_region_growth_after_soc = true",
-          "advanced.trust_region_rejection_memory = 0", "advanced.trust_region_ratio_ceiling = inf",
+          "advanced.trust_region_rejection_memory = 0",
+          "advanced.trust_region_growth_ratio_max = inf",
           "advanced.trust_region_shrink_to_step = false",
-          "advanced.trust_region_growth_on_cap_pins = true",
-          "advanced.trust_region_funnel_headroom = false", "caller_step_limit = 0"}) {
+          "advanced.trust_region_growth_on_step_limit = true",
+          "advanced.trust_region_growth_funnel_guard = false", "caller_step_limit = 0"}) {
         EXPECT_TRUE(has_line(text, line)) << line << "\n" << text;
     }
     // The placebo arm P perturbs trust_region_initial in the last digits: the dump must tell it
@@ -170,8 +171,8 @@ TEST(OptionsDump, SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly) {
     EXPECT_TRUE(has_line(ptext, "trust_region_initial = 1.000000000000001")) << ptext;
     EXPECT_TRUE(has_line(text, "trust_region_initial = 1")) << text;
     SqpOptions g;
-    g.advanced.trust_region_growth = hven::SqpTrustRegionGrowth::kStepTypeRatio;
-    EXPECT_TRUE(has_line(dump_to_string(g), "advanced.trust_region_growth = kStepTypeRatio"));
+    g.advanced.trust_region_growth = hven::SqpTrustRegionGrowth::kRatioByStepType;
+    EXPECT_TRUE(has_line(dump_to_string(g), "advanced.trust_region_growth = kRatioByStepType"));
 }
 
 TEST(OptionsDump, SqpDumpsTheTu0LeversAtTheirOldConstants) {

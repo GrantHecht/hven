@@ -2108,7 +2108,7 @@ IterationRecord make_sqp_iteration_record(const SqpMajorRow &r, Index major, QpT
     row.qp_factorizations_total = r.qp_factorizations_total;
     row.factorizations_delta = r.factorizations_delta;
     row.t_s = r.t_s;
-    row.tr_growth_refusal = r.tr_growth_refusal;
+    row.trust_region_growth_refusal_reasons = r.trust_region_growth_refusal_reasons;
     rec.sqp = row;
     return rec;
 }
@@ -8190,11 +8190,11 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.tr_memory.record_rejection(st.rollback.delta, st.rollback.radius_from_growth);
         }
         if (st.rollback.grew) {
-            --st.out.counters.tr_growths;
+            --st.out.counters.trust_region_growths;
         }
         // A step taken at a grown radius and rolled back is a grown radius rejected.
         if (st.rollback.radius_from_growth) {
-            ++st.out.counters.tr_grow_then_reject;
+            ++st.out.counters.trust_region_grown_step_rejections;
         }
         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
         st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;
@@ -9614,7 +9614,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
     mj.row.cap_binding = release_step_limit_pins(mj.qs, st.step_limit_sides);
     if (mj.row.cap_binding) {
-        ++st.out.counters.tr_cap_binding_majors; // I19-2a
+        ++st.out.counters.step_limit_binding_majors; // I19-2a
     }
     mj.row.region_limited =
         std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
@@ -9923,8 +9923,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // I19-2a: the uncorrected trial's h, and the model's linearization at the step for the two
     // levers that read it (nothing new is computed at the default levers).
     mj.trial_h_new = mj.ctx.h_new;
-    if (opts_.advanced.trust_region_growth == SqpTrustRegionGrowth::kStepTypeRatio ||
-        opts_.advanced.trust_region_funnel_headroom) {
+    if (opts_.advanced.trust_region_growth == SqpTrustRegionGrowth::kRatioByStepType ||
+        opts_.advanced.trust_region_growth_funnel_guard) {
         mj.h_lin_model = model_linearized_violation_l1(st.ev, mj.qs.x);
     }
 
@@ -10186,10 +10186,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // (the radius the trial was solved at, before the shrink), and the shrink itself:
         // halving, or with trust_region_shrink_to_step half the step the radius did not hold.
         if (mj.radius_from_growth) {
-            ++st.out.counters.tr_grow_then_reject;
+            ++st.out.counters.trust_region_grown_step_rejections;
         }
         if (!mj.row.radius_binding) {
-            ++st.out.counters.tr_unbound_rejections;
+            ++st.out.counters.trust_region_unbound_rejections;
         }
         if (opts_.advanced.trust_region_rejection_memory > 0) {
             st.tr_memory.record_rejection(st.delta, mj.radius_from_growth);
@@ -10236,7 +10236,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         }
         push_history(mj.row);
         if (shrink.to_step) {
-            ++st.out.counters.tr_shrinks_to_step; // counted only when the shrink is taken
+            ++st.out.counters.trust_region_shrinks_to_step; // counted only when the shrink is taken
         }
         st.delta = shrink.radius;
         st.seed = std::move(mj.qs);
@@ -10292,7 +10292,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         gin.h_new = mj.ctx.h_new;
         gin.h_trial = mj.trial_h_new;
         gin.h_lin = mj.h_lin_model;
-        if (opts_.advanced.trust_region_funnel_headroom) {
+        if (opts_.advanced.trust_region_growth_funnel_guard) {
             if (const auto *funnel = dynamic_cast<const FunnelStrategy *>(st.strategy.get())) {
                 gin.width = funnel->width();
             }
@@ -10300,7 +10300,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         gin.grown_radius = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
         gin.rejection_cap = st.tr_memory.cap();
         mj.growth = detail::trust_region_growth_decision(opts_.advanced, gin);
-        mj.row.tr_growth_refusal = mj.growth.refusal;
+        mj.row.trust_region_growth_refusal_reasons = mj.growth.refusal;
     }
     push_history(mj.row);
     // THE ROW IS IN THE STREAM AND IN `history` BEFORE ANY COMMIT RUNS, and
@@ -10492,8 +10492,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 }
                 // The pushed row carries its refusal mask, so the counter counts it here too (the
                 // commit that owns it is never reached).
-                if (mj.growth.refusal != 0) {
-                    ++st.out.counters.tr_growth_refusals;
+                if (mj.growth.refusal != SqpTrustRegionGrowthRefusal::kNone) {
+                    ++st.out.counters.trust_region_growth_refusals;
                 }
                 publish_stop_at(iter, interrupt_reason(mj), std::string());
                 if (st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid) {
@@ -10542,13 +10542,13 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             st.rollback.grew = mj.growth.grows && grown > st.delta;
             if (mj.growth.grows) {
                 if (grown > st.delta) {
-                    ++st.out.counters.tr_growths;
+                    ++st.out.counters.trust_region_growths;
                     st.radius_from_growth = true;
                 }
                 st.delta = grown;
             }
-            if (mj.growth.refusal != 0) {
-                ++st.out.counters.tr_growth_refusals;
+            if (mj.growth.refusal != SqpTrustRegionGrowthRefusal::kNone) {
+                ++st.out.counters.trust_region_growth_refusals;
             }
             if (opts_.advanced.trust_region_rejection_memory > 0) {
                 st.tr_memory.after_acceptance(opts_.advanced.trust_region_rejection_memory);

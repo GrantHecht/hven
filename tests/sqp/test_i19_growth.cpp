@@ -18,12 +18,6 @@ namespace hven {
 namespace {
 
 using detail::kTrGrowThreshold;
-using detail::kTrRefusalCapPins;
-using detail::kTrRefusalFunnelHeadroom;
-using detail::kTrRefusalMemory;
-using detail::kTrRefusalRatioCeiling;
-using detail::kTrRefusalSoc;
-using detail::kTrRefusalViolationRatio;
 using detail::TrustRegionGrowthDecision;
 using detail::TrustRegionGrowthInputs;
 using detail::TrustRegionRejectionMemory;
@@ -70,17 +64,18 @@ SqpAdvancedOptions with_rule(SqpTrustRegionGrowth g) {
     return a;
 }
 
-// ---- G1: kStepTypeRatio -------------------------------------------------------------------------
+// ---- G1: kRatioByStepType
+// -------------------------------------------------------------------------
 
 TEST(I19GrowthRule, StepTypeRatioReadsTheViolationRatioOnAnHTypeStep) {
     const TrustRegionGrowthInputs in = issue_iteration_5();
     const TrustRegionGrowthDecision base = decide(SqpAdvancedOptions{}, in);
     EXPECT_TRUE(base.grows) << "kRatio grows on the objective ratio 5.06";
-    EXPECT_EQ(base.refusal, 0);
+    EXPECT_EQ(base.refusal, SqpTrustRegionGrowthRefusal::kNone);
     const TrustRegionGrowthDecision g1 =
-        decide(with_rule(SqpTrustRegionGrowth::kStepTypeRatio), in);
+        decide(with_rule(SqpTrustRegionGrowth::kRatioByStepType), in);
     EXPECT_FALSE(g1.grows) << "the violation rose: (h_old - h_new) / (h_old - h_lin) < 0";
-    EXPECT_EQ(g1.refusal, kTrRefusalViolationRatio);
+    EXPECT_EQ(g1.refusal, SqpTrustRegionGrowthRefusal::kViolationRatio);
 }
 
 TEST(I19GrowthRule, StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolationDecrease) {
@@ -90,36 +85,39 @@ TEST(I19GrowthRule, StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolati
     in.h_lin = 0.5;   // predicted 0.5
     in.h_new = 0.625; // actual 0.375 = 0.75 * 0.5 exactly
     EXPECT_FALSE(decide(SqpAdvancedOptions{}, in).grows);
-    const auto g1 = with_rule(SqpTrustRegionGrowth::kStepTypeRatio);
+    const auto g1 = with_rule(SqpTrustRegionGrowth::kRatioByStepType);
     const TrustRegionGrowthDecision d = decide(g1, in);
     EXPECT_TRUE(d.grows) << "a violation ratio of exactly 0.75 grows";
-    EXPECT_EQ(d.refusal, 0) << "a growth the base rule did not grant is no refusal";
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kNone)
+        << "a growth the base rule did not grant is no refusal";
     in.h_new = 0.625 + 1e-9;
     EXPECT_FALSE(decide(g1, in).grows) << "just below 0.75 does not";
 }
 
 TEST(I19GrowthRule, StepTypeRatioKeepsTheObjectiveRatioOnAnFTypeStep) {
-    const auto g1 = with_rule(SqpTrustRegionGrowth::kStepTypeRatio);
+    const auto g1 = with_rule(SqpTrustRegionGrowth::kRatioByStepType);
     TrustRegionGrowthInputs in = f_step();
     in.h_old = 1.0;
     in.h_new = 3.0; // the violation rose, but the step is f-type
     EXPECT_TRUE(decide(g1, in).grows);
     in.actual_df = kTrGrowThreshold - 1e-9;
     EXPECT_FALSE(decide(g1, in).grows);
-    EXPECT_EQ(decide(g1, in).refusal, 0) << "the base rule refused: no lever is consulted";
+    EXPECT_EQ(decide(g1, in).refusal, SqpTrustRegionGrowthRefusal::kNone)
+        << "the base rule refused: no lever is consulted";
 }
 
 TEST(I19GrowthRule, StepTypeRatioRefusesWithoutALinearization) {
     TrustRegionGrowthInputs in = issue_iteration_5();
     in.h_new = 0.0; // the violation closed
     in.h_lin = std::nullopt;
-    const TrustRegionGrowthDecision d = decide(with_rule(SqpTrustRegionGrowth::kStepTypeRatio), in);
+    const TrustRegionGrowthDecision d =
+        decide(with_rule(SqpTrustRegionGrowth::kRatioByStepType), in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalViolationRatio);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kViolationRatio);
 }
 
 TEST(I19GrowthRule, StepTypeRatioRefusesANonPositivePredictedViolationDecrease) {
-    const auto g1 = with_rule(SqpTrustRegionGrowth::kStepTypeRatio);
+    const auto g1 = with_rule(SqpTrustRegionGrowth::kRatioByStepType);
     TrustRegionGrowthInputs in = issue_iteration_5();
     in.h_new = 0.0;
     in.h_lin = in.h_old; // predicted decrease 0
@@ -143,7 +141,7 @@ TEST(I19GrowthRule, NoGrowthAfterSocWhenTheLeverIsOff) {
     a.trust_region_growth_after_soc = false;
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalSoc);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kAfterSoc);
     in.soc_applied = false;
     EXPECT_TRUE(decide(a, in).grows) << "a direct acceptance is untouched";
 }
@@ -152,20 +150,20 @@ TEST(I19GrowthRule, NoGrowthAfterSocWhenTheLeverIsOff) {
 
 TEST(I19GrowthRule, RatioCeilingRefusesARatioAboveItAndNotAtIt) {
     SqpAdvancedOptions a;
-    a.trust_region_ratio_ceiling = 3.0;
+    a.trust_region_growth_ratio_max = 3.0;
     TrustRegionGrowthInputs in = f_step();
     in.actual_df = 3.0; // ratio exactly 3
     EXPECT_TRUE(decide(a, in).grows);
     in.actual_df = 3.0 + 1e-9;
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalRatioCeiling);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kRatioCeiling);
     EXPECT_TRUE(decide(SqpAdvancedOptions{}, in).grows) << "+inf is off";
 }
 
 TEST(I19GrowthRule, RatioCeilingLeavesARatioFreeGrantAlone) {
     SqpAdvancedOptions a = with_rule(SqpTrustRegionGrowth::kAnyAccepted);
-    a.trust_region_ratio_ceiling = 3.0;
+    a.trust_region_growth_ratio_max = 3.0;
     TrustRegionGrowthInputs in = f_step();
     in.actual_df = 10.0;
     EXPECT_TRUE(decide(a, in).grows);
@@ -173,7 +171,7 @@ TEST(I19GrowthRule, RatioCeilingLeavesARatioFreeGrantAlone) {
 
 TEST(I19GrowthRule, RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilityStepAlone) {
     SqpAdvancedOptions a = with_rule(SqpTrustRegionGrowth::kRatioOrFeasibilityStep);
-    a.trust_region_ratio_ceiling = 3.0;
+    a.trust_region_growth_ratio_max = 3.0;
     TrustRegionGrowthInputs in = f_step();
     in.actual_df = 10.0; // the objective ratio grants too, and is above the ceiling
     in.feasibility_step = true;
@@ -183,8 +181,8 @@ TEST(I19GrowthRule, RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilitySt
 }
 
 TEST(I19GrowthRule, RatioCeilingReadsTheViolationRatioUnderStepTypeRatio) {
-    SqpAdvancedOptions a = with_rule(SqpTrustRegionGrowth::kStepTypeRatio);
-    a.trust_region_ratio_ceiling = 3.0;
+    SqpAdvancedOptions a = with_rule(SqpTrustRegionGrowth::kRatioByStepType);
+    a.trust_region_growth_ratio_max = 3.0;
     TrustRegionGrowthInputs in = issue_iteration_5();
     in.actual_df = 0.5 * in.pred_df; // objective ratio 0.5: not the ratio that grants
     in.h_old = 1.0;
@@ -192,7 +190,7 @@ TEST(I19GrowthRule, RatioCeilingReadsTheViolationRatioUnderStepTypeRatio) {
     in.h_new = 0.55; // actual 0.45: violation ratio 4.5 > 3
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalRatioCeiling);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kRatioCeiling);
     in.h_new = 0.85;                 // violation ratio 1.5
     in.actual_df = 5.0 * in.pred_df; // objective ratio 5: not read on an h-type step
     EXPECT_TRUE(decide(a, in).grows);
@@ -205,15 +203,15 @@ TEST(I19GrowthRule, CapOnlyStepIsNotEligibleWhenCapPinsDoNotGrow) {
     in.radius_binding = false; // region_limited stays: a cap pin held the step
     EXPECT_TRUE(decide(SqpAdvancedOptions{}, in).grows) << "default: the merged flag";
     SqpAdvancedOptions a;
-    a.trust_region_growth_on_cap_pins = false;
+    a.trust_region_growth_on_step_limit = false;
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalCapPins);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kStepLimitPins);
 }
 
 TEST(I19GrowthRule, RadiusBoundStepStaysEligible) {
     SqpAdvancedOptions a;
-    a.trust_region_growth_on_cap_pins = false;
+    a.trust_region_growth_on_step_limit = false;
     TrustRegionGrowthInputs in = f_step();
     EXPECT_TRUE(decide(a, in).grows) << "a radius-bound step, with or without cap pins beside";
 }
@@ -222,7 +220,7 @@ TEST(I19GrowthRule, RadiusBoundStepStaysEligible) {
 
 TEST(I19GrowthRule, FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesTheWidth) {
     SqpAdvancedOptions a;
-    a.trust_region_funnel_headroom = true;
+    a.trust_region_growth_funnel_guard = true;
     TrustRegionGrowthInputs in = f_step();
     in.width = 100.0;
     in.h_lin = 1.0;
@@ -231,13 +229,13 @@ TEST(I19GrowthRule, FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesThe
     in.h_trial += 1e-9;
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalFunnelHeadroom);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kFunnelHeadroom);
     EXPECT_TRUE(decide(SqpAdvancedOptions{}, in).grows) << "off by default";
 }
 
 TEST(I19GrowthRule, FunnelHeadroomReadsTheUncorrectedTrialAfterSoc) {
     SqpAdvancedOptions a;
-    a.trust_region_funnel_headroom = true;
+    a.trust_region_growth_funnel_guard = true;
     TrustRegionGrowthInputs in = f_step();
     in.soc_applied = true;
     in.width = 100.0;
@@ -252,7 +250,7 @@ TEST(I19GrowthRule, FunnelHeadroomReadsTheUncorrectedTrialAfterSoc) {
 
 TEST(I19GrowthRule, FunnelHeadroomWithoutAWidthIsInert) {
     SqpAdvancedOptions a;
-    a.trust_region_funnel_headroom = true;
+    a.trust_region_growth_funnel_guard = true;
     TrustRegionGrowthInputs in = f_step();
     in.width = kInf;
     in.h_trial = 1e300;
@@ -269,7 +267,7 @@ TEST(I19GrowthRule, MemoryRefusesAGrowthReachingTheRememberedRadius) {
     in.grown_radius = 2.0; // 2 delta == cap: the canonical cycle
     const TrustRegionGrowthDecision d = decide(a, in);
     EXPECT_FALSE(d.grows);
-    EXPECT_EQ(d.refusal, kTrRefusalMemory);
+    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kRejectionMemory);
     in.grown_radius = 2.0 - 1e-12;
     EXPECT_TRUE(decide(a, in).grows);
     in.grown_radius = 2.0;
@@ -422,7 +420,7 @@ TEST(I19GrowthRule, DefaultLeversEqualTodaysRuleOnAGrid) {
                         in.feasibility_step);
                     const TrustRegionGrowthDecision d = decide(a, in);
                     EXPECT_EQ(d.grows, today) << bits << " " << pred << " " << act;
-                    EXPECT_EQ(d.refusal, 0);
+                    EXPECT_EQ(d.refusal, SqpTrustRegionGrowthRefusal::kNone);
                 }
             }
         }
@@ -432,10 +430,10 @@ TEST(I19GrowthRule, DefaultLeversEqualTodaysRuleOnAGrid) {
 TEST(I19GrowthRule, RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded) {
     SqpAdvancedOptions a;
     a.trust_region_growth_after_soc = false;
-    a.trust_region_growth_on_cap_pins = false;
+    a.trust_region_growth_on_step_limit = false;
     a.trust_region_rejection_memory = 3;
-    a.trust_region_ratio_ceiling = 3.0;
-    a.trust_region_funnel_headroom = true;
+    a.trust_region_growth_ratio_max = 3.0;
+    a.trust_region_growth_funnel_guard = true;
     TrustRegionGrowthInputs in = f_step();
     in.radius_binding = false;
     in.soc_applied = true;
@@ -445,20 +443,23 @@ TEST(I19GrowthRule, RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecord
     in.rejection_cap = 2.0;
     const TrustRegionGrowthDecision all = decide(a, in);
     EXPECT_FALSE(all.grows);
-    EXPECT_EQ(all.refusal, kTrRefusalCapPins | kTrRefusalSoc | kTrRefusalRatioCeiling |
-                               kTrRefusalFunnelHeadroom | kTrRefusalMemory);
+    EXPECT_EQ(all.refusal, SqpTrustRegionGrowthRefusal::kStepLimitPins |
+                               SqpTrustRegionGrowthRefusal::kAfterSoc |
+                               SqpTrustRegionGrowthRefusal::kRatioCeiling |
+                               SqpTrustRegionGrowthRefusal::kFunnelHeadroom |
+                               SqpTrustRegionGrowthRefusal::kRejectionMemory);
     // The base rule refuses first: a growth it never granted carries no lever's bit.
     in.actual_df = 0.1;
     const TrustRegionGrowthDecision none = decide(a, in);
     EXPECT_FALSE(none.grows);
-    EXPECT_EQ(none.refusal, 0);
+    EXPECT_EQ(none.refusal, SqpTrustRegionGrowthRefusal::kNone);
     // So does ineligibility and the guards.
     in.actual_df = 5.0;
     in.region_limited = false;
-    EXPECT_EQ(decide(a, in).refusal, 0);
+    EXPECT_EQ(decide(a, in).refusal, SqpTrustRegionGrowthRefusal::kNone);
     in.region_limited = true;
     in.failure_step = true;
-    EXPECT_EQ(decide(a, in).refusal, 0);
+    EXPECT_EQ(decide(a, in).refusal, SqpTrustRegionGrowthRefusal::kNone);
 }
 
 } // namespace

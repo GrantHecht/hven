@@ -2376,7 +2376,8 @@ IterationRecord golden_sqp_row(int line) {
         r.sqp->qp_factorizations_total = 4;
         r.sqp->factorizations_delta = 5;
         r.sqp->t_s = 1.5;
-        r.sqp->tr_growth_refusal = 5; // I19-2a: bits 1 (violation ratio) | 4 (memory)
+        r.sqp->trust_region_growth_refusal_reasons = SqpTrustRegionGrowthRefusal::kViolationRatio |
+                                                     SqpTrustRegionGrowthRefusal::kRejectionMemory;
         break;
     case 1:
         // The numeric contract: -0.0, a subnormal, DBL_MAX, 1e-300 and the three
@@ -2499,7 +2500,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier) {
         "\"cap_binding\":false,\"pred_df\":0.5,\"f_trial\":-2.25,\"h_trial\":0.375,\"soc_f\":null,"
         "\"soc_h\":null,\"h_lin\":0.0625,\"qp_minor_iterations_total\":7,\"qp_factorizations_"
         "total\":"
-        "4,\"factorizations_delta\":5,\"t_s\":1.5,\"tr_growth_refusal\":5}}\n");
+        "4,\"factorizations_delta\":5,\"t_s\":1.5,\"trust_region_growth_refusal_reasons\":5}}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier) {
@@ -2521,7 +2522,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTh
               "\"switching_ratio\":\"inf\",\"ladder\":null,"
               "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
-              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_"
+              "refusal_reasons\":"
               "0}}\n");
 }
 
@@ -2544,7 +2546,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier) {
               "\"ladder\":null,"
               "\"cap_binding\":true,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
-              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_"
+              "refusal_reasons\":"
               "0}}\n");
 }
 
@@ -2565,7 +2568,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier) 
               "ratio\":-0.5,\"ladder\":null,"
               "\"cap_binding\":true,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "-0.75,\"soc_h\":0.125,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
-              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_"
+              "refusal_reasons\":"
               "0}}\n");
 }
 
@@ -2604,7 +2608,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpRowWithoutASubproblemWritesNulls) {
               "\"ladder\":null,"
               "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
-              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_"
+              "refusal_reasons\":"
               "0}}\n");
     const std::string line = iter_line(r);
     for (const char *k : {"step", "accepted", "verdict", "regularization_dual", "qp_status",
@@ -2656,7 +2661,8 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpElasticRow) {
               "\"switching_ratio\":null,\"ladder\":null,"
               "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":"
               "null,\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_"
-              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":"
+              "factorizations_total\":0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_"
+              "refusal_reasons\":"
               "0}}\n");
 }
 
@@ -2712,7 +2718,7 @@ TEST(JsonLinesTraceSink, GoldenLineIterSqpDepthOneRestorationRow) {
         "null,\"ladder\":null,"
         "\"cap_binding\":false,\"pred_df\":null,\"f_trial\":null,\"h_trial\":null,\"soc_f\":null,"
         "\"soc_h\":null,\"h_lin\":null,\"qp_minor_iterations_total\":0,\"qp_factorizations_total\":"
-        "0,\"factorizations_delta\":0,\"t_s\":0,\"tr_growth_refusal\":0}}");
+        "0,\"factorizations_delta\":0,\"t_s\":0,\"trust_region_growth_refusal_reasons\":0}}");
     EXPECT_EQ(raw_field(lines[2], "depth"), "1");
     EXPECT_EQ(raw_field(lines[2], "f"), "null");
 }
@@ -2843,7 +2849,8 @@ void expect_iter_line_is_row(const std::string &line, const IterationRecord &r, 
               std::to_string(r.sqp->qp_factorizations_total));
     EXPECT_EQ(raw_field(line, "factorizations_delta"), std::to_string(r.sqp->factorizations_delta));
     expect_double_field(line, "t_s", r.sqp->t_s);
-    EXPECT_EQ(raw_field(line, "tr_growth_refusal"), std::to_string(r.sqp->tr_growth_refusal));
+    EXPECT_EQ(raw_field(line, "trust_region_growth_refusal_reasons"),
+              std::to_string(static_cast<Index>(r.sqp->trust_region_growth_refusal_reasons)));
 }
 
 /// The depth-0 `iter` lines of a stream, in order.
@@ -3210,9 +3217,10 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // `qp_failure_box_projections`, `trust_region_floor_exits` and `soc_qp_iteration_limits`,
     // appended after PF-5's one, the same route, by eight keys.
     //
-    // 129 -> 135 at M8 I19-2a: `tr_growths`, `tr_growth_refusals`, `tr_shrinks_to_step`,
-    // `tr_grow_then_reject`, `tr_unbound_rejections`, `tr_cap_binding_majors`, appended after
-    // RF-1's eight, the same route, by six keys.
+    // 129 -> 135 at M8 I19-2a: `trust_region_growths`, `trust_region_growth_refusals`,
+    // `trust_region_shrinks_to_step`, `trust_region_grown_step_rejections`,
+    // `trust_region_unbound_rejections`, `step_limit_binding_majors`, appended after RF-1's eight,
+    // the same route, by six keys.
     EXPECT_EQ(kSqpCountersFieldCount, 135u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
@@ -3862,9 +3870,12 @@ std::string distinct_counters_json() {
            "ine_border_refine\":124,\"symbolic_analysis_reuses\":125,\"qp_retry_rung_shrink"
            "\":126,\"qp_retry_rung_cold\":127,\"qp_retry_rung_algebra\":128,\"qp_retry_rung_"
            "regularization\":129,\"qp_retry_replays\":130,\"qp_failure_box_projections\":131"
-           ",\"trust_region_floor_exits\":132,\"soc_qp_iteration_limits\":133,\"tr_growths\""
-           ":134,\"tr_growth_refusals\":135,\"tr_shrinks_to_step\":136,\"tr_grow_then_reject"
-           "\":137,\"tr_unbound_rejections\":138,\"tr_cap_binding_majors\":139,\"ssn\":{\"ss"
+           ",\"trust_region_floor_exits\":132,\"soc_qp_iteration_limits\":133,\"trust_region_"
+           "growths\""
+           ":134,\"trust_region_growth_refusals\":135,\"trust_region_shrinks_to_step\":136,\"trust_"
+           "region_grown_step_rejections"
+           "\":137,\"trust_region_unbound_rejections\":138,\"step_limit_binding_majors\":139,"
+           "\"ssn\":{\"ss"
            "n_iters\":140,\"ssn_bulk_flips\":141,\"ssn_backtracks\":142,\"ssn_prox_updates\""
            ":143,\"ssn_escapes\":144,\"ssn_uncertain_peak\":145,\"ssn_refinements\":146,\"ss"
            "n_refine_refused\":147,\"ssn_refine_factorizations\":148,\"ssn_refine_neg_duals"
@@ -3936,8 +3947,10 @@ std::string default_counters_json() {
            "qp_retry_rung_shrink\":0,\"qp_retry_rung_cold\":0,\"qp_retry_rung_algebra\":0,\""
            "qp_retry_rung_regularization\":0,\"qp_retry_replays\":0,\"qp_failure_box_project"
            "ions\":0,\"trust_region_floor_exits\":0,\"soc_qp_iteration_limits\":0,\"tr_growt"
-           "hs\":0,\"tr_growth_refusals\":0,\"tr_shrinks_to_step\":0,\"tr_grow_then_reject\""
-           ":0,\"tr_unbound_rejections\":0,\"tr_cap_binding_majors\":0,\"ssn\":{\"ssn_iters"
+           "hs\":0,\"trust_region_growth_refusals\":0,\"trust_region_shrinks_to_step\":0,\"trust_"
+           "region_grown_step_rejections\""
+           ":0,\"trust_region_unbound_rejections\":0,\"step_limit_binding_majors\":0,\"ssn\":{"
+           "\"ssn_iters"
            "\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_esca"
            "pes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,"
            "\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,"

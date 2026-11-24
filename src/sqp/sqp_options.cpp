@@ -385,7 +385,7 @@ void validate(const SqpOptions &opts) {
     }
 
     // THE TU-0 LEVERS.
-    enum_in_range(opts.advanced.trust_region_growth, SqpTrustRegionGrowth::kStepTypeRatio,
+    enum_in_range(opts.advanced.trust_region_growth, SqpTrustRegionGrowth::kRatioByStepType,
                   "advanced.trust_region_growth");
     // THE I19-2a LEVERS (the four bools have no refusable value).
     if (!(opts.advanced.trust_region_rejection_memory >= 0)) {
@@ -394,11 +394,11 @@ void validate(const SqpOptions &opts) {
                         "is off)",
                         opts.advanced.trust_region_rejection_memory));
     }
-    if (!(opts.advanced.trust_region_ratio_ceiling > 1.0)) {
+    if (!(opts.advanced.trust_region_growth_ratio_max > 1.0)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: advanced.trust_region_ratio_ceiling ({}) must be > 1 (+inf "
+            fmt::format("SqpSolver: advanced.trust_region_growth_ratio_max ({}) must be > 1 (+inf "
                         "is off)",
-                        opts.advanced.trust_region_ratio_ceiling));
+                        opts.advanced.trust_region_growth_ratio_max));
     }
     if (!(opts.advanced.ssn_farkas_residual_tol > 0.0) ||
         !(opts.advanced.ssn_farkas_residual_tol < 1.0)) {

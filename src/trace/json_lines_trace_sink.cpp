@@ -875,7 +875,8 @@ void write_sqp_row(std::string &b, const SqpIterationRow &r) {
     key_index(b, f, "qp_factorizations_total", r.qp_factorizations_total);
     key_index(b, f, "factorizations_delta", r.factorizations_delta);
     key_double(b, f, "t_s", r.t_s);
-    key_index(b, f, "tr_growth_refusal", r.tr_growth_refusal);
+    key_index(b, f, "trust_region_growth_refusal_reasons",
+              static_cast<Index>(r.trust_region_growth_refusal_reasons));
 }
 
 } // namespace

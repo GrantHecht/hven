@@ -4173,8 +4173,8 @@ TEST(SqpSolverNonfiniteRollback, NoRollbackIsTakenAcrossTheRadiusFloor) {
 
 // I19-2a: A ROLLED-BACK STEP IS A REJECTION FOR THE RADIUS'S BOOKKEEPING. The rollback restores
 // the radius the step was taken under and halves it exactly (shrink-to-step is not consulted); a
-// growth the commit made never stood (tr_growths does not count it); and with the rejection
-// memory on, the rolled-back radius is recorded when a growth set it.
+// growth the commit made never stood (trust_region_growths does not count it); and with the
+// rejection memory on, the rolled-back radius is recorded when a growth set it.
 TEST(SqpSolverNonfiniteRollback, TheRollbackHalvesTheRadiusEvenUnderShrinkToStep) {
     NonfiniteAtTheBoundModel model(0.0);
     SqpOptions opts = nonfinite_rollback_options();
@@ -4211,9 +4211,9 @@ TEST(SqpSolverNonfiniteRollback, AGrowthTheRollbackUndidIsNotCounted) {
         }
     }
     ASSERT_GE(undone, 1) << "premise: a rollback undid a growth";
-    EXPECT_EQ(sol.counters.tr_growths, growths - undone);
+    EXPECT_EQ(sol.counters.trust_region_growths, growths - undone);
     // A step taken at a grown radius and rolled back is a grown radius rejected, as a judged
-    // rejection of one is: tr_grow_then_reject counts both.
+    // rejection of one is: trust_region_grown_step_rejections counts both.
     Index grown_then_rejected = 0;
     for (std::size_t k = 0; k + 1 < sol.history.size(); ++k) {
         const auto &h = sol.history[k];
@@ -4225,7 +4225,7 @@ TEST(SqpSolverNonfiniteRollback, AGrowthTheRollbackUndidIsNotCounted) {
             ++grown_then_rejected;
         }
     }
-    EXPECT_EQ(sol.counters.tr_grow_then_reject, grown_then_rejected);
+    EXPECT_EQ(sol.counters.trust_region_grown_step_rejections, grown_then_rejected);
 }
 
 TEST(SqpSolverNonfiniteRollback, TheMemoryRecordsARolledBackRadiusAGrowthSet) {
@@ -4251,7 +4251,8 @@ TEST(SqpSolverNonfiniteRollback, TheMemoryRecordsARolledBackRadiusAGrowthSet) {
     EXPECT_EQ(off.history[3].sqp->trust_radius, 3.0);
     EXPECT_EQ(off.history[4].sqp->trust_radius, 6.0) << "off: the radius grows straight back";
     EXPECT_EQ(on.history[4].sqp->trust_radius, 3.0) << "on: 6 is remembered";
-    EXPECT_EQ(on.history[3].sqp->tr_growth_refusal, hven::detail::kTrRefusalMemory);
+    EXPECT_EQ(on.history[3].sqp->trust_region_growth_refusal_reasons,
+              SqpTrustRegionGrowthRefusal::kRejectionMemory);
 }
 
 // THE FUNNEL IS PUT BACK (R2-1 rider R4). With one equality violated by 100 at the start

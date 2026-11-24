@@ -595,12 +595,12 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, qp_failure_box_projections);
     HVEN_EXPECT_SAME(a, b, trust_region_floor_exits);
     HVEN_EXPECT_SAME(a, b, soc_qp_iteration_limits);
-    HVEN_EXPECT_SAME(a, b, tr_growths);
-    HVEN_EXPECT_SAME(a, b, tr_growth_refusals);
-    HVEN_EXPECT_SAME(a, b, tr_shrinks_to_step);
-    HVEN_EXPECT_SAME(a, b, tr_grow_then_reject);
-    HVEN_EXPECT_SAME(a, b, tr_unbound_rejections);
-    HVEN_EXPECT_SAME(a, b, tr_cap_binding_majors);
+    HVEN_EXPECT_SAME(a, b, trust_region_growths);
+    HVEN_EXPECT_SAME(a, b, trust_region_growth_refusals);
+    HVEN_EXPECT_SAME(a, b, trust_region_shrinks_to_step);
+    HVEN_EXPECT_SAME(a, b, trust_region_grown_step_rejections);
+    HVEN_EXPECT_SAME(a, b, trust_region_unbound_rejections);
+    HVEN_EXPECT_SAME(a, b, step_limit_binding_majors);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

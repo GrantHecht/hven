@@ -65,33 +65,33 @@ TEST(I19SensGrid, EveryDeclaredKeyReachesItsOptionAndNothingElseIsAccepted) {
     SensCell c{"c", "sens-x", "F2", "default", "F2CircleNlp", 0, 0.5, 0.0};
     const SqpOptions o = bench::i19::cell_options(
         c,
-        {"advanced.trust_region_growth=kStepTypeRatio",
+        {"advanced.trust_region_growth=kRatioByStepType",
          "advanced.trust_region_growth_after_soc=false", "advanced.trust_region_rejection_memory=3",
-         "advanced.trust_region_ratio_ceiling=3", "advanced.trust_region_shrink_to_step=true",
-         "advanced.trust_region_growth_on_cap_pins=false",
-         "advanced.trust_region_funnel_headroom=true", "advanced.second_order_correction=false",
+         "advanced.trust_region_growth_ratio_max=3", "advanced.trust_region_shrink_to_step=true",
+         "advanced.trust_region_growth_on_step_limit=false",
+         "advanced.trust_region_growth_funnel_guard=true", "advanced.second_order_correction=false",
          "trust_region_initial=1.000000000000001", "caller_step_limit=0.1"});
-    EXPECT_EQ(o.advanced.trust_region_growth, SqpTrustRegionGrowth::kStepTypeRatio);
+    EXPECT_EQ(o.advanced.trust_region_growth, SqpTrustRegionGrowth::kRatioByStepType);
     EXPECT_FALSE(o.advanced.trust_region_growth_after_soc);
     EXPECT_EQ(o.advanced.trust_region_rejection_memory, 3);
-    EXPECT_EQ(o.advanced.trust_region_ratio_ceiling, 3.0);
+    EXPECT_EQ(o.advanced.trust_region_growth_ratio_max, 3.0);
     EXPECT_TRUE(o.advanced.trust_region_shrink_to_step);
-    EXPECT_FALSE(o.advanced.trust_region_growth_on_cap_pins);
-    EXPECT_TRUE(o.advanced.trust_region_funnel_headroom);
+    EXPECT_FALSE(o.advanced.trust_region_growth_on_step_limit);
+    EXPECT_TRUE(o.advanced.trust_region_growth_funnel_guard);
     EXPECT_FALSE(o.advanced.second_order_correction);
     EXPECT_EQ(o.trust_region_initial, 1.000000000000001);
     EXPECT_NE(o.trust_region_initial, 1.0);
     EXPECT_EQ(o.caller_step_limit, 0.1);
     EXPECT_EQ(o.hessian_mode, SqpHessianMode::kExact);
-    EXPECT_EQ(bench::i19::cell_options(c, {"advanced.trust_region_ratio_ceiling=inf"})
-                  .advanced.trust_region_ratio_ceiling,
+    EXPECT_EQ(bench::i19::cell_options(c, {"advanced.trust_region_growth_ratio_max=inf"})
+                  .advanced.trust_region_growth_ratio_max,
               std::numeric_limits<double>::infinity());
     EXPECT_THROW(bench::i19::cell_options(c, {"advanced.qp_mode=kSsn"}), std::invalid_argument);
     EXPECT_THROW(bench::i19::cell_options(c, {"advanced.trust_region_shrink_to_step=1"}),
                  std::invalid_argument);
     EXPECT_THROW(bench::i19::cell_options(c, {"advanced.trust_region_growth=kBogus"}),
                  std::invalid_argument);
-    EXPECT_THROW(bench::i19::cell_options(c, {"advanced.trust_region_ratio_ceiling=1"}),
+    EXPECT_THROW(bench::i19::cell_options(c, {"advanced.trust_region_growth_ratio_max=1"}),
                  std::invalid_argument)
         << "validate() refuses a ceiling at 1";
     EXPECT_THROW(bench::i19::cell_options(c, {"noequals"}), std::invalid_argument);
@@ -170,11 +170,13 @@ TEST(I19SensGrid, ACellSolvesAndItsRowMatchesTheHeader) {
     const std::string header = bench::i19::csv_header(r);
     const std::string row = bench::i19::csv_row(c, sets, r);
     EXPECT_EQ(commas(header), commas(row));
-    EXPECT_EQ(header.rfind("cell_id,set,problem,base,overrides,status,factorizations,eval_f,"
-                           "eval_jac,major_iters,rejected_steps,reject_funnel_ceiling,tr_growths,"
-                           "tr_growth_refusals,tr_shrinks_to_step,tr_grow_then_reject,"
-                           "tr_unbound_rejections,tr_cap_binding_majors,objective,counter.",
-                           0),
+    EXPECT_EQ(header.rfind(
+                  "cell_id,set,problem,base,overrides,status,factorizations,eval_f,"
+                  "eval_jac,major_iters,rejected_steps,reject_funnel_ceiling,trust_region_growths,"
+                  "trust_region_growth_refusals,trust_region_shrinks_to_step,trust_region_grown_"
+                  "step_rejections,"
+                  "trust_region_unbound_rejections,step_limit_binding_majors,objective,counter.",
+                  0),
               0u);
     EXPECT_EQ(row.rfind("sens-x-F2-p0.5,sens-x,F2-p0.5,default,"
                         "advanced.trust_region_rejection_memory=3,optimal,",

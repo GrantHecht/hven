@@ -925,12 +925,12 @@ group; `SqpOptions::hessian_mode`).
 | `qp_failure_box_projections` | integer | `SqpCounters::qp_failure_box_projections` | failed subproblems ended by a stagnation stop whose iterate was projected onto the subproblem's box (trust-region window included) before the retryable test (M8 RF-1) |
 | `trust_region_floor_exits` | integer | `SqpCounters::trust_region_floor_exits` | solves ended at the trust-region floor at a feasible point whose last rejected step promised less than the objective's rounding floor (StopReason::kTrustRegionFloor) (M8 RF-1) |
 | `soc_qp_iteration_limits` | integer | `SqpCounters::soc_qp_iteration_limits` | second-order-correction re-solves that ended at their minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged (M8 RF-1) |
-| `tr_growths` | integer | `SqpCounters::tr_growths` | accepted steps that grew the trust radius; a step rolled back as non-finite after its growth is not one (M8 I19-2a) |
-| `tr_growth_refusals` | integer | `SqpCounters::tr_growth_refusals` | accepted steps at which a candidate growth was refused by at least one `trust_region_*` lever; 0 at the default levers (a stop-poll exit counts the pushed row's refusal) (M8 I19-2a) |
-| `tr_shrinks_to_step` | integer | `SqpCounters::tr_shrinks_to_step` | rejections whose radius `trust_region_shrink_to_step` took from the step instead of halving; a floor crossing takes none (M8 I19-2a) |
-| `tr_grow_then_reject` | integer | `SqpCounters::tr_grow_then_reject` | rejections of a trial solved at a radius the previous major's growth set, plus non-finite rollbacks of such a step (M8 I19-2a) |
-| `tr_unbound_rejections` | integer | `SqpCounters::tr_unbound_rejections` | rejections of a step the trust radius did not hold (M8 I19-2a) |
-| `tr_cap_binding_majors` | integer | `SqpCounters::tr_cap_binding_majors` | majors whose step a `caller_step_limit` pin held (M8 I19-2a) |
+| `trust_region_growths` | integer | `SqpCounters::trust_region_growths` | accepted steps that grew the trust radius; a step rolled back as non-finite after its growth is not one (M8 I19-2a) |
+| `trust_region_growth_refusals` | integer | `SqpCounters::trust_region_growth_refusals` | accepted steps at which a candidate growth was refused by at least one `trust_region_*` lever; 0 at the default levers (a stop-poll exit counts the pushed row's refusal) (M8 I19-2a) |
+| `trust_region_shrinks_to_step` | integer | `SqpCounters::trust_region_shrinks_to_step` | rejections whose radius `trust_region_shrink_to_step` took from the step instead of halving; a floor crossing takes none (M8 I19-2a) |
+| `trust_region_grown_step_rejections` | integer | `SqpCounters::trust_region_grown_step_rejections` | rejections of a trial solved at a radius the previous major's growth set, plus non-finite rollbacks of such a step (M8 I19-2a) |
+| `trust_region_unbound_rejections` | integer | `SqpCounters::trust_region_unbound_rejections` | rejections of a step the trust radius did not hold (M8 I19-2a) |
+| `step_limit_binding_majors` | integer | `SqpCounters::step_limit_binding_majors` | majors whose step a `caller_step_limit` pin held (M8 I19-2a) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two

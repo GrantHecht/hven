@@ -2838,12 +2838,12 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(qp_failure_box_projections)                                                                  \
     X(trust_region_floor_exits)                                                                    \
     X(soc_qp_iteration_limits)                                                                     \
-    X(tr_growths)                                                                                  \
-    X(tr_growth_refusals)                                                                          \
-    X(tr_shrinks_to_step)                                                                          \
-    X(tr_grow_then_reject)                                                                         \
-    X(tr_unbound_rejections)                                                                       \
-    X(tr_cap_binding_majors)
+    X(trust_region_growths)                                                                        \
+    X(trust_region_growth_refusals)                                                                \
+    X(trust_region_shrinks_to_step)                                                                \
+    X(trust_region_grown_step_rejections)                                                          \
+    X(trust_region_unbound_rejections)                                                             \
+    X(step_limit_binding_majors)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.

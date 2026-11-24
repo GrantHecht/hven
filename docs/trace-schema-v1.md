@@ -108,7 +108,7 @@ direction (`inertia_corrections`); the backend does not report it (`perturbed_pi
 active_lower_sides + active_upper_sides`); `active_set_delta`; `weak_active_rows`; `near_active_rows`;
 `active_rows`; `active_lower_sides`; `active_upper_sides`; `switching_ratio` (GL-0); `ladder` (M8 I17); then the I19-1
 keys, in order: `cap_binding`; `pred_df`; `f_trial`; `h_trial`; `soc_f`; `soc_h`; `h_lin`; `qp_minor_iterations_total`;
-`qp_factorizations_total`; `factorizations_delta`; `t_s`; then `tr_growth_refusal` (M8 I19-2a, the last key). `null` when `!qp_solved`: `verdict`,
+`qp_factorizations_total`; `factorizations_delta`; `t_s`; then `trust_region_growth_refusal_reasons` (M8 I19-2a, the last key). `null` when `!qp_solved`: `verdict`,
 `regularization_dual`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. `switching_ratio` is
 `pred_df / (0.999 * h^2)` at the row's point (KLV Eq. (10): `>= 1` selects an f-type trial), `null` on a row whose
 subproblem did not solve to `kOptimal` (so a judged `qp_failure_step` row is `null`), and `"inf"`/`"-inf"`/`"nan"`
@@ -165,12 +165,12 @@ QP's own linearized rows (`sum |Ae p - be| + sum max(0, Ai p - bi)`), so `h_old 
 model promised to remove; `null` when the step is not finite or the QP's rows are not row for row the model's
 (an equality-basis reduction). Bound violations are not in `h_*`.
 
-**Growth refusal (M8 I19-2a).** `tr_growth_refusal` is an integer bit set naming the
+**Growth refusal (M8 I19-2a).** `trust_region_growth_refusal_reasons` is an integer bit set naming the
 `SqpAdvancedOptions::trust_region_*` levers that refused the row's radius growth: 1 the violation ratio
-(`trust_region_growth = kStepTypeRatio` on an h-type step), 2 an acceptance through SOC
+(`trust_region_growth = kRatioByStepType` on an h-type step), 2 an acceptance through SOC
 (`trust_region_growth_after_soc`), 4 the rejection memory, 8 the ratio ceiling, 16 a step held only by cap pins
-(`trust_region_growth_on_cap_pins`), 32 the funnel headroom. A lever is consulted only when the growth rule granted
-the growth (or `kStepTypeRatio` granted it on the violation ratio), so a growth the rule itself refused carries 0. It
+(`trust_region_growth_on_step_limit`), 32 the funnel headroom. A lever is consulted only when the growth rule granted
+the growth (or `kRatioByStepType` granted it on the violation ratio), so a growth the rule itself refused carries 0. It
 is 0 on every row that is not an accepted step and at the default levers, and never `null`.
 
 **Elastic activation.** A row's major ran an elastic ladder if and only if its `ladder` block is non-null (the
@@ -303,7 +303,7 @@ meaning) is v2.
 | new trailing key | M8 I17 | `iter` `sqp` block; `message` | `ladder` (object or `null`), after `switching_ratio`; the `sqp` block's arity pin moves 24 -> 25. `message` gains the same `ladder` key after `expected_n`, `null` on every kind but `elastic_exhausted` (the `MessageTraceEvent` arity pin moves 14 -> 15); the exhausted row's `qp_status` is the main QP's. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | meaning change + new trailing keys (pre-tag) | M8 TR-S1 | `iter` | the core keys `stationarity`, `feasibility`, `complementarity` carry the scaled problem's measures, the quantities the termination tests compare with the tolerances (IPM: `kkt_inf`, `max(econ_inf, icon_inf)`, `barr_inf`, previously divided by the objective scale; SQP: the engine-unit `SqpKkt` measures, previously mapped to caller units). New trailing core keys after `factorizations`: `stationarity_caller`, `feasibility_caller`, `complementarity_caller` carry the former values. Equal to the former values on an unscaled solve. The v1 freeze has not been tagged (same ground as the TR-D rider), so this is a pre-tag correction, not a v2. The golden `ipm_complete.jsonl`, `sqp_complete.jsonl` and `ipm_aborted.jsonl` lines are re-derived |
 | meaning change + new trailing keys (pre-tag) | M8 I19-1 | `iter` `sqp` block; `message` | `tr_binding` now means the trust RADIUS held the step (a `caller_step_limit` pin no longer counts): the old merged value is `tr_binding \|\| cap_binding`. The decision input is unchanged (an internal merged flag). New trailing `sqp`-block keys after `ladder`: `cap_binding`, `pred_df`, `f_trial`, `h_trial`, `soc_f`, `soc_h`, `h_lin`, `qp_minor_iterations_total`, `qp_factorizations_total`, `factorizations_delta`, `t_s` (wall-clock: mask it); the `sqp` block's arity pin moves 25 -> 36. The `ladder` object gains `rho_0`, `minor_iterations`, `factorizations` after `exhausted` (also in `message`). The v1 freeze has not been tagged (same ground as TR-S1), so a pre-tag correction, not a v2. The golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
-| new trailing keys | M8 I19-2a | `iter` `sqp` block; `solve.end` | `tr_growth_refusal` (integer bit set, never `null`), after `t_s`; the `sqp` block's arity pin moves 36 -> 37. `solve.end.counters` (SQP) gains `tr_growths`, `tr_growth_refusals`, `tr_shrinks_to_step`, `tr_grow_then_reject`, `tr_unbound_rejections`, `tr_cap_binding_majors` after `soc_qp_iteration_limits` (before the `ssn` object). Additive; the golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
+| new trailing keys | M8 I19-2a | `iter` `sqp` block; `solve.end` | `trust_region_growth_refusal_reasons` (integer bit set, never `null`), after `t_s`; the `sqp` block's arity pin moves 36 -> 37. `solve.end.counters` (SQP) gains `trust_region_growths`, `trust_region_growth_refusals`, `trust_region_shrinks_to_step`, `trust_region_grown_step_rejections`, `trust_region_unbound_rejections`, `step_limit_binding_majors` after `soc_qp_iteration_limits` (before the `ssn` object). Additive; the golden `sqp_complete.jsonl` and the affected unit lines are re-derived |
 | none | M8 TR-D rider | `iter` | the `sqp` block key `dual_regularization` is spelled `regularization_dual`, the `ipm` block's key for the same quantity (one name for both engines, as the G5 callback block already had); the v1 freeze has not been tagged, so a spelling in the freeze, not a v2 |
 
 ## 7. v0 to v1 map

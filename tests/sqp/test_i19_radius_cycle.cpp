@@ -230,7 +230,7 @@ void set_lever(SqpOptions &o, Lever l) {
     case Lever::kNone:
         break;
     case Lever::kG1:
-        o.advanced.trust_region_growth = SqpTrustRegionGrowth::kStepTypeRatio;
+        o.advanced.trust_region_growth = SqpTrustRegionGrowth::kRatioByStepType;
         break;
     case Lever::kG2:
         o.advanced.trust_region_growth_after_soc = false;
@@ -239,64 +239,65 @@ void set_lever(SqpOptions &o, Lever l) {
         o.advanced.trust_region_rejection_memory = 3;
         break;
     case Lever::kG4:
-        o.advanced.trust_region_ratio_ceiling = 3.0;
+        o.advanced.trust_region_growth_ratio_max = 3.0;
         break;
     case Lever::kG5:
         o.advanced.trust_region_shrink_to_step = true;
         break;
     case Lever::kG6:
-        o.advanced.trust_region_growth_on_cap_pins = false;
+        o.advanced.trust_region_growth_on_step_limit = false;
         break;
     case Lever::kG7:
-        o.advanced.trust_region_funnel_headroom = true;
+        o.advanced.trust_region_growth_funnel_guard = true;
         break;
     }
 }
 
 struct LeverReading {
     int majors;
-    int tr_growths;
-    int tr_growth_refusals;
-    int tr_shrinks_to_step;
-    int tr_grow_then_reject;
-    int tr_unbound_rejections;
-    int tr_cap_binding_majors;
+    int trust_region_growths;
+    int trust_region_growth_refusals;
+    int trust_region_shrinks_to_step;
+    int trust_region_grown_step_rejections;
+    int trust_region_unbound_rejections;
+    int step_limit_binding_majors;
 };
 
 LeverReading lever_reading(const SqpResult &r) {
     const I19RadiusReading q = test_support::i19_read(r);
     const auto &c = r.counters;
     return {q.majors,
-            static_cast<int>(c.tr_growths),
-            static_cast<int>(c.tr_growth_refusals),
-            static_cast<int>(c.tr_shrinks_to_step),
-            static_cast<int>(c.tr_grow_then_reject),
-            static_cast<int>(c.tr_unbound_rejections),
-            static_cast<int>(c.tr_cap_binding_majors)};
+            static_cast<int>(c.trust_region_growths),
+            static_cast<int>(c.trust_region_growth_refusals),
+            static_cast<int>(c.trust_region_shrinks_to_step),
+            static_cast<int>(c.trust_region_grown_step_rejections),
+            static_cast<int>(c.trust_region_unbound_rejections),
+            static_cast<int>(c.step_limit_binding_majors)};
 }
 
 std::string describe(const LeverReading &v) {
-    return fmt::format("{{{}, {}, {}, {}, {}, {}, {}}}", v.majors, v.tr_growths,
-                       v.tr_growth_refusals, v.tr_shrinks_to_step, v.tr_grow_then_reject,
-                       v.tr_unbound_rejections, v.tr_cap_binding_majors);
+    return fmt::format("{{{}, {}, {}, {}, {}, {}, {}}}", v.majors, v.trust_region_growths,
+                       v.trust_region_growth_refusals, v.trust_region_shrinks_to_step,
+                       v.trust_region_grown_step_rejections, v.trust_region_unbound_rejections,
+                       v.step_limit_binding_majors);
 }
 
 bool operator==(const LeverReading &a, const LeverReading &b) {
-    return a.majors == b.majors && a.tr_growths == b.tr_growths &&
-           a.tr_growth_refusals == b.tr_growth_refusals &&
-           a.tr_shrinks_to_step == b.tr_shrinks_to_step &&
-           a.tr_grow_then_reject == b.tr_grow_then_reject &&
-           a.tr_unbound_rejections == b.tr_unbound_rejections &&
-           a.tr_cap_binding_majors == b.tr_cap_binding_majors;
+    return a.majors == b.majors && a.trust_region_growths == b.trust_region_growths &&
+           a.trust_region_growth_refusals == b.trust_region_growth_refusals &&
+           a.trust_region_shrinks_to_step == b.trust_region_shrinks_to_step &&
+           a.trust_region_grown_step_rejections == b.trust_region_grown_step_rejections &&
+           a.trust_region_unbound_rejections == b.trust_region_unbound_rejections &&
+           a.step_limit_binding_majors == b.step_limit_binding_majors;
 }
 
 // The new counters against the history they summarize. Depth-0 rows only: a restoration
 // sub-solve's radius is its own and is not folded.
 void expect_counter_identities(const SqpResult &r) {
     const I19RadiusReading q = test_support::i19_read(r);
-    EXPECT_EQ(r.counters.tr_growths, q.growths);
-    EXPECT_EQ(r.counters.tr_grow_then_reject, q.grow_then_reject);
-    EXPECT_EQ(r.counters.tr_unbound_rejections, q.unbound_rejections);
+    EXPECT_EQ(r.counters.trust_region_growths, q.growths);
+    EXPECT_EQ(r.counters.trust_region_grown_step_rejections, q.grow_then_reject);
+    EXPECT_EQ(r.counters.trust_region_unbound_rejections, q.unbound_rejections);
     Index cap_rows = 0;
     Index refused_rows = 0;
     for (const IterationRecord &h : r.history) {
@@ -304,15 +305,17 @@ void expect_counter_identities(const SqpResult &r) {
             continue;
         }
         cap_rows += h.sqp->cap_binding ? 1 : 0;
-        refused_rows += h.sqp->tr_growth_refusal != 0 ? 1 : 0;
-        if (h.sqp->tr_growth_refusal != 0) {
+        refused_rows +=
+            h.sqp->trust_region_growth_refusal_reasons != SqpTrustRegionGrowthRefusal::kNone ? 1
+                                                                                             : 0;
+        if (h.sqp->trust_region_growth_refusal_reasons != SqpTrustRegionGrowthRefusal::kNone) {
             EXPECT_TRUE(h.sqp->verdict == StepVerdict::kAcceptObjectiveStep ||
                         h.sqp->verdict == StepVerdict::kAcceptFeasibilityStep)
                 << "a refusal is recorded on an accepted row only";
         }
     }
-    EXPECT_EQ(r.counters.tr_cap_binding_majors, cap_rows);
-    EXPECT_EQ(r.counters.tr_growth_refusals, refused_rows);
+    EXPECT_EQ(r.counters.step_limit_binding_majors, cap_rows);
+    EXPECT_EQ(r.counters.trust_region_growth_refusals, refused_rows);
 }
 
 constexpr Lever kLevers[] = {Lever::kNone, Lever::kG1, Lever::kG2, Lever::kG3,
@@ -322,7 +325,8 @@ struct FixtureRow {
     const char *fixture;
     I19Fixture (*make)(SqpHessianMode);
     SqpHessianMode mode;
-    // {majors, tr_growths, refusals, shrinks_to_step, grow_then_reject, unbound_rejections,
+    // {majors, trust_region_growths, refusals, shrinks_to_step, grow_then_reject,
+    // unbound_rejections,
     //  cap_binding_majors}, one per lever in kLevers' order
     LeverReading pin[8];
 };
@@ -359,8 +363,8 @@ TEST(I19RadiusCycle, EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities) {
             ASSERT_EQ(r.status, SolveStatus::kOptimal);
             expect_counter_identities(r);
             if (c.lever == Lever::kNone) {
-                EXPECT_EQ(r.counters.tr_growth_refusals, 0) << "no lever, no refusal";
-                EXPECT_EQ(r.counters.tr_shrinks_to_step, 0);
+                EXPECT_EQ(r.counters.trust_region_growth_refusals, 0) << "no lever, no refusal";
+                EXPECT_EQ(r.counters.trust_region_shrinks_to_step, 0);
             }
             const LeverReading got = lever_reading(r);
 #if HVEN_TEST_ROUTE_REFERENCE
@@ -384,8 +388,12 @@ struct LeverEffect {
 };
 
 TEST(I19RadiusCycle, EachLeverReducesItsFixturesSignatureAtNoExtraMajors) {
-    const auto gtr = [](const SqpResult &r) { return r.counters.tr_grow_then_reject; };
-    const auto unbound = [](const SqpResult &r) { return r.counters.tr_unbound_rejections; };
+    const auto gtr = [](const SqpResult &r) {
+        return r.counters.trust_region_grown_step_rejections;
+    };
+    const auto unbound = [](const SqpResult &r) {
+        return r.counters.trust_region_unbound_rejections;
+    };
     const std::vector<LeverEffect> effects = {
         {test_support::f_h, Lever::kG1, gtr},       {test_support::f_soc, Lever::kG2, gtr},
         {test_support::f_cyc, Lever::kG3, gtr},     {test_support::f_cap, Lever::kG5, unbound},
@@ -410,13 +418,15 @@ TEST(I19RadiusCycle, TheRatioCeilingReachesTheDriver) {
     // the lever acting on every route.
     for (const SqpHessianMode mode : {kExact, kQn}) {
         I19Fixture f = test_support::f_cyc(mode);
-        f.options.advanced.trust_region_ratio_ceiling = 1.05;
+        f.options.advanced.trust_region_growth_ratio_max = 1.05;
         const SqpResult r = test_support::i19_solve(f);
         ASSERT_EQ(r.status, SolveStatus::kOptimal);
-        EXPECT_GT(r.counters.tr_growth_refusals, 0);
+        EXPECT_GT(r.counters.trust_region_growth_refusals, 0);
         for (const IterationRecord &h : r.history) {
-            if (h.sqp && h.sqp->tr_growth_refusal != 0) {
-                EXPECT_EQ(h.sqp->tr_growth_refusal, detail::kTrRefusalRatioCeiling);
+            if (h.sqp &&
+                h.sqp->trust_region_growth_refusal_reasons != SqpTrustRegionGrowthRefusal::kNone) {
+                EXPECT_EQ(h.sqp->trust_region_growth_refusal_reasons,
+                          SqpTrustRegionGrowthRefusal::kRatioCeiling);
             }
         }
     }
@@ -424,18 +434,20 @@ TEST(I19RadiusCycle, TheRatioCeilingReachesTheDriver) {
 
 TEST(I19RadiusCycle, TheRefusalBitsNameTheRefusingLever) {
     const auto bits = [](const SqpResult &r) {
-        Index all = 0;
+        SqpTrustRegionGrowthRefusal all = SqpTrustRegionGrowthRefusal::kNone;
         for (const IterationRecord &h : r.history) {
             if (h.sqp) {
-                all |= h.sqp->tr_growth_refusal;
+                all |= h.sqp->trust_region_growth_refusal_reasons;
             }
         }
         return all;
     };
-    const std::vector<std::pair<Lever, Index>> want = {
-        {Lever::kG1, detail::kTrRefusalViolationRatio}, {Lever::kG2, detail::kTrRefusalSoc},
-        {Lever::kG3, detail::kTrRefusalMemory},         {Lever::kG6, detail::kTrRefusalCapPins},
-        {Lever::kG7, detail::kTrRefusalFunnelHeadroom},
+    const std::vector<std::pair<Lever, SqpTrustRegionGrowthRefusal>> want = {
+        {Lever::kG1, SqpTrustRegionGrowthRefusal::kViolationRatio},
+        {Lever::kG2, SqpTrustRegionGrowthRefusal::kAfterSoc},
+        {Lever::kG3, SqpTrustRegionGrowthRefusal::kRejectionMemory},
+        {Lever::kG6, SqpTrustRegionGrowthRefusal::kStepLimitPins},
+        {Lever::kG7, SqpTrustRegionGrowthRefusal::kFunnelHeadroom},
     };
     for (const auto &[lever, bit] : want) {
         I19Fixture f = test_support::f_cap(kExact); // every one of these refuses here
@@ -454,14 +466,15 @@ TEST(I19RadiusCycle, RemedyLeversAtDefaultLeaveTheFixturesUnmoved) {
             f.options.advanced.trust_region_growth = SqpTrustRegionGrowth::kRatio;
             f.options.advanced.trust_region_growth_after_soc = true;
             f.options.advanced.trust_region_rejection_memory = 0;
-            f.options.advanced.trust_region_ratio_ceiling = std::numeric_limits<double>::infinity();
+            f.options.advanced.trust_region_growth_ratio_max =
+                std::numeric_limits<double>::infinity();
             f.options.advanced.trust_region_shrink_to_step = false;
-            f.options.advanced.trust_region_growth_on_cap_pins = true;
-            f.options.advanced.trust_region_funnel_headroom = false;
+            f.options.advanced.trust_region_growth_on_step_limit = true;
+            f.options.advanced.trust_region_growth_funnel_guard = false;
             const SqpResult r = test_support::i19_solve(f);
             EXPECT_EQ(r.counters.major_iters, base.counters.major_iters);
-            EXPECT_EQ(r.counters.tr_growth_refusals, 0);
-            EXPECT_EQ(r.counters.tr_shrinks_to_step, 0);
+            EXPECT_EQ(r.counters.trust_region_growth_refusals, 0);
+            EXPECT_EQ(r.counters.trust_region_shrinks_to_step, 0);
             ASSERT_EQ(r.history.size(), base.history.size());
             for (std::size_t k = 0; k < r.history.size(); ++k) {
                 EXPECT_EQ(r.history[k].sqp->trust_radius, base.history[k].sqp->trust_radius);
@@ -526,8 +539,8 @@ TEST(I19RadiusCycle, ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
     const SqpResult r = scripted({kA, kR, kA}, 3, 8);
     const std::vector<double> want = {1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 4.0};
     EXPECT_EQ(radii(r, want.size()), want);
-    EXPECT_EQ(r.counters.tr_grow_then_reject, 1);
-    EXPECT_EQ(r.counters.tr_growth_refusals, 3);
+    EXPECT_EQ(r.counters.trust_region_grown_step_rejections, 1);
+    EXPECT_EQ(r.counters.trust_region_growth_refusals, 3);
     // Off: the radius doubles straight back.
     const std::vector<double> off = {1.0, 2.0, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0};
     EXPECT_EQ(radii(scripted({kA, kR, kA}, 0, 8), off.size()), off);
@@ -546,8 +559,8 @@ TEST(I19RadiusCycle, ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet) {
     const SqpResult r = scripted({kA, kR, kR, kA}, 3, 8);
     const std::vector<double> want = {1.0, 2.0, 1.0, 0.5, 1.0, 1.0, 1.0, 2.0};
     EXPECT_EQ(radii(r, want.size()), want);
-    EXPECT_EQ(r.counters.tr_grow_then_reject, 1);
-    EXPECT_EQ(r.counters.tr_unbound_rejections, 0);
+    EXPECT_EQ(r.counters.trust_region_grown_step_rejections, 1);
+    EXPECT_EQ(r.counters.trust_region_unbound_rejections, 0);
 }
 
 TEST(I19RadiusCycle, ScriptedMemoryIsClearedAtARestorationResume) {
@@ -567,8 +580,8 @@ TEST(I19RadiusCycle, ScriptedMemoryIsClearedAtARestorationResume) {
     Problem p(m);
     const SqpResult r = SqpSolver(o).solve(p, Vec{{1010.0, 0.0}});
     ASSERT_GE(r.counters.restoration_entries, 1);
-    EXPECT_EQ(r.counters.tr_grow_then_reject, 1);
-    EXPECT_EQ(r.counters.tr_growth_refusals, 0) << "the cap did not survive the resume";
+    EXPECT_EQ(r.counters.trust_region_grown_step_rejections, 1);
+    EXPECT_EQ(r.counters.trust_region_growth_refusals, 0) << "the cap did not survive the resume";
     // Premise: after the resume the radius regrew past the rejected 2.
     double peak_after = 0.0;
     bool resumed = false;
@@ -610,7 +623,7 @@ TEST(I19RadiusCycle, ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone) {
                 ++checked;
                 soc_rows += h.sqp->soc_h.has_value() ? 1 : 0;
             }
-            EXPECT_EQ(r.counters.tr_shrinks_to_step, checked);
+            EXPECT_EQ(r.counters.trust_region_shrinks_to_step, checked);
         }
     }
     EXPECT_GE(soc_rows, 1) << "premise: a SOC re-solve solved on an unbound rejected row";
@@ -656,7 +669,7 @@ TEST(I19RadiusCycle, AMixedStepStaysGrowthEligibleWithoutCapPinGrowth) {
     o.common.max_iterations = 3;
     o.trust_region_initial = 2.0;
     o.caller_step_limit = 0.5;
-    o.advanced.trust_region_growth_on_cap_pins = false;
+    o.advanced.trust_region_growth_on_step_limit = false;
     Problem p(std::make_shared<FarQuadratic>());
     const SqpResult r = SqpSolver(o).solve(p, Vec{{0.0, 100.0}});
     ASSERT_GE(r.history.size(), 2u);
@@ -664,7 +677,7 @@ TEST(I19RadiusCycle, AMixedStepStaysGrowthEligibleWithoutCapPinGrowth) {
     ASSERT_TRUE(h0.sqp->tr_binding && h0.sqp->cap_binding) << "premise: a mixed step";
     ASSERT_EQ(h0.sqp->verdict, StepVerdict::kAcceptObjectiveStep);
     EXPECT_EQ(r.history[1].sqp->trust_radius, 4.0);
-    EXPECT_EQ(h0.sqp->tr_growth_refusal, 0);
+    EXPECT_EQ(h0.sqp->trust_region_growth_refusal_reasons, SqpTrustRegionGrowthRefusal::kNone);
 }
 
 // min 1/2 |x - c|^2 s.t. x0 = 0 and x0 = 1 (inconsistent): with the equality basis off every
@@ -756,12 +769,12 @@ TEST(I19RadiusCycle, OnElasticMajorsTheRadiusAndTheCapStaySeparated) {
         o.trust_region_max = 1e4;
         o.caller_step_limit = 0.1;
         o.advanced.trust_region_growth = SqpTrustRegionGrowth::kAnyAccepted;
-        o.advanced.trust_region_growth_on_cap_pins = false;
+        o.advanced.trust_region_growth_on_step_limit = false;
         o.advanced.equality_basis = false;
         Problem p(std::make_shared<InconsistentPair>());
         const SqpResult r = SqpSolver(o).solve(p, Vec{{0.5, 0.0}});
-        EXPECT_EQ(r.counters.tr_growths, 0);
-        EXPECT_GE(r.counters.tr_growth_refusals, 1);
+        EXPECT_EQ(r.counters.trust_region_growths, 0);
+        EXPECT_GE(r.counters.trust_region_growth_refusals, 1);
     }
 }
 
@@ -775,17 +788,19 @@ TEST(I19RadiusCycle, ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep) {
     f.options.trust_region_initial = 10.0;
     f.options.trust_region_min = 4.0;
     const SqpResult r = test_support::i19_solve(f);
-    ASSERT_GE(r.counters.tr_unbound_rejections, 1) << "premise: an unbound rejection was judged";
-    EXPECT_EQ(r.counters.tr_shrinks_to_step, 0);
+    ASSERT_GE(r.counters.trust_region_unbound_rejections, 1)
+        << "premise: an unbound rejection was judged";
+    EXPECT_EQ(r.counters.trust_region_shrinks_to_step, 0);
 }
 
 // The stop poll honours a stop at an accepted row without running its commit, so the counter that
-// the commit owns is counted at the stop exit: tr_growth_refusals = the pushed rows with a refusal.
+// the commit owns is counted at the stop exit: trust_region_growth_refusals = the pushed rows with
+// a refusal.
 TEST(I19RadiusCycle, AStopPollExitCountsThePushedRowsRefusal) {
     bool stopped_on_a_refusal = false;
     for (Index k = 0; k < 40; ++k) {
         I19Fixture f = test_support::f_cyc(kExact);
-        f.options.advanced.trust_region_funnel_headroom = true;
+        f.options.advanced.trust_region_growth_funnel_guard = true;
         Problem p(f.model);
         SqpSolver s(f.options);
         s.set_iteration_callback([k](const IterationEvent &ev) {
@@ -794,11 +809,16 @@ TEST(I19RadiusCycle, AStopPollExitCountsThePushedRowsRefusal) {
         const SqpResult r = s.solve(p, f.x0);
         Index refused_rows = 0;
         for (const auto &h : r.history) {
-            refused_rows += (h.sqp && h.sqp->depth == 0 && h.sqp->tr_growth_refusal != 0) ? 1 : 0;
+            refused_rows +=
+                (h.sqp && h.sqp->depth == 0 &&
+                 h.sqp->trust_region_growth_refusal_reasons != SqpTrustRegionGrowthRefusal::kNone)
+                    ? 1
+                    : 0;
         }
-        EXPECT_EQ(r.counters.tr_growth_refusals, refused_rows) << "stop at event " << k;
+        EXPECT_EQ(r.counters.trust_region_growth_refusals, refused_rows) << "stop at event " << k;
         if (r.status == SolveStatus::kInterrupted && !r.history.empty() &&
-            r.history.back().sqp->tr_growth_refusal != 0) {
+            r.history.back().sqp->trust_region_growth_refusal_reasons !=
+                SqpTrustRegionGrowthRefusal::kNone) {
             stopped_on_a_refusal = true;
         }
     }

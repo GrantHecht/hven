@@ -8,6 +8,7 @@
 #include <limits>
 #include <optional>
 
+#include <hven/solver/iteration_record.h>
 #include <hven/sqp/sqp_options.h>
 
 namespace hven::detail {
@@ -51,22 +52,13 @@ inline bool trust_region_grows(SqpTrustRegionGrowth rule, bool failure_step, boo
         return ratio || feasibility_step;
     case SqpTrustRegionGrowth::kAnyAccepted:
         return true;
-    case SqpTrustRegionGrowth::kStepTypeRatio:
+    case SqpTrustRegionGrowth::kRatioByStepType:
         return ratio;
     }
     return ratio;
 }
 
-// ---- I19-2a: the growth and shrink levers (SqpAdvancedOptions::trust_region_*) ----
-
-/// Bits of a growth refusal (SqpIterationRow::tr_growth_refusal): each lever that refused a
-/// growth the rule granted. 0 when nothing was refused.
-inline constexpr Index kTrRefusalViolationRatio = 1;  ///< kStepTypeRatio's h-type test
-inline constexpr Index kTrRefusalSoc = 2;             ///< trust_region_growth_after_soc
-inline constexpr Index kTrRefusalMemory = 4;          ///< trust_region_rejection_memory
-inline constexpr Index kTrRefusalRatioCeiling = 8;    ///< trust_region_ratio_ceiling
-inline constexpr Index kTrRefusalCapPins = 16;        ///< trust_region_growth_on_cap_pins
-inline constexpr Index kTrRefusalFunnelHeadroom = 32; ///< trust_region_funnel_headroom
+// ---- the growth and shrink levers (SqpAdvancedOptions::trust_region_*) ----
 
 /// The funnel-headroom guard's factor on the funnel width (KLV's beta).
 inline constexpr double kTrHeadroomFraction = 0.99;
@@ -101,11 +93,11 @@ struct TrustRegionGrowthInputs {
 
 struct TrustRegionGrowthDecision {
     bool grows = false;
-    /// The kTrRefusal* bits of every lever that refused.
-    Index refusal = 0;
+    /// Every lever that refused.
+    SqpTrustRegionGrowthRefusal refusal = SqpTrustRegionGrowthRefusal::kNone;
 };
 
-/// The growth decision. The rule's own grant is read first (kStepTypeRatio reads kRatio's
+/// The growth decision. The rule's own grant is read first (kRatioByStepType reads kRatio's
 /// grant for the base and the violation ratio for an h-type candidate); a major neither grants
 /// carries no refusal bit. At default levers this is trust_region_grows on the merged flag.
 inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedOptions &a,
@@ -121,7 +113,7 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
         base = true;
     }
     const bool h_branch =
-        a.trust_region_growth == SqpTrustRegionGrowth::kStepTypeRatio && in.feasibility_step;
+        a.trust_region_growth == SqpTrustRegionGrowth::kRatioByStepType && in.feasibility_step;
     bool candidate = base;
     double h_ratio = 0.0;
     if (h_branch) {
@@ -135,15 +127,15 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
     if (!base && !candidate) {
         return {};
     }
-    Index refusal = 0;
+    SqpTrustRegionGrowthRefusal refusal = SqpTrustRegionGrowthRefusal::kNone;
     if (h_branch && !candidate) {
-        refusal |= kTrRefusalViolationRatio;
+        refusal |= SqpTrustRegionGrowthRefusal::kViolationRatio;
     }
-    if (!a.trust_region_growth_on_cap_pins && !in.radius_binding) {
-        refusal |= kTrRefusalCapPins;
+    if (!a.trust_region_growth_on_step_limit && !in.radius_binding) {
+        refusal |= SqpTrustRegionGrowthRefusal::kStepLimitPins;
     }
     if (!a.trust_region_growth_after_soc && in.soc_applied) {
-        refusal |= kTrRefusalSoc;
+        refusal |= SqpTrustRegionGrowthRefusal::kAfterSoc;
     }
     if (candidate) {
         // The ratio that granted the candidate; none for a grant made without one.
@@ -159,24 +151,24 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
             break;
         case SqpTrustRegionGrowth::kAnyAccepted:
             break;
-        case SqpTrustRegionGrowth::kStepTypeRatio:
+        case SqpTrustRegionGrowth::kRatioByStepType:
             granted_by = h_branch ? h_ratio : in.actual_df / in.pred_df;
             break;
         }
-        if (granted_by && *granted_by > a.trust_region_ratio_ceiling) {
-            refusal |= kTrRefusalRatioCeiling;
+        if (granted_by && *granted_by > a.trust_region_growth_ratio_max) {
+            refusal |= SqpTrustRegionGrowthRefusal::kRatioCeiling;
         }
     }
-    if (a.trust_region_funnel_headroom && std::isfinite(in.width)) {
+    if (a.trust_region_growth_funnel_guard && std::isfinite(in.width)) {
         const double lin = in.h_lin.value_or(0.0);
         if (lin + 4.0 * std::max(0.0, in.h_trial - lin) > kTrHeadroomFraction * in.width) {
-            refusal |= kTrRefusalFunnelHeadroom;
+            refusal |= SqpTrustRegionGrowthRefusal::kFunnelHeadroom;
         }
     }
     if (a.trust_region_rejection_memory > 0 && in.grown_radius >= in.rejection_cap) {
-        refusal |= kTrRefusalMemory;
+        refusal |= SqpTrustRegionGrowthRefusal::kRejectionMemory;
     }
-    return {candidate && refusal == 0, refusal};
+    return {candidate && refusal == SqpTrustRegionGrowthRefusal::kNone, refusal};
 }
 
 /// trust_region_rejection_memory's state: the smallest radius a grown step was rejected at, and

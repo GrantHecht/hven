@@ -214,8 +214,8 @@ inline void apply_set(SqpOptions &o, const std::string &kv) {
             a.trust_region_growth = SqpTrustRegionGrowth::kRatioOrFeasibilityStep;
         } else if (v == "kAnyAccepted") {
             a.trust_region_growth = SqpTrustRegionGrowth::kAnyAccepted;
-        } else if (v == "kStepTypeRatio") {
-            a.trust_region_growth = SqpTrustRegionGrowth::kStepTypeRatio;
+        } else if (v == "kRatioByStepType") {
+            a.trust_region_growth = SqpTrustRegionGrowth::kRatioByStepType;
         } else {
             throw std::invalid_argument(fmt::format("i19 grid: --set {}={}: unknown value", k, v));
         }
@@ -223,14 +223,14 @@ inline void apply_set(SqpOptions &o, const std::string &kv) {
         a.trust_region_growth_after_soc = parse_bool(k, v);
     } else if (k == "advanced.trust_region_rejection_memory") {
         a.trust_region_rejection_memory = parse_index(v, k);
-    } else if (k == "advanced.trust_region_ratio_ceiling") {
-        a.trust_region_ratio_ceiling = parse_double(v, k);
+    } else if (k == "advanced.trust_region_growth_ratio_max") {
+        a.trust_region_growth_ratio_max = parse_double(v, k);
     } else if (k == "advanced.trust_region_shrink_to_step") {
         a.trust_region_shrink_to_step = parse_bool(k, v);
-    } else if (k == "advanced.trust_region_growth_on_cap_pins") {
-        a.trust_region_growth_on_cap_pins = parse_bool(k, v);
-    } else if (k == "advanced.trust_region_funnel_headroom") {
-        a.trust_region_funnel_headroom = parse_bool(k, v);
+    } else if (k == "advanced.trust_region_growth_on_step_limit") {
+        a.trust_region_growth_on_step_limit = parse_bool(k, v);
+    } else if (k == "advanced.trust_region_growth_funnel_guard") {
+        a.trust_region_growth_funnel_guard = parse_bool(k, v);
     } else if (k == "advanced.second_order_correction") {
         a.second_order_correction = parse_bool(k, v);
     } else if (k == "trust_region_initial") {
@@ -279,12 +279,12 @@ inline const std::vector<std::string> &row_columns() {
                                                   "major_iters",
                                                   "rejected_steps",
                                                   "reject_funnel_ceiling",
-                                                  "tr_growths",
-                                                  "tr_growth_refusals",
-                                                  "tr_shrinks_to_step",
-                                                  "tr_grow_then_reject",
-                                                  "tr_unbound_rejections",
-                                                  "tr_cap_binding_majors",
+                                                  "trust_region_growths",
+                                                  "trust_region_growth_refusals",
+                                                  "trust_region_shrinks_to_step",
+                                                  "trust_region_grown_step_rejections",
+                                                  "trust_region_unbound_rejections",
+                                                  "step_limit_binding_majors",
                                                   "objective"};
     return cols;
 }
@@ -334,8 +334,9 @@ inline std::string csv_row(const SensCell &c, const std::vector<std::string> &se
         "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{:.17g}", c.cell_id, c.set,
         c.problem, c.base, join_sets(sets), to_string(r.status), r.work.factorizations,
         r.work.objective_evals, r.work.jacobian_evals, k.major_iters, k.rejected_steps,
-        k.reject_funnel_ceiling, k.tr_growths, k.tr_growth_refusals, k.tr_shrinks_to_step,
-        k.tr_grow_then_reject, k.tr_unbound_rejections, k.tr_cap_binding_majors, r.f);
+        k.reject_funnel_ceiling, k.trust_region_growths, k.trust_region_growth_refusals,
+        k.trust_region_shrinks_to_step, k.trust_region_grown_step_rejections,
+        k.trust_region_unbound_rejections, k.step_limit_binding_majors, r.f);
     for (const auto &[name, v] : counter_columns(r)) {
         row += "," + v;
     }

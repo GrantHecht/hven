@@ -234,21 +234,21 @@ one of those three therefore cannot silently miss the trace.
   routed failure that took no rung (the radius floor, a judged failure step) is
   in `qp_failures_routed` only.
 
-  **THE TRUST-RADIUS GROUP DOES NOT FOLD** (M8 I19-2a). `tr_growths` counts accepted
+  **THE TRUST-RADIUS GROUP DOES NOT FOLD** (M8 I19-2a). `trust_region_growths` counts accepted
   steps that grew the radius (a step rolled back as non-finite after its growth is
-  not one); `tr_growth_refusals` counts accepted steps at which a candidate growth (one the
+  not one); `trust_region_growth_refusals` counts accepted steps at which a candidate growth (one the
   growth rule or the base rule would have made) was refused by at least one `SqpAdvancedOptions::trust_region_*` lever (0 at
-  the default levers; the row's `tr_growth_refusal` bits name the levers);
-  `tr_shrinks_to_step` counts rejections whose shrink `trust_region_shrink_to_step`
-  took from the step (a rejection that crosses the radius floor takes none); `tr_grow_then_reject` counts rejections of a trial solved at a
-  radius the previous major's growth set, and non-finite rollbacks of a step taken at such a radius; `tr_unbound_rejections` counts rejections
-  of a step the radius did not hold; `tr_cap_binding_majors` counts majors whose step
+  the default levers; the row's `trust_region_growth_refusal_reasons` bits name the levers);
+  `trust_region_shrinks_to_step` counts rejections whose shrink `trust_region_shrink_to_step`
+  took from the step (a rejection that crosses the radius floor takes none); `trust_region_grown_step_rejections` counts rejections of a trial solved at a
+  radius the previous major's growth set, and non-finite rollbacks of a step taken at such a radius; `trust_region_unbound_rejections` counts rejections
+  of a step the radius did not hold; `step_limit_binding_majors` counts majors whose step
   a `caller_step_limit` pin held. Like GL-0's they describe the caller's own iterate
   and radius, so a restoration sub-solve's are not folded. On the depth-0 history:
-  `tr_growths` is the number of accepted rows whose next row's radius is larger,
-  `tr_grow_then_reject` the number of those followed by a rejected row,
-  `tr_unbound_rejections` the rejected rows with `tr_binding` false, and
-  `tr_cap_binding_majors` the rows with `cap_binding` true.
+  `trust_region_growths` is the number of accepted rows whose next row's radius is larger,
+  `trust_region_grown_step_rejections` the number of those followed by a rejected row,
+  `trust_region_unbound_rejections` the rejected rows with `tr_binding` false, and
+  `step_limit_binding_majors` the rows with `cap_binding` true.
 
   **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
   `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
