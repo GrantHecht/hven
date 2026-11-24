@@ -10,6 +10,7 @@
 
 set(_hven_warmstart_sources
     test_ipm_polish_extension.cpp
+    test_polish_ingest_refusals.cpp
     test_warm_protocol.cpp
     test_warm_start_data.cpp
 )

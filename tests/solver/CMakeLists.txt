@@ -25,6 +25,8 @@ set(_hven_solver_sources
     test_options_reference.cpp
     test_solve_overloads.cpp
     test_solve_result.cpp
+    test_status_mapping.cpp
+    test_validate_refusals.cpp
     test_solver_move.cpp
     test_stop_token.cpp
     test_threads.cpp

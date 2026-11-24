@@ -8,6 +8,7 @@
 
 set(_hven_trace_sources
     test_console_sink.cpp
+    test_fanout_and_ladder_words.cpp
     test_human_trace_goldens.cpp
     test_print_tables.cpp
     test_trace_messages.cpp
