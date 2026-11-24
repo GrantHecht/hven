@@ -1,0 +1,97 @@
+== TU-2 report (informational except arm signs / V1 / V2 / ranking) ==
+
+-- outcome counts per arm and family (section 10.3)
+A0 SQP-CUTEst: {'acceptable': 1, 'dnf_wall': 10, 'max_iter': 4, 'numerical_error': 3, 'optimal': 21, 'stalled': 7}
+A0 SQP-HS: {'optimal': 44}
+A1 SQP-CUTEst: {'acceptable': 1, 'dnf_wall': 10, 'max_iter': 4, 'numerical_error': 5, 'optimal': 21, 'stalled': 5}
+A1 SQP-HS: {'optimal': 44}
+A2 SQP-CUTEst: {'acceptable': 1, 'dnf_wall': 11, 'max_iter': 2, 'numerical_error': 6, 'optimal': 22, 'stalled': 4}
+A2 SQP-HS: {'optimal': 44}
+A3 SQP-CUTEst: {'acceptable': 1, 'dnf_wall': 10, 'max_iter': 4, 'numerical_error': 6, 'optimal': 21, 'stalled': 4}
+A3 SQP-HS: {'optimal': 44}
+A4 SQP-CUTEst: {'acceptable': 2, 'dnf_wall': 11, 'max_iter': 1, 'numerical_error': 8, 'optimal': 21, 'stalled': 3}
+A4 SQP-HS: {'optimal': 44}
+A5 SQP-CUTEst: {'acceptable': 1, 'dnf_wall': 11, 'max_iter': 2, 'numerical_error': 8, 'optimal': 21, 'stalled': 3}
+A5 SQP-HS: {'optimal': 44}
+B0 IPM-CUTEst: {'acceptable': 3, 'dnf_wall': 2, 'max_iter': 4, 'optimal': 14}
+B0 IPM-HS: {'optimal': 22}
+B1 IPM-CUTEst: {'acceptable': 8, 'dnf_wall': 2, 'max_iter': 3, 'optimal': 10}
+B1 IPM-HS: {'optimal': 22}
+
+-- family and mode-row signs of each arm against A0 (A0 = the PIN default)
+A1: families {'cutest': 1, 'hs': 0} tallies {'cutest': (3, 1, 42), 'hs': (0, 0, 44)}
+A1: mode rows {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 0} tallies {'cutest-x': (2, 1, 20), 'cutest-q': (1, 0, 22), 'hs-x': (0, 0, 22), 'hs-q': (0, 0, 22)}
+A1: V1 pooled True {'cutest': (21, 21), 'hs': (44, 44)}; mode rows True {'cutest-q': (6, 6), 'cutest-x': (15, 15), 'hs-q': (22, 22), 'hs-x': (22, 22)}
+A2: families {'cutest': 1, 'hs': 1} tallies {'cutest': (5, 3, 38), 'hs': (4, 2, 38)}
+A2: mode rows {'cutest-x': 0, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} tallies {'cutest-x': (3, 3, 17), 'cutest-q': (2, 0, 21), 'hs-x': (2, 2, 18), 'hs-q': (2, 0, 20)}
+A2: V1 pooled True {'cutest': (21, 22), 'hs': (44, 44)}; mode rows True {'cutest-q': (6, 7), 'cutest-x': (15, 15), 'hs-q': (22, 22), 'hs-x': (22, 22)}
+A3: families {'cutest': 1, 'hs': 1} tallies {'cutest': (5, 2, 39), 'hs': (4, 2, 38)}
+A3: mode rows {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} tallies {'cutest-x': (4, 2, 17), 'cutest-q': (1, 0, 22), 'hs-x': (2, 2, 18), 'hs-q': (2, 0, 20)}
+A3: V1 pooled True {'cutest': (21, 21), 'hs': (44, 44)}; mode rows True {'cutest-q': (6, 6), 'cutest-x': (15, 15), 'hs-q': (22, 22), 'hs-x': (22, 22)}
+A4: families {'cutest': 1, 'hs': 1} tallies {'cutest': (6, 2, 38), 'hs': (5, 2, 37)}
+A4: mode rows {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} tallies {'cutest-x': (5, 2, 16), 'cutest-q': (1, 0, 22), 'hs-x': (3, 2, 17), 'hs-q': (2, 0, 20)}
+A4: V1 pooled True {'cutest': (21, 21), 'hs': (44, 44)}; mode rows True {'cutest-q': (6, 6), 'cutest-x': (15, 15), 'hs-q': (22, 22), 'hs-x': (22, 22)}
+A5: families {'cutest': 1, 'hs': 1} tallies {'cutest': (6, 3, 37), 'hs': (5, 2, 37)}
+A5: mode rows {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} tallies {'cutest-x': (5, 3, 15), 'cutest-q': (1, 0, 22), 'hs-x': (3, 2, 17), 'hs-q': (2, 0, 20)}
+A5: V1 pooled True {'cutest': (21, 21), 'hs': (44, 44)}; mode rows True {'cutest-q': (6, 6), 'cutest-x': (15, 15), 'hs-q': (22, 22), 'hs-x': (22, 22)}
+
+-- configurations (win/loss WL = wins,losses per pooled family; mode signs; V1; V2; cond a-d; passes)
+s=0/tx=kAnyAccepted/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 2), 'hs': (5, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 7 gain 2.9962 changed 2
+s=0/tx=kAnyAccepted/tq=kRatio | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 2), 'hs': (3, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 0} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 5 gain 2.5747 changed 3
+s=0/tx=kAnyAccepted/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 2), 'hs': (5, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 7 gain 2.9656 changed 3
+s=0/tx=kRatio/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (3, 1), 'hs': (2, 0)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 4 gain 1.3553 changed 3
+s=0/tx=kRatio/tq=kRatio | signs {'cutest': 1, 'hs': 0} | W/L {'cutest': (3, 1), 'hs': (0, 0)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 0} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 1 net 2 gain 0.9339 changed 1
+s=0/tx=kRatio/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (3, 1), 'hs': (2, 0)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 4 gain 1.3248 changed 3
+s=0/tx=kRatioOrFeasibilityStep/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 3), 'hs': (5, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 6 gain 2.5329 changed 3
+s=0/tx=kRatioOrFeasibilityStep/tq=kRatio | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 3), 'hs': (3, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 0} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 4 gain 2.1115 changed 3
+s=0/tx=kRatioOrFeasibilityStep/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 3), 'hs': (5, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 1, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 6 gain 2.5024 changed 2
+s=1/tx=kAnyAccepted/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (5, 2), 'hs': (4, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 5 gain 2.1925 changed 1
+s=1/tx=kAnyAccepted/tq=kRatio | signs {'cutest': 1, 'hs': 0} | W/L {'cutest': (4, 2), 'hs': (2, 2)} | mode {'cutest-x': 1, 'cutest-q': 0, 'hs-x': 0, 'hs-q': 0} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 1 net 2 gain 1.1323 changed 2
+s=1/tx=kAnyAccepted/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (6, 2), 'hs': (4, 2)} | mode {'cutest-x': 1, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 6 gain 2.1000 changed 2
+s=1/tx=kRatio/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (1, 0), 'hs': (2, 0)} | mode {'cutest-x': 0, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 3 gain 1.0601 changed 2
+s=1/tx=kRatio/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (2, 0), 'hs': (2, 0)} | mode {'cutest-x': 0, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 4 gain 0.9676 changed 2
+s=1/tx=kRatioOrFeasibilityStep/tq=kAnyAccepted | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (4, 3), 'hs': (4, 2)} | mode {'cutest-x': 0, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 3 gain 1.6816 changed 2
+s=1/tx=kRatioOrFeasibilityStep/tq=kRatio | signs {'cutest': 0, 'hs': 0} | W/L {'cutest': (3, 3), 'hs': (2, 2)} | mode {'cutest-x': 0, 'cutest-q': 0, 'hs-x': 0, 'hs-q': 0} | V1 True/ | false certs 0 approx 0 | cond bcd | passes False | won 0 net 0 gain 0.6215 changed 2
+s=1/tx=kRatioOrFeasibilityStep/tq=kRatioOrFeasibilityStep | signs {'cutest': 1, 'hs': 1} | W/L {'cutest': (5, 3), 'hs': (4, 2)} | mode {'cutest-x': 0, 'cutest-q': 1, 'hs-x': 0, 'hs-q': 1} | V1 True/ | false certs 0 approx 0 | cond abcd | passes True | won 2 net 4 gain 1.5891 changed 1
+unbuildable (arm not run): []
+
+-- RANKED PASSING (section 5.4 item 3)
+1. s=0/tx=kAnyAccepted/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 7 gain 2.9962 changed 2
+2. s=0/tx=kAnyAccepted/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 7 gain 2.9656 changed 3
+3. s=0/tx=kRatioOrFeasibilityStep/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 6 gain 2.5329 changed 3
+4. s=0/tx=kRatioOrFeasibilityStep/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 6 gain 2.5024 changed 2
+5. s=1/tx=kAnyAccepted/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 6 gain 2.1000 changed 2
+6. s=0/tx=kAnyAccepted/tq=kRatio signs {'cutest': 1, 'hs': 1} won 2 net 5 gain 2.5747 changed 3
+7. s=1/tx=kAnyAccepted/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 5 gain 2.1925 changed 1
+8. s=0/tx=kRatioOrFeasibilityStep/tq=kRatio signs {'cutest': 1, 'hs': 1} won 2 net 4 gain 2.1115 changed 3
+9. s=1/tx=kRatioOrFeasibilityStep/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 4 gain 1.5891 changed 1
+10. s=0/tx=kRatio/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 4 gain 1.3553 changed 3
+11. s=0/tx=kRatio/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 4 gain 1.3248 changed 3
+12. s=1/tx=kRatio/tq=kRatioOrFeasibilityStep signs {'cutest': 1, 'hs': 1} won 2 net 4 gain 0.9676 changed 2
+13. s=1/tx=kRatioOrFeasibilityStep/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 3 gain 1.6816 changed 2
+14. s=1/tx=kRatio/tq=kAnyAccepted signs {'cutest': 1, 'hs': 1} won 2 net 3 gain 1.0601 changed 2
+15. s=1/tx=kAnyAccepted/tq=kRatio signs {'cutest': 1, 'hs': 0} won 1 net 2 gain 1.1323 changed 2
+16. s=0/tx=kRatio/tq=kRatio signs {'cutest': 1, 'hs': 0} won 1 net 2 gain 0.9339 changed 1
+best uniform (t_x == t_q): s=0/tx=kAnyAccepted/tq=kAnyAccepted
+
+-- IPM B1 vs B0: passes True signs {'cutest': 1, 'hs': 1} V1 {'cutest': (17, 18), 'hs': (22, 22)}
+
+-- fold-wise re-read (section 10.1)
+selected per fold: {'F1': 's=1/tx=kRatio/tq=kRatioOrFeasibilityStep', 'F2': 's=0/tx=kAnyAccepted/tq=kRatioOrFeasibilityStep', 'F3': 's=0/tx=kAnyAccepted/tq=kAnyAccepted'}
+pooled held-out signs: {'cutest': 0, 'hs': 1} tallies {'cutest': (2, 2, 42), 'hs': (4, 2, 38)}
+
+-- movers TU-1 default (0ee37c2ca) vs A0 (section 10.2)
+13 of 90 A0 cells differ in (class, iterations, factorizations)
+cutest/ACOPR118/sqp-qn: ('dnf_wall', 'null', 'null') -> ('stalled', '154', '5463')
+cutest/BRITGAS/default: ('optimal', '50', '85682') -> ('stalled', '1', '19967')
+cutest/MSS2/sqp-qn: ('numerical_error', '10', '6187') -> ('numerical_error', '7', '7610')
+cutest/NET3/default: ('optimal', '13', '29513') -> ('stalled', '1', '13749')
+cutest/NET3/sqp-qn: ('max_iter', '7', '13555') -> ('max_iter', '7', '14415')
+cutest/SAWPATH/sqp-qn: ('dnf_wall', 'null', 'null') -> ('stalled', '16', '19847')
+cutest/SMBANK/sqp-qn: ('numerical_error', '222', '275') -> ('acceptable', '192', '215')
+cutest/STEENBRB/sqp-qn: ('numerical_error', '64', '18257') -> ('numerical_error', '64', '18355')
+cutest/STEENBRC/sqp-qn: ('numerical_error', '66', '58192') -> ('stalled', '74', '67870')
+cutest/STEENBRD/sqp-qn: ('max_iter', '284', '22203') -> ('max_iter', '284', '21814')
+cutest/STEENBRG/sqp-qn: ('numerical_error', '64', '46243') -> ('stalled', '72', '55869')
+cutest/YORKNET/default: ('numerical_error', '6', '14812') -> ('numerical_error', '6', '14137')
+cutest/YORKNET/sqp-qn: ('dnf_wall', 'null', 'null') -> ('stalled', '1', '15801')

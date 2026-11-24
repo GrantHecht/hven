@@ -1,0 +1,24 @@
+# problems.requested: MSS2,MSS3,READING8,TAX213322,TAX53322
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T14:34:32Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/MSS2/hven-sqp/default+advanced.second_order_correction=false,cutest,MSS2,cutest-nlp-35 v2,c06fd3e54c3ab9c5d331fda07c47f8f6b0f3cacf2eec4e37d61e63a953d92a3d,TRAIN,hven-sqp,default+advanced.second_order_correction=false,45b27e3e919d78e55a23835531ba0a1e4bc9b194c2558f034d1d88adc0103219,exact,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.09442665288225
+cutest/MSS3/hven-sqp/default+advanced.second_order_correction=false,cutest,MSS3,cutest-nlp-35 v2,e5756e59cba1ca9bd3e87d3cae21a7e7bc3619379af1e613c28f7ef81d0f7cc1,TRAIN,hven-sqp,default+advanced.second_order_correction=false,45b27e3e919d78e55a23835531ba0a1e4bc9b194c2558f034d1d88adc0103219,exact,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.20604120707139
+cutest/READING8/hven-sqp/default+advanced.second_order_correction=false,cutest,READING8,cutest-nlp-35 v2,2e22a90002963ee7697c3f40a5b01ac33c60af421c876e6fa4d87578fb3aa922,TRAIN,hven-sqp,default+advanced.second_order_correction=false,45b27e3e919d78e55a23835531ba0a1e4bc9b194c2558f034d1d88adc0103219,exact,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.15653057768941
+cutest/TAX213322/hven-sqp/default+advanced.second_order_correction=false,cutest,TAX213322,cutest-nlp-35 v2,831a8fed0fd1157dd4ba518400cbc875cafbce57e24da37a8a84fdfcc82364d6,TRAIN,hven-sqp,default+advanced.second_order_correction=false,45b27e3e919d78e55a23835531ba0a1e4bc9b194c2558f034d1d88adc0103219,exact,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.19797743810341
+cutest/TAX53322/hven-sqp/default+advanced.second_order_correction=false,cutest,TAX53322,cutest-nlp-35 v2,1bc789fa8c848823c0790f2e7416d4583ceaba82b753c8fc30b587ee59822168,TRAIN,hven-sqp,default+advanced.second_order_correction=false,45b27e3e919d78e55a23835531ba0a1e4bc9b194c2558f034d1d88adc0103219,exact,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.10934095503762

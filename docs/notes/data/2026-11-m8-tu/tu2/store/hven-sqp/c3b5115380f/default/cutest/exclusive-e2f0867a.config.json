@@ -1,0 +1,18 @@
+{
+ "lane": "hven-sqp",
+ "base": "default",
+ "set": "cutest",
+ "config": {
+  "advanced.second_order_correction": false,
+  "advanced.trust_region_growth": "kAnyAccepted"
+ },
+ "label": "default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted",
+ "problems": [
+  "MSS2",
+  "MSS3",
+  "READING8",
+  "TAX213322",
+  "TAX53322"
+ ],
+ "tier": "exclusive"
+}

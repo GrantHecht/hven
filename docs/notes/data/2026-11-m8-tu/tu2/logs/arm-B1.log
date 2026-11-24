@@ -1,0 +1,59 @@
+ARM B1 phase corun: 45 cells
+box-lane: lane 1 acquired 2026-11-23T12:10:05-05:00
+run_serial: CO-RUN width 4 (20 co-run cells, 0 solo-tier cells); core map pkg0/core4=cpu4,pkg0/core5=cpu5,pkg0/core6=cpu6,pkg0/core7=cpu7
+run_serial: cutest/ACOPP118/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: cutest/ACOPP57/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/ACOPR118/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: cutest/ACOPR57/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: cutest/BIGBANK/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/BRITGAS/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: cutest/DALLASM/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: cutest/MSS2/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: cutest/NET3/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: cutest/READING6/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/SAWPATH/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/SMBANK/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: cutest/STEENBRB/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: cutest/STEENBRC/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/STEENBRD/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/STEENBRE/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: cutest/STEENBRG/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: cutest/TAX53322/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: cutest/YORKNET/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: cutest/ZAMB2-8/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: 20 cells -> .scratch/tu2-store/hven-ipm/c3b17ebabd2/default/cutest/corun-13f0a8ee/results.csv
+box-lane: lane 1 acquired 2026-11-23T12:13:11-05:00
+run_serial: CO-RUN width 4 (22 co-run cells, 0 solo-tier cells); core map pkg0/core4=cpu4,pkg0/core5=cpu5,pkg0/core6=cpu6,pkg0/core7=cpu7
+run_serial: hs/hs003/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: hs/hs005/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: hs/hs006/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: hs/hs007/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: hs/hs010/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: hs/hs011/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: hs/hs012/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: hs/hs014/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: hs/hs022/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: hs/hs025/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: hs/hs026/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: hs/hs027/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+hven_bench_cell: hven-ipm/hs022 converged to 1.0000012418469897, reference 1 (|err| = 1.242e-06 > 1.000e-06)
+run_serial: hs/hs028/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+hven_bench_cell: hven-ipm/hs025 converged to 32.834999999609295, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs030/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: hs/hs033/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: hs/hs035/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: hs/hs039/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: hs/hs043/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: hs/hs045/hven-ipm/default+barrier_initial=0.01 [cpu 6]
+run_serial: hs/hs077/hven-ipm/default+barrier_initial=0.01 [cpu 7]
+run_serial: hs/hs079/hven-ipm/default+barrier_initial=0.01 [cpu 4]
+run_serial: hs/hs071/hven-ipm/default+barrier_initial=0.01 [cpu 5]
+run_serial: REFERENCE FAILURE hs/hs022/hven-ipm/default+barrier_initial=0.01
+run_serial: REFERENCE FAILURE hs/hs025/hven-ipm/default+barrier_initial=0.01
+run_serial: 22 cells -> .scratch/tu2-store/hven-ipm/c3b17ebabd2/default/hs/corun-2e049a41/results.csv
+ARM B1 phase exclusive: 45 cells
+box-lane: exclusive acquired 2026-11-23T12:13:22-05:00
+run_serial: cutest/MSS3/hven-ipm/default+barrier_initial=0.01
+run_serial: cutest/READING8/hven-ipm/default+barrier_initial=0.01
+run_serial: cutest/TAX213322/hven-ipm/default+barrier_initial=0.01
+run_serial: 3 cells -> .scratch/tu2-store/hven-ipm/c3b17ebabd2/default/cutest/exclusive-85fc1f32/results.csv

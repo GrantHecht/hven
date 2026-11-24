@@ -1,0 +1,23 @@
+{
+ "lane": "hven-ipm",
+ "base": "default",
+ "set": "cutest",
+ "config": {},
+ "label": "default",
+ "problems": [
+  "ACOPP118",
+  "ACOPP57",
+  "ACOPR57",
+  "DALLASM",
+  "NET3",
+  "READING6",
+  "SMBANK",
+  "STEENBRB",
+  "STEENBRC",
+  "STEENBRD",
+  "STEENBRE",
+  "STEENBRG",
+  "ZAMB2-8"
+ ],
+ "tier": "corun"
+}

@@ -1,0 +1,122 @@
+ARM A0 phase corun: 90 cells
+box-lane: lane 0 acquired 2026-11-23T07:39:00-05:00
+run_serial: CO-RUN width 4 (13 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: cutest/ACOPP118/hven-sqp/default [cpu 0]
+run_serial: cutest/ACOPP57/hven-sqp/default [cpu 1]
+run_serial: cutest/ACOPR57/hven-sqp/default [cpu 2]
+run_serial: cutest/DALLASM/hven-sqp/default [cpu 3]
+run_serial: cutest/NET3/hven-sqp/default [cpu 1]
+run_serial: cutest/READING6/hven-sqp/default [cpu 3]
+run_serial: cutest/SMBANK/hven-sqp/default [cpu 3]
+run_serial: cutest/STEENBRB/hven-sqp/default [cpu 3]
+run_serial: cutest/STEENBRC/hven-sqp/default [cpu 2]
+run_serial: cutest/STEENBRD/hven-sqp/default [cpu 1]
+run_serial: cutest/STEENBRE/hven-sqp/default [cpu 3]
+run_serial: cutest/STEENBRG/hven-sqp/default [cpu 0]
+run_serial: cutest/ZAMB2-8/hven-sqp/default [cpu 1]
+run_serial: 13 cells -> .scratch/tu2-store/hven-sqp/default/default/cutest/corun-d6c9ce3d/results.csv
+box-lane: lane 0 acquired 2026-11-23T07:40:22-05:00
+run_serial: CO-RUN width 4 (22 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: hs/hs003/hven-sqp/default [cpu 0]
+run_serial: hs/hs005/hven-sqp/default [cpu 1]
+run_serial: hs/hs006/hven-sqp/default [cpu 2]
+run_serial: hs/hs007/hven-sqp/default [cpu 3]
+run_serial: hs/hs010/hven-sqp/default [cpu 0]
+run_serial: hs/hs011/hven-sqp/default [cpu 1]
+run_serial: hs/hs012/hven-sqp/default [cpu 2]
+run_serial: hs/hs014/hven-sqp/default [cpu 3]
+run_serial: hs/hs022/hven-sqp/default [cpu 1]
+run_serial: hs/hs025/hven-sqp/default [cpu 2]
+run_serial: hs/hs026/hven-sqp/default [cpu 3]
+run_serial: hs/hs027/hven-sqp/default [cpu 0]
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs028/hven-sqp/default [cpu 2]
+run_serial: hs/hs030/hven-sqp/default [cpu 1]
+run_serial: hs/hs033/hven-sqp/default [cpu 3]
+run_serial: hs/hs035/hven-sqp/default [cpu 0]
+run_serial: hs/hs039/hven-sqp/default [cpu 2]
+run_serial: hs/hs043/hven-sqp/default [cpu 1]
+hven_bench_cell: hven-sqp/hs033 converged to -3.9999999999737859, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs045/hven-sqp/default [cpu 3]
+run_serial: hs/hs077/hven-sqp/default [cpu 0]
+run_serial: hs/hs079/hven-sqp/default [cpu 2]
+run_serial: hs/hs071/hven-sqp/default [cpu 1]
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/default
+run_serial: REFERENCE FAILURE hs/hs033/hven-sqp/default
+run_serial: 22 cells -> .scratch/tu2-store/hven-sqp/default/default/hs/corun-2e049a41/results.csv
+box-lane: lane 0 acquired 2026-11-23T07:40:22-05:00
+run_serial: CO-RUN width 4 (13 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: cutest/ACOPP118/hven-sqp/sqp-qn [cpu 0]
+run_serial: cutest/ACOPP57/hven-sqp/sqp-qn [cpu 1]
+run_serial: cutest/ACOPR57/hven-sqp/sqp-qn [cpu 2]
+run_serial: cutest/DALLASM/hven-sqp/sqp-qn [cpu 3]
+run_serial: cutest/NET3/hven-sqp/sqp-qn [cpu 1]
+run_serial: cutest/READING6/hven-sqp/sqp-qn [cpu 0]
+run_serial: cutest/SMBANK/hven-sqp/sqp-qn [cpu 0]
+run_serial: cutest/STEENBRB/hven-sqp/sqp-qn [cpu 3]
+run_serial: cutest/STEENBRC/hven-sqp/sqp-qn [cpu 2]
+run_serial: cutest/STEENBRD/hven-sqp/sqp-qn [cpu 0]
+run_serial: cutest/STEENBRE/hven-sqp/sqp-qn [cpu 3]
+run_serial: cutest/STEENBRG/hven-sqp/sqp-qn [cpu 0]
+run_serial: cutest/ZAMB2-8/hven-sqp/sqp-qn [cpu 2]
+run_serial: 13 cells -> .scratch/tu2-store/hven-sqp/default/sqp-qn/cutest/corun-d6c9ce3d/results.csv
+box-lane: lane 0 acquired 2026-11-23T07:41:49-05:00
+run_serial: CO-RUN width 4 (22 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: hs/hs003/hven-sqp/sqp-qn [cpu 0]
+run_serial: hs/hs005/hven-sqp/sqp-qn [cpu 1]
+run_serial: hs/hs006/hven-sqp/sqp-qn [cpu 2]
+run_serial: hs/hs007/hven-sqp/sqp-qn [cpu 3]
+run_serial: hs/hs010/hven-sqp/sqp-qn [cpu 1]
+run_serial: hs/hs011/hven-sqp/sqp-qn [cpu 0]
+run_serial: hs/hs012/hven-sqp/sqp-qn [cpu 3]
+run_serial: hs/hs014/hven-sqp/sqp-qn [cpu 2]
+run_serial: hs/hs022/hven-sqp/sqp-qn [cpu 0]
+run_serial: hs/hs025/hven-sqp/sqp-qn [cpu 3]
+run_serial: hs/hs026/hven-sqp/sqp-qn [cpu 2]
+run_serial: hs/hs027/hven-sqp/sqp-qn [cpu 1]
+run_serial: hs/hs028/hven-sqp/sqp-qn [cpu 0]
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs030/hven-sqp/sqp-qn [cpu 3]
+run_serial: hs/hs033/hven-sqp/sqp-qn [cpu 2]
+run_serial: hs/hs035/hven-sqp/sqp-qn [cpu 1]
+run_serial: hs/hs039/hven-sqp/sqp-qn [cpu 0]
+run_serial: hs/hs043/hven-sqp/sqp-qn [cpu 3]
+hven_bench_cell: hven-sqp/hs033 converged to -3.9999999999999996, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs045/hven-sqp/sqp-qn [cpu 2]
+run_serial: hs/hs077/hven-sqp/sqp-qn [cpu 1]
+run_serial: hs/hs079/hven-sqp/sqp-qn [cpu 0]
+run_serial: hs/hs071/hven-sqp/sqp-qn [cpu 3]
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/sqp-qn
+run_serial: REFERENCE FAILURE hs/hs033/hven-sqp/sqp-qn
+run_serial: 22 cells -> .scratch/tu2-store/hven-sqp/default/sqp-qn/hs/corun-2e049a41/results.csv
+ARM A0 phase exclusive: 90 cells
+box-lane: exclusive acquired 2026-11-23T07:42:47-05:00
+run_serial: cutest/ACOPR118/hven-sqp/default
+run_serial: cutest/BIGBANK/hven-sqp/default
+run_serial: cutest/BRITGAS/hven-sqp/default
+run_serial: cutest/MSS2/hven-sqp/default
+run_serial: cutest/MSS3/hven-sqp/default
+run_serial: cutest/READING8/hven-sqp/default
+run_serial: cutest/SAWPATH/hven-sqp/default
+run_serial: cutest/TAX213322/hven-sqp/default
+run_serial: cutest/TAX53322/hven-sqp/default
+run_serial: cutest/YORKNET/hven-sqp/default
+run_serial: 10 cells -> .scratch/tu2-store/hven-sqp/default/default/cutest/exclusive-f8904901/results.csv
+box-lane: exclusive acquired 2026-11-23T08:09:53-05:00
+run_serial: REFUSED: the harness tree is DIRTY; a row taken from it could never be re-derived. Commit or stash first:
+?? tu/tu2_report.py
+STOP: run_serial exited 2: box-lane --exclusive -- /home/ghecht/Projects/hven-bench-tu2/.scratch/venv/bin/python /home/ghecht/Projects/hven-bench-tu2/runners/run_serial.py --out .scratch/tu2-store/hven-sqp/default/sqp-qn/cutest/exclusive-f8904901 --problems ACOPR118,BIGBANK,BRITGAS,MSS2,MSS3,READING8,SAWPATH,TAX213322,TAX53322,YORKNET --split TRAIN --problem-set cutest --lanes hven-sqp --options sqp-qn --budget-wall-s 300.0
+ARM A0 phase corun: 90 cells
+ARM A0 phase exclusive: 90 cells
+box-lane: exclusive acquired 2026-11-23T08:11:01-05:00
+run_serial: cutest/ACOPR118/hven-sqp/sqp-qn
+run_serial: cutest/BIGBANK/hven-sqp/sqp-qn
+run_serial: cutest/BRITGAS/hven-sqp/sqp-qn
+run_serial: cutest/MSS2/hven-sqp/sqp-qn
+run_serial: cutest/MSS3/hven-sqp/sqp-qn
+run_serial: cutest/READING8/hven-sqp/sqp-qn
+run_serial: cutest/SAWPATH/hven-sqp/sqp-qn
+run_serial: cutest/TAX213322/hven-sqp/sqp-qn
+run_serial: cutest/TAX53322/hven-sqp/sqp-qn
+run_serial: cutest/YORKNET/hven-sqp/sqp-qn
+run_serial: 10 cells -> .scratch/tu2-store/hven-sqp/default/sqp-qn/cutest/exclusive-f8904901/results.csv

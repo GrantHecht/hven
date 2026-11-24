@@ -1,0 +1,22 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index ba5d01cf8..a12d7fef0 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -115,7 +115,7 @@ struct SqpAdvancedOptions {
+     /// project's cheap edge over Uno, which omits SOC entirely). Default
+     /// true. Set false to recover exact non-SOC behaviour. The mechanism is
+     /// described at sqp_solver.h's SECOND-ORDER CORRECTION note.
+-    bool second_order_correction = true;
++    bool second_order_correction = false;
+ 
+     /// Adaptive dual regularization A/B lever: when on, schedules
+     /// QpSolveOverrides::dual_regularization down with the KKT residual instead of leaving
+@@ -450,7 +450,7 @@ struct SqpAdvancedOptions {
+     Index max_restoration_entries = 10;
+ 
+     /// The trust-region growth rule. Default kRatio.
+-    SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kRatio;
++    SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kAnyAccepted;
+ 
+     /// SSN Farkas certificate's relative-residual threshold (kFarkasGated only). In (0, 1).
+     double ssn_farkas_residual_tol = 1e-6;

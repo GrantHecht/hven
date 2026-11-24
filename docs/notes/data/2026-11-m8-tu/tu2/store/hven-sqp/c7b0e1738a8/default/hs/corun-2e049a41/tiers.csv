@@ -1,0 +1,51 @@
+# problems.requested: hs003,hs005,hs006,hs007,hs010,hs011,hs012,hs014,hs022,hs025,hs026,hs027,hs028,hs030,hs033,hs035,hs039,hs043,hs045,hs071,hs077,hs079
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T18:59:48Z
+# mkl.num_threads: 1
+# run.mode: co-run
+# wall.columns: wall_s
+# wall.quotable: false
+# run.corun.width: 4
+# run.corun.pinning: one process per physical core via taskset; the core map is derived at run time from sysfs (one logical CPU per (package, core_id), the lowest allowed); SMT siblings left idle
+# run.corun.core_map: pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+# run.corun.threads: MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every child
+# run.corun.tiering: a cell co-runs iff its lane has no solver-side wall option (the hven lanes: SolveBudget counts iterations, not seconds, so the watchdog is the only clock) and it is not named solo; external lanes (ipopt, snopt) and --solo-problems cells run SOLO in a serial tier after the co-run tier; a co-run cell that ends dnf_wall or error is discarded and re-run SOLO, and only the solo row is reported
+# run.corun.asserted_columns: statuses and counters EXACT; residual/measure columns under the calibrated near-ulp gate of docs/corun.md; wall_s NOT asserted
+# run.corun.row_order: cell_id ascending, independent of completion order
+# run.corun.cells: 22 co-run tier, 0 solo tier (0 of them flagged from the co-run)
+# run.corun.flagged_for_solo: none
+# wall.note: wall_s is INFORMATIONAL in this file; it was taken with other cells running and is never a measurement (hven CLAUDE.md section 7)
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,tier,solo_reason,cpu,corun_verdict,corun_wall_s
+hs/hs003/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,
+hs/hs005/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,1,,
+hs/hs006/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs007/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,3,,
+hs/hs010/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,
+hs/hs011/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,1,,
+hs/hs012/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs014/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,3,,
+hs/hs022/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,
+hs/hs025/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs026/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,1,,
+hs/hs027/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,3,,
+hs/hs028/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,
+hs/hs030/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs033/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,1,,
+hs/hs035/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,3,,
+hs/hs039/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,
+hs/hs043/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs045/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,3,,
+hs/hs071/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,2,,
+hs/hs077/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,1,,
+hs/hs079/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,corun,,0,,

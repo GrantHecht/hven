@@ -1,0 +1,32 @@
+{
+ "lane": "hven-ipm",
+ "base": "default",
+ "set": "cutest",
+ "config": {
+  "barrier_initial": "0.01"
+ },
+ "label": "default+barrier_initial=0.01",
+ "problems": [
+  "ACOPP118",
+  "ACOPP57",
+  "ACOPR118",
+  "ACOPR57",
+  "BIGBANK",
+  "BRITGAS",
+  "DALLASM",
+  "MSS2",
+  "NET3",
+  "READING6",
+  "SAWPATH",
+  "SMBANK",
+  "STEENBRB",
+  "STEENBRC",
+  "STEENBRD",
+  "STEENBRE",
+  "STEENBRG",
+  "TAX53322",
+  "YORKNET",
+  "ZAMB2-8"
+ ],
+ "tier": "corun"
+}

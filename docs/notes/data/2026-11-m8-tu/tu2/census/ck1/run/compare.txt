@@ -1,0 +1,1 @@
+42 baseline cells, 42 fresh cells, 0 mismatches
