@@ -101,11 +101,13 @@ inline I19Fixture f_cap(SqpHessianMode mode) {
     return i19_circle(100.0, 1.0, /*soc=*/true, 0.1, 300, mode);
 }
 
-/// F-H with its row scaled by 1e3 and the row-scaling layer on: the growth levers' violations
-/// must be read in one unit system.
+/// F-H with its row scaled by 1e3, the row-scaling layer on, and the start 6 off the circle so
+/// the radius leaves the linearization open (h_lin > 0) for the first majors: the growth levers'
+/// violations must be read in one unit system.
 inline I19Fixture f_h_scaled(SqpHessianMode mode) {
     I19Fixture f = i19_circle(30.0, 1.0, /*soc=*/false, 0.0, 200, mode);
     f.model = std::make_shared<I19Sphere>(Vec{{0.0, 1.0}}, 0.0, 30.0, 1e3);
+    f.x0 = Vec{{36.0, 0.0}};
     f.options.row_scaling = true;
     return f;
 }

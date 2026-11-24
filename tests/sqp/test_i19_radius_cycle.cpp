@@ -337,8 +337,8 @@ const FixtureRow kLeverPins[] = {
     {"fsoc", test_support::f_soc, kQn, {{38, 19, 0, 0, 13, 1, 0}, {44, 15, 12, 0, 11, 0, 0}, {37, 3, 26, 0, 0, 0, 0}, {29, 10, 9, 0, 4, 0, 0}, {38, 19, 0, 0, 13, 1, 0}, {38, 19, 0, 1, 13, 1, 0}, {38, 19, 0, 0, 13, 1, 0}, {43, 2, 34, 0, 0, 0, 0}}},
     {"fcap", test_support::f_cap, kExact, {{126, 70, 0, 0, 5, 36, 117}, {124, 53, 31, 0, 3, 34, 115}, {122, 58, 30, 0, 0, 31, 108}, {123, 67, 6, 0, 2, 33, 112}, {126, 70, 0, 0, 5, 36, 117}, {105, 76, 0, 4, 10, 4, 84}, {98, 10, 78, 0, 6, 7, 85}, {118, 29, 59, 0, 0, 27, 104}}},
     {"fcap", test_support::f_cap, kQn, {{127, 70, 0, 0, 5, 36, 116}, {125, 53, 29, 0, 3, 34, 114}, {135, 55, 43, 0, 0, 30, 99}, {124, 67, 6, 0, 2, 33, 111}, {127, 70, 0, 0, 5, 36, 116}, {108, 77, 0, 5, 10, 5, 83}, {101, 11, 76, 0, 6, 8, 84}, {132, 29, 69, 0, 0, 27, 96}}},
-    {"fhs", test_support::f_h_scaled, kExact, {{37, 17, 0, 0, 14, 1, 0}, {29, 8, 9, 0, 6, 0, 0}, {37, 17, 0, 0, 14, 1, 0}, {27, 6, 11, 0, 4, 0, 0}, {37, 17, 0, 0, 14, 1, 0}, {37, 17, 0, 1, 14, 1, 0}, {37, 17, 0, 0, 14, 1, 0}, {23, 2, 15, 0, 0, 0, 0}}},
-    {"fhs", test_support::f_h_scaled, kQn, {{39, 17, 0, 0, 14, 1, 0}, {31, 8, 9, 0, 6, 0, 0}, {39, 17, 0, 0, 14, 1, 0}, {29, 6, 11, 0, 4, 0, 0}, {39, 17, 0, 0, 14, 1, 0}, {39, 17, 0, 1, 14, 1, 0}, {39, 17, 0, 0, 14, 1, 0}, {25, 2, 15, 0, 0, 0, 0}}},
+    {"fhs", test_support::f_h_scaled, kExact, {{23, 10, 0, 0, 6, 1, 0}, {16, 3, 8, 0, 0, 0, 0}, {23, 10, 0, 0, 6, 1, 0}, {19, 6, 4, 0, 2, 0, 0}, {23, 10, 0, 0, 6, 1, 0}, {23, 10, 0, 1, 6, 1, 0}, {23, 10, 0, 0, 6, 1, 0}, {17, 3, 7, 0, 0, 0, 0}}},
+    {"fhs", test_support::f_h_scaled, kQn, {{29, 11, 0, 0, 7, 1, 0}, {18, 3, 8, 0, 0, 0, 0}, {29, 11, 0, 0, 7, 1, 0}, {25, 6, 5, 0, 3, 0, 0}, {29, 11, 0, 0, 7, 1, 0}, {31, 11, 0, 1, 7, 1, 0}, {29, 11, 0, 0, 7, 1, 0}, {22, 3, 8, 0, 0, 0, 0}}},
 };
 // clang-format on
 
@@ -556,10 +556,11 @@ TEST(I19RadiusCycle, ScriptedMemoryIsClearedAtARestorationResume) {
     auto m = std::make_shared<test_support::I19Sphere>(Vec{{0.0, 1.0}}, 0.0, 1000.0);
     SqpOptions o;
     o.common.verbosity = Verbosity::kSilent;
-    o.common.max_iterations = 14;
+    o.common.max_iterations = 40;
     o.advanced.second_order_correction = false;
     o.advanced.trust_region_growth = SqpTrustRegionGrowth::kAnyAccepted;
-    o.advanced.trust_region_rejection_memory = 3;
+    // A long window: only the resume can clear the cap before the radius regrows past it.
+    o.advanced.trust_region_rejection_memory = 50;
     o.advanced.make_strategy = [] {
         return std::make_unique<ScriptedStrategy>(std::vector<StepVerdict>{kA, kR, kX, kA});
     };
@@ -568,33 +569,102 @@ TEST(I19RadiusCycle, ScriptedMemoryIsClearedAtARestorationResume) {
     ASSERT_GE(r.counters.restoration_entries, 1);
     EXPECT_EQ(r.counters.tr_grow_then_reject, 1);
     EXPECT_EQ(r.counters.tr_growth_refusals, 0) << "the cap did not survive the resume";
+    // Premise: after the resume the radius regrew past the rejected 2.
+    double peak_after = 0.0;
+    bool resumed = false;
+    for (const IterationRecord &h : r.history) {
+        if (!h.sqp || h.sqp->depth != 0) {
+            continue;
+        }
+        resumed = resumed || h.sqp->verdict == kX;
+        if (resumed) {
+            peak_after = std::max(peak_after, h.sqp->trust_radius);
+        }
+    }
+    EXPECT_GT(peak_after, 2.0);
     expect_counter_identities(r);
 }
 
 // ---- G5's shrink and the elastic tier's two flags ----------------------------------------------
 
 TEST(I19RadiusCycle, ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone) {
-    // F-CAP: after each rejection whose step the radius did not hold, the next row's radius is
-    // half the rejected row's step (the original trial's, not a SOC re-solve's).
-    for (const SqpHessianMode mode : {kExact, kQn}) {
-        I19Fixture f = test_support::f_cap(mode);
-        f.options.advanced.trust_region_shrink_to_step = true;
-        const SqpResult r = test_support::i19_solve(f);
-        ASSERT_EQ(r.status, SolveStatus::kOptimal);
-        int checked = 0;
-        for (std::size_t k = 0; k + 1 < r.history.size(); ++k) {
-            const auto &h = r.history[k];
-            if (!h.sqp || h.sqp->verdict != StepVerdict::kReject || h.sqp->tr_binding) {
-                continue;
+    // F-CAP and F-SOC: after each rejection whose step the radius did not hold, the next row's
+    // radius is half the rejected row's step -- the original trial's, not a SOC re-solve's (F-SOC
+    // under QN has such a row whose SOC re-solve solved: soc_h is present on it).
+    int soc_rows = 0;
+    for (const auto &make : {test_support::f_cap, test_support::f_soc}) {
+        for (const SqpHessianMode mode : {kExact, kQn}) {
+            I19Fixture f = make(mode);
+            f.options.advanced.trust_region_shrink_to_step = true;
+            const SqpResult r = test_support::i19_solve(f);
+            ASSERT_EQ(r.status, SolveStatus::kOptimal);
+            int checked = 0;
+            for (std::size_t k = 0; k + 1 < r.history.size(); ++k) {
+                const auto &h = r.history[k];
+                if (!h.sqp || h.sqp->verdict != StepVerdict::kReject || h.sqp->tr_binding) {
+                    continue;
+                }
+                const double want =
+                    std::min(0.5 * h.sqp->trust_radius, 0.5 * h.step_norm.value_or(0.0));
+                EXPECT_EQ(r.history[k + 1].sqp->trust_radius, want) << "row " << k;
+                ++checked;
+                soc_rows += h.sqp->soc_h.has_value() ? 1 : 0;
             }
-            const double want =
-                std::min(0.5 * h.sqp->trust_radius, 0.5 * h.step_norm.value_or(0.0));
-            EXPECT_EQ(r.history[k + 1].sqp->trust_radius, want) << "row " << k;
-            ++checked;
+            EXPECT_EQ(r.counters.tr_shrinks_to_step, checked);
         }
-        EXPECT_GE(checked, 3);
-        EXPECT_EQ(r.counters.tr_shrinks_to_step, checked);
     }
+    EXPECT_GE(soc_rows, 1) << "premise: a SOC re-solve solved on an unbound rejected row";
+}
+
+// min |x - c|^2 / 2 with no constraints and c far away.
+struct FarQuadratic final : Nlp {
+    NlpDimensions dimensions() const override {
+        return {.n = 2, .m = 0, .jacobian_nonzeros = 0, .hessian_nonzeros = 2};
+    }
+    void bounds(VecRef l, VecRef u, VecRef, VecRef) const override {
+        l.setConstant(-kInfinity);
+        u.setConstant(kInfinity);
+    }
+    double eval_f(ConstVecRef x) const override {
+        return 0.5 * ((x[0] - 1e3) * (x[0] - 1e3) + (x[1] - 1e3) * (x[1] - 1e3));
+    }
+    void eval_grad_f(ConstVecRef x, VecRef g) const override {
+        g[0] = x[0] - 1e3;
+        g[1] = x[1] - 1e3;
+    }
+    void eval_g(ConstVecRef, VecRef) const override {}
+    void jacobian_structure(IndexVecRef, IndexVecRef) const override {}
+    void eval_jacobian(ConstVecRef, VecRef) const override {}
+    void hessian_structure(IndexVecRef r, IndexVecRef c) const override {
+        r[0] = 0;
+        c[0] = 0;
+        r[1] = 1;
+        c[1] = 1;
+    }
+    void eval_hessian(ConstVecRef, double s, ConstVecRef, VecRef v) const override {
+        v[0] = s;
+        v[1] = s;
+    }
+};
+
+TEST(I19RadiusCycle, AMixedStepStaysGrowthEligibleWithoutCapPinGrowth) {
+    // From (0, 100) with caller_step_limit 0.5 and radius 2: x0's cap is 0.5 (it binds), x1's is
+    // 50.5, so the radius holds x1 -- a step held by both kinds of pin. G6 refuses growth only to
+    // a step the cap alone held, so this one doubles the radius.
+    SqpOptions o;
+    o.common.verbosity = Verbosity::kSilent;
+    o.common.max_iterations = 3;
+    o.trust_region_initial = 2.0;
+    o.caller_step_limit = 0.5;
+    o.advanced.trust_region_growth_on_cap_pins = false;
+    Problem p(std::make_shared<FarQuadratic>());
+    const SqpResult r = SqpSolver(o).solve(p, Vec{{0.0, 100.0}});
+    ASSERT_GE(r.history.size(), 2u);
+    const auto &h0 = r.history[0];
+    ASSERT_TRUE(h0.sqp->tr_binding && h0.sqp->cap_binding) << "premise: a mixed step";
+    ASSERT_EQ(h0.sqp->verdict, StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(r.history[1].sqp->trust_radius, 4.0);
+    EXPECT_EQ(h0.sqp->tr_growth_refusal, 0);
 }
 
 // min 1/2 |x - c|^2 s.t. x0 = 0 and x0 = 1 (inconsistent): with the equality basis off every
