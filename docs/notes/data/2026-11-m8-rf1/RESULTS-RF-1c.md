@@ -104,3 +104,91 @@ behaviour).
 macos-clang-release green on the first pass; windows-clang-release failed in its `Install LLVM` step (runner setup, before any hven code ran) and
 was re-run (`gh run rerun --failed`): green. **All four lanes green.** The macOS lane passes the re-pinned seam tests unchanged
 (no Accelerate-specific value is claimed or pinned by RF-1c); nothing UNOBSERVED.
+
+---
+
+# Addendum (review riders; DECLARATION-RF-1c-r3.md, -r4.md)
+
+Appended after the independent review (SHIP AFTER FIXES) and the riders it asked for. Everything above is unchanged. The riders'
+commits are those of `git log 22c9b6879..`; `git diff 22c9b6879 -- include src` is comments and the registry description
+string only (no non-comment production line moved, so the counter replay, TRAIN, pilot and TU-2 R/H legs are not re-run; their evidence stands).
+Mutation, ctest and probe legs under `box-lane`, counters and statuses only.
+
+## Tests
+
+- `Rf1RestorationStall.ANewRunKeepsTheBestAndForgetsTheSamples` gains the keeps-best case (best 1.0, `new_run()`, six passes at cost 100 against a
+  window of 10 falling 5.0 -> 2.0: cut on the sixth with the best kept, not cut by a window that never saw the 1.0).
+- `Rf1RestorationSeam.ARestartNeedsTheFloorsPassesOfItsOwn` counts the restart's own rows (after the first run's failed-subproblem row) and
+  asserts exactly 6 (measured 6 with the fix, 3 without `new_run()`; the first run's 13 rows play no part).
+- New `Rf1RestorationSeam.AFallingPhaseSurvivesItsWindowByTheFallTest` (LinearRowModel, trust radius 0.25, window 1: eight passes, h 20 -> 0, not
+  cut, solve equal to the one under an unbounded window). The first version used radius 1.0, whose phase ends on its sixth pass, and survived the
+  fall-test mutant (see the mutation table); radius 0.25 fixes that (radius 0.02 gives eleven passes that fall under 10% per five, rightly cut).
+
+## Mutation legs (r3 and r4)
+
+| leg | result |
+|---|---|
+| r3 (`mutation-r3/leg.out`, 2026-11-24 01:46:59 -> 01:59:18) | `VERDICT MUTATIONS_AS_DECLARED`. control clean. **M1** killed (7 tests). **M2** killed by exactly the tightened `ARestartNeedsTheFloorsPassesOfItsOwn`. **R1** (new_run also forgets the best; r2: killers empty) now killed by exactly `Rf1RestorationStall.ANewRunKeepsTheBestAndForgetsTheSamples`. **M3** (fall test dropped, added in r3) killed by four tests, but **not by its declared killer** (`AFallingPhase...`: its phase ended on the sixth pass) |
+| r4 (`mutation-r4/leg.out`, 02:00:40 -> 02:06:24) | M3-only leg after the fixture fix: control clean, **M3 killed**, now including by `AFallingPhaseSurvivesItsWindowByTheFallTest` (5 killers). `VERDICT MUTATIONS_AS_DECLARED` |
+
+The r2 leg's stdout was found at `.scratch/rf1c-build-legs/mut2.out` and is added as `mutation-r2/leg.out`.
+
+## ctest
+
+Release **4110/4110**, Debug **4110/4110** (`suites-r3/`; 4109 + the one new test), at head `fd59231d0`.
+
+## (a) Aggregate cost (recomputed from the cell files)
+
+| set | cells | factorizations R | factorizations H | ratio | solved R -> H |
+|---|---|---|---|---|---|
+| pilot | 62 | 758240 | 1506740 | **1.99x** | 19 -> 20 (+1) |
+| TU-2 | 48 | 722494 | 1572167 | **2.18x** | 12 -> 26 (+14) |
+
+The fix buys its solves with roughly a doubling of the factorizations on these sets (the ratio is not per solved cell: most of the added work is
+runs that R truncated going on to a non-solved end, e.g. pilot 022/023).
+
+## (b) The label shift
+
+Pilot status counts R -> H: `stalled` **14 -> 3**, `numerical_error` **19 -> 29**, `optimal` 8 -> 9, `acceptable` 11 -> 11, `max_iter` 10 -> 10. Eleven fewer
+cells end `stalled`: cells that R reported `stalled` end as `numerical_error` (or `max_iter` / `optimal`): the change turns a window cut into the next failure the run
+reaches. A consumer that keys on `stalled` sees it vanish on these cells. (TU-2: `stalled` 21 -> 0, `numerical_error` 12 -> 17, `optimal` 12 -> 26,
+`max_iter` 3 -> 5.)
+
+## (c) Pilot 056/057 end earlier at a worse objective
+
+YORKNET kTier + growth: R `max_iter` / 153 majors / 43181 and 43692 factorizations, f = 14527.97 and 14531.80; H `numerical_error` / 16 majors /
+46808 and 46779 factorizations, f = 14863.17 on both. Fewer majors and a worse (+2.3%) objective; neither arm solves them. The earlier summary
+("end earlier in majors") undersold that H's endpoint is also worse.
+
+## (d) The floor's own cost on an expensive-pass flat grind is unmeasured
+
+No recorded cell is an expensive-pass genuine flat grind that the window should cut: TRAIN reaches a window verdict only on HS99EXP (D and K),
+whose passes are cheap and which is far past six passes, so **0 movers there shows no collateral damage, not the floor's cost**. The floor lengthens
+a flat phase to at least six passes, so its cost on such a phase scales with the pass cost times up to five extra passes; nothing here measures it.
+
+## (e) The NET3 restart's dependence on keeping the best, measured (leg V, `r1probe/`)
+
+The declaration asserted it. Arm P = the committed code with mutation R1 (`new_run()` also resets the best) built as a local-only commit
+(`legs-rf1c/rf1c_r1probe.sh`), the 48 TU-2 cells run on the four pinned physical cores of one lane (co-run protocol, counters only):
+**P versus H: 48 of 48 cells identical (status, majors, factorizations, objective), 0 movers; P versus R: the same 30 movers as H.** On
+these cells, **forgetting the best changes nothing**, NET3/default included (optimal / 13 / 30607 and 36 / 36799, as H). The claim that the NET3
+restart "depends on" keeping the best is **not borne out** by the TU-2 cells: the property is argued (a restart whose own incumbent starts higher
+should not undo progress), pinned at the window-object level, and unmeasured as a solver-level effect. The per-run fresh window is what NET3
+needed.
+
+## (f) Pilot 022/023 (9.8x)
+
+R: `stalled` / 1 major / 18159 factorizations; H: `numerical_error` / 50 majors / 178441. H's row: 7 restoration entries (3 reduction resumes,
+143 restoration iterations), the last phase ending at h_out = 1.3e-9 (`restoration_sub_status` optimal) with `kkt_stationarity` = 1.25 at the
+exit: a repeated restoration-success / return cycle that never converges the main problem. The fix exposes that cycle (R's early cut ended the
+run before it began); it does not cause it. It is a separate defect on this label (kTier + kAnyAccepted).
+
+## Nits
+
+`legs-rf1c/rf1c_check_r3.py` and `tu2_report_r3.py` (copies; originals unedited) iterate the union of the R and H cells and fail on a cell
+missing from either; `tu2_report_r3.py` fails its verdict on `THREW_OR_RC`. Re-run on the existing evidence: pilot `PILOT_BARS_MET` (SOLVED R 19
+NEW 20) and TU-2 `TU2_NO_LOSS_NO_FALSE_CERT`, output byte-identical to the originals (`diff` empty).
+
+## (g) CI
+
+CI_PLACEHOLDER

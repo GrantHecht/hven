@@ -1,0 +1,23 @@
+box-lane: lane 0 acquired 2026-11-24T02:06:32-05:00
+FOREGROUND_START 2026-11-24T02:06:32-05:00 lane=0 phys=0 1 2 3
+PROBE_COMMIT e147dd51aaedf7c31e0b83482988cff99bf7044b (base 3f0c9146e7215e8684ffa499d80d8527e2582f17)
+ include/hven/detail/sqp/globalization/restoration.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+lane_build rc=0
+HVEN_PIN_SHA e147dd51aaedf7c31e0b83482988cff99bf7044b
+5f8d6334f260f014e8d4eee434f26a6ee09f46f7622a0c214237d3ba3b47c1ee  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/bin/P1/hven_bench_cell
+237921c14095e142d0ceb8c09235bbd57ccb72aaed3db7045ba189aa12200ace  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/hb/.hven/install-e147dd51aaed/lib64/libhven.a
+7477384 EVIDENCE-ONLY (private clone, never pushed): pin hven e147dd51a (rf1 P1)
+FOREGROUND_END 2026-11-24T02:09:12-05:00
+tu2_build rc=0
+HVEN_PIN_SHA e147dd51aaedf7c31e0b83482988cff99bf7044b
+270857f69d8430084b9f8d8f56a54be7bdd3801f14d612723ed3218418304da8  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/bin/tu2-P1/hven_bench_cell
+270857f69d8430084b9f8d8f56a54be7bdd3801f14d612723ed3218418304da8  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/bin/tu2-P1/hven_bench_cell
+tu2 P rc=0
+report vs H rc=0
+cells 48 SOLVED R 26 H 26
+VERDICT TU2_NO_LOSS_NO_FALSE_CERT
+report vs R rc=0
+cells 48 SOLVED R 12 H 26
+VERDICT TU2_NO_LOSS_NO_FALSE_CERT
+FOREGROUND_END 2026-11-24T02:45:23-05:00
