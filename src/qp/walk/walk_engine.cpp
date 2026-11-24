@@ -59,6 +59,7 @@ struct Env {
     bool nosafe = false;    // no safeguard
     bool facefull = false;  // kFace also commits at a full unblocked step
     bool strictsafe = false;// safeguard reads mu*|lambda - c| (else mu*|lambda|)
+    bool termguard = false; // a would-be kOptimal from a centred pass is re-solved centre-free first
     bool safeboot = false;  // strict safeguard, but an update with no live centre is unconditional
     double ymax = 0.0;      // centre bound (0 = none)
     int trace = 0;
@@ -82,7 +83,8 @@ inline Env read_env() {
     e.nosafe = get("HVEN_P1_NOSAFE") != nullptr;
     e.facefull = get("HVEN_P1_FACEFULL") != nullptr;
     e.strictsafe = get("HVEN_P1_STRICTSAFE") != nullptr;
-    e.safeboot = get("HVEN_P1_SAFEBOOT") != nullptr; // strict test only once a centre is live
+    e.safeboot = get("HVEN_P1_SAFEBOOT") != nullptr;
+    e.termguard = get("HVEN_P1_TERMGUARD") != nullptr; // strict test only once a centre is live
     if (e.safeboot) {
         e.strictsafe = true;
     }
@@ -650,6 +652,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     Vec cz = Vec::Zero(n);
     bool c_on = false;
     bool c_pending_ok = false;
+    long p1_tg = 0;
     long p1_upd = 0, p1_ref = 0, p1_reset = 0, p1_readm = 0, p1_relrung = 0;
     double p1_dlam_max = 0.0, p1_lam_max = 0.0;
     const bool p1_copy = p1.mode == p1s::kEvery || p1.mode == p1s::kFace || p1.mode == p1s::kSeedOnly;
@@ -2170,6 +2173,19 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 }
                                 ++counters.optimal_row_gray_exits;
                             }
+                            if (p1.termguard && p1_tg < 10 && iter + 1 < eff_max_iter &&
+                                (dual_k.lambda_e != nullptr || dual_k.lambda_i != nullptr)) {
+                                ++p1_tg; // P1SCRATCH: certify only from a centre-free pass
+                                c_on = false;
+                                ce.setZero();
+                                ci.setZero();
+                                cz.setZero();
+                                dual_k = EqpDualCentre{};
+                                if (p1.trace > 1) {
+                                    std::fprintf(stderr, "[p1p]   termguard re-solve\n");
+                                }
+                                continue;
+                            }
                             status = QpStatus::kOptimal;
                         }
                     }
@@ -3569,14 +3585,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         std::fprintf(stderr,
                      "[p1q] n=%ld me=%ld mi=%ld status=%d minors=%ld facts=%ld upd=%ld ref=%ld reset=%ld "
                      "readm=%ld relrung=%ld fprung=%ld fpride=%ld fpdecl=%ld dlam_max=%.3e lam_max=%.3e "
-                     "mu_end=%.1e\n",
+                     "mu_end=%.1e tg=%ld\n",
                      static_cast<long>(n), static_cast<long>(me), static_cast<long>(mi),
                      static_cast<int>(status), static_cast<long>(counters.minor_iters),
                      static_cast<long>(counters.factorizations), p1_upd, p1_ref, p1_reset, p1_readm,
                      p1_relrung, static_cast<long>(counters.ascent_footprint_rungs),
                      static_cast<long>(counters.ascent_footprint_rides),
                      static_cast<long>(counters.ascent_footprint_declines), p1_dlam_max, p1_lam_max,
-                     eff_opts.dual_regularization);
+                     eff_opts.dual_regularization, p1_tg);
     }
     QpSolution out;
     out.status = status;
