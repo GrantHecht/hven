@@ -23,7 +23,7 @@ history is what the two exceptions below are about.
   (tycho's mode) or as an installed CMake package: `cmake --install`
   produces libhven.a, the flattened headers (hven's own plus its vendored
   Eigen/fmt), and `hvenConfig.cmake`/`hvenTargets.cmake` under
-  `<prefix>/lib/cmake/hven`, so `find_package(hven)` +
+  `<prefix>/lib/cmake/hven` (or `lib64/` on Linux via GNUInstallDirs), so `find_package(hven)` +
   `target_link_libraries(app hven::hven)` works against an install tree.
   See `scripts/check_install_smoke.sh` for the standalone install/consume
   round-trip.

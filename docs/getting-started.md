@@ -231,7 +231,7 @@ hven::IpmSolver ipm(options);                 // validate() runs here: a bad val
 hven::IpmResult r = ipm.solve(problem, x0);
 ```
 
-The same field exists on `SqpOptions`. The options structs are plain
+The same field exists on `SqpOptions`. Note the defaults differ: `common.verbosity` is `kSilent`, but a `ConsoleTraceSink` you build by hand defaults its `Format::verbosity` to `kIterations`. The options structs are plain
 aggregates; every field, with its default and range, is in
 [options-reference.md](options-reference.md), and
 `hven::dump_options(options, std::cout)` prints the values in force.
@@ -381,7 +381,7 @@ exit        Max iter (none) -- iteration limit reached (max_iterations = 3)
 status max_iter | iteration limit reached (max_iterations = 3)
 ```
 
-The first line is what `kWarnings` prints (both engines print the same
+(`SolveStatus::kIterationLimit` prints as `max_iter` / `Max iter`: a frozen spelling.) The first line is what `kWarnings` prints (both engines print the same
 line here). The second is the program's own `to_string(result.status)` and
 `result.message`. The status is `SolveStatus::kIterationLimit`: the enumerator
 was renamed in the 0.2.0 break, and the strings (`Max iter` on the console,
@@ -441,7 +441,11 @@ Rules worth knowing:
   **not** change in structure: dimensions, sparsity patterns, row kinds. A
   warm start taken before such a change is refused as an identity mismatch.
 - `common.start_level` caps how much of an offered warm start a solve trusts
-  (`kCold`, `kSeeded`, `kWarm`, `kHot`; default `kWarm`). It is a ceiling,
+  (`kCold`, `kSeeded`, `kWarm`, `kHot`; default `kWarm`). On the SQP, a
+  `WarmStart` (a result's `warm_start`, or `WarmStart::seed`) reaches at most
+  `kSeeded`; `kWarm` and `kHot` are reachable only through the SQP-only native
+  route (`SqpWarmStart`, below). The interior-point engine takes the whole
+  value at `kWarm` and has no separate `kHot`. It is a ceiling,
   never a floor.
 - A warm start from the interior-point engine is accepted by the SQP. The common use is a
   loose interior-point solve handed to a tight SQP solve, which
@@ -484,7 +488,7 @@ hven::SqpResult r = sqp.solve(problem, x0);
 ```
 
 - **The payload mask** says what the callback reads, so the engine prepares
-  nothing else. Scalars (`iteration`, `f`) are always delivered. `kVectors` adds
+  nothing else. Scalars (`iteration`, `f`) are always delivered, so `kScalars` is the value 0: "scalars only", not a bit you can test. `kVectors` adds
   `x`, `lambda`, `z`; `kDiagnostics` adds the three measures in your units;
   `kConstraints` adds `g` and `row_violation`; `kBoundMultipliers` adds
   `z_lower` and `z_upper`; `kAll` is all of them. The default is
@@ -603,4 +607,4 @@ expect from the mode.
 | every trace record and column | [trace-schema-v1.md](trace-schema-v1.md) |
 | to build a problem out of small pieces | `examples/04_partitioned_chain.cpp`, [assembly-protocol.md](assembly-protocol.md) |
 | to run solvers on several threads | [concurrency.md](concurrency.md) |
-| to move code written against an older hven | [migration/2026-11-m8-api-break.md](migration/2026-11-m8-api-break.md) |
+| to move code written against an older hven | [migration-0.2.md](migration-0.2.md) and `CHANGELOG.md` |

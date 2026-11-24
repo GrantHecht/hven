@@ -22,7 +22,6 @@ an NLP and want a solution, read the first table in order and stop.
 
 | Page | What it is |
 | --- | --- |
-| [migration/2026-11-m8-api-break.md](migration/2026-11-m8-api-break.md) | The 0.2.0 API break (groups B1 to B8): names, one problem type, options, results, evaluation failure, pieces, absent bounds. Read this first when coming from an older tree |
 | [migration-0.2.md](migration-0.2.md) | The interface groups that landed after the break (stop token, `StopReason`, regrouped results, trace v1, include paths, return-best), before and after, one section each |
 | [migration/2026-09-m6-api-break.md](migration/2026-09-m6-api-break.md) | The earlier M6 break (names before `hven::solvers` was dropped) |
 | [../CHANGELOG.md](../CHANGELOG.md) | One before-and-after line per change |
