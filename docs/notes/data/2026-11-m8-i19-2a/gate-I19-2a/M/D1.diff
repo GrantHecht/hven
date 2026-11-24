@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..cb2ce1a31 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -456,7 +456,7 @@ struct SqpAdvancedOptions {
+     Index max_restoration_entries = 10;
+ 
+     /// The trust-region growth rule. Default kRatio.
+-    SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kRatio;
++    SqpTrustRegionGrowth trust_region_growth = SqpTrustRegionGrowth::kRatioByStepType;
+ 
+     // The growth and shrink levers. Each only refuses a growth the rule grants, or
+     // shrinks a rejected step's radius further; none touches acceptance.

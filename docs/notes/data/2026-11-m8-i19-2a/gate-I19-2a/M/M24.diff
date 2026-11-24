@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..cf61b9c99 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7046,6 +7046,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         st.out.counters.qp_failure_box_projections += phase.counters.qp_failure_box_projections;
+         st.out.counters.trust_region_floor_exits += phase.counters.trust_region_floor_exits;
+         st.out.counters.soc_qp_iteration_limits += phase.counters.soc_qp_iteration_limits;
++        st.out.counters.trust_region_growths += phase.counters.trust_region_growths;
++        st.out.counters.trust_region_grown_step_rejections += phase.counters.trust_region_grown_step_rejections;
+         st.out.counters.qp_failure_steps_judged += phase.counters.qp_failure_steps_judged;
+         st.out.counters.qp_failure_steps_accepted += phase.counters.qp_failure_steps_accepted;
+         st.out.counters.nonfinite_subproblems += phase.counters.nonfinite_subproblems;

@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..366d0b8d8 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -476,7 +476,7 @@ struct SqpAdvancedOptions {
+     bool trust_region_shrink_to_step = false;
+ 
+     /// false: a step held only by caller_step_limit pins does not grow the radius.
+-    bool trust_region_growth_on_step_limit = true;
++    bool trust_region_growth_on_step_limit = false;
+ 
+     /// true: a growth is refused when the violation predicted at twice the radius,
+     /// h_lin + 4 * max(0, h_trial - h_lin), exceeds 0.99 of the funnel width.

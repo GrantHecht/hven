@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..9d17daf38 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7375,7 +7375,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         st.full_step_funnel = nullptr;
+         st.delta = restoration_restart_radius();
+         st.radius_from_growth = false;
+-        st.tr_memory.clear(); // I19-2a: a fresh phase, a fresh memory
+         st.rejections_at_iterate = 0;
+         st.counted_run_at_iterate = 0;
+         st.qp_failures_in_a_row = 0;

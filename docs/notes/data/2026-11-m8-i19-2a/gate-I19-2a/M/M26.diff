@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..3f68e251c 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10290,7 +10290,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         gin.actual_df = st.ev.f - mj.ctx.f_new;
+         gin.h_old = mj.ctx.h_old;
+         gin.h_new = mj.ctx.h_new;
+-        gin.h_trial = mj.trial_h_new;
++        gin.h_trial = mj.ctx.h_new;
+         gin.h_lin = mj.h_lin_model;
+         if (opts_.advanced.trust_region_growth_funnel_guard) {
+             if (const auto *funnel = dynamic_cast<const FunnelStrategy *>(st.strategy.get())) {

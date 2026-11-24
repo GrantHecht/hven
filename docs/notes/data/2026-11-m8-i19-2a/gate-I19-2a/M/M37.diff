@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..d27a55e6e 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10492,9 +10492,6 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+                 }
+                 // The pushed row carries its refusal mask, so the counter counts it here too (the
+                 // commit that owns it is never reached).
+-                if (mj.growth.refusal != SqpTrustRegionGrowthRefusal::kNone) {
+-                    ++st.out.counters.trust_region_growth_refusals;
+-                }
+                 publish_stop_at(iter, interrupt_reason(mj), std::string());
+                 if (st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid) {
+                     return finish_best(SolveStatus::kInterrupted);

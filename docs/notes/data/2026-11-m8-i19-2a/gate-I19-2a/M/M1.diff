@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..130d2524c 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -120,8 +120,7 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
+         const double pred_dh = in.h_lin ? in.h_old - *in.h_lin : 0.0;
+         const double noise =
+             kNoiseFloorFactor * std::numeric_limits<double>::epsilon() * std::max(1.0, in.h_old);
+-        candidate = in.h_lin.has_value() && pred_dh > noise &&
+-                    in.h_old - in.h_new >= kTrGrowThreshold * pred_dh;
++        candidate = f_ratio_ok;
+         h_ratio = pred_dh > noise ? (in.h_old - in.h_new) / pred_dh : 0.0;
+     }
+     if (!base && !candidate) {

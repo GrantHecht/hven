@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..a5e8a0577 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8185,7 +8185,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         st.delta = shrunk_radius(st.rollback.delta);
+         // I19-2a: a rejection for the memory, at the radius the step was taken under; the growth
+         // the commit made never stood.
+-        st.tr_memory = st.rollback.tr_memory;
+         if (opts_.advanced.trust_region_rejection_memory > 0) {
+             st.tr_memory.record_rejection(st.rollback.delta, st.rollback.radius_from_growth);
+         }

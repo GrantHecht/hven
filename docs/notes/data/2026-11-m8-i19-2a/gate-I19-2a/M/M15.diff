@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..d1edcd388 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7855,7 +7855,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+ 
+     // I19-2a: whether this major's radius is the previous major's growth.
+     mj.radius_from_growth = st.radius_from_growth;
+-    st.radius_from_growth = false;
+ 
+     mj.row.trial = iter;
+     // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the

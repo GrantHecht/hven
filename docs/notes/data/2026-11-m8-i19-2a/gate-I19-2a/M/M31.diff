@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..9240cf5c5 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -124,7 +124,7 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
+                     in.h_old - in.h_new >= kTrGrowThreshold * pred_dh;
+         h_ratio = pred_dh > noise ? (in.h_old - in.h_new) / pred_dh : 0.0;
+     }
+-    if (!base && !candidate) {
++    if (false) {
+         return {};
+     }
+     SqpTrustRegionGrowthRefusal refusal = SqpTrustRegionGrowthRefusal::kNone;

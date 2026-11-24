@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..feb0e11a7 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -473,7 +473,7 @@ struct SqpAdvancedOptions {
+ 
+     /// true: a rejected step the radius did not hold shrinks the radius to
+     /// min(0.5 * min(radius, qp.trust_region_radius), 0.5 * ||p||inf) instead of halving it.
+-    bool trust_region_shrink_to_step = false;
++    bool trust_region_shrink_to_step = true;
+ 
+     /// false: a step held only by caller_step_limit pins does not grow the radius.
+     bool trust_region_growth_on_step_limit = true;

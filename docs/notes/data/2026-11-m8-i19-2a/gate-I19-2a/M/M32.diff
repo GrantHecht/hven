@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..edd4c853b 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -160,6 +160,9 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
+         }
+     }
+     if (a.trust_region_growth_funnel_guard && std::isfinite(in.width)) {
++        if (!in.h_lin.has_value()) {
++            refusal |= SqpTrustRegionGrowthRefusal::kFunnelHeadroom;
++        }
+         const double lin = in.h_lin.value_or(0.0);
+         if (lin + 4.0 * std::max(0.0, in.h_trial - lin) > kTrHeadroomFraction * in.width) {
+             refusal |= SqpTrustRegionGrowthRefusal::kFunnelHeadroom;
