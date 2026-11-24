@@ -45,6 +45,14 @@ target_compile_options(hven_sqp_tau_bar_sweep_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_tau_bar_sweep_probe
                             PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
+# hven_sqp_i19_grid — the I19-2a SENS-P grid runner (the in-repo parametric families as cold SQP
+# solves, one CSV row per cell). The cell parsing, the declared --set keys and the CSV live in
+# i19_sens_grid.h, shared with tests/bench/test_i19_sens_grid.cpp.
+add_executable(hven_sqp_i19_grid i19_sens_grid.cpp)
+target_link_libraries(hven_sqp_i19_grid PRIVATE hven::hven)
+target_compile_options(hven_sqp_i19_grid PRIVATE ${COMPILE_FLAGS})
+target_include_directories(hven_sqp_i19_grid PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
+
 # hven_sqp_snopt_f7 — the SNOPT measurement binary. GUARDED: exists only when
 # the root-level SNOPT detection succeeded — a machine without SNOPT keeps
 # building and testing unchanged. SNOPT is commercial and is NOT vendored:

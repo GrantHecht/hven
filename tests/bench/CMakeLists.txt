@@ -25,6 +25,7 @@
 ################################################################################
 
 set(_hven_bench_sources
+    test_i19_sens_grid.cpp
     test_model_surface_kkt.cpp
 )
 
@@ -34,7 +35,8 @@ set(_hven_bench_unix_sources
     test_crossover_legs.cpp
 )
 set(_hven_bench_extra_sources "")
-set(_hven_bench_defs "")
+set(_hven_bench_defs
+    HVEN_I19_SENS_P_CELLS="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/i19_sens_p.tsv")
 if(NOT WIN32)
     set(_hven_bench_baselines "${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines")
     list(APPEND _hven_bench_sources ${_hven_bench_unix_sources})
