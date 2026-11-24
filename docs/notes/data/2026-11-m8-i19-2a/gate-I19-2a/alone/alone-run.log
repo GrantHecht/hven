@@ -1,0 +1,148 @@
+ALONE G1 TRAIN-238 sd default ['ACOPP30', 'HS91']
+box-lane: lane 0 acquired 2026-11-24T17:55:07-05:00
+run_serial: cutest/ACOPP30/hven-sqp/default+advanced.trust_region_growth=kRatioByStepType
+run_serial: cutest/HS91/hven-sqp/default+advanced.trust_region_growth=kRatioByStepType
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G1/default/sd/alone-d4516f91/results.csv
+ALONE G1 TRAIN-238 sd sqp-qn ['DEMBO7']
+box-lane: lane 0 acquired 2026-11-24T17:55:07-05:00
+run_serial: cutest/DEMBO7/hven-sqp/sqp-qn+advanced.trust_region_growth=kRatioByStepType
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G1/sqp-qn/sd/alone-0444be72/results.csv
+ALONE G1 CAP-238-1 sd sqp-qn ['DEMBO7']
+box-lane: lane 0 acquired 2026-11-24T17:55:08-05:00
+run_serial: cutest/DEMBO7/hven-sqp/sqp-qn+advanced.trust_region_growth=kRatioByStepType+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G1/sqp-qn/sd/alone-0444be72/results.csv
+ALONE G1 CAP-238-1 sd default ['HS91']
+box-lane: lane 0 acquired 2026-11-24T17:55:08-05:00
+run_serial: cutest/HS91/hven-sqp/default+advanced.trust_region_growth=kRatioByStepType+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G1/default/sd/alone-b67017d8/results.csv
+ALONE G2 CAP-238-1 sd default ['CRESC4']
+box-lane: lane 0 acquired 2026-11-24T17:55:08-05:00
+run_serial: cutest/CRESC4/hven-sqp/default+advanced.trust_region_growth_after_soc=false+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G2/default/sd/alone-6f49c7ed/results.csv
+ALONE G2 CAP-238-01 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:55:08-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_after_soc=false+caller_step_limit=0.1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/G2/default/sd/alone-848bbf40/results.csv
+ALONE G3 TRAIN-238 sd sqp-qn ['HS102']
+box-lane: lane 0 acquired 2026-11-24T17:55:16-05:00
+run_serial: cutest/HS102/hven-sqp/sqp-qn+advanced.trust_region_rejection_memory=3
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G3/sqp-qn/sd/alone-9a221d52/results.csv
+ALONE G4 CAP-238-1 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:55:16-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_ratio_max=3+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G4/default/sd/alone-848bbf40/results.csv
+ALONE G4 TRAIN-238 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:55:28-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_ratio_max=3
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G4/default/sd/alone-848bbf40/results.csv
+ALONE G5 CAP-238-01 sd sqp-qn ['DECONVC']
+box-lane: lane 0 acquired 2026-11-24T17:55:41-05:00
+run_serial: cutest/DECONVC/hven-sqp/sqp-qn+advanced.trust_region_shrink_to_step=true+caller_step_limit=0.1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/G5/sqp-qn/sd/alone-90a5697d/results.csv
+ALONE G5 CAP-238-1 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:55:42-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_shrink_to_step=true+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G5/default/sd/alone-848bbf40/results.csv
+ALONE G5 TRAIN-238 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:55:55-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_shrink_to_step=true
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G5/default/sd/alone-848bbf40/results.csv
+ALONE G5 CAP-238-01 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:56:08-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_shrink_to_step=true+caller_step_limit=0.1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/G5/default/sd/alone-848bbf40/results.csv
+ALONE G6 CAP-238-01 sd default ['CRESC100', 'MESH']
+box-lane: lane 0 acquired 2026-11-24T17:56:13-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_on_step_limit=false+caller_step_limit=0.1
+run_serial: cutest/MESH/hven-sqp/default+advanced.trust_region_growth_on_step_limit=false+caller_step_limit=0.1
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/G6/default/sd/alone-c3f404dc/results.csv
+ALONE G7 CAP-238-1 sd default ['CRESC4']
+box-lane: lane 0 acquired 2026-11-24T17:56:20-05:00
+run_serial: cutest/CRESC4/hven-sqp/default+advanced.trust_region_growth_funnel_guard=true+caller_step_limit=1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/G7/default/sd/alone-6f49c7ed/results.csv
+ALONE G7 TRAIN-238 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:56:20-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_funnel_guard=true
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G7/default/sd/alone-848bbf40/results.csv
+ALONE G7 CAP-238-01 sd default ['CRESC100']
+box-lane: lane 0 acquired 2026-11-24T17:56:35-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.trust_region_growth_funnel_guard=true+caller_step_limit=0.1
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/G7/default/sd/alone-848bbf40/results.csv
+ALONE G7 TRAIN-238 sd sqp-qn ['HS99EXP', 'LAKES']
+box-lane: lane 0 acquired 2026-11-24T17:56:42-05:00
+run_serial: cutest/HS99EXP/hven-sqp/sqp-qn+advanced.trust_region_growth_funnel_guard=true
+run_serial: cutest/LAKES/hven-sqp/sqp-qn+advanced.trust_region_growth_funnel_guard=true
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/G7/sqp-qn/sd/alone-049ee260/results.csv
+ALONE C1 CAP-238-01 sd sqp-qn ['CRESC100', 'DECONVC', 'HS74', 'HS75', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:00-05:00
+run_serial: cutest/CRESC100/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/DECONVC/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/HS74/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/HS75/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: 5 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/C1/sqp-qn/sd/alone-1a520e44/results.csv
+ALONE C1 CAP-238-01 sd default ['CRESC100', 'HS92', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:11-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/HS92/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=0.1
+run_serial: 3 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/C1/default/sd/alone-9ec168d6/results.csv
+ALONE C1 CAP-238-1 sd default ['CRESC100', 'HS91', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:23-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/HS91/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: 3 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/C1/default/sd/alone-48532928/results.csv
+ALONE C1 CAP-238-1 sd sqp-qn ['HS88', 'HS89', 'HS90', 'HS92', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:50-05:00
+run_serial: cutest/HS88/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/HS89/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/HS90/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/HS92/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+caller_step_limit=1
+run_serial: 5 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/C1/sqp-qn/sd/alone-67c78021/results.csv
+ALONE C1 TRAIN-238 sd default ['ACOPP30', 'HS104', 'HS90', 'HS91', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:51-05:00
+run_serial: cutest/ACOPP30/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: cutest/HS104/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: cutest/HS90/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: cutest/HS91/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: 5 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/C1/default/sd/alone-39bad33a/results.csv
+ALONE C1 TRAIN-238 sd sqp-qn ['CRESC4', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:51-05:00
+run_serial: cutest/CRESC4/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/C1/sqp-qn/sd/alone-55139d02/results.csv
+ALONE C2 CAP-238-01 sd sqp-qn ['CRESC100', 'HS74', 'HS75', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:57:52-05:00
+run_serial: cutest/CRESC100/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: cutest/HS74/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: cutest/HS75/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: 4 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/C2/sqp-qn/sd/alone-aa116dd7/results.csv
+ALONE C2 CAP-238-1 sd default ['CRESC100', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:58:03-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.second_order_correction=false+caller_step_limit=1
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false+caller_step_limit=1
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/C2/default/sd/alone-1dce7996/results.csv
+ALONE C2 CAP-238-1 sd sqp-qn ['HS101', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:58:22-05:00
+run_serial: cutest/HS101/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=1
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false+caller_step_limit=1
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-1/C2/sqp-qn/sd/alone-b823aedb/results.csv
+ALONE C2 TRAIN-238 sd sqp-qn ['HS101', 'LAKES', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:58:23-05:00
+run_serial: cutest/HS101/hven-sqp/sqp-qn+advanced.second_order_correction=false
+run_serial: cutest/LAKES/hven-sqp/sqp-qn+advanced.second_order_correction=false
+run_serial: cutest/OPTPRLOC/hven-sqp/sqp-qn+advanced.second_order_correction=false
+run_serial: 3 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/C2/sqp-qn/sd/alone-16f28133/results.csv
+ALONE C2 CAP-238-01 sd default ['CRESC100', 'OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:58:45-05:00
+run_serial: cutest/CRESC100/hven-sqp/default+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false+caller_step_limit=0.1
+run_serial: 2 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/CAP-238-01/C2/default/sd/alone-1dce7996/results.csv
+ALONE C2 TRAIN-238 sd default ['OPTPRLOC']
+box-lane: lane 0 acquired 2026-11-24T17:58:56-05:00
+run_serial: cutest/OPTPRLOC/hven-sqp/default+advanced.second_order_correction=false
+run_serial: 1 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-alone/TRAIN-238/C2/default/sd/alone-1dda6130/results.csv

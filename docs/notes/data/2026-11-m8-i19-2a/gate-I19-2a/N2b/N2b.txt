@@ -1,0 +1,26 @@
+2026-11-24T17:48:10-05:00
+N2b complete corpora: 776 cells, 310 difference(s), only_b [], undeclared []
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-10', 'certified', '0 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-10', 'factorizations', '687 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-10', 'outcome', 'optimal != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-10', 'rc', '0 != 127')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-10', 'status', 'optimal != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6', 'certified', '0 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6', 'factorizations', '2850 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6', 'outcome', 'optimal != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6', 'rc', '0 != 127')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6', 'status', 'optimal != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep', 'certified', '0 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep', 'factorizations', '6755 != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep', 'outcome', 'error != ')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep', 'rc', '0 != 127')
+DIFF ('PILOT-62', 'ACOPP118|default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep', 'status', 'stalled != ')
+DIFF ('PILOT-62', 'ACOPR118|default+advanced.adaptive_dual_regularization_max=1e-10', 'certified', '0 != ')
+DIFF ('PILOT-62', 'ACOPR118|default+advanced.adaptive_dual_regularization_max=1e-10', 'factorizations', '20107 != ')
+DIFF ('PILOT-62', 'ACOPR118|default+advanced.adaptive_dual_regularization_max=1e-10', 'outcome', 'optimal != ')
+DIFF ('PILOT-62', 'ACOPR118|default+advanced.adaptive_dual_regularization_max=1e-10', 'rc', '0 != 127')
+DIFF ('PILOT-62', 'ACOPR118|default+advanced.adaptive_dual_regularization_max=1e-10', 'status', 'optimal != ')
+N2b NLP-46 common cells: 26 (base side 26, keys side 46), 0 difference(s), only_a [] only_b []
+N2b DIFFERENCES
+rc=3
+2026-11-24T17:48:10-05:00
