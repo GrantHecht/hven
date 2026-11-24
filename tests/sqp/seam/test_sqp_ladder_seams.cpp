@@ -1947,16 +1947,63 @@ TEST(Rf1RestorationSeam, TheSwitchRunHandsBackItsSwitchPointNotItsBestPoint) {
     EXPECT_EQ(limited.x(1), free_run.x(1));
 }
 
+// RF-1c: a phase that keeps falling survives its window by the fall test, not by the pass floor
+// (the pin the five-pass circle/line fixture could no longer give). LinearRowModel's phase, run to
+// its end: its h falls from 20 by far more than 10% every few passes. With a window of one
+// factorization the window is spanned by every pass, so the phase is open only while its best h
+// keeps falling against the sample the floor's five passes back; it runs at least
+// kRestorationStallMinPasses + 1 rows and is not cut. A window that never binds gives the same
+// solve.
+TEST(Rf1RestorationSeam, AFallingPhaseSurvivesItsWindowByTheFallTest) {
+    const auto solve = [](Index window, std::size_t &phase_rows) {
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::as_e2_termination = false;
+        Seam::forced_point = {20.0, 1.0};
+        Seam::off_rows_rungs = 1000;
+        LinearRowModel model;
+        SqpOptions o = quiet();
+        o.common.max_iterations = 60;
+        o.trust_region_initial = 1.0;
+        o.trust_region_min = 0.75;
+        o.advanced.restoration_stall_factorizations = window;
+        SqpSolver solver(o);
+        phase_rows = 0;
+        solver.set_iteration_callback(
+            [&phase_rows](const IterationEvent &e) {
+                if (e.sqp && e.sqp->depth >= 1) {
+                    ++phase_rows;
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        return solver.solve(hven::detail::problem_ref(model), (model).start_point());
+    };
+    std::size_t rows_never = 0, rows_one = 0;
+    const SqpResult never = solve(1000000, rows_never);
+    ASSERT_EQ(never.counters.restoration_entries, 1);
+    ASSERT_GE(rows_never, hven::detail::kRestorationStallMinPasses + 1) << "fixture premise";
+    const SqpResult one = solve(1, rows_one);
+    EXPECT_NE(one.stop_reason, StopReason::kRestorationWorkLimit);
+    EXPECT_EQ(rows_one, rows_never);
+    EXPECT_EQ(one.counters.restoration_iters, never.counters.restoration_iters);
+    EXPECT_EQ(one.counters.factorizations, never.counters.factorizations);
+    EXPECT_EQ(one.status, never.status);
+}
+
 // RF-1c (the M2 must-kill): a regularized restart starts a fresh window. LinearRowModel's phase
 // is the RF-1b fixture's; the spread phase here is the one whose best h goes flat. The first run
 // takes `pass` walk subproblems and fails the next, which switches to the regularized restart; the
 // stall window is one factorization, so only the pass floor holds the phase open. A restart that
 // inherited the first run's samples would be cut after the passes it needs to reach six in total;
-// a fresh window needs five passes of the restart's own. Measured on this fixture: 19 phase rows
-// with the fresh window, 16 without.
+// a fresh window needs five passes of the restart's own: the rows after the switch are counted, so
+// a change to the first run cannot mask the mutant.
 TEST(Rf1RestorationSeam, ARestartNeedsTheFloorsPassesOfItsOwn) {
     constexpr int kFirstRunPasses = 12;
-    std::size_t rows = 0;
+    // Phase rows, in order: each row's subproblem status. The first run's failed subproblem (the
+    // only row whose status is not kOptimal before the cut) is the last row of the first run; the
+    // rows after it are the restart's own.
+    std::vector<QpStatus> statuses;
     const SeamReset guard;
     Seam::fail_walk_qps = 1000;
     Seam::as_e2_termination = false;
@@ -1972,9 +2019,9 @@ TEST(Rf1RestorationSeam, ARestartNeedsTheFloorsPassesOfItsOwn) {
     o.advanced.restoration_resume_reduction = 0.0;
     SqpSolver solver(o);
     solver.set_iteration_callback(
-        [&rows](const IterationEvent &e) {
-            if ((e.sqp ? e.sqp->depth : Index{0}) >= 1) {
-                ++rows;
+        [&statuses](const IterationEvent &e) {
+            if (e.sqp && e.sqp->depth >= 1) {
+                statuses.push_back(e.sqp->qp_status);
             }
             return CallbackAction::kContinue;
         },
@@ -1983,8 +2030,17 @@ TEST(Rf1RestorationSeam, ARestartNeedsTheFloorsPassesOfItsOwn) {
     ASSERT_EQ(sol.counters.restoration_curvature_switches, 1) << "fixture premise: a restart ran";
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
-    EXPECT_GE(rows, static_cast<std::size_t>(kFirstRunPasses +
-                                             hven::detail::kRestorationStallMinPasses + 1));
+    const auto failed = std::find_if(statuses.begin(), statuses.end(),
+                                     [](QpStatus q) { return q != QpStatus::kOptimal; });
+    ASSERT_NE(failed, statuses.end()) << "fixture premise: the first run's failed subproblem";
+    const std::size_t first_run_rows = static_cast<std::size_t>(failed - statuses.begin()) + 1;
+    ASSERT_EQ(first_run_rows, static_cast<std::size_t>(kFirstRunPasses) + 1)
+        << "fixture premise: twelve passes and the failed one";
+    // The restart's own rows: the floor's five passes behind the reference, and the sixth is cut.
+    // Measured: 6 with the fresh window, 3 without (the first run's twelve passes already behind
+    // it). Rows of the first run play no part in this count.
+    const std::size_t restart_rows = statuses.size() - first_run_rows;
+    EXPECT_EQ(restart_rows, hven::detail::kRestorationStallMinPasses + 1);
 }
 
 } // namespace hven

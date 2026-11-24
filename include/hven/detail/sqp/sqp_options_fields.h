@@ -89,7 +89,8 @@
       "Sufficient-reduction resume fraction of the entry violation. 0 is off.")                    \
     X(restoration_stall_factorizations, r_ge(0.0),                                                 \
       "The restoration phase's stall window: the phase ends when its best violation has not "     \
-      "fallen by 10% over this many factorizations.")                                             \
+      "fallen by 10% over this many factorizations and at least five passes; a window of 0 "      \
+      "means after five passes.")                                                                 \
     X(lbfgs_update_on_reject, r_any(),                                                             \
       "Under kLbfgsDamped, also offer the pair of a rejected trial.")                              \
     X(lbfgs_nonlinear_only, r_any(),                                                               \

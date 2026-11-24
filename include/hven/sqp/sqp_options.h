@@ -378,12 +378,13 @@ struct SqpAdvancedOptions {
     double restoration_resume_reduction = 0.1;
 
     /// The restoration phase's stall window, in factorizations (RF-1); >= 0, default 5000.
-    /// The phase ends when its best parent violation (over every phase iterate) has not fallen by
-    /// at least 10% over the last this-many factorizations and at least five passes (RF-1c); a
-    /// regularized restart starts a fresh window but keeps the best. A
-    /// stalled phase ends at its best-h point; one the resume tests refuse ends the solve kStalled
-    /// beside StopReason::kRestorationWorkLimit. The caller's `common.max_factorizations` stays the
-    /// hard cap on the whole solve.
+    /// The phase ends when its best parent violation (over every phase iterate) has not fallen
+    /// by at least 10% over the last this-many factorizations, measured against a reference at
+    /// least five passes back (RF-1c): a stall verdict rests on at least six passes of the
+    /// current run, so a window of 0 means "after five passes". A regularized restart starts a
+    /// fresh window but keeps the best. A stalled phase ends at its best-h point; one the
+    /// resume tests refuse ends the solve kStalled beside StopReason::kRestorationWorkLimit.
+    /// The caller's `common.max_factorizations` stays the hard cap on the whole solve.
     Index restoration_stall_factorizations = 5000;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra

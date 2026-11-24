@@ -13532,6 +13532,36 @@ TEST(Rf1RestorationStall, ANewRunKeepsTheBestAndForgetsTheSamples) {
     }
     EXPECT_FALSE(p.observe(50, 0.5));
     EXPECT_FALSE(p.observe(60, 0.4));
+    // The kept best is what cuts a restart that never gets below it. A best of 1.0, a new run,
+    // then six passes (each costing 100, ten times the window) falling 5.0 -> 2.0: every sample
+    // carries the kept best 1.0, and 1.0 is no 10% fall against itself, so the sixth pass is cut.
+    // Were the best forgotten, the restart's own fall (5.0 -> 2.0) would keep it alive.
+    const auto restart = [](bool forget_best) {
+        RestorationStallWindow r(10);
+        r.observe(0, 1.0);
+        r.new_run();
+        // The counterfactual: a window that never saw the 1.0 (what a new_run that also reset the
+        // best would leave).
+        if (forget_best) {
+            r = RestorationStallWindow(10);
+        }
+        const double falling[] = {5.0, 4.0, 3.5, 3.0, 2.5, 2.0};
+        std::vector<bool> cut;
+        Index f = 100;
+        for (const double h : falling) {
+            cut.push_back(r.observe(f, h));
+            f += 100;
+        }
+        return cut;
+    };
+    const std::vector<bool> kept = restart(false);
+    const std::vector<bool> forgotten = restart(true);
+    for (std::size_t i = 0; i + 1 < kept.size(); ++i) {
+        EXPECT_FALSE(kept[i]) << "pass " << i << ": under the floor";
+        EXPECT_FALSE(forgotten[i]) << "pass " << i << ": under the floor";
+    }
+    EXPECT_TRUE(kept.back()) << "the best kept at 1.0: the restart never falls below it";
+    EXPECT_FALSE(forgotten.back()) << "the best forgotten: 5.0 -> 2.0 is a fall";
 }
 
 TEST(Rf1RestorationStall, TheBestIsARunningMinimumAndTheWindowSlides) {

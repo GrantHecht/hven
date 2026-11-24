@@ -6735,7 +6735,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     Index phase_run = 0;
     // THE PHASE'S STALL WINDOW (RF-1 ruling S-1, replacing design 4.1's fixed budget): the
     // phase is cut only when its best parent h has not fallen by at least 10% over the last
-    // `advanced.restoration_stall_factorizations` factorizations, counted across its runs.
+    // `advanced.restoration_stall_factorizations` factorizations and at least five passes,
+    // counted within the current run (a regularized restart starts a fresh window; the running
+    // best is kept across runs).
     // The caller's `common.max_factorizations` stays the hard cap.
     const Index phase_f_entry = st.out.counters.factorizations;
     detail::RestorationStallWindow phase_stall(opts_.advanced.restoration_stall_factorizations);

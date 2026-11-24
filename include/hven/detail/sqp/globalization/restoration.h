@@ -47,15 +47,18 @@ inline constexpr std::size_t kRestorationStallMinPasses = 5;
 
 /// @brief The restoration phase's stall test (RF-1 ruling S-1, replacing design 4.1's fixed
 ///        budget): the phase is stalled when its best parent h has not fallen by at least
-///        10% over the last `window` factorizations.
+///        10% over the last `window` factorizations and at least five passes (RF-1c).
 ///
 /// `observe(F, h)` is called once per measured pass with the phase's cumulative
 /// factorizations F (across the phase's runs) and that pass's parent h. The window's
 /// best is the running minimum of every h observed, so a regularized restart whose own
-/// incumbent starts higher does not undo progress. Stalled at F iff F >= window (counted
-/// from the first observation's F) and best(F) > kRestorationStallFraction * best(F -
-/// window), where best(F - window) is the best at the latest observation made at or before
-/// F - window. A NaN observation never improves the best.
+/// incumbent starts higher does not undo progress; `new_run()` forgets the samples but
+/// keeps that best. Stalled at F iff at least kRestorationStallMinPasses + 1 = 6 passes
+/// have been observed in this run (since construction or the last `new_run()`) and
+/// best(F) > kRestorationStallFraction * the reference best. The reference is the best
+/// recorded at the latest sample that lies at or before F - window AND at least
+/// kRestorationStallMinPasses passes before this one; with no such sample there is no
+/// verdict. A NaN observation never improves the best.
 class RestorationStallWindow {
   public:
     explicit RestorationStallWindow(Index window) : window_(window) {}
