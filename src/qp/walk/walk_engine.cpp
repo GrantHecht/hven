@@ -677,6 +677,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // set at 0), re-read at each price() under the safeguard
     // (eqp_answer_meets_working_rows). Unarmed, the centre is 0.
     const p1s::Env p1 = p1s::read_env(); // P1SCRATCH
+    static const bool d2t = std::getenv("HVEN_D2T") != nullptr; // C522 D-2T
+    detail::dec_d2_trig_live() = false;
     bool dual_centring = p1.mode == p1s::kLive;
     EqpDualCentre dual_k{};
     // Copy-centre state (kEvery / kFace / kSeedOnly).
@@ -1551,6 +1553,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // here whether or not the ride below fires, so it can never arm an
         // iteration that did not follow a drop.
         const DropRecord dropped = last_drop;
+        { // C522 D-3: the release itself
+            static const int d3_row = detail::dec_env_int("HVEN_D3_ROW", -1);
+            if (dropped.active && dropped.is_ineq && dropped.idx == d3_row) {
+                const double xm = x.lpNorm<Eigen::Infinity>();
+                const double rs = std::max({1.0, std::abs(qp.bi(d3_row)), ai_row_norm1(d3_row) * xm});
+                std::fprintf(stderr, "[d3] RELEASED it=%ld s=%.6e thr(lam=0)=%.6e eqp_lam=%.6g\n", (long)iter,
+                             qp.Ai.row(d3_row).dot(x) - qp.bi(d3_row), row_tolerance(rs, 0.0, eff_opts),
+                             lambda_i(d3_row));
+            }
+        }
         last_drop = DropRecord{};
 
         const double x_inf = x.lpNorm<Eigen::Infinity>();
@@ -3515,7 +3527,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 p1_refuse();
             }
         }
-        if (readmitted && p1.mode == p1s::kTrig && !dual_centring) {
+        if (readmitted && d2t && !detail::dec_d2_trig_live()) { // C522 D-2T: converge, no rung
+            detail::dec_d2_trig_live() = true;
+            ++counters.dual_centre_arms;
+            discard_factor_state();
+        } else if (readmitted && p1.mode == p1s::kTrig && !dual_centring) {
             dual_centring = true;
             ++counters.dual_centre_arms;
         } else if (readmitted && !p1.norelrung &&
@@ -3572,6 +3588,26 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     stagnation_read = true;
                     stagnation_idle = -1;
                 }
+            }
+        }
+    }
+    { // C522 D-4 (scratch): the footprint-free certificate reading, and HVEN_CGATE=M its gate
+        static const char *d4 = std::getenv("HVEN_D4");
+        static const double cgate = std::getenv("HVEN_CGATE") ? std::atof(std::getenv("HVEN_CGATE")) : 0.0;
+        if (status == QpStatus::kOptimal && (d4 != nullptr || cgate > 0.0)) {
+            const detail::TerminalKkt tk = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
+            const double rows_m = tk.rows / eff_opts.feasibility_tol;
+            const double compl_m = tk.complementarity / eff_opts.feasibility_tol;
+            const bool fail = cgate > 0.0 && !(rows_m <= cgate &&
+                                               compl_m <= detail::kTerminalPolishComplFactor);
+            if (d4 != nullptr) {
+                std::fprintf(stderr, "[d4] n=%ld me=%ld mi=%ld minors=%ld rows/ftol=%.3e compl/ftol=%.3e stat=%.3e gray=%ld gate=%s\n",
+                             (long)n, (long)me, (long)mi, (long)counters.minor_iters, rows_m, compl_m,
+                             tk.stationarity, (long)counters.optimal_row_gray_exits,
+                             fail ? "REFUSED" : "pass");
+            }
+            if (fail) {
+                status = QpStatus::kNumericalError;
             }
         }
     }
@@ -3675,6 +3711,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                      static_cast<long>(counters.ascent_footprint_declines), p1_dlam_max, p1_lam_max,
                      eff_opts.dual_regularization, p1_tg);
     }
+    detail::dec_d2_trig_live() = false; // C522 D-2T: per solve
     QpSolution out;
     out.status = status;
     out.x = std::move(x);
@@ -3813,6 +3850,18 @@ void QpEngine::refresh_shifts(const QpProblem &qp, const Vec &x, const Vec &ai_r
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
         const double s = Aix(j) - qp.bi(j);
         shift(j) = (s > row_tolerance(row_scale, lambda_i(j), opts)) ? s : 0.0;
+        { // C522 D-3 (scratch): row HVEN_D3_ROW's residual against the refresh threshold
+            static const int d3_row = detail::dec_env_int("HVEN_D3_ROW", -1);
+            static int d3_left = detail::dec_env_int("HVEN_D3_MAX", 3000);
+            if (j == d3_row && d3_left > 0) {
+                --d3_left;
+                std::fprintf(stderr, "[d3] refresh s=%.6e thr=%.6e feas=%.3e mu|lam|=%.3e lam=%.6g working=%d -> %s\n", s,
+                             row_tolerance(row_scale, lambda_i(j), opts), opts.feasibility_tol * row_scale,
+                             opts.dual_regularization * std::abs(lambda_i(j)), lambda_i(j),
+                             in_working(ws, j) ? 1 : 0,
+                             shift(j) > 0.0 ? (in_working(ws, j) ? "shift(kept)" : "READMIT") : "slack-ok");
+            }
+        }
         if (shift(j) > 0.0 && !in_working(ws, j)) {
             if (!seen.shift_refused.empty() &&
                 seen.shift_refused[static_cast<std::size_t>(j)] != 0) {

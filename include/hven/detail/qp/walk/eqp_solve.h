@@ -188,7 +188,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -356,6 +359,26 @@ struct EqpDualCentre {
 // untouched, so every consumer reads today's mu*|lambda| bit for bit.
 inline double footprint_dual(double lambda, const Vec *centre, Index j) {
     return centre != nullptr ? lambda - (*centre)(j) : lambda;
+}
+
+// C522 DECIDERS (scratch, p1a-diag): HVEN_D1=1 logs 10 mu-free refinement steps per eliminated
+// solve on a copy (row HVEN_D1_ROW's multiplier per step; at most HVEN_D1_MAX solves logged);
+// HVEN_D2=1|2 iterates the mandatory mu-free step to convergence (zero centre, no cross-pass
+// state): 1 = keep a step while the residual strictly falls, 2 = the accuracy stop's 0.1 gate;
+// stop at the rel floor or kMaxBorderRefineSteps total.
+inline int dec_env_int(const char *k, int dflt) {
+    const char *v = std::getenv(k);
+    return v != nullptr ? std::atoi(v) : dflt;
+}
+// D-2T: the converged refinement armed per solve by the walk's release re-admission (in place of
+// the rung); a per-solve flag the walk resets at run() entry -- no multiplier state.
+inline bool &dec_d2_trig_live() {
+    thread_local bool v = false;
+    return v;
+}
+inline int dec_d2() {
+    static const int v = dec_env_int("HVEN_D2", 0);
+    return v != 0 ? v : (dec_d2_trig_live() ? 1 : 0);
 }
 
 inline bool dual_centre_live(const EqpDualCentre &c) {
@@ -758,8 +781,62 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
 
         if (!kkt.dense_shifted) {
             const Vec y_model = y;
-            y = y + detail::solve_vec(kkt, residual_of(y));
-            if (opts.independent_working_set) {
+            const Vec corr0 = detail::solve_vec(kkt, residual_of(y));
+            y = y + corr0;
+            static const int d1 = dec_env_int("HVEN_D1", 0);
+            if (d1 != 0 && opts.dual_regularization > 0.0) { // C522 D-1: measure only, on a copy
+                static const int d1_row = dec_env_int("HVEN_D1_ROW", 905);
+                static int d1_left = dec_env_int("HVEN_D1_MAX", 400);
+                Index pos = -1;
+                for (Index k = 0; k < n_working; ++k) {
+                    if (aw[static_cast<std::size_t>(k)] == d1_row) {
+                        pos = n_free + me + k;
+                    }
+                }
+                if (pos >= 0 && d1_left > 0) {
+                    --d1_left;
+                    Vec yy = y;
+                    std::fprintf(stderr, "[d1] nf=%ld me=%ld nw=%ld lam_reg=%.6g lam_s1=%.6g res_rows:", (long)n_free,
+                                 (long)me, (long)n_working, y_model(pos), yy(pos));
+                    Vec res = residual_of(yy);
+                    std::string lams;
+                    for (int st = 0; st < 10; ++st) {
+                        const double rr = nc > 0 ? detail::nan_sticky_inf_norm(Vec(res.segment(n_free, nc))) : 0.0;
+                        std::fprintf(stderr, " %.3e", rr);
+                        yy += detail::solve_vec(kkt, res);
+                        res = residual_of(yy);
+                        lams += " " + std::to_string(yy(pos));
+                    }
+                    std::fprintf(stderr, " | lam_s2..s11:%s\n", lams.c_str());
+                }
+            }
+            if (dec_d2() != 0 && opts.dual_regularization > 0.0) { // C522 D-2
+                const double floor_ = detail::kBorderRefineRelFloor *
+                                      std::max(1.0, detail::nan_sticky_inf_norm(rhs));
+                Vec res = residual_of(y);
+                double res_inf = detail::nan_sticky_inf_norm(res);
+                double last = free_inf_of(corr0);
+                for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
+                    if (!(res_inf > floor_)) {
+                        break;
+                    }
+                    const Vec corr = detail::solve_vec(kkt, res);
+                    const Vec cand = y + corr;
+                    Vec cres = residual_of(cand);
+                    const double cres_inf = detail::nan_sticky_inf_norm(cres);
+                    const double corr_inf = free_inf_of(corr);
+                    const bool keep = dec_d2() == 2 ? accuracy_step_contracts(cres_inf, res_inf, corr_inf, last)
+                                                    : cres_inf < res_inf;
+                    if (!keep) {
+                        break;
+                    }
+                    y = cand;
+                    res = std::move(cres);
+                    res_inf = cres_inf;
+                    last = corr_inf;
+                    ++accuracy_steps;
+                }
+            } else if (opts.independent_working_set) {
                 accuracy_steps += refine_to_accuracy(y_model, y);
             }
         } else {

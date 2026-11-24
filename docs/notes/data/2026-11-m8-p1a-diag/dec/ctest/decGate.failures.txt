@@ -1,0 +1,19 @@
+The following tests FAILED:
+	1420 - QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused (Failed)
+	1481 - QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin (Failed)
+	1627 - QpStagnationStop.AResidualContractingAtPointEightCertifiesWithoutAReading (Failed)
+	2369 - Threads.ZeroLeavesEveryFactorAtTheBackendDefault (Failed)
+	2373 - Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration (Failed)
+	2577 - JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration (Failed)
+	3217 - SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness (Failed)
+	3315 - HsSweepCorpus.Corpus (Failed)
+	3316 - HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep (Failed)
+	3545 - SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm (Failed)
+	3548 - SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm (Failed)
+	3553 - SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm (Failed)
+	3557 - SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (Failed)
+	3558 - SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm (Failed)
+	3559 - SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe (Failed)
+	3850 - B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (Failed)
+Errors while running CTest
+99% tests passed, 16 tests failed out of 4114

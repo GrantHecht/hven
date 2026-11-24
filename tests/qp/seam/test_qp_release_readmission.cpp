@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include <Eigen/Dense>
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/walk/walk_engine.h>
@@ -203,4 +204,114 @@ TEST(P1Probe, RunDump) {
                 static_cast<long>(s.counters.factorizations),
                 static_cast<long>(s.counters.dual_centre_arms),
                 static_cast<long>(s.counters.dual_regularization_decreases), fv, d.result.c_str());
+    // P1A-1b ORACLE (scratch): every kOptimal exit re-checked against (a) the QP's own KKT
+    // (qp_dump_kkt, recomputed from the QP) and (b) the UNREGULARIZED EQP on the final working
+    // set (dense, min-norm complete orthogonal decomposition, pins at their bound, TR-held
+    // indices at the effective-box side x sits on).
+    if (s.status == QpStatus::kOptimal) {
+        const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
+        const auto &qp = d.qp;
+        const Index n = qp.n();
+        Vec lo = qp.lower, up = qp.upper;
+        const double tr = std::isfinite(d.overrides.trust_region_radius) ? d.overrides.trust_region_radius
+                                                                         : d.opts.trust_region_radius;
+        if (std::isfinite(tr)) {
+            Vec x0 = d.has_seed ? d.seed.x : Vec::Zero(n);
+            for (Index i = 0; i < n; ++i) {
+                x0(i) = std::clamp(x0(i), qp.lower(i), qp.upper(i));
+                lo(i) = std::max(lo(i), x0(i) - tr);
+                up(i) = std::min(up(i), x0(i) + tr);
+            }
+        }
+        std::vector<Index> fr;
+        Vec xp = Vec::Zero(n);
+        std::vector<char> pinned(static_cast<std::size_t>(n), 0);
+        for (Index i = 0; i < n; ++i) {
+            const auto st = s.bound_state[static_cast<std::size_t>(i)];
+            const bool trh = static_cast<std::size_t>(i) < s.tr_active.size() && s.tr_active[static_cast<std::size_t>(i)];
+            if (st == BoundState::kAtLower) {
+                xp(i) = qp.lower(i);
+                pinned[static_cast<std::size_t>(i)] = 1;
+            } else if (st == BoundState::kAtUpper) {
+                xp(i) = qp.upper(i);
+                pinned[static_cast<std::size_t>(i)] = 1;
+            } else if (trh) {
+                xp(i) = std::abs(s.x(i) - lo(i)) <= std::abs(up(i) - s.x(i)) ? lo(i) : up(i);
+                pinned[static_cast<std::size_t>(i)] = 1;
+            } else {
+                fr.push_back(i);
+            }
+        }
+        std::vector<Index> wi;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            if (s.ineq_active[static_cast<std::size_t>(j)]) {
+                wi.push_back(j);
+            }
+        }
+        const Index nf = static_cast<Index>(fr.size()), me = qp.me(), nw = static_cast<Index>(wi.size());
+        const Eigen::MatrixXd H = Eigen::MatrixXd(qp.H).selfadjointView<Eigen::Upper>();
+        const Eigen::MatrixXd Ae = Eigen::MatrixXd(qp.Ae), Ai = Eigen::MatrixXd(qp.Ai);
+        const Index dim = nf + me + nw;
+        Eigen::MatrixXd K = Eigen::MatrixXd::Zero(dim, dim);
+        Vec rhs = Vec::Zero(dim);
+        const Vec hxp = H * xp;
+        for (Index a = 0; a < nf; ++a) {
+            for (Index b = 0; b < nf; ++b) {
+                K(a, b) = H(fr[a], fr[b]);
+            }
+            rhs(a) = -qp.g(fr[a]) - hxp(fr[a]);
+        }
+        const auto put_row = [&](Index r, const Eigen::MatrixXd &A, Index j, double b) {
+            double bx = b - A.row(j).dot(xp);
+            for (Index a = 0; a < nf; ++a) {
+                K(r, a) = A(j, fr[a]);
+                K(a, r) = A(j, fr[a]);
+            }
+            rhs(r) = bx;
+        };
+        for (Index j = 0; j < me; ++j) {
+            put_row(nf + j, Ae, j, qp.be(j));
+        }
+        for (Index k2 = 0; k2 < nw; ++k2) {
+            put_row(nf + me + k2, Ai, wi[k2], qp.bi(wi[k2]));
+        }
+        const Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(K);
+        const Vec sol = cod.solve(rhs);
+        Vec xo = xp;
+        for (Index a = 0; a < nf; ++a) {
+            xo(fr[a]) = sol(a);
+        }
+        // multipliers: K's lower rows carry +A, so stationarity reads Hx + g + A'y = 0 -> lambda = y.
+        Vec leo = sol.segment(nf, me);
+        double sign_o = 0.0, feas_o = 0.0;
+        for (Index k2 = 0; k2 < nw; ++k2) {
+            sign_o = std::max(sign_o, -sol(nf + me + k2));
+        }
+        const Vec hxo = H * xo;
+        Vec zo = hxo + qp.g;
+        if (me > 0) zo += Ae.transpose() * leo;
+        for (Index k2 = 0; k2 < nw; ++k2) zo += Ai.row(wi[k2]).transpose() * sol(nf + me + k2);
+        for (Index i = 0; i < n; ++i) {
+            if (!pinned[static_cast<std::size_t>(i)]) continue;
+            const bool at_lo = xo(i) == lo(i) || xo(i) == qp.lower(i);
+            sign_o = std::max(sign_o, at_lo ? -zo(i) : zo(i));
+        }
+        if (qp.mi() > 0) feas_o = std::max(0.0, (Ai * xo - qp.bi).maxCoeff());
+        for (Index i = 0; i < n; ++i) feas_o = std::max({feas_o, lo(i) - xo(i), xo(i) - up(i)});
+        const double eqres_o = me > 0 ? (Ae * xo - qp.be).lpNorm<Eigen::Infinity>() : 0.0;
+        const double kres = (K * sol - rhs).lpNorm<Eigen::Infinity>();
+        const double fo = hven::test_support::qp_dump_objective(d, xo);
+        const double fdiff = std::abs(fv - fo) / std::max(1.0, std::abs(fo));
+        const double dx = (s.x - xo).lpNorm<Eigen::Infinity>() / std::max(1.0, xo.lpNorm<Eigen::Infinity>());
+        const bool kkt_ok = k.eq <= 1e-6 && k.ineq <= 1e-6 && k.box <= 1e-9 &&
+                            k.stationarity_beyond_rounding <= 1e-6 && k.sign <= 1e-6 &&
+                            k.complementarity <= 1e-6;
+        const bool eqp_ok = fdiff <= 1e-7;
+        std::printf("[orc] %s kkt eq=%.2e ineq=%.2e box=%.2e stat=%.2e statbr=%.2e sign=%.2e compl=%.2e | eqp f=%.16g "
+                    "fdiff=%.2e dx=%.2e rank=%ld/%ld kres=%.1e eq_o=%.1e feas_o=%.1e sign_o=%.1e | VERDICT=%s\n",
+                    f, k.eq, k.ineq, k.box, k.stationarity, k.stationarity_beyond_rounding, k.sign,
+                    k.complementarity, fo, fdiff, dx, static_cast<long>(cod.rank()), static_cast<long>(dim),
+                    kres, eqres_o, feas_o, sign_o,
+                    kkt_ok && eqp_ok ? "OK" : (!kkt_ok ? "FALSE-KKT" : "FALSE-EQP"));
+    }
 }

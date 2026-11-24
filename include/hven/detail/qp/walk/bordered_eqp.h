@@ -378,6 +378,37 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
 
     Vec best_residual = residual_of(best);
     double best_norm = detail::nan_sticky_inf_norm(best_residual);
+    if (dec_d2() != 0 && opts.dual_regularization > 0.0) { // C522 D-2: to the floor, no footprint stop
+        double last = resolution != nullptr ? free_inf(Vec(best - sol)) : detail::nan_sticky_inf_norm(Vec(best - sol));
+        for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
+            if (!(best_norm > rel_floor)) {
+                break;
+            }
+            const Vec correction = schur.solve(best_residual);
+            const Vec candidate = best + correction;
+            Vec candidate_residual = residual_of(candidate);
+            const double candidate_norm = detail::nan_sticky_inf_norm(candidate_residual);
+            const double corr = resolution != nullptr ? free_inf(correction) : detail::nan_sticky_inf_norm(correction);
+            const bool keep = dec_d2() == 2 ? accuracy_step_contracts(candidate_norm, best_norm, corr, last)
+                                            : candidate_norm < best_norm;
+            if (!keep) {
+                break;
+            }
+            best = candidate;
+            best_residual = std::move(candidate_residual);
+            best_norm = candidate_norm;
+            last = corr;
+            ++steps;
+        }
+        if (steps_out != nullptr) {
+            *steps_out = steps;
+        }
+        if (outcome != nullptr) {
+            const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
+            outcome->target_met = !(best_norm > std::max(footprint, rel_floor));
+        }
+        return best;
+    }
     for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
         // P1A-1b: the footprint is reg*(y - c) with a live centre (footprint_dual's currency).
         const double footprint = detail::nan_sticky_inf_norm(

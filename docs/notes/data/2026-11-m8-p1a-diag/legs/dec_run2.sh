@@ -1,0 +1,4 @@
+cd /home/ghecht/Projects/hven/.claude/worktrees/p1a-diag
+bash docs/notes/data/2026-11-m8-p1a-diag/legs/dec_qprun.sh .scratch/acopr.lst "base=HVEN_D4=1 D2=HVEN_D4=1:HVEN_D2=1:HVEN_P1_NORELRUNG=1" /home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/.scratch/out/dec/fix_acopr.txt
+bash docs/notes/data/2026-11-m8-p1a-diag/legs/dec_qprun.sh docs/notes/data/2026-11-m8-p1a-diag/legs/dec_fix.txt "D2T=HVEN_D4=1:HVEN_D2T=1:HVEN_P1_NORELRUNG=1 gate=HVEN_D4=1:HVEN_CGATE=10 D2Tgate=HVEN_D4=1:HVEN_CGATE=10:HVEN_D2T=1:HVEN_P1_NORELRUNG=1" /home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/.scratch/out/dec/fix2.txt
+bash docs/notes/data/2026-11-m8-p1a-diag/legs/arms.sh docs/notes/data/2026-11-m8-p1a-diag/legs/train238.cells /home/ghecht/Projects/hven/.claude/worktrees/p1a-diag/.scratch/out/dec/train "D2T=HVEN_D4=1:HVEN_D2T=1:HVEN_P1_NORELRUNG=1 D2Tgate=HVEN_D4=1:HVEN_CGATE=10:HVEN_D2T=1:HVEN_P1_NORELRUNG=1"

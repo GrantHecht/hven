@@ -1,0 +1,13 @@
+pf1 PF1_f7_n1000_path_corrupted_qp1.txt 20000
+qp26m42 YRK_YORKNET_qp26_m42.txt 0
+qp25 YRK_YORKNET_qp25.txt 0
+qp7 QC8_DALLASM_qp7.txt 0
+sdl10 SDL_DALLASM_QN_qp10.txt 0
+dembo0 ../p1a/FLOSS_DEMBO7_D_m0_rung0.txt 0
+alc20 ../p1a/FLOSS_ALLINITC_D_m20_main_base.txt 0
+alc21 ../p1a/FLOSS_ALLINITC_D_m21_main_base.txt 0
+stb2 STEENBRB_def-qp2.txt 0
+stb3 Cs_STEENBRB_qp3.txt 0
+acopr118e9 BPS_ACOPR118_entry9.txt 0
+acopr57q0 ACOPR57_def-qp0.txt 0
+acopr57q1 ACOPR57_def-qp1.txt 0

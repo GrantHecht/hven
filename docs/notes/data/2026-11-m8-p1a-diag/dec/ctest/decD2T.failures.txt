@@ -1,0 +1,4 @@
+The following tests FAILED:
+	1606 - QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (Failed)
+Errors while running CTest
+99% tests passed, 1 tests failed out of 4114
