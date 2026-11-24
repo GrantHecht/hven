@@ -1,0 +1,17 @@
+box-lane: lane 1 acquired 2026-11-24T02:08:18-05:00
+FOREGROUND_START 2026-11-24T02:08:18-05:00 head fd59231d0acc70b9ead91c5f058409ddb6844820
+build rel rc=0
+[117/120] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+rc=0
+	883 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	884 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-24T02:12:14-05:00
+build dbg rc=0
+[188/191] Linking CXX executable examples/hven_example_10_first_derivatives_only
+rc=0
+	1636 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1637 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-24T02:24:05-05:00
+FOREGROUND_END 2026-11-24T02:24:05-05:00
