@@ -1,0 +1,2 @@
+TOTALS hven-sqp: rows 238 optimal 210->210 optimal+acceptable 210->210 factorizations 200759->200759 (+0) iterations 4598->4598 (+0)
+AB2_SUMMARY status movers 0; lost solves 0; missing 0

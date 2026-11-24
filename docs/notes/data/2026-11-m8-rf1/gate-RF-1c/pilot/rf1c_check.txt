@@ -1,0 +1,21 @@
+MOVER 020-BRITGAS default+advanced.adaptive_dual_regularization_max=1e-6 | R stalled it=1 fact=16212 f=0.63312054590684352 cert=0 | NEW max_iter it=1 fact=18227 f=12.755928485404059 cert=0
+MOVER 021-BRITGAS default+advanced.adaptive_dual_regularization_max=1e-6+advanced.trust_region_growth=kRatioOrFeasibilityStep | R stalled it=1 fact=16212 f=0.63312054590684352 cert=0 | NEW max_iter it=1 fact=18227 f=12.755928485404059 cert=0
+MOVER 022-BRITGAS default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kAnyAccepted | R stalled it=1 fact=18159 f=5.3366966823003397 cert=0 | NEW numerical_error it=50 fact=178441 f=4.6740359103121927 cert=0
+MOVER 023-BRITGAS default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kRatioOrFeasibilityStep | R stalled it=1 fact=18159 f=5.3366966823003397 cert=0 | NEW numerical_error it=50 fact=178441 f=4.6740359103121927 cert=0
+MOVER 024-BRITGAS default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted | R stalled it=1 fact=25937 f=7.5840082741229402 cert=0 | NEW numerical_error it=16 fact=68400 f=7.4934504317764459 cert=0
+MOVER 025-BRITGAS default+advanced.trust_region_growth=kAnyAccepted | R stalled it=1 fact=19967 f=5.3366966823003397 cert=0 | NEW numerical_error it=16 fact=75120 f=7.4934504317764459 cert=0
+MOVER 026-BRITGAS default+advanced.trust_region_growth=kRatioOrFeasibilityStep | R stalled it=1 fact=19967 f=5.3366966823003397 cert=0 | NEW numerical_error it=16 fact=75120 f=7.4934504317764459 cert=0
+MOVER 027-BRITGAS default+qp.working_set_algebra=kRefactorize | R stalled it=1 fact=25373 f=1.042343019919995 cert=0 | NEW optimal it=87 fact=204501 f=0 cert=0
+MOVER 050-YORKNET default | R numerical_error it=6 fact=14137 f=53285.438317584849 cert=0 | NEW numerical_error it=12 fact=32503 f=53081.683829806236 cert=0
+MOVER 051-YORKNET default+advanced.adaptive_dual_regularization_max=1e-10 | R numerical_error it=11 fact=19913 f=88296.988683319403 cert=0 | NEW numerical_error it=36 fact=46433 f=63650.489112397168 cert=0
+MOVER 052-YORKNET default+advanced.adaptive_dual_regularization_max=1e-10+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted+qp.working_set_algebra=kRefactorize | R stalled it=27 fact=15262 f=36666.102875038167 cert=0 | NEW numerical_error it=31 fact=18878 f=36702.935543245854 cert=0
+MOVER 055-YORKNET default+advanced.elastic_rung_engine=kTier | R stalled it=72 fact=48964 f=14535.185778373685 cert=0 | NEW numerical_error it=80 fact=51053 f=14535.532299771687 cert=0
+MOVER 056-YORKNET default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kAnyAccepted | R max_iter it=153 fact=43181 f=14527.967652061192 cert=0 | NEW numerical_error it=16 fact=46808 f=14863.166042452265 cert=0
+MOVER 057-YORKNET default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kRatioOrFeasibilityStep | R max_iter it=153 fact=43692 f=14531.798234508196 cert=0 | NEW numerical_error it=16 fact=46779 f=14863.166042452265 cert=0
+MOVER 058-YORKNET default+advanced.second_order_correction=false | R numerical_error it=12 fact=19904 f=52850.22616517709 cert=0 | NEW numerical_error it=9 fact=27593 f=52997.232019903611 cert=0
+MOVER 059-YORKNET default+advanced.second_order_correction=false+advanced.trust_region_growth=kAnyAccepted | R numerical_error it=53 fact=20415 f=14682.228868039667 cert=0 | NEW numerical_error it=55 fact=22747 f=14686.905984897283 cert=0
+MOVER 060-YORKNET default+advanced.trust_region_growth=kAnyAccepted | R numerical_error it=53 fact=20433 f=14682.228868039667 cert=0 | NEW numerical_error it=55 fact=22765 f=14686.905984897283 cert=0
+MOVER 061-YORKNET default+advanced.trust_region_growth=kRatioOrFeasibilityStep | R numerical_error it=53 fact=20433 f=14682.228868039667 cert=0 | NEW numerical_error it=55 fact=22765 f=14686.905984897283 cert=0
+MOVER 062-YORKNET default+qp.working_set_algebra=kRefactorize | R stalled it=34 fact=20241 f=14711.7381214426 cert=0 | NEW numerical_error it=53 fact=40260 f=14683.144819043977 cert=0
+SOLVED R 19 NEW 20
+VERDICT PILOT_BARS_MET
