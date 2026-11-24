@@ -13,6 +13,7 @@ set(_hven_core_sources
     test_layering.cpp
     test_pattern_hash.cpp
     test_type_storage.cpp
+    test_build_config.cpp
     test_version.cpp
 )
 list(APPEND _hven_core_sources

@@ -33,6 +33,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/core/solver_status.h>
+#include <hven/core/build_config.h>
 #include <hven/hven.h>
 #include <hven/ipm/ipm_solver.h>
 #include <hven/model/nlp.h>
@@ -250,6 +251,9 @@ bool check_options_reference() {
     }
     return true;
 }
+
+// A consumer reads the alignment the installed library was built with straight from its headers.
+HVEN_STATIC_ASSERT_EIGEN_ALIGNMENT();
 
 int main() {
     if (!check_options_reference()) {

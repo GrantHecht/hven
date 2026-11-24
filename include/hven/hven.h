@@ -12,6 +12,7 @@
 // core
 #include <hven/core/compiler.h>
 #include <hven/core/errors.h>
+#include <hven/core/build_config.h>
 #include <hven/core/ledger.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/core/solver_counters.h>

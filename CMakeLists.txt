@@ -501,6 +501,18 @@ target_compile_definitions(hven PUBLIC
 target_compile_definitions(hven_dep_eigen INTERFACE
     EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
 
+# The same value, readable from C++: the generated hven/core/build_config.h records the
+# alignment the library was built with (installed alongside the other headers), so a consumer
+# can check its own translation unit against it without reading hvenTargets.cmake.
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/hven/core/build_config.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/include/hven/core/build_config.h"
+    @ONLY)
+target_include_directories(hven PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/include/hven/core/build_config.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hven/core)
+
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
 
 # HVEN_VERSION_STRING follows the version-string-on-the-command-line idiom: it makes src/core/version.cpp forward the single source

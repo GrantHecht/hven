@@ -657,9 +657,14 @@ TEST(Layering, TheScanReadsTheWholeTree) {
 
     // Every hven/ include must name a file that exists: a dangling one inside a platform #if
     // would otherwise be invisible to this scan and to every build that does not take the branch.
+    // The one generated public header is written into the build tree by configure_file
+    // (include/hven/core/build_config.h.in), so it is not in the scanned source tree.
     std::string dangling;
     for (const FileScan &f : files) {
         for (const IncludeSite &s : f.includes) {
+            if (s.path == "hven/core/build_config.h") {
+                continue;
+            }
             const std::filesystem::path target =
                 std::filesystem::path(HVEN_INCLUDE_ROOT).parent_path() / s.path;
             if (!std::filesystem::exists(target)) {

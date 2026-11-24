@@ -97,8 +97,14 @@ c++ -std=c++20 -DEIGEN_MAX_ALIGN_BYTES=32 -I<prefix>/include main.cpp ...
 ```
 
 The value is the one printed at configure time (`hven: EIGEN_MAX_ALIGN_BYTES
-resolved to 32 ...`) and recorded in `hvenTargets.cmake` under
-`INTERFACE_COMPILE_DEFINITIONS`; read it from there if your build differs. The
+resolved to 32 ...`). You can also read it from the installed headers:
+`<hven/core/build_config.h>` (included by `<hven/hven.h>`) defines
+`hven::kBuiltEigenMaxAlignBytes`, the value the library was built with, and
+`hven::eigen_alignment_matches()`, which compares it with your translation
+unit's own `EIGEN_MAX_ALIGN_BYTES`. Put `HVEN_STATIC_ASSERT_EIGEN_ALIGNMENT();`
+at namespace scope in a translation unit of yours and a mismatch becomes a
+compile error instead of a heap corruption. The same value is recorded in
+`hvenTargets.cmake` under `INTERFACE_COMPILE_DEFINITIONS`. The
 other definitions in that list (`FMT_HEADER_ONLY`, `EIGEN_DONT_PARALLELIZE`, ...)
 belong in a hand-written compile line for the same reason.
 
