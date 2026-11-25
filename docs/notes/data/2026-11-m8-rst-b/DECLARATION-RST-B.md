@@ -5,15 +5,15 @@ edited afterwards; a failed or void leg chain gets a `-r2` file and this one is 
 changed after data. Precedent: `../2026-11-m8-rf1/DECLARATION-RF-1c.md`. Design and diagnosis:
 `.superpowers/rst-diag-2026-11-24.md`, sections (a)-(d), accepted as designed by ruling C514.
 
-**Pin (R): m8 `96789b9be`** (the I19-2a evidence commit; I19-2a shipped nothing, so R is that head with no
-default changed). The branch `rst-b` is rebased onto it (done: C' `7134445ff`, P `50393ebe6`, naming fix `3e4b2f87b`,
-rider `02c5a6408` + entry-rule `736c118a3`; hashes are of the rebased branch and are re-read from `git log` at the freeze). If m8 moves
-before the freeze the rebase is redone and the hashes here are re-stated in the frozen file; R is then the new
-head.
+**Pin (R): m8 `99712ec32`** (the census pin; it differs from the I19-2a evidence head `96789b9be` only by TU-3
+docs: `git diff --stat 96789b9be 99712ec32 -- src include bench tests` is empty, verified). I19-2a shipped nothing, so R is
+that head with no default changed. The branch `rst-b` is rebased onto it: C' `46761076f`, P `5375bfbf5`, naming fix
+`70d67680f`, rider `27384f25a`, entry-rule `795504e49` (hashes of the rebased branch, re-read from `git log` at the
+freeze). If m8 moves before the freeze the rebase is redone and R is restated in the frozen file.
 
 ## 1. The change (two commits of behaviour on R)
 
-**C' -- reporting, path-neutral by construction** (commit `7134445ff`):
+**C' -- reporting, path-neutral by construction** (commit `46761076f`):
 
 - `SqpCounters::restoration_factorizations` (the phases' factorizations), `restoration_unproductive_entries`
   (later requests with no step from a solved subproblem accepted since the previous resume) and
@@ -27,7 +27,7 @@ head.
   same path, same work.
 - Trace schema: one freeze-table row (new enum value, new stop reason, three trailing counter keys).
 
-**P -- path-moving** (commit `50393ebe6` + naming fix `3e4b2f87b` + rider `02c5a6408` + entry-rule `736c118a3`):
+**P -- path-moving** (commit `5375bfbf5` + naming fix `70d67680f` + rider `27384f25a` + entry-rule `795504e49`):
 
 - **F1.** The R4 trigger also reads `zero_motion_exhausted`. The E2 elastic route is unchanged (registered).
 - **F2.** `advanced.qp_retry_regularization_first` (bool, default **false**): R4 ahead of R2/R3 after a
@@ -115,10 +115,12 @@ radius-only placebo cannot move cells where the first radius never binds. This r
 before any row exists. The perturbation is applied in the HARNESS; **the binary under test is untouched** (no placebo
 arm of the library exists, no option is added for it).
 
-**HARNESS (pinned).** The ensemble harness is hven-bench branch `ens` at **`e4c1a1d`** (rule: its
-`docs/ensemble-rule.md`; mechanism `tu/ens.py`, `tu/ens_members.py`; tests `tests/test_ens.py`). The freeze records the
-harness sha and STOPS on any mismatch, so this pin is the one the frozen file restates. Commands used by the round (the
-store `S` and paths are the frozen file's):
+**HARNESS (pinned).** The ensemble harness is hven-bench branch `ens-reader` at **`37e24bb`** (settler C552; supersedes the
+interim `a0d4094`; the freeze records the harness sha and STOPS on mismatch). The census rows R's ensemble consists of
+were produced by `ens` `6e42a30`; the `lanes/` tree is identical at `e4c1a1d`, `6e42a30` and `37e24bb`
+(`git rev-parse <c>:lanes` = `386d43a5d7d591ff869bcd1f1c9b77a6159c036f`). Rule: its `docs/ensemble-rule.md` (section
+"Binary arms and the declared-binaries file"); mechanism `tu/ens.py`, `tu/ens_members.py`; tests `tests/test_ens.py`.
+Commands used by the round (the store `S` and paths are the frozen file's):
 
 - baseline ensemble and arm members: `python3 tu/ens.py arms <arm> --m 5 --kind x0` lists the member arm names
   (`<arm>@x1`..`@x5`); each runs through `tu/i19_run.py arm <name> --store S --binary <lane binary> ...`; the census
@@ -131,15 +133,23 @@ store `S` and paths are the frozen file's):
 - `python3 tu/ens.py read --store S --base H0 --arm <arm> --freeze FREEZE.json` (the decision read, per arm);
 - `python3 tu/ens.py power --store S --arm H0 --freeze FREEZE.json --event "restoration_entries>=1"` (the power gate).
 
-`H0` is the harness's name for the baseline arm; here it is R. **TODO-HARNESS-ARMS:** RST-B's arms (F, F2, F2', F+B1,
-F+B1+B2) differ in BINARY and options, not in the I19 lever table; whether `tu/i19_cells.py`' arm registry needs those
-names (and `--binary` per arm) before the freeze is the harness author's to confirm and is a freeze precondition.
+`H0` is the harness's name for the baseline arm; here it is R. RST-B's arms are binary arms: each is DECLARED in the
+declared-binaries file (section 5a), `ens.py read` takes `--binaries FILE`, and the certificate leg runs each arm with its
+own `bin=`. The arms' option overrides (section 2's table: `max_unproductive_restoration_entries`,
+`restoration_max_total_factorizations`, `qp_retry_regularization_first`, `max_consecutive_qp_failures`) are not levers of
+the I19 `options=` table: **TODO-HARNESS-OPTIONS** -- whether `options=` can name them, or the harness gains
+declared option-override arms, is the harness author's to settle; it is a freeze precondition (each arm's member rows must
+carry its full options label, which the loader checks).
 
-**Plan for sharing with the baseline census.** A census of the m8 head is running from `ens` `e4c1a1d`. R's ensemble rows
-here are the census rows ONLY IF R's lane binary sha256 equals the census binary's (recorded in the census
-`BINARIES.txt` and in each row's `# lane.binary.sha256`; the freeze STOPS otherwise): the pin R (`96789b9be`) is not
-necessarily the census head, so the default is that R's ensemble is run anew from this round's R binary, and sharing is
-a declared saving only if the two shas are equal when the frozen file is written. The frozen file states which.
+**R's ensemble IS the baseline census (settler ruling C547).** R's ensemble rows are the rows of the m8-head baseline
+census, not a fresh run: hven-bench `ens` `6e42a30` (the census harness; every census row carries
+`# harness.sha: 6e42a30...`), hven pin `99712ec324716e6d08ee0545a43d595ca15eec3f`, lane binary
+`3155a0834e9e9e7748fe51b818acafc5fd3ff502bf86e1f58ef2bb165f995bc0` (recorded in the census `BINARIES.txt` and in each
+row's `# lane.binary.sha256`), store `/home/ghecht/Projects/hven-bench-ens/.scratch/census-m8/store`. The freeze verifies
+that identity (provenance equal across every baseline member; the arm builds against the same pin) and STOPS otherwise.
+The census binary is the m8 head WITHOUT C': its side files lack the C' counters (`restoration_unproductive_entries`,
+`restoration_no_progress_requests`, `restoration_factorizations`), which exist only on the arms; comparisons read them as
+absent-in-R and use `restoration_entries`, `restoration_iters` and the existing columns for R.
 
 **1. Members and the decision ensemble.** The DECISION ensemble is the `x0` kind: member 0 (unperturbed) plus x1..x5, six
 runs, for the baseline R AND for every arm, **paired by seed** (member `@xj` of an arm and of R receive the identical
@@ -253,19 +263,39 @@ again on the pinned head.
 - F3 also moves a subproblem-failure trace line: the rung-exhausted exit above the floor is written as the ending
   warning (it was a notice beside the floor label).
 
-## 5a. BINARIES plan
+## 5a. BINARIES plan and the declared-binaries file
 
-One install per binary, built on the lane, `HVEN_FP_MODE=SAFER_FAST`, Release, no LTO; sha256 recorded in
-`gate-RST-B/BINARIES.txt` before any leg and re-checked at the end (`legs/binaries.sh`, named before the freeze).
+One install per binary, built on the lane, `HVEN_FP_MODE=SAFER_FAST`, Release, no LTO, clang. The declared-binaries file
+`gate-RST-B/BINARIES.txt` (format: ensemble-rule.md at `37e24bb`; only its `declare` lines are read) is written, with every
+sha filled from the builds, before any arm row, and re-checked at the end.
 
 | name | commit | used by |
 |---|---|---|
-| R | `96789b9be` (m8 pin; re-stated at the freeze) | R rows and R's ensemble (members perturbed by the harness; the binary is the same) |
-| C' | `7134445ff` | N0, C' rows |
-| P | the rider commit (rebased head of `rst-b` at the freeze) | arms F, F2, F2', F+B1, F+B1+B2 (overrides per section 2) |
+| R | `99712ec32` (m8 pin = the census pin) | R rows = the census rows |
+| C' | `46761076fbbdbc616a015ff4570b082443a454ab` | N0, C' rows |
+| P | `795504e49c82208d3c97039fbf68b0bda32a4689` (the code head of `rst-b`; later commits are docs only; re-read at the freeze) | arms F, F2, F2', F+B1, F+B1+B2 (overrides per section 2) |
+
+The plan (`<...>` filled from the builds; nothing below is a result):
+
+    declare H0   prefix=/home/ghecht/Projects/hven/.claude/worktrees/census/.scratch/install 99712ec324716e6d08ee0545a43d595ca15eec3f 3155a0834e9e9e7748fe51b818acafc5fd3ff502bf86e1f58ef2bb165f995bc0
+    declare C'   options=H0 prefix=<instC> base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=<laneC> lane_src=386d43a5d7d591ff869bcd1f1c9b77a6159c036f 46761076fbbdbc616a015ff4570b082443a454ab <shaC>
+    declare F        options=H0 prefix=<instP> base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=<laneP> lane_src=386d43a5d7d591ff869bcd1f1c9b77a6159c036f 795504e49c82208d3c97039fbf68b0bda32a4689 <shaP>
+    declare F2       (same build fields as F)
+    declare F2'      (same build fields as F)
+    declare F+B1     (same build fields as F)
+    declare F+B1+B2  (same build fields as F)
+
+`lane_src=` is required because the lane binary links `libhven` statically, so each arm's binary sha256 differs from
+the census lane's (`3155a083...`) although the lane source (`lanes/` tree sha `386d43a5...`) is the same; the harness
+requires it for any arm whose binary differs from the baseline's and compares it. The five P arms share one build, one
+lane binary and one install; they differ only in the option overrides (TODO-HARNESS-OPTIONS above). The `options=H0`
+fields are placeholders until that is settled. The reader checks `HVEN_PIN` equality for both prefixes, ancestry of each
+declared pin from R (`99712ec32` is an ancestor of both), and prints the `src/include` diff-stat. Sequence: build C' and P
+installs and their lanes (`scripts/i19_build_install.sh`, `scripts/i19_build_lane.sh` stamp `<binary>.lane-src`), fill the
+shas, write the file, then freeze.
 
 The rider changes nothing on a path without a non-finite rollback after a restoration resume; the frozen file
-records which of T/P/U/N rows (if any) differ between the P commit before the rider (`50393ebe6`+naming) and after it,
+records which of T/P/U/N rows (if any) differ between the P commit before the rider (`5375bfbf5`+naming) and after it,
 by a replay of the F+B1+B2 arm on the two binaries (leg N0r: 0 differences expected, any difference listed).
 
 ## 6. Box time (one lane, estimates)
