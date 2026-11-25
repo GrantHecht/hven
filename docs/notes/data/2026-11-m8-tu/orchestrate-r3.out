@@ -1,0 +1,252 @@
+PGREP_NOT_GATED (box-lane)
+FOREGROUND_START 2026-11-20T10:00:44-05:00
+code paths == 1333eb50845746a2ef905c9f91d60c220e11f31b, clean; HEAD 0027b9a17f90b6cabf9a6fa2c055ce9232341c04; base 331b3183747b5c1849651706f648de2c337ddf75
+corpus B sha256 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75 (declared dev-time 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75)
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build: ninja: no work to do.
+build trees up to date: /home/ghecht/Projects/hven/.claude/worktrees/tu0/build /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build
+LEG P1-rel start 2026-11-20T10:17:56-05:00
+box-lane: lane 0 acquired 2026-11-20T10:17:56-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T10:17:56-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-20T10:19:22-05:00
+LEG P1-rel rc=0 2026-11-20T10:19:22-05:00
+LEG P1-rel-criterion start 2026-11-20T10:19:22-05:00
+LEG P1-rel-criterion rc=0 2026-11-20T10:19:22-05:00
+LEG P1-dbg start 2026-11-20T10:19:22-05:00
+box-lane: lane 0 acquired 2026-11-20T10:19:22-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T10:19:22-05:00
+	1364 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1497 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1588 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1589 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1590 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+ctest rc=0
+FOREGROUND_END 2026-11-20T10:27:26-05:00
+LEG P1-dbg rc=0 2026-11-20T10:27:26-05:00
+LEG P1-dbg-criterion start 2026-11-20T10:27:26-05:00
+LEG P1-dbg-criterion rc=0 2026-11-20T10:27:26-05:00
+LEG P2-A start 2026-11-20T10:27:26-05:00
+box-lane: lane 0 acquired 2026-11-20T10:27:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T10:27:26-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build/bench/hven_sqp_corpus sha256 92e3f2939970b372b3400683ddc2b2b66f06cc1346e8ecbc56e892fcd39a563f
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-20T10:33:01-05:00
+LEG P2-A rc=0 2026-11-20T10:33:01-05:00
+LEG P2-B start 2026-11-20T10:33:01-05:00
+box-lane: lane 0 acquired 2026-11-20T10:33:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T10:33:01-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/tu0/build/bench/hven_sqp_corpus sha256 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-20T10:38:37-05:00
+LEG P2-B rc=0 2026-11-20T10:38:37-05:00
+LEG P2-criterion start 2026-11-20T10:38:37-05:00
+=== A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_ZERO_DIFFERENCES
+LEG P2-criterion rc=0 2026-11-20T10:38:37-05:00
+LEG P3-A start 2026-11-20T10:38:37-05:00
+box-lane: lane 0 acquired 2026-11-20T10:38:37-05:00
+PGREP_NOT_GATED
+FOREGROUND_START 2026-11-20T10:38:37-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-20T10:42:57-05:00
+FOREGROUND_END 2026-11-20T10:42:57-05:00
+LEG P3-A rc=0 2026-11-20T10:42:57-05:00
+LEG P3-B start 2026-11-20T10:42:57-05:00
+box-lane: lane 0 acquired 2026-11-20T10:42:57-05:00
+PGREP_NOT_GATED
+FOREGROUND_START 2026-11-20T10:42:57-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-20T10:47:17-05:00
+FOREGROUND_END 2026-11-20T10:47:17-05:00
+LEG P3-B rc=0 2026-11-20T10:47:17-05:00
+LEG P3-criterion start 2026-11-20T10:47:17-05:00
+SUMMARY rows 476; movers vs arm A 0; missing/capped 0
+TU0_TRAIN_PASS
+LEG P3-criterion rc=0 2026-11-20T10:47:17-05:00
+LEG P5 start 2026-11-20T10:47:17-05:00
+box-lane: lane 0 acquired 2026-11-20T10:47:17-05:00
+PGREP_NOT_GATED (box-lane)
+FOREGROUND_START 2026-11-20T10:47:17-05:00
+CHECK_OK
+PREFLIGHT every mutation applies and restores: [G1 G2 G3 G4 G5 F1 F2 F3 F4 F5 F6 F7 E1 H1 H2 M1 M2 R1 R2 R3 V1 V2 V3 V4 V5 V6 V8 V10 V11 V12 V13 V14 V15 V7 V9]
+MUT control sqp_rc=0 qp_rc=0 solver_rc=0 killers=0
+MUTATED G1
+MUT G1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep
+MUTATED G2
+MUT G2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=2
+   Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+MUTATED G3
+MUT G3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=6
+   SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+   SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+   SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+   Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule
+MUTATED G4
+MUT G4 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards
+MUTATED G5
+MUT G5 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+MUTATED F1
+MUT F1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+MUTATED F2
+MUT F2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheUncertainToleranceReachesTheEngine
+MUTATED F3
+MUT F3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F4
+MUT F4 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F5
+MUT F5 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheFarkasResidualToleranceDecidesWhichDirectionsAreCertificates
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+MUTATED F6
+MUT F6 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheLmSigmaCoefficientSizesTheResidualSigma
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F7
+MUT F7 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheLmSigmaExponentSizesTheResidualSigmaWhereTheResidualIsBelowOne
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED E1
+MUT E1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption
+MUTATED H1
+MUT H1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling
+MUTATED H2
+MUT H2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling
+MUTATED M1
+MUT M1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade
+MUTATED M2
+MUT M2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0AdaptiveDualRegularizationMax.ALaterMajorsMuCanExceedTheOldCeilingOnlyWhenTheOptionRaisesIt
+MUTATED R1
+MUT R1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=3
+   Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+   Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+   Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp
+MUTATED R2
+MUT R2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+MUTATED R3
+MUT R3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+MUTATED V1
+MUT V1 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V2
+MUT V2 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V3
+MUT V3 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V4
+MUT V4 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V5
+MUT V5 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V6
+MUT V6 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V8
+MUT V8 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V10
+MUT V10 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V11
+MUT V11 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V12
+MUT V12 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V13
+MUT V13 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V14
+MUT V14 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V15
+MUT V15 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V7
+MUT V7 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V9
+MUT V9 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-20T11:05:07-05:00
+LEG P5 rc=0 2026-11-20T11:05:07-05:00
+LEG P6 start 2026-11-20T11:05:07-05:00
+box-lane: lane 0 acquired 2026-11-20T11:05:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T11:05:07-05:00
+SMOKE_START default 2026-11-20T11:05:07-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-20T11:07:34-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tu0/.scratch/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-20T11:09:10-05:00
+LEG P6 rc=0 2026-11-20T11:09:10-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-20T11:09:10-05:00
+GATE_RC=0

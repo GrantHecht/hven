@@ -1,0 +1,375 @@
+PIN ['91787d329a06ae99770879762804a1babf316cbe'] HARNESS_SHA ['56fa03fdf40acb38275f0a46058ddbd2da925f0e']
+LANE-H BINARY sha256 617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b BINARIES.txt 617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b MATCH
+clusters.py --verify rc 0 clusters verified: K1-network=8, K2-quadratic-objective-general-constraints=5, K3-constraint-dominant=8, K4-large=9, K5-sum-of-squares-objective=6
+declared member lists == clusters.py members for K1-K5
+ROWS TRAIN-238 H0 238 no-side-row 0
+ROWS TRAIN-238 P 238 no-side-row 0
+ROWS TRAIN-238 G1 238 no-side-row 0
+ROWS TRAIN-238 G2 238 no-side-row 0
+ROWS TRAIN-238 G3 238 no-side-row 0
+ROWS TRAIN-238 G4 238 no-side-row 0
+ROWS TRAIN-238 G5 238 no-side-row 0
+ROWS TRAIN-238 G6 238 no-side-row 0
+ROWS TRAIN-238 G7 238 no-side-row 0
+ROWS TRAIN-238 C1 238 no-side-row 0
+ROWS TRAIN-238 C2 238 no-side-row 0
+ROWS NLP-46 H0 46 no-side-row 10
+ROWS NLP-46 P 46 no-side-row 11
+ROWS NLP-46 G1 0 no-side-row 0
+ROWS NLP-46 G2 0 no-side-row 0
+ROWS NLP-46 G3 0 no-side-row 0
+ROWS NLP-46 G4 0 no-side-row 0
+ROWS NLP-46 G5 0 no-side-row 0
+ROWS NLP-46 G6 0 no-side-row 0
+ROWS NLP-46 G7 0 no-side-row 0
+ROWS NLP-46 C1 46 no-side-row 12
+ROWS NLP-46 C2 0 no-side-row 0
+TRAIN-238 sd-roster cells whose problem name is a cluster member: none
+baseline coverage: every cluster cell has a H0 row
+realized cell counts: {'K1': 16, 'K2': 10, 'K3': 16, 'K4': 18, 'K5': 12}
+family sizes: HS 44 CUTEst 46
+
+== FAMILY READS (whole families, cell rule, vs H0; wall-dependent dnf_wall cells are not reached)
+FAMILY P HS scored 44/44 W/L/T 0/0/44 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) 
+FAMILY P CUTEst scored 46/46 W/L/T 3/6/37 sign -1 default(W/L) (2, 5) sqp-qn(W/L) (1, 1) 
+FAMILY G1 HS scored 44/44 W/L/T 5/1/38 sign +1 default(W/L) (3, 1) sqp-qn(W/L) (2, 0) 
+FAMILY G1 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G2 HS scored 44/44 W/L/T 0/0/44 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) 
+FAMILY G2 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G3 HS scored 44/44 W/L/T 0/0/44 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) 
+FAMILY G3 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G4 HS scored 44/44 W/L/T 0/1/43 sign -1 default(W/L) (0, 0) sqp-qn(W/L) (0, 1) 
+FAMILY G4 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G5 HS scored 44/44 W/L/T 1/0/43 sign +1 default(W/L) (1, 0) sqp-qn(W/L) (0, 0) 
+FAMILY G5 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G6 HS scored 44/44 W/L/T 0/0/44 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) 
+FAMILY G6 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY G7 HS scored 44/44 W/L/T 0/1/43 sign -1 default(W/L) (0, 1) sqp-qn(W/L) (0, 0) 
+FAMILY G7 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+FAMILY C1 HS scored 44/44 W/L/T 5/2/37 sign +1 default(W/L) (3, 2) sqp-qn(W/L) (2, 0) 
+FAMILY C1 CUTEst scored 46/46 W/L/T 7/6/33 sign +1 default(W/L) (5, 4) sqp-qn(W/L) (2, 2) 
+FAMILY C2 HS scored 44/44 W/L/T 0/0/44 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) 
+FAMILY C2 CUTEst scored 0/46 W/L/T 0/0/0 sign +0 default(W/L) (0, 0) sqp-qn(W/L) (0, 0) NOT FULLY SCORED
+
+== PER CANDIDATE x CLUSTER
+P K1 scored 16/16 W/L/T 2/3/11 net -1 sign -1 | per-base (W,L,T) default (1, 3, 4) sqp-qn (1, 0, 7) | net-positive names ['STEENBRD'] | win names ['DALLASM', 'STEENBRD']
+   strict-optimal reading (informational) W/L 2/3 net -1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (8, 8, 8, 8), 'sqp-qn': (1, 1, 2, 2)} lost: []
+   decision: NONE cluster sign -1 (needs +1); SQP-CUTEst family sign -1; net -1 < 3; net-positive problem names 1 < 2
+P K2 scored 10/10 W/L/T 1/2/7 net -1 sign -1 | per-base (W,L,T) default (1, 1, 3) sqp-qn (0, 1, 4) | net-positive names ['ACOPP118'] | win names ['ACOPP118']
+   strict-optimal reading (informational) W/L 1/2 net -1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 4, 5, 5), 'sqp-qn': (3, 2, 3, 2)} lost: [('ACOPR118/default', 'strict', 'optimal', 'acceptable'), ('SAWPATH/sqp-qn', 'strict', 'optimal', 'numerical_error')]
+   decision: NONE cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (2 lost cell(s)); net -1 < 3; net-positive problem names 1 < 2
+P K3 scored 16/16 W/L/T 1/2/13 net -1 sign -1 | per-base (W,L,T) default (1, 1, 6) sqp-qn (0, 1, 7) | net-positive names ['ACOPP118'] | win names ['ACOPP118']
+   strict-optimal reading (informational) W/L 1/2 net -1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (6, 5, 6, 6), 'sqp-qn': (3, 2, 3, 2)} lost: [('ACOPR118/default', 'strict', 'optimal', 'acceptable'), ('SAWPATH/sqp-qn', 'strict', 'optimal', 'numerical_error')]
+   decision: NONE cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (2 lost cell(s)); net -1 < 3; net-positive problem names 1 < 2
+P K4 scored 18/18 W/L/T 0/2/16 net -2 sign -1 | per-base (W,L,T) default (0, 1, 8) sqp-qn (0, 1, 8) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/2 net -2
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 1)
+   both-ended-only breaches: [('MSS2/sqp-qn', 'majors', 7, 37)]
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (1, 0, 1, 0)} lost: [('SAWPATH/sqp-qn', 'strict', 'optimal', 'numerical_error')]
+   decision: NONE cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (1 lost cell(s)); net -2 < 3; net-positive problem names 0 < 2
+P K5 scored 12/12 W/L/T 0/0/12 net +0 sign +0 | per-base (W,L,T) default (0, 0, 6) sqp-qn (0, 0, 6) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   decision: NONE cluster sign +0 (needs +1); SQP-CUTEst family sign -1; net 0 < 3; net-positive problem names 0 < 2
+G1 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G1 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G1 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G1 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G1 K5 scored 10/12 W/L/T 2/1/7 net +1 sign +1 | per-base (W,L,T) default (1, 1, 3) sqp-qn (1, 0, 4) | net-positive names ['hs011'] | win names ['hs011']
+   strict-optimal reading (informational) W/L 2/1 net +1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 1 < 3; net-positive problem names 1 < 2
+G2 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G2 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G2 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G2 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G2 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G3 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G3 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G3 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G3 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G3 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G4 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G4 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G4 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G4 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G4 K5 scored 10/12 W/L/T 0/1/9 net -1 sign -1 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 1, 4) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/1 net -1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign -1 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net -1 < 3; net-positive problem names 0 < 2
+G5 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G5 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G5 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G5 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G5 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G6 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G6 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G6 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G6 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G6 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G7 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G7 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G7 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G7 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+G7 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+C1 K1 scored 16/16 W/L/T 3/1/12 net +2 sign +1 | per-base (W,L,T) default (3, 0, 5) sqp-qn (0, 1, 7) | net-positive names ['STEENBRB', 'STEENBRC', 'STEENBRG'] | win names ['STEENBRB', 'STEENBRC', 'STEENBRG']
+   strict-optimal reading (informational) W/L 3/0 net +3
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (8, 8, 8, 8), 'sqp-qn': (1, 1, 2, 2)} lost: []
+   decision: NONE net 2 < 3
+C1 K2 scored 10/10 W/L/T 2/3/5 net -1 sign -1 | per-base (W,L,T) default (1, 2, 2) sqp-qn (1, 1, 3) | net-positive names ['ACOPP118'] | win names ['ACOPP118', 'ACOPR57']
+   strict-optimal reading (informational) W/L 1/3 net -2
+   R1 breaches (both reach): 4 [('ACOPR118/default', 'majors', 22, 192), ('ACOPR118/default', 'EV', 47, 289), ('ACOPR118/default', 'rejected_steps', 6, 98), ('ACOPR118/default', 'reject_funnel_ceiling', 6, 88)] ; (informational, both-ended definition: 4)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (3, 3, 3, 4)} lost: []
+   decision: NONE cluster sign -1 (needs +1); R1 tail breach (4); net -1 < 3; net-positive problem names 1 < 2
+C1 K3 scored 16/16 W/L/T 2/4/10 net -2 sign -1 | per-base (W,L,T) default (1, 3, 4) sqp-qn (1, 1, 6) | net-positive names ['ACOPP118'] | win names ['ACOPP118', 'ACOPR57']
+   strict-optimal reading (informational) W/L 1/4 net -3
+   R1 breaches (both reach): 4 [('ACOPR118/default', 'majors', 22, 192), ('ACOPR118/default', 'EV', 47, 289), ('ACOPR118/default', 'rejected_steps', 6, 98), ('ACOPR118/default', 'reject_funnel_ceiling', 6, 88)] ; (informational, both-ended definition: 4)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (6, 6, 6, 6), 'sqp-qn': (3, 3, 3, 4)} lost: []
+   decision: NONE cluster sign -1 (needs +1); R1 tail breach (4); net -2 < 3; net-positive problem names 1 < 2
+C1 K4 scored 18/18 W/L/T 2/1/15 net +1 sign +1 | per-base (W,L,T) default (2, 0, 7) sqp-qn (0, 1, 8) | net-positive names ['STEENBRC', 'STEENBRG'] | win names ['STEENBRC', 'STEENBRG']
+   strict-optimal reading (informational) W/L 2/1 net +1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (1, 1, 1, 1)} lost: []
+   decision: NONE net 1 < 3
+C1 K5 scored 12/12 W/L/T 2/1/9 net +1 sign +1 | per-base (W,L,T) default (1, 1, 4) sqp-qn (1, 0, 5) | net-positive names ['hs011'] | win names ['hs011']
+   strict-optimal reading (informational) W/L 2/1 net +1
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 1)
+   both-ended-only breaches: [('YORKNET/default', 'majors', 12, 55)]
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   decision: NONE net 1 < 3; net-positive problem names 1 < 2
+C2 K1 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): BIGBANK/default, BIGBANK/sqp-qn, DALLASM/default, DALLASM/sqp-qn, SMBANK/default, SMBANK/sqp-qn, STEENBRB/default, STEENBRB/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRD/default, STEENBRD/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+C2 K2 scored 0/10 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (10): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+C2 K3 scored 0/16 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (16): ACOPP118/default, ACOPP118/sqp-qn, ACOPP57/default, ACOPP57/sqp-qn, ACOPR118/default, ACOPR118/sqp-qn, ACOPR57/default, ACOPR57/sqp-qn, NET3/default, NET3/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+C2 K4 scored 0/18 W/L/T 0/0/0 net +0 sign +0 | per-base (W,L,T) default (0, 0, 0) sqp-qn (0, 0, 0) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (0, 0, 0, 0), 'sqp-qn': (0, 0, 0, 0)} lost: []
+   NOT SCORED cells (18): BIGBANK/default, BIGBANK/sqp-qn, MSS2/default, MSS2/sqp-qn, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, SAWPATH/default, SAWPATH/sqp-qn, STEENBRC/default, STEENBRC/sqp-qn, STEENBRE/default, STEENBRE/sqp-qn, STEENBRG/default, STEENBRG/sqp-qn, TAX213322/default, TAX213322/sqp-qn
+   decision: NONE NOT COVERED (no rows for this arm on the cluster's cells); cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+C2 K5 scored 10/12 W/L/T 0/0/10 net +0 sign +0 | per-base (W,L,T) default (0, 0, 5) sqp-qn (0, 0, 5) | net-positive names [] | win names []
+   strict-optimal reading (informational) W/L 0/0 net +0
+   R1 breaches (both reach): 0 [] ; (informational, both-ended definition: 0)
+   V1 (strict base->arm, acc base->arm) per base label: {'default': (5, 5, 5, 5), 'sqp-qn': (5, 5, 5, 5)} lost: []
+   NOT SCORED cells (2): YORKNET/default, YORKNET/sqp-qn
+   decision: NONE PARTIAL: 2 of 12 cluster cells NOT SCORED; cluster sign +0 (needs +1); family sign UNEVALUABLE (HS 44/44 cells scored, CUTEst 0/46): no label without the two family reads; net 0 < 3; net-positive problem names 0 < 2
+
+== P CONTROL (section 4 item 5): P through items 1-4 on each cluster
+P K1 scored 16/16 W/L/T 2/3/11 net -1 sign -1 not noise-limited | P items 1-4 would pass: False cluster sign -1 (needs +1); SQP-CUTEst family sign -1; net -1 < 3; net-positive problem names 1 < 2
+P K2 scored 10/10 W/L/T 1/2/7 net -1 sign -1 not noise-limited | P items 1-4 would pass: False cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (2 lost cell(s)); net -1 < 3; net-positive problem names 1 < 2
+P K3 scored 16/16 W/L/T 1/2/13 net -1 sign -1 not noise-limited | P items 1-4 would pass: False cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (2 lost cell(s)); net -1 < 3; net-positive problem names 1 < 2
+P K4 scored 18/18 W/L/T 0/2/16 net -2 sign -1 not noise-limited | P items 1-4 would pass: False cluster sign -1 (needs +1); SQP-CUTEst family sign -1; V1 loss (1 lost cell(s)); net -2 < 3; net-positive problem names 0 < 2
+P K5 scored 12/12 W/L/T 0/0/12 net +0 sign +0 not noise-limited | P items 1-4 would pass: False cluster sign +0 (needs +1); SQP-CUTEst family sign -1; net 0 < 3; net-positive problem names 0 < 2
+
+== K1/K4 OVERLAP (section 5)
+overlap members ['BIGBANK', 'STEENBRC', 'STEENBRE', 'STEENBRG'] K1-only ['DALLASM', 'SMBANK', 'STEENBRB', 'STEENBRD'] K4-only ['MSS2', 'MSS3', 'READING8', 'SAWPATH', 'TAX213322']
+OVERLAP G1 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G2 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G3 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G4 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G5 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G6 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP G7 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+OVERLAP C1 overlap 8/8 scored W/L 2/0 sign +1; K1-only 8/8 scored W/L 1/1 sign +0; K4-only 10/10 scored W/L 0/1 sign -1
+OVERLAP C2 overlap 0/8 scored W/L 0/0 sign +0; K1-only 0/8 scored W/L 0/0 sign +0; K4-only 0/10 scored W/L 0/0 sign +0
+
+== VERDICT LINES
+VERDICT K1 NONE
+VERDICT K2 NONE
+VERDICT K3 NONE
+VERDICT K4 NONE
+VERDICT K5 NONE
+K (composite): not run (no I19-2a arm passed stage 1)
+
+PROVENANCE harness_sha 56fa03fdf40acb38275f0a46058ddbd2da925f0e pin 91787d329a06ae99770879762804a1babf316cbe store row files 112 store-sha256.txt sha256 7911758149ed07043d536dd95e3d17c2bffa849ca85d97e857020a71c131d996

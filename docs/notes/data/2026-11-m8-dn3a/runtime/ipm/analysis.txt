@@ -1,0 +1,18 @@
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+EXCLUDED COUNT arm A (no liveness guard in mode ipm): 0
+EXCLUDED COUNT arm B (no liveness guard in mode ipm): 0
+
+mode ipm, 27 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over rounds, summed
+  filtered samples (CRITERION)     A=5.947910e+05 B=5.947940e+05 B/A=1.000005
+  all samples                      A=5.947910e+05 B=5.947940e+05 B/A=1.000005
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.379221e+11 B=2.379236e+11 B/A=1.000006
+
+per-round filtered B/A (informational):
+  round 1: B/A=1.000003
+  round 2: B/A=1.000003
+  round 3: B/A=1.000007
+worst per-cell filtered ratio: 1.00003 (f7_n20000_bound_activity)
+largest within-arm round-to-round filtered spread: 0.00005
+MODE ipm FILTERED B/A = 1.000005 -> WITHIN [0.995, 1.005]

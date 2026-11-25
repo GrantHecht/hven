@@ -1,0 +1,7 @@
+TUs before 365 (after 363 deleted sources removed: 2), after 363, in both 363
+deleted sources: ['src/interior/utils/color_text.cpp', 'src/interior/utils/color_text.cpp']
+only before: none
+only after:  none
+TUs with an expected removal applied: 122 (tokens ['-I@/src/interior/utils'])
+TUs whose flag list differs beyond the expected: 0
+RESULT: IDENTICAL

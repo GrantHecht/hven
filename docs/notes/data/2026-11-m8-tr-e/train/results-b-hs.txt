@@ -1,0 +1,5 @@
+FILLED eval_f: 44 cells null in the base, a value in the fresh run
+FILLED eval_g: 44 cells null in the base, a value in the fresh run
+FILLED eval_jac: 44 cells null in the base, a value in the fresh run
+FILLED eval_hess: 44 cells null in the base, a value in the fresh run
+44 baseline cells, 44 fresh cells, 0 mismatches

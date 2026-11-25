@@ -1,0 +1,20 @@
+P-SYM tool sha256 (runner):   0b33d7f32a79cd776c9ff52e689e6ff796aaef4a86c77afbf290fb604f687558
+P-SYM tool sha256 (captures): 0b33d7f32a79cd776c9ff52e689e6ff796aaef4a86c77afbf290fb604f687558
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+            COUNTS 75374 insns; CHANGED 275; UNCLASSIFIED 0; DELTAS -4(x275)
+MISSING     tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o (no counterpart in /home/ghecht/Projects/hven/.claude/worktrees/rs5/.scratch/g5/arms/psym-after)
+NOISE-ONLY  tests/solver/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o
+            COUNTS 86539 insns; CHANGED 365; UNCLASSIFIED 0; DELTAS -4(x365)
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 89348 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 53544 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 104548 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+ONLY-AFTER  tests/CMakeFiles/hven_tests.dir/core/test_layering.cpp.o (no object in the before arm accounts for it)
+
+P-SYM: 198 objects — 192 byte-identical, 5 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 1 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 1 after-arm objects unaccounted for; symbols — 92596 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 56 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 791 matched by count, 0 differing (103993 before-arm and 103993 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

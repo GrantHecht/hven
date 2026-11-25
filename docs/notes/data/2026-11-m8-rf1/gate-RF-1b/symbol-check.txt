@@ -1,0 +1,2 @@
+nm -C /home/ghecht/Projects/hven/.claude/worktrees/rf1b/.scratch/build-rf1/rel/libhven.a | grep -c -i pass_restoration_walk_qps:
+0

@@ -1,0 +1,82 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ObjectiveScaleReporting.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from ObjectiveScaleReporting
+[ RUN      ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale (5 ms)
+[ RUN      ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale (1 ms)
+[ RUN      ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale
+[       OK ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale (2 ms)
+[ RUN      ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate
+[       OK ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate (0 ms)
+[ RUN      ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks
+[       OK ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks (1 ms)
+[ RUN      ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn
+[       OK ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn (1 ms)
+[ RUN      ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 1499.8496703626445, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 1499.9996703296774,
+r.tested_stationarity evaluates to 0.14999996703296775, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.1499999670329677e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 1.4779344861566177e-05, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 1.4780822943860563e-05,
+r.tested_stationarity evaluates to 1.4780822943860563e-09, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000000014780823e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 9.3306511313580361e-07, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 9.3315842897870145e-07,
+r.tested_stationarity evaluates to 9.3315842897870147e-11, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000000000933157e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 1.0438891732384042e-08, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 1.0439935725956637e-08,
+r.tested_stationarity evaluates to 1.0439935725956638e-12, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000000000010441e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:494: Failure
+Value of: passes(result.history.back())
+  Actual: false
+Expected: true
+scale 0.01
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 0.11586263807994197, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 0.0011703296775751714,
+r.tested_stationarity evaluates to 0.11703296775751715, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.1170329677575172e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 0.0014633014724393044, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 1.4780822953932367e-05,
+r.tested_stationarity evaluates to 0.0014780822953932367, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0014780822953933e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 9.2382723449124497e-05, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 9.3315882271842935e-07,
+r.tested_stationarity evaluates to 9.3315882271842928e-05, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000933158822718e-12.
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/ipm/test_objective_scale_reporting.cpp:498: Failure
+The difference between r.stationarity * scale and r.tested_stationarity is 1.0335602026566837e-06, which exceeds 1e-12 * (1.0 + std::abs(r.tested_stationarity)), where
+r.stationarity * scale evaluates to 1.0440002047037209e-08,
+r.tested_stationarity evaluates to 1.0440002047037209e-06, and
+1e-12 * (1.0 + std::abs(r.tested_stationarity)) evaluates to 1.0000010440002047e-12.
+
+[  FAILED  ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares (2 ms)
+[----------] 7 tests from ObjectiveScaleReporting (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (15 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ObjectiveScaleReporting.TheRowsCarryTheQuantitiesTheConvergenceTestCompares
+
+ 1 FAILED TEST

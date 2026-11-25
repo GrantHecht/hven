@@ -1,0 +1,8 @@
+# M8 TR-A -- DECLARATION-r5 (successor to DECLARATION-r4.md, which stays frozen; committed before any r5 leg; never edited afterwards)
+
+## Why r5
+r4 (code head d5fe12d26, arm B sha256 c661694c1aaace8e7365a205523c023f5008bfa16a1a1dd43090c4efca1dd9d2) passed every leg: runtime P2 (interior 1.000080, ipm 1.000000, ssn 1.000000, walk 0.999998; band [0.995, 1.005] confirmed by the r3 A/A), ctest Release and Debug 100%, replay 0 x3 + armed 0 x3, interior, install smoke + export contract; and the mutation leg KILLED all 23 mutations with the control failing nothing (the chain's own `MUT` lines, mutation/ run logs). **The verdict step failed on an instrument fault, not a test result**: two mutation descriptions (p11a, p11b) contained a comma, which shifted their columns in mutation-table.csv, so mutation_verdict.py read them as INSTRUMENT FAULT.
+Fix (legs/mutations.sh only): the two descriptions carry no comma, and the CSV writer replaces any comma in a description. No source, include, test, bench or binary changes: the code head stays d5fe12d26.
+
+## What r5 runs
+ONLY the mutation leg and its verdict: `legs/mutations.sh d5fe12d26 mutation` then `legs/mutation_verdict.py`, solo under the box lock. Every other r4 leg stands: none of their inputs (src/, include/, tests/, bench/, binaries, the corpus) moved, the r4 evidence is the r5 evidence for them. Pass criterion: the control fails nothing, every id of the r3/r4 must-kill list (w1 w2 w3 w4 c1 c2 c3 o1 o2 v2 v3 v4 t1 t2 p1a p1b p1c p2 p3 p4 p5 p11a p11b) is killed by a failing test, MUTATION_VERDICT PASS. A failure here is DECLARATION-r6.

@@ -1,0 +1,13 @@
+diff --git a/src/linear/symmetric_factor_mkl.cpp b/src/linear/symmetric_factor_mkl.cpp
+index fc154d5ab..e65e024db 100644
+--- a/src/linear/symmetric_factor_mkl.cpp
++++ b/src/linear/symmetric_factor_mkl.cpp
+@@ -399,8 +399,6 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
+     record_config_thread_count(session);
+ #endif
+     session.solve(rhs_buffer.data(), target, static_cast<Index>(X.cols()));
+-    const Index refined = static_cast<Index>(session.refinement_iters());
+-    SolveTally::record(static_cast<Index>(X.cols()), refined);
+ 
+     if (!x_contiguous) {
+         X = scratch;

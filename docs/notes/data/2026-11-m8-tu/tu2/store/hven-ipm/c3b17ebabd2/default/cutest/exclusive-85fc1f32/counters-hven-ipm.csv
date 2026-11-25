@@ -1,0 +1,24 @@
+# problems.requested: MSS3,READING8,TAX213322
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T17:25:04Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+# NOT ASSERTED by schema/compare.py: this is a per-engine
+# surface, hand-enumerated from hven's public structs because
+# hven has no counters dump. harness_* fields are the harness's
+# own, not hven counters. See schema/v1.md.
+cell_id,factorizations,symbolic_analyses,restoration_entries,restoration_iters,soc_steps,nonfinite_step_rollbacks,polish_ignored,start_level_used,payload_ignored,watchdog_activations,recovery_depth_histogram,inertia_corrections,dense_solve_residual_refusals,dense_factorizations,kkt_analyses_total,kkt_factor_counters.analyze_count,kkt_factor_counters.factorize_count,kkt_factor_counters.solve_count,kkt_factor_counters.partial_solve_count,kkt_factor_counters.pattern_verify_count,kkt_factor_counters.dense_factorize_count,kkt_factor_counters.dense_fallback_count,kkt_factor_counters.dense_singular_count,kkt_factor_counters.dense_flagged_count,kkt_factor_counters.dense_condition_estimate_count,kkt_factor_counters.dense_equilibrated_estimate_count,kkt_factor_counters.dense_shift_refactor_count,kkt_factor_counters.dense_retake_count,phases_ran,ipm_kkt_inf,ipm_barr_inf,ipm_econ_inf,ipm_icon_inf,harness_eval_f,harness_eval_grad_f,harness_eval_g,harness_eval_jac,harness_eval_hess,harness_dual_sign_violation
+cutest/READING8/hven-ipm/default+barrier_initial=0.01,1038,2,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],885,0,0,2,1,1038,574,0,0,0,0,0,0,0,0,0,0,1,3.6873040612679653e-07,1.9954599476080166e-09,2.5972389169903742e-11,0,1148,574,574,575,575,0

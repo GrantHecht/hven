@@ -1,0 +1,66 @@
+M8 PF-1 (CEN-R1) -- the minor-cap hit -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt + runtime/DECLARATION.txt (1528c4d6), committed before the first leg, never edited.
+               No leg failed; no successor declaration.
+Base / head    base bdd797e3 (origin/m8). Code head e55cecde (fix + tests + fixture). Evidence: 1528c4d6 (declarations,
+               instruments, census-movers.csv, pre-declaration build outputs) + this commit.
+Arms           A = bdd797e3 (legs/prebuild.sh: `git archive` export build-pf1e/armA-src, submodule pins checked):
+               build-pf1e/armAbin/hven_sqp_corpus sha256 cb07803891f17091a8bbe1de280d947c99d59a16e05bfbefd49d54d1a014166b,
+               compile database sha256 e92f61555fe95245978369ea15a8f64d41c1a72ce89b898e78f9d6e250046d57 (chain/prebuild.out,
+               chain/arma.out). B = e55cecde: build-pf1e/rel fresh (chain/build-rel.out) -> build-pf1e/armBbin sha256
+               5c7a793d7a9b9d3fadf4d3802fe737803feef7e603e8045c504564cb2545c614 (checked by run_all.sh, interior.sh, census.sh).
+               The dev build on which the census movers were measured before the declaration (build-pf1/rel, configured at
+               bdd797e3, built with the code) has 56/56 library objects byte-identical to arm B's libhven.a.
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL, MKL_NUM_THREADS=1,
+               perf 7.2.12-200.fc44. Apple/Accelerate: UNOBSERVED (the syntax sweep only). Windows: UNOBSERVED.
+Dates          2026-11-07 05:16 EST (arm A build) / 05:29 (runtime gate start) to 2026-11-07 12:54 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY inside it,
+               set -o pipefail, no timeout wrapper, ctest -j4 under setsid, absolute evidence paths, chain1's fail-closed
+               pre-flight (PREFLIGHT_OK; a planted script naming the dev tree build-pf1/ and another worktree refused, rc
+               9, before the declaration). The runtime gate ran alone first (05:29-06:17); chain1 started after its
+               VERDICT PASS (06:17-12:54). Census co-run protocol: parallel-tiered v1 (T1 6-wide pinned, T2 solo, T3
+               5-wide full budget), stamped in census/walk_census.csv.
+
+RESULTS (criteria as declared)
+P0  arm A       both sha256 as declared, ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release 3483/3483, Debug 3483/3483 (suites/). PASS. (D5)
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       15 configurations BYTE-IDENTICAL to the B8 riders' dump (iparm/iparm-pf1.txt). PASS. (D8)
+P5  census      57 rows; census_check.py CENSUS_AS_DECLARED (census/census_check.txt): 42 exact, the 2 declared movers
+                exact -- f7_n1000_path_corrupted Optimal 3590/4762/0/3/3588;1;1, f7_n2000_path_corrupted WorkLimit
+                59746/60000/0/3/19873;20001;19872 -- and the 13 deadline-bound cells all equal to the baseline (physics
+                dnf_budget; the 12 T3 cells their dnf_* rows). The runner's own comparator (census/compare.txt) lists
+                exactly those 2 mismatches; its serial-confirm list is those 2: f7_n2000_path_corrupted ran solo (T2);
+                f7_n1000_path_corrupted's row was reproduced solo by P15 and by the pre-declaration diagnosis runs.
+                PASS. (D0, D1)
+P6  smoke       default and clang arms PASSED (36 standalone-include TUs, a pieces solve, both engines); export
+                contract OK on both (install-smoke/). PASS. (D9)
+P7  PCH         PASS: 4 TUs engaged (pch/). PASS.
+P8  off-ref     fresh build rc 0, 26 warning lines, ctest Release 3483/3483 (offref/). PASS.
+P9  Accelerate  pass A PASS_A_AS_DECLARED; both listings (pass A and the stub's pass B) byte-identical to the B8
+                riders' (accelerate/). PASS. Pass B (reported, not a criterion) prints NOT_AS_DECLARED, as at the
+                riders and PF-HB: nothing new.
+P10 flags       TU sets equal, 0 TUs differ, FLAGS_AS_DECLARED (flags/). PASS. (D7)
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 0.999986, ipm 1.000000, ssn 1.000001,
+                walk 1.000000; THROTTLE 0 in every mode; counter identity holds in every mode. PASS. (D11)
+P12 interior    unmoved (arm A vs B) 0 differences; promoted baseline reproduced, 0 differences (interior/). PASS. (D2)
+P15 M1 arm      max_consecutive_qp_failures' default 3 -> 1 (m1arm/m1-patch.diff, one line): the cell's 13 columns
+                equal the declared row, M1ARM_AS_DECLARED (m1arm/). PASS. (D0)
+P16 falsifier   kMaxDualRegDecreases 2 -> 0 (failproof/failproof-mutation.diff, one line): the test FAILS,
+                dual_regularization_decreases=0, f = 0.139462433848741 = f_cap (the capped endpoint),
+                FAILPROOF_AS_DECLARED (failproof/). PASS.
+P17 TRAIN       PENDING: CUTEst TRAIN `default` >= 16/23 with no cell lost needs the hven-bench harness ported to the M8
+                API (another agent's work, not landed when this chain ran). Not run; not a criterion here.
+
+THE DISCHARGE (brief section 2, PF-1): f7_n1000_path_corrupted reaches its U0 status (Optimal) with
+qp_failure_budget = 1 (P15), at 3590 factorizations <= 5952 (2 x U0's 2976) (P5). The census half is proven; the
+held-conversions half is P17, pending.
+
+SLIPS / DEVIATIONS
+- Dev measurements (diagnosis, the 44-cell census subset, the dev replay and suite) ran on scratch trees (build-pf1/,
+  including a scratch-instrumented copy of bdd797e3 never committed: D4QP dumps, per-solve summaries, the certificate
+  toggle, the rank-repair / mu-free / ladder experiments) under the box lock; not evidence.
+- 2026-11-07 ~02:30-02:31 EST: a foreign hven_bench_cell (pid 2889815, hs014 ipm-ls-lang, not this agent's) was alive
+  while a dev replay of this agent held the lock (the replay's in-lock pgrep had read empty a moment earlier). The
+  replay was a counter-only dev run, not evidence; reported to the settler, nothing killed.

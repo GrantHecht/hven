@@ -1,0 +1,4 @@
+6956c6956
+<         st.row_work_base_fact += phase.counters.factorizations;
+---
+>         (void)0;

@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..09aa6a55a 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2301,7 +2301,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                             walk_obs.record().ascent_footprint =
+                                 detail::testing::QpWalkFootprint::kDegenerate;
+ #endif
+-                        } else if (counters.ascent_footprint_rungs < detail::kMaxFootprintRungs) {
++                        } else if (counters.ascent_footprint_rungs < 2 * detail::kMaxFootprintRungs) {
+                             ++counters.ascent_footprint_rungs;
+                             footprint_rung_from = eff_opts.dual_regularization;
+                             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;

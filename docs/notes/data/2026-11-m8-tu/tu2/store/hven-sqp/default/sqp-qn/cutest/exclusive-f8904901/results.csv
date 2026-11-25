@@ -1,0 +1,29 @@
+# problems.requested: ACOPR118,BIGBANK,BRITGAS,MSS2,MSS3,READING8,SAWPATH,TAX213322,TAX53322,YORKNET
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T13:43:52Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/ACOPR118/hven-sqp/sqp-qn,cutest,ACOPR118,cutest-nlp-35 v2,c7c1d41e35ea6da2d08ddb2452d5321794677f4a153baefdc8f15c4aee57557b,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,300,250000,300,0,stalled,error,154,5463,169,155,109,1,129660.68774680198,0.33594837786995413,3.5798819908450241e-08,1.2852554021058893e-09,6.8424801940596411e-07,178.11219044076279
+cutest/BIGBANK/hven-sqp/sqp-qn,cutest,BIGBANK,cutest-nlp-35 v2,682a07956985b1f0e71071cdeca977e5a3703caf683ddcf065e523e079a86f47,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.12886032834649
+cutest/BRITGAS/hven-sqp/sqp-qn,cutest,BRITGAS,cutest-nlp-35 v2,f2be874fd2123e70655244fd13c01d50a039cf1dc88e74514ae457479a715b2b,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,300,250000,300,0,optimal,optimal,16,3990,17,36,37,2,0,1.7699143762866277e-12,2.3314683517128287e-15,0,0,14.449783019255847
+cutest/MSS2/hven-sqp/sqp-qn,cutest,MSS2,cutest-nlp-35 v2,c06fd3e54c3ab9c5d331fda07c47f8f6b0f3cacf2eec4e37d61e63a953d92a3d,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,300,250000,300,0,numerical_error,error,7,7610,7,44,44,2,-2.2347831932657249,2.841550341973202,2.5750559867677832e-11,0,0,162.47452395688742
+cutest/MSS3/hven-sqp/sqp-qn,cutest,MSS3,cutest-nlp-35 v2,e5756e59cba1ca9bd3e87d3cae21a7e7bc3619379af1e613c28f7ef81d0f7cc1,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.26750246435404
+cutest/READING8/hven-sqp/sqp-qn,cutest,READING8,cutest-nlp-35 v2,2e22a90002963ee7697c3f40a5b01ac33c60af421c876e6fa4d87578fb3aa922,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.1548734176904
+cutest/SAWPATH/hven-sqp/sqp-qn,cutest,SAWPATH,cutest-nlp-35 v2,a947b199e9379e25ffd7e8309b6e8483d3f23a9fbc309f03f8292f5064d33235,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,300,250000,300,0,stalled,error,16,19847,20,19,3,3,1045.3816411839487,14.145599958729726,3.55593896484375,0.76694421290611348,0,27.535733511671424
+cutest/TAX213322/hven-sqp/sqp-qn,cutest,TAX213322,cutest-nlp-35 v2,831a8fed0fd1157dd4ba518400cbc875cafbce57e24da37a8a84fdfcc82364d6,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.15975002199411
+cutest/TAX53322/hven-sqp/sqp-qn,cutest,TAX53322,cutest-nlp-35 v2,1bc789fa8c848823c0790f2e7416d4583ceaba82b753c8fc30b587ee59822168,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.10802250122651
+cutest/YORKNET/hven-sqp/sqp-qn,cutest,YORKNET,cutest-nlp-35 v2,ef18f99ffbe0d0a120404f558c194e3ee49162cc4582ad4c5e200602d78979dc,TRAIN,hven-sqp,sqp-qn,f9fd13f7b4f25ac088c73b8503d8582622ea89727ad2a663516940b27c3861e8,none,300,250000,300,0,stalled,error,1,15801,2,64,24,2,119008.23632083091,2103.3547438662436,701.30723999999998,0,0,87.517335234209895

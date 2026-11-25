@@ -1,0 +1,16 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T14:57:09-05:00
+cell rc=0
+cell_id,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual
+f7_n2000_path_corrupted,WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02
+solve=0 status=0 hot=0 minors=3
+solve=1 status=0 hot=0 minors=3
+solve=2 status=0 hot=0 minors=5251
+solve=3 status=1 hot=0 minors=20000
+solve=4 status=1 hot=0 minors=20000
+solve=5 status=0 hot=0 minors=14285
+solve=6 status=1 hot=0 minors=20000
+solve=7 status=1 hot=0 minors=20000
+solve=8 status=1 hot=0 minors=20000
+rc=0
+FOREGROUND_END 2026-11-07T15:58:20-05:00

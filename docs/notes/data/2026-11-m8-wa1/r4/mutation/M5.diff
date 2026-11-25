@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 6355a8df2..299737f07 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1480,7 +1480,7 @@ inline FootprintDecision footprint_decision(double slope, double php, double mer
+     if ((blocked && a_block <= a_stop) || !std::isfinite(a_stop)) {
+         d.ride = true;
+     } else {
+-        d.move = -a_stop;
++        d.move = a_stop;
+     }
+     return d;
+ }

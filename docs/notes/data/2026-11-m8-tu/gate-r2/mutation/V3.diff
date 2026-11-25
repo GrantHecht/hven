@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..9461577a8 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -110,7 +110,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: qp.primal_regularization ({}) must be finite and >= 0",
+                         opts.qp.primal_regularization));
+     }
+-    if (!(opts.qp.feasibility_tol > 0.0) || std::isinf(opts.qp.feasibility_tol)) {
++    if (false) {
+         throw std::invalid_argument(fmt::format(
+             "SqpSolver: qp.feasibility_tol ({}) must be finite and > 0", opts.qp.feasibility_tol));
+     }

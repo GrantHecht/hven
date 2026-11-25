@@ -1,0 +1,8 @@
+4349c4349
+<     if (local.dense_shifted && r.residual_refused) {
+---
+>     if (false && r.residual_refused) {
+4581c4581
+<         !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
+---
+>         !r.lambda_w.allFinite() || (false && r.residual_refused)) {

@@ -1,0 +1,4 @@
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 3
+    f7_n800_path_warm                kkt_residual                       A=4.212493723e-10  B=4.212493600e-10
+    f7_n800_path_warm                kkt_stationarity                   A=4.212493723e-10  B=4.212493600e-10
+    f7_n800_path_warm                kkt_complementarity                A=1.295699806e-15  B=1.295703950e-15

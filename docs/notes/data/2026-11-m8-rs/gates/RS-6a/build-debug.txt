@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T05:38:00-05:00
+[497/500] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[498/500] Linking CXX executable examples/hven_example_05_warm_continuation
+[499/500] Linking CXX executable examples/hven_example_08_results_trace_options
+build rc=0
+FOREGROUND_END 2026-11-19T05:41:12-05:00

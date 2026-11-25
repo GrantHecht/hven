@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..c0cbf5a90 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -188,7 +188,7 @@ class TrustRegionRejectionMemory {
+     }
+     /// An acceptance, after its growth decision: the `window`-th clears the cap.
+     void after_acceptance(Index window) {
+-        if (++clean_ >= window) {
++        if (++clean_ >= window && false) {
+             clear();
+         }
+     }

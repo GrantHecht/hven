@@ -1,0 +1,23 @@
+DIFF cutest/READING6/hven-sqp/default harness_qpsum_dep_test_solves: old 761 new 758
+DIFF cutest/READING6/hven-sqp/default harness_qpsum_dep_stall_admits: old 19 new 18
+DIFF cutest/READING6/hven-sqp/default eqp_polish_steps: old 680 new 685
+DIFF cutest/READING6/hven-sqp/default terminal_polish_solves: old 1 new 0
+DIFF cutest/READING6/hven-sqp/default terminal_polish_adopted: old 1 new 0
+DIFF cutest/READING6/hven-sqp/default harness_factorizations_total: old 568 new 567
+DIFF cutest/ZAMB2-8/hven-sqp/default qp_minor_iters: old 546 new 551
+DIFF cutest/ZAMB2-8/hven-sqp/default factorizations: old 144 new 147
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_dep_test_solves: old 687 new 688
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_dep_tests: old 440 new 445
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_dep_dependent: old 143 new 147
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_ws_exchanges: old 78 new 81
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_ws_exchanges_bound: old 78 new 81
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_reentry_exemptions: old 0 new 1
+DIFF cutest/ZAMB2-8/hven-sqp/default eqp_polish_steps: old 419 new 412
+DIFF cutest/ZAMB2-8/hven-sqp/default terminal_polish_solves: old 0 new 1
+DIFF cutest/ZAMB2-8/hven-sqp/default terminal_polish_adopted: old 1 new 2
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_factorizations_total: old 144 new 148
+DIFF cutest/ZAMB2-8/hven-sqp/default harness_qpsum_dep_implied_passovers: old 60 new 61
+renamed 2 column(s): ssn_sign_sweep_max->ssn.ssn_sign_sweep_max, ssn_sign_swept->ssn.ssn_sign_swept
+added 102 new column(s) (not differences): soc_qp_infeasible, soc_rejected, elastic_escalations, elastic_from_ipqp_escape, ipqp_suspicion_disproved, ipqp_fallback_rung_b, elastic_rho0_ceiling_hits, elastic_floor_retries, start_level_used, probe_budget_stops, crash_seeded_rows, crash_seeded_bounds ...
+order: 3308 pair(s) of mapped columns changed relative order (information)
+154 old columns, 256 new columns, 5 cells old / 5 new, 770 values compared, 19 differences

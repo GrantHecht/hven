@@ -1,0 +1,253 @@
+P-SYM tool sha256 (runner):   29e3f5e246e3c6e162b01e7f4b9f94597c64defb5f433ca8113eb9b25d3324d5
+P-SYM tool sha256 (captures): 29e3f5e246e3c6e162b01e7f4b9f94597c64defb5f433ca8113eb9b25d3324d5
+P-SYM maps: object-map=/home/ghecht/Projects/hven/.claude/worktrees/rs6a/docs/notes/data/2026-11-m8-rs/gates/RS-6a/object-map-generated.txt symbol-map=none exceptions=none
+
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_bench_dump.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/test_bench_dump.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/test_corpus_cells.cpp.o
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_corpus_cells.cpp.o: PERSYM 900 identical, 0 noise-only, 16 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 21475 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::CorpusTask6bRepair_TheWalkArmIsCounterIdenticalAcrossTheD0Repair_Test::TestBody()
+                            PAD-ROUTE DECLINED: 36 alignment-pad lines vs 36 (393 -> 388 bytes); start 0x554f0 (mod 32 = 16) -> 0x55510 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1666 lines vs 1667 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusTask6bRepair_ThePostRepairArtifactsCarryTheCensusAndRescoreCleanly_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x5b(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x5d(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x7b(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7d(%rax) ;LEN=4
+                            COUNTS 1862 insns; CHANGED 5; UNCLASSIFIED 2; DELTAS +2(x3)
+              DIFFERS       (anonymous namespace)::CorpusCells_InteriorBaselineRescoresOffline_Test::TestBody()
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 5 (59 -> 58 bytes); start 0x42120 (mod 32 = 0) -> 0x42120 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 385 lines vs 386 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusBaseline_TheWalkArmCarriesNoNegativeMultiplierAnywhere_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovupd %ymm0,0x5a(%rax) ;LEN=5
+                                            + 	vmovupd %ymm0,0x5c(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x7a(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7c(%rax) ;LEN=4
+                            COUNTS 403 insns; CHANGED 5; UNCLASSIFIED 2; DELTAS +2(x3)
+              DIFFERS       (anonymous namespace)::CorpusBaseline_TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x55(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x57(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x75(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x77(%rax) ;LEN=4
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x5a(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x5c(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x7a(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7c(%rax) ;LEN=4
+                            COUNTS 1110 insns; CHANGED 10; UNCLASSIFIED 4; DELTAS +2(x6)
+              DIFFERS       (anonymous namespace)::CorpusBaseline_TheCommittedWalkBaselineCarriesTheCommittedBudgetTableHash_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x58(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x5a(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x78(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7a(%rax) ;LEN=4
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x58(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x5a(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x78(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7a(%rax) ;LEN=4
+                            COUNTS 395 insns; CHANGED 10; UNCLASSIFIED 4; DELTAS +2(x6)
+              DIFFERS       (anonymous namespace)::CorpusCells_TheMultiPhaseRowsCarryAPerPhaseAccountThatSums_Test::TestBody()
+                            PAD-ROUTE DECLINED: 19 alignment-pad lines vs 19 (221 -> 216 bytes); start 0x4e000 (mod 32 = 0) -> 0x4e000 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1927 lines vs 1928 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusTask6bRepair_TheKSsnArmMovesTheFourCrashingCellsAndNothingElse_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovupd %ymm0,0x59(%rax) ;LEN=5
+                                            + 	vmovupd %ymm0,0x5b(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x79(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7b(%rax) ;LEN=4
+                              UNCLASSIFIED  - 	vmovupd %ymm0,0x5b(%rax) ;LEN=5
+                                            + 	vmovupd %ymm0,0x5d(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x7b(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7d(%rax) ;LEN=4
+                            COUNTS 2790 insns; CHANGED 10; UNCLASSIFIED 4; DELTAS +2(x6)
+              DIFFERS       (anonymous namespace)::CorpusCells_TheTwoPartitionRowsMatchTheirOnePartitionRows_Test::TestBody()
+                            PAD-ROUTE DECLINED: 17 alignment-pad lines vs 17 (157 -> 152 bytes); start 0x4a9f0 (mod 32 = 16) -> 0x4a9f0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1438 lines vs 1439 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusBaseline_TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x56(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x58(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x76(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x78(%rax) ;LEN=4
+                            COUNTS 1204 insns; CHANGED 5; UNCLASSIFIED 2; DELTAS +2(x3)
+              DIFFERS       (anonymous namespace)::interior_test::write_probe_artifact(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&)
+                            PAD-ROUTE DECLINED: 5 alignment-pad lines vs 5 (60 -> 55 bytes); start 0x50aa0 (mod 32 = 0) -> 0x50aa0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 320 lines vs 321 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsAnIncompleteArtifact_Test::TestBody()
+                            PAD-ROUTE DECLINED: 17 alignment-pad lines vs 17 (180 -> 175 bytes); start 0x4fed0 (mod 32 = 16) -> 0x4fed0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 805 lines vs 806 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusCells_InteriorArtifactCheckRejectsDuplicateAndMalformedRows_Test::TestBody()
+                            PAD-ROUTE DECLINED: 15 alignment-pad lines vs 15 (131 -> 153 bytes); start 0x50fb0 (mod 32 = 16) -> 0x50fb0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1068 lines vs 1070 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::CorpusCells_TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics_Test::TestBody()
+                            PAD-ROUTE DECLINED: 39 alignment-pad lines vs 38 (430 -> 425 bytes); start 0x4c2d0 (mod 32 = 16) -> 0x4c2d0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                              UNCLASSIFIED  - 	movw   $0x76,0x80(%rax) ;LEN=9
+                                            + 	movq   $0x83,0xc8(%rsp) ;LEN=12
+                              UNCLASSIFIED  - 	movq   $0x81,0xc8(%rsp) ;LEN=12
+                                            + 	vmovups %ymm1,0x40(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	vmovups %ymm1,0x40(%rax) ;LEN=5
+                                            + 	vmovupd 0x0(%rip),%ymm1 ;LEN=8
+                              UNCLASSIFIED  - 	vmovupd 0x0(%rip),%ymm1 ;LEN=8
+                                            + RELOC R_X86_64_PC32 .L.str +LOCAL
+                              UNCLASSIFIED  - RELOC R_X86_64_PC32 .L.str +LOCAL
+                                            + 	vmovupd %ymm0,0x60(%rax) ;LEN=5
+                              ... and 188 more unclassified differences
+                            COUNTS 1578 insns; CHANGED 195; UNCLASSIFIED 193; DELTAS +2(x2)
+              DIFFERS       (anonymous namespace)::CorpusTask6bPhaseB_TheShippedKSsnConfigurationIsUnmovedByTheFourLevers_Test::TestBody()
+                              UNCLASSIFIED  - 	vmovups %ymm0,0x5b(%rax) ;LEN=5
+                                            + 	vmovups %ymm0,0x5d(%rax) ;LEN=5
+                              UNCLASSIFIED  - 	movb   $0x0,0x7b(%rax) ;LEN=4
+                                            + 	movb   $0x0,0x7d(%rax) ;LEN=4
+                            COUNTS 4534 insns; CHANGED 5; UNCLASSIFIED 2; DELTAS +2(x3)
+              DIFFERS       (anonymous namespace)::CorpusCells_TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve_Test::TestBody()
+                            PAD-ROUTE DECLINED: 8 alignment-pad lines vs 8 (97 -> 92 bytes); start 0x48c20 (mod 32 = 0) -> 0x48c20 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1587 lines vs 1588 -- instructions were added or removed
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_crossover_legs.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/test_crossover_legs.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/bench/test_snopt_bridge_gate.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/test_snopt_bridge_gate.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/core/test_ledger.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_ledger.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_border_ops.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_border_ops.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_assembly.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_kkt_assembly.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_calls.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_kkt_calls.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_inertia_probe.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_kkt_inertia_probe.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_kkt_partial_solve.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_kkt_partial_solve.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/kkt/test_schur.cpp.o -> tests/kkt/CMakeFiles/hven_kkt_tests.dir/test_schur.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/linear/test_accelerate_probes.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_accelerate_probes.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/linear/test_backend_scaffold.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_backend_scaffold.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_nlp_model.cpp.o -> tests/model/CMakeFiles/hven_model_tests.dir/test_nlp_model.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_parametric_families.cpp.o -> tests/model/CMakeFiles/hven_model_tests.dir/test_parametric_families.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/model/test_scale_problems.cpp.o -> tests/model/CMakeFiles/hven_model_tests.dir/test_scale_problems.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_dense_oracle.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_dense_oracle.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_eqp_refine_ab.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_eqp_refine_ab.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_eqp_solve.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_eqp_solve.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_acceptance.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_acceptance.cpp.o
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_acceptance.cpp.o: PERSYM 817 identical, 0 noise-only, 0 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 11996 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_certification.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_certification.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_counters.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_counters.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_engine.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_kkt_layout.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_kkt_layout.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_ladder_skip.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_ladder_skip.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_math.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_math.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_mu0_rule.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_mu0_rule.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_options.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_options.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_trace.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_trace.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ipqp_warm_restart.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ipqp_warm_restart.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_border.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_engine_border.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_indefinite.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_engine_indefinite.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_engine_tr.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_engine_tr.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_row_contract.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_row_contract.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_types.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_types.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_warm_start.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_warm_start.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_qp_ws_independence.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_qp_ws_independence.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/qp/test_ssn_engine.cpp.o -> tests/qp/CMakeFiles/hven_qp_tests.dir/test_ssn_engine.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/trace/test_trace_writer.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_trace_writer.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_mesh_transfer.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_mesh_transfer.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_sqp_warm_currency.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_sqp_warm_currency.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_warm_start.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_start.cpp.o
+RENAMED     tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/warmstart/test_warm_start_battery.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_start_battery.cpp.o
+RENAMED     tests/model/CMakeFiles/hven_model_tests.dir/__/bench/test_model_surface_kkt.cpp.o -> tests/bench/CMakeFiles/hven_bench_tests.dir/test_model_surface_kkt.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/core/test_inf_norm.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_inf_norm.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/core/test_layering.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_layering.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/core/test_pattern_hash.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_pattern_hash.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/core/test_sparse_backend_link.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_sparse_backend_link.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/core/test_version.cpp.o -> tests/core/CMakeFiles/hven_core_tests.dir/test_version.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_dense_symmetric_factor.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor_growth.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_dense_symmetric_factor_growth.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_symmetric_factor.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_dense_arm.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_symmetric_factor_dense_arm.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_evidence_invariants.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_symmetric_factor_evidence_invariants.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_pardiso_only_options.cpp.o -> tests/linear/CMakeFiles/hven_linear_tests.dir/test_symmetric_factor_pardiso_only_options.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_ipm_polish_extension.cpp.o
+RENAMED     tests/CMakeFiles/hven_tests.dir/warmstart/test_warm_start_data.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_start_data.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_ipm_counters.cpp.o -> tests/ipm/CMakeFiles/hven_ipm_tests.dir/test_ipm_counters.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_ipm_phase_status.cpp.o -> tests/ipm/CMakeFiles/hven_ipm_tests.dir/test_ipm_phase_status.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/ipm/test_stop_recovery.cpp.o -> tests/ipm/CMakeFiles/hven_ipm_tests.dir/test_stop_recovery.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/model/test_problem.cpp.o -> tests/model/CMakeFiles/hven_model_tests.dir/test_problem.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_console_sink.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_console_sink.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_human_trace_goldens.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_human_trace_goldens.cpp.o
+SYMBOLS     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_human_trace_goldens.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [91], std::filesystem::__cxx11::path>(char const (&) [91], std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [81], std::filesystem::__cxx11::path>(char const (&) [81], std::filesystem::__cxx11::path::format)
+PER-SYMBOL  tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_human_trace_goldens.cpp.o: PERSYM 351 identical, 0 noise-only, 1 differing, 1 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2767 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [91], std::filesystem::__cxx11::path>(char const (&) [91], std::filesystem::__cxx11::path::format)
+              DIFFERS       (anonymous namespace)::check(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [91], std::filesystem::__cxx11::path>(char const (&) [91], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [81], std::filesystem::__cxx11::path>(char const (&) [81], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 366 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [81], std::filesystem::__cxx11::path>(char const (&) [81], std::filesystem::__cxx11::path::format)
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_print_tables.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_print_tables.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_messages.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_trace_messages.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_off_path.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_trace_off_path.cpp.o
+SYMBOLS     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_off_path.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format)
+PER-SYMBOL  tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_off_path.cpp.o: PERSYM 273 identical, 0 noise-only, 3 differing, 1 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2673 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::TraceOffPath_TheMessageBuilderRunsOnlyAfterTheSinkTest_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 501 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::TraceOffPath_TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 571 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::TraceOffPath_EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 942 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format)
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_contract.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_trace_v1_contract.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_fixtures.cpp.o -> tests/trace/CMakeFiles/hven_trace_tests.dir/test_trace_v1_fixtures.cpp.o
+SYMBOLS     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_fixtures.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [88], std::filesystem::__cxx11::path>(char const (&) [88], std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [78], std::filesystem::__cxx11::path>(char const (&) [78], std::filesystem::__cxx11::path::format)
+PER-SYMBOL  tests/solver/CMakeFiles/hven_drivers_tests.dir/__/trace/test_trace_v1_fixtures.cpp.o: PERSYM 27 identical, 0 noise-only, 1 differing, 1 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 385 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [88], std::filesystem::__cxx11::path>(char const (&) [88], std::filesystem::__cxx11::path::format)
+              DIFFERS       (anonymous namespace)::check(char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [88], std::filesystem::__cxx11::path>(char const (&) [88], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [78], std::filesystem::__cxx11::path>(char const (&) [78], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 393 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [78], std::filesystem::__cxx11::path>(char const (&) [78], std::filesystem::__cxx11::path::format)
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/__/warmstart/test_warm_protocol.cpp.o -> tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_protocol.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_best_iterate.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_best_iterate.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_callback.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_concurrency.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_counters_dump.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_counters_dump.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_dense_arm_engines.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_dense_arm_engines.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_dense_auto.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_dense_auto.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_evaluation_failure.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_exit_door_walk.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_exit_door_walk.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_infinite_bound.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_iteration_history.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_iteration_history.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_limits.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_message_sites.cpp.o
+SYMBOLS     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format)
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format)
+PER-SYMBOL  tests/solver/CMakeFiles/hven_drivers_tests.dir/test_message_sites.cpp.o: PERSYM 294 identical, 0 noise-only, 3 differing, 1 only-before, 1 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 2710 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       (anonymous namespace)::ipm_text[abi:cxx11]()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 74 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       (anonymous namespace)::sqp_text[abi:cxx11]()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 74 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-BEFORE   std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format)
+              DIFFERS       (anonymous namespace)::TraceMessageSites_EveryEnumeratorIsAccountedForByAnEngineOrDeclaredUnemitted_Test::TestBody()
+                              UNCLASSIFIED  - RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [73], std::filesystem::__cxx11::path>(char const (&) [73], std::filesystem::__cxx11::path::format) -0x4
+                                            + RELOC R_X86_64_PLT32 std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format) -0x4
+                            COUNTS 679 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              ONLY-AFTER    std::filesystem::__cxx11::path::path<char [54], std::filesystem::__cxx11::path>(char const (&) [54], std::filesystem::__cxx11::path::format)
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_options.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_options_dump.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_solve_result.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_solver_move.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_stop_token.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_stop_token.cpp.o
+RENAMED     tests/solver/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o -> tests/solver/CMakeFiles/hven_solver_tests.dir/test_threads.cpp.o
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 89348 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 53544 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 104548 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS -6(x1)
+
+P-SYM: 194 objects — 185 byte-identical, 3 differing within the accepted noise class, 5 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 89 objects matched through the object map, 6 compared per symbol, 1 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 83197 matched (0 through the symbol map), 4 only-before, 4 only-after, 0 excepted, 0 collisions, 56 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 778 matched by count, 0 differing (96184 before-arm and 96184 after-arm symbols accounted by family); relocations — 42006 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

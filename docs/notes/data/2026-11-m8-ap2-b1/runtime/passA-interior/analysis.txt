@@ -1,0 +1,18 @@
+=== interior r1 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r2 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r3 === cells compared: 43  columns compared: 30  differences: 0
+counter check: 3 (round,cell) pairs compared, 0 with a difference or missing
+
+cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
+all                            0.76214                 1.01523                 0.99868                 1.00102                 0.99937               
+
+corpus L1-icache-load-misses:u            A=1.126242e+07 B=8.583556e+06  B/A=0.762141
+corpus branch-misses:u                    A=3.673538e+07 B=3.729502e+07  B/A=1.015234
+corpus branches:u                         A=1.586099e+10 B=1.584011e+10  B/A=0.998684
+corpus cycles:u                           A=3.602582e+10 B=3.606267e+10  B/A=1.001023
+corpus instructions:u                     A=1.074287e+11 B=1.073612e+11  B/A=0.999371
+
+worst per-cell instructions ratio: 0.99937 (all)
+cells outside 0.99-1.01: none
+largest within-arm round-to-round instruction spread: 0.00173
+CORPUS instructions B/A = 0.999371 -> WITHIN +-0.5 %

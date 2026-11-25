@@ -1,0 +1,4 @@
+usage: flags_diff.py [-h] --root ROOT [--map MAP]
+                     [--expect-removed EXPECT_REMOVED]
+                     before after
+flags_diff.py: error: argument --expect-removed: expected one argument

@@ -1,0 +1,1371 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-helper-lpnorm/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpNanGates.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from QpNanGates
+[ RUN      ] QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1280: Failure
+Value of: std::isnan(shifted_residual_ratio(K, rhs, k, y))
+  Actual: false
+Expected: true
+17 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1281: Failure
+Value of: shifted_solve_refused(K, rhs, k, y)
+  Actual: false
+Expected: true
+17 16
+
+[  FAILED  ] QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses (2 ms)
+[ RUN      ] QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1306: Failure
+Value of: std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale))
+  Actual: false
+Expected: true
+17 16
+
+[  FAILED  ] QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 1 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 4 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+9 8 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 1 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 8 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1337: Failure
+Expected equality of these values:
+  refine_shifted_solve(K, rhs, k, y)
+    Which is: 2
+  1
+17 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1340: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 0.5
+17 16 15
+
+[  FAILED  ] QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 1 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 4 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+9 8 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 1 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 8 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1366: Failure
+Expected equality of these values:
+  polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y)
+    Which is: 1
+  0
+17 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/qp/test_qp_dense_arm.cpp:1369: Failure
+Expected equality of these values:
+  y(i)
+    Which is: 1
+  y0(i)
+    Which is: 1.0000000099999999
+17 16 15
+
+[  FAILED  ] QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow
+[       OK ] QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow (0 ms)
+[----------] 5 tests from QpNanGates (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses
+[  FAILED  ] QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN
+[  FAILED  ] QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN
+[  FAILED  ] QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN
+
+ 4 FAILED TESTS

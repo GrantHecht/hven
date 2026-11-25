@@ -1,0 +1,44 @@
+== hven-ipm / hs: 22 cells; status {'optimal': 22}
+  primary      per-cell median: B_sym=0.000 B_fac=0.001 B_kkt=0.000 B_eval=0.000 B_setup=0.999 B_eng=0.000
+  primary      weighted agg.  : B_sym=0.000 B_fac=0.001 B_kkt=0.000 B_eval=0.000 B_setup=0.999 B_eng=0.000
+  primary      (B_sym+B_fac) >= 0.40 on 0/22 cells; B_kkt >= 0.25 on 0/22
+  steady-state per-cell median: B_sym=0.000 B_fac=0.750 B_kkt=0.000 B_eval=0.000 B_setup=0.000 B_eng=0.000
+  steady-state weighted agg.  : B_sym=0.000 B_fac=0.774 B_kkt=0.011 B_eval=0.075 B_setup=0.000 B_eng=0.140
+  steady-state (B_sym+B_fac) >= 0.40 on 22/22 cells; B_kkt >= 0.25 on 1/22
+  rho: n=22 min=0.030 q25=0.041 med=0.048 q75=0.059 max=0.082; rho<=0.5 on 22
+  rho_engine_weighted: med=0.194 q25=0.171 q75=0.248; <=0.5 on 22, <1 on 22
+  neg_agree per cell: med=1.000 min=1.000; cells at >= 0.99: 22/22
+  pooled matrices: 268; neg agree (replay sparse vs dense) 1.0000; engine vs dense 1.0000; replay fidelity 1.0000; sparse ok 268, dense ok 268
+== hven-ipm / sd: 97 cells; status {'optimal': 89, 'acceptable': 1, 'max_iter': 3, 'diverging': 1, 'numerical_error': 3}
+  primary      per-cell median: B_sym=0.000 B_fac=0.001 B_kkt=0.000 B_eval=0.000 B_setup=0.998 B_eng=0.000
+  primary      weighted agg.  : B_sym=0.000 B_fac=0.007 B_kkt=0.000 B_eval=0.005 B_setup=0.987 B_eng=0.001
+  primary      (B_sym+B_fac) >= 0.40 on 0/97 cells; B_kkt >= 0.25 on 0/97
+  steady-state per-cell median: B_sym=0.000 B_fac=0.563 B_kkt=0.000 B_eval=0.095 B_setup=0.200 B_eng=0.019
+  steady-state weighted agg.  : B_sym=0.001 B_fac=0.515 B_kkt=0.021 B_eval=0.368 B_setup=0.049 B_eng=0.047
+  steady-state (B_sym+B_fac) >= 0.40 on 72/97 cells; B_kkt >= 0.25 on 0/97
+  rho: n=95 min=0.029 q25=0.058 med=0.067 q75=0.097 max=1.818; rho<=0.5 on 90
+  rho_engine_weighted: med=0.314 q25=0.234 q75=0.560; <=0.5 on 70, <1 on 82
+  neg_agree per cell: med=1.000 min=0.091; cells at >= 0.99: 85/95
+  pooled matrices: 2416; neg agree (replay sparse vs dense) 0.9764; engine vs dense 0.9710; replay fidelity 0.9884; sparse ok 2416, dense ok 2401
+== hven-sqp / hs: 22 cells; status {'optimal': 22}
+  primary      per-cell median: B_sym=0.000 B_fac=0.874 B_kkt=0.024 B_eval=0.004 B_setup=0.012 B_eng=0.086
+  primary      weighted agg.  : B_sym=0.001 B_fac=0.876 B_kkt=0.025 B_eval=0.005 B_setup=0.009 B_eng=0.084
+  primary      (B_sym+B_fac) >= 0.40 on 21/22 cells; B_kkt >= 0.25 on 0/22
+  steady-state per-cell median: B_sym=0.000 B_fac=0.874 B_kkt=0.024 B_eval=0.004 B_setup=0.012 B_eng=0.086
+  steady-state weighted agg.  : B_sym=0.001 B_fac=0.876 B_kkt=0.025 B_eval=0.005 B_setup=0.009 B_eng=0.084
+  steady-state (B_sym+B_fac) >= 0.40 on 21/22 cells; B_kkt >= 0.25 on 0/22
+  rho: n=21 min=0.037 q25=0.038 med=0.042 q75=0.046 max=0.061; rho<=0.5 on 21
+  rho_engine_weighted: med=0.106 q25=0.093 q75=0.122; <=0.5 on 21, <1 on 21
+  neg_agree per cell: med=1.000 min=1.000; cells at >= 0.99: 21/21
+  pooled matrices: 204; neg agree (replay sparse vs dense) 1.0000; engine vs dense 1.0000; replay fidelity 1.0000; sparse ok 204, dense ok 204
+== hven-sqp / sd: 97 cells; status {'optimal': 81, 'numerical_error': 7, 'infeasible': 8, 'max_iter': 1}
+  primary      per-cell median: B_sym=0.001 B_fac=0.867 B_kkt=0.024 B_eval=0.006 B_setup=0.017 B_eng=0.074
+  primary      weighted agg.  : B_sym=0.001 B_fac=0.933 B_kkt=0.045 B_eval=0.000 B_setup=0.000 B_eng=0.021
+  primary      (B_sym+B_fac) >= 0.40 on 95/97 cells; B_kkt >= 0.25 on 0/97
+  steady-state per-cell median: B_sym=0.001 B_fac=0.867 B_kkt=0.024 B_eval=0.006 B_setup=0.017 B_eng=0.074
+  steady-state weighted agg.  : B_sym=0.001 B_fac=0.933 B_kkt=0.045 B_eval=0.000 B_setup=0.000 B_eng=0.021
+  steady-state (B_sym+B_fac) >= 0.40 on 95/97 cells; B_kkt >= 0.25 on 0/97
+  rho: n=95 min=0.033 q25=0.044 med=0.058 q75=0.077 max=1.355; rho<=0.5 on 92
+  rho_engine_weighted: med=0.140 q25=0.102 q75=0.182; <=0.5 on 90, <1 on 95
+  neg_agree per cell: med=1.000 min=0.320; cells at >= 0.99: 77/95
+  pooled matrices: 2613; neg agree (replay sparse vs dense) 0.9334; engine vs dense 0.9334; replay fidelity 1.0000; sparse ok 2613, dense ok 2603

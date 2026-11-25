@@ -1,0 +1,10 @@
+CI evidence of RF-1b (workflow ci.yml, workflow_dispatch; jobs listed per run).
+45090941397 at 5a977014b (code ecda15017 + declaration/binaries docs): macos-clang-release success, linux-clang-coverage success, linux-clang-release success,
+  windows-clang-release FAILURE: Continuation.ProbeBudgetBoundsAFailingProposal arm A read 560 (clang-cl, MKL 2026.1, OFF-REFERENCE; gtest XML property
+  probe_budget_arm_a_factorizations_route = 560); r4 pinned Windows at 559 and WX-R11 records that Windows flips run to run. The only failing test of 3945.
+  Reference-build readings of the same test at this head: 559 (box Release, Linux CI runner); Debug 501.
+6f3f9a3fe tests-only pin (04d06081f pattern): off the reference build 558, 559 or 560 accepted and recorded; reference build keeps 559 exactly.
+45096673801 at 6f3f9a3fe: windows-clang-release success, linux-clang-release success, macos-clang-release success, linux-clang-coverage success
+  (the Windows and Linux runners of this run recorded the arm-A reading 559).
+45096622738 (control: ci.yml on m8 641dedeab = arm R, dispatched with --ref m8, nothing pushed): all four jobs success.
+(45096620009 was dispatched at b2d3944ab and cancelled: a clang-format violation in the comment of the pin commit, fixed and amended into 6f3f9a3fe.)

@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index d9772c70c..28a7dd459 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2206,7 +2206,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                                            lambda_e, eff_opts)) {
+                 if (ride_stays_in_working_set(qp, ws, p)) {
+                     guard = either_moves();
+-                } else if (eff_opts.dual_regularization > 0.0 && ride_holds_pins(ws, p)) {
++                } else if (false && eff_opts.dual_regularization > 0.0 && ride_holds_pins(ws, p)) {
+                     // THE REGULARIZATION FOOTPRINT: the merit's slope along p must rise too;
+                     // f falls along -p for every alpha (slope > 0, verified p'Hp < 0), the merit
+                     // up to its own minimiser when its curvature along p is positive, and the

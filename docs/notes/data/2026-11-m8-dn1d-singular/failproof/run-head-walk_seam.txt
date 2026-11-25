@@ -1,0 +1,36 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+[       OK ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization (4 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[       OK ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[       OK ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[       OK ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[       OK ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (1 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (11 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[       OK ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+[       OK ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[----------] 13 tests from QpDenseArm (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (18 ms total)
+[  PASSED  ] 13 tests.

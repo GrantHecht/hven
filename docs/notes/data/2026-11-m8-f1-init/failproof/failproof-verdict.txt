@@ -1,0 +1,4 @@
+arm B: spin samples 0, instructions:u 2981185831
+mutant: spin samples 17960, instructions:u 6575178077
+mutant - arm B = 3.5940e+09; rows EXACT: True
+FAILPROOF_AS_DECLARED

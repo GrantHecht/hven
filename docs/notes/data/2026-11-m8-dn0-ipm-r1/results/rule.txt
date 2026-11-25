@@ -1,0 +1,32 @@
+== primary (process total, one-time init included)
+hven-ipm/hs: median cell hs010 (rank 11/22 by instr_median=7062033), status optimal
+    B_sym=0.000 B_fac=0.419 B_kkt=0.015 B_eval=0.024 B_setup=0.166 B_eng=0.375
+    (B_sym+B_fac)=0.4188945101520027 rho=0.042357097783205386 rho_incl_densify=0.04377011708198463 rho_engine_weighted=0.17805667011770093 neg_agree=1.0 replayed=10
+    DN1=True DN2=False dominant=B_fac 
+    samples(all reps)=2097 solver~727 reps=100 period_base=250007 sampling_defects=0
+    [reported, not the rule] pooled neg agreement over the population: 268/268 = 1.0; DN1 condition with pooled agreement = True
+hven-ipm/sd: median cell HS100MOD (rank 49/97 by instr_median=8694896), status optimal
+    B_sym=0.000 B_fac=0.421 B_kkt=0.010 B_eval=0.088 B_setup=0.231 B_eng=0.249
+    (B_sym+B_fac)=0.420964129950229 rho=0.08478182543894731 rho_incl_densify=0.08898490672084747 rho_engine_weighted=0.41457366053906963 neg_agree=1.0 replayed=15
+    DN1=True DN2=False dominant=B_fac 
+    samples(all reps)=2589 solver~1187 reps=100 period_base=250007 sampling_defects=0
+    [reported, not the rule] pooled neg agreement over the population: 2359/2416 = 0.9764072847682119; DN1 condition with pooled agreement = False
+engines: {"hven-ipm": {"DN1": true, "DN2_provisional": false}}
+OUTCOME: DN-1 (IPM engine outcome; the SQP's is DN-0's)
+
+== secondary (steady state, process-once solver init excluded)
+hven-ipm/hs: median cell hs010 (rank 11/22 by ss_instr=2383083), status optimal
+    B_sym=0.000 B_fac=0.420 B_kkt=0.015 B_eval=0.025 B_setup=0.164 B_eng=0.376
+    (B_sym+B_fac)=0.41986263755135306 rho=0.042357097783205386 rho_incl_densify=0.04377011708198463 rho_engine_weighted=0.17805667011770093 neg_agree=1.0 replayed=10
+    DN1=True DN2=False dominant=B_fac 
+    samples(all reps)=2097 solver~727 reps=100 period_base=250007 sampling_defects=0
+    [reported, not the rule] pooled neg agreement over the population: 268/268 = 1.0; DN1 condition with pooled agreement = True
+hven-ipm/sd: median cell HS100MOD (rank 49/97 by ss_instr=3897245), status optimal
+    B_sym=0.000 B_fac=0.421 B_kkt=0.010 B_eval=0.089 B_setup=0.231 B_eng=0.249
+    (B_sym+B_fac)=0.42137595210385437 rho=0.08478182543894731 rho_incl_densify=0.08898490672084747 rho_engine_weighted=0.41457366053906963 neg_agree=1.0 replayed=15
+    DN1=True DN2=False dominant=B_fac 
+    samples(all reps)=2589 solver~1187 reps=100 period_base=250007 sampling_defects=0
+    [reported, not the rule] pooled neg agreement over the population: 2359/2416 = 0.9764072847682119; DN1 condition with pooled agreement = False
+engines: {"hven-ipm": {"DN1": true, "DN2_provisional": false}}
+OUTCOME: DN-1 (IPM engine outcome; the SQP's is DN-0's)
+

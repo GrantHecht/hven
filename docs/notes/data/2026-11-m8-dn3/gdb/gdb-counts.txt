@@ -1,0 +1,8 @@
+hs-hven-ipm-hs026 N readenv=1 kmp_serial_init=1 status=optimal
+hs-hven-ipm-hs026 A readenv=1 kmp_serial_init=1 status=optimal
+sd-hven-ipm-HS67 N readenv=1 kmp_serial_init=1 status=optimal
+sd-hven-ipm-HS67 A readenv=1 kmp_serial_init=1 status=optimal
+hs-hven-sqp-hs043 N readenv=1 kmp_serial_init=0 status=optimal
+hs-hven-sqp-hs043 A readenv=0 kmp_serial_init=0 status=optimal
+sd-hven-sqp-HS84 N readenv=1 kmp_serial_init=0 status=optimal
+sd-hven-sqp-HS84 A readenv=0 kmp_serial_init=0 status=optimal

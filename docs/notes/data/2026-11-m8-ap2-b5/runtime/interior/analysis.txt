@@ -1,0 +1,21 @@
+=== interior r1 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r2 === cells compared: 43  columns compared: 30  differences: 0
+=== interior r3 === cells compared: 43  columns compared: 30  differences: 0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+FILTER LIVENESS arm A: excluded samples over all processes and rounds = 53223 -> LIVE
+FILTER LIVENESS arm B: excluded samples over all processes and rounds = 53632 -> LIVE
+
+mode interior, 1 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over rounds, summed
+  filtered samples (CRITERION)     A=5.326790e+05 B=5.333550e+05 B/A=1.001269
+  all samples                      A=5.504500e+05 B=5.512700e+05 B/A=1.001490
+  excluded (wall-clock) samples    A=1.777100e+04 B=1.791500e+04 B/A=1.008103
+  raw perf-stat instructions:u     A=1.100926e+11 B=1.102571e+11 B/A=1.001495
+
+per-round filtered B/A (informational):
+  round 1: B/A=1.001277
+  round 2: B/A=1.001269
+  round 3: B/A=1.001258
+worst per-cell filtered ratio: 1.00127 (all)
+largest within-arm round-to-round filtered spread: 0.00001
+MODE interior FILTERED B/A = 1.001269 -> WITHIN [0.995, 1.005]

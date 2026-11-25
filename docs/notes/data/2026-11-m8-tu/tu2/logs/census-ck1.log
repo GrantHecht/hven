@@ -1,0 +1,65 @@
+restricted cells: 42
+box-lane: lane 0 acquired 2026-11-23T21:13:40-05:00
+=== walk census: parallel-tiered v1, TU-2 RESTRICTED subset copy of the RF-1 lane copy (one 4-core box lane; T2 solo within the lane, not machine-solo) (T1 4-wide pinned / T2 solo / T3 4-wide full-budget) ===
+binary   : /home/ghecht/Projects/hven-bench-tu2/.scratch/bin/hven_sqp_corpus.ck1
+baseline : /home/ghecht/Projects/hven-bench-tu2/.scratch/census/ck1/restricted_baseline.csv
+topology : 4 physical cores; representatives (one sibling each): 0,1,2,3
+tier assignment (from frozen baseline /home/ghecht/Projects/hven-bench-tu2/.scratch/census/ck1/restricted_baseline.csv)
+  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+  T3 deep-DNF 4-wide      : baseline status dnf_*, full budget each
+  T1 remainder 4-wide     : everything else
+  counts: T1=42  T2=0  T3=0  (total 42)
+  tier cell                             base_status    base_wall_s
+  T1   f7_n5000_path_activity           Optimal        787.729
+  T1   f7_n5000_path_physics            Optimal        588.323
+  T1   f7_n1000_path_neutral            Optimal        173.827
+  T1   f7_n800_path_neutral             Optimal        121.034
+  T1   f7_n825_path_neutral_control     Optimal        115.152
+  T1   f7_n750_path_neutral_control     Optimal        107.027
+  T1   f7_n2000_path_physics            Optimal        76.973
+  T1   f7_n2000_path_activity           Optimal        69.834
+  T1   f7_n1000_path_corrupted          Optimal        69.736
+  T1   f7_n2000_path_warm               Optimal        38.963
+  T1   f7_n800_path_corrupted           Optimal        29.776
+  T1   f7_n1000_path_physics            Optimal        14.163
+  T1   f7_n800_path_physics             Optimal        8.783
+  T1   f7_n1000_path_activity           Optimal        8.708
+  T1   f7_n800_path_activity            Optimal        4.982
+  T1   f7_n20000_bound_neutral          Optimal        1.340
+  T1   f7_n20000_bound_physics          Optimal        1.216
+  T1   f7_n20000_bound_corrupted        Optimal        1.205
+  T1   f7_n20000_bound_warm             Optimal        1.194
+  T1   f7_n20000_bound_activity         Optimal        1.185
+  T1   f7_n10000_bound_neutral          Optimal        0.642
+  T1   f7_n10000_bound_corrupted        Optimal        0.576
+  T1   f7_n10000_bound_warm             Optimal        0.575
+  T1   f7_n10000_bound_physics          Optimal        0.569
+  T1   f7_n10000_bound_activity         Optimal        0.568
+  T1   f7_n5000_bound_neutral           Optimal        0.312
+  T1   f7_n5000_bound_activity          Optimal        0.278
+  T1   f7_n5000_bound_physics           Optimal        0.278
+  T1   f7_n5000_bound_warm              Optimal        0.278
+  T1   f7_n5000_bound_corrupted         Optimal        0.270
+  T1   f7_n1000_path_warm               Optimal        0.221
+  T1   f7_n2000_bound_neutral           Optimal        0.125
+  T1   f7_n2000_bound_physics           Optimal        0.113
+  T1   f7_n2000_bound_activity          Optimal        0.112
+  T1   f7_n800_path_warm                Optimal        0.112
+  T1   f7_n2000_bound_corrupted         Optimal        0.111
+  T1   f7_n2000_bound_warm              Optimal        0.109
+  T1   f7_n1000_bound_neutral           Optimal        0.062
+  T1   f7_n1000_bound_activity          Optimal        0.055
+  T1   f7_n1000_bound_physics           Optimal        0.055
+  T1   f7_n1000_bound_warm              Optimal        0.054
+  T1   f7_n1000_bound_corrupted         Optimal        0.052
+--- tier 1: 42 cells, 4 worker(s), started 02:13:40Z ---
+--- tier 1: complete 02:48:03Z ---
+--- tier 2: no cells ---
+--- tier 3: no cells ---
+merging 42 row files
+merge+score exit: 0
+compare exit: 0
+42 baseline cells, 42 fresh cells, 0 mismatches
+serial-confirm list: 0 cell(s) -> /home/ghecht/Projects/hven-bench-tu2/.scratch/census/ck1/run/serial_confirm_list.txt
+=== census done (merge_rc=0 compare_rc=0 rows=42/42) ===
+ck1 rc=0

@@ -1,0 +1,123 @@
+{
+ "samples": 4213,
+ "period": 1000003,
+ "instr_sampled_all": 4234901639,
+ "instr_sampled_solver": 4226873615,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 2007006,
+  "B_kkt": 0,
+  "B_eval": 1007003,
+  "B_setup": 4222859603,
+  "B_eng": 1000003,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.000474820442437099,
+  "B_kkt": 0.0,
+  "B_eval": 0.00023823825638562415,
+  "B_setup": 0.9990503591151259,
+  "B_eng": 0.00023658218605147484
+ },
+ "proc_share_of_all": 0.0018956813367442653,
+ "rule_instr": 4234901639,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9969143128412058,
+ "init_instr": 4220852597,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.3333333333333333,
+  "B_kkt": 0.0,
+  "B_eval": 0.16724796371643466,
+  "B_setup": 0.3333333333333333,
+  "B_eng": 0.16608536961689868
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2007006
+  ]
+ ],
+ "mkl_serv_instr": 4220852597,
+ "kmp_instr": 2007006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    1007003
+   ],
+   [
+    "__kmp_env_initialize",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "hven::detail::NonLinearProgram::objective_constraints_pass",
+    1007003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    2664888953
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1179023519
+   ],
+   [
+    "__vdso_time",
+    197022588
+   ],
+   [
+    "difftime@plt",
+    163812489
+   ],
+   [
+    "time@plt",
+    16105048
+   ],
+   [
+    "hven::detail::get_core_count",
+    1007003
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::complementarity",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_relocate_object_no_relro",
+    3014009
+   ],
+   [
+    "do_lookup_x",
+    3007009
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ]
+  ]
+ }
+}

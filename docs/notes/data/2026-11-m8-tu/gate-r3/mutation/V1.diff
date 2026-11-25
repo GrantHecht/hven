@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..5d97ced01 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -100,7 +100,7 @@ void validate(const SqpOptions &opts) {
+             "SqpSolver: qp.max_iterations ({}) must be empty or >= 1", *opts.qp.max_iterations));
+     }
+     // THE QP BLOCK'S OWN FIELDS (TU-0): each in the negated form, so NaN is refused.
+-    if (!(opts.qp.dual_regularization >= 0.0) || std::isinf(opts.qp.dual_regularization)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: qp.dual_regularization ({}) must be finite and >= 0",
+                         opts.qp.dual_regularization));

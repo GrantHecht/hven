@@ -1,0 +1,2 @@
+QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+QpWa1AscentFootprint.DecisionStopsAtTheRowBudget

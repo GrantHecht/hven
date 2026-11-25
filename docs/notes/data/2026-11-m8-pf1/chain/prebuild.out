@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T05:16:51-05:00
+eigen pinned bc3b39870ecb690a623a3f49149a358b95c5781d here bc3b39870ecb690a623a3f49149a358b95c5781d
+fmt   pinned 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f here 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+[344/344] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-07T05:20:27-05:00
+cb07803891f17091a8bbe1de280d947c99d59a16e05bfbefd49d54d1a014166b  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/armAbin/hven_sqp_corpus
+e92f61555fe95245978369ea15a8f64d41c1a72ce89b898e78f9d6e250046d57  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/armA-compile_commands.json
+FOREGROUND_END 2026-11-07T05:20:27-05:00

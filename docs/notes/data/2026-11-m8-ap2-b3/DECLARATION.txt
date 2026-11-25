@@ -1,0 +1,184 @@
+M8 AP-2 group B3 -- DECLARATION (committed before the first leg; never edited afterwards)
+================================================================================
+Group      B3: options and limits -- settings spelled once across both engines
+           (docs/notes/2026-11-m8-ap1-api-review.md sections 4.1-4.4, 5 (status
+            additions), 7 (the three B3 allow-list lines), 13 row B3;
+            docs/notes/2026-11-m8-brief.md AP-2; owner decisions 4, 5, 6 and the
+            dense-arm naming)
+Pin        origin/m8 = 988449b4 ("fix(m8-b2): revert the R1 me+extra acceptance ..."),
+           B1 and B2 landed.  Built UNCHANGED in build-b3/rel (Release) BEFORE any B3 edit:
+           that build is the P-SYM "before" capture, the runtime arm A
+           (build-b3/armA/hven_sqp_corpus) and the iparm "pin" arm.  The tree is then moved
+           to B3 and rebuilt IN PLACE (same absolute build directory) for the "after" arm.
+Branch     m8-b3 (worktree of the same repo; not pushed)
+Toolchain  system clang++ (Release and Debug, HVEN_FP_MODE=SAFER_FAST, the uniform flag
+           regime), Ninja, MKL, MKL_NUM_THREADS=1.  Install smoke additionally on the
+           default (GCC) front end.
+
+THE CHANGE UNDER TEST (summary; the field map is the B3 manifest in the report)
+--------------------------------------------------------------------------------
+* CommonOptions, embedded once per engine: optimality_tol, feasibility_tol,
+  max_iterations, max_factorizations (std::optional<Index>), time_limit_seconds
+  (std::optional<double>), verbosity (enum Verbosity: kSilent, kWarnings, kSummary,
+  kIterations), threads, start_level, infinite_bound (declared, validated, INERT until
+  B7).  The IPM's kkt_tol/bar_tol map to optimality_tol (with an optional
+  termination.complementarity_tol override for the barrier test), econ_tol/icon_tol to
+  feasibility_tol; the SQP's kkt_tol/feas_tol likewise; max_iters/max_iter become
+  max_iterations (IPM default 1000 per phase, SQP default 100).
+* SolveBudget: max_iterations and minor_budget become std::optional<Index> (empty = no
+  limit; an engaged value < 1 is refused at solve entry).
+* New statuses SolveStatus::kWorkLimit and kTimeLimit (and their RestorationSubStatus
+  images), with the two limits: max_factorizations (deterministic, read at iteration
+  boundaries on both engines) -> kWorkLimit; time_limit_seconds (wall clock,
+  NON-REPRODUCIBLE, never set in a replay, census, harness or runtime row) ->
+  kTimeLimit.  Both default to empty.
+* The SQP minor-budget (SolveBudget::minor_budget) exhaustion is RELABELLED kMaxIter ->
+  kWorkLimit.  The returned point, multipliers and every counter are unchanged.
+* Verbosity default kSilent on BOTH engines (the IPM was print_level 0 = full output;
+  the SQP was already silent).  The console banner's stale "InteriorPointSolver" is fixed.
+* IpmOptions gains `linear` (the KKT factorization knobs, incl. the dense arm),
+  `termination` (acceptable and divergence tiers, acceptable-iteration count, the
+  complementarity override), `advanced` (the research tier).  SqpOptions gains `linear`
+  (the dense arm) and `advanced` (the research tier, incl. make_strategy and `ipqp`,
+  whose ipqp_ prefixes drop).  Cryptic names renamed.  Option enums singular with
+  kPascalCase enumerators; the k...Count sentinels leave the public enums.
+  IpmPhase (and the option enums) leave detail/; detail/drivers/ipm_solver_fwd.h is
+  deleted (R7).  FixedVariableTreatments folds into the IPM options header as
+  FixedVariableTreatment (F6); model/fixed_variable_treatment.h leaves the public
+  surface, the relax constants and the name function go to detail/.
+* The dense arm, NAMED NOW, NOT WIRED: `linear.dense_factorization` (hven::linear::
+  DensePolicy {kNever, kAlways, kAuto}, default kNever) and `linear.dense_max_dimension`
+  (std::optional<Index>, default empty) on both engines.  RESERVED: validate() accepts
+  only kNever and an empty dense_max_dimension and refuses anything else by name, until
+  DN-1 wires the arm.
+* SqpSolver(SqpOptions = {}); dump_options doubles at shortest round-trip on both
+  engines; the export allow-list loses its three B3 lines.
+
+DECLARED DIFFERENCES (everything not listed here is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  Console output (output-only).  An IpmSolver built from default options writes
+    nothing to the console (it printed the banner, iteration table and exit block).
+    No counter, status, iterate, multiplier or residual moves.  Every bench/corpus leg
+    already sets its verbosity explicitly (bench/ipm_corpus_leg.h print_level = 10,
+    bench/crossover_legs.h ipm_print_level = 10 -> kSilent), so no measured leg's
+    output changes either; the interior leg's CSV provenance comment line
+    ("# levers: ... print_level=10 ...") is re-spelled ("verbosity=silent").
+    Comment lines are outside every comparison (compare_replay.py drops '#').
+X2  Minor-budget relabel, status column only.  Corpus rows whose solve stops on the
+    probe budget (SqpCounters::probe_budget_stops == 1) change status
+    MaxIter -> WorkLimit (the corpus's capitalised vocabulary gains "WorkLimit" and
+    "TimeLimit").  Counted BEFORE the first leg:
+      * 27-cell replay (walk, ssn, ipm): 0 rows.  Every reference row in
+        docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-{walk,ssn,ipm}.csv is
+        Optimal (27 x 3), and a probe stop cannot report Optimal.  The replay is EXACT.
+      * 57-cell walk census (bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv):
+        exactly 2 rows -- f7_n2000_path_neutral (MaxIter, qp_subproblems 5,
+        qp_minors 64470) and f7_n2000_path_corrupted (MaxIter, qp_subproblems 3,
+        qp_minors 60000).  Both stop below the corpus's 10-major cap with
+        qp_minors >= kMinorBudget = 50000, which is the probe stop by construction
+        (sqp_solver.cpp's terminal conjunction).  Expected: on these two rows the
+        status column reads WorkLimit and the other 12 asserted columns are EXACT;
+        the other 55 rows are EXACT on all 13 asserted columns.  The baseline's
+        remaining MaxIter rows: none.
+    Suite pins that assert kMaxIter on a probe stop are re-derived to kWorkLimit, named
+    in the report (tests/sqp/test_sqp_solver.cpp, tests/sqp/test_corpus_cells.cpp, and
+    any other the build finds).
+X3  The options-dump drift pin (tests/drivers/test_options_dump.cpp) is re-derived:
+    new field names and layout, new fields, optional fields printed `unset` or their
+    value, enumerator names singular/kPascalCase, doubles at shortest round-trip
+    (`1e-06`, was `9.9999999999999995e-07`).
+X4  Status vocabulary: SolveStatus gains kWorkLimit = 9 and kTimeLimit = 10;
+    RestorationSubStatus gains kWorkLimit = 10 and kTimeLimit = 11 (every existing
+    numeric value unchanged); to_string spells `work_limit` / `time_limit`; the
+    severity() reporting order places them after kMaxIter (ranks of the statuses after
+    them move up by two; severity is an order, never persisted).  No existing solve
+    reports either except through X2.
+X5  Validation messages name the new fields; new refusals (each pinned):
+    infinite_bound <= 0 or NaN; engaged time_limit_seconds <= 0 or NaN; engaged
+    max_factorizations < 0; engaged SolveBudget member < 1 (at solve entry); the dense
+    arm's reserved values; a negative max_iterations; optimality_tol / feasibility_tol
+    <= 0 or NaN; an engaged complementarity_tol <= 0 or NaN.
+X6  Trace: the JSON-lines keys, values and event shapes are UNCHANGED (the
+    ipm.solve.begin keys kkt_tol/econ_tol/icon_tol/bar_tol keep their spelling and are
+    filled from the shared tolerances, which reproduce every corpus setting).  The trace
+    goldens are EXACT.
+
+PROOFS
+--------------------------------------------------------------------------------
+1  both suites: ctest Release and Debug, -j4 under setsid; every test passes.
+2  install smoke on both front ends (default/GCC arm, clang arm), each followed by
+   scripts/check_export_contract.sh; both pass.
+3  export contract: the allow-list loses its three B3 lines (ipm_solver_types.h ->
+   ipm_solver_fwd.h, sqp_solver_types.h -> globalization.h, trace.h ->
+   ipm_solver_fwd.h) and the check passes with it.
+4  golden rig: the native-arm rig suite inside ctest; the two OLD-SEAM arms are not
+   configured in this tree, as at every earlier gate -- reported, not claimed.
+5  27-cell replay x 3 SQP modes (walk, ssn, ipm), scripts/compare_replay.py,
+   cells docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt, reference
+   docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-{walk,ssn,ipm}.csv.  EXACT:
+   zero differences on every non-wall column (X2: no row is declared to move).
+6  walk census: RUN (X2 moves two census rows).  scripts/run_walk_census.sh (parallel-
+   tiered v1, defaults) on B3's hven_sqp_corpus against the frozen baseline above,
+   compare by scripts/census_compare.py.  CRITERION: the comparator reports exactly the
+   two X2 rows, each differing in the status column only (MaxIter -> WorkLimit); every
+   other row and column EXACT.  A co-run deviation outside X2 is a candidate and is
+   re-run ALONE before it is called one (CLAUDE.md section 7); the two X2 cells are T2
+   (solo) by the script's own tiering.  The re-derived baseline (the frozen baseline
+   with exactly those two status strings changed) is written beside the evidence and
+   the fresh census compared against it reads 0 mismatches.
+B3-a  iparm (IPARM-SURFACE): a standalone dumper (iparm/dump_iparm.cpp, linked
+      -Wl,--wrap=pardiso against each arm's installed library) records the full 64-entry
+      iparm array passed into every pardiso call of an HS071 IPM solve, for the default
+      options and for each non-default value of every field that reaches the linear
+      layer: ordering (minimum degree, parallel nested dissection), pivoting (1x1),
+      matching off, scaling on, pivot perturbation 13, refinement steps 2, parallel
+      solve 1 and 2, factorization algorithm two-level, CNR on, the zero-perturbation
+      skip off, forced analysis on, threads 2, and the backend-print flag on (refused on
+      both arms).  CRITERION: the two arms' dump files are BYTE-IDENTICAL (diff empty).
+B3-b  options-dump pin re-derived (X3); validation pins for every refused value (X5).
+B3-c  console byte-pins at each Verbosity rung: the scripted-sink transcripts at
+      kIterations / kSummary / kWarnings / kSilent are byte-identical to the pin's
+      print_level 0 / 1 / 2 / 3 transcripts; a default IpmSolver and a default
+      SqpSolver write zero bytes to stdout on a solve.
+B3-d  forced-limit pins on both engines: max_factorizations reached -> kWorkLimit at the
+      iteration boundary with the point returned and counters <= ceiling + one
+      iteration's worth; time_limit_seconds (tiny) -> kTimeLimit; an empty limit is the
+      unlimited solve, counter-identical; the probe-budget stop -> kWorkLimit with
+      probe_budget_stops == 1.
+B3-e  examples: HVEN_BUILD_EXAMPLES=ON, all eight build and run (exit 0).
+B3-f  compile-flags diff: the build's own compile_commands.json, library TUs, pin vs B3,
+      full flag set per TU (normalized only for -I/-o/-c/source tokens); added TUs carry
+      the baseline flags.
+B3-g  P-SYM census of the layout change (INFORMATIONAL inventory, not an identity gate):
+      scripts/psym_compare.sh capture before (the pin, build-b3/rel) and after (B3,
+      same directory), compare with no maps; the tool's classification counts are
+      recorded.  B3 changes option layout and adds limit checks by design, so symbol
+      differences are expected; the identity claims are carried by proofs 5 and 6 and
+      the runtime protocol's counter-identity STOP.
+
+RUNTIME NEUTRALITY (CLAUDE.md section 5 / docs/measurement.md section 4)
+--------------------------------------------------------------------------------
+The B2 runtime-r5 instrument, re-derived for B3 in runtime/DECLARATION.txt, committed
+before its first leg: filtered instructions:u at perf period 200000, the excluded
+wall-clock symbol list, THROTTLE == 0 validity, the filter-liveness guard on the
+interior mode only, order alternated, sub-second phase alignment, counter identity as
+the STOP condition; band 0.995 <= B/A <= 1.005 in every mode (interior, ipm, ssn,
+walk).  Arms: A = the pin's hven_sqp_corpus, B = B3's.
+
+HONESTY CLAUSES
+--------------------------------------------------------------------------------
+* A failed leg stops the group and is reported.  No criterion is changed after the first
+  leg; a tool or exception rule that needs fixing after data is reported as a criterion
+  change.
+* time_limit_seconds is never set in any measured row; its pin is a unit test only.
+* Apple/Accelerate and Windows: UNOBSERVED.  The Accelerate arm's options compile only on
+  Apple (USE_ACCELERATE_SPARSE) and are not observed here.
+* Tool hashes at declaration time:
+    scripts/compare_replay.py        8e56ea2ecc46d62e2e917ac5bd2e7723d100645b0aa852ec0e074c9200a36080
+    scripts/check_install_smoke.sh   d4b63e0c9a2ea0ed4175fced948a822ac8bbae145d276d2249b74ed26e6c714e
+    scripts/check_export_contract.sh 8371798782141fd2095766018bd58deeb357ab3b51217a2521eca2be8d6e369c
+    scripts/psym_compare.sh          2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+    scripts/run_walk_census.sh       5afdf8e76e88c60ea2d1568a49717a002fdebc3e33f9c5cc36b2955951368043
+    scripts/census_compare.py        5d8ff7017383d57aab79e6e36e453e5253863c193f14abb106019d8488034a23
+    walk baseline                    4953be21d0401e7d96a0a3eba264e8fca4d15ae2860e42c8fc9b58b8cde8dc2c
+    flags_diff.py (B2's, copied)     af45d707aaf6e0e70bfe0d145f0a480150e214efad0dbe3fabe43c976ebf37bb

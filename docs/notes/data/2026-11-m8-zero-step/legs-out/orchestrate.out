@@ -1,0 +1,110 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:09:48-05:00
+LEG F1-rel start 2026-11-15T11:09:48-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:09:48-05:00
+The following tests did not run:
+	810 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2395 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2396 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T11:11:02-05:00
+LEG F1-rel rc=0 2026-11-15T11:11:02-05:00
+LEG F1-dbg start 2026-11-15T11:11:02-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:11:02-05:00
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	810 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2395 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2396 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T11:18:13-05:00
+LEG F1-dbg rc=0 2026-11-15T11:18:13-05:00
+LEG I1 start 2026-11-15T11:18:13-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:18:13-05:00
+cells: 27
+RUN mode=walk arm=A 2026-11-15T11:18:13-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-15T11:23:02-05:00
+run rc=0
+compare walk rc=0
+=== zs-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-15T11:27:51-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-15T11:28:11-05:00
+run rc=0
+compare ssn rc=0
+=== zs-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-15T11:28:32-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-15T11:28:58-05:00
+run rc=0
+compare ipm rc=0
+=== zs-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=interior arm=A 2026-11-15T11:29:24-05:00
+run rc=0
+RUN mode=interior arm=B 2026-11-15T11:29:35-05:00
+run rc=0
+compare interior rc=0
+=== zs-interior === cells compared: 43  columns compared: 30  differences: 0
+worst=0
+FOREGROUND_END 2026-11-15T11:29:46-05:00
+LEG I1 rc=0 2026-11-15T11:29:46-05:00
+LEG I4-A start 2026-11-15T11:29:46-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:29:46-05:00
+cells run: 238 2026-11-15T11:34:18-05:00
+FOREGROUND_END 2026-11-15T11:34:18-05:00
+LEG I4-A rc=0 2026-11-15T11:34:18-05:00
+LEG I4-B start 2026-11-15T11:34:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:34:18-05:00
+cells run: 238 2026-11-15T11:38:52-05:00
+FOREGROUND_END 2026-11-15T11:38:52-05:00
+LEG I4-B rc=0 2026-11-15T11:38:52-05:00
+LEG I4-tally start 2026-11-15T11:38:52-05:00
+compared 476 rows (238 cells x 2 labels), 0 movers
+CLASS IMPROVED: 0 []
+CLASS EQUAL_CLASS: 0 []
+CLASS STATUS_SHIFT: 0 []
+CLASS WORSE: 0 []
+HS battery: 44 cells x 2 labels, 0 movers []
+declared 0; undeclared movers []; declared but unmoved []; WORSE []
+I4R (rows vs the dev runs): 0 differing rows
+I4_PASS
+LEG I4-tally rc=0 2026-11-15T11:38:52-05:00
+LEG M start 2026-11-15T11:38:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:38:52-05:00
+control rc=0
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (19 ms total)
+[  PASSED  ] 1 test.
+8591c8591
+<         mj.row.step_norm <= qp_no_motion_tol(opts_.qp.feasibility_tol, mj.row.step_norm);
+---
+>         mj.row.step_norm <= kZeroStepScale * std::max(1.0, st.x.lpNorm<Eigen::Infinity>());
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T11:39:23-05:00
+[66/68] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_ladder_seams.cpp.o
+[67/68] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[68/68] Linking CXX executable tests/hven_sqp_seam_tests
+rc=0
+FOREGROUND_END 2026-11-15T11:40:09-05:00
+mutant rc=1
+12
+      2 policy 0 mode 0
+      2 policy 0 mode 1
+      2 policy 0 mode 2
+      2 policy 2 mode 0
+      2 policy 2 mode 1
+      2 policy 2 mode 2
+[  FAILED  ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver
+
+ 1 FAILED TEST
+MUTATION_KILLED
+FOREGROUND_END 2026-11-15T11:40:09-05:00
+LEG M rc=0 2026-11-15T11:40:09-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-15T11:40:09-05:00

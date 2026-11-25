@@ -1,0 +1,19 @@
+M8 NaN-sticky gates -- runtime neutrality gate (../DECLARATION.txt P5) -- DECLARATION (committed before the first leg;
+never edited; a failed leg is answered by a successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-dn1d-singular/r3/runtime/ verbatim (run_all.sh, runtime_leg.sh, analyze_r5.py, analyze_r11.py,
+fixture/): the worktree (nan), both arms' trees (build-nan/), the perf scratch directory (build-nan/runtime-perf), the
+evidence directory (this one) and arm A's sha256 replaced; one provenance comment line added to each. Period 400000;
+analyzer analyze_r11.py.
+ARMS
+  A  9c6059593 (origin/m8): build-nan/armAbin/hven_sqp_corpus, sha256 a86ef490b29e2e7cf3a98905270d37d769cecc390a576ac748704d08a1c92c8b.
+  B  the code head 32f86b265: build-nan/rel/bench/hven_sqp_corpus copied by run_all.sh to build-nan/armBbin/, sha256
+     ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78. run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults. VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY: the reductions listed in ../DECLARATION.txt THE CHANGE -- maxCoeff<PropagateNaN> (a compare
+and blend per packet) in place of the plain max reduction, and a NaN test per fold step in two scalar folds. On the
+walk every EQP pass runs the E4-4 row ratio, the polish and (border path) the refinement monitors; the IPM reads
+econ/icon/dual infeasibility once per iterate.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 8b30fb747..ca71b6ff1 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1462,7 +1462,7 @@ constexpr double kCurvatureTolFactor = 1e-12;
+ // inside the shift test (1x the floor plus the footprint allowance) and the structural margin
+ // (kInfeasibilityMarginFactor times that), so a landing point inside it neither shifts a working
+ // inequality nor reads as drift, whatever the next face's multipliers.
+-constexpr double kFootprintRowBudget = 0.5;
++constexpr double kFootprintRowBudget = 5.0;
+ 
+ // THE REGULARIZATION FOOTPRINT's merit slope: along d at x, the slope of M = f + |A_W x - b_W|^2 /
+ // (2 mu) (every equality row and every working inequality row; Aix = Ai x, gx = Hx + g), and its

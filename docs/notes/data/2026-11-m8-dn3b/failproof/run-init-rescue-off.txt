@@ -1,0 +1,139 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-init-rescue-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmEngines.*
+[==========] Running 15 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 15 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (5 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:147: Failure
+Expected equality of these values:
+  r[1].status
+    Which is: 4-byte object <06-00 00-00>
+  r[0].status
+    Which is: 4-byte object <00-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:149: Failure
+The difference between r[1].f and r[0].f is 10.999999999999996, which exceeds 1e-8 * std::max(1.0, std::abs(r[0].f)), where
+r[1].f evaluates to 13,
+r[0].f evaluates to 2.0000000000000036, and
+1e-8 * std::max(1.0, std::abs(r[0].f)) evaluates to 2.0000000000000037e-08.
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:158: Failure
+Expected: (r[1].kkt_factor_counters.dense_factorize_count) > (0), actual: 0 vs 0
+
+[  FAILED  ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:393: Failure
+Expected equality of these values:
+  dense.status
+    Which is: 4-byte object <06-00 00-00>
+  sparse.status
+    Which is: 4-byte object <00-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:394: Failure
+The difference between dense.f and sparse.f is 10.999999999999996, which exceeds 1e-8 * std::max(1.0, std::abs(sparse.f)), where
+dense.f evaluates to 13,
+sparse.f evaluates to 2.0000000000000036, and
+1e-8 * std::max(1.0, std::abs(sparse.f)) evaluates to 2.0000000000000037e-08.
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-src-init-rescue-off/tests/drivers/test_dense_arm_engines.cpp:400: Failure
+Value of: rows.empty()
+  Actual: true
+Expected: false
+
+[  FAILED  ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate
+[       OK ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate (0 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+[       OK ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK (0 ms)
+[----------] 15 tests from DenseArmEngines (22 ms total)
+
+[----------] Global test environment tear-down
+[==========] 15 tests from 1 test suite ran. (22 ms total)
+[  PASSED  ] 13 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[  FAILED  ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm
+
+ 2 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/fp-init-rescue-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *Ipm*
+[==========] Running 19 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (5 ms)
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep (3 ms)
+[----------] 2 tests from IpmDenseGuardSeam (9 ms total)
+
+[----------] 8 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration
+[       OK ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+[       OK ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+[       OK ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop
+[       OK ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop (0 ms)
+[----------] 8 tests from IpmNoNumericsSeam (5 ms total)
+
+[----------] 1 test from IpmDenseReportSeam
+[ RUN      ] IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath
+[       OK ] IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath (0 ms)
+[----------] 1 test from IpmDenseReportSeam (0 ms total)
+
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch (1 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested (1 ms)
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam (4 ms total)
+
+[----------] 2 tests from BothStrategies/IpmDenseReportRestorationSeam
+[ RUN      ] BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested
+[       OK ] BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested (1 ms)
+[----------] 2 tests from BothStrategies/IpmDenseReportRestorationSeam (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 5 test suites ran. (21 ms total)
+[  PASSED  ] 19 tests.

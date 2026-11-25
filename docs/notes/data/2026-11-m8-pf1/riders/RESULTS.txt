@@ -1,0 +1,14 @@
+PF-1 review riders (R1 contract text, R2 post-rung evidence test, R3 driver-side docs). Comment/test-only: no engine change.
+Base 888f0e88 (code e55cecde). Machine/toolchain as ../PROVENANCE.txt; MKL_NUM_THREADS=1; every job under flock /tmp/box-build.lock
+with pgrep hven_bench_cell empty before and inside the lock (retry.sh in the session scratchpad waited out the foreign TRAIN run).
+
+R2 measurement (test-release-readmission.log; reference route, 400 minors):
+  decreases=1; first dual_mu drop at record/minor 313 (the pass after the refresh of minor 312 re-admitted the row): 1e-8 -> 1e-10, no later drop.
+  The pass before it: inertia verdict kOk, 0 perturbed pivots; pre-rung perturbed pivots total 0.
+  Post-rung (minors 313..399, 87 passes, all with a verdict): kOk 2, kSuspect 85, kWrong 0; perturbed pivots 192 in total, at most 6 in a pass;
+  primal_delta never above its default 1e-8 (the suspect ladder did not escalate). Claim (ii) does NOT hold and is not asserted.
+
+Suites (build-ex-{rel,dbg}: bench + examples ON, the PF-1 regime): Release 3483/3483, Debug 3483/3483 (ctest-ex-*.log).
+  Default-option builds (no bench/examples): 3475/3475 both (ctest-release.log, ctest-debug.log).
+Object identity: libhven.a Release of this tree vs Release of the 888f0e88 export (deps copied at the same pins): 56/56 members byte-identical
+  (object-identity.txt; baseline_prep.sh, cmp_objects.sh).

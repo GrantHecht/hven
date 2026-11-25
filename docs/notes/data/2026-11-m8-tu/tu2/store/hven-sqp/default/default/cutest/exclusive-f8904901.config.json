@@ -1,0 +1,20 @@
+{
+ "lane": "hven-sqp",
+ "base": "default",
+ "set": "cutest",
+ "config": {},
+ "label": "default",
+ "problems": [
+  "ACOPR118",
+  "BIGBANK",
+  "BRITGAS",
+  "MSS2",
+  "MSS3",
+  "READING8",
+  "SAWPATH",
+  "TAX213322",
+  "TAX53322",
+  "YORKNET"
+ ],
+ "tier": "exclusive"
+}

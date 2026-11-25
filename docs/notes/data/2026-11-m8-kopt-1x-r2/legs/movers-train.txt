@@ -1,0 +1,11 @@
+# kopt-1x r2 declared TRAIN movers (arm B vs arm A), `<tag>.<arm>`; D = default, K = never-default. See ../DECLARATION.md section 3.
+sd-hven-sqp-ALLINITC.K
+sd-hven-sqp-CRESC100.D
+sd-hven-sqp-CRESC4.D
+sd-hven-sqp-CRESC4.K
+sd-hven-sqp-CRESC50.K
+sd-hven-sqp-HS84.D
+sd-hven-sqp-HS84.K
+sd-hven-sqp-LEWISPOL.K
+sd-hven-sqp-OPTPRLOC.D
+sd-hven-sqp-OPTPRLOC.K

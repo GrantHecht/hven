@@ -1,0 +1,158 @@
+M8 AP-2 group B6 riders (rulings C235, C236) -- DECLARATION (committed before the first proof leg; never
+edited afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and the failed
+record is kept; criteria are never changed after data)
+================================================================================
+Base        B6 code head 2a0392b9 (evidence head 163aa093) on m8 1c94174e.
+Code head   add9128c (m8-b6). Commits after 163aa093, oldest first:
+              33f87aee fix:  the layout serialises shared Jacobian entries (C235); local-block riders R1-R10
+              b03477b2 test: the rider pins and six compile-fail probes; the typeid pins
+              add9128c docs: assembly-protocol.md, concurrency.md
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B6.
+Scratch     build trees under build-b6r/ (git-ignored): rel, dbg (fresh, legs/build.sh), armA (+ armA-src,
+            a detached worktree at 2a0392b9, legs/armA_config.sh), armAbin, armBbin, offref, smoke-*,
+            pch-check, iparm-build, inst-iparm, census-run, runtime-perf.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+RACE (C235) SERIALISE, not refuse. NonLinearProgram::mark_shared_constraint_rows(), called by
+    get_mat_space() on every lay before the claims: per constraint block an owner table over the rows
+    (the partition that names a row, or "shared" once a second partition names it); every partition copy
+    of a constraint function gets unique_constraints_ = !(one of its rows is shared). On one partition the
+    flags are reset to true and no table is built. The Jacobian scatter of the raw sites (nlp_adapter,
+    fixed_variable_row) and of the local blocks already locks a contested column when
+    !unique_constraints_; a cross-partition shared entry's column is contested by construction (both
+    partitions claim a slot under it), so its two writers take one mutex. Why serialise: rows summed by
+    several applications are a documented builder feature (shared-row overcounts, integrand
+    accumulation); refusing them would remove it, and a refusal at the builder would not cover the raw
+    route. Unshared declarations (and every Nlp, which lays one partition) keep the lock-free scatter;
+    the evaluation code is unchanged, and the layout cost is one pass over the row maps per lay.
+    Demonstrated in dev before this declaration (not evidence): with the call disabled, the new
+    PiecesSharedEntries pins failed 3 runs of 3 (lost Jacobian updates at repetitions 0, 4 and 13 of 25;
+    the 4-partition solve differed); with it, they pass.
+WARN  the four typeid pins B6 added to tests/interior/test_solver_interface_adapter.cpp evaluate into a
+    named reference first; no flag changed.
+R1  pieces must be copy-constructible: authored static_asserts in LocalConstraintBlock /
+    LocalObjectiveBlock, the local adapters and both DirectFunctionModel installs (each guarded, one error);
+    documented in local_blocks.h, solver_interface_adapter.h, assembly-protocol.md §2/§6 with the
+    shared_ptr / concurrently-readable rule.
+R2  kLocalBlockStackBudget = 16 KiB: one application's buffers on the stack up to it; above it,
+    detail::LocalBlockScratch, owned by each copy (a copy starts empty: a new lane), allocated on the
+    first evaluation and reused. kBuffersOnStack / kBufferDoubles exposed. Dense default patterns are
+    iterated (for_each_*_entry), not materialised as constexpr arrays; claim order unchanged.
+R3  HasJacobianPattern / HasHessianPattern by std::size + std::begin (std::array or C array); a member of
+    that name that is neither is refused.
+R4  a third partial specialization for a class with kInputs that is neither piece kind: one authored
+    "hven local block:" message naming the first unmet requirement (non-const value/jacobian/hessian/
+    gradient/name, constraint vs objective hessian signature, kOutputs on an objective-shaped piece,
+    value(v, out) without kOutputs, sizes not integer constants); a valid piece on the wrong route gets
+    its own message. solver_interface_specs.h includes local_blocks.h at its end, so every TU that can
+    convert a piece sees the local adapters (the "missing include" near miss is closed structurally,
+    pinned positively by LocalBlockIncludeOrder.*); the default adapter static_asserts against a kInputs
+    type besides.
+R5  tests: a descending-order application (r < c Hessian orientation) assembled against the dense
+    reference at 4 partitions; eliminated variables at 4 partitions.
+R6  default name "local constraint block (kInputs N, kOutputs M)" / "local objective block (kInputs N)";
+    a name() that is not const (or returns no string) is a named compile-time error.
+R7  print_data() and <iostream> removed from solver_function_base.h and detail/model/non_linear_program.h
+    (NonLinearProgram::print_data, the registered partition print); ipm_options.cpp's PCH-neutrality
+    <iostream> and its comment removed (the PCH no longer reaches <iostream>); non_linear_program.cpp
+    includes <iostream> for its own nlp_test.
+R8  LocalConstraintBlock / LocalObjectiveBlock payload member piece_ -> piece.
+R9  add_constraint_handle refuses a row of INT_MAX (the row count would not fit an int); the doc clause
+    "a row past INT_MAX" (impossible for an int map) is replaced.
+R10 a local-block piece that also has a pack_into_*_interface hook is refused as ambiguous (authored
+    message); the default constructor stays (the raw route starts from it) and a builder call on a
+    declaration with no variables now says "no variables (construct it as AssemblyDeclaration(n), n the
+    variable count)" instead of "indices 0..-1"; set_bounds' range message is reworded the same way.
+DOCS assembly-protocol.md §1/§2/§5/§6/§8, concurrency.md; tycho catch-up addendum TYCHO-CATCH-UP.txt here
+    (supersedes B6 note T5's hazard sentence; records tycho's twelve print_data call sites).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  API: new public kLocalBlockStackBudget, LocalConstraintBlock/LocalObjectiveBlock::kBufferDoubles,
+    kBuffersOnStack and member `scratch`; `piece_` renamed `piece`; the static kJacobian / kHessian arrays
+    of the local blocks removed (kJacobianCount / kHessianCount kept); detail:: helpers added
+    (for_each_*_entry, *_entry_count, LocalBlockScratch, with_block_buffer, the shape concepts and
+    diagnostics); SolverIndexingData::unique_constraints_ is now layout-set; NonLinearProgram gains
+    mark_shared_constraint_rows and loses print_data; SolverFunctionBase loses print_data;
+    solver_interface_specs.h includes local_blocks.h; a kInputs class is always a local-block piece; a
+    non-copy-constructible piece and the near misses above are compile-time refusals. No new library TU.
+X2  BEHAVIOUR: on a partitioned layout with a row named from two partitions (pieces route only), the
+    copies touching it lock their Jacobian writes; nothing else moves on any existing path. Every lay
+    runs mark_shared_constraint_rows (flag resets only on one partition, which is every Nlp and every
+    corpus cell).
+X3  Messages: the builder's variable-range and set_bounds range refusals reworded (still naming the call,
+    the index and the variable count); the new INT_MAX-row refusal; the new compile-time texts.
+X4  Objects: every library TU that reached <iostream> only through non_linear_program.h or
+    solver_function_base.h (and ipm_options.cpp) no longer includes it, so its object loses the
+    <iostream> static-init reference; objects and libhven.a bytes therefore differ from arm A. The PCH
+    stays neutral (P7) and the compile flags identical (P10).
+X5  Tests: 3425 -> 3441 (+16): compile-fail probes +6 (local_nonconst_value,
+    local_constraint_hessian_signature, local_outputs_on_objective, local_hook_ambiguous,
+    local_not_copyable, local_nonconst_name, each pinned to its own authored text, single error);
+    LocalBlockIncludeOrder.TheHandlesHeaderAloneTakesTheLocalBlockRoute (new TU
+    tests/model/test_local_block_include.cpp) +1; test_pieces.cpp +9:
+    PiecesSharedEntries.{TheLayoutMarksTheCopiesThatShareARow, AssemblyIsExactAtFourPartitions,
+    ASharedEntryDeclarationSolvesIdenticallyAtOneAndFourPartitions};
+    PiecesLocalBlocks.{EliminatedVariablesAtFourPartitions, AWidePieceAssemblesOnFourPartitions,
+    AWidePieceSolvesOnFourPartitions, ACArrayPatternIsDetected, TheDefaultNameCarriesTheSizes};
+    PiecesBuilder.RefusesTheLargestRowAndNamesAnEmptyDeclaration. ctest's count ("out of N") is 3441
+    in both builds (two further registered tests are disabled/skipped, as at B6).
+X6  Off-reference warning lines 30 -> 26 (the four new -Wpotentially-evaluated-expression lines gone; the
+    B5 riders' 26 remain).
+THE C235 PIN (inside P1): PiecesSharedEntries.ASharedEntryDeclarationSolvesIdenticallyAtOneAndFourPartitions
+    -- a 2000-variable chain whose rows are written by two pieces (one ascending, one descending), solved
+    at 1 and 4 adopted partitions: the same status (kOptimal) and iteration count, f within 1e-10
+    relative, x within 1e-8; with AssemblyIsExactAtFourPartitions (every Jacobian entry bit-identical to
+    the one-partition assembly over 25 repeated evaluations; Hessian to 1e-13 relative; and the dense
+    reference at 4 partitions) and TheLayoutMarksTheCopiesThatShareARow (shared copies flagged at 4
+    partitions; nothing at 1; nothing on an unshared declaration at 4).
+THE R2 PIN (inside P1): AWidePieceSolvesOnFourPartitions -- kInputs = kOutputs = 256 constraint piece and a
+    256-input objective piece (both static_assert-ed off the stack), 4 applications, 4 adopted
+    partitions, kOptimal, residual <= 1e-8 per block; AWidePieceAssemblesOnFourPartitions against the
+    dense reference.
+CORPUS EXPECTED: no corpus row moves (every corpus cell lays one partition). A moved row at a leg is a
+    failed leg (stop, keep the record, successor declaration), not a declared difference.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b6r/rel) and Debug (build-b6r/dbg), full, -j4 under setsid: every test
+    passes, 3441 (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh), example 4 printing OK.
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P4  iparm (legs/iparm.sh): the dumper (byte copy of B6's, iparm/) against an install of the rider head:
+    BYTE-IDENTICAL to docs/notes/data/2026-11-m8-ap2-b6/iparm/iparm-b6.txt, 15 configurations. No
+    IPARM-SURFACE label: no linear/ file or iparm field is touched.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on the frozen arm B binary.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass,
+    35 standalone-include TUs, the detail-include rule armed and NO allow-list.
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh build-b6r/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass, 3441; warning lines == 26 (legs/offref.sh; evidence directory ABSOLUTE).
+P9  Accelerate syntax sweep pass A (legs/accelerate_sweep.py): OTHER 0; no class beyond B6's (CLEAN,
+    KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED; no Apple value is recorded.
+P10 compile-flags diff (legs/flags.sh, B6's instrument): library TUs of arm A (2a0392b9, build-b6r/armA)
+    vs the rider head (build-b6r/rel): IDENTICAL flags, the same TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = 2a0392b9 (build-b6r/armAbin, sha256
+    2beb40b8ea9b94a969c5cc063c1ba6adf56bb020a913dea7863f75a5c65144f8, the same bytes as B6's frozen arm B),
+    arm B = add9128c (build-b6r/rel -> build-b6r/armBbin, sha256
+    ba7735c4f0d3a6ad9e3cc0473da3af6d3fca9e485bfdd9496683af9e79da0bd8; the census leg checks the same); band 0.995 <= B/A <=
+    1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm order alternated.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock, after a fail-closed pre-flight of every path in
+this directory's scripts); `pgrep -a hven_bench_cell` empty before the lock and PGREP_EMPTY inside it;
+set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END;
+ABSOLUTE evidence paths. The copied scripts were re-pointed (2026-11-m8-ap2-b6 -> -riders, build-b6 ->
+build-b6r) and the depth of legs/ and runtime/ below the root checked (five, as B6's).
+DEV CHECKS before this declaration (not evidence), all under the lock: Release and Debug full suites on
+the code of add9128c (dev trees build-b6/rel, build-b6/dbg): 3441/3441 each; the race demonstration above;
+and a dev chain of this directory's leg scripts on build-b6r/ into a scratch directory: examples 8/8 (4 of
+them print OK), replay 27 x 75 x 3 with 0 differences, Accelerate pass A byte-identical to B6's (OTHER 0;
+pass B rc 1 as at B4-B6), PCH PASS (4 TUs, 57 artifacts identical), install smoke both arms rc 0 with the
+export contract OK, off-reference clean build rc 0 with 26 warning lines and ctest 3441/3441. The iparm
+dump and the census were not run before this declaration; nor was the runtime gate.

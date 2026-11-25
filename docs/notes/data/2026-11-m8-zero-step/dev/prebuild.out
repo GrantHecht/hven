@@ -1,0 +1,25 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T10:28:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T10:28:47-05:00
+[60/62] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[61/62] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[62/62] Linking CXX executable bench/hven_sqp_corpus
+rc=0
+FOREGROUND_END 2026-11-15T10:29:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T10:29:29-05:00
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/rel'
+ninja: no work to do.
+rc=0
+FOREGROUND_END 2026-11-15T10:29:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T10:29:29-05:00
+[361/363] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[362/363] Linking CXX executable examples/hven_example_08_results_trace_options
+[363/363] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-15T10:32:10-05:00
+ea688cd49d938fca2c4e525c761a63febbfe45406b9eb19ef8963d42b55e77dd  /home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/armAbin/hven_sqp_corpus
+9fdf7534e2160a2708e58c10b0984151a5387db8a0689836d501f1d4a75404af  /home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/armBbin/hven_sqp_corpus
+FOREGROUND_END 2026-11-15T10:32:10-05:00

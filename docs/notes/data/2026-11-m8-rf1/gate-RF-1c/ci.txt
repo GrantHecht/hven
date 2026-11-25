@@ -1,0 +1,1 @@
+{"conclusion":"success","jobs":[{"c":"success","n":"windows-clang-release"},{"c":"success","n":"macos-clang-release"},{"c":"success","n":"linux-clang-release"},{"c":"success","n":"linux-clang-coverage"}],"sha":"73ba2070cf7c844c74aa3d491ed16873cb53b28a"}

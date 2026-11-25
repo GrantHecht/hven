@@ -1,0 +1,5 @@
+box-lane: lane 0 acquired 2026-11-21T23:43:28-05:00
+BOX_LANE=0 phys=[0 1 2 3] jobs=4
+FOREGROUND_START 2026-11-21T23:43:28-05:00 co-run width 4, one process per physical core
+cells run: 952 2026-11-21T23:46:26-05:00
+FOREGROUND_END 2026-11-21T23:46:26-05:00

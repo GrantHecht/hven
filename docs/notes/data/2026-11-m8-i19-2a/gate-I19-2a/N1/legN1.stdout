@@ -1,0 +1,17 @@
+box-lane: lane 0 acquired 2026-11-24T12:38:04-05:00
+LEG N1 start 2026-11-24T12:38:04-05:00 head=b6c5fe9cbe72ba4af0765dc6872ba2c464555bc4 base=afb65b8040a59f2064cff467f705210b5cb9a4f3
+replay A rc=0
+replay B1 rc=0
+replay B2 rc=0
+replay B3 rc=0
+compare walk B1 rc=0: === N1-walk-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare walk B2 rc=0: === N1-walk-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare walk B3 rc=0: === N1-walk-B3 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B1 rc=0: === N1-ssn-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B2 rc=0: === N1-ssn-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B3 rc=0: === N1-ssn-B3 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B1 rc=0: === N1-ipm-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B2 rc=0: === N1-ipm-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B3 rc=0: === N1-ipm-B3 === cells compared: 27  columns compared: 75  differences: 0
+N1 worst=0
+LEG N1 end 2026-11-24T13:02:00-05:00

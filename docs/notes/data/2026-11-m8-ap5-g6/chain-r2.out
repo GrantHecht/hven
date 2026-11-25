@@ -1,0 +1,39 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:54:38-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:54:38-05:00
+
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2435 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2436 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T22:55:51-05:00
+STEP ctest-rel rc=0 2026-11-15T22:55:51-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:55:51-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2435 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2436 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T23:02:48-05:00
+STEP ctest-dbg rc=0 2026-11-15T23:02:48-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T23:02:48-05:00
+control build rc=0
+CONTROL failures: []
+applied c3 to src/drivers/ipm_solver.cpp
+MUT c3: IpmCounters.SecondOrderCorrectionsAreCountedAsSocStepsAndNotAsWatchdogArms drivers rc=1 
+applied c4 to src/drivers/ipm_solver.cpp
+MUT c4: IpmCounters.TheWatchdogArmsAreCountedAsWatchdogActivationsAndNotAsSocSteps drivers rc=1 
+applied c11 to src/drivers/ipm_solver.cpp
+MUT c11: IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility interior rc=1 
+applied c12 to src/drivers/ipm_solver.cpp
+MUT c12: IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility interior rc=1 
+applied p1 to src/drivers/ipm_solver_globalization.cpp
+MUT p1: AcceptanceDiagnostics.FunnelReportsWidth IpmPhaseDiagnostics.TheFunnelReportsItsWidthAndNotTheFilter drivers rc=1 interior rc=1 
+FOREGROUND_END 2026-11-15T23:09:41-05:00
+STEP mutations rc=0 2026-11-15T23:09:41-05:00
+FOREGROUND_END 2026-11-15T23:09:41-05:00

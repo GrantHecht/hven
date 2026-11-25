@@ -1,0 +1,114 @@
+M8 DN-3 -- RESULTS (against DECLARATION-r1.md d186a1332, as amended by DECLARATION-r2.md bfaa9b033 and DECLARATION-r3.md
+c438d56e1, each committed before its first leg; written after the legs; criteria unchanged)
+================================================================================
+Code head 96ac1a27d (one commit on origin/m8 09718f3dd). Arm A e53c29d2... (09718f3dd rebuilt), arm B 3cb0aafb...; lane
+branch dn3-legs (local clone, never pushed): STAT 3199459c..., RECORD (CFI) 20200e3f..., CODE_IDENTITY_OK.
+Linux x86-64, AMD Ryzen 7 5800X3D, clang 22.1.8, MKL 2026.2, Release, SAFER_FAST, MKL_NUM_THREADS=1 unless stated.
+Apple/Accelerate and Windows: UNOBSERVED (nothing pushed).
+
+THE RUNS
+r1  P5 runtime/run_all.log 21:56-22:42: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81,
+    walk 81 (round, cell) pairs, 0 differences), THROTTLE 0, filtered B/A interior 1.000000, ipm 0.999998, ssn 1.000000,
+    walk 1.000000. Run first and alone. Stands for r2 and r3 (DECLARATION-r2 §1).
+r1  chain FAILED P1 (suites/ctest-rel.log: 29 of 3632 failed, every one a test that writes temporary files): /tmp (tmpfs,
+    usrquota) was at this user's quota with earlier rounds' scratch. Stopped during ctest-dbg. Record kept (chain/,
+    suites/). -> DECLARATION-r2 (TMPDIR = build-dn3/tmp for every leg).
+r2  chain-r2/chain.out 22:51-23:32, worst=0:
+    P1 MET   "100% tests passed, 0 tests failed out of 3632" Release and Debug (suites-r2/; 3634 registered, two DISABLED).
+    P2 MET   replay walk / ssn / ipm at kNever: 27 cells x 75 columns, 0 differences each (replay-r2/).
+    P3 MET   interior unmoved (A vs B) and promoted (B vs the B7 baseline): 43 cells x 30 columns, 0 differences each.
+    P4 MET   FAILPROOF_AS_DECLARED: head 56 pass, 0 fail; every one of the ten mutations failed exactly its declared set
+             (threshold-ignored 8, ipm-sqp-threshold 1, ipqp-ipm-threshold 1, sqp-auto-refused 4, ipm-auto-refused 6,
+             sqp-counter-off 5, ipm-counter-off 3, ipqp-counter-off 1, gram-counter-off 1, fingerprint-no-threshold 1).
+    P6 MET   install smoke and export contract rc 0 on the default (GCC) and clang++ front ends (install-smoke-r2/).
+r2  L1 (results/threshold.txt): THRESHOLD_AS_DECLARED -- matrices.csv.gz sha256 f204be2c...; SQP 2817 matrices, T = 105
+    (first rho >= 1: CRESC50 mat_0049, n 106, rho 1.582); IPM 2684 matrices, T = 167 (first: LAKES, n 168).
+r2  E (enum/, 23:32-23:37): ENUM_PASS -- E1 (no kNever dense factorization), E2 (every row present, none capped), E3 (every
+    non-candidate byte-identical to kNever in every printed key) all hold. 227 candidates, candidates.tsv byte-identical
+    to the declared dev probe's:
+      IPM 113 of 119 (HS 22 of 22; small-dense 91 of 97; non-candidates ACOPP30, CRESC100, CRESC50, LAKES, S365, S365MOD)
+      SQP 114 of 119 (HS 21 of 22; small-dense 93 of 97; non-candidates hs025, ACOPP30, LAKES, S365, S365MOD)
+r2  S (stat/, 23:37-23:57): 238 cells x 6 rounds (N A A N N A after one warm-up per arm), every round carries instructions.
+r2  P (record/; legs-logs-r2/P.log): waited 00:00-01:03 on the box lock held by another lane's serial run (flock-waiter,
+    idle), ran 01:03-02:15: 454 (candidate, arm) records; two SAMPLING_DEFECTs, a single LOST event in one repeat each
+    (SPANHYD IPM N k=9 of 31; HS92 SQP N k=2 of 6), no THROTTLE anywhere. The orchestration stopped. -> DECLARATION-r3.
+r3  (legs-logs-r3/, 02:24-02:32): the two records voided (record/void-r2/, kept) and re-taken alone: clean (0 LOST, 0
+    THROTTLE). T, G, the verdict, the restore ran. The clone's HEAD is back on dn1b-legs (legs-logs-r3/restore.log).
+
+CRITERION A -- THE VERDICT (results/verdict.txt, sl/adopt_verdict.py, exit 7)
+  Family tallies (A4/A5; a non-candidate is a tie by identity):
+    IPM HS:          wins 22, losses 0,  ties 0   -> sign +1
+    IPM small-dense: wins 64, losses 11, ties 22  -> sign +1
+    SQP HS:          wins 21, losses 0,  ties 1   -> sign +1
+    SQP small-dense: wins 81, losses 0,  ties 16  -> sign +1
+  By A5 alone both engines would ADOPT. S-A5 (status differing between one arm's rounds): none.
+  **STOP S-A4 FIRED**: R-d (samples neither share claims, on the main thread, with a truncated chain and a leaf in
+  libiomp5 / libc / ld-linux) exceeds 0.01 of solver instructions on three median-cell records:
+    hs-hven-ipm-hs026 N 0.0239, A 0.0407; hs-hven-sqp-hs043 A 0.0151
+  (HS67 N 0.0092 / A 0.0034; HS84 N 0.0042 / A 0.0045; hs043 N 0.0068). As shares of SAMPLED instructions these are
+  0.0047, 0.0052 and 0.0041 (about 3 samples of 585-710): small cells where solver instructions are only 13-27 % of the
+  process (s_init + s_proc 0.73-0.87), so a handful of unclaimed samples crosses the 1 % bar. r0 §5: "STOP; settler (the
+  symbol-set exclusion is not adequate)". **The verdict is therefore NOT applied: no default flips; the settler rules.**
+  kAuto ships accepted, opt-in (Q7), whatever the ruling.
+  Losses (all IPM small-dense, both arms converged, solver A/N): BT8 1.391 (40 vs 11 iterations, DN-3b's declared kAlways
+  mover), DEMBO7 1.270, DNIEPER 1.591, HS101 1.125, HS84 1.243, HS85 1.364, HS99EXP 1.558, LAUNCH 1.552, NET1 2.528,
+  OPTPRLOC 1.617, SPANHYD 2.833 -- mid-size KKT systems where the IPM's dense arm costs more than Pardiso's reused
+  analysis (design §2.2's stated risk for P-A near T).
+  R-b: IPM ALLINITC acceptable (91 it) -> optimal (72 it), f rel 4.0e-4 (FLAG), solver A/N 0.641 (win); SQP HS91 optimal
+  both, f rel 1.30e-8 (FLAG), A/N 0.446 (win).
+  Candidate ties with a status change (converged on neither arm, or a non-converged move): IPM BURKEHAN max_iter ->
+  diverging; IPM MESH diverging -> numerical_error (DN-3b's declared kAlways mover); SQP CRESC50 numerical_error ->
+  max_iter; SQP MESH infeasible -> max_iter. SQP HS56 optimal both, 18 -> 39 iterations, A/N 1.098 (tie).
+  R-c (dense share, the A row's dn3_dense_factorizations of factorizations): IPM 113 of 113 candidates all-dense (one KKT
+  pattern per solve); SQP 108 with dense >= factorizations, 6 mixed.
+  R-e (results/re-threads-default.txt; informational): SQP at the engines' default threads (t0-, MKL variables unset,
+  unpinned): hs043 raw A/N 0.149, solver 0.060; HS84 raw 0.084, solver 0.045 (kNever's threaded Pardiso pays the thread
+  overhead the pinned dense arm does not). IPM: NOT OBTAINED -- the lane's `t0-` prefix sets common.threads = 0, which the
+  IPM's validate() refuses (the rows threw); the IPM's default-thread reading is UNOBSERVED this round.
+  R-f (gdb/gdb-counts.txt): per process, IPM hs026 / HS67 both arms MKL_Read_ThreadENV_Count_Cores 1,
+  __kmp_serial_initialize 1; SQP hs043 / HS84 N: 1 and 0, A: 0 and 0 (kAuto's dense-only SQP solve never enters the
+  MKL thread query).
+
+DISCLOSURES ADDED AFTER THE DECLARATIONS
+- Instrument defect, no criterion effect: `sl/adopt_run.sh` names its perf scripts build-dn3/adopt-scratch/<tag>.<arm>.
+  script.gz in both the P and the T leg, so the T leg overwrote the P-leg scripts of the four median cells. Every P-leg
+  attribution (record/*.attr.json) was computed before that and stands; the four cells' P-leg raw samples are gone
+  (they were scratch, never committed), so the S-A4 records cannot be re-diagnosed sample by sample.
+- R-e's IPM rows: see above (the `t0-` prefix predates the IPM's threads >= 1 rule).
+- The P leg waited 63 minutes for the box lock behind another lane's serial run; r3's retake waited behind its next run.
+No re-run beyond the declared ones. Apple/Accelerate and Windows: UNOBSERVED.
+
+================================================================================
+THE FLIP (owner ruling 2026-11-13; DECLARATION-r4.md b5af742de, DECLARATION-r5.md 72df57a8b, each committed before its
+first leg; written after the legs; criteria unchanged)
+================================================================================
+The owner applied the A5 tallies above and accepted the S-A4 records as immaterial: IpmLinearOptions and
+SqpLinearOptions ::dense_factorization default to kAuto (T_IPM 167, T_SQP 105); max_dense_dimension stays reserved.
+Flip commit 2d6d89cd0 (two defaults, doc comments, design note section "DN-3 flip", 31 declared test re-pins in 13
+files: DECLARATION-r4 section 3). r5 code head 297649961 = the flip + a bench-only pre-flip dense pin for the interior
+leg (HVEN_LEG_IPM_PRE_DN3_DEFAULT). Linux x86-64, Ryzen 7 5800X3D, clang 22.1.8, MKL 2026.2, MKL_NUM_THREADS=1.
+
+r4  (r4/orchestrate.out, 06:33-06:58) F1 MET (Release and Debug 100% of 3633); I1 MET (27 cells x walk/ssn/ipm x3, 0
+    differences in 9 comparisons); I3a MET (kNever iparm dump byte-identical to the B8-riders pin); I3b as stated (0
+    pardiso calls at the default; parallel_solve=2 and both CNR configs refused). I3c FAILED: 26 residual differences,
+    all on three small interior fixtures below T_IPM (hs071_x1_fixed 23, infeas2_spike 2, infeas2_stationary 1), no
+    status or iteration column, no f7 row. r4 had assumed every interior cell is F7. Stopped; record kept (63bf818c5).
+r5  (r5/orchestrate.out, 07:05-13:42) ALL_LEGS_PASSED:
+    F1  MET  "100% tests passed, 0 tests failed out of 3633", Release and Debug (r5/suites/).
+    I1  MET  27 cells x walk / ssn / ipm, three times, against the wx2 replay reference: 0 differences in all 9.
+    I3a MET  iparm (kNever) byte-identical to iparm-b8r.txt (sha256 34bb45c0...). I3b as stated (r5/iparm/).
+    I3c MET  N1 pinned 27-cell vs the head 96ac1a27d: 0; N2 pinned baseline invocation vs the B7 baseline: 0; A1 default
+             vs r4's flip run: 0; A2 default vs the head: 26 differences, MOVERS_AS_DECLARED (the three fixtures only);
+             A3 default baseline invocation vs r4's: 0 (r5/interior/).
+    F3  MET  install smoke and export contract rc 0, default (GCC) and clang++ front ends (r5/install-smoke/).
+    I4  MET  I4_PASS on all 238 TRAIN cells: I4a flip `default` == DN-3 `auto-default` 238/238 (227 rows with dense
+             factorizations > 0, the E candidates); I4b flip `never-default` (kNever explicit) == DN-3 `default`
+             238/238; every key, exit code and options dump byte-equal, 0 residual values needing the gate
+             (r5/identity/identity.txt). Serial, 476 cell processes, 07:32-07:37.
+    I2  MET  CENSUS_AS_DECLARED: 57 cells, 42 exact, PF-1's 2 declared movers as declared, 13 deadline-bound
+             (r5/census/; the runner's declared parallel-tiered v1 protocol; wall-clock informational).
+So: above the thresholds nothing moved (replay, census, interior f7 rows, iparm at kNever); kNever explicit reproduces
+the pre-flip default on every TRAIN cell and on the interior leg; the new default reproduces DN-3's measured kAuto rows
+exactly. Re-derived baseline (declared): bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv.
+L5 (macOS / Windows CI on the flip) NOT RUN: no push; the settler's. Apple/Accelerate and Windows: UNOBSERVED.
+HOLDOUT: never run.

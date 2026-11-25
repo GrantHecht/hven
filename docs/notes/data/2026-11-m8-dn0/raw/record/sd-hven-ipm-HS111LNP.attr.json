@@ -1,0 +1,126 @@
+{
+ "samples": 2600,
+ "period": 1000003,
+ "instr_sampled_all": 2600007800,
+ "instr_sampled_solver": 2595007785,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3000009,
+  "B_kkt": 0,
+  "B_eval": 2000006,
+  "B_setup": 2590007770,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0011560693641618498,
+  "B_kkt": 0.0,
+  "B_eval": 0.0007707129094412332,
+  "B_setup": 0.9980732177263969,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0019230769230769232,
+ "rule_instr": 2600007800,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9953846153846154,
+ "init_instr": 2589007767,
+ "steady_state_instr": 6000018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5,
+  "B_kkt": 0.0,
+  "B_eval": 0.3333333333333333,
+  "B_setup": 0.16666666666666666,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3000009
+  ]
+ ],
+ "mkl_serv_instr": 2589007767,
+ "kmp_instr": 2000006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_stg_init",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_sagg_mps_sym_pardiso",
+    1000003
+   ],
+   [
+    "mkl_blas_def_dgemm_pst",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1000003
+   ],
+   [
+    "__ieee754_log_fma",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1664004992
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    696002088
+   ],
+   [
+    "__vdso_time",
+    119000357
+   ],
+   [
+    "difftime@plt",
+    102000306
+   ],
+   [
+    "time@plt",
+    8000024
+   ],
+   [
+    "formatted_transfer_scalar_read",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    1000003
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "printf",
+    1000003
+   ]
+  ]
+ }
+}

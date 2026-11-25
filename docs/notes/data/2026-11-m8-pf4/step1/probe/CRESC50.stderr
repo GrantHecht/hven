@@ -1,0 +1,238 @@
+PF4PROBE_BEGIN
+PF4 skipped_retake=0 syncs_zero=1365
+PF4 analyses=3969 repeat_of_last=0 repeat_of_any_seen=1459 distinct=2510
+PF4K k=1 batches=6217 cols=6217 instr_single=704497976 instr_multi=702675219 ns_single=62264860 ns_multi=74514999 identical=6217 differ=0 max_rel=0.000e+00
+PF4K k=2 batches=319 cols=638 instr_single=44703173 instr_multi=36640532 ns_single=3916517 ns_multi=4117358 identical=545 differ=93 max_rel=2.497e-06
+PF4K k=3 batches=184 cols=552 instr_single=9984910 instr_multi=4244135 ns_single=953654 ns_multi=828174 identical=549 differ=3 max_rel=2.507e-07
+PF4K k=4 batches=30 cols=120 instr_single=1621681 instr_multi=565695 ns_single=153197 ns_multi=137859 identical=120 differ=0 max_rel=0.000e+00
+PF4K k=5 batches=12 cols=60 instr_single=917389 instr_multi=289877 ns_single=82978 ns_multi=62639 identical=60 differ=0 max_rel=0.000e+00
+PF4K k=6 batches=3 cols=18 instr_single=218564 instr_multi=55029 ns_single=19740 ns_multi=13660 identical=18 differ=0 max_rel=0.000e+00
+PF4K k=7 batches=2 cols=14 instr_single=204182 instr_multi=53479 ns_single=17010 ns_multi=10980 identical=14 differ=0 max_rel=0.000e+00
+PF4K k=8 batches=2 cols=16 instr_single=84480 instr_multi=16775 ns_single=8870 ns_multi=7080 identical=16 differ=0 max_rel=0.000e+00
+PF4K k=9 batches=2 cols=18 instr_single=3628302 instr_multi=1417257 ns_single=291138 ns_multi=131258 identical=0 differ=18 max_rel=7.794e-08
+PF4K k=11 batches=2 cols=22 instr_single=822117 instr_multi=204943 ns_single=67679 ns_multi=24570 identical=22 differ=0 max_rel=0.000e+00
+PF4K k=12 batches=7 cols=84 instr_single=5052507 instr_multi=1230672 ns_single=409856 ns_multi=130430 identical=84 differ=0 max_rel=0.000e+00
+PF4K k=13 batches=10 cols=130 instr_single=8426657 instr_multi=2037131 ns_single=681536 ns_multi=212850 identical=130 differ=0 max_rel=0.000e+00
+PF4K k=14 batches=1 cols=14 instr_single=928289 instr_multi=211852 ns_single=75620 ns_multi=21400 identical=14 differ=0 max_rel=0.000e+00
+PF4K k=15 batches=1 cols=15 instr_single=1001658 instr_multi=223521 ns_single=80039 ns_multi=22300 identical=15 differ=0 max_rel=0.000e+00
+PF4K k=16 batches=1 cols=16 instr_single=1055799 instr_multi=229984 ns_single=86929 ns_multi=23470 identical=16 differ=0 max_rel=0.000e+00
+PF4K k=17 batches=2 cols=34 instr_single=1169849 instr_multi=250399 ns_single=93260 ns_multi=29640 identical=34 differ=0 max_rel=0.000e+00
+PF4K k=18 batches=1 cols=18 instr_single=1122597 instr_multi=244928 ns_single=91399 ns_multi=26170 identical=18 differ=0 max_rel=0.000e+00
+PF4K k=19 batches=1 cols=19 instr_single=1164223 instr_multi=247146 ns_single=92369 ns_multi=23870 identical=19 differ=0 max_rel=0.000e+00
+PF4K k=20 batches=3 cols=60 instr_single=5957063 instr_multi=1754757 ns_single=469798 ns_multi=161359 identical=40 differ=20 max_rel=1.517e-07
+PF4K k=21 batches=1 cols=21 instr_single=1255215 instr_multi=257189 ns_single=98230 ns_multi=25339 identical=21 differ=0 max_rel=0.000e+00
+PF4K k=22 batches=1 cols=22 instr_single=1307922 instr_multi=265735 ns_single=103499 ns_multi=26370 identical=22 differ=0 max_rel=0.000e+00
+PF4K k=23 batches=1 cols=23 instr_single=1338079 instr_multi=266006 ns_single=103909 ns_multi=25690 identical=23 differ=0 max_rel=0.000e+00
+PF4K k=24 batches=2 cols=48 instr_single=1986898 instr_multi=360355 ns_single=152949 ns_multi=43620 identical=48 differ=0 max_rel=0.000e+00
+PF4K k=25 batches=3 cols=75 instr_single=2602950 instr_multi=451944 ns_single=196469 ns_multi=48600 identical=75 differ=0 max_rel=0.000e+00
+PF4K k=26 batches=6 cols=156 instr_single=8253062 instr_multi=2006893 ns_single=646817 ns_multi=188308 identical=130 differ=26 max_rel=6.352e-11
+PF4K k=27 batches=3 cols=81 instr_single=2698785 instr_multi=455606 ns_single=209249 ns_multi=48520 identical=81 differ=0 max_rel=0.000e+00
+PF4K k=28 batches=2 cols=56 instr_single=1674912 instr_multi=308220 ns_single=129269 ns_multi=33440 identical=56 differ=0 max_rel=0.000e+00
+PF4K k=29 batches=2 cols=58 instr_single=1762876 instr_multi=318060 ns_single=134518 ns_multi=33080 identical=58 differ=0 max_rel=0.000e+00
+PF4K k=30 batches=2 cols=60 instr_single=1778722 instr_multi=319969 ns_single=136149 ns_multi=33680 identical=60 differ=0 max_rel=0.000e+00
+PF4K k=31 batches=4 cols=124 instr_single=12766747 instr_multi=9647546 ns_single=985594 ns_multi=740746 identical=120 differ=4 max_rel=1.660e-13
+PF4K k=32 batches=5 cols=160 instr_single=21143223 instr_multi=14839009 ns_single=1664843 ns_multi=1116143 identical=142 differ=18 max_rel=7.503e-10
+PF4K k=33 batches=10 cols=330 instr_single=59074793 instr_multi=44823840 ns_single=4607233 ns_multi=3416602 identical=280 differ=50 max_rel=1.862e-09
+PF4K k=34 batches=8 cols=272 instr_single=42792151 instr_multi=30963476 ns_single=3332062 ns_multi=2486176 identical=238 differ=34 max_rel=2.482e-09
+PF4K k=35 batches=11 cols=385 instr_single=63750244 instr_multi=47220318 ns_single=4974583 ns_multi=3619171 identical=334 differ=51 max_rel=1.489e-09
+PF4K k=36 batches=9 cols=324 instr_single=56975198 instr_multi=42264413 ns_single=4478974 ns_multi=3228143 identical=275 differ=49 max_rel=1.862e-09
+PF4K k=37 batches=10 cols=370 instr_single=51248965 instr_multi=37643227 ns_single=4016577 ns_multi=2914635 identical=328 differ=42 max_rel=2.083e-09
+PF4K k=38 batches=9 cols=342 instr_single=52442364 instr_multi=38012879 ns_single=4115617 ns_multi=2892864 identical=298 differ=44 max_rel=2.787e-09
+PF4K k=39 batches=11 cols=429 instr_single=48417360 instr_multi=33682822 ns_single=3790359 ns_multi=2596545 identical=389 differ=40 max_rel=2.234e-09
+PF4K k=40 batches=8 cols=320 instr_single=48532999 instr_multi=33920227 ns_single=3802857 ns_multi=2616847 identical=279 differ=41 max_rel=3.071e-09
+PF4K k=41 batches=7 cols=287 instr_single=47694019 instr_multi=34181247 ns_single=3738708 ns_multi=2634036 identical=245 differ=42 max_rel=1.358e-09
+PF4K k=42 batches=12 cols=504 instr_single=85185337 instr_multi=61269524 ns_single=6661553 ns_multi=4689243 identical=433 differ=71 max_rel=1.474e-09
+PF4K k=43 batches=11 cols=473 instr_single=72739520 instr_multi=51858484 ns_single=5698057 ns_multi=3972068 identical=411 differ=62 max_rel=1.956e-09
+PF4K k=44 batches=13 cols=572 instr_single=80955330 instr_multi=57480005 ns_single=6356522 ns_multi=4481946 identical=506 differ=66 max_rel=1.474e-09
+PF4K k=45 batches=8 cols=360 instr_single=59210727 instr_multi=41329595 ns_single=4642454 ns_multi=3190012 identical=305 differ=55 max_rel=1.715e-09
+PF4K k=46 batches=8 cols=368 instr_single=60672092 instr_multi=41468905 ns_single=4743464 ns_multi=3183862 identical=309 differ=59 max_rel=1.474e-09
+PF4K k=47 batches=20 cols=940 instr_single=157528511 instr_multi=113419889 ns_single=12416399 ns_multi=8948829 identical=813 differ=127 max_rel=1.474e-09
+PF4K k=48 batches=14 cols=672 instr_single=103823606 instr_multi=71704257 ns_single=8112415 ns_multi=5473588 identical=578 differ=94 max_rel=1.553e-09
+PF4K k=49 batches=33 cols=1617 instr_single=166940846 instr_multi=115100778 ns_single=13101536 ns_multi=9123297 identical=1479 differ=138 max_rel=1.474e-09
+PF4K k=50 batches=30 cols=1500 instr_single=233012029 instr_multi=154916627 ns_single=18351205 ns_multi=12598102 identical=1330 differ=170 max_rel=1.474e-09
+PF4K k=51 batches=582 cols=29682 instr_single=3551839820 instr_multi=2269704807 ns_single=285261961 ns_multi=186869232 identical=28948 differ=734 max_rel=6.290e-06
+PF4K k=52 batches=32 cols=1664 instr_single=252363141 instr_multi=173141316 ns_single=19709298 ns_multi=13769263 identical=1462 differ=202 max_rel=1.474e-09
+PF4K k=53 batches=32 cols=1696 instr_single=250175163 instr_multi=172694652 ns_single=19671484 ns_multi=13489757 identical=1514 differ=182 max_rel=1.475e-06
+PF4K k=54 batches=75 cols=4050 instr_single=643566703 instr_multi=459156568 ns_single=50760188 ns_multi=35597648 identical=3624 differ=426 max_rel=2.844e-06
+PF4K k=55 batches=76 cols=4180 instr_single=666257149 instr_multi=473255536 ns_single=52407682 ns_multi=37291954 identical=3713 differ=467 max_rel=4.287e-06
+PF4K k=56 batches=124 cols=6944 instr_single=1095550240 instr_multi=770464134 ns_single=86717900 ns_multi=61371373 identical=6176 differ=768 max_rel=9.824e-06
+PF4K k=57 batches=91 cols=5187 instr_single=815746798 instr_multi=569588323 ns_single=64088519 ns_multi=46438411 identical=4599 differ=588 max_rel=1.250e-05
+PF4K k=58 batches=110 cols=6380 instr_single=995882204 instr_multi=689429515 ns_single=78213224 ns_multi=55965839 identical=5663 differ=717 max_rel=1.114e-05
+PF4K k=59 batches=107 cols=6313 instr_single=975995079 instr_multi=670697820 ns_single=76711683 ns_multi=54774157 identical=5602 differ=711 max_rel=1.679e-05
+PF4K k=60 batches=100 cols=6000 instr_single=926338085 instr_multi=627791037 ns_single=73031920 ns_multi=50965831 identical=5300 differ=700 max_rel=1.805e-05
+PF4K k=61 batches=102 cols=6222 instr_single=952438785 instr_multi=643591723 ns_single=74940866 ns_multi=52888443 identical=5502 differ=720 max_rel=4.446e-06
+PF4K k=62 batches=94 cols=5828 instr_single=889218805 instr_multi=593493787 ns_single=70045028 ns_multi=50066722 identical=5142 differ=686 max_rel=4.727e-06
+PF4K k=63 batches=102 cols=6426 instr_single=981035295 instr_multi=653500733 ns_single=77340917 ns_multi=54452217 identical=5641 differ=785 max_rel=2.114e-05
+PF4K k=64 batches=3856 cols=326064 instr_single=40672532062 instr_multi=21845284340 ns_single=3281402164 ns_multi=1923660454 identical=291668 differ=34396 max_rel=2.241e-04
+PF4N n0=6 batches=5
+PF4N n0=7 batches=40
+PF4N n0=8 batches=65
+PF4N n0=9 batches=145
+PF4N n0=10 batches=75
+PF4N n0=11 batches=469
+PF4N n0=12 batches=39
+PF4N n0=13 batches=54
+PF4N n0=14 batches=50
+PF4N n0=15 batches=43
+PF4N n0=16 batches=34
+PF4N n0=17 batches=24
+PF4N n0=18 batches=39
+PF4N n0=19 batches=39
+PF4N n0=20 batches=59
+PF4N n0=21 batches=35
+PF4N n0=22 batches=36
+PF4N n0=23 batches=29
+PF4N n0=24 batches=22
+PF4N n0=25 batches=29
+PF4N n0=26 batches=24
+PF4N n0=27 batches=27
+PF4N n0=28 batches=24
+PF4N n0=29 batches=27
+PF4N n0=30 batches=26
+PF4N n0=31 batches=55
+PF4N n0=32 batches=24
+PF4N n0=33 batches=26
+PF4N n0=34 batches=22
+PF4N n0=35 batches=54
+PF4N n0=36 batches=23
+PF4N n0=37 batches=24
+PF4N n0=38 batches=23
+PF4N n0=39 batches=16
+PF4N n0=40 batches=16
+PF4N n0=41 batches=16
+PF4N n0=42 batches=21
+PF4N n0=43 batches=16
+PF4N n0=44 batches=16
+PF4N n0=45 batches=16
+PF4N n0=46 batches=16
+PF4N n0=47 batches=51
+PF4N n0=48 batches=56
+PF4N n0=49 batches=146
+PF4N n0=50 batches=58
+PF4N n0=51 batches=14
+PF4N n0=52 batches=14
+PF4N n0=53 batches=14
+PF4N n0=54 batches=21
+PF4N n0=55 batches=14
+PF4N n0=56 batches=596
+PF4N n0=57 batches=10
+PF4N n0=58 batches=66
+PF4N n0=59 batches=466
+PF4N n0=60 batches=7
+PF4N n0=61 batches=32
+PF4N n0=62 batches=8
+PF4N n0=63 batches=8
+PF4N n0=64 batches=8
+PF4N n0=65 batches=8
+PF4N n0=66 batches=4
+PF4N n0=67 batches=8
+PF4N n0=68 batches=4
+PF4N n0=69 batches=43
+PF4N n0=70 batches=4
+PF4N n0=71 batches=4
+PF4N n0=72 batches=4
+PF4N n0=73 batches=4
+PF4N n0=74 batches=4
+PF4N n0=75 batches=4
+PF4N n0=76 batches=6
+PF4N n0=77 batches=6
+PF4N n0=78 batches=4
+PF4N n0=79 batches=4
+PF4N n0=80 batches=28
+PF4N n0=81 batches=4
+PF4N n0=82 batches=4
+PF4N n0=83 batches=4
+PF4N n0=84 batches=4
+PF4N n0=85 batches=4
+PF4N n0=86 batches=4
+PF4N n0=87 batches=4
+PF4N n0=88 batches=4
+PF4N n0=89 batches=4
+PF4N n0=90 batches=4
+PF4N n0=91 batches=4
+PF4N n0=92 batches=4
+PF4N n0=93 batches=4
+PF4N n0=94 batches=4
+PF4N n0=95 batches=4
+PF4N n0=96 batches=4
+PF4N n0=97 batches=4
+PF4N n0=98 batches=6
+PF4N n0=99 batches=9
+PF4N n0=100 batches=3
+PF4N n0=101 batches=3
+PF4N n0=106 batches=529
+PF4N n0=107 batches=125
+PF4N n0=108 batches=266
+PF4N n0=109 batches=239
+PF4N n0=110 batches=211
+PF4N n0=111 batches=213
+PF4N n0=112 batches=163
+PF4N n0=113 batches=140
+PF4N n0=114 batches=145
+PF4N n0=115 batches=141
+PF4N n0=116 batches=145
+PF4N n0=117 batches=149
+PF4N n0=118 batches=161
+PF4N n0=119 batches=165
+PF4N n0=120 batches=126
+PF4N n0=121 batches=133
+PF4N n0=122 batches=167
+PF4N n0=123 batches=129
+PF4N n0=124 batches=136
+PF4N n0=125 batches=152
+PF4N n0=126 batches=179
+PF4N n0=127 batches=116
+PF4N n0=128 batches=116
+PF4N n0=129 batches=118
+PF4N n0=130 batches=120
+PF4N n0=131 batches=131
+PF4N n0=132 batches=139
+PF4N n0=133 batches=110
+PF4N n0=134 batches=126
+PF4N n0=135 batches=118
+PF4N n0=136 batches=113
+PF4N n0=137 batches=127
+PF4N n0=138 batches=101
+PF4N n0=139 batches=169
+PF4N n0=140 batches=158
+PF4N n0=141 batches=126
+PF4N n0=142 batches=152
+PF4N n0=143 batches=143
+PF4N n0=144 batches=146
+PF4N n0=145 batches=136
+PF4N n0=146 batches=115
+PF4N n0=147 batches=120
+PF4N n0=148 batches=124
+PF4N n0=149 batches=136
+PF4N n0=150 batches=139
+PF4N n0=151 batches=139
+PF4N n0=152 batches=138
+PF4N n0=153 batches=121
+PF4N n0=154 batches=144
+PF4N n0=155 batches=158
+PF4N n0=156 batches=530
+PF4N n0=157 batches=119
+PF4N n0=158 batches=173
+PF4N n0=159 batches=11
+PF4N n0=160 batches=72
+PF4N n0=161 batches=44
+PF4N n0=162 batches=34
+PF4N n0=163 batches=14
+PF4N n0=164 batches=52
+PF4N n0=165 batches=40
+PF4N n0=166 batches=8
+PF4N n0=167 batches=6
+PF4N n0=168 batches=7
+PF4N n0=169 batches=6
+PF4N n0=170 batches=54
+PF4N n0=171 batches=5
+PF4N n0=172 batches=5
+PF4N n0=173 batches=6
+PF4N n0=174 batches=7
+PF4N n0=175 batches=5
+PF4N n0=176 batches=8
+PF4N n0=177 batches=10
+PF4N n0=178 batches=3
+PF4N n0=179 batches=5
+PF4N n0=180 batches=50
+PF4PROBE_END

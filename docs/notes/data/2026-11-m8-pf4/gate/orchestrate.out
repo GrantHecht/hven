@@ -1,0 +1,137 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:26:31-05:00
+code paths == ea71502aa7789f27931e63d1ab6d10fa02b20e8b, clean; HEAD 82644f8ef63d97856718bb41bfb363d54f0a5e2d
+LEG P1-rel start 2026-11-20T05:26:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:26:31-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	855 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	856 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-20T05:27:47-05:00
+LEG P1-rel rc=0 2026-11-20T05:27:47-05:00
+LEG P1-rel-criterion start 2026-11-20T05:27:47-05:00
+LEG P1-rel-criterion rc=0 2026-11-20T05:27:47-05:00
+LEG P1-dbg start 2026-11-20T05:27:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:27:47-05:00
+	1368 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1501 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1592 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1593 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-20T05:35:26-05:00
+LEG P1-dbg rc=0 2026-11-20T05:35:26-05:00
+LEG P1-dbg-criterion start 2026-11-20T05:35:26-05:00
+LEG P1-dbg-criterion rc=0 2026-11-20T05:35:26-05:00
+LEG P2 start 2026-11-20T05:35:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:35:26-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/bin/B/hven_sqp_corpus sha256 2b7d173b6959e0372ac9a4c5da51410f049b06aa94e6a4dddce20d202708da18
+RUN B k=1 mode=walk 2026-11-20T05:35:26-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-20T05:40:18-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-20T05:40:38-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-20T05:41:04-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-20T05:45:55-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-20T05:46:15-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-20T05:46:41-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-20T05:51:32-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-20T05:51:52-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-20T05:52:18-05:00
+LEG P2 rc=0 2026-11-20T05:52:18-05:00
+LEG P2-criterion start 2026-11-20T05:52:18-05:00
+    f7_n800_path_warm                kkt_complementarity                A=1.295699806e-15  B=1.295703950e-15
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+    f7_n800_path_warm                kkt_complementarity                A=1.295699806e-15  B=1.295703950e-15
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+    f7_n800_path_warm                kkt_complementarity                A=1.295699806e-15  B=1.295703950e-15
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-20T05:52:19-05:00
+LEG P3 start 2026-11-20T05:52:19-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:52:19-05:00
+cells run: 238 2026-11-20T05:55:22-05:00
+FOREGROUND_END 2026-11-20T05:55:22-05:00
+LEG P3 rc=0 2026-11-20T05:55:22-05:00
+LEG P3-criterion start 2026-11-20T05:55:22-05:00
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.D
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.K
+MOVER NEUTRAL  sd-hven-sqp-BT7.K
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.D
+MOVER BETTER   sd-hven-sqp-CRESC100.K
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.K
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.D
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.K
+MOVER NEUTRAL  sd-hven-sqp-DECONVC.K
+MOVER NEUTRAL  sd-hven-sqp-DEMBO7.K
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-HS102.K
+MOVER NEUTRAL  sd-hven-sqp-HS103.K
+MOVER NEUTRAL  sd-hven-sqp-HS104.K
+MOVER NEUTRAL  sd-hven-sqp-HS107.K
+MOVER NEUTRAL  sd-hven-sqp-HS108.K
+MOVER NEUTRAL  sd-hven-sqp-HS117.K
+MOVER NEUTRAL  sd-hven-sqp-HS83.K
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+MOVER NEUTRAL  sd-hven-sqp-LAUNCH.K
+MOVER NEUTRAL  sd-hven-sqp-MATRIX2.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+MOVER NEUTRAL  sd-hven-sqp-MESH.K
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+MOVER NEUTRAL  sd-hven-sqp-NET1.D
+MOVER NEUTRAL  sd-hven-sqp-NET1.K
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+MOVER NEUTRAL  sd-hven-sqp-WATER.K
+SUMMARY rows 476; movers vs arm A 33 (better 1, worse 0, neutral 32); missing/capped 0
+I4_PASS
+TOTAL ALL                rows  476  A 2.250887e+12  B 1.334037e+12  B/A 0.592672
+TOTAL hven-ipm           rows  238  A 7.964896e+09  B 7.965091e+09  B/A 1.000024
+TOTAL hven-ipm.D         rows  119  A 4.293993e+09  B 4.294175e+09  B/A 1.000042
+TOTAL hven-ipm.K         rows  119  A 3.670903e+09  B 3.670916e+09  B/A 1.000004
+TOTAL hven-sqp           rows  238  A 2.242922e+12  B 1.326072e+12  B/A 0.591225
+TOTAL hven-sqp.D         rows  119  A 1.140863e+12  B 6.048552e+11  B/A 0.530173
+TOTAL hven-sqp.K         rows  119  A 1.102058e+12  B 7.212169e+11  B/A 0.654427
+P3_INSTRUCTIONS ipm B/A 1.000024 in [0.995, 1.005], sqp B/A 0.591225 <= 1.005
+LEG P3-criterion rc=0 2026-11-20T05:55:22-05:00
+LEG P4a start 2026-11-20T05:55:22-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T05:55:22-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=6
+ANALYSIS rc=2
+STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing -> STOP
+FOREGROUND_END 2026-11-20T05:55:24-05:00
+LEG P4a rc=1 2026-11-20T05:55:24-05:00
+STOP at P4a
+FOREGROUND_END 2026-11-20T05:55:24-05:00

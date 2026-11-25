@@ -1,5 +1,32 @@
----
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 100
----
+
+# Include order (RS-4). Includes are sorted and regrouped into blank-line-separated blocks, in this
+# order, each block sorted case-sensitively (uppercase first, so <Eigen/...> precedes <fmt/...>):
+#   0. the file's own header   (clang-format's "main include": a QUOTED include whose stem matches
+#                               the file's, e.g. foo.cpp -> "foo.h". It sorts first in its own block.
+#                               clang-format recognises a main include only when it is quoted, so a
+#                               src/ TU's <hven/.../foo.h> is NOT hoisted: it is an ordinary
+#                               <hven/...> include and sorts alphabetically with its block.)
+#   1. C++ standard library    (<vector>, <cstdint>: lower-case, no dot, no slash)
+#   2. third-party and system  (<Eigen/...>, <fmt/...>, <gtest/...>, <mkl.h>, <unistd.h>, ...)
+#   3. hven                    (<hven/...>: every hven header is spelled with angle brackets)
+#   4. local                   ("...": test-local headers spelled from the tests root, a bare
+#                               same-directory sibling, a src-private header, a relative path)
+# Conditional includes (#if ... #include ... #endif) and includes separated by a comment or a
+# non-include line are separate blocks: clang-format sorts within a block only, so a header that
+# must follow a #define, or an include list whose order is itself the point, is protected by being
+# written that way (src/hven_pch.h and src/ipm/ipm_solver.cpp keep their `// clang-format off`
+# guards: their shared list order is a measured property, see scripts/check_pch_neutrality.sh).
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<[a-z_0-9]+>$'
+    Priority: 1
+  - Regex: '^<hven/'
+    Priority: 3
+  - Regex: '^<'
+    Priority: 2
+  - Regex: '^"'
+    Priority: 4

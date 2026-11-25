@@ -1,0 +1,12 @@
+CI run 45064036804 at eae5a33e3 (gh workflow run ci.yml --ref rf1; watched with gh run watch --interval 120):
+  linux-clang-coverage success; macos-clang-release success; windows-clang-release success;
+  linux-clang-release FAILURE (3 tests): runner Intel Xeon 6975P-C, vendor=GenuineIntel avx512f=1 mkl_auto_branch=14,
+  HVEN_TEST_REFERENCE_DISPATCH=0 (OFF-REFERENCE):
+    HsSweepCorpus.Corpus                                    HS15 warm on/on 21/39 (pinned 22/40 on all Linux Release)
+    HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep  held-off majors 39 (pinned 40)
+    Continuation.ProbeBudgetBoundsAFailingProposal          arm A factorizations 558 (pinned 559)
+  -> tests-only commit 04d06081f: off the reference build either observed value is accepted and recorded
+     (22/40 or 21/39; 40 or 39; 559 or 558); the reference build keeps 22/40, 40, 559 exactly.
+CI run 45068201995 at 04d06081f:
+  windows-clang-release success; linux-clang-release success (runner AMD EPYC 9V45, mkl_auto_branch=2, OFF-REFERENCE);
+  macos-clang-release success; linux-clang-coverage success.

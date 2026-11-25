@@ -1,0 +1,24 @@
+FINAL-RIDERS RUNTIME COVERAGE ARGUMENT (no gate re-run)
+Basis: runtime-r5 (PASS, declaration ce58910f) recorded perf tables, runtime-r5/<mode>/syms/*.txt: every process, both arms, every round, all four modes (unfiltered sample counts, instructions:u at -c 200000).
+Rider diff against d8ec300c, functions changed in src/ (include/ change is a doc comment only; tests are not in the library or the measured binary):
+  src/model/problem.cpp: ProblemState::report (kNlp arm), map_row_values (+ new extra_fixed_rows), adopt_bounds, comment rewording
+  src/model/non_linear_program.cpp: NonLinearProgram::update_variable_bound_values (digest check)
+
+Symbol check (nm -C on the measured corpus binary): ProblemAccess::report (holds report inlined), ProblemState::map_row_values, ProblemState::adopt_bounds, NonLinearProgram::update_variable_bound_values are all distinct emitted symbols, so a zero below is a real zero and not an inlining artifact. extra_fixed_rows is an inline helper only reached from report/map_row_values.
+
+recorded perf tables: interior: 6 processes / 3311690 samples, ipm: 162 processes / 7134607 samples, ssn: 162 processes / 4915501 samples, walk: 162 processes / 85501340 samples
+
+changed function                                                             interior       ipm       ssn      walk     total
+ProblemState::report (kNlp arm; emitted inside ProblemAccess::report)               0         0         0         0         0
+ProblemState::report (as its own symbol, if emitted)                                0         0         0         0         0
+ProblemState::map_row_values                                                        0         0         0         0         0
+ProblemState::extra_fixed_rows (new, inline)                                        0         0         0         0         0
+ProblemState::adopt_bounds                                                          0         0         0         0         0
+NonLinearProgram::update_variable_bound_values                                      0         0         0         0         0
+
+GRAND TOTAL samples in changed functions: 0
+
+Neighbours with samples, all UNCHANGED by the riders: ProblemState::ProblemState(shared_ptr<NlpModel>) / ~ProblemState (construction only) and materialized_bound_digest (called by bound_digest(); the rider adds one extra bound_digest() call, but only inside update_variable_bound_values, which has 0 samples).
+CONCLUSION: no function the riders change has a sample on any measured path, in any mode or arm; the r5 gate verdict is not disturbed. Gate NOT re-run.
+
+AMENDMENT (R1 revert, coordinator ruling): the me+extra acceptance and extra_fixed_rows were removed; report/map_row_values are back to the me-length check (net change there: one comment). The table above, taken for the larger diff, covers a superset of the final changed functions. ctest was re-run at the final head; replay and route pin were not (report/map_row_values have no samples on any measured route).

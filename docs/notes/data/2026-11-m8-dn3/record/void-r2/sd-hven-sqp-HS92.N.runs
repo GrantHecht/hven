@@ -1,0 +1,6 @@
+k=0 period=400009 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=infeasible
+k=1 period=402809 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=infeasible
+k=2 period=405609 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=1 LOST_SAMPLES=1 THROTTLE=0 status=infeasible
+k=3 period=408409 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=infeasible
+k=4 period=411209 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=infeasible
+k=5 period=414009 CELL_RESULT record hven-sqp HS92 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=infeasible

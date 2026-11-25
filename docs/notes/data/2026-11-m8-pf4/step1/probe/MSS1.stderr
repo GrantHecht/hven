@@ -1,0 +1,21 @@
+PF4PROBE_BEGIN
+PF4 skipped_retake=0 syncs_zero=975
+PF4 analyses=9371 repeat_of_last=0 repeat_of_any_seen=1039 distinct=8332
+PF4K k=1 batches=2809 cols=2809 instr_single=1599469778 instr_multi=1597796247 ns_single=122664244 ns_multi=130793447 identical=2809 differ=0 max_rel=0.000e+00
+PF4K k=11 batches=1 cols=11 instr_single=5493086 instr_multi=3228675 ns_single=411997 ns_multi=272379 identical=0 differ=11 max_rel=2.421e-07
+PF4K k=13 batches=1 cols=13 instr_single=6489713 instr_multi=3712494 ns_single=475828 ns_multi=312918 identical=0 differ=13 max_rel=2.421e-07
+PF4K k=14 batches=1 cols=14 instr_single=6994001 instr_multi=3938419 ns_single=523837 ns_multi=325009 identical=0 differ=14 max_rel=2.421e-07
+PF4K k=15 batches=2 cols=30 instr_single=14992028 instr_multi=8444463 ns_single=1119844 ns_multi=701416 identical=0 differ=30 max_rel=2.421e-07
+PF4K k=16 batches=5 cols=80 instr_single=39997257 instr_multi=22153985 ns_single=2985334 ns_multi=1836130 identical=0 differ=80 max_rel=2.421e-07
+PF4K k=17 batches=13 cols=221 instr_single=110561822 instr_multi=61419469 ns_single=8245706 ns_multi=5067671 identical=0 differ=221 max_rel=2.711e-06
+PF4K k=19 batches=2 cols=38 instr_single=18590496 instr_multi=10243019 ns_single=1357923 ns_multi=822115 identical=0 differ=38 max_rel=5.950e-08
+PF4K k=24 batches=4 cols=96 instr_single=47965159 instr_multi=25824514 ns_single=3994127 ns_multi=2092868 identical=0 differ=96 max_rel=9.132e-08
+PF4K k=35 batches=2 cols=70 instr_single=34249546 instr_multi=18174828 ns_single=2515346 ns_multi=1422302 identical=0 differ=70 max_rel=5.950e-08
+PF4K k=40 batches=4 cols=160 instr_single=79957493 instr_multi=42005138 ns_single=6057166 ns_multi=3395681 identical=0 differ=160 max_rel=1.139e-07
+PF4K k=44 batches=2 cols=88 instr_single=52376725 instr_multi=26911064 ns_single=3958018 ns_multi=2443676 identical=0 differ=88 max_rel=1.349e-07
+PF4K k=64 batches=278 cols=29709 instr_single=19377127988 instr_multi=9354584792 ns_single=1461144390 ns_multi=856583878 identical=1383 differ=28326 max_rel=1.349e-07
+PF4N n0=135 batches=135
+PF4N n0=163 batches=951
+PF4N n0=236 batches=1446
+PF4N n0=309 batches=592
+PF4PROBE_END

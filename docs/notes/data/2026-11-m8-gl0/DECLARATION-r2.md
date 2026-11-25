@@ -1,0 +1,10 @@
+# M8 GL-0 -- DECLARATION-r2 (committed before any r2 leg; DECLARATION.md stays as written)
+
+Run 1 of DECLARATION.md at code head `fcd93dd44` (legs/driver.sh): RT (A/A then B/A) PASSED; P1 ctest Release and Debug PASSED; P3 replay (27 cells x walk/ssn/ipm, A vs B and armed) PASSED with 0 differences over 75 columns; P4 interior `unmoved` and `armed` PASSED (0 differences over 30 columns). P4 `promoted` (arm B under the promoted baseline's own invocation vs `bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv`) FAILED: 4 differences, `infeas2_spike` and `infeas2_stationary` rows read `stalled` in the baseline and `infeasible` in B (status and phases). The chain stopped there; install smoke and mutations did not run.
+
+Diagnosis (premise to be verified, not assumed): the baseline predates a later m8 change (AP-5 G-S, restoration-locally-infeasible exit reported as `kInfeasible`), so arm A (origin/m8) differs from the baseline in the same rows. GL-0 touches no interior-point code; `unmoved` (A vs B, 0 differences) already shows B == A on these cells.
+
+## r2 changes
+- P4 `promoted` is re-stated: B (baseline invocation) must equal arm A (baseline invocation) over every column; A's own differences from the stale baseline are recorded, not gated. Evidence: arm A run on the baseline's cells (`interior/gl0-interior-A-baseline.csv`), the A-vs-baseline comparison (same 4 rows expected), and the B-vs-A comparison (0 differences required). If A does NOT show the same 4 rows against the baseline, the diagnosis is wrong and r2 FAILS (r3).
+- r2 legs, in order, at the SAME code head `fcd93dd44` (source unchanged; checked fail-closed): P5 install smoke (default and clang) + export contract; M mutations (mutation list and must-kills exactly as in DECLARATION.md). Everything else stands on run 1's evidence (same head, same binaries; shas in VERDICTS.txt).
+- Rebase (coordinator, after r2): the branch is rebased onto the m8 head that carries RS-2's test re-layout; the build and Release/Debug ctest are re-run on the rebased head. A rebase that changes a measured leg is reported, not re-derived silently.

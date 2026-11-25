@@ -1,0 +1,36 @@
+# VERDICTS (extracted from the evidence; code head 8e8f2e65240c597b0ec9b8c998d6e61cd784013e, arm B sha256 35f6e048fdc73f3531acd9978496589304d6d0ee86d29878e6270bc073a7f524)
+P1 rel: 100% tests passed, 0 tests failed out of 3703
+P1 dbg: 100% tests passed, 0 tests failed out of 3703
+P2a interior: MODE interior FILTERED B/A = 1.000008 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2a ipm: MODE ipm FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2a ssn: MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2a walk: MODE walk FILTERED B/A = 1.000002 -> WITHIN [0.995, 1.005]  [VALIDITY: 162 processes, 0 throttled -> VALID]
+P2b interior-att-all: MODE interior FILTERED B/A = 1.000208 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2b interior-att-scalars: MODE interior FILTERED B/A = 1.000213 -> WITHIN [0.995, 1.005]  [VALIDITY: 6 processes, 0 throttled -> VALID]
+P2b interior leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+P2b   unattached         A=2.484520e+05 B=2.484540e+05 B/A=1.000008
+P2b   attached kAll      A=2.495730e+05 B=2.496250e+05 B/A=1.000208
+P2b   attached kScalars  A=2.484720e+05 B=2.485250e+05 B/A=1.000213
+P2b   attach cost at kAll      arm A: +0.4512%   arm B: +0.4713%   (B minus A: +0.0201%)
+P2b   attach cost at kScalars  arm A: +0.0080%   arm B: +0.0286%   (B minus A: +0.0205%)
+P3 === g3-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-ipm === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-ssn === cells compared: 27  columns compared: 75  differences: 0
+P3 === g3-vs-g2r3-walk === cells compared: 27  columns compared: 75  differences: 0
+P4 === interior-armed === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+P4 === interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+P5 default: == hven install smoke: PASSED; == export contract OK for platform=linux, align=32
+P5 clang: == hven install smoke: PASSED; == export contract OK for platform=linux, align=32
+P8: [==========] 83 tests from 8 test suites ran. (1334 ms total); reports=0
+M (mutation/mutation-table.csv): control: NONE
+M killed: a b c d f g h i k l m n o p q r u v
+M survive: e j s t
+CRITERIA: P0-P5, P8 and P1 met. M NOT MET: mutation e (ipm best kept on an optimal exit) SURVIVES and is on the must-be-killed list.
+  Diagnosis: the run_phase_sequence clear that mutation e removes is dead code -- the per-phase publish at alg_impl's exit already clears
+  the best when the phase's ExitCode is kOptimal or kAcceptable, and a phase's final status is never optimal when its ExitCode is not.
+  Also surviving, permitted: j (step norm only under a callback: the token-only test compared two callback-less arms, so it could not
+  see it), s (sqp kFinishCurrent arm), t (one of the two sqp restoration-return arms; u is killed, so the at-least-one-of-t,u rule holds).
+  ON FAIL (DECLARATION.md): stop, commit the evidence, report; successor DECLARATION-r2 (code and tests changed to close these).

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..d3c1c5b7d 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -216,7 +216,7 @@ inline TrustRegionShrink trust_region_rejection_shrink(bool shrink_to_step, bool
+                                                        bool failure_step, double delta,
+                                                        double window, double step_inf, double floor,
+                                                        double radius_max) {
+-    if (shrink_to_step && !radius_binding && !failure_step) {
++    if (shrink_to_step && !radius_binding) {
+         const double r =
+             std::min(kTrShrinkFactor * std::min(delta, window), kTrShrinkFactor * step_inf);
+         return {r, true, r < floor};

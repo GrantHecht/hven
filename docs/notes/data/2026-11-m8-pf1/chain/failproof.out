@@ -1,0 +1,15 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T06:44:18-05:00
+1163c1163
+< constexpr Index kMaxDualRegDecreases = 2;
+---
+> constexpr Index kMaxDualRegDecreases = 0;
+mutant test rc=1
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.139462433848741 f_cap=0.139462433848742
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (8482 ms)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+ 1 FAILED TEST
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-07T06:45:11-05:00

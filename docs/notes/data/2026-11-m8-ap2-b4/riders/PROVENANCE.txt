@@ -1,0 +1,49 @@
+M8 AP-2 group B4, settler riders -- PROVENANCE and results
+================================================================================
+Declaration    DECLARATION.txt and runtime/DECLARATION.txt (6c08e700), committed before the first leg. No
+               leg failed; no successor declaration.
+Code head      8bdb2bee (m8-b4); base f8a78f5d. Every leg ran on 8bdb2bee.
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-03 05:29 (chain start) to 12:38 (runtime gate end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths. Non-timing legs from legs/chain1.sh (chain/chain1.log, chain/*.out); the runtime gate
+               ran alone afterwards (runtime/run_all.log). No build, test or bench ran outside the lock
+               (dev builds/tests before the declaration also ran under it).
+T8 s2.7        The full warm-matrix re-run of the T8 plan is covered by the suites (P1): the warm battery and
+               currency tests tests/sqp/test_warm_start_battery.cpp, tests/sqp/test_warm_start.cpp,
+               tests/sqp/test_sqp_warm_currency.cpp, tests/drivers/test_warm_protocol.cpp,
+               tests/interior/test_ipm_warm_start.cpp and tests/warmstart/ all ran green in Release, Debug and
+               the off-reference build.
+
+RESULTS (criteria as declared)
+P1  suites      Release 3314/3314, Debug 3314/3314 (suites/). PASS. DECLARATION ARITHMETIC ERROR, disclosed:
+                the declaration said 3316 expected (3309 + 7); five tests were added (named in X4), so 3314
+                is the right count; the criterion "every test passes" is what was judged.
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/riders-comparison-*.txt). PASS.
+P4  iparm       15 configurations, BYTE-IDENTICAL to B4's dump, sha256
+                34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479 (iparm/iparm-riders.txt,
+                iparm/diff.txt empty). PASS.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches (census/compare.txt). The serial-confirm list is
+                the T1/T3 header with no cell listed. Tiers: T1 6-wide pinned, T2 solo, T3 5-wide full budget
+                (census/census-run.log). PASS.
+P6  smoke       default and clang arms rc=0; export contract OK on both with the detail-include rule armed and
+                no allow-list file in the tree (install-smoke/). PASS.
+P7  PCH         PASS, 57 artifacts byte-identical with and without PCH (pch/). PASS.
+P8  off-ref     clean build rc=0 (26 warning lines, all pre-existing classes), ctest Release 3314/3314
+                (offref/). PASS.
+P9  Accelerate  pass A: 33 files, clean 25, known-header 6, known-sizeof 2, OTHER 0 (accelerate/
+                accelerate-sweep.txt) -- B4's classes. Pass B (stub) informational. Leg rc=1 is pass B's, as at
+                B4. PASS. Apple hardware UNOBSERVED.
+P10 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 1.000021, ipm 1.000003, ssn 1.000015,
+                walk 0.999997; counter identity on every pair (3, 81, 81, 81); 0 throttled processes.
+
+DECLARED DIFFERENCES MATCHED
+X1 removal/rename: tests and examples build and pass; X2 message clause: pinned by
+SolveMessage.TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine (kMaxIter + flag, kAcceptable +
+flag, no clause without the option); X3 first-solve work: pinned by SolveWork.TheFirstInteriorPointSolve-
+CountsItsProgramBuild (first = fixture count since construction = second + 1 jacobian + 1 hessian), no
+replay/census/runtime row moved; X4 five new tests (3309 -> 3314); X5 no new TU (PCH count unchanged).
+I5a OUTCOME: the build DOES make eval_* calls (one Hessian, one Jacobian); reset_work moved ahead of the build.

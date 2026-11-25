@@ -1,0 +1,2 @@
+Schur.BatchedAddsLeaveTheStatePerAddWouldHave
+Schur.BatchLandsWithOneSolveOnEitherArm

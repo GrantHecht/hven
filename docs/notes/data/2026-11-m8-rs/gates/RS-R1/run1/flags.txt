@@ -1,0 +1,10 @@
+non-test TUs compared: 250; test TUs: base 193 after 220 (reported, not asserted); after-only non-test TUs: ['src/qp/ipqp/ipqp_options.cpp', 'build-n/tests/header_selfcheck/hven_qp_qp_options.h.cpp']
+FLAGS_NOT_AS_DECLARED
+  flags differ: bench/bench_corpus.cpp
+  flags differ: bench/bench_crossover.cpp
+  flags differ: bench/ipm_corpus_leg.cpp
+  flags differ: bench/ipqp_e1_arm.cpp
+  missing in after: build-n/tests/ipm/CMakeFiles/hven_ipm_tests.dir/Unity/unity_0_cxx.cxx
+  missing in after: build-n/tests/ipm/CMakeFiles/hven_ipm_tests.dir/Unity/unity_1_cxx.cxx
+  missing in after: build-n/tests/ipm/CMakeFiles/hven_ipm_tests.dir/Unity/unity_2_cxx.cxx
+  missing in after: build-n/tests/model/CMakeFiles/hven_model_tests.dir/Unity/unity_0_cxx.cxx

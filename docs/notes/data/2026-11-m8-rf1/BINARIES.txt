@@ -1,0 +1,33 @@
+# frozen binaries of DECLARATION-RF-1-C, sha256, recorded before the first leg
+corpus C (hven_sqp_corpus, c721dc32d) 68d43c2191c2f3408939b331a8a3fea3b90d21d5dbb61180549d8cc323939706
+lane C (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin c721dc32d) 5458e592a6d484fcb06446e18513123905f01d63750f7c4ba03369f67e1f828c
+REF: pf2d arm L (lane L 33183386bed750fba23ec49ec976411b8828b226d9716dd76d28c54068e9be09, corpus L d02b72853b3a689cd2653bc18d6bab8c2089cc3b8839ad6d9a6b4001abd5b62b), committed rows only
+# frozen binaries of DECLARATION-RF-1-AB2, sha256, recorded before the first leg (code head 7b80afca7)
+corpus AB2 (hven_sqp_corpus, 7b80afca7; copied from .scratch/build-rf1/rel/bench) a2cfb5ce3d59e1c97996668b9d73c437685307f7c4810eed8b5a5ecf2d1c63aa
+lane AB2 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 7b80afca7) 5bc2140811f24588d255b6be43a4802a69f4631201910c441997803a29f4afcf
+pilot C (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin c721dc32d) c3f6db29613b179e1f6c7a5784f01d5055d906af664038d9f7fa7716ea3ce5d7
+pilot AB2 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin 7b80afca7) 6566f29aab095c7e18bd3b4f635589802771b2d3e24c9df2e849165fbdb37d56
+# frozen binaries of DECLARATION-RF-1-AB2-r3, sha256, recorded before the first leg (C' = rf1-C-rebased b1fe115d0; AB2' = b4f72e5a7; tags Cr3 / ABr3)
+corpus Cr3 (hven_sqp_corpus, b1fe115d0; copied from .scratch/build-rf1/c-rel/bench) 110a95c80e65dbf396ffee1cbe711f713ceda8d3b4304099277c23787975a76e
+corpus ABr3 (hven_sqp_corpus, b4f72e5a7; copied from .scratch/build-rf1/rel/bench) 0aa45134d4241031e1ff9553678ec29401d69b488e14ea05c34904e94585a82b
+lane Cr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b1fe115d0) beca893b9ac5cb668e5660fb48607a3e8fe5c69055b6967c425a1a93e184c607
+lane ABr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b4f72e5a7) 01ca466dcf4d4e9b77e8c1b9c1b74492c2af454764bfc80a112d00644d281f4b
+pilot Cr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b1fe115d0) ba9e8685783b5868fedd3a81070ff9080ff6d68d28ba68139ca1ad98b37a6e9e
+pilot ABr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b4f72e5a7) 19b09b3953b388e90257107c188cb9e66e265ca485757b9601bc2bd447e9c35c
+# frozen binaries of DECLARATION-RF-1-AB2-r4, sha256, recorded before the first leg (C' = rf1-C-rebased b1fe115d0, r3's binaries re-listed unchanged; ABr4 = 994619746, F-2)
+lane Cr3 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin b1fe115d0) beca893b9ac5cb668e5660fb48607a3e8fe5c69055b6967c425a1a93e184c607
+pilot Cr3 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin b1fe115d0) ba9e8685783b5868fedd3a81070ff9080ff6d68d28ba68139ca1ad98b37a6e9e
+lane ABr4 (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 994619746) edebcdea56c74d1e217f8b2a25aebc0553f8c8c162bb1fb0aa83a1f582bb6052
+pilot ABr4 (hven_bench_cell, TU-1 DIAGQP harness copy .scratch/hbd, pin 994619746) 1616aa1c01ced27dcc9e89d23fddd64163c28bd39b73684eb97712813b82e832
+# frozen binaries of DECLARATION-RF-1b, sha256, recorded before the first leg (R = m8 641dedeab12a4aa5dfab7576650d7d0a1eee4647; H = ecda150173efff5f59ef1a561725c8c5d74d16dc, the RF-1b change on R)
+RF1B lane R (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 641dedeab) e30999e9f81403b80d66270b41264ae85802dac4489c62053b769ffaf3bb7edb
+RF1B lane H (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin ecda15017) 8de4cfe0ae09c8d85db663516ea1cf847f45a25f70f83b5fabf74719ed85db60
+RF1B pilot R (hven_bench_cell, TU-1 DIAGQP harness copy rebuilt by legs-rf1b/harness_rebuild.sh [146e6ec + diagqp_patch.py], pin 641dedeab) 708e1a6511aea0424f57587cf9423c137603e7146d87e36cc39cac74f7c5b31d
+RF1B pilot H (hven_bench_cell, TU-1 DIAGQP harness copy rebuilt by legs-rf1b/harness_rebuild.sh [146e6ec + diagqp_patch.py], pin ecda15017) 88408d6f4672925f9c1ec55ddc03f475cc95772106316de664c399ff443c2423
+# frozen binaries of DECLARATION-RF-1c, sha256, recorded before the first leg (R = origin/m8 976739bc6f10a314a219fb35ec7c656c5aff8f76; H = ff8a8f2c3d32c2394617b0a018ff9e5c76e9caaa, the RF-1c change on R)
+RF1C lane R (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin 976739bc6) edf1c84babdb7470f0896262b5d2795433435a2ceb615b39093f82f503179078
+RF1C lane H (hven_bench_cell, NEVER=1, hven-bench e03cbad, pin ff8a8f2c3) 51e6cda64bdebab4cd785c914c87389a6ab9b95e272070b6b0401274ef9db23b
+RF1C pilot R (hven_bench_cell, TU-1 DIAGQP harness copy [legs-rf1c/pilot_build.sh], pin 976739bc6) 31b2fe82b1aaa7bc7e4f1770726e62c1b6fb8aae9b9de9b13eeb4bda3193915d
+RF1C pilot H (hven_bench_cell, TU-1 DIAGQP harness copy [legs-rf1c/pilot_build.sh], pin ff8a8f2c3) ea991d6b32eac378a874ba4e57e4b8b6ec525cc6204d3eaa127c7eb9754485a9
+RF1C tu2 R (hven_bench_cell, TU-2 harness hven-bench-tu2 c3d176e [legs-rf1c/tu2_build.sh], pin 976739bc6) d704cd3e42091bd7d121e91c06661db8bc0efef7afb516c42cd3590dbb6828c8
+RF1C tu2 H (hven_bench_cell, TU-2 harness hven-bench-tu2 c3d176e [legs-rf1c/tu2_build.sh], pin ff8a8f2c3) 26cf215dbd64b6bae04230d8143b36d249eb75b62d6014e7bbb42692f8d86340

@@ -1,0 +1,37 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T12:27:32-05:00
+HB_PATCH_C_OK
+ cmake/hven_pin.cmake           | 4 ++--
+ lanes/hven/hven_bench_cell.cpp | 2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+5751a59 EVIDENCE-ONLY (local clone, never pushed): M8 DN-1 S/M legs -- dense-/t0- label prefixes and four side columns (hven docs/notes/data/2026-11-m8-dn1-impl/dn1legs/hb_patch.py)
+c3ed8a9 EVIDENCE-ONLY (local clone, never pushed): pin hven 2171f8dd4 (M8 DN-1 code head, branch m8-dn1-impl) for DN-1's T leg
+FOREGROUND_START build_hven_pin b9da28661368 2026-11-09T17:27:32Z
+build_hven_pin: installed b9da28661368 into /home/ghecht/Projects/hven-bench-dn1/.hven/install-b9da28661368
+HVEN_PIN_SHA b9da286613685945069f9f8cdfbf12f8ef179283
+HVEN_PIN_BRANCH m8-dn1b
+HVEN_PIN_DATE 2026-11-09
+HVEN_BUILT_UTC 2026-11-09T17:27:50Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+FOREGROUND_END build_hven_pin b9da28661368 2026-11-09T17:27:50Z
+c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd  /home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/dn1bbin/hven_bench_cell
+c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd  /home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/dn1bbin/hven_bench_cell
+HVEN_PIN_SHA b9da286613685945069f9f8cdfbf12f8ef179283
+HVEN_PIN_BRANCH m8-dn1b
+HVEN_PIN_DATE 2026-11-09
+HVEN_BUILT_UTC 2026-11-09T17:27:50Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+OPTIONS_LABEL hven-ipm default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-ipm dense-default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-sqp default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-sqp dense-default
+OPTIONS_VERDICT accepted
+FOREGROUND_END 2026-11-09T12:27:59-05:00

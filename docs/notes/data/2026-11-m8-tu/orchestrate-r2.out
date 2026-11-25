@@ -1,0 +1,203 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:52:53-05:00
+code paths == 0947374fef07c7085f982ecbdcf1aaaa45b6d00f, clean; HEAD 3cf0abed1d9727b7fa8230af50920cd9a6287094; base 331b3183747b5c1849651706f648de2c337ddf75
+corpus B sha256 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75 (declared dev-time 2bfd9f6bdc3a12c2864105a689cc78b815b2fdb4e130550516e4eeadebf7e963)
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build: ninja: no work to do.
+build trees up to date: /home/ghecht/Projects/hven/.claude/worktrees/tu0/build /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build
+LEG P1-rel start 2026-11-20T07:52:54-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:52:54-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-20T07:54:10-05:00
+LEG P1-rel rc=0 2026-11-20T07:54:10-05:00
+LEG P1-rel-criterion start 2026-11-20T07:54:10-05:00
+LEG P1-rel-criterion rc=0 2026-11-20T07:54:10-05:00
+LEG P1-dbg start 2026-11-20T07:54:10-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:54:10-05:00
+	1364 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1497 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1588 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1589 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1590 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+ctest rc=0
+FOREGROUND_END 2026-11-20T08:02:41-05:00
+LEG P1-dbg rc=0 2026-11-20T08:02:41-05:00
+LEG P1-dbg-criterion start 2026-11-20T08:02:41-05:00
+LEG P1-dbg-criterion rc=0 2026-11-20T08:02:41-05:00
+LEG P2-A start 2026-11-20T08:02:41-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T08:02:41-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build/bench/hven_sqp_corpus sha256 92e3f2939970b372b3400683ddc2b2b66f06cc1346e8ecbc56e892fcd39a563f
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-20T08:08:13-05:00
+LEG P2-A rc=0 2026-11-20T08:08:13-05:00
+LEG P2-B start 2026-11-20T08:08:13-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T08:08:13-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/tu0/build/bench/hven_sqp_corpus sha256 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-20T08:13:47-05:00
+LEG P2-B rc=0 2026-11-20T08:13:47-05:00
+LEG P2-criterion start 2026-11-20T08:13:47-05:00
+=== A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_ZERO_DIFFERENCES
+LEG P2-criterion rc=0 2026-11-20T08:13:47-05:00
+LEG P3-A start 2026-11-20T08:13:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T08:13:47-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-20T08:18:07-05:00
+FOREGROUND_END 2026-11-20T08:18:07-05:00
+LEG P3-A rc=0 2026-11-20T08:18:07-05:00
+LEG P3-B start 2026-11-20T08:18:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T08:18:07-05:00
+cells run: 238 labels: default:D never-default:K 2026-11-20T08:22:26-05:00
+FOREGROUND_END 2026-11-20T08:22:26-05:00
+LEG P3-B rc=0 2026-11-20T08:22:26-05:00
+LEG P3-criterion start 2026-11-20T08:22:26-05:00
+SUMMARY rows 476; movers vs arm A 0; missing/capped 0
+TU0_TRAIN_PASS
+LEG P3-criterion rc=0 2026-11-20T08:22:26-05:00
+LEG P5 start 2026-11-20T08:22:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T08:22:26-05:00
+CHECK_OK
+PREFLIGHT every mutation applies and restores: [G1 G2 G3 G4 G5 F1 F2 F3 F4 F5 F6 F7 E1 H1 H2 M1 M2 R1 R2 R3 V1 V2 V3 V4 V5 V6 V8 V10 V11 V12 V13 V14 V15 V7 V9]
+MUT control sqp_rc=0 qp_rc=0 solver_rc=0 killers=0
+MUTATED G1
+MUT G1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep
+MUTATED G2
+MUT G2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=2
+   Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+MUTATED G3
+MUT G3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=6
+   SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+   SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+   SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+   Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule
+MUTATED G4
+MUT G4 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards
+MUTATED G5
+MUT G5 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+MUTATED F1
+MUT F1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+MUTATED F2
+MUT F2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheUncertainToleranceReachesTheEngine
+MUTATED F3
+MUT F3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F4
+MUT F4 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F5
+MUT F5 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheFarkasResidualToleranceDecidesWhichDirectionsAreCertificates
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+MUTATED F6
+MUT F6 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheLmSigmaCoefficientSizesTheResidualSigma
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED F7
+MUT F7 sqp_rc=1 qp_rc=1 solver_rc=0 killers=2
+   SsnEngineLocal.TheLmSigmaExponentSizesTheResidualSigmaWhereTheResidualIsBelowOne
+   Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+MUTATED E1
+MUT E1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption
+MUTATED H1
+MUT H1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling
+MUTATED H2
+MUT H2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling
+MUTATED M1
+MUT M1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade
+MUTATED M2
+MUT M2 sqp_rc=0 qp_rc=0 solver_rc=0 killers=0
+MUTATED R1
+MUT R1 sqp_rc=1 qp_rc=0 solver_rc=0 killers=3
+   Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+   Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+   Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp
+MUTATED R2
+MUT R2 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+MUTATED R3
+MUT R3 sqp_rc=1 qp_rc=0 solver_rc=0 killers=1
+   Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+MUTATED V1
+MUT V1 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V2
+MUT V2 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V3
+MUT V3 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V4
+MUT V4 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V5
+MUT V5 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V6
+MUT V6 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V8
+MUT V8 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V10
+MUT V10 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V11
+MUT V11 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V12
+MUT V12 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V13
+MUT V13 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V14
+MUT V14 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V15
+MUT V15 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+MUTATED V7
+MUT V7 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+MUTATED V9
+MUT V9 sqp_rc=0 qp_rc=0 solver_rc=1 killers=1
+   Options.SqpValidateRefusesTheTuningLeversOutOfRange
+VERDICT MUTATION_SURVIVED_M2
+FOREGROUND_END 2026-11-20T08:34:43-05:00
+LEG P5 rc=1 2026-11-20T08:34:43-05:00
+STOP at P5
+FOREGROUND_END 2026-11-20T08:34:43-05:00
+GATE_RC=1

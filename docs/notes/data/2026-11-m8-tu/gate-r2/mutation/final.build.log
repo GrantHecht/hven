@@ -1,0 +1,120 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/tu0/build'
+[0/2] Re-checking globbed directories...
+[1/72] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_options.cpp.o
+[2/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_options.cpp.o
+[3/72] Linking CXX static library libhven.a
+[4/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/problem_scaling.cpp.o
+[5/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/qp/ssn/ssn_engine.cpp.o
+[6/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver_handle.cpp.o
+[7/72] Building CXX object tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_protocol.cpp.o
+[8/72] Building CXX object tests/core/CMakeFiles/hven_core_tests.dir/test_ledger.cpp.o
+[9/72] Building CXX object tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_mesh_transfer.cpp.o
+[10/72] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_parametric_families.cpp.o
+[11/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/assembly_eval_seam.cpp.o
+[12/72] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_scale_problems.cpp.o
+[13/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/globalization/soc_elastic_restoration.cpp.o
+[14/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/continuation.cpp.o
+[15/72] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[16/72] Building CXX object tests/trace/CMakeFiles/hven_trace_tests.dir/test_print_tables.cpp.o
+[17/72] Linking CXX executable tests/golden_rig/hven_golden_rig
+[18/72] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[19/72] Building CXX object tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_sqp_warm_currency.cpp.o
+[20/72] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[21/72] Linking CXX executable bench/hven_sqp_corpus
+[22/72] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/src/sqp/sqp_solver.cpp:7102:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 7102 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[23/72] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[24/72] Linking CXX executable tests/core/hven_core_tests
+[25/72] Building CXX object tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_start_battery.cpp.o
+[26/72] Building CXX object tests/sqp/CMakeFiles/hven_sqp_seam_tests.dir/seam/test_sqp_equality_basis_seams.cpp.o
+[27/72] Linking CXX executable tests/linear/hven_linear_tests
+[28/72] Linking CXX executable tests/linear/hven_linear_alloc_tests
+[29/72] Building CXX object bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+[30/72] Building CXX object bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+[31/72] Building CXX object bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+[32/72] Building CXX object tests/solver/CMakeFiles/hven_solver_seam_tests.dir/seam/test_stop_poll_seams.cpp.o
+[33/72] Linking CXX executable tests/model/hven_model_tests
+[34/72] Linking CXX executable tests/kkt/hven_kkt_tests
+[35/72] Building CXX object tests/ipm/CMakeFiles/hven_ipm_tests.dir/test_ipm_trace.cpp.o
+[36/72] Linking CXX executable tests/ipm/hven_ipm_seam_tests
+[37/72] Linking CXX executable tests/qp/hven_qp_tests
+[38/72] Linking CXX executable tests/solver/hven_solver_tests
+[39/72] Linking CXX executable tests/qp/hven_qp_seam_tests
+[40/72] Linking CXX executable bench/hven_sqp_snopt_f7
+[41/72] Building CXX object tests/warmstart/CMakeFiles/hven_warmstart_tests.dir/test_warm_start.cpp.o
+[42/72] Linking CXX executable tests/solver/hven_solver_seam_tests
+[43/72] Linking CXX executable bench/hven_sqp_bench
+[44/72] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[45/72] Linking CXX executable bench/hven_sqp_f7_cold
+[46/72] Linking CXX executable tests/ipm/hven_ipm_tests
+[47/72] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[48/72] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[49/72] Linking CXX executable examples/hven_example_01_hs071_both_engines
+[50/72] Building CXX object tests/sqp/CMakeFiles/hven_sqp_seam_tests.dir/seam/test_sqp_ladder_seams.cpp.o
+[51/72] Linking CXX executable tests/warmstart/hven_warmstart_tests
+[52/72] Linking CXX executable tests/sqp/hven_sqp_tests
+[53/72] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[54/72] Linking CXX executable examples/hven_example_03_equality_constrained
+[55/72] Linking CXX executable bench/hven_sqp_crossover
+[56/72] Linking CXX executable examples/hven_example_04_partitioned_chain
+[57/72] Linking CXX executable examples/hven_example_08_results_trace_options
+[58/72] Linking CXX executable examples/hven_example_05_warm_continuation
+[59/72] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[60/72] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[61/72] Linking CXX executable tests/sqp/hven_sqp_seam_tests
+[62/72] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[63/72] Linking CXX executable examples/hven_example_10_first_derivatives_only
+[64/72] Building CXX object tests/trace/CMakeFiles/hven_trace_tests.dir/test_json_lines_trace_sink.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator hven::StepVerdict<hven::StepVerdict>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator hven::QpStatus<hven::QpStatus>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator bool<bool>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/trace/test_json_lines_trace_sink.cpp:45:
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator ElasticLadderRow<hven::ElasticLadderRow>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+6 warnings generated.
+[65/72] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[66/72] Linking CXX executable tests/trace/hven_trace_tests
+[67/72] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[68/72] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[69/72] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/test_crossover_legs.cpp.o
+[70/72] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/test_corpus_cells.cpp.o
+[71/72] Linking CXX executable tests/bench/hven_bench_tests

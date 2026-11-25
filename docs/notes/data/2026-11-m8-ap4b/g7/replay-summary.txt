@@ -1,0 +1,6 @@
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-armed-ipm.txt:=== ap4b-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-armed-ssn.txt:=== ap4b-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-armed-walk.txt:=== ap4b-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-ipm.txt:=== ap4b-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-ssn.txt:=== ap4b-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+/home/ghecht/Projects/hven/.claude/worktrees/ap4b/docs/notes/data/2026-11-m8-ap4b/g7/replay/ap4b-comparison-walk.txt:=== ap4b-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0

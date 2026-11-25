@@ -1,0 +1,1 @@
+/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/train/new/hs/counters-hven-ipm.csv:23: 44 fields, header has 40

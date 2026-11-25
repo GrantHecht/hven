@@ -1,0 +1,25 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T16:51:09-05:00
+== wide rc=0 [HVEN_PF1B_TRACE=1 HVEN_PF1B_WIDE=1  | --maxiter 6000 --exact ]
+PF1R status=0 minors=4758 facts=3588 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=4552 stag_drops=0 stag_stops=0 shift_adds=20 wall=68.369 q=-3.231904984786683e-03 pins=0 tr=0 active=97 mu=1e-08
+PF1A records=4758 truncated=0 a0=1 a4=1583 a7=1 a10=823 a11=2350 | verdict ok=3315 suspect=1443 wrong=0 none=0 perturbed_passes=1443 perturbed_total=2394
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.805e-18 sign=0.000e+00 compl=3.272e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.342e-15 |lam_exact-lam|inf=6.383e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=1
+== wide rc=0 [HVEN_PF1B_TRACE=1 HVEN_PF1B_WIDE=1  | --exact ]
+PF1R status=1 minors=20000 facts=19874 rungs=2 suspect=0 resid_ref=0 drift_ref=0 polish=19328 stag_drops=4 stag_stops=0 shift_adds=610 wall=656.449 q=4.859839445028012e-02 pins=702 tr=0 active=129 mu=1e-08
+PF1A records=20000 truncated=0 a0=36 a4=5668 a10=5497 a11=8799 | verdict ok=11496 suspect=8504 wrong=0 none=0 perturbed_passes=8504 perturbed_total=131450
+PF1K eq=4.163e-17 ineq=6.939e-18 box=0.000e+00 stat=5.841e-09 sign=8.319e-03 compl=5.042e-04 scale=1.000e+00
+PF1E nf=9298 mw=6129 kkt_rel_res=2.776e-17 |x_exact-x|inf=1.168e-05 |lam_exact-lam|inf=1.253e-09 |lam|inf=4.440e-02 exact_neg_rows=1 exact_inactive_viol=0.000e+00 q_exact=4.859839445024544e-02
+rungs_traced=2
+== full rc=0 [HVEN_PF1B_TRACE=1  | --maxiter 200000 --exact ]
+PF1R status=0 minors=24338 facts=23603 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=24223 stag_drops=0 stag_stops=0 shift_adds=897 wall=667.402 q=-3.534059099469761e-03 pins=0 tr=0 active=147 mu=1e-08
+PF1A records=24338 truncated=0 a0=45 a4=7026 a7=1 a10=6606 a11=10660 | verdict ok=24338 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=2.776e-17 ineq=4.337e-18 box=0.000e+00 stat=2.527e-18 sign=0.000e+00 compl=1.298e-20 scale=1.000e+00
+PF1E nf=10000 mw=6147 kkt_rel_res=2.776e-17 |x_exact-x|inf=1.043e-14 |lam_exact-lam|inf=1.556e-14 |lam|inf=8.583e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.534059099469758e-03
+rungs_traced=0
+Terminated                 env $envs "$R" "$DUMP" --csv "$OUT/$label.csv" $args > "$OUT/$label.txt" 2> "$OUT/$label.err"
+== full rc=143 [HVEN_PF1B_TRACE=1  | --maxiter 200000 --exact ]
+rungs_traced=0
+rc=1
+FOREGROUND_END 2026-11-07T17:58:10-05:00

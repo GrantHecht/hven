@@ -1,0 +1,1 @@
+PF-4 r4: the per-process perf symbol tables (syms/) are not kept (the WA-1/TR-B convention); a copy is in the worktree's .scratch/gate-r4-runtime-walk/. analysis.txt is the leg's reading; stat/, raw/ and throttle/ (all 0) are kept.

@@ -1,0 +1,9 @@
+ipm leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+  unattached         A=5.947930e+05 B=5.947920e+05 B/A=0.999998
+  attached kScalars  A=5.954300e+05 B=5.954310e+05 B/A=1.000002
+  attached default   A=5.957480e+05 B=5.957500e+05 B/A=1.000003
+  attached kAll      A=5.957480e+05 B=5.957880e+05 B/A=1.000067
+  attach cost at kScalars  arm A: +0.1071%   arm B: +0.1074%   (B minus A: +0.0003%)
+  attach cost at default   arm A: +0.1606%   arm B: +0.1611%   (B minus A: +0.0005%)
+  attach cost at kAll      arm A: +0.1606%   arm B: +0.1675%   (B minus A: +0.0069%)
+  new kAll cost on arm B (attached kAll / attached default): +0.0064%

@@ -1,0 +1,30 @@
+# problems.requested: ACOPP57,SMBANK,READING6,ZAMB2-8,DALLASM
+# set.version: cutest-nlp-35 v1
+# schema: v1
+# harness.sha: 7b1edd8942ad18541b53515d796f2fcb76c26fe0
+# hven.pin.sha: 24b2a7e42f3a56f1f3293fe9d70d13fc4d50e708
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-17T08:27:27Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/ACOPP57/hven-ipm/default,cutest,ACOPP57,cutest-nlp-35 v1,3b7ed2b065d229e8cc992b5352621fc45043df228114a37bbcd09618a5477b25,TRAIN,hven-ipm,default,ab38580e02fa2ab1d2f14aaa078b10faab442e89e30a86c037e40cb45b78028b,exact,1000,null,300,0,optimal,optimal,16,25,32,16,17,17,41737.786835841674,3.6669497759214099e-08,3.8080205655433019e-11,1.0599998656601883e-08,1.3624191932195381e-05,0.019638089928776026
+cutest/ACOPP57/hven-sqp/default,cutest,ACOPP57,cutest-nlp-35 v1,3b7ed2b065d229e8cc992b5352621fc45043df228114a37bbcd09618a5477b25,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,5,82,6,6,7,6,41737.786849846176,1.0018796213783941e-07,7.4651340664644295e-11,0,0,0.0874339051079005
+cutest/DALLASM/hven-ipm/default,cutest,DALLASM,cutest-nlp-35 v1,bbf65ba2d2e06b081b0f298b4970fabce7d47e55598211da01957115fbf81507,TRAIN,hven-ipm,default,ab38580e02fa2ab1d2f14aaa078b10faab442e89e30a86c037e40cb45b78028b,exact,1000,null,300,0,optimal,optimal,20,24,41,21,21,21,-48198.188230512424,1.6591401037788954e-08,9.9800178467273978e-09,2.2011999334381471e-07,3.9232348133533394e-05,0.012994073797017336
+cutest/DALLASM/hven-sqp/default,cutest,DALLASM,cutest-nlp-35 v1,bbf65ba2d2e06b081b0f298b4970fabce7d47e55598211da01957115fbf81507,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,18,413,19,19,20,19,-48198.188192052978,6.7454414620637948e-07,7.1054273576010019e-15,0,5.4836846175021491e-12,1.0582499839365482
+cutest/READING6/hven-ipm/default,cutest,READING6,cutest-nlp-35 v1,1ab4a2d908d95c869b0eb8573002292e8475aee700fa4c1255b099d8983791a2,TRAIN,hven-ipm,default,ab38580e02fa2ab1d2f14aaa078b10faab442e89e30a86c037e40cb45b78028b,exact,1000,null,300,0,optimal,optimal,77,126,154,77,78,78,-144.65969976858463,6.2229563546623012e-07,2.3475834753927671e-07,3.3139666566484038e-09,6.63187638932585e-08,0.030648254090920091
+cutest/READING6/hven-sqp/default,cutest,READING6,cutest-nlp-35 v1,1ab4a2d908d95c869b0eb8573002292e8475aee700fa4c1255b099d8983791a2,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,8,567,9,9,9,9,-144.65970057278301,1.8924861677760418e-12,4.9549253589020736e-13,0,0,0.80100234504789114
+cutest/SMBANK/hven-ipm/default,cutest,SMBANK,cutest-nlp-35 v1,8021b2235d72a6defba6b7e95f44c0b715889a133af1a6bc23af76f667099b82,TRAIN,hven-ipm,default,ab38580e02fa2ab1d2f14aaa078b10faab442e89e30a86c037e40cb45b78028b,exact,1000,null,300,0,optimal,optimal,22,33,44,22,23,23,-7129292,1.4882548748089441e-07,1.3301360013429075e-10,0,6.7676307759060557e-11,0.010964264161884785
+cutest/SMBANK/hven-sqp/default,cutest,SMBANK,cutest-nlp-35 v1,8021b2235d72a6defba6b7e95f44c0b715889a133af1a6bc23af76f667099b82,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,29,29,30,30,31,30,-7129292,9.2511492371267716e-10,1.4551915228366852e-10,0,0,0.11924460204318166
+cutest/ZAMB2-8/hven-ipm/default,cutest,ZAMB2-8,cutest-nlp-35 v1,6d52681f9da339a0725f6f00e8a147adf2e9a1839bef3150aa379f35c57a6e87,TRAIN,hven-ipm,default,ab38580e02fa2ab1d2f14aaa078b10faab442e89e30a86c037e40cb45b78028b,exact,1000,null,300,0,optimal,optimal,23,23,46,23,24,24,-0.15293542941412749,3.1235041221224536e-10,2.0250918909142657e-07,0,6.1029165550819437e-08,0.011265831999480724
+cutest/ZAMB2-8/hven-sqp/default,cutest,ZAMB2-8,cutest-nlp-35 v1,6d52681f9da339a0725f6f00e8a147adf2e9a1839bef3150aa379f35c57a6e87,TRAIN,hven-sqp,default,d634f9772add484db5b1e209824f48417cdf58b75c866319c5023c8c3320382d,exact,300,null,300,0,optimal,optimal,8,147,9,9,10,9,-0.15293592839679387,2.260517348393748e-13,1.3742670890160014e-10,0,0,0.32186614908277988

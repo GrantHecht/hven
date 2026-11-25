@@ -1,0 +1,16 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..1b20e97f7 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -843,11 +843,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+         // A pass that is solved again without moving (a footprint rung, its revert, a refused
+         // footprint ride) hands the next pass the run state it was handed.
+         const auto resolve_pass_again = [&] {
+-            standstill_steps = standstill_steps_in;
+-            stagnation_idle = stagnation_idle_in;
+-            stagnation_read = stagnation_read_in;
+-            gray_hold_next = gray_hold_prev;
+-            gray_return_pending = gray_return_pending_in;
+         };
+         // This pass issued the hold (set below); it is SPENT only by an ordinary step that runs.
+         bool gray_hold_issued = false;

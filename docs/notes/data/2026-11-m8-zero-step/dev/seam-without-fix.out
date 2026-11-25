@@ -1,0 +1,112 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpLadderSeam.ZeroStep*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpLadderSeam
+[ RUN      ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 2 mode 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1385: Failure
+Expected equality of these values:
+  sol.status
+    Which is: 4-byte object <06-00 00-00>
+  SolveStatus::kInfeasible
+    Which is: 4-byte object <03-00 00-00>
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1386: Failure
+Value of: sol.infeasibility_certified
+  Actual: false
+Expected: true
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/zero-step/tests/sqp/test_sqp_ladder_seams.cpp:1367: policy 0 mode 2
+
+[  FAILED  ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver (38 ms)
+[----------] 1 test from SqpLadderSeam (38 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver
+
+ 1 FAILED TEST

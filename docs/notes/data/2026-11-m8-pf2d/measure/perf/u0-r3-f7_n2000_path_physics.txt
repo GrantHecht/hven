@@ -1,0 +1,17 @@
+# started on Sat Nov 21 11:01:10 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-u0/bench/hven_sqp_corpus --internal-run-one f7_n2000_path_physics --engine walk --internal-out /home/ghecht/Projects/hven/.claude/worktrees/pf2d/docs/notes/data/2026-11-m8-pf2d/measure/raw/u0-r3-f7_n2000_path_physics.csv':
+
+   278,159,267,366      instructions:u                                                        
+    32,552,313,154      branches:u                                                            
+   122,005,176,828      cycles:u                                                              
+       245,310,889      branch-misses:u                                                       
+         4,804,767      L1-icache-load-misses:u                                               
+
+      37.775752136 seconds time elapsed
+
+      36.288972000 seconds user
+       1.319944000 seconds sys
+
+

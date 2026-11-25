@@ -1,0 +1,19 @@
+{
+ "lane": "hven-sqp",
+ "base": "sqp-qn",
+ "set": "cutest",
+ "config": {
+  "advanced.second_order_correction": false,
+  "advanced.trust_region_growth": "kRatioOrFeasibilityStep"
+ },
+ "label": "sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep",
+ "problems": [
+  "ACOPR118",
+  "BIGBANK",
+  "MSS3",
+  "READING8",
+  "TAX213322",
+  "TAX53322"
+ ],
+ "tier": "exclusive"
+}

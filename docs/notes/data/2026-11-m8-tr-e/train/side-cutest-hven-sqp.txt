@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/bench-new/schema/compare_side.py", line 171, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/bench-new/schema/compare_side.py", line 166, in main
+    code, _ = compare_side(argv[0], argv[1], argv[3])
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/bench-new/schema/compare_side.py", line 94, in compare_side
+    old_cols, old_rows = load_side(old_path)
+                         ~~~~~~~~~^^^^^^^^^^
+  File "/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/bench-new/schema/compare_side.py", line 43, in load_side
+    with open(path, newline="") as handle:
+         ~~~~^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/ghecht/Projects/hven/.claude/worktrees/tr-e/.scratch/train/old/cutest/counters-hven-sqp.csv'

@@ -1,0 +1,13 @@
+diff --git a/src/trace/json_lines_trace_sink.cpp b/src/trace/json_lines_trace_sink.cpp
+index 82ab1adb1..646e25a78 100644
+--- a/src/trace/json_lines_trace_sink.cpp
++++ b/src/trace/json_lines_trace_sink.cpp
+@@ -548,7 +548,7 @@ void JsonLinesTraceSink::write_line(const char *ev, const std::string &body, con
+     ++seq_;
+     std::string line = "{\"v\":1,\"ev\":\"";
+     line += ev;
+-    line += "\",\"seq\":";
++    line += "\",\"sq\":";
+     append_index(line, seq_);
+     line += ",\"sid\":";
+     append_index(line, sid_);

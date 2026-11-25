@@ -1,0 +1,2 @@
+G10 CI: gh workflow run ci.yml --ref rs-2, run 44336809684 on origin rs-2 head 7c280a3a6 (RS-2: move 43f5573f9 + declarations/instruments + gate evidence): conclusion success.
+linux-clang-release success, linux-clang-coverage success, macos-clang-release success, windows-clang-release success.

@@ -1,0 +1,34 @@
+M8 AP-2 B2 -- successor runtime gate B2-runtime-r2: NOT RUN (instrument preflight finding)
+================================================================================
+No DECLARATION.txt was committed and no gate leg ran. The r1 failure stands as recorded in
+../runtime/ (interior 1.008006).
+
+THE FINDING. The settler-specified criterion samples instructions:u at a fixed period,
+`perf record -c 20000 -e instructions:u`. On this box the kernel caps the sample rate
+(perf_event_max_sample_rate = 100000/s, perf_cpu_time_max_percent = 25; changing either
+needs root) and THROTTLES the event when the cap is exceeded: samples are then dropped for
+the rest of the tick. The engines retire several billion user instructions a second, so at
+a 20000-instruction period they exceed the cap and most samples are dropped. A throttled
+count is bounded by time, not by instructions -- the wall-clock dependence the instrument
+was chosen to remove.
+
+Measured (preflight_throttle.sh -> preflight-throttle.txt; one interior-leg process of the
+B2 code head 6f349b89 per period, perf stat nested inside perf record as the gate would):
+  period 20000   raw 1.0783e11 instructions, samples*period/raw = 0.2675, 13893 THROTTLE events
+  period 200000  raw 1.0954e11 instructions, samples*period/raw = 0.99997, 0 THROTTLE events
+An earlier probe (python loop, same arrangement) read 0.183 with 1661 THROTTLE events at
+20000 and 0.999994 with none at 200000. The two raw counts above differ by 1.6 % between two
+runs of the same binary; that is the wall-clock spin r1 diagnosed.
+
+WHAT IS NEEDED TO RUN IT (the settler's call; the criterion is not changed here):
+  a period at which no measured process throttles -- 200000 (r1's diagnosis period) read 0
+  THROTTLE events and 99.997 % capture here -- with THROTTLE events == 0 checked per process
+  as an instrument-validity condition (perf report --stats); or a root-side raise of
+  perf_event_max_sample_rate for the run.
+
+DRAFTS IN THIS DIRECTORY implement the settler's specification as written (arms, all four
+modes, the exclusion list, rounds A->B / B->A / A->B, phase alignment, one warm-up per arm,
+taskset, counter-identity STOP, the explanatory -g record), for a declaration to adopt:
+runtime_r2_leg.sh, analyze_r2.py, spin_explain.sh, run_all.sh. Toolchain notes found while
+drafting: call-graph recording at perf_event_paranoid 2 needs --user-callchains, and
+`perf report -F overhead,sample,sym` keeps extra columns out of the symbol field.

@@ -1,0 +1,8 @@
+MOVER 055-YORKNET default+advanced.elastic_rung_engine=kTier | R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW stalled it=72 fact=48964 f=14535.185778373685 cert=0
+CELL_055 OK R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW stalled it=72 fact=48964 f=14535.185778373685 cert=0
+MOVER 056-YORKNET default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kAnyAccepted | R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW max_iter it=153 fact=43181 f=14527.967652061192 cert=0
+CELL_056 OK R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW max_iter it=153 fact=43181 f=14527.967652061192 cert=0
+MOVER 057-YORKNET default+advanced.elastic_rung_engine=kTier+advanced.trust_region_growth=kRatioOrFeasibilityStep | R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW max_iter it=153 fact=43692 f=14531.798234508196 cert=0
+CELL_057 OK R stalled it=1 fact=29241 f=128617.18035415864 cert=0 | NEW max_iter it=153 fact=43692 f=14531.798234508196 cert=0
+SOLVED R 19 NEW 19
+VERDICT PILOT_BARS_MET

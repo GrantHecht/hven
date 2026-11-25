@@ -1,0 +1,139 @@
+# tier assignment (DECLARATION-TU-2.md section 7); written once, before any candidate leg
+# store: .scratch/tu2-store
+# baseline cells: 135
+lane,problem_set,problem,base_label,tier,reason
+hven-ipm,cutest,ACOPP118,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,ACOPP57,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,ACOPR118,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,ACOPR57,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,BIGBANK,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,BRITGAS,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,DALLASM,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,MSS2,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,MSS3,default,exclusive,baseline dnf_wall
+hven-ipm,cutest,NET3,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,READING6,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,READING8,default,exclusive,baseline reached with exclusive wall_s 101.8 > 100
+hven-ipm,cutest,SAWPATH,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,SMBANK,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,STEENBRB,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,STEENBRC,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,STEENBRD,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,STEENBRE,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,STEENBRG,default,corun,baseline co-run row (wall not read)
+hven-ipm,cutest,TAX213322,default,exclusive,baseline dnf_wall
+hven-ipm,cutest,TAX53322,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,YORKNET,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-ipm,cutest,ZAMB2-8,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs003,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs005,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs006,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs007,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs010,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs011,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs012,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs014,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs022,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs025,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs026,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs027,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs028,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs030,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs033,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs035,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs039,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs043,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs045,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs071,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs077,default,corun,baseline co-run row (wall not read)
+hven-ipm,hs,hs079,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPP118,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPP118,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPP57,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPP57,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPR118,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,ACOPR118,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,ACOPR57,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ACOPR57,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,BIGBANK,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,BIGBANK,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,cutest,BRITGAS,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,BRITGAS,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,DALLASM,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,DALLASM,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,MSS2,default,exclusive,baseline dnf_wall
+hven-sqp,cutest,MSS2,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,MSS3,default,exclusive,baseline dnf_wall
+hven-sqp,cutest,MSS3,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,cutest,NET3,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,NET3,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,READING6,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,READING6,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,READING8,default,exclusive,baseline dnf_wall
+hven-sqp,cutest,READING8,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,cutest,SAWPATH,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,SAWPATH,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,SMBANK,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,SMBANK,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRB,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRB,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRC,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRC,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRD,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRD,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRE,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRE,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRG,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,STEENBRG,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,TAX213322,default,exclusive,baseline dnf_wall
+hven-sqp,cutest,TAX213322,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,cutest,TAX53322,default,exclusive,baseline dnf_wall
+hven-sqp,cutest,TAX53322,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,cutest,YORKNET,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,YORKNET,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,cutest,ZAMB2-8,default,corun,baseline co-run row (wall not read)
+hven-sqp,cutest,ZAMB2-8,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs003,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs003,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs005,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs005,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs006,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs006,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs007,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs007,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs010,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs010,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs011,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs011,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs012,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs012,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs014,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs014,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs022,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs022,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs025,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs025,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs026,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs026,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs027,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs027,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs028,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs028,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs030,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs030,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs033,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs033,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs035,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs035,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs039,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs039,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs043,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs043,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs045,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs045,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs071,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs071,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs077,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs077,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs079,default,corun,baseline co-run row (wall not read)
+hven-sqp,hs,hs079,sqp-qn,corun,baseline co-run row (wall not read)

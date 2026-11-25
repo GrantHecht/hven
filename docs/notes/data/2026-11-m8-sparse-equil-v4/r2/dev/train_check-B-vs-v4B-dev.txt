@@ -1,0 +1,24 @@
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+    base: status=optimal iterations=26 objective=1809.7647657963535 reference_abs_err=null elastic_activations=4 restoration_iters=13 qp_minor_iters=1039
+    new:  status=optimal iterations=26 objective=1809.7647657963535 reference_abs_err=null elastic_activations=4 restoration_iters=13 qp_minor_iters=1039
+    diff: side.eqp_refine_iters: 1 -> 2
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+    base: status=optimal iterations=50 objective=1.3626567971288286 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    new:  status=optimal iterations=50 objective=1.3626567971288286 reference_abs_err=null elastic_activations=4 restoration_iters=0 qp_minor_iters=255
+    diff: side.eqp_refine_iters: 0 -> 1
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+    base: status=max_iter iterations=47 objective=-42935256.249999806 reference_abs_err=null elastic_activations=47 restoration_iters=253 qp_minor_iters=9404
+    new:  status=max_iter iterations=47 objective=-42935256.249999806 reference_abs_err=null elastic_activations=47 restoration_iters=253 qp_minor_iters=9404
+    diff: side.eqp_refine_iters: 686 -> 687
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    diff: side.eqp_refine_iters: 4845 -> 4853
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+    base: status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    new:  status=numerical_error iterations=11 objective=728495951628.13489 reference_abs_err=null elastic_activations=12 restoration_iters=8 qp_minor_iters=6388
+    diff: side.eqp_refine_iters: 4845 -> 4853
+
+SUMMARY rows 476; movers vs arm A 5 (better 0, worse 0, neutral 5); missing/capped 0
+residual values equal within the gate but not byte-equal: 0
+REPORT_ONLY (dev run)

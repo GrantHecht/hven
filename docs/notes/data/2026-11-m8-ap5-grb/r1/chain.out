@@ -1,0 +1,15 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T03:57:05-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-17T03:57:05-05:00
+	2516 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	1714 - Limits.ALimitExitIgnoresReturnBest (Failed)
+Errors while running CTest
+rc=8
+FOREGROUND_END 2026-11-17T03:58:21-05:00
+STEP ctest-rel rc=1 2026-11-17T03:58:21-05:00
+CHAIN_STOPPED_AT ctest-rel
+FOREGROUND_END 2026-11-17T03:58:21-05:00
+rc=1

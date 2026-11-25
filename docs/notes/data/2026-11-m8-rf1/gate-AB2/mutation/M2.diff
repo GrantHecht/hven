@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 9eb8d9a35..5cbca0185 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -923,7 +923,7 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
+         return RetryRung::kShrink;
+     }
+     // R2 only after a warm start from a non-empty working set: else the cold start IS the seed.
+-    if (unused(RetryRung::kCold) && in.warm_nonempty) {
++    if (unused(RetryRung::kCold) && !in.warm_nonempty) {
+         return RetryRung::kCold;
+     }
+     // R3 and R4 change the walk's engine or override, so only a walk failure takes them.

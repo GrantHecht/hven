@@ -17,7 +17,7 @@
 // gtest_discover_tests) -- it is a measurement instrument for this note, not
 // a per-commit correctness assertion.
 //
-// WHAT THIS IS. `kFunnelTauBar` (globalization.h) is an `inline constexpr`,
+// WHAT THIS IS. `kFunnelTauBar` (funnel.h) is an `inline constexpr`,
 // not a runtime option, so the shipped, CMake-built form of this program only
 // ever reads the ONE value the library ships (100.0) -- running it via
 // `cmake --build build && ./build/bench/hven_sqp_tau_bar_sweep_probe`
@@ -30,21 +30,21 @@
 // the patched copy's directory placed BEFORE the real `include/` on the
 // search path -- there is no way to inject a different value into an
 // `inline constexpr` at runtime, and the ruling this note reaches is "do not
-// change globalization.h", so the patch is external to the shipped build, not
+// change funnel.h", so the patch is external to the shipped build, not
 // a CMake option on it. EXACT INVOCATION (from the repo root; matches this
 // project's own compiler/backend banner -- clang++, MKL LP64,
 // MKL_NUM_THREADS=1):
 //
 //   for TAU in 1 10 100 1e3 1e5; do
-//     D=/tmp/tau_bar_patch/hven/detail/globalization/sqp; rm -rf /tmp/tau_bar_patch
-//     mkdir -p "$D" && cp include/hven/detail/globalization/sqp/globalization.h "$D/"
+//     D=/tmp/tau_bar_patch/hven/detail/sqp/globalization; rm -rf /tmp/tau_bar_patch
+//     mkdir -p "$D" && cp include/hven/detail/sqp/globalization/funnel.h "$D/"
 //     F="$D/globalization.h"
 //     sed -i "s/kFunnelTauBar = 100.0;/kFunnelTauBar = ${TAU};/" "$F"
 //     clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
 //       -I /tmp/tau_bar_patch -I include -I tests/sqp \
 //       -isystem dep/eigen -isystem dep/fmt/include \
 //       -isystem /opt/intel/oneapi/mkl/latest/include \
-//       bench/tau_bar_sweep_probe.cpp src/globalization/sqp/funnel.cpp \
+//       bench/tau_bar_sweep_probe.cpp src/sqp/globalization/funnel.cpp \
 //       build/libhven.a -o /tmp/tau_bar_probe \
 //       -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
 //       /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a \
@@ -55,14 +55,14 @@
 //   done
 //
 // The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes `#include
-// <hven/detail/globalization/sqp/globalization.h>` resolve to the patched copy
+// <hven/detail/sqp/globalization/funnel.h>` resolve to the patched copy
 // while every OTHER header (sqp_solver.h, qp_types.h, ...) still resolves to the
-// real `include/hven/detail/globalization/sqp/`, unmodified -- this file does
+// real `include/hven/detail/sqp/globalization/`, unmodified -- this file does
 // not, and cannot, change anything the shipped library ships; only the SWEEP
 // invocation above (never `cmake --build`) touches a patched header, and only
 // in a scratch directory outside the repository.
 //
-// `src/globalization/sqp/funnel.cpp` JOINS THE SWEEP COMMAND LINE (M3 phase-C
+// `src/sqp/globalization/funnel.cpp` JOINS THE SWEEP COMMAND LINE (M3 phase-C
 // T4) for the same reason the `-I` ordering is there. That carve moved
 // FunnelStrategy's three virtual definitions -- including reset(), the ONLY
 // reader of kFunnelTauBar -- out of the header and into a library TU, so this
@@ -78,8 +78,8 @@
 // still resolves to the funnel.cpp compiled here -- against the PATCHED
 // header -- and the archive's own copy of FunnelStrategy is never pulled.
 //
-// WHAT IT MEASURES: the COLD ARM of all six `tests/sqp/support/hs_sweeps.h`
-// corpus problems (the same vehicle `tests/test_hs_sweeps.cpp`'s
+// WHAT IT MEASURES: the COLD ARM of all six `tests/model/support/hs_sweeps.h`
+// corpus problems (the same vehicle `tests/sqp/test_hs_sweeps.cpp`'s
 // `run_cold_grid`/`spec_grid` use, at the same default options
 // `sweep_options(StartLevel::kCold, /*full_step=*/false, /*enable_soc=*/false,
 // spec.max_iter)` builds -- KD and SOC both off, the simplest baseline) --
@@ -89,26 +89,28 @@
 
 #include <cstdio>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 
-#include "support/hs_sweeps.h"
+#include "model/support/hs_sweeps.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 namespace {
 
 SqpOptions cold_options(Index max_iter) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kCold;
-    opts.warm_full_step = false;
-    opts.enable_soc = false;
+    opts.advanced.warm_full_step = false;
+    opts.advanced.second_order_correction = false;
     return opts;
 }
 
@@ -134,7 +136,8 @@ int main() {
         for (double p : grid) {
             SqpSolver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
-            const SqpResult sol = driver.solve(*model, model->start_point());
+            const SqpResult sol =
+                driver.solve(hven::detail::problem_ref(*model), model->start_point());
             all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;

@@ -1,0 +1,12 @@
+diff --git a/src/linear/dense_session.cpp b/src/linear/dense_session.cpp
+index 7dfe0ba86..03e1efcca 100644
+--- a/src/linear/dense_session.cpp
++++ b/src/linear/dense_session.cpp
+@@ -600,7 +600,6 @@ SolveInfo run_dense_solve(const DenseSession &session, ConstVecRef rhs, VecRef x
+     }
+     x = rhs;
+     session.solve(x.data(), 1, static_cast<Index>(x.size()));
+-    SolveTally::record(1, 0);
+     return SolveInfo{};
+ }
+ 

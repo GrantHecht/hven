@@ -1,0 +1,251 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:32:49-05:00
+code paths == 192d005295913ea8484f445e40c774fa5561c0ce, clean; HEAD 2ffe681e02fdae1736124bcbd282ff494c6e52b3
+LEG P1-rel start 2026-11-19T18:32:49-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:32:49-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T18:34:07-05:00
+LEG P1-rel rc=0 2026-11-19T18:34:07-05:00
+LEG P1-rel-criterion start 2026-11-19T18:34:07-05:00
+LEG P1-rel-criterion rc=0 2026-11-19T18:34:07-05:00
+LEG P1-dbg start 2026-11-19T18:34:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:34:07-05:00
+	1360 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1493 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1584 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1585 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1586 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-19T18:41:52-05:00
+LEG P1-dbg rc=0 2026-11-19T18:41:52-05:00
+LEG P1-dbg-criterion start 2026-11-19T18:41:52-05:00
+LEG P1-dbg-criterion rc=0 2026-11-19T18:41:52-05:00
+LEG P2 start 2026-11-19T18:41:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:41:52-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/B/hven_sqp_corpus sha256 dac7579832eeb91d8f7f058195e90443a18f57963b5fde791935d12ea5b64403
+RUN B k=1 mode=walk 2026-11-19T18:41:52-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-19T18:46:41-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-19T18:47:01-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-19T18:47:27-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-19T18:52:15-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-19T18:52:36-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-19T18:53:02-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-19T18:57:50-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-19T18:58:11-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T18:58:36-05:00
+LEG P2 rc=0 2026-11-19T18:58:36-05:00
+LEG P2-criterion start 2026-11-19T18:58:36-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-19T18:58:37-05:00
+LEG P3 start 2026-11-19T18:58:37-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T18:58:37-05:00
+cells run: 238 2026-11-19T19:02:55-05:00
+FOREGROUND_END 2026-11-19T19:02:55-05:00
+LEG P3 rc=0 2026-11-19T19:02:55-05:00
+LEG P3-criterion start 2026-11-19T19:02:55-05:00
+MOVER NEUTRAL  sd-hven-sqp-HS101.D
+MOVER NEUTRAL  sd-hven-sqp-HS101.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.D
+MOVER NEUTRAL  sd-hven-sqp-MSS1.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+SUMMARY rows 476; movers vs arm A 7 (better 0, worse 0, neutral 7); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-19T19:02:56-05:00
+LEG P4 start 2026-11-19T19:02:56-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T19:02:56-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126646e+06 B=7.126970e+06 B/A=1.000045
+  all samples                      A=7.126646e+06 B=7.126970e+06 B/A=1.000045
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850664e+12 B=2.850794e+12 B/A=1.000046
+per-round filtered B/A (informational):
+  round 1: B/A=1.000045
+  round 2: B/A=1.000047
+  round 3: B/A=1.000045
+MODE walk FILTERED B/A = 1.000045 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-19T19:36:36-05:00
+LEG P4 rc=0 2026-11-19T19:36:36-05:00
+LEG P5 start 2026-11-19T19:36:36-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T19:36:36-05:00
+PREFLIGHT every mutation applies and restores: MUST=[N1 N2 N3 N4 N5 N6 N8 N9 N10 N11 N12 N14 N15 N17 N18 N19 N22 N23] REC=[N20 N21]
+MUT control rc=0 killers=0
+APPLIED N1
+MUT N1 rc=1 killers=12
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N2
+MUT N2 rc=1 killers=6
+   QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+   QpYrkRefusedExchange.YorknetRestorationQp25Border
+   QpYrkRefusedExchange.YorknetRestorationQp25Refactorize
+APPLIED N3
+MUT N3 rc=1 killers=5
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N4
+MUT N4 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N5
+MUT N5 rc=1 killers=1
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+APPLIED N6
+MUT N6 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+APPLIED N8
+MUT N8 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N9
+MUT N9 rc=1 killers=3
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+APPLIED N10
+MUT N10 rc=1 killers=2
+   QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+   QpWa1AscentFootprint.MeritSlopeSignCases
+APPLIED N11
+MUT N11 rc=1 killers=2
+   QpWa1AscentFootprint.RowBudgetAtItsEdge
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N12
+MUT N12 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+APPLIED N14
+MUT N14 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticKSuspectPassIsNotTheRulesCase
+APPLIED N15
+MUT N15 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED N17
+MUT N17 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N18
+MUT N18 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N19
+MUT N19 rc=1 killers=3
+   QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED N22
+MUT N22 rc=1 killers=1
+   QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+APPLIED N23
+MUT N23 rc=1 killers=5
+   QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+   QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+   QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+N20 rc=1 (recorded); killers: 0
+N21 rc=1 (recorded); killers: 0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T19:54:34-05:00
+LEG P5 rc=0 2026-11-19T19:54:34-05:00
+LEG P6 start 2026-11-19T19:54:34-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T19:54:34-05:00
+SMOKE_START default 2026-11-19T19:54:34-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-19T19:55:27-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-19T19:56:05-05:00
+LEG P6 rc=0 2026-11-19T19:56:05-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-19T19:56:05-05:00

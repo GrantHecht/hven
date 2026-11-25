@@ -35,14 +35,16 @@
 // inert: the production `hven` library target's compiled objects are
 // byte-for-byte what they would be if this header did not exist.
 // HVEN_TESTING is defined ONLY target-wide on the standalone
-// hven_fault_injection_tests executable (tests/CMakeLists.txt), which
+// hven_linear_seam_tests executable (tests/linear/CMakeLists.txt), which
 // recompiles the platform's session and adapter sources a second time (their
 // own objects, never reused from libhven.a) alongside its own test sources
-// and does NOT link hven::hven -- so the normal hven_tests executable never
+// and does NOT link hven::hven -- so no ordinary test executable ever
 // sees HVEN_TESTING either, and its pre-existing assertions are exercised
 // against the exact same object code as a release build.
 
 #ifdef HVEN_TESTING
+
+#include <cstdint>
 
 namespace hven::linear::detail::testing {
 
@@ -79,6 +81,92 @@ struct FactorizeFaultInjector {
 struct AnalyzeFaultInjector {
     static inline bool active = false;
     static inline int injected_backend_code = -3;
+};
+
+// Fault injection for the dense arm's attempt in SymmetricFactor::factorize()
+// and factorize_equilibrated() (BOTH backends; the shared dense dispatch). When
+// active, once `pass` dense attempts have run since it was armed, every later
+// attempt is SKIPPED, its session's numerics dropped, and read as exactly
+// singular: the outcome a real exactly singular attempt has under either
+// policy (kSparseFallback: the platform session takes the factorization, where
+// FactorizeFaultInjector can fail it; kReport: kDenseSingular, no numerics).
+// Consumers: the IPM dense guard's failed re-run; the SQP response's platform
+// retake (both equilibrated attempts read as failed); the IPQP's exactly
+// singular read. docs/testing.md records each.
+struct DenseFactorizeFaultInjector {
+    static inline bool active = false;
+    static inline int pass = 0;
+};
+
+// A WOUNDED DENSE FACTOR (BOTH backends; use sites in SymmetricFactor::solve()
+// and solve_single(), symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp).
+// When active, the dense solve that comes after `skip` untouched dense solves
+// wounds the numerics it ran on -- the dense session's (session_id, epoch),
+// which names one set of numerics -- and EVERY solve through those numerics,
+// that one and each later one (a consumer's refinement solves included), has its
+// answer multiplied by `scale`: the answer a factor of K / scale would give, a
+// broken factor no detector flagged. Numerics committed later are healthy unless
+// the wound has numerics left (`max_numerics` distinct sets; -1 = no limit), in
+// which case the next dense solve on new numerics wounds them too.
+//
+// THE WOUND MUST NOT CONTRACT. Keep-while-falling refinement against K maps an
+// answer's error e to (1 - scale) e, so a wound 0 < scale < 2 is healed by
+// refinement and tests nothing; `scale` <= 0 or >= 2 (default -1, a sign flip)
+// leaves every refinement step no better than the last, which is what a broken
+// factor looks like to a gate.
+//
+// FAITHFUL FOR every consumer's solve gate and its response (they read only the
+// answers and K). NOT FAITHFUL FOR the factorization's own evidence: inertia,
+// the detector's flag and the shift marker are the real K's, which a real broken
+// factor need not report. Platform-session solves are never touched.
+struct DenseSolveFaultInjector {
+    static inline bool active = false;
+    static inline int skip = 0;
+    static inline double scale = -1.0;
+    static inline int max_numerics = 1;
+    // Read-outs: numerics wounded so far, and solves whose answer was scaled.
+    static inline int numerics_wounded = 0;
+    static inline int solves_wounded = 0;
+    static inline bool engaged = false;
+    static inline std::uint64_t wounded_session = 0;
+    static inline std::uint64_t wounded_epoch = 0;
+
+    static void reset() {
+        active = false;
+        skip = 0;
+        scale = -1.0;
+        max_numerics = 1;
+        numerics_wounded = 0;
+        solves_wounded = 0;
+        engaged = false;
+        wounded_session = 0;
+        wounded_epoch = 0;
+    }
+
+    // The factor for one dense solve on the numerics (session_id, epoch): `scale`
+    // on wounded numerics, else 1.
+    static double factor_for(std::uint64_t session_id, std::uint64_t epoch) {
+        if (!active) {
+            return 1.0;
+        }
+        if (engaged && session_id == wounded_session && epoch == wounded_epoch) {
+            ++solves_wounded;
+            return scale;
+        }
+        if (skip > 0) {
+            --skip;
+            return 1.0;
+        }
+        if (max_numerics >= 0 && numerics_wounded >= max_numerics) {
+            return 1.0;
+        }
+        engaged = true;
+        wounded_session = session_id;
+        wounded_epoch = epoch;
+        ++numerics_wounded;
+        ++solves_wounded;
+        return scale;
+    }
 };
 
 // Fault injection for SymmetricFactor::inertia()'s SparseGetInertia call
@@ -261,7 +349,7 @@ struct PardisoIparmObserver {
 // thread scope inside the session were deleted outright; it is not, and
 // cannot be, evidence that the scope engages.
 //
-// It exists for SymmetricFactor::set_num_threads, and it pins the half of
+// It exists for SymmetricFactor::set_threads, and it pins the half of
 // that setter's claim which has no public observable: that a mid-life change
 // lands in the configuration a subsequent backend call reads. The rest of
 // the claim is carried by traced data flow (every phase reaches the backend

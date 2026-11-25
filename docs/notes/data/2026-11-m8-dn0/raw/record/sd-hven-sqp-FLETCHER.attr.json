@@ -1,0 +1,251 @@
+{
+ "samples": 428,
+ "period": 1000003,
+ "instr_sampled_all": 483875284,
+ "instr_sampled_solver": 303741807,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 255819681,
+  "B_kkt": 4574012,
+  "B_eval": 3469009,
+  "B_setup": 17226045,
+  "B_eng": 22653060,
+  "B_proc": 180133477
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8422274283763644,
+  "B_kkt": 0.015058881900969266,
+  "B_eval": 0.011420913815792239,
+  "B_setup": 0.05671278896421394,
+  "B_eng": 0.07457998694266015
+ },
+ "proc_share_of_all": 0.3722725316964113,
+ "rule_instr": 470349248,
+ "fallback_instr": 4483012,
+ "fallback_by_bucket": {
+  "B_fac": 4483012
+ },
+ "unmatched_instr": 9043024,
+ "unmatched_share_of_solver": 0.029772075465396834,
+ "chains_reaching_main": 0.08878504672897196,
+ "init_instr": 0,
+ "steady_state_instr": 303741807,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8422274283763644,
+  "B_kkt": 0.015058881900969266,
+  "B_eval": 0.011420913815792239,
+  "B_setup": 0.05671278896421394,
+  "B_eng": 0.07457998694266015
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   244384651
+  ],
+  [
+   "<no hven::linear frame>",
+   4483012
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   3504009
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   2399006
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   1049003
+  ]
+ ],
+ "mkl_serv_instr": 27982075,
+ "kmp_instr": 160214426,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   5728015
+  ],
+  [
+   "hven::detail::FunnelStrategy::~FunnelStrategy",
+   1224003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ],
+  [
+   "<empty>",
+   1021003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    15806042
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    12134033
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    11162030
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    10323027
+   ],
+   [
+    "__kmp_fork_call",
+    9980027
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    9001024
+   ],
+   [
+    "__kmp_serialized_parallel",
+    6735018
+   ],
+   [
+    "rml::internal::internalPoolMalloc",
+    6637018
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    1238003
+   ],
+   [
+    "hven::detail::SchurComplement::reserve_all",
+    1175003
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    1105003
+   ],
+   [
+    "hven::detail::solve_vec",
+    1056003
+   ]
+  ],
+  "B_eval": [
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    2455006
+   ],
+   [
+    "elfun_",
+    1014003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    2224006
+   ],
+   [
+    "operator delete",
+    1245003
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>::makeCompressed",
+    1203003
+   ],
+   [
+    "malloc@plt",
+    1189003
+   ],
+   [
+    "_gfortrani_read_block_form",
+    1182003
+   ],
+   [
+    "_gfortrani_fbuf_getc_refill",
+    1175003
+   ],
+   [
+    "data_transfer_init",
+    1168003
+   ],
+   [
+    "_gfortrani_read_f",
+    1161003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    5728015
+   ],
+   [
+    "hven::detail::solve_eqp",
+    1273003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1266003
+   ],
+   [
+    "hven::detail::QpEngine::verify_farkas",
+    1252003
+   ],
+   [
+    "hven::detail::FunnelStrategy::~FunnelStrategy",
+    1224003
+   ],
+   [
+    "hven::detail::{anon}::DepSystem::DepSystem",
+    1217003
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    1168003
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    1154003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    67588180
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    46090120
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    16995045
+   ],
+   [
+    "strcmp",
+    13526036
+   ],
+   [
+    "check_match",
+    4322012
+   ],
+   [
+    "_int_malloc",
+    3434009
+   ],
+   [
+    "mprotect",
+    2497006
+   ],
+   [
+    "_int_free_create_chunk",
+    2266006
+   ]
+  ]
+ }
+}

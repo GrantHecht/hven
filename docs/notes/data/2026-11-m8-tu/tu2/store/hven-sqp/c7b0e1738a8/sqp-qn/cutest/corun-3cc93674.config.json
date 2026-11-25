@@ -1,0 +1,31 @@
+{
+ "lane": "hven-sqp",
+ "base": "sqp-qn",
+ "set": "cutest",
+ "config": {
+  "advanced.second_order_correction": false,
+  "advanced.trust_region_growth": "kRatioOrFeasibilityStep"
+ },
+ "label": "sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep",
+ "problems": [
+  "ACOPP118",
+  "ACOPP57",
+  "ACOPR118",
+  "ACOPR57",
+  "BRITGAS",
+  "DALLASM",
+  "MSS2",
+  "NET3",
+  "READING6",
+  "SAWPATH",
+  "SMBANK",
+  "STEENBRB",
+  "STEENBRC",
+  "STEENBRD",
+  "STEENBRE",
+  "STEENBRG",
+  "YORKNET",
+  "ZAMB2-8"
+ ],
+ "tier": "corun"
+}

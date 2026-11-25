@@ -1,0 +1,4 @@
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r1-A-all.csv /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r1-B-all.csv
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r2-A-all.csv /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r2-B-all.csv
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r3-A-all.csv /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/.scratch/g4r3-runtime/interior/raw/interior-r3-B-all.csv
+STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing -> STOP

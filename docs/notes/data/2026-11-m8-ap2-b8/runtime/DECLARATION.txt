@@ -1,0 +1,33 @@
+M8 AP-2 group B8 -- runtime neutrality gate -- DECLARATION
+(B7 riders' instrument, ../../2026-11-m8-ap2-b7-riders/runtime/, re-pointed for B8; committed before the
+first leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b7-riders/runtime/DECLARATION.txt, whose criteria are taken VERBATIM; only the
+arms, the paths and this group's name change. run_all.sh and runtime_leg.sh are B7 riders' with the
+comments' group name, the build directory (build-b7r -> build-b8), the evidence directory and arm A's sha256
+replaced. analyze_r5.py is B7 riders' except its one repository-root line's COMMENT (b8/runtime/ is five
+levels below the root, as b7-riders/runtime/ was -- checked by ../legs/chain1.sh's pre-flight, not carried);
+the code is byte for byte. The fixture is copied byte for byte.
+
+ARMS
+  A  fa727270 (B7 landed): build-b8/armAbin/hven_sqp_corpus, the corpus binary of this worktree's own Release
+     build of fa727270 at build-b8/psym, made BEFORE ANY B8 EDIT with ../legs/build.sh's flags and copied at
+     that time; sha256 273e09c6c777493788316661ffc54a998b4e2531606061fdb438ff4f1b658e98.
+  B  the B8 code head 2f00a6ff: build-b8/rel/bench/hven_sqp_corpus (a fresh configure and build at the head,
+     ../legs/build.sh) copied by run_all.sh to build-b8/armBbin/, sha256
+     258120669404bf3d2c8374c9f5eea89925d8c4303cd5c603ee1934c93e38ce7d.
+     run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration. Both arms at the defaults in every mode
+(no pin), as at B7 riders.
+WHAT B8 CHANGES ON THE MEASURED PATHS, for the reader of the ratios: nothing by intent. Names move (no
+instruction does); IpmSolverImpl::phase_steps maps the kSolve phase's public mode onto the internal one once
+per phase (the corpus runs kOptimize phases only); the SQP restoration entry test is re-associated (equal
+for every cap >= 1); the rest is strings. P-SYM (../DECLARATION.txt P13) is the instruction-level account.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows
+UNOBSERVED.

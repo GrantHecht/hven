@@ -102,15 +102,15 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:34-583` | 100 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:849-1300` | 43 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `sqp/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
 131 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
 two nested groups' 61, which it carries whole. (130 and 60 until M7 W2 A3, which
 appended `ipqp_ladder_zero_trial_skips`, the fire counter of
-`IpqpOptions::ipqp_ladder_skip_after`, last in `IpqpCounters`; 127 and 57 until M7 W2 A2, which
-appended the three fire counters of `IpqpOptions::ipqp_mu0_rule` and
-`ipqp_mu_residual_floor` -- `ipqp_mu0_derived`, `ipqp_mu0_fallbacks` and
+`IpqpOptions::ladder_skip_after`, last in `IpqpCounters`; 127 and 57 until M7 W2 A2, which
+appended the three fire counters of `IpqpOptions::barrier_initial_rule` and
+`IpqpOptions::barrier_residual_floor` -- `ipqp_mu0_derived`, `ipqp_mu0_fallbacks` and
 `ipqp_mu_floor_binds` -- last in `IpqpCounters`; 115 and 38 until M7 W2 M4, which
 appended `start_point_clamps`; 116 and 39 until M7 W2 M1, which appended the
 five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
@@ -130,7 +130,7 @@ a `RestorationSubStatus`). A CATEGORICAL reading is a legitimate counter here
 when it is per-solve and overwritten rather than accumulated --
 `ipqp_rho_demanded_last` and `ipqp_final_inertia_read` are the precedent -- and
 each one's serializer overload lives beside the others in
-`src/drivers/trace_writer.cpp`.
+`src/trace/json_lines_trace_sink.cpp`.
 
 **`restoration_sub_status` carries an EXPLICIT not-run value**, and is the first
 counter here that can say "absent" in its own vocabulary. `SolveStatus` has no
@@ -156,7 +156,7 @@ THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
 serialize them, and an aggregate-arity `static_assert` beside it fails to
 compile if a field is added without an entry in its declaration position
-(`core/detail/aggregate_arity.h`; the asserts are at `solver_counters.h:429`,
+(`detail/core/aggregate_arity.h`; the asserts are at `solver_counters.h:429`,
 `:942` and `:1423`, with the offset-order asserts beside them). A field added to
 one of those three therefore cannot silently miss the trace.
 
@@ -179,16 +179,16 @@ one of those three therefore cannot silently miss the trace.
 - **`kkt/`** — produces none of its own. The interior-point engine's KKT factor
   re-exports the linear layer's group unchanged: `KktFactorization::Counters` is
   an ALIAS for `SymmetricFactor::Counters`
-  (`detail/interior/kkt_factorization.h:32`), not a fifth group.
-- **`interior/`** — produces none of its own.
+  (`detail/kkt/kkt_factorization.h:32`), not a fifth group.
+- **`ipm/`** — produces none of its own.
 - **`qp/`** — produces `QpCounters`, `SsnCounters` and `IpqpCounters`, one tier
   each. A tier's counters reach a caller through the SQP driver's aggregate:
   `SqpCounters::ssn` and `SqpCounters::ipqp` carry the latter two whole, and
   `QpCounters` reaches a `Ledger` record per QP subproblem solve.
-- **`globalization/`** — produces none.
+- **`globalization/`** (`detail/ipm/`, `detail/sqp/`) — produces none.
 - **`warmstart/`** — produces none.
-- **`drivers/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
-  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:1056`) and on
+- **`sqp/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
+  reachable as `SqpResult::counters` (`sqp/sqp_solver_types.h:1056`) and on
   every `Ledger` driver record.
 
   **`SqpCounters::start_point_clamps` IS STATED AGAINST THE `x0` ARGUMENT, AND
@@ -220,6 +220,20 @@ one of those three therefore cannot silently miss the trace.
   `nonfinite_subproblems` (M7 W2 R2): a subproblem whose data was not finite,
   refused before any kernel ran.
 
+  **THE RETRY LADDER GROUP FOLDS WHOLE** (M8 RF-1). `qp_retry_rung_shrink`,
+  `qp_retry_rung_cold`, `qp_retry_rung_algebra` and `qp_retry_rung_regularization`
+  count the rungs a routed failure took (each at most once per iterate; the set
+  resets where `qp_failures_in_a_row` resets); `qp_retry_replays` counts routed
+  failures whose outcome equalled the attempt before them and were not charged;
+  `qp_failure_box_projections` counts stagnation-stop iterates projected onto
+  their box before the retryable test; `trust_region_floor_exits` counts the
+  floor exit (`trust_region_floor`); `soc_qp_iteration_limits` counts SOC re-solves that
+  ended at their minor cap (an observation, RF-1 design 4.5). All are events of a driver's own majors and
+  fold from the restoration sub-solve on `qp_cap_retries`' argument. The sum of
+  the four rung counters equals the routed failures that changed the QP; a
+  routed failure that took no rung (the radius floor, a judged failure step) is
+  in `qp_failures_routed` only.
+
   **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
   `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
   `nonfinite_subproblems` count work and events of the sub-solve's own majors, on
@@ -247,13 +261,13 @@ one of those three therefore cannot silently miss the trace.
   point with no subproblem solved. A rolled-back step stays counted in
   `steps_accepted` (and in `qp_failure_steps_accepted` when it was one); it is
   not a `rejected_steps`. Bounded by the radius floor: no rollback is taken where
-  the shrink would cross `tr_min`, nor in the full-step mode, nor where the point
+  the shrink would cross `trust_region_min`, nor in the full-step mode, nor where the point
   was not reached by a commit -- those still end through `nonfinite_subproblems`
   (or the non-finite-iterate exit), which therefore counts only exits.
 
   **`scaled_convergence_refusals` IS THE CALLER-UNIT FEASIBILITY GUARD** (M7 W2
   SCL, appended last after `restoration_feas_out`). On a solve that ran scaled --
-  the row/objective layer (`SqpOptions::enable_scaling`, or `column_scaling ==
+  the row/objective layer (`SqpOptions::row_scaling`, or `column_scaling ==
   kAuto` firing) or the column layer (`SqpOptions::column_scaling`) -- the
   convergence test's two conjuncts are read in the engine's units, so a row the
   row layer shrank by `s_j < 1` passes at `|c_j| <= feas_tol / s_j` and a box
@@ -294,7 +308,7 @@ one of those three therefore cannot silently miss the trace.
   **THE COLUMN RULE'S JACOBIAN PROBE IS AN `evals_values`** (M7 W2 SCL rider).
   Whenever `SqpOptions::column_scaling != kOff` -- the shipped default is kAuto
   since M7 W2 SCW -- the rule evaluates the Jacobians once at the start point,
-  unless the warm start carries the decision (`SqpWarmStart::column_factors`),
+  unless the warm start carries the decision (the native `SqpWarmStart`'s carried column factors),
   when no probe runs; that query is charged one `evals_values`,
   as the warm-resolution probe's is, so the `evals_full` / `evals_values`
   partition stays a count of every model query. A solve the column layer scaled
@@ -320,7 +334,7 @@ one of those three therefore cannot silently miss the trace.
     may have started from (`SqpIterate::restoration_seed_used`). The excursion
     being measured is the caller's iterate's.
   * **They are the ENGINE's units** -- the caller's unless
-    `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    `SqpOptions::row_scaling` is on -- the units the resume test is taken
     in, and a record with one half in each space would report a scale factor as
     an excursion.
   * **The resume reading is `restoration_feas_out`, not `h_out`** (M7 W2 SNR).
@@ -363,7 +377,7 @@ one of those three therefore cannot silently miss the trace.
   and `SqpResult::infeasibility_certified` is what reports it). The certificate
   also requires the restoration point's inf-norm violation to exceed
   `kCertificateViolationMargin * feas_tol` (= 2 * feas_tol,
-  `detail/globalization/sqp/restoration.h`): a `kOptimal` sub-solve at inf-norm
+  `detail/sqp/globalization/restoration.h`): a `kOptimal` sub-solve at inf-norm
   <= 2 * feas_tol takes the no-claim exit, or the reduction resume below when
   `restoration_resume_reduction > 0`.
 
@@ -408,7 +422,7 @@ one of those three therefore cannot silently miss the trace.
   restoration sub-solve, which runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
-  restoration, the entry rule (`SqpOptions::restoration_max_entries` and its
+  restoration, the entry rule (`SqpOptions::max_restoration_entries` and its
   progress guard) and a spent budget never enter the phase;
   the non-finite exit entered it and measured nothing, and the driver's rule
   there is that nothing unmeasured may be reported as evidence. Nothing folds
@@ -418,27 +432,27 @@ one of those three therefore cannot silently miss the trace.
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
   quantities are loose fields on `IpmResult`. The KKT-analysis count this
   section used to name as `IpmSolver::kkt_analysis_count()` is among them: that
-  ACCESSOR WAS RETIRED at M6 W5 T8.4 (`drivers/ipm_solver.h:344` records the
+  ACCESSOR WAS RETIRED at M6 W5 T8.4 (`ipm/ipm_solver.h:344` records the
   retirement) and the quantity is now two snapshot fields on the returned
-  result, `IpmResult::kkt_analyses_total` and `::kkt_analyses_this_call`
-  (`drivers/ipm_solver_types.h:659`, `:661`), beside
-  `IpmResult::kkt_factor_counters` (`:664`), which is the linear layer's group
+  result, `IpmResult::kkt_analyses_total` and `IpmResult::counters.symbolic_analyses`
+  (`ipm/ipm_solver_types.h`), beside
+  `IpmResult::kkt_factor_counters`, which is the linear layer's group
   as of that solve. `kkt_analyses_total` is the LIFETIME count for the producing
   solver -- it moves once when the structure is first laid and once more at any
   solve entry that finds the model's structure epoch moved -- and
-  `kkt_analyses_this_call` is how much of that happened in the call being
+  `counters.symbolic_analyses` is how much of that happened in the call being
   reported. Snapshots rather than accessors, so they describe the solve that
   produced them and cannot go stale behind a caller's back.
 
 ## What the shipped IPM default makes live (M7 W2 D1, 2026-09-18)
 
-`IpmOptions`' defaults moved that day — `acceptance_strategy` `classic_merit`
--> `filter`, `barrier_governor` `classic_adaptive` -> `monitored`, `max_iters`
+`IpmOptions`' defaults moved that day — `acceptance_mode` `classic_merit`
+-> `filter`, `barrier_governor_mode` `classic_adaptive` -> `monitored`, `max_iters`
 500 -> 1000 — as one declared re-derivation event
 (`docs/notes/data/2026-09-m7-w2-d1-ipm-default/`). Nothing in this page's
 contract changes; what changes is which of the interior-point engine's
-diagnostics a STOCK solve populates. `IpmResult::last_filter_size`,
-`::last_filter_resets`, `::last_monotone_switches` and `::last_monotone_iters`
+diagnostics a STOCK solve populates. `filter_size`, `filter_resets`, `monotone_switches` and `monotone_iterations` of
+the last ran `IpmPhaseReport` (named `IpmResult::last_*` until M8 G6)
 each carry a `-1` sentinel meaning "the selected strategy or governor is not the
 one that reports this", and on a default-configured solve all four used to sit
 at that sentinel. They no longer do. A consumer reading `-1` from one of them is

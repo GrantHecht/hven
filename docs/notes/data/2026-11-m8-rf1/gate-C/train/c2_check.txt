@@ -1,0 +1,2 @@
+C2_SUMMARY rows 476; missing/capped 0; path movers 0; status movers 0 
+C2_AS_DECLARED

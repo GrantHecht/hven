@@ -1,0 +1,41 @@
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+
+cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
+f7_n10000_bound_activity       0.98028                 1.00200                 1.00000                 0.99744                 0.99999               
+f7_n10000_bound_corrupted      0.93318                 1.00320                 1.00000                 1.00091                 0.99999               
+f7_n10000_bound_neutral        0.96099                 1.00320                 1.00000                 0.99886                 0.99999               
+f7_n10000_bound_physics        0.97815                 1.00315                 1.00000                 0.99858                 0.99999               
+f7_n10000_bound_warm           0.94005                 1.00552                 1.00000                 1.00016                 0.99999               
+f7_n1000_bound_activity        1.04346                 1.00023                 1.00001                 1.00146                 0.99999               
+f7_n1000_bound_corrupted       1.01471                 0.99865                 1.00000                 0.99867                 0.99999               
+f7_n1000_bound_neutral         1.02221                 1.00440                 0.99999                 0.99858                 0.99999               
+f7_n1000_bound_physics         1.02046                 1.00326                 0.99999                 0.99760                 0.99998               
+f7_n1000_bound_warm            0.96032                 1.00434                 1.00001                 0.99746                 0.99999               
+f7_n1000_path_warm             0.77284                 0.99878                 1.00000                 0.99917                 1.00000               
+f7_n20000_bound_activity       0.98365                 1.00332                 1.00000                 0.99995                 0.99999               
+f7_n20000_bound_corrupted      0.92402                 1.00350                 1.00000                 0.99847                 0.99999               
+f7_n20000_bound_neutral        0.97838                 1.00485                 1.00000                 0.99850                 0.99999               
+f7_n20000_bound_physics        0.96025                 1.00452                 1.00000                 1.00239                 0.99999               
+f7_n20000_bound_warm           0.91687                 1.00360                 1.00000                 0.99950                 0.99999               
+f7_n2000_bound_activity        0.99294                 1.00182                 1.00000                 0.99647                 0.99999               
+f7_n2000_bound_corrupted       0.94910                 1.00401                 1.00000                 0.99930                 0.99999               
+f7_n2000_bound_neutral         0.96817                 1.01214                 1.00000                 1.00065                 0.99999               
+f7_n2000_bound_physics         0.99079                 1.00301                 1.00000                 0.99825                 0.99999               
+f7_n2000_bound_warm            0.96366                 1.00439                 1.00000                 1.00104                 0.99999               
+f7_n5000_bound_activity        0.94803                 1.00144                 1.00000                 0.99859                 0.99999               
+f7_n5000_bound_corrupted       0.91408                 1.00338                 1.00000                 0.99900                 0.99999               
+f7_n5000_bound_neutral         0.93389                 1.00405                 1.00000                 0.99474                 0.99999               
+f7_n5000_bound_physics         0.96613                 1.00449                 1.00000                 0.99779                 0.99999               
+f7_n5000_bound_warm            0.93701                 1.00268                 1.00000                 1.00005                 0.99999               
+f7_n800_path_warm              0.77918                 0.99483                 1.00000                 0.99883                 1.00000               
+
+corpus L1-icache-load-misses:u            A=1.430720e+08 B=1.117769e+08  B/A=0.781263
+corpus branch-misses:u                    A=5.067359e+09 B=5.054468e+09  B/A=0.997456
+corpus branches:u                         A=4.226248e+11 B=4.226248e+11  B/A=1.000000
+corpus cycles:u                           A=9.392512e+11 B=9.383661e+11  B/A=0.999058
+corpus instructions:u                     A=2.850461e+12 B=2.850459e+12  B/A=0.999999
+
+worst per-cell instructions ratio: 0.99998 (f7_n1000_bound_physics)
+cells outside 0.99-1.01: none
+largest within-arm round-to-round instruction spread: 0.00005
+CORPUS instructions B/A = 0.999999 -> WITHIN +-0.5 %

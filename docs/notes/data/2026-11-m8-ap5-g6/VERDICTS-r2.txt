@@ -1,0 +1,11 @@
+DECLARATION-r2.md, code head 9cd52b284 (tests only over r1's 0423a7562; src/include/bench/examples/cmake/scripts byte-identical, carry-premise-r2.txt) -- RESULT: CRITERIA MET ALL.
+P1  ctest Release and Debug: 100% passed, 3771 (suites-r2/).                                                                  MET
+M   control fails nothing; c3, c4, c11, c12, p1 each KILLED by a failing test (mutation-r2/mutation-table.csv):
+      c3  IpmCounters.SecondOrderCorrectionsAreCountedAsSocStepsAndNotAsWatchdogArms
+      c4  IpmCounters.TheWatchdogArmsAreCountedAsWatchdogActivationsAndNotAsSocSteps
+      c11, c12  IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility
+      p1  AcceptanceDiagnostics.FunnelReportsWidth, IpmPhaseDiagnostics.TheFunnelReportsItsWidthAndNotTheFilter
+    Combined with r1's table: every must-kill is killed (m1, m2 by the sizeof/offset static_asserts as BUILD_FAIL, as declared). c1b and c13 survive (REPORTED).
+Carried from r1 on the source-identity proof: P0, P3 (0 x3, ARMED 0 x3), P4 (0/0/0, multi-phase-with-restoration 0), P5 (smoke + export contract OK x2), goldens-rename (pairs 4, failures 0).
+hven-bench (outside this repo): branch g6-catchup 195feaf, local, not pushed. Both edited TUs compile (clang++ -fsyntax-only, -DHVEN_BENCH_PIN_SHA supplied) against the code head's install prefix
+  (build-g6/smoke-default/hven-install, built by r1's smoke leg at 0423a7562; the install tree is source-identical to 9cd52b284). The harness's own pin/stamp build was NOT run (it needs a pin prefix).

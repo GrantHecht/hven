@@ -1,0 +1,2 @@
+bursts: 1
+burst 1 start=447879.999715 end=447880.706814 spin_samples=1374

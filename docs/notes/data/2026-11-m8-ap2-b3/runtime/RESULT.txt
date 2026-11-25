@@ -1,0 +1,9 @@
+B3 runtime gate (the B2-runtime-r5 instrument; DECLARATION.txt committed d2f8739d before the first leg).
+GATE VERDICT: PASS. Arm A = pin 988449b4 (dffea0d7...), arm B = B3 code head fee7b3c2 (3810b645...).
+Fixture pre-flight PASS. All four modes: counter identity holds on every (round,cell) pair, 0 THROTTLE in
+every process, filtered B/A within [0.995, 1.005]:
+  interior 0.999812 (rounds 0.999816/0.999809/0.999833)  excluded A=21216 B=17930 (LIVE); raw perf-stat 0.993919
+  ipm      1.000002 (1.000002/1.000001/1.000002)         excluded 0/0; filtered==all; raw 1.000002
+  ssn      1.000005 (1.000006/1.000005/1.000005)         excluded 0/0; filtered==all; raw 1.000003
+  walk     1.000000 (0.999997/1.000002/1.000000)         excluded 0/0; filtered==all; raw 1.000000
+Details: <mode>/analysis.txt, run_all.log. Wall-clock informational only.

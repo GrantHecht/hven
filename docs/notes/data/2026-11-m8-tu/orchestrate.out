@@ -1,0 +1,25 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:45:56-05:00
+code paths == 0947374fef07c7085f982ecbdcf1aaaa45b6d00f, clean; HEAD 7114cf8446c66cca25a7972f929666f1b8427d0c; base 331b3183747b5c1849651706f648de2c337ddf75
+corpus B sha256 617eab89dad81c99409bb01217fa8561c37fcb4c7476628640f327e06556df75 (declared dev-time 2bfd9f6bdc3a12c2864105a689cc78b815b2fdb4e130550516e4eeadebf7e963)
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug: ninja: no work to do.
+pre-ninja /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build: ninja: no work to do.
+build trees up to date: /home/ghecht/Projects/hven/.claude/worktrees/tu0/build /home/ghecht/Projects/hven/.claude/worktrees/tu0/build-debug /home/ghecht/Projects/hven/.claude/worktrees/tu0-base/build
+LEG P1-rel start 2026-11-20T07:45:57-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T07:45:57-05:00
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	847 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	848 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-20T07:47:25-05:00
+LEG P1-rel rc=0 2026-11-20T07:47:25-05:00
+LEG P1-rel-criterion start 2026-11-20T07:47:25-05:00
+P1_CRITERION_NOT_MET /home/ghecht/Projects/hven/.claude/worktrees/tu0/docs/notes/data/2026-11-m8-tu/gate/suites/ctest-rel.log
+LEG P1-rel-criterion rc=1 2026-11-20T07:47:25-05:00
+STOP at P1-rel-criterion
+FOREGROUND_END 2026-11-20T07:47:25-05:00
+GATE_RC=1

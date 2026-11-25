@@ -1,0 +1,183 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpSolverGlobalization.*:SqpSolverCertifiedFallback.*:SqpSolverW2Fixtures.*:CallerStepLimit.*:ColumnScalingFactorMax.*:QpDump.*:ColumnScalingDriver.*:ScaledConvergenceGuard.*
+[==========] Running 75 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (4 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (5 ms total)
+
+[----------] 1 test from ColumnScalingFactorMax
+[ RUN      ] ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+[       OK ] ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone (0 ms)
+[----------] 1 test from ColumnScalingFactorMax (0 ms total)
+
+[----------] 4 tests from QpDump
+[ RUN      ] QpDump.RestorationQpsAreRecordedInTheAttachedLedger
+[       OK ] QpDump.RestorationQpsAreRecordedInTheAttachedLedger (6 ms)
+[ RUN      ] QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective
+[       OK ] QpDump.EveryWalkSolveRoundTripsThroughTheLoaderToItsStatusAndObjective (3 ms)
+[ RUN      ] QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves
+[       OK ] QpDump.OffWritesNothingAndFailedWritesOnlyFailedSolves (45 ms)
+[ RUN      ] QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory
+[       OK ] QpDump.AnUnwritableDirectoryThrowsAndAnOnPolicyNeedsADirectory (0 ms)
+[----------] 4 tests from QpDump (55 ms total)
+
+[----------] 21 tests from ColumnScalingDriver
+[ RUN      ] ColumnScalingDriver.AutoSolvesTheBadlyScaledFitInTheCallersUnits
+[       OK ] ColumnScalingDriver.AutoSolvesTheBadlyScaledFitInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.AnActiveBoundsPriceIsReMeasuredInTheCallersUnits
+[       OK ] ColumnScalingDriver.AnActiveBoundsPriceIsReMeasuredInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff
+[       OK ] ColumnScalingDriver.AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleCostsOneJacobianCallAndNothingElse
+[       OK ] ColumnScalingDriver.TheRuleCostsOneJacobianCallAndNothingElse (0 ms)
+[ RUN      ] ColumnScalingDriver.BelowTheGateAutoIsTheOffSolve
+[       OK ] ColumnScalingDriver.BelowTheGateAutoIsTheOffSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheIterationEventCarriesTheCallersPointAndPrices
+[       OK ] ColumnScalingDriver.TheIterationEventCarriesTheCallersPointAndPrices (0 ms)
+[ RUN      ] ColumnScalingDriver.ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve
+[       OK ] ColumnScalingDriver.ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel
+[ SCL ] scaled-model equivalence: status 3 majors 4 resto 4
+[       OK ] ColumnScalingDriver.TheScaledSolveIsTheUnscaledSolveOfTheScaledModel (2 ms)
+[ RUN      ] ColumnScalingDriver.ACertifiedExitMapsTheFeasibilityPrice
+[       OK ] ColumnScalingDriver.ACertifiedExitMapsTheFeasibilityPrice (14 ms)
+[ RUN      ] ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo
+[       OK ] ColumnScalingDriver.ARestorationExitAtTheCapMapsTheFeasibilityPriceToo (12 ms)
+[ RUN      ] ColumnScalingDriver.TheWarmStartCrossesBothWays
+[ SCL ] warm re-solve: cold majors 1, warm majors 0
+[       OK ] ColumnScalingDriver.TheWarmStartCrossesBothWays (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt
+[       OK ] ColumnScalingDriver.TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt (0 ms)
+[ RUN      ] ColumnScalingDriver.TheRuleReadsTheStartAsTheSolveDoes
+[       OK ] ColumnScalingDriver.TheRuleReadsTheStartAsTheSolveDoes (1 ms)
+[ RUN      ] ColumnScalingDriver.TheArgumentRefusalsAreSolveImplsOwn
+[       OK ] ColumnScalingDriver.TheArgumentRefusalsAreSolveImplsOwn (0 ms)
+[ RUN      ] ColumnScalingDriver.TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve
+[       OK ] ColumnScalingDriver.TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables
+[       OK ] ColumnScalingDriver.RestorationEventsCarryTheCallersUnitsInTheCallersVariables (19 ms)
+[ RUN      ] ColumnScalingDriver.AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSolve
+[       OK ] ColumnScalingDriver.AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheSsnProxBlockIsNotExportedFromAScaledSolve
+[       OK ] ColumnScalingDriver.TheSsnProxBlockIsNotExportedFromAScaledSolve (1 ms)
+[ RUN      ] ColumnScalingDriver.AnInequalityRowSolvesInTheCallersUnits
+[       OK ] ColumnScalingDriver.AnInequalityRowSolvesInTheCallersUnits (0 ms)
+[ RUN      ] ColumnScalingDriver.ThePayloadRouteCrossesAColumnScaledSolve
+[       OK ] ColumnScalingDriver.ThePayloadRouteCrossesAColumnScaledSolve (0 ms)
+[ RUN      ] ColumnScalingDriver.TheEngagedRowLayerNeverAmplifiesTheObjective
+[       OK ] ColumnScalingDriver.TheEngagedRowLayerNeverAmplifiesTheObjective (0 ms)
+[----------] 21 tests from ColumnScalingDriver (56 ms total)
+
+[----------] 4 tests from ScaledConvergenceGuard
+[ RUN      ] ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs
+[       OK ] ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs (18 ms)
+[ RUN      ] ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused
+[       OK ] ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused (0 ms)
+[ RUN      ] ScaledConvergenceGuard.ACallerUnitGradientAColumnFactorHidIsRefused
+[       OK ] ScaledConvergenceGuard.ACallerUnitGradientAColumnFactorHidIsRefused (0 ms)
+[ RUN      ] ScaledConvergenceGuard.TheCeilingDividesByTheObjectiveFactorOnTheDefaultPath
+[       OK ] ScaledConvergenceGuard.TheCeilingDividesByTheObjectiveFactorOnTheDefaultPath (0 ms)
+[----------] 4 tests from ScaledConvergenceGuard (19 ms total)
+
+[----------] 5 tests from SqpSolverGlobalization
+[ RUN      ] SqpSolverGlobalization.FunnelIsMonotoneInFOnHs1
+[       OK ] SqpSolverGlobalization.FunnelIsMonotoneInFOnHs1 (0 ms)
+[ RUN      ] SqpSolverGlobalization.FunnelKeepsIteratesInsideItsWidth
+[       OK ] SqpSolverGlobalization.FunnelKeepsIteratesInsideItsWidth (0 ms)
+[ RUN      ] SqpSolverGlobalization.Hs5ConvergesFromATooLargeRadiusAfterShrinking
+[       OK ] SqpSolverGlobalization.Hs5ConvergesFromATooLargeRadiusAfterShrinking (0 ms)
+[ RUN      ] SqpSolverGlobalization.Hs7AtTheDefaultRadiusNowConvergesByGrowingIt
+[       OK ] SqpSolverGlobalization.Hs7AtTheDefaultRadiusNowConvergesByGrowingIt (0 ms)
+[ RUN      ] SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier
+[       OK ] SqpSolverGlobalization.SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier (0 ms)
+[----------] 5 tests from SqpSolverGlobalization (2 ms total)
+
+[----------] 2 tests from SqpSolverW2Fixtures
+[ RUN      ] SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho
+[       OK ] SqpSolverW2Fixtures.TheLadderReportCarriesTheFinalRungsRho (2 ms)
+[ RUN      ] SqpSolverW2Fixtures.TheEscapeHelperInvokesTheTierExactlyOncePerCall
+[       OK ] SqpSolverW2Fixtures.TheEscapeHelperInvokesTheTierExactlyOncePerCall (0 ms)
+[----------] 2 tests from SqpSolverW2Fixtures (2 ms total)
+
+[----------] 33 tests from SqpSolverCertifiedFallback
+[ RUN      ] SqpSolverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling
+[       OK ] SqpSolverCertifiedFallback.P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers
+[       OK ] SqpSolverCertifiedFallback.P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED
+[       OK ] SqpSolverCertifiedFallback.P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached
+[       OK ] SqpSolverCertifiedFallback.P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt
+[       OK ] SqpSolverCertifiedFallback.P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter
+[       OK ] SqpSolverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound
+[       OK ] SqpSolverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange
+[       OK ] SqpSolverCertifiedFallback.AnOverriddenPlacementIsVALIDATEDAndClampedIntoTheLaddersRange (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
+[       OK ] SqpSolverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations
+[       OK ] SqpSolverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations (3 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll
+[       OK ] SqpSolverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow
+[       OK ] SqpSolverCertifiedFallback.P6NoEvidenceContentMakesTheFallbackThrow (7 ms)
+[ RUN      ] SqpSolverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs
+[       OK ] SqpSolverCertifiedFallback.P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs (17 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints
+[       OK ] SqpSolverCertifiedFallback.ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes
+[       OK ] SqpSolverCertifiedFallback.ThePartitionOverFallbackEntriesIsCOMPLETEAndSumsToTheFiredOnes (2 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce
+[       OK ] SqpSolverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce (2 ms)
+[ RUN      ] SqpSolverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne
+[       OK ] SqpSolverCertifiedFallback.TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory
+[       OK ] SqpSolverCertifiedFallback.ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED
+[       OK ] SqpSolverCertifiedFallback.TheDriverEmitsOneFallbackVerdictPerEscapeAndHS38sNeverFIRED (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver
+[       OK ] SqpSolverCertifiedFallback.T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne
+[       OK ] SqpSolverCertifiedFallback.T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO
+[       OK ] SqpSolverCertifiedFallback.T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO (11 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor
+[       OK ] SqpSolverCertifiedFallback.T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor (16 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
+[       OK ] SqpSolverCertifiedFallback.T7AnInfiniteOverridePlacesTheLadderAtItsCeiling (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture
+[       OK ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture (69 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm
+[       OK ] SqpSolverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm (15 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder
+[       OK ] SqpSolverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin
+[       OK ] SqpSolverCertifiedFallback.T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin (0 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes
+[       OK ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes (6 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm
+[       OK ] SqpSolverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization
+[       OK ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization (4 ms)
+[ RUN      ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm
+[       OK ] SqpSolverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm (1 ms)
+[ RUN      ] SqpSolverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis
+[       OK ] SqpSolverCertifiedFallback.E1TheDependentInconsistentPairIsCertifiedByTheEqualityBasis (0 ms)
+[----------] 33 tests from SqpSolverCertifiedFallback (176 ms total)
+
+[----------] Global test environment tear-down
+[==========] 75 tests from 8 test suites ran. (320 ms total)
+[  PASSED  ] 75 tests.

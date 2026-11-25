@@ -1,0 +1,39 @@
+M8 AP-5 G7 -- consumer catch-up list (remaining interface symmetry; one stop rule in restoration). Full table: docs/migration-0.2.md, section G7.
+A consumer built against origin/m8 before G7 stops compiling at each rename below; the additions need nothing.
+
+Renames (compile errors)
+  IpmResult::convergence.kkt                          -> convergence.stationarity
+  IpmResult::convergence.barrier                      -> convergence.complementarity
+  IpmOptions::termination.acceptable_kkt_tol          -> termination.acceptable_stationarity_tol
+  IpmOptions::termination.acceptable_barrier_tol      -> termination.acceptable_complementarity_tol
+  IpmOptions::termination.divergence_kkt_tol          -> termination.divergence_stationarity_tol
+  IpmOptions::termination.divergence_barrier_tol      -> termination.divergence_complementarity_tol
+  SqpResult::engine_seconds                           -> SqpResult::timing.engine_seconds   (new struct hven::SqpTiming)
+  hven::ipm_worker_options(o)                         -> hven::worker_options(o)            (new overload worker_options(SqpOptions))
+  SqpSolver::ssn_tier_threads() / ipqp_tier_threads() -> removed from the public handle; tests use
+                                                         hven::detail::SqpSolverAccess::ssn_tier_threads(solver) / ipqp_tier_threads(solver)
+
+Text a consumer may parse
+  dump_options(IpmOptions) prints the four termination lines under the new names (line count unchanged).
+  Validation messages name termination.acceptable_stationarity_tol etc.
+  sqp.solve.end: the counters object gains one trailing key, "payload_ignored" (after "optimal_row_gray_exits").
+  The trace keys kkt_inf / barr_inf / acc_kkt_tol / acc_bar_tol are UNCHANGED (trace upgrade's).
+
+Additions (no rewrite)
+  IpmResult::convergence.feasibility    max(equality, inequality); not SqpConvergence::feasibility's norm (migration note)
+  IpmCounters::start_level_used         kWarm / kSeeded / kCold, what was applied
+  IpmCounters::inertia_corrections      ladder factorizations, whole solve
+  SqpCounters::payload_ignored          1 when a non-empty warm start was ignored at a kCold ceiling
+  SqpSolver::last_result().z            filled (was empty) after an escaped exception
+
+Behaviour (stop path only)
+  IPM: a callback kStop on a `recovering` event returns the restoration-entry point (returned_pre_restoration_point true),
+       not the restoration iterate it showed -- the token's and the SQP's rule.
+  SQP: kStop/kStopReturnBest answered on a restoration sub-solve's token-stopped terminal row no longer relabels the
+       parent's exit kCallbackStop or returns the best: kStopRequested at the restoration-entry point.
+
+hven-bench (private, local branch g7-catchup off main, not pushed):
+  lanes/hven/hven_bench_cell.cpp   ipm_result.convergence.kkt / .barrier -> .stationarity / .complementarity
+                                   (side-file column names ipm_kkt_inf / ipm_barr_inf unchanged)
+  Not changed (open item): lanes/chain/hven_bench_chain.cpp writes start_level_used = "null" for the IPM; it could now
+  read IpmCounters::start_level_used (a column-value change for that lane, its own decision).

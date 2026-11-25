@@ -1,0 +1,15 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..8f7fc4fb6 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9380,7 +9380,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         switch (rung) {
+         case RetryRung::kShrink:
+             ++st.out.counters.qp_retry_rung_shrink;
+-            st.delta = shrunk_radius(st.delta);
++            st.delta = opts_.advanced.trust_region_shrink_to_step
++                           ? std::min(shrunk_radius(st.delta), kTrShrinkFactor * mj.row.step_norm)
++                           : shrunk_radius(st.delta);
+             break;
+         case RetryRung::kCold:
+             ++st.out.counters.qp_retry_rung_cold;

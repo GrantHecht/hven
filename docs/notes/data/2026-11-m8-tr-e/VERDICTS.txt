@@ -1,0 +1,39 @@
+M8 TR-E verdicts. hven code head under test = 24b2a7e42f3a56f1f3293fe9d70d13fc4d50e708 (branch tr-e off origin/m8 9d9dd2b2a; commits ca1f53e5e, 968605c8f, 24b2a7e42). Evidence declared in
+DECLARATION.md (5029ed8a3) and re-declared -r2 (train.sh exit handling), -r3 (cutest data in the clones; runtime_leg path), -r4 (third arm; lane array-value fix) -- each a fault of MY
+INSTRUMENT found before a verdict; none moved a criterion. r1-r3 outputs of the aborted attempts were deleted. hven-bench final commits (branch tr-e, not pushed): 3aa06da, d58608a,
+2f24d63, d214327, then the pin bump 6d1a8a0 LAST (the DECLARATION names earlier shas 3aa06da/d58608a/1ddbf2b: the branch was re-ordered before any leg's data to keep the pin bump last).
+Toolchain: clang 22.1.8, Fedora; AMD Ryzen 7 5800X3D, 16 logical CPUs; 2026-11-17. Windows/Accelerate UNOBSERVED. HOLDOUT was NOT run.
+
+P1   ctest at the code head, every target: Release 3850/3850 passed (suites/ctest-rel-summary.txt; 3843 at TR-D + the 7 new tests), Debug 3850/3850 passed (suites/ctest-dbg-summary.txt). PASS.
+     New tests: DumpCounters.* (4: held against the trace `counters` object on real IPM and SQP solves, determinism and stream state, absent spelling) and TraceV1Fixtures.* (3).
+ST   Bench comparator self-tests (suites/selftests.out), private clone, branch tr-e: tests.test_compare_side 17, tests.test_trace_v1 22, tests.test_compare 21 -- 60 OK at the time of the leg
+     (compare_side later gained `--no-map` and 1 test, 61 OK, run again in the final check below; the leg itself ran before that). The whole `discover` on this box also shows failures
+     unrelated to TR-E: tests.test_hs_set (set-pin verify needed the regenerated pin, fixed in the pin commit, then passes), test_corun x2 (wall-clock tests, fail in the untouched main
+     checkout too), test_small_dense_runner roster (the main checkout's stale binary lacks the CUTEst small-dense set). PASS for the three TR-E suites.
+TR   ONE TRAIN leg, serial, solo, TRAIN only. Arms (train/binaries.txt): A = bench 7d974e8 @ hven bdd797e3 (old pin); A' = bench d7a55b9 + a pin-file edit @ hven 24b2a7e4 (OLD lane code, NEW hven);
+     B = bench tr-e @ hven 24b2a7e4 (the lane binary was built at the branch tip 7b1edd8, whose lane code is the final one; later commits touch only schema/*.py and docs). Cells: hs-27 TRAIN x
+     {ipm, sqp} (44 cells) and cutest {ACOPP57, SMBANK, READING6, ZAMB2-8, DALLASM} x {ipm, sqp} (10 cells), default labels. (train/compare-summary.txt, train/*.txt, train/csv/)
+     (b) A' vs B  -- THE CONSUMER CHANGE (the spec's "0 counter diffs through the column map; only names move"):
+         results.csv hs 0 mismatches / 44 cells, cutest 0 / 10 (statuses, outcome, iterations, factorizations, every measure inside the gate; eval_* filled and `traced` declared);
+         side files: hs-ipm 0 differences (484 values, 22 old cols -> 39 new), hs-sqp 0 (3388 values, 154 -> 256), cutest-ipm 0 (110), cutest-sqp 0 (770). PASS.
+     (a) A vs B   -- the declared old pin vs new pin: results.csv hs 0 mismatches (44 cells; eval_* filled 44 cells, options_digest moved 44 cells -- declared). cutest: ONE mismatch,
+         cutest/ZAMB2-8/hven-sqp/default factorizations 144 -> 147 (iterations 8, status optimal, objective within the gate). Side: ipm 0 differences (hs and cutest); sqp hs 29 and cutest 19
+         INTERNAL-counter values moved (eqp_polish_steps x17, harness_qpsum_dep_test_solves x5, border_refine_steps x4, terminal_polish_* x6, qp_minor_iters x1, ...) -- ATTRIBUTED TO HVEN, not TR-E:
+     (c) A vs A' (old lane code at the two pins): the same ZAMB2-8 mismatch and exactly the same 29 + 19 side differences, line for line (diff of the DIFF lines: identical), so they come from
+         the hven commits between bdd797e3 and 24b2a7e4 (267 commits on the m8 line), not from the consumer. They are the pin event's content and are reported here, not hidden. The cause inside those commits was NOT bisected (TR-E does not own it). So the spec's "0 counter diffs, old pin vs
+         new pin" does NOT hold for internal SQP counters; it holds for every asserted results column on all 44 hs cells and on 9 of 10 cutest cells. The comparison TR-E owns, (b), is 0.
+     (d) B vs B traced (hs, 44 cells): results 0 mismatches (`traced` declared moved), side 0 differences (484/3388 -> 858/5632 values), and all 44 written streams pass schema/trace_v1.py with
+         0 errors and 0 aborted solves (train/streams.txt). Tracing moves no counter.
+     A cell that differs is re-run ALONE before it is called one (CLAUDE.md section 7): the runs are serial and deterministic and the same ZAMB2-8 difference appears in A vs A' (two lane
+     binaries, two processes), which is the reproduction. VERDICT: PASS for (b), (d); (a)/(c) REPORTED with hven attribution.
+M74  The M7-4 re-measure (spec 5.2): TR-E code head's Release hven_sqp_corpus (sha256 26b720dc37de64ef963f06a79a6e25eb5e7949752c11309470e7f26900d3974d), interior (IPM corpus) leg, 27 cells, serial, solo,
+     core 2, perf instructions:u, G5's instrument (m74/):
+       A/A control (neither arm attached): filtered B/A = 1.000000 (rounds 1.000012 / 0.999988 / 0.999996) -- the noise floor; counter identity holds, 0 throttled.
+       attached kScalars vs no callback: filtered B/A = 1.000326  =>  M7-4 attach cost = +0.0326 % (rounds 1.000318 / 1.000326 / 1.000334; raw perf-stat instructions:u +0.0302 %); counter
+       identity holds (3/3 pairs), 0 throttled of 6.
+       AP-5 G5's number, same instrument at kScalars: +0.0322 % (arm A), +0.0314 % (arm B).  Both quoted.
+     VERDICT: +0.0326 % is within +/-0.5 %  =>  M7-4 CLOSES (the +0.6 % residual is not present at kScalars on this head; the five unconditional IPM record fields are inside the number).
+Not run, disclosed: HOLDOUT; ipopt/snopt lanes; install-smoke / export-contract (see DECLARATION); no mutation leg; no TSan; no per-cell wall claim (wall_s informational throughout).
+Pre-declaration runs (not evidence): Debug build and first Debug runs of the new tests, the Release build, bench unit tests, pin-prefix builds.
+Caveats: the three clones carry copied ignored data (SIF directory 174 files; decoded CUTEst problems) from the main checkout; bench_build.sh's configure-log path was moved out of the clone after the
+builds (a pre-leg build script, not a leg); the lane binary for arm B predates the compare_side.py --no-map commit (python only).

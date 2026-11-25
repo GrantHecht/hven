@@ -1,0 +1,2 @@
+SUMMARY rows 476; failing 0; residual in-gate non-byte-equal values 0; rows with hits 52; total symbolic_analysis_reuses 15631 (sparse-arm, = platform analyses saved: 9691; dense-arm: 5940)
+ROWS_AS_DECLARED

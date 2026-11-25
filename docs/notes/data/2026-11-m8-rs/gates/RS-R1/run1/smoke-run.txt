@@ -1,0 +1,22 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T14:11:14-05:00
+  255 |                 standalone_tus);
+      |                 ^~~~~~~~~~~~~~
+ninja: build stopped: subcommand failed.
+smoke default rc=1
+-- every include/hven and include/hven/detail directory is a known component
+FAIL: public header(s) the umbrella hven.h does not include:
+qp/qp_options.h
+export-contract default rc=1
+installed files default: 960; include/hven/drivers present: 0
+      |                 ^~~~~~~~~~~~~~
+1 error generated.
+ninja: build stopped: subcommand failed.
+smoke clang rc=1
+-- every include/hven and include/hven/detail directory is a known component
+FAIL: public header(s) the umbrella hven.h does not include:
+qp/qp_options.h
+export-contract clang rc=1
+installed files clang: 960; include/hven/drivers present: 0
+worst rc=1
+FOREGROUND_END 2026-11-19T14:13:02-05:00

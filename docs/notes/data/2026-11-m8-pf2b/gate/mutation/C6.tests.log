@@ -1,0 +1,96 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SolveTally.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from SolveTally
+[ RUN      ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext
+[       OK ] SolveTally.CountsCallsAndColumnsInTheOrdinaryContext (2 ms)
+[ RUN      ] SolveTally.ScopesLabelSolvesAndNestAndRestore
+[       OK ] SolveTally.ScopesLabelSolvesAndNestAndRestore (0 ms)
+[ RUN      ] SolveTally.APartialSolveCountsOnePartialCall
+[       OK ] SolveTally.APartialSolveCountsOnePartialCall (0 ms)
+[ RUN      ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts
+[       OK ] SolveTally.ABorderRefineScopeIsItsOwnBucketAndAHandleSolveCounts (0 ms)
+[ RUN      ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne
+[       OK ] SolveTally.NestedTalliesEachSeeTheirOwnExtentAndNoneCountsWithoutOne (0 ms)
+[----------] 5 tests from SolveTally (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 5 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf2b/.scratch/build-pf2b/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendSolveTally.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpBackendSolveTally
+[ RUN      ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 20
+14 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 30
+43 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 8
+76 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 16
+79 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 40
+14 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 60
+43 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 16
+76 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:84: Failure
+Expected: (r4[k]) >= (s4[k]), actual: 0 vs 32
+79 bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:98: Failure
+Expected: (rhs[k]) > (0), actual: 0 vs 0
+bucket 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/pf2b/tests/sqp/test_backend_analysis_tally.cpp:61: 1
+
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable (9 ms)
+[----------] 1 test from SqpBackendSolveTally (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpBackendSolveTally.PartitionsTheSolvesAndEveryComponentIsReachable
+
+ 1 FAILED TEST

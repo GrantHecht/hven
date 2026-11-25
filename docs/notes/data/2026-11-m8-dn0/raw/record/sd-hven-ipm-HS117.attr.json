@@ -1,0 +1,152 @@
+{
+ "samples": 5236,
+ "period": 1000003,
+ "instr_sampled_all": 5254985708,
+ "instr_sampled_solver": 5244950678,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 6021018,
+  "B_kkt": 0,
+  "B_eval": 4014012,
+  "B_setup": 5234915648,
+  "B_eng": 0,
+  "B_proc": 10035030
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0011479646558460925,
+  "B_kkt": 0.0,
+  "B_eval": 0.0007653097705640617,
+  "B_setup": 0.9980867255735898,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.001909620797773633,
+ "rule_instr": 5253985705,
+ "fallback_instr": 1000003,
+ "fallback_by_bucket": {
+  "B_fac": 1000003
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9967532467532467,
+ "init_instr": 5232908642,
+ "steady_state_instr": 12042036,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5,
+  "B_kkt": 0.0,
+  "B_eval": 0.3333333333333333,
+  "B_setup": 0.16666666666666666,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   5021015
+  ],
+  [
+   "<no hven::linear frame>",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 5232908642,
+ "kmp_instr": 5021015,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "_strnlen_s_chk",
+    1007003
+   ],
+   [
+    "__kmp_serialized_parallel",
+    1007003
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    1007003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ],
+   [
+    "[unknown]",
+    1000003
+   ],
+   [
+    "mkl_blas_def_xdsyr_kernel_l",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "hven::detail::NlpProblemModel::compose_into",
+    1007003
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    1007003
+   ],
+   [
+    "hven_bench::cutest::check_cutest_status",
+    1000003
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_jac_i_in_place",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3332916963
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1448338329
+   ],
+   [
+    "__vdso_time",
+    223840669
+   ],
+   [
+    "difftime@plt",
+    210763630
+   ],
+   [
+    "time@plt",
+    17049051
+   ],
+   [
+    "next_format0",
+    1007003
+   ],
+   [
+    "formatted_transfer_scalar_read",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    6028018
+   ],
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "strcmp",
+    1007003
+   ],
+   [
+    "_dl_exception_create_format",
+    1000003
+   ]
+  ]
+ }
+}

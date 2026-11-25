@@ -12,11 +12,13 @@
 // still matches the model being solved.
 //
 // The SQP engine keeps two structural keys of its own
-// (`hven/detail/qp/qp_engine.h`, `hven/detail/qp/ssn_engine.h`); both are
+// (`hven/detail/qp/walk/walk_engine.h`, `hven/detail/qp/ssn/ssn_engine.h`); both are
 // built ON this surface -- the QP engine's is `combined_pattern_hash` over
 // its three matrices, the SSN engine's threads `feed_index` and
 // `feed_pattern` through one accumulator and pairs the digest with a
-// non-hashed conjunct of its own. docs/pattern-hash.md states the recipe for
+// non-hashed conjunct of its own. Public consumers: model/candidate_point.h and
+// model/structure_identity.h include this header, which is why it is not under
+// detail/ (public headers may not include detail/). docs/pattern-hash.md states the recipe for
 // the combined key over several matrices and how those two keys sit on it.
 #include <array>
 #include <cstddef>
@@ -24,7 +26,7 @@
 
 #include <Eigen/SparseCore>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven {
 

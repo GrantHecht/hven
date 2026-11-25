@@ -1,0 +1,22 @@
+control: fails nothing
+c1   must-kill KILLED by SqpGl0.FunnelCeilingRejectionsFormOneRunOfThree sqp rc=1
+c2   must-kill KILLED by SqpGl0.AnArmijoFailureIsCountedAsOne sqp rc=1
+c3   must-kill KILLED by SqpGl0.AnHTypeFunnelDecreaseFailureIsCountedAsOne sqp rc=1
+c4   must-kill KILLED by QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1
+c5   must-kill KILLED by FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1
+c6   must-kill KILLED by FunnelRejectCause.EachRejectingBranchReportsItsOwnCause sqp rc=1
+f1   must-kill KILLED by SqpGl0.AnHTypeAcceptanceIsCountedAsHType sqp rc=1
+r1   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r2   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r3   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+r4   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier TraceV1Fixtures.SqpCompleteStream drivers rc=1 sqp rc=1
+r5   must-kill KILLED by SqpGl0.TheSwitchingRatioIsPredOverDeltaHSquared sqp rc=1
+h1   must-kill KILLED by QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1
+h2   must-kill KILLED by SqpGl0.ACallersStrategyWithoutACauseCountsAsOther sqp rc=1
+h3   must-kill KILLED by QpCapBudget.ConsecutiveRoutedFailuresAreOneRejectionRunInTheGl0Counters sqp rc=1
+n1   must-kill KILLED by SqpGl0.ASolveThroughZeroViolationRowsRaisesNoDivisionFlag sqp rc=1
+n1c  must-kill KILLED by SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation sqp rc=1
+n2   must-kill KILLED by SqpGl0.ARejectionAfterANonFiniteRollbackIsTheFirstOfItsRun sqp rc=1
+x1   reported  SURVIVES
+n1b  reported  SURVIVES
+MUTATION_VERDICT PASS

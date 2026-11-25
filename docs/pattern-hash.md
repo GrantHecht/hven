@@ -216,11 +216,11 @@ The SQP engine keeps two structural keys of its own, and since the phase-C
 re-key both are built on this surface rather than beside it:
 
 - **The QP engine's hot-start reuse fingerprint**
-  (`include/hven/detail/qp/qp_engine.h`, `detail::structural_hash`) is
+  (`include/hven/detail/qp/walk/walk_engine.h`, `detail::structural_hash`) is
   `combined_pattern_hash(H, Ae, Ai)` -- the combined key above, nothing
   more.
 - **The SSN pattern-rebuild gate's key**
-  (`include/hven/detail/qp/ssn_engine.h`) is a composite of two conjuncts:
+  (`include/hven/detail/qp/ssn/ssn_engine.h`) is a composite of two conjuncts:
   a digest (one `Fnv1a` fed `n`, `me`, `mi`, `mb` through `feed_index`,
   then `feed_pattern` over the three matrices -- the interleaving pattern
   this page describes as the caller-side spelling of the combined key),
@@ -237,6 +237,6 @@ against other computations of themselves in the same process -- nothing
 pins either digest's value, and `0` remains the warm-start currency's
 "no claim made" sentinel rather than any computed digest.
 
-`values_hash` (`qp_engine.h`) is not a pattern hash at all -- it
+`values_hash` (`walk_engine.h`) is not a pattern hash at all -- it
 fingerprints stored numeric values and answers a different reuse question
 -- and is unrelated to everything above; the re-key did not touch it.

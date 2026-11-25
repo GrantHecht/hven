@@ -1,0 +1,9 @@
+box-lane: lane 0 acquired 2026-11-20T09:59:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-20T09:59:40-05:00
+[401/406] Linking CXX executable examples/hven_example_08_results_trace_options
+[402/406] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[403/406] Linking CXX executable examples/hven_example_10_first_derivatives_only
+build rc=0
+FOREGROUND_END 2026-11-20T10:08:38-05:00
+finished

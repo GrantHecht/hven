@@ -1,0 +1,19 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-06T08:56:44-05:00
+code head 60f298a129effcf740c991513fe217bb328ae83c
+before-capture digest 1940a4791890a5473a848c6d8b382cfb3e40658c5efc3442b791d4b19c985516  -
+45ed3835759fd2ab913a4ef655650a5151f715b451ddf3ce18ac28ad91626d15  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8-riders/psym/exceptions.txt
+becb8898826d9fcacc28cddeeac8e9f3b81a7e108482744232b9523e49083b27  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8-riders/psym/layout_guard.patch
+before names 59347 after names 59347 mapped 2106 (raw-mangled mapped 17, raw unpaired 0)
+P-SYM: 178 objects — 36 byte-identical, 11 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 137 compared per symbol, 130 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 82555 matched (4428 through the symbol map), 0 only-before, 0 only-after, 31 excepted, 0 collisions, 52 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 703 matched by count, 0 differing (93447 before-arm and 93445 after-arm symbols accounted by family); relocations — 846528 records compared (16825 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+step 1 rc=0
+step 2 compare rc=1 (1 expected: the layout step differs)
+P-SYM coverage: 0 objects matched through the object map, 25 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 82566 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 52 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 705 matched by count, 5 differing (93445 before-arm and 93453 after-arm symbols accounted by family); relocations — 205636 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class
+objects with findings 25; every one sees drivers/ipm_options.h: True
+STEP2_AS_DECLARED
+step 2 check rc=0
+rc=0
+FOREGROUND_END 2026-11-06T09:08:13-05:00

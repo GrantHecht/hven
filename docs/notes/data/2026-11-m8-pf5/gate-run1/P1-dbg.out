@@ -1,0 +1,17 @@
+box-lane: lane 1 acquired 2026-11-21T03:47:54-05:00
+BOX_LANE=1 phys=[4 5 6 7] jobs=4
+FOREGROUND_START 2026-11-21T03:47:54-05:00
+[293/298] Linking CXX executable examples/hven_example_08_results_trace_options
+[294/298] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[295/298] Linking CXX executable examples/hven_example_10_first_derivatives_only
+rc=0
+FOREGROUND_END 2026-11-21T03:53:08-05:00
+BOX_LANE=1 phys=[4 5 6 7] jobs=4
+FOREGROUND_START 2026-11-21T03:53:08-05:00
+	1393 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1526 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1625 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1626 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1627 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+rc=0
+FOREGROUND_END 2026-11-21T04:01:12-05:00

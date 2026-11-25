@@ -1,0 +1,4 @@
+9848c9848
+<         mj.row.f_trial = sc.active ? mj.ev_trial.f / sc.obj : mj.ev_trial.f;
+---
+>         mj.row.f_trial = mj.ev_trial.f;

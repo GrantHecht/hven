@@ -1,0 +1,187 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:16:54-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:16:54-05:00
+
+The following tests did not run:
+	786 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2299 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2300 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T11:18:08-05:00
+STEP ctest-rel rc=0 2026-11-12T11:18:08-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:18:08-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	786 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2299 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2300 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T11:25:01-05:00
+STEP ctest-dbg rc=0 2026-11-12T11:25:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:25:01-05:00
+07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042  /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-12T11:25:01-05:00
+run rc=0
+compare rc=0
+=== dn3a-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-12T11:29:49-05:00
+run rc=0
+compare rc=0
+=== dn3a-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-12T11:30:10-05:00
+run rc=0
+compare rc=0
+=== dn3a-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-12T11:30:36-05:00
+STEP replay rc=0 2026-11-12T11:30:36-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:30:36-05:00
+3e2ae414a7d9341b6887c3c1329eb4af8210062c26a06d92a955bcbc483d4b6c  /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/armAbin/hven_sqp_corpus
+07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042  /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-12T11:31:09-05:00
+STEP interior rc=0 2026-11-12T11:31:09-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T11:31:09-05:00
+MUTATED thread-pin-off
+build thread-pin-off rc=0
+thread-pin-off tests/hven_tests rc=1
+thread-pin-off tests/drivers/hven_drivers_tests rc=0
+thread-pin-off tests/sqp/hven_sqp_tests rc=0
+thread-pin-off tests/hven_ipqp_seam_tests rc=0
+thread-pin-off passed=55 failing=2: DenseArmThreads.EveryDenseLapackCallRunsAtOneThread DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne 
+MUTATED check-never-refuses
+build check-never-refuses rc=0
+check-never-refuses tests/hven_tests rc=1
+check-never-refuses tests/drivers/hven_drivers_tests rc=1
+check-never-refuses tests/sqp/hven_sqp_tests rc=0
+check-never-refuses tests/hven_ipqp_seam_tests rc=1
+check-never-refuses passed=49 failing=8: DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical 
+MUTATED refusal-threshold-ignored
+build refusal-threshold-ignored rc=0
+refusal-threshold-ignored tests/hven_tests rc=1
+refusal-threshold-ignored tests/drivers/hven_drivers_tests rc=0
+refusal-threshold-ignored tests/sqp/hven_sqp_tests rc=1
+refusal-threshold-ignored tests/hven_ipqp_seam_tests rc=0
+refusal-threshold-ignored passed=55 failing=2: DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused 
+MUTATED refine-off
+build refine-off rc=0
+refine-off tests/hven_tests rc=1
+refine-off tests/drivers/hven_drivers_tests rc=0
+refine-off tests/sqp/hven_sqp_tests rc=0
+refine-off tests/hven_ipqp_seam_tests rc=0
+refine-off passed=55 failing=2: DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns 
+MUTATED refine-always
+build refine-always rc=0
+refine-always tests/hven_tests rc=1
+refine-always tests/drivers/hven_drivers_tests rc=0
+refine-always tests/sqp/hven_sqp_tests rc=0
+refine-always tests/hven_ipqp_seam_tests rc=0
+refine-always passed=56 failing=1: DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns 
+MUTATED dense-only-off
+build dense-only-off rc=0
+dense-only-off tests/hven_tests rc=1
+dense-only-off tests/drivers/hven_drivers_tests rc=1
+dense-only-off tests/sqp/hven_sqp_tests rc=0
+dense-only-off tests/hven_ipqp_seam_tests rc=0
+dense-only-off passed=55 failing=2: DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked 
+MUTATED ssn-unwired
+build ssn-unwired rc=0
+ssn-unwired tests/hven_tests rc=0
+ssn-unwired tests/drivers/hven_drivers_tests rc=1
+ssn-unwired tests/sqp/hven_sqp_tests rc=0
+ssn-unwired tests/hven_ipqp_seam_tests rc=0
+ssn-unwired passed=56 failing=1: DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK 
+MUTATED ssn-fold-off
+build ssn-fold-off rc=0
+ssn-fold-off tests/hven_tests rc=0
+ssn-fold-off tests/drivers/hven_drivers_tests rc=1
+ssn-fold-off tests/sqp/hven_sqp_tests rc=0
+ssn-fold-off tests/hven_ipqp_seam_tests rc=0
+ssn-fold-off passed=56 failing=1: DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK 
+MUTATED ipqp-unwired
+build ipqp-unwired rc=0
+ipqp-unwired tests/hven_tests rc=0
+ipqp-unwired tests/drivers/hven_drivers_tests rc=0
+ipqp-unwired tests/sqp/hven_sqp_tests rc=0
+ipqp-unwired tests/hven_ipqp_seam_tests rc=1
+ipqp-unwired passed=53 failing=4: IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical 
+MUTATED ipqp-two-threshold-off
+build ipqp-two-threshold-off rc=0
+ipqp-two-threshold-off tests/hven_tests rc=0
+ipqp-two-threshold-off tests/drivers/hven_drivers_tests rc=0
+ipqp-two-threshold-off tests/sqp/hven_sqp_tests rc=1
+ipqp-two-threshold-off tests/hven_ipqp_seam_tests rc=0
+ipqp-two-threshold-off passed=56 failing=1: IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused 
+MUTATED ipqp-check-after-unscale
+build ipqp-check-after-unscale rc=0
+ipqp-check-after-unscale tests/hven_tests rc=0
+ipqp-check-after-unscale tests/drivers/hven_drivers_tests rc=0
+ipqp-check-after-unscale tests/sqp/hven_sqp_tests rc=1
+ipqp-check-after-unscale tests/hven_ipqp_seam_tests rc=1
+ipqp-check-after-unscale passed=51 failing=6: IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing 
+MUTATED ipqp-response-estimate-off
+build ipqp-response-estimate-off rc=0
+ipqp-response-estimate-off tests/hven_tests rc=0
+ipqp-response-estimate-off tests/drivers/hven_drivers_tests rc=0
+ipqp-response-estimate-off tests/sqp/hven_sqp_tests rc=0
+ipqp-response-estimate-off tests/hven_ipqp_seam_tests rc=1
+ipqp-response-estimate-off passed=56 failing=1: IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback 
+MUTATED ipqp-response-affine-off
+build ipqp-response-affine-off rc=0
+ipqp-response-affine-off tests/hven_tests rc=0
+ipqp-response-affine-off tests/drivers/hven_drivers_tests rc=0
+ipqp-response-affine-off tests/sqp/hven_sqp_tests rc=0
+ipqp-response-affine-off tests/hven_ipqp_seam_tests rc=1
+ipqp-response-affine-off passed=55 failing=2: IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical 
+MUTATED ipqp-response-corrector-off
+build ipqp-response-corrector-off rc=0
+ipqp-response-corrector-off tests/hven_tests rc=0
+ipqp-response-corrector-off tests/drivers/hven_drivers_tests rc=0
+ipqp-response-corrector-off tests/sqp/hven_sqp_tests rc=0
+ipqp-response-corrector-off tests/hven_ipqp_seam_tests rc=1
+ipqp-response-corrector-off passed=56 failing=1: IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes 
+MUTATED ipqp-reladder-off
+build ipqp-reladder-off rc=0
+ipqp-reladder-off tests/hven_tests rc=0
+ipqp-reladder-off tests/drivers/hven_drivers_tests rc=0
+ipqp-reladder-off tests/sqp/hven_sqp_tests rc=0
+ipqp-reladder-off tests/hven_ipqp_seam_tests rc=1
+ipqp-reladder-off passed=54 failing=3: IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical 
+MUTATED gram-dense-clause-off
+build gram-dense-clause-off rc=0
+gram-dense-clause-off tests/hven_tests rc=1
+gram-dense-clause-off tests/drivers/hven_drivers_tests rc=0
+gram-dense-clause-off tests/sqp/hven_sqp_tests rc=0
+gram-dense-clause-off tests/hven_ipqp_seam_tests rc=0
+gram-dense-clause-off passed=56 failing=1: DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite 
+MUTATED gram-unwired
+build gram-unwired rc=0
+gram-unwired tests/hven_tests rc=0
+gram-unwired tests/drivers/hven_drivers_tests rc=0
+gram-unwired tests/sqp/hven_sqp_tests rc=0
+gram-unwired tests/hven_ipqp_seam_tests rc=0
+gram-unwired passed=57 failing=0: 
+head tests/hven_tests rc=0
+head tests/drivers/hven_drivers_tests rc=0
+head tests/sqp/hven_sqp_tests rc=0
+head tests/hven_ipqp_seam_tests rc=0
+head passed=57 failing=0: 
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-12T12:16:29-05:00
+STEP failproof rc=0 2026-11-12T12:16:29-05:00
+worst=0
+FOREGROUND_END 2026-11-12T12:16:29-05:00

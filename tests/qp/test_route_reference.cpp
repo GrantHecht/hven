@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_route_reference.cpp -- M7 WX B0: the sentinel for the reference build
-// (tests/common_support/route_reference.h; docs/testing.md "The reference build").
+// (tests/support/route_reference.h; docs/testing.md "The reference build").
 //
 // Exact route pins are measured at MKL's AUTO dispatch on the derivation box's CPU
 // (mkl_dispatch_signature.h). Two things put a reference build off-reference in fact while
@@ -11,19 +11,22 @@
 // running on a host whose dispatch is not the one tests/CMakeLists.txt probed at configure time
 // (an AVX-512 runner moved 39 cells, WX-R13). This one readable test fails first and names the
 // cause.
+//
+// PLACEMENT. The sentinel guards the route pins of the walk (test_walk_engine*, the walk seams),
+// so it lives in tests/qp; it needs no HVEN_TESTING build, so it is in the ordinary hven_qp_tests.
 
 #include <cstdlib>
 #include <string>
 
 #include <gtest/gtest.h>
 
-#include "../common_support/route_reference.h"
+#include "support/route_reference.h"
 
 #if !defined(USE_ACCELERATE_SPARSE) && !defined(_WIN32)
 #include <mkl.h>
 #endif
 #if defined(__linux__) && defined(__x86_64__) && !defined(USE_ACCELERATE_SPARSE)
-#include "../common_support/mkl_dispatch_signature.h"
+#include "support/mkl_dispatch_signature.h"
 #define HVEN_TEST_HAS_MKL_DISPATCH_SIGNATURE 1
 #endif
 

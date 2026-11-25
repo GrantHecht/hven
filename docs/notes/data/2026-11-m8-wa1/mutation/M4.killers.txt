@@ -1,0 +1,3 @@
+QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst
+QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize

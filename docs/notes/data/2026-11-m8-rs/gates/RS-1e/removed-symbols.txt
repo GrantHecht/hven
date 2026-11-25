@@ -1,0 +1,2 @@
+== removed object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+0000000000000000 T hven::detail::enable_color_console()

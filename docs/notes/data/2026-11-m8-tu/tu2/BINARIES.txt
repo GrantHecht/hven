@@ -1,0 +1,5 @@
+# TU-2 frozen binaries, sha256
+lane (hven_bench_cell, hven-bench tu2 0a6704f..5858082 sources, pin fd1e318b5) 30cf8c610c1a5a9fd84590502f87e57772db25c952d128eb5c49e2ecf9757860
+corpus C0 (hven_sqp_corpus, clean build of fd1e318b5; stamp snopt-shim-base-1-206-gfd1e318b5d8f) cd4633e9aebf6c54b4f096b5fafde5145e70481ba99dfb549cfccf005a10da3b
+corpus C(k=1) (throwaway branch tu2-ck1 21fa8d8ad, defaults SOC off + trust_region_growth kAnyAccepted; never merged; stamp ...-g21fa8d8ad82f) 689029ac0fb9234dff6e7babcf4a5ac8cb59c040b2240c472e0b8dbeaa0dfad8
+harness: hven-bench tu2 5858082a1c9f282982df2bf6c7312de2e95c5974 (every TU-2 results.csv carries it; rows taken at this head)

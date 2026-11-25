@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index 47e8626e1..0ba7e9c7b 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -105,7 +105,7 @@ inline constexpr double kCertificateViolationMargin = 2.0;
+ /// nonlinear rows the exactly-feasible start then beat every later point. NaN never wins.
+ inline bool restoration_best_improves(double phase_violation, double parent_h, double best_parent_h,
+                                       double feasibility_tol) {
+-    return phase_violation <= feasibility_tol && parent_h < best_parent_h;
++    return parent_h < best_parent_h;
+ }
+ 
+ /// @brief The l1 FEASIBILITY PROBLEM of the restoration phase, as an NlpModel

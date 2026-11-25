@@ -1,0 +1,2 @@
+QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+RetainedAnalyses.EveryOpenTallyRecordsAHit

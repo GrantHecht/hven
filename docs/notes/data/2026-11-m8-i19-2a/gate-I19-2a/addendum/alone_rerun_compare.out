@@ -1,0 +1,6 @@
+ACOPR118  default  H0       | store: optimal          majors  22 LA  14874 EV     47 f 129660.68370269204 | alone: optimal          majors  22 LA  14874 EV     47 f 129660.68370269204 | differs(moved test): False
+ACOPR118  default  P        | store: acceptable       majors  40 LA  21957 EV     77 f 129660.68369944918 | alone: acceptable       majors  40 LA  21957 EV     77 f 129660.68369944918 | differs(moved test): False
+BRITGAS   default  H0       | store: optimal          majors  50 LA  74805 EV    133 f 0 | alone: optimal          majors  50 LA  74805 EV    133 f 0 | differs(moved test): False
+BRITGAS   default  P        | store: max_iter         majors   1 LA  28400 EV    304 f 7.8791625437736661 | alone: max_iter         majors   1 LA  28400 EV    304 f 7.8791625437736661 | differs(moved test): False
+SAWPATH   sqp-qn   H0       | store: optimal          majors  44 LA  47406 EV    115 f 750.45894675974705 | alone: optimal          majors  44 LA  47406 EV    115 f 750.45894675974705 | differs(moved test): False
+SAWPATH   sqp-qn   P        | store: numerical_error  majors  17 LA  24108 EV     55 f 1646.5517988066074 | alone: numerical_error  majors  17 LA  24108 EV     55 f 1646.5517988066074 | differs(moved test): False

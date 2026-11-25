@@ -1,0 +1,38 @@
+# files containing USE_ACCELERATE_SPARSE: 30
+src/drivers/ipm_solver.cpp	KNOWN-HEADER	include/hven/detail/interior/utils/accelerate_threads.h:28:10: fatal error: 'Accelerate/Accelerate.h' file not found
+src/drivers/solver_init.cpp	KNOWN-HEADER	include/hven/detail/interior/utils/accelerate_threads.h:28:10: fatal error: 'Accelerate/Accelerate.h' file not found
+src/interior/kkt_factorization.cpp	KNOWN-HEADER	src/interior/kkt_factorization.cpp:15:10: fatal error: 'Accelerate/Accelerate.h' file not found
+src/linear/dense_symmetric_factor.cpp	CLEAN	
+tests/core/test_sparse_backend_link.cpp	CLEAN	
+tests/drivers/test_options.cpp	CLEAN	
+tests/interior/test_ipm_trace.cpp	CLEAN	
+tests/interior/test_kkt_factorization.cpp	OTHER	tests/interior/test_kkt_factorization.cpp:389:18: error: no member named 'refinement_steps' in 'hven::IpmLinearOptions'
+tests/interior/test_kkt_factorization_faults.cpp	KNOWN-HEADER	tests/interior/test_kkt_factorization_faults.cpp:36:10: fatal error: 'Accelerate/Accelerate.h' file not found
+tests/qp/test_route_reference.cpp	CLEAN	
+tests/sqp/test_accelerate_probes.cpp	KNOWN-HEADER	tests/sqp/test_accelerate_probes.cpp:40:10: fatal error: 'Accelerate/Accelerate.h' file not found
+tests/sqp/test_b1_gate.cpp	CLEAN	
+tests/sqp/test_corpus_cells.cpp	CLEAN	
+tests/sqp/test_hs_battery.cpp	CLEAN	
+tests/sqp/test_ipqp_acceptance.cpp	CLEAN	
+tests/sqp/test_ipqp_certification.cpp	CLEAN	
+tests/sqp/test_ipqp_engine.cpp	CLEAN	
+tests/sqp/test_ipqp_ladder_skip.cpp	CLEAN	
+tests/sqp/test_ipqp_seams.cpp	CLEAN	
+tests/sqp/test_ipqp_trace.cpp	CLEAN	
+tests/sqp/test_kkt_inertia_probe.cpp	OTHER	tests/sqp/test_kkt_inertia_probe.cpp:86:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_kkt_inertia_probe.cpp	OTHER	tests/sqp/test_kkt_inertia_probe.cpp:138:17: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_kkt_inertia_probe.cpp	OTHER	tests/sqp/test_kkt_inertia_probe.cpp:139:17: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_kkt_inertia_probe.cpp	OTHER	tests/sqp/test_kkt_inertia_probe.cpp:141:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_kkt_partial_solve.cpp	OTHER	tests/sqp/test_kkt_partial_solve.cpp:111:31: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_predictor.cpp	CLEAN	
+tests/sqp/test_qp_engine_indefinite.cpp	OTHER	tests/sqp/test_qp_engine_indefinite.cpp:596:21: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_qp_engine_indefinite.cpp	OTHER	tests/sqp/test_qp_engine_indefinite.cpp:597:21: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_qp_engine_indefinite.cpp	OTHER	tests/sqp/test_qp_engine_indefinite.cpp:599:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_qp_engine_indefinite.cpp	OTHER	tests/sqp/test_qp_engine_indefinite.cpp:701:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_qp_engine_indefinite.cpp	OTHER	tests/sqp/test_qp_engine_indefinite.cpp:890:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+tests/sqp/test_scaffold.cpp	KNOWN-HEADER	dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:4:10: fatal error: 'Accelerate/Accelerate.h' file not found
+tests/sqp/test_scale_smoke.cpp	CLEAN	
+tests/sqp/test_sqp_solver.cpp	CLEAN	
+tests/sqp/test_sqp_warm_currency.cpp	CLEAN	
+tests/sqp/test_warm_start.cpp	CLEAN	
+tests/sqp/test_warm_start_battery.cpp	CLEAN	

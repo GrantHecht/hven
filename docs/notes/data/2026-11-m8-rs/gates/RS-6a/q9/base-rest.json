@@ -1,0 +1,16 @@
+{
+ "cmd": [
+  "ninja",
+  "-C",
+  "/home/ghecht/Projects/hven/.claude/worktrees/rs6a-base/build-q9",
+  "-j16"
+ ],
+ "rc": 0,
+ "wall_s": 126.8,
+ "peak_concurrent_rss_mib": 7720,
+ "largest_process_rss_mib_sampled": 947,
+ "largest_process_rss_mib_rusage": 952,
+ "cpu_user_s": 1751.3,
+ "cpu_sys_s": 90.6,
+ "compile_commands": 166
+}

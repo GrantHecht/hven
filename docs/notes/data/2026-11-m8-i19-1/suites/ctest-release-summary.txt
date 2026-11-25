@@ -1,0 +1,6 @@
+100% tests passed, 0 tests failed out of 4100
+Total Test time (real) =  87.00 sec
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	883 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	884 - EqpRefinementAb.FullBattery (Disabled)

@@ -1,0 +1,22 @@
+M8 IPM no-numerics restoration routing r2 -- RESULTS (against DECLARATION-r2.txt; written after the legs; criteria unchanged)
+================================================================================
+Code head b0013f4ae (review R1-R6 on 632ba77cc); arm A 5ba57d30... (origin/m8 b9626e7e5), arm B baf48f93...;
+declaration 23c6b3d79. P5 runtime-r2/run_all.log (committed ef1695fd2); chain legs/chain-r2.sh -> chain-r2.out
+(worst=0). r1 (DECLARATION.txt, RESULTS.txt and their outputs) kept untouched.
+
+P5  runtime-r2/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 1.000040, ipm 1.000000,
+    ssn 1.000000, walk 1.000003. Run first and alone. (The P5 commit's subject says "walk see run_all.log": the value
+    is 1.000003.)
+P1  MET: "100% tests passed, 0 tests failed out of 3595" in both trees (suites-r2/ctest-rel.log, suites-r2/ctest-dbg.log;
+    3597 registered, the two DISABLED EqpRefinementAb tests excluded). Skips identical in kind to r1's: Release
+    FailByDesignControl only; Debug that plus the six YORKNET/STEENBRB/ACOPP118 fixtures.
+P2  MET: replay walk / ssn / ipm: 27 cells x 75 columns, 0 differences each (replay-r2/nnr-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior-r2/; 43 rows
+    over the 27 cells' treatments, as r1 -- including the L1Nested exit variants, so the un-evaluable guard moved none).
+P4  MET: FAILPROOF_AS_DECLARED -- head 19/19 pass, route property "scale 1.76 pass 3"; every mutation failed exactly its
+    declared set (revert-all 13, no-route 13, no-barrier-tail 1, no-acceptable-exit 3, no-guard-site 2,
+    no-probe-guard 3, diverging-override 10, hard-continues 1, restoration-acceptable 1,
+    uneval-restoration-acceptable 1, acceptable-last 3, no-recentre 1, keep-dxsl 0 (declared equivalent),
+    no-acceptable-detail 3) (failproof-r2/).
+No identity movement anywhere. No re-run. Apple/Accelerate and Windows: UNOBSERVED.

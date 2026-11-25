@@ -1,0 +1,24 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..b12a2a6f3 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10202,6 +10202,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         // trigger in trust-region form. The shrink is NOT taken and
+         // NOT clamped: crossing the floor IS the request. See RADIUS
+         // MANAGEMENT.
++        if (shrink.to_step) {
++            ++st.out.counters.trust_region_shrinks_to_step;
++        }
+         if (shrink.hits_floor) {
+             // THE TRUST-REGION FLOOR EXIT (RF-1 design 3.4), read off the rejected step's own
+             // predicted decrease.
+@@ -10235,9 +10238,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             return MajorOutcome::kFinishRestorationQp;
+         }
+         push_history(mj.row);
+-        if (shrink.to_step) {
+-            ++st.out.counters.trust_region_shrinks_to_step; // counted only when the shrink is taken
+-        }
+         st.delta = shrink.radius;
+         st.seed = std::move(mj.qs);
+         st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING

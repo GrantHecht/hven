@@ -1,0 +1,4 @@
+458c458
+<         h += std::abs(sc.active ? ce(i) / sc.eq_rows(i) : ce(i));
+---
+>         h += std::abs(ce(i));

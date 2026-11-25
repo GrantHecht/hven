@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index bbe1abb3c..8abe2d4f7 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -75,7 +75,7 @@ class RestorationStallWindow {
+         }
+         return samples_.size() > kRestorationStallMinPasses &&
+                samples_.front().factorizations <= horizon &&
+-               !(best_ <= kRestorationStallFraction * samples_.front().best_h);
++               true;
+     }
+ 
+     /// A regularized restart's passes must not inherit the failed run's span.

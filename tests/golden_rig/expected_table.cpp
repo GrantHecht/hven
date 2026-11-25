@@ -1,6 +1,8 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+#include "expected_table.h"
+
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -11,8 +13,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-
-#include "expected_table.h"
 
 #ifndef HVEN_RIG_EXPECTED_DIR
 #error "HVEN_RIG_EXPECTED_DIR must be defined -- it is where the committed expected tables live"

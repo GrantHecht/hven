@@ -1,0 +1,8 @@
+FOREGROUND_START 2026-11-24T02:06:33-05:00
+ cmake/hven_pin.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+HVEN_PIN_SHA e147dd51aaedf7c31e0b83482988cff99bf7044b
+5f8d6334f260f014e8d4eee434f26a6ee09f46f7622a0c214237d3ba3b47c1ee  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/bin/P1/hven_bench_cell
+237921c14095e142d0ceb8c09235bbd57ccb72aaed3db7045ba189aa12200ace  /home/ghecht/Projects/hven/.scratch/rf1c-build-legs/hb/.hven/install-e147dd51aaed/lib64/libhven.a
+7477384 EVIDENCE-ONLY (private clone, never pushed): pin hven e147dd51a (rf1 P1)
+FOREGROUND_END 2026-11-24T02:09:12-05:00

@@ -6,13 +6,13 @@
 // integer counters, enum-to-string lookups and string formatting only; `fmt`
 // reads the recorded values and formats them, it computes nothing with them.
 
-#include <hven/core/ledger.h>
-
 #include <string>
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+#include <hven/core/ledger.h>
+
+namespace hven {
 
 StartLevelHistogram Ledger::level_histogram() const {
     StartLevelHistogram h;
@@ -104,4 +104,4 @@ std::string Ledger::ipm_summary_table() const {
     return result;
 }
 
-} // namespace hven::solvers
+} // namespace hven

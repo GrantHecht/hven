@@ -1,0 +1,59 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T01:03:25-05:00
+1cfd3715ecf26969362592edc50ea07645aa8bf2bbbd2dd5348f4cc592f9e8e9  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armAbin/hven_sqp_corpus
+8e8918047ff063cf9bfd57d04fa71c89a5103199b3046613248a91e91d7e672c  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armBbin/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-15T01:05:06-05:00
+ANALYSIS mode=interior rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=2.484540e+05 B=2.484440e+05 B/A=0.999960
+  all samples                      A=2.484540e+05 B=2.484440e+05 B/A=0.999960
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938427e+10 B=9.938259e+10 B/A=0.999983
+per-round filtered B/A (informational):
+  round 1: B/A=0.999960
+  round 2: B/A=0.999964
+  round 3: B/A=0.999960
+MODE interior FILTERED B/A = 0.999960 -> WITHIN [0.995, 1.005]
+LEG mode=ipm rc=0 2026-11-15T01:10:29-05:00
+ANALYSIS mode=ipm rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=5.947930e+05 B=5.947920e+05 B/A=0.999998
+  all samples                      A=5.947930e+05 B=5.947920e+05 B/A=0.999998
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.379223e+11 B=2.379222e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=0.999998
+  round 2: B/A=1.000000
+  round 3: B/A=0.999998
+MODE ipm FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]
+LEG mode=ssn rc=0 2026-11-15T01:15:27-05:00
+ANALYSIS mode=ssn rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=4.099470e+05 B=4.099470e+05 B/A=1.000000
+  all samples                      A=4.099470e+05 B=4.099470e+05 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=1.639842e+11 B=1.639842e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000002
+  round 2: B/A=1.000002
+  round 3: B/A=1.000000
+MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=walk rc=0 2026-11-15T01:49:14-05:00
+ANALYSIS mode=walk rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126169e+06 B=7.126155e+06 B/A=0.999998
+  all samples                      A=7.126169e+06 B=7.126155e+06 B/A=0.999998
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850473e+12 B=2.850466e+12 B/A=0.999998
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000000
+  round 3: B/A=0.999998
+MODE walk FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]
+VERDICT PASS
+FOREGROUND_END 2026-11-15T01:49:15-05:00

@@ -1,0 +1,34 @@
+hven 0.2.0 -- interior-point engine
+problem    variables 2 (free 2) · constraints 1 (equality 1) · absent bounds 0
+engine     KKT dim 3, nnz 5 · inertia classic · restoration l1_nested · phases 1
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 1000
+ iter t      objective stat_scl feas_scl comp_scl     step  lgmu alpha_pr alpha_du ls lg(rg) codes
+    0 B  2.0000000e+00 0.00e+00 3.00e+00 0.00e+00 7.50e-01  -3.0 1.00e+00 1.00e+00  0    1.3 i
+    1 B  5.0000000e-01 3.90e+00 1.12e+00 0.00e+00 1.12e+00  -3.0 1.00e+00 1.00e+00  0      -
+    2 B -1.7500000e+00 4.11e+01 2.53e+00 0.00e+00 7.23e-01  -3.0 1.00e+00 1.00e+00  0      -
+      - restoration entered at iter 3: theta 1.0e+00
+ iter t      objective stat_scl feas_scl comp_scl     step  lgmu alpha_pr alpha_du ls lg(rg) codes
+    3 R -3.0357143e-01 5.21e+00 1.05e+00 0.00e+00 0.00e+00   0.0 0.00e+00 0.00e+00  2      - km
+    4 R  1.0471244e+03 0.00e+00 1.05e+03 0.00e+00 1.71e+00   0.0 6.75e-03 1.00e+00  0      -
+    5 R  1.3968315e+01 1.96e+01 5.89e+00 0.00e+00 1.54e-01   0.0 1.63e-01 1.00e+00  0      -
+    6 R  3.1383032e+00 1.66e+01 4.92e+00 0.00e+00 8.79e-01   0.0 1.00e+00 1.00e+00  0      -
+    7 R  2.5561563e+00 3.93e+00 1.54e+00 0.00e+00 7.40e-01   0.0 1.00e+00 1.00e+00  0      -
+    8 R  2.0967259e+00 2.02e+00 1.10e+00 0.00e+00 0.00e+00   0.0 0.00e+00 0.00e+00  2      - km
+    9 R  1.0964066e+03 2.02e+00 1.14e+03 0.00e+00 1.24e+00   0.0 2.93e-02 1.00e+00  0      -
+   10 R  1.2895842e+01 6.81e+01 3.37e+00 0.00e+00 3.08e-02   0.0 3.74e-02 1.00e+00  0      -
+   11 R  1.9831333e+00 6.56e+01 2.97e+00 0.00e+00 7.48e-01   0.0 1.00e+00 1.00e+00  0      -
+   12 R  2.2551702e+00 1.23e+01 1.12e+00 0.00e+00 5.72e-01   0.0 5.00e-01 5.00e-01  1      - k
+   13 R  2.1300315e+00 4.57e+01 1.21e+00 0.00e+00 4.64e-01   0.0 5.00e-01 5.00e-01  1      - k
+   14 R  2.2045404e+00 3.69e+01 1.04e+00 0.00e+00 0.00e+00   0.0 0.00e+00 0.00e+00  2      - km
+   15 R  1.0384971e+03 3.69e+01 8.91e+02 0.00e+00 5.08e-01   0.0 5.00e-01 5.00e-01  1      - k
+   16 R  7.6070724e+02 4.21e+02 2.58e+02 0.00e+00 6.54e-01   0.0 1.00e+00 1.00e+00  0      -
+   17 R  3.0555019e+02 5.65e+02 6.72e-01 0.00e+00 2.83e-01   0.0 1.00e+00 8.59e-01  0      -
+   18 R  8.4034946e+02 1.40e+00 6.15e+01 0.00e+00 6.98e-04   0.0 1.00e+00 1.00e+00  0      -
+   19 R  1.0010693e+03 2.19e-03 1.58e-01 0.00e+00 1.11e-06   0.0 1.00e+00 1.00e+00  0      -
+   20 R  1.0010702e+03 4.35e-07 1.73e-07 0.00e+00        -  -3.0        -        -  -      -
+      ! restoration exited at iter 20: locally_infeasible, theta 1.0e+00, threshold 1.0e-04
+exit        Infeasible (restoration_locally_infeasible) -- locally infeasible (uncertified: restoration reached a locally infeasible point)
+iterations  21 · restoration entries 1 · factorizations 26
+objective   -1.55325840e-04
+diagnostics stationarity nan · feasibility nan · complementarity nan   (declared)
+counters    soc 0 · watchdog 0 · inertia corrections 5

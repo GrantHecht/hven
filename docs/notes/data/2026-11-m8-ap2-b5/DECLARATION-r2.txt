@@ -1,0 +1,14 @@
+M8 AP-2 group B5 -- successor DECLARATION r2 (committed before the P9 re-run; DECLARATION.txt stands
+unedited; every criterion there is unchanged)
+================================================================================
+WHAT FAILED. Leg P9 (Accelerate syntax sweep, chain leg `accelerate`, 2026-11-03T15:30:12) produced NO
+measurement: legs/accelerate_sweep.py, copied from B4 byte for byte, carried B4's worktree path and
+build directory (agent-ac366926.../build-b4/rel/compile_commands.json) and stopped on FileNotFoundError
+before compiling anything. The record is kept: accelerate-r1-failed/accelerate.out. No other leg read
+that script.
+THE FIX (instrument only, no source): accelerate_sweep.py derives the worktree root from its own location
+(five levels above legs/) and reads build-b5/rel/compile_commands.json. Nothing else in the script moved:
+the file set, the pass-A/pass-B classes and the classification rules are B4's.
+RE-RUN. P9 alone, `flock /tmp/box-build.lock bash legs/misc.sh accelerate <ABSOLUTE accelerate/>`, after
+the chain's census leg releases the lock. Criterion unchanged: pass A no OTHER, no class beyond B4's
+(KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED. The other legs' results stand as run.

@@ -1,0 +1,2 @@
+# PF-4 runtime leg: cells whose residual-class columns may differ A vs B (runtime/analyze.py)
+walk f7_n800_path_warm

@@ -8,8 +8,7 @@
 # Every binary here is a measurement instrument, deliberately NOT registered
 # with ctest; each one's correctness gate is a registered test that shares its
 # implementation (never a copy). They are BUILT whenever the suite is, because
-# an uncompiled probe rots silently — the origin project's own committed
-# rationale, kept.
+# an uncompiled probe rots silently.
 #
 # COMPILE FLAGS: ${COMPILE_FLAGS}, same as tests/sqp/CMakeLists.txt — the
 # uniform regime (owner ruling, CLAUDE.md §7), adopted at phase-C U0 together
@@ -23,9 +22,9 @@
 add_executable(hven_sqp_bench bench_scale.cpp)
 target_link_libraries(hven_sqp_bench PRIVATE hven::hven)
 target_compile_options(hven_sqp_bench PRIVATE ${COMPILE_FLAGS})
-# tests/sqp/support/{parametric_families,scale_problems}.h are
+# tests/model/support/{parametric_families,scale_problems}.h are
 # test-support-only headers (no gtest dependency), included by relative path.
-target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_f7_cold — the single-solve F7 cold-start probe behind the archived
 # cold-scale study. Committed so those sections stay reproducible; NOT
@@ -33,7 +32,7 @@ target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.
 add_executable(hven_sqp_f7_cold bench_f7_cold.cpp)
 target_link_libraries(hven_sqp_f7_cold PRIVATE hven::hven)
 target_compile_options(hven_sqp_f7_cold PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_tau_bar_sweep_probe — the hs_sweeps.h cold-arm reproduction vehicle
 # for the archived elastic-tau tuning note's §4.4 sweep. The shipped build
@@ -44,39 +43,39 @@ add_executable(hven_sqp_tau_bar_sweep_probe tau_bar_sweep_probe.cpp)
 target_link_libraries(hven_sqp_tau_bar_sweep_probe PRIVATE hven::hven)
 target_compile_options(hven_sqp_tau_bar_sweep_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_tau_bar_sweep_probe
-                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_snopt_f7 — the SNOPT measurement binary. GUARDED: exists only when
 # the root-level SNOPT detection succeeded — a machine without SNOPT keeps
 # building and testing unchanged. SNOPT is commercial and is NOT vendored:
 # bench/snopt_f7_driver.h documents the source firewall in full. Its
-# correctness gate is tests/sqp/test_snopt_bridge_gate.cpp, which shares this
+# correctness gate is tests/bench/test_snopt_bridge_gate.cpp, which shares this
 # target's SnoptF7Driver implementation and IS registered.
 if(HVEN_SQP_HAVE_SNOPT)
     add_executable(hven_sqp_snopt_f7 bench_snopt_f7.cpp)
     target_link_libraries(hven_sqp_snopt_f7 PRIVATE hven::hven hven_sqp_snopt)
     target_compile_options(hven_sqp_snopt_f7 PRIVATE ${COMPILE_FLAGS})
-    target_include_directories(hven_sqp_snopt_f7 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+    target_include_directories(hven_sqp_snopt_f7 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 endif()
 
 # hven_sqp_corpus — the replay corpus runner: cell specs, tags, the engine
 # interface and the walk engine's own implementation all live in
-# corpus_cells.h (a header, deliberately, so tests/sqp/test_corpus_cells.cpp
+# corpus_cells.h (a header, deliberately, so tests/bench/test_corpus_cells.cpp
 # shares exactly this implementation rather than a bench-only copy that could
 # drift). bench_corpus.cpp is CLI glue only. NOT ctest-registered: its
 # baseline sweep touches N = 20000 cells that run for minutes to hours. Its
-# correctness gate is tests/sqp/test_corpus_cells.cpp.
+# correctness gate is tests/bench/test_corpus_cells.cpp.
 # ipm_corpus_leg.cpp is the ONE non-glue TU here: the top-level interior-point
 # replay leg (--engine interior). A .cpp rather than a header because it is
 # ordinary non-template code with two consumers, and both COMPILE IT: this
-# binary, and hven_sqp_tests (tests/sqp/CMakeLists.txt lists it explicitly).
+# binary, and hven_bench_tests (tests/bench/CMakeLists.txt lists it explicitly).
 # Until M6 W5 T8.9r it had one -- every interior gate read the committed
 # artifact rather than the leg -- and the single-row mode's pin is the first
 # assertion that has to call the leg's own functions to make its point.
 add_executable(hven_sqp_corpus bench_corpus.cpp ipm_corpus_leg.cpp)
 target_link_libraries(hven_sqp_corpus PRIVATE hven::hven)
 target_compile_options(hven_sqp_corpus PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # Every CSV this runner writes carries a provenance header, and the first line
 # of it is WHICH BINARY produced the rows. Resolved at CONFIGURE time (not
@@ -86,8 +85,49 @@ target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 # tree must say so.
 #
 # THE TRAP THIS CARRIES, and it bit once (T10b fix round 1): a tree configured
-# while clean and REBUILT after an edit emits the stale, clean stamp. Re-configure
-# before producing a measurement CSV -- the acceptance dir's PROVENANCE.txt.
+# while clean and REBUILT after an edit emits the stale, clean stamp (M7-16).
+# Two guards, both below:
+#   1. RE-STAMP: the configure re-runs whenever git's HEAD, the checked-out ref,
+#      packed-refs or the index changes (CMAKE_CONFIGURE_DEPENDS), so a commit,
+#      a checkout or a `git add` re-resolves the stamp on the next build.
+#   2. FAIL LOUDLY: an edit to a tracked file that is not staged changes none of
+#      those files, so the configured stamp is also written to
+#      <build>/hven_bench_stamp.txt and scripts/check_bench_stamp.sh compares it
+#      with a live `git describe`, exiting 1 with a STALE message on a mismatch.
+#      Run it (`cmake --build . --target hven_bench_stamp_check`) before
+#      producing a measurement CSV. BenchStampGuard.SelfTest exercises it.
+execute_process(
+    COMMAND git rev-parse --git-path HEAD --git-path index --git-path packed-refs
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE HVEN_BENCH_GIT_WATCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE HVEN_BENCH_GIT_WATCH_RC)
+execute_process(
+    COMMAND git symbolic-ref -q HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE HVEN_BENCH_GIT_REF
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(HVEN_BENCH_GIT_WATCH_RC EQUAL 0)
+    if(NOT "${HVEN_BENCH_GIT_REF}" STREQUAL "")
+        execute_process(
+            COMMAND git rev-parse --git-path "${HVEN_BENCH_GIT_REF}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            OUTPUT_VARIABLE HVEN_BENCH_GIT_REF_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        string(APPEND HVEN_BENCH_GIT_WATCH "\n${HVEN_BENCH_GIT_REF_PATH}")
+    endif()
+    string(REPLACE "\n" ";" HVEN_BENCH_GIT_WATCH "${HVEN_BENCH_GIT_WATCH}")
+    foreach(_w IN LISTS HVEN_BENCH_GIT_WATCH)
+        if(NOT IS_ABSOLUTE "${_w}")
+            set(_w "${CMAKE_CURRENT_SOURCE_DIR}/${_w}")
+        endif()
+        # A not-yet-existing file (e.g. no packed-refs) is fine as a dependency.
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_w}")
+    endforeach()
+endif()
 execute_process(
     COMMAND git describe --always --dirty --abbrev=12
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -100,48 +140,59 @@ if(NOT HVEN_SQP_CORPUS_GIT_RC EQUAL 0 OR HVEN_SQP_CORPUS_GIT_DESCRIBE STREQUAL "
 endif()
 target_compile_definitions(hven_sqp_corpus PRIVATE
     HVEN_SQP_CORPUS_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+file(WRITE "${CMAKE_BINARY_DIR}/hven_bench_stamp.txt" "${HVEN_SQP_CORPUS_GIT_DESCRIBE}\n")
+if(NOT WIN32)
+    add_custom_target(hven_bench_stamp_check
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp.sh"
+                "${CMAKE_BINARY_DIR}/hven_bench_stamp.txt" "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Checking the configure-time bench git stamp against the live tree (M7-16)"
+        VERBATIM)
+    add_test(NAME BenchStampGuard.SelfTest
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp_selftest.sh"
+                "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp.sh")
+endif()
 
-# The wall-deadline tests in tests/sqp/test_corpus_cells.cpp
+# The wall-deadline tests in tests/bench/test_corpus_cells.cpp
 # (CorpusRunnerProcess.WallDeadline*) are SUBPROCESS tests — they invoke the
 # actual compiled hven_sqp_corpus binary (the deadline enforcement itself is
 # fork/exec orchestration in bench_corpus.cpp's main(), not something a gtest
-# linked only against corpus_cells.h can reach). hven_sqp_tests already
+# linked only against corpus_cells.h can reach). hven_bench_tests already
 # exists at this point (tests/ is add_subdirectory'd before bench/ in the
 # root CMakeLists.txt), so the dependency and the path macro are wired HERE
-# rather than in tests/sqp/CMakeLists.txt, where hven_sqp_corpus would not
+# rather than in tests/bench/CMakeLists.txt, where hven_sqp_corpus would not
 # exist yet. Guarded: a tests-off, bench-on configure has no test target to
-# decorate.
-if(TARGET hven_sqp_tests)
-    target_compile_definitions(hven_sqp_tests PRIVATE
+# decorate, and the executable's UNIX-only sources are absent on Windows.
+if(TARGET hven_bench_tests AND NOT WIN32)
+    target_compile_definitions(hven_bench_tests PRIVATE
         HVEN_SQP_CORPUS_BINARY="$<TARGET_FILE:hven_sqp_corpus>")
-    add_dependencies(hven_sqp_tests hven_sqp_corpus)
+    add_dependencies(hven_bench_tests hven_sqp_corpus)
 endif()
 
 # hven_sqp_ssn_safeguard_probe — the reproduction vehicle for the archived SSN
 # safeguards note's search and sweep populations. Committed and built so the
 # note's evidence cannot rot; NOT ctest-registered (its documented populations
-# run for minutes). Its fixtures are tests/sqp/support/ssn_fixtures.h, the
-# same file tests/sqp/test_ssn_engine.cpp includes, so the note and the test
+# run for minutes). Its fixtures are tests/qp/support/ssn_fixtures.h, the
+# same file tests/qp/test_ssn_engine.cpp includes, so the note and the test
 # suite cannot drift apart on a fixture. The band variants it compares are
 # patched-header recompiles outside this build — see the probe's banner.
 add_executable(hven_sqp_ssn_safeguard_probe ssn_safeguard_probe.cpp)
 target_link_libraries(hven_sqp_ssn_safeguard_probe PRIVATE hven::hven)
 target_compile_options(hven_sqp_ssn_safeguard_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_ssn_safeguard_probe
-                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 
 # hven_sqp_crossover — the M5 W5 crossover-leg runner: the dual-bind adapter,
 # the four legs and the margin arithmetic all live in bench/crossover_legs.h (a
-# header, deliberately, so tests/sqp/test_crossover_legs.cpp shares exactly this
+# header, deliberately, so tests/bench/test_crossover_legs.cpp shares exactly this
 # implementation rather than a bench-only copy that could drift).
 # bench_crossover.cpp is CLI glue only. NOT ctest-registered: a full sweep of
 # the dual-bindable census runs for hours. Its correctness gate is
-# tests/sqp/test_crossover_legs.cpp, which pins the adapter's round trip and the
+# tests/bench/test_crossover_legs.cpp, which pins the adapter's round trip and the
 # cross-engine declaration key at a size a test can afford.
 add_executable(hven_sqp_crossover bench_crossover.cpp)
 target_link_libraries(hven_sqp_crossover PRIVATE hven::hven)
 target_compile_options(hven_sqp_crossover PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 # Same configure-time git description hven_sqp_corpus stamps, and for the same
 # reason: every CSV this runner writes says which binary produced its rows.
 target_compile_definitions(hven_sqp_crossover PRIVATE
@@ -150,14 +201,14 @@ target_compile_definitions(hven_sqp_crossover PRIVATE
 # hven_sqp_ipqp_e1_arm — M6 W1 T10's acceptance arm: the IPQP tier over E1's
 # 29 constructed cells (A4), the Q4 `ipqp_init_mu` sweep and the A13/A14 wall
 # legs. The arm lives in bench/ipqp_e1_arm.h (a header, for the same reason
-# corpus_cells.h is one: tests/sqp/test_ipqp_acceptance.cpp gates exactly this
+# corpus_cells.h is one: tests/qp/test_ipqp_acceptance.cpp gates exactly this
 # implementation rather than a bench-only copy). Its `--gate` mode IS
 # ctest-registered, below, under a label the default run excludes; the sweep
 # modes are not (one A4 pass at nx = 1e5 runs for tens of minutes).
 add_executable(hven_sqp_ipqp_e1_arm ipqp_e1_arm.cpp)
 target_link_libraries(hven_sqp_ipqp_e1_arm PRIVATE hven::hven)
 target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE ${COMPILE_FLAGS})
-target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests")
 target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
     HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
 

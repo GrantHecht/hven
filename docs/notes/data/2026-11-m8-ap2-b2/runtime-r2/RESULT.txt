@@ -1,0 +1,26 @@
+B2-runtime-r2 -- what ran and what it read (DECLARATION.txt, committed 8a08be3b before the first leg)
+================================================================================
+RAN: the explanatory spin record (spin/), then the interior leg (interior/). run_all.sh
+stopped there on the analyzer's FAIL; ipm, ssn and walk were NOT run. Nothing was re-run.
+
+THE GATE'S OWN VERDICT (run_all.log, interior/analysis.txt): FAIL, interior "filtered"
+B/A = 0.994514. Counter identity held (3/3 rounds, 0 differences); validity held
+(6 processes, 0 THROTTLE events).
+
+THAT VERDICT IS AN ANALYZER DEFECT, NOT THE DECLARED CRITERION. perf appended two '-'
+columns after each symbol in the tables even under -F overhead,sample,sym; analyze_r2.py's
+regex kept them in the symbol name, so no excluded symbol matched ("excluded samples
+A=0 B=0") and the "filtered" sum it reported is the UNFILTERED sum.
+
+POST-HOC CORRECTED READING (reread_interior.py -> interior/corrected-reading.txt; same
+recorded tables, the two columns stripped, the declared criterion unchanged; written after
+the FAIL was seen, and disclosed as such):
+  interior filtered B/A = 1.000785 (rounds 1.000744 / 1.000810 / 1.000787) -> WITHIN
+  all samples B/A = 0.994514; excluded (wall-clock) samples A=21354 B=17920
+The settler decides how this stands; the other three modes have no reading.
+
+SPIN TRIGGER (explanatory, spin/): once per PROCESS. One burst of spin samples in a
+process that ran 43 solves on fresh solvers. Call chain: hven::solvers::ensure_solver_
+initialized() [std::call_once] -> mkl_serv_dsecnd -> mkl_serv_get_clocks_frequency ->
+difftime / __vdso_time polling, reached from IpmSolverImpl::run_phase_sequence on the first
+solve. Not a Pardiso session (iparm[17]/[18] is not on the chain).

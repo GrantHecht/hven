@@ -1,0 +1,15 @@
+{
+ "lane": "hven-ipm",
+ "base": "default",
+ "set": "cutest",
+ "config": {
+  "barrier_initial": "0.01"
+ },
+ "label": "default+barrier_initial=0.01",
+ "problems": [
+  "MSS3",
+  "READING8",
+  "TAX213322"
+ ],
+ "tier": "exclusive"
+}

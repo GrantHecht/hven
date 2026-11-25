@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..69cc4028f 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8454,7 +8454,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             st.full_step_funnel = nullptr;
+             st.rejections_at_iterate = 0;
+             st.counted_run_at_iterate = 0;
+-            st.tr_memory.clear(); // I19-2a: the rebase restarts the radius's history
+             mj.radius_from_growth = false;
+             // The iterate moved (or, on the stall exit, may not have
+             // -- either way the subproblem in hand was built at some

@@ -1,0 +1,107 @@
+M8 R11 -- block_evidence()'s 2x2 decode from det and trace -- DECLARATION (committed before the first leg; never edited
+afterwards; a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs kept; criteria are never
+changed after data)
+================================================================================
+Base        a8c540cf (origin/m8).
+Code head   c2ce3ed3  fix(linear): block_evidence() reads a 2x2 block's signs from det and trace (M8 R11). Files:
+            src/linear/dense_symmetric_factor.cpp (decode_2x2: exact power-of-two scaling, Kahan fma det, signs from
+            det/trace, magnitudes |trace|/2 + r and |det| over it; a non-finite D entry -> std::nullopt),
+            include/hven/linear/dense_symmetric_factor.h (the evidence contract, comments),
+            include/hven/detail/kkt/schur_complement.h (the inertia note, comment only, line count kept),
+            tests/linear/test_dense_symmetric_factor_growth.cpp (three tests), tests/sqp/test_accelerate_probes.cpp (the
+            Apple probe's own walk follows the sign rule). Evidence commits (this directory) follow and touch no source.
+Arm A       a8c540cf, built by legs/prebuild.sh from its `git archive` export build-r11e/armA-src (dep/eigen bc3b3987,
+            dep/fmt 407c905e copied at the commits a8c540cf pins) at build-r11e/armA, Release, legs/build.sh's flags:
+            corpus binary build-r11e/armAbin/hven_sqp_corpus sha256 141799a091e2673fd2efee4938f3fff88cd0a216aa4b0e5883020e99b37d6902,
+            compile database build-r11e/armA-compile_commands.json sha256 8be6f4a53e0c6a96a5fc2d4165e2e1c7f1f91cb5b1505686fcfa42b3bf879fd9
+            (build-r11e/prebuild.out, copied to chain/).
+Arm B       the code head: build-r11e/rel (fresh, legs/build.sh, built after the code commit) -> build-r11e/armBbin,
+            hven_sqp_corpus sha256 f7058d55f7a1ed9e092b8e7b93d86993e33b10ab64ae9b8c26a0a81ab8329797. build-r11e/dbg fresh at
+            the head (Debug).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1.
+Scratch     build-r11e/ (git-ignored). build-r11/ holds the measurement (probe builds, hven-bench clone) and the dev checks:
+            not evidence of this chain.
+
+THE MEASUREMENT (step 1, before this declaration; measurement/README.txt and its data are part of this evidence). The
+one production consumer is the SQP walk's Schur border stack (SchurComplement: expected_neg_eigs_delta, cond_estimate,
+nearly_singular, needs_refactorization, near_null_direction; the latch's mild test). A probe build of a8c540cf that
+returns the OLD decode and evaluates every consumer on both: replay 27 x walk/ssn/ipm, the 57-cell census (the 13
+deadline-bound cells re-run on a ticking probe) and CUTEst TRAIN (23): 55,844 2x2 blocks, 0 sign disagreements, 0
+negative-count differences, 0 differences in any decision (needs_refactorization 0/254,526 calls, nearly_singular,
+the condition limit, the latch's mild test 0/19,584, the inertia read 0/77,542); magnitudes differ in the last bits on
+37,081 blocks and cond_estimate's bits on 788 reads, on no threshold. 0 det == 0, 0 non-finite.
+
+THE DEV MEASUREMENTS THE EXPECTATIONS ARE DECLARED FROM (before this declaration, on the arm A and arm B builds above):
+objects 56, exactly one differs (dense_symmetric_factor.cpp.o); Release suite "100% tests passed, 0 tests failed out
+of 3486"; the falsifier (legs/failproof.sh, run once into build-r11/dev-failproof/) FAILPROOF_AS_DECLARED; replay walk
+EXACT on build-r11e/rel.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D0  THE CHANGE. block_evidence()'s 2x2 decode and its non-finite guard (Code head above).
+D1  ENGINE: NO MOVERS. Every counter, status, walk, iterate column and residual of every engine is EXACT against arm A:
+    replay x walk/ssn/ipm (P3), interior unmoved and promoted (P12), the census (P5), the runtime gate's stop condition
+    in all four modes (P11). The census is judged against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv with
+    census-movers.csv -- PF-1's two declared movers, byte-equal rows to ../2026-11-m8-pf1/census-movers.csv, which arm A
+    already carries (the baseline predates PF-1; measurement/census/ reproduces them on arm A) -- and adds none.
+D2  BEHAVIOUR off the corpus: a 2x2 D block with |det| << trace^2 now counts its negative eigenvalue and reports its
+    smaller magnitude as |det| over the larger (was 0 or ~eps*|trace|); a D with a non-finite entry yields no evidence,
+    so the Schur stack refactorizes (needs_refactorization true) where it used to read inf or skip a NaN.
+D3  API: none. The BunchKaufmanBlockEvidence / block_evidence() doc comments state the det/trace rule and the
+    non-finite -> std::nullopt case; no declaration changes.
+D4  TESTS: 3483 -> 3486 passed (DenseSymmetricFactorGrowth.EvidenceCountsTheNegativeOfAnIllScaled2x2Block,
+    EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block, EvidenceIsAbsentWhenDCarriesANonFiniteEntry); the Apple-only
+    AccelerateProbe walk's sign rule. No other test changes.
+D5  TRACE: no key, golden line, event or printed string changes.
+D6  OBJECTS: of the hven target's 56 objects exactly one differs, src/linear/dense_symmetric_factor.cpp.o. COMPILE FLAGS
+    vs arm A: none differ.
+D7  No iparm change and no IPARM-SURFACE label.
+D8  INSTALL SMOKE: 36 standalone-include TUs, unchanged; export contract unchanged.
+D9  ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A. Apple: UNOBSERVED.
+D10 RUNTIME: runtime/DECLARATION.txt -- the standard gate in all four modes.
+D11 CUTEst TRAIN: not a proof leg -- the walk does not move (D1). The measurement's TRAIN run (probe build, a8c540cf
+    arithmetic) is reported in measurement/ (16/23, every cell = PF-1's TRAIN reading); it is not evidence for the head.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above (fail closed): ARM_A_OK.
+P1  suites: ctest Release (build-r11e/rel) and Debug (build-r11e/dbg), full, -j4 under setsid: "100% tests passed, 0
+    tests failed out of 3486" in both (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each.
+P4  iparm (legs/iparm.sh): BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations.
+P5  walk census, 57 rows, on the frozen arm B binary (legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: legs/census_check.py with census-movers.csv prints
+    CENSUS_AS_DECLARED (the two PF-1 rows exactly, every other non-deadline cell equal to the baseline exactly, every
+    deadline-bound cell's status dnf_* or Optimal). NO R11 MOVER: a third non-baseline row fails it.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass.
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (linux-clang-release preset, fresh build-r11e/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, bench + examples ON) then ctest: build rc 0, "0 tests failed out of
+    3486"; no warning line names a file of the code head. The warning line count is reported (F1's: 26), not judged.
+P9  Accelerate syntax sweep (legs/misc.sh accelerate; legs/accel_compare.py): pass A PASS_A_AS_DECLARED. Pass B
+    reported, not a criterion.
+P10 compile-flags diff (legs/flags.sh): arm A's database (paths re-spelled) vs build-r11e/rel: TU sets equal;
+    legs/flags_check.py prints FLAGS_AS_DECLARED.
+P11 runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in
+    [0.995, 1.005] in every mode; perf record period 400000 (F1 DECLARATION-r2).
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT, 0 differences; promoted (arm B under
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv's invocation) EXACT, 0 differences.
+P14 THE FALSIFIER (legs/failproof.sh): the code head with arm A's (trace +- disc)/2 lines restored in place of the
+    decode_2x2() call (one site, fail closed), its hven_tests vs the head's: on the head the three R11 tests pass; on
+    the mutant EvidenceCountsTheNegativeOfAnIllScaled2x2Block FAILS reading neg_eigs 0 and
+    EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block FAILS, EvidenceIsAbsentWhenDCarriesANonFiniteEntry passes:
+    FAILPROOF_AS_DECLARED.
+P16 OBJECTS (legs/objects.sh): OBJECTS_AS_DECLARED (D6).
+PRE-FLIGHT (legs/chain1.sh, fail closed, before the first leg): every script and instrument here names this worktree,
+build-r11e/ and this directory only (build-r11/ -- the measurement and dev tree -- and other trees refused), except the
+read-only pins named in P3/P4/P9/P12; the copied python instruments' derived root is this worktree; arm A/B binaries,
+the arm A database and build, build-r11e/dbg, the promoted baseline, the census baseline and movers, the pins and the
+code head exist. Run dry before this declaration: PREFLIGHT_OK; a planted line naming build-r11/ was refused (rc 9).
+The touched code was grepped for Apple-only and off-reference branches: block_evidence() is outside every conditional;
+the Apple probe test is compiled by P9's sweep only.
+ORDER: the runtime gate alone first (runtime/run_all.sh), then chain1 (arm A, replay, interior, iparm, suites,
+examples, smoke, PCH, Accelerate, off-reference, flags, objects, falsifier, census).
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END.

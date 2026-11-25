@@ -1,0 +1,17 @@
+{
+ "lane": "hven-sqp",
+ "base": "default",
+ "set": "cutest",
+ "config": {
+  "advanced.trust_region_growth": "kRatioOrFeasibilityStep"
+ },
+ "label": "default+advanced.trust_region_growth=kRatioOrFeasibilityStep",
+ "problems": [
+  "MSS2",
+  "MSS3",
+  "READING8",
+  "TAX213322",
+  "TAX53322"
+ ],
+ "tier": "exclusive"
+}

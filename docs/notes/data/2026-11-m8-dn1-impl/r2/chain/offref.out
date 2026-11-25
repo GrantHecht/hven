@@ -1,0 +1,13 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T03:02:21-05:00
+build rc=0
+26
+[354/355] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[355/355] Linking CXX executable tests/sqp/hven_sqp_tests
+The following tests did not run:
+	665 - RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch (Skipped)
+	703 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2210 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2211 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-09T03:06:40-05:00

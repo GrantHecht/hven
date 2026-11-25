@@ -2,3 +2,13 @@
 # record, trailing whitespace included (M7 W2 E1 fix round 1, M3).
 docs/notes/data/**/gates*/*.txt -whitespace
 docs/notes/data/**/logs/*.txt -whitespace
+
+# Trace v1 reader fixtures: LF bytes are the contract (copied into hven-bench with sha256).
+tests/trace/golden/trace_v1/*.jsonl text eol=lf
+
+# The generated options reference: its bytes are the generator's output (a test compares them).
+docs/options-reference.md -text
+
+# The options-dump fixtures: LF bytes are the contract (captured from the hand-written dump at
+# 0cecdc6d0; a Windows checkout with core.autocrlf would otherwise compare CRLF text).
+tests/solver/fixtures/options_dump/*.txt text eol=lf

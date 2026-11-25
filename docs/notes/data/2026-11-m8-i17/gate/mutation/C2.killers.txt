@@ -1,0 +1,2 @@
+ColumnScalingFactorMax.ClampsTheColumnFactorsAndLeavesTheRowCapAlone
+ScaledConvergenceGuard.ABoxViolationAColumnFactorHidIsRefused

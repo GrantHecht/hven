@@ -1,0 +1,7 @@
+[----------] 10 tests from StopRecovery (407 ms total)
+
+[----------] Global test environment tear-down
+[==========] 102 tests from 9 test suites ran. (1584 ms total)
+[  PASSED  ] 102 tests.
+tsan rc=0 seam rc=0 reports=0
+TSAN_VERDICT PASS

@@ -1,0 +1,12 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index efeccbc9a..2c02f192e 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2339,7 +2339,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+ #endif
+                     } else {
+                         // kOk, the merit rising along p: nothing to take (section 4c).
+-                        ++counters.ascent_footprint_declines;
+ #ifdef HVEN_TESTING
+                         walk_obs.record().ascent_footprint =
+                             detail::testing::QpWalkFootprint::kDeclined;

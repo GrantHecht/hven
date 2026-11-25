@@ -1,0 +1,1 @@
+.scratch/r7/dev-train-B: rows 476; qp minors 209264 -> 206415 (-1.36%); factorizations 249651 -> 242329 (-2.93%); status changes 0: 

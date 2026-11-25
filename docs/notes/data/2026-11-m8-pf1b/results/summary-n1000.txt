@@ -1,0 +1,88 @@
+== exp-a/head.csv: 4758 minors
+  first dual_mu drop at record 313 (1.000e-08 -> 1.000e-10)
+  verdicts: kOk 3315 kSuspect 1443 kWrong 0; perturbed passes 1443, pivots 2394, max in a pass 6
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=1443 median=5.65e-14 p99=1.34e-10 max=3.03e-10
+  EQP row residual, clean passes:     n=3315 median=4.16e-17 p99=4.10e-12 max=6.32e-12
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 1.000e-10
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00   857 | a0=1 a4=52 a10=273 a11=70 | 81
+       396 +1.3400840026e-01  1078 | a4=161 a10=60 a11=175 | 354
+       792 +1.0929854026e-01   977 | a4=139 a10=25 a11=232 | 253
+      1188 +9.8618268424e-02   863 | a4=138 a10=7 a11=251 | 196
+      1584 +8.6698965011e-02   732 | a4=130 a10=17 a11=249 | 224
+      1980 +7.2010904223e-02   619 | a4=131 a10=29 a11=236 | 223
+      2376 +6.3473714681e-02   517 | a4=157 a10=11 a11=228 | 112
+      2772 +5.9416538655e-02   371 | a4=141 a10=58 a11=197 | 0
+      3168 +3.2896985007e-02   288 | a4=127 a10=81 a11=188 | 0
+      3564 +1.8108643997e-02   242 | a4=132 a10=92 a11=172 | 0
+      3960 +1.0089042719e-02   202 | a4=134 a10=92 a11=170 | 0
+      4356 +3.5440803404e-03   160 | a4=139 a10=78 a11=179 | 0
+      4752 -3.2319034432e-03    99 | a4=2 a7=1 a11=3 | 0
+== exp-a/r0_mu5e-9.csv: 4951 minors
+  first dual_mu drop at record None
+  verdicts: kOk 4951 kSuspect 0 kWrong 0; perturbed passes 0, pivots 0, max in a pass 0
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: none
+  EQP row residual, clean passes:     n=4951 median=4.16e-17 p99=1.56e-13 max=2.46e-13
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 5.000e-09
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00   857 | a4=53 a10=292 a11=67 | 0
+       412 +1.3879907773e-01  1096 | a4=163 a10=47 a11=202 | 0
+       824 +1.1338936266e-01   980 | a4=138 a10=20 a11=254 | 0
+      1236 +1.0297256891e-01   862 | a4=137 a10=5 a11=270 | 0
+      1648 +8.9916267981e-02   730 | a4=136 a10=20 a11=256 | 0
+      2060 +7.5450374998e-02   614 | a4=136 a10=36 a11=240 | 0
+      2472 +6.8710209771e-02   514 | a4=177 a10=7 a11=228 | 0
+      2884 +6.4365496878e-02   344 | a4=131 a10=75 a11=206 | 0
+      3296 +3.0456178787e-02   288 | a4=135 a10=89 a11=188 | 0
+      3708 +1.8114201432e-02   242 | a4=137 a10=100 a11=175 | 0
+      4120 +1.0519478891e-02   205 | a4=140 a10=98 a11=174 | 0
+      4532 +3.6716298340e-03   163 | a4=144 a10=81 a11=187 | 0
+      4944 -3.2319034432e-03   100 | a4=3 a7=1 a11=3 | 0
+== exp-a/r0_mu1e-10.csv: 5008 minors
+  first dual_mu drop at record None
+  verdicts: kOk 3007 kSuspect 2001 kWrong 0; perturbed passes 2001, pivots 4371, max in a pass 7
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=2001 median=6.66e-14 p99=5.17e-06 max=7.44e-04
+  EQP row residual, clean passes:     n=3007 median=4.16e-17 p99=5.15e-12 max=3.56e-11
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 1.000e-10
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00   857 | a4=49 a10=320 a11=48 | 214
+       417 +1.4273988622e-01  1126 | a4=173 a10=56 a11=188 | 417
+       834 +1.2167556430e-01  1009 | a4=146 a10=30 a11=241 | 345
+      1251 +1.1106920949e-01   893 | a4=149 a10=6 a11=262 | 242
+      1668 +9.8195533535e-02   750 | a4=137 a10=22 a11=258 | 394
+      2085 +8.5073619393e-02   635 | a4=139 a10=31 a11=247 | 268
+      2502 +7.8077357618e-02   527 | a4=177 a10=13 a11=227 | 118
+      2919 +7.1851471315e-02   363 | a4=130 a10=68 a11=219 | 0
+      3336 +3.2283855574e-02   301 | a4=136 a10=86 a11=195 | 0
+      3753 +1.8882003174e-02   251 | a4=140 a10=100 a11=177 | 3
+      4170 +1.1058837621e-02   211 | a4=143 a10=97 a11=177 | 0
+      4587 +4.0600764233e-03   165 | a4=148 a10=81 a11=188 | 0
+      5004 -3.2319044206e-03    98 | a4=1 a7=1 a11=2 | 0
+== exp-b/f0.5_r1.csv: 4810 minors
+  first dual_mu drop at record 313 (1.000e-08 -> 5.000e-09)
+  verdicts: kOk 4799 kSuspect 11 kWrong 0; perturbed passes 11, pivots 11, max in a pass 1
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=11 median=2.83e-13 p99=2.90e-13 max=2.90e-13
+  EQP row residual, clean passes:     n=4799 median=4.16e-17 p99=1.56e-13 max=2.52e-13
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 5.000e-09
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00   857 | a0=1 a4=50 a10=272 a11=77 | 0
+       400 +1.3380782474e-01  1079 | a4=160 a10=54 a11=186 | 11
+       800 +1.0910576767e-01   974 | a4=134 a10=25 a11=241 | 0
+      1200 +9.8652708522e-02   865 | a4=133 a10=6 a11=261 | 0
+      1600 +8.7264540684e-02   738 | a4=132 a10=17 a11=251 | 0
+      2000 +7.2182860666e-02   623 | a4=134 a10=29 a11=237 | 0
+      2400 +6.3575971140e-02   518 | a4=157 a10=13 a11=230 | 0
+      2800 +5.9451089923e-02   374 | a4=144 a10=60 a11=196 | 0
+      3200 +3.3159123375e-02   290 | a4=129 a10=83 a11=188 | 0
+      3600 +1.8762285768e-02   244 | a4=132 a10=94 a11=174 | 0
+      4000 +1.0230319877e-02   206 | a4=136 a10=91 a11=173 | 0
+      4400 +3.6809423687e-03   161 | a4=140 a10=80 a11=180 | 0
+      4800 -3.2319028403e-03   101 | a4=4 a7=1 a11=5 | 0

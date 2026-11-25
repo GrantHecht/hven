@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..89b3904bb 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -373,8 +373,7 @@ void validate(const SqpOptions &opts) {
+             fmt::format("SqpSolver: advanced.ssn_lm_sigma_c ({}) must be finite and > 0",
+                         opts.advanced.ssn_lm_sigma_c));
+     }
+-    if (!(opts.advanced.ssn_lm_sigma_exponent >= 1.0) ||
+-        !(opts.advanced.ssn_lm_sigma_exponent <= 2.0)) {
++    if (false) {
+         throw std::invalid_argument(
+             fmt::format("SqpSolver: advanced.ssn_lm_sigma_exponent ({}) must be in [1, 2]",
+                         opts.advanced.ssn_lm_sigma_exponent));

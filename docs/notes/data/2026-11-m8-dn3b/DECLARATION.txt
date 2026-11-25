@@ -1,0 +1,162 @@
+M8 DN-3b -- the IPM's own answer to a singular dense KKT factorization (DenseSingularPolicy::kReport, settler ruling on
+DN-3 Q3, option (ii)) -- DECLARATION
+(committed before the first leg; never edited afterwards; criteria are never changed after data; a failed or void leg
+is answered by DECLARATION-r2, this file and its outputs kept; every invocation below uses ABSOLUTE paths)
+================================================================================
+Spec        the settler's DN-3b brief (Q3 option (ii)); design docs/notes/2026-11-m8-dn3-design.md §DN-3b (appended in the
+            commit that carries this file). docs/notes/data/2026-11-m8-dn3/DECLARATION.md and DN-3a's files are not
+            edited.
+Base        ccd2e951f3eb4d88b042fc59dfe67901bd1c1de9 (origin/m8).
+Code head   1101cc38bd8bf7b498137a4499f93106e0a9f1c5 (one commit on the base). Evidence and design commits after it touch
+            no source (chain.sh refuses to start otherwise).
+Arm A       ccd2e951f, rebuilt by legs/prebuild.sh from its archive export (build-dn3b/armA-src, dep/eigen bc3b3987,
+            dep/fmt 407c905e), Release, legs/build.sh's flags: build-dn3b/armAbin/hven_sqp_corpus sha256
+            1e6ee31966f20b6d238933286ed25b4dce1d69c2bee9785c854406193bc3d4e9.
+Arm B       the code head: build-dn3b/rel (Release, every target) -> frozen by runtime/run_all.sh to
+            build-dn3b/armBbin/hven_sqp_corpus, sha256 6d0b99671af5508fb7f11ef0e7ee94e038926841626f499ef740fb0a375a0802. build-dn3b/dbg (Debug, every target).
+Lane        the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed). sl/fa_setup.sh built, before
+binaries    this declaration, from DN-1d r3's commit E f8c54bb (dn1d-legs-r3), with sl/hb_patch_g.py (DN-3a r2's SQP
+            column, byte copy; commit E needs its rename to compile against either pin) and sl/hb_patch_h.py (five IPM
+            columns: dn3b_kkt_dense_singular_count, _flagged_count, _retake_count, _shift_refactor_count from
+            IpmResult::kkt_factor_counters, and dn3b_resto_entries; the existing dn1_kkt_dense_fallback_count is the
+            sparse-fallback count):
+            dn3b-legs       pin = the code head: build-dn3b/fabin/hven_bench_cell sha256 98329aee3025b75e58d08c249ea7d6fc99c4cc5f3ca14fb7ed537ca00069d793
+            dn3b-legs-base  pin = ccd2e951f:     build-dn3b/fabasebin/hven_bench_cell sha256
+                            24bb126fdc0041ba1dc06ce26b116bfcbba28421a4aa59143d56e36eed6c94ff
+            Dev branches dn3b-dev1 (pin 1101cc38b) and dn3b-dev-variantB (pin c168f86, the probe below) stay as the
+            record. The clone's HEAD is back on dn1b-legs (as found). (DN-3a's branches are no longer in the clone;
+            their commits are, by the reflog. Nothing here uses them.)
+Toolchain   clang 22.1.8, HVEN_FP_MODE=SAFER_FAST, Eigen 5.0.1, MKL 2026.2 (intel_thread layer), MKL_NUM_THREADS=1
+            unless stated; AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf 7.2.12. Apple/Accelerate and Windows:
+            UNOBSERVED (nothing pushed; their CI lanes are the settler's).
+Instruments legs/ (build.sh, prebuild.sh, ctest.sh, replay.sh, interior.sh copied from ../2026-11-m8-dn3a/legs/,
+            chain.sh from its chain-r2.sh, failproof.sh from its failproof-r2.sh with this round's table; re-pointed in
+            code lines, one provenance line each); runtime/ (= ../2026-11-m8-dn3a/runtime-r2/, re-pointed; PATH DEPTH
+            checked: runtime/ is five levels below the repository root, as runtime-r2/ is; its own DECLARATION.txt);
+            sl/ (cell.sh = DN-3a r2's, re-pointed; hb_restore.sh = DN-3a's; fa_setup.sh, fa_run.sh, fa_analyze.py
+            from DN-3a r2's structure, rewritten for this leg; hb_patch_g.py byte copy; hb_patch_h.py new).
+
+THE CHANGE (code head 1101cc38b; lines at the head)
+--------------------------------------------------------------------------------
+C1  src/drivers/ipm_solver.cpp:199-210 set_qp_params: dense_singular_policy = kReport whenever
+    linear.dense_factorization != kNever (kNever: the factor layer's default, untouched). An exactly singular dense
+    attempt is kBackendError/kDenseSingular (NumericalIssue, no numerics): the ladder reads it singular (the failed
+    projection's counts never sum to n), engages delta_c and climbs delta_w, each rung a dense refactorization. A
+    flagged factorization (numerically_singular, numerics kept) is trusted by the ladder; the DN-1b step guard's
+    residual ratio decides singularity. No sigma shift, no platform retake (the IPM calls neither). No ladder,
+    guard or routing code changes: exhaustion without numerics takes the existing no-numerics dispatch.
+C2  src/drivers/ipm_solver.cpp:5080-5151 the least-squares multiplier estimate: a dense singular report (arm kDense,
+    NumericalIssue) takes the system's singular rule (delta_c, refactor) instead of failing the phase; a refactor that
+    still leaves no numerics, or a solve still above the ratio, discards the estimate. Unreachable under kNever and
+    kSparseFallback.
+C3  include/hven/detail/drivers/ipm_dense_testing.h (new): HVEN_TESTING-only IpmDenseSparseFallbackOverride, read at
+    one #ifdef point in set_qp_params, keeps kSparseFallback for the pre-DN-3b platform-route seam fixtures
+    (docs/testing.md "A seventh seam"; an Apache-2.0 file, no session file, no notices/ entry).
+C4  include/hven/drivers/ipm_options.h: the dense_factorization doc comment states the singular answer.
+C5  tests: tests/drivers/test_dense_arm_engines.cpp (expect_ipm_arms_agree: no platform factorization, the sum
+    factorize = dense_factorize + dense_singular; DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm,
+    DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate); tests/sqp/test_ipm_dense_guard_seams.cpp
+    (record_solve's policy scope, every pre-DN-3b fixture under the override; IpmDenseReportSeam.
+    ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath, BothStrategies/IpmDenseReportRestorationSeam.
+    AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/{ProximalSwitch,L1Nested}).
+
+DISCLOSURES (dev, scratch, before this declaration; recorded so they are not repeated)
+- Dev FA probe of the code head (lane branch dn3b-dev1, fadev1bin sha256 98329aee..., byte-identical to the declared
+  head lane binary fabin built from branch dn3b-legs; against the base lane binary above,
+  sl/fa_run.sh with DEV_HEADBIN, 18:47-18:52): the declared FA expectation below is that run's, criteria evaluated by
+  sl/fa_analyze.py (FA_PASS with the declared sets). The movers were inspected on iteration traces (the lane's
+  probe1500-trace- label, BT8 and MESH, head and base).
+- Variant B (a flag read as singular by the ladder): probe commit c168f86 on local branch m8-dn3b-probe (never merged),
+  lane dn3b-dev-variantB, same FA run: 36 IPM status/objective movers vs base kAlways, 29 of them a success ->
+  numerical_error (the flag persists at every delta_w, the ladder exhausts); S1 80/112. Rejected: design §DN-3b.1. The
+  falsifier's flag-as-singular mutation is that variant.
+- Dev suites at the code head (build-dn3b/rel, build-dn3b/dbg; scratch logs): Release "100% tests passed, 0 tests failed
+  out of 3619"; Debug the same, "100% tests passed, 0 tests failed out of 3619" (3621 registered: two DISABLED).
+- P4's WANT sets and HEAD_COUNT were measured on a dev falsifier run of the code head (legs/failproof.sh with
+  TREES=build-dn3b/fpdev) and are copied into failproof.sh.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above. At kNever no dense session exists; the policy is not set; the multiplier estimate's new branch
+    cannot be entered (arm kSparse).
+D1  ENGINES AT kNever: NO MOVERS -- replay P2, interior P3 (unmoved and promoted), runtime counter identity P5, the FA
+    leg's kNever rows (238). ANY kNever MOVER IS A STOP (hand back with the diagnosis).
+D2  IPM kAlways (a declared event): the rook kernel (kReport's), the ladder's answer to exact singularity instead of
+    Pardiso's perturbation, the estimate's survival of a singular report. The FA leg declares every status/objective
+    mover below. The SQP is untouched (its rows must not move).
+D3  API: no public name. detail: IpmDenseSparseFallbackOverride (HVEN_TESTING only). TESTS: 3621 registered, 3619 run
+    (the two DISABLED EqpRefinementAb tests excluded; FailByDesignControl skipped and counted as ctest counts it), Release
+    and Debug: DN-3a r2's 3616/3614 (no test added or removed by the two later base commits) + 5 new (C5).
+D4  No iparm change, no IPARM-SURFACE label, no notices/ change. docs/testing.md: one new seam section and one
+    consumer note. docs/notes/2026-11-m8-dn3-design.md: §DN-3b appended.
+
+PROOFS AND PASS CRITERIA (each its own script under `flock /tmp/box-build.lock`; `pgrep -a hven_bench_cell` empty first,
+as its own command)
+--------------------------------------------------------------------------------
+P0  arm A: sha256 above (checked by runtime/run_all.sh).
+P1  ctest Release (build-dn3b/rel) and Debug (build-dn3b/dbg), -j4 under setsid: "100% tests passed, 0 tests failed out
+    of 3619" in both (legs/ctest.sh; suites/).
+P2  27-cell replay x (walk, ssn, ipm) at the defaults (kNever) on build-dn3b/rel: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv via scripts/compare_replay.py, 0 differences each
+    (legs/replay.sh; replay/). A difference is a STOP.
+P3  interior: arm A vs arm B, 27 cells, EXACT 0 differences (unmoved); arm B under the promoted baseline's invocation
+    against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences (promoted)
+    (legs/interior.sh; interior/). A difference is a STOP.
+P4  THE FALSIFIER (legs/failproof.sh; six mutations of the code head's archive export, each site at its declared count
+    or fail closed; Release; hven_drivers_tests 'DenseArmEngines.*', hven_sqp_seam_tests '*Ipm*'; failproof/):
+    FAILPROOF_AS_DECLARED -- the head runs 34 and fails none; each mutation fails EXACTLY failproof.sh's WANT set:
+      report-off 6 -- BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath
+      report-under-never 7 -- DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate
+      init-rescue-off 2 -- DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+      dc-off-on-failed 2 -- DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+      dense-singular-hard 5 -- BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath
+      flag-as-singular 2 -- BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate
+      (every mutation is killed; dev falsifier 19:11-19:21, head 34/34 pass.)
+P5  runtime gate (runtime/; arm A vs arm B at the defaults; modes interior, ipm, ssn, walk; 27 cells; rounds 3, core 2,
+    perf record period 400000, THROTTLE == 0 or VOID): VERDICT PASS -- counter identity in every mode (a difference is
+    a STOP), filtered B/A in [0.995, 1.005] per mode. Run FIRST and alone.
+FA  THE FORCED-ARM LEG (sl/fa_run.sh, the lane binaries above; serial, THREADS=1 on core 2, CAP 300 s;
+    sl/fa_analyze.py -> fa/fa-analysis.txt). FA1 = DN-0's 238 cells (the DN-1d S1 population; 215 kNever successes)
+    x {default (kNever), dense-default (kAlways)} on the HEAD lane binary; FA2 = its 119 hven-ipm cells x dense-default
+    on the BASE lane binary (ccd2e951f: kAlways = kSparseFallback, today's). Reference rows: DN-3a r2's FA1
+    (../2026-11-m8-dn3a/fa-r2/fa1/cells; hven 83c8d3774, whose Linux IPM and SQP are ccd2e951f's). FA_PASS iff all hold:
+    KNEVER_UNMOVED       every head default row vs DN-3a r2's: status and iterations equal, objective within
+                         1e-8*max(1,|f|). A mover is a STOP (KNEVER_MOVED_STOP).
+    SQP_DENSE_UNMOVED    every head SQP dense-default row vs DN-3a r2's: the same test.
+    BASE_AS_DN3A         every FA2 base row vs DN-3a r2's IPM dense-default row: the same test.
+    NO_SPARSE_FALLBACK   every counted head IPM dense-default row: dn1_kkt_dense_fallback_count (sparse fallbacks),
+                         dn3b_kkt_dense_retake_count and dn3b_kkt_dense_shift_refactor_count read 0, columns present.
+    NO_HEAD_FAILURE_ROW  no head IPM dense-default row is CAPPED, THREW or NO_ROW unless its base row is.
+    MOVERS_AS_DECLARED   head IPM kAlways vs base IPM kAlways, status differs or objective not within 1e-8*max(1,|f|):
+                         exactly the FA MOVERS below.
+    S1_AS_DECLARED       head IPM kAlways vs head IPM kNever, kNever successes not kept (status, objective): exactly
+                         ALLINITC, BT8, CRESC100 (109/112).
+    ACOPP30_KEPT         head IPM ACOPP30 kAlways: kNever's status, objective within 1e-8*max(1,|f|).
+    FA MOVERS (declared in advance, each with its argument; dev probe):
+      BT8       optimal -> optimal, f 1.0000009536743164 -> 0.99999999999999722 (true optimum 1), 11 -> 40 iterations.
+                Today's kAlways retakes 10 of 11 factorizations on Pardiso, whose perturbation fabricates the expected
+                inertia; the dense arm reports 1 exactly singular and then the TRUE inertia, which the ladder corrects
+                (delta_c latched; delta_w up to 2.5e1). Algorithm IC's answer; the cost is iterations. Also an S1 miss
+                (kNever is Pardiso's 11-iteration path).
+      CRESC100  acceptable -> optimal, f 0.56950450959614329 -> 0.56949897851252729. No singular report, no guard
+                trigger, one flag: the rook kernel's rounding moves a path DN-1d already declared sensitive (its S1
+                miss, kept).
+      LEWISPOL  optimal -> optimal, f 3.0000292523215726 -> 2.9999965238250588 (rel 1.1e-5), 738 -> 762 iterations. Its
+                two singular factorizations (DN-0: Pardiso-perturbed, undecidable) are now the ladder's; kNever ends
+                max_iter, so no reference exists.
+      MESH      diverging -> numerical_error. Unbounded under every arm (kNever diverging, f -> -3e33). At |f| ~ 3e28 the
+                ladder exhausts WITH numerics (inertia 56/49/0 vs 57/48/0 after 15 rungs), "KKT system persistently
+                singular": the existing exhausted-with-numerics exit, one failure class for another.
+    REPORTED, not gating: the head counters (dev: singular reports 4 in BT8 1, HS61 2, LSNNODOC 1; flags 1903 of 5831
+    factorizations; guard triggers 61, all CRESC50; restoration entries 0; base sparse fallbacks 15); iteration-only
+    movers; the full per-cell table. A mover beyond the declaration is reported and argued, not re-run.
+RESTORE flock /tmp/box-build.lock bash .../sl/hb_restore.sh (the clone's HEAD on dn1b-legs, no tracked change).
+NOT RUN (proportionate): census (no SQP or default-path change), objects/flags diffs, install smoke, pch neutrality,
+Accelerate sweep, the threaded roster.
+ORDER: P5 alone first, then legs/chain.sh (P1, P2, P3, P4), then FA, then RESTORE:
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/docs/notes/data/2026-11-m8-dn3b/runtime/run_all.sh 6d0b99671af5508fb7f11ef0e7ee94e038926841626f499ef740fb0a375a0802
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/docs/notes/data/2026-11-m8-dn3b/legs/chain.sh 1101cc38bd8bf7b498137a4499f93106e0a9f1c5 6d0b99671af5508fb7f11ef0e7ee94e038926841626f499ef740fb0a375a0802
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/docs/notes/data/2026-11-m8-dn3b/sl/fa_run.sh /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/docs/notes/data/2026-11-m8-dn3b/fa 98329aee3025b75e58d08c249ea7d6fc99c4cc5f3ca14fb7ed537ca00069d793 24bb126fdc0041ba1dc06ce26b116bfcbba28421a4aa59143d56e36eed6c94ff
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/docs/notes/data/2026-11-m8-dn3b/sl/hb_restore.sh
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data; a failed or void leg is answered
+by DECLARATION-r2. Any kNever movement (P2, P3, P5 counters, FA kNever rows): STOP and hand back with the diagnosis.

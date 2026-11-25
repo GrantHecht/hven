@@ -1,0 +1,19 @@
+control: fails nothing
+q1   must-kill KILLED by IpmConvergence.FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals drivers rc=1
+q2   must-kill KILLED by OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames drivers rc=1
+r4   must-kill KILLED by SqpDriverContract.TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime sqp rc=1
+e4   must-kill KILLED by Options.WorkerOptionsPreparesEitherEngineTheSameWay drivers rc=1
+e3   must-kill KILLED by Threads.ZeroLeavesEveryFactorAtTheBackendDefault drivers rc=1
+r7s  must-kill KILLED by WarmProtocol.SqpColdCeilingCountsTheIgnoredWarmStart drivers rc=1
+r7i  must-kill KILLED by WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1
+r7j  must-kill KILLED by WarmProtocol.TheIpmCeilingHasFourRungs drivers rc=1
+b1   must-kill KILLED by CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections drivers rc=1
+e2   must-kill KILLED by drivers rc=139
+c1   must-kill KILLED by StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1
+c1b  must-kill KILLED by StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint drivers rc=1
+c2   must-kill KILLED by StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop seam rc=1
+m1   must-kill KILLED (build)
+m2   must-kill KILLED (build)
+b2   reported  KILLED by DenseArmEngines.InertiaCorrectionsCountTheResidualGuardsReRuns drivers rc=1
+e2b  reported  SURVIVES
+MUTATION_VERDICT PASS

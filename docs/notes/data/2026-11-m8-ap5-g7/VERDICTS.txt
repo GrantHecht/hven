@@ -1,0 +1,41 @@
+DECLARATION.md, code head 3e609fdecbaf39438ef956c22a39d2fffdba419d (declaration d32ca8f31) -- RESULT: CRITERIA MET ALL.
+Arm A build-g7/armAbin/hven_sqp_corpus sha256 4ac810154cc0767369d16933621ce178674e34c6b47e11956578b3d4fc12f6fc (origin/m8 1dacda16f).
+Arm B build-g7/armBbin/hven_sqp_corpus sha256 c1984bd697602a9f5d11515c1eb23e05bf93e4ab902470a9adc35f411eec8f84 (stamp 3e609fdecbaf).
+
+P2a runtime gate, solo and serial (runtime/run_all.out, runtime/<mode>/analysis.txt): VERDICT PASS                                     MET
+      interior FILTERED B/A 0.999992   counter identity 3/3 pairs   6 processes, 0 throttled
+      ipm      FILTERED B/A 1.000000   counter identity 81/81       162 processes, 0 throttled
+      ssn      FILTERED B/A 1.000000   counter identity 81/81       162 processes, 0 throttled
+      walk     FILTERED B/A 0.999997   counter identity 81/81       162 processes, 0 throttled
+P1  ctest Release and Debug: 100% passed, 3777 x2 (suites/).                                                                       MET
+P3  replay A vs B: differences 0 (walk, ssn, ipm); ARMED vs B: 0 x3 (replay/).                                                     MET
+P4  interior: unmoved 0, promoted 0, armed 0 (interior/).                                                                          MET
+P5  install smoke PASSED x2 (default, clang); export contract OK x2 (install-smoke/).                                              MET
+G   goldens: pairs 2, failures 0; the rest of test_trace_writer.cpp unchanged (goldens-check.txt).                                MET
+T11 inside P1 (InterruptKinds.T11AThrowAfterAStopRequestKeepsTheExceptionContractAndHandsBackZ, passed x2).                          MET
+P8  TSan: drivers and seam runs exit 0, 0 reports (tsan/).                                                                         MET
+M   control fails nothing; every must-kill killed (mutation/mutation-table.csv, mutation/verdict.txt, MUTATION_VERDICT PASS):      MET
+      q1  IpmConvergence.FeasibilityIsTheMaxOfTheEqualityAndInequalityResiduals
+      q2  OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames
+      r4  SqpDriverContract.TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime
+      e4  Options.WorkerOptionsPreparesEitherEngineTheSameWay
+      e3  Threads.ZeroLeavesEveryFactorAtTheBackendDefault
+      r7s WarmProtocol.SqpColdCeilingCountsTheIgnoredWarmStart
+      r7i, r7j  WarmProtocol.TheIpmCeilingHasFourRungs
+      b1  CallbackPayload.IpmBlockCarriesBacktracksAndInertiaCorrections
+      e2  the T11 test: its assertion failed (test_evaluation_failure.cpp:671, "the bound multipliers at the returned point", in
+          .scratch/g7-mutation/run-e2.log) and the binary then ended on SIGSEGV (drivers rc=139) BEFORE gtest printed the FAILED line,
+          so the table names the crash, not the test. Cause: the test's SQP branch indexes `partial.z` after the size ASSERT, which sits
+          inside a lambda and returns from the lambda only. A test robustness defect, reachable only with the code broken (open item).
+      c1, c1b  StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheRestorationEntryPoint
+      c2  StopPollSeam.T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop
+      m1, m2  BUILD_FAIL (the sizeof / arity static_asserts), as declared.
+    REPORTED: b2 KILLED (DenseArmEngines.InertiaCorrectionsCountTheResidualGuardsReRuns); e2b SURVIVES (as declared).
+Chain: chain.out (every STEP rc=0, CHAIN_COMPLETE). Raw dumps under the ignored .scratch/g7-*: MANIFEST.txt.
+
+hven-bench (outside this repo): branch g7-catchup d7a55b9 (off main 195feaf), local, not pushed. lanes/hven/hven_bench_cell.cpp and the
+  unchanged lanes/chain/hven_bench_chain.cpp each compile (clang++ -std=c++20 -fsyntax-only, -DEIGEN_MAX_ALIGN_BYTES=32,
+  -DHVEN_BENCH_PIN_SHA supplied) against the code head's install prefix build-g7/smoke-default/hven-install (P5's): rc 0 x2. Control:
+  main's hven_bench_cell.cpp against the same prefix: 2 errors (the two renamed reads). The harness's own pin/stamp build was NOT run.
+
+Open for the owner: RULE 1 revises design Q13's approved answer for the callback case (DECLARATION.md "The C rule").

@@ -1,0 +1,222 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-rho-gate-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 27 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 27 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor
+[       OK ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor (2 ms)
+[ RUN      ] QpDenseArm.AThrowBeforeTheNextFactorizationKeepsTheShiftMarker
+[       OK ] QpDenseArm.AThrowBeforeTheNextFactorizationKeepsTheShiftMarker (0 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[       OK ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged
+[       OK ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:383: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[       OK ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[       OK ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (1 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (11 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[       OK ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+[       OK ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[ RUN      ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:706: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:707: Failure
+Value of: d.res.residual_refused
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:726: Failure
+Value of: QpEngineTestAccess::terminal_mu_free(engine, qp, ws, x, lambda_e, lambda_i, z, counters, opts)
+  Actual: true
+Expected: false
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:727: Failure
+Expected equality of these values:
+  x
+    Which is: { 2.5546575838029607e-10, 0.0010000002445343223, 0 }
+  Vec::Zero(3)
+    Which is: { 0, 0, 0 }
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:728: Failure
+Expected equality of these values:
+  counters.dense_shifted_solve_refusals
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:729: Failure
+Expected equality of these values:
+  counters.terminal_mu_refine_rescues
+    Which is: 1
+  0
+
+[  FAILED  ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:747: Failure
+Expected equality of these values:
+  counters.dense_shifted_solve_refusals
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:775: Failure
+Expected: (d.counters.dense_shifted_solve_refusals) >= (2 * d.counters.dense_shifted_k0_fallbacks), actual: 2 vs 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:783: Failure
+Expected equality of these values:
+  static_cast<int>(d.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kNumericalError)
+    Which is: 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:784: Failure
+Expected equality of these values:
+  d.counters.suspect_escalations
+    Which is: 0
+  kMaxSuspectEscalations
+    Which is: 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:785: Failure
+Expected equality of these values:
+  d.counters.dense_shifted_terminations
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:786: Failure
+Expected equality of these values:
+  d.x
+    Which is: { 2.5046576054625177e-10, 0.0010000002495343223, 0 }
+  Vec::Zero(3)
+    Which is: { 0, 0, 0 }
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:777: Failure
+Expected: (d.counters.dense_shifted_solve_refusals) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:783: Failure
+Expected equality of these values:
+  static_cast<int>(d.status)
+    Which is: 0
+  static_cast<int>(QpStatus::kNumericalError)
+    Which is: 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:784: Failure
+Expected equality of these values:
+  d.counters.suspect_escalations
+    Which is: 0
+  kMaxSuspectEscalations
+    Which is: 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:785: Failure
+Expected equality of these values:
+  d.counters.dense_shifted_terminations
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:786: Failure
+Expected equality of these values:
+  d.x
+    Which is: { 2.5046576054625177e-10, 0.0010000002495343223, 0 }
+  Vec::Zero(3)
+    Which is: { 0, 0, 0 }
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:761: refactorize
+
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed
+[       OK ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed (0 ms)
+[ RUN      ] QpDenseArm.TheBorderRefinementKeepsAShiftedFirstStepOnlyWhileItFalls
+[       OK ] QpDenseArm.TheBorderRefinementKeepsAShiftedFirstStepOnlyWhileItFalls (0 ms)
+[ RUN      ] QpDenseArm.TheBorderedShiftedRatioReadsEachBlockAgainstItsOwnRhs
+[       OK ] QpDenseArm.TheBorderedShiftedRatioReadsEachBlockAgainstItsOwnRhs (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0AnswerWithLiveBordersMeetingRhoIsUsed
+[       OK ] QpDenseArm.AShiftedK0AnswerWithLiveBordersMeetingRhoIsUsed (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0AnswerWithLiveBordersMissingRhoIsRefused
+[       OK ] QpDenseArm.AShiftedK0AnswerWithLiveBordersMissingRhoIsRefused (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0OnTheSameRowsIsFactoredOnce
+[       OK ] QpDenseArm.AShiftedK0OnTheSameRowsIsFactoredOnce (0 ms)
+[ RUN      ] QpDenseArm.TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:1094: Failure
+Value of: QpEngineTestAccess::eliminated_verdict_refine(engine, qp, ws, x, counters, o)
+  Actual: true
+Expected: false
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:1095: Failure
+Expected equality of these values:
+  x
+    Which is: { -1, 2, 2147.4836479999999 }
+  Vec::Zero(3)
+    Which is: { 0, 0, 0 }
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:1097: Failure
+Expected equality of these values:
+  counters.verdict_refine_steps
+    Which is: 1
+  0
+
+[  FAILED  ] QpDenseArm.TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho (0 ms)
+[ RUN      ] QpDenseArm.TheTerminalPolishRhoRejectionHoldsWhereAdoptionWouldSucceed
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-rho-gate-off/tests/qp/test_qp_dense_arm.cpp:1125: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.TheTerminalPolishRhoRejectionHoldsWhereAdoptionWouldSucceed (0 ms)
+[----------] 27 tests from QpDenseArm (17 ms total)
+
+[----------] Global test environment tear-down
+[==========] 27 tests from 1 test suite ran. (17 ms total)
+[  PASSED  ] 20 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[  FAILED  ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet
+[  FAILED  ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer
+[  FAILED  ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath
+[  FAILED  ] QpDenseArm.TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho
+[  FAILED  ] QpDenseArm.TheTerminalPolishRhoRejectionHoldsWhereAdoptionWouldSucceed
+
+ 7 FAILED TESTS

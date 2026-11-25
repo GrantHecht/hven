@@ -1,0 +1,210 @@
+STAGE2 official read: i19_run.stage2_report(store-H)
+STAGE1 G1 pass=False plus=['LA', 'EV'] vacuous=[] lost=2
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=7 floor_exits=7 restoration_entries=213 restoration_cells=113 qn_resets_radius_floor=15
+  LOST ('TRAIN-238', 'sd', 'ACOPP30', 'default') strict H0=optimal X=numerical_error
+  LOST ('TRAIN-238', 'sd', 'DEMBO7', 'sqp-qn') strict H0=optimal X=stalled
+  TAIL ('CAP-238-1', 'sd', 'DEMBO7', 'sqp-qn') rejected_steps H0=1 X=28
+  TAIL ('CAP-238-1', 'sd', 'HS91', 'default') rejected_steps H0=11 X=66
+  TAIL ('CAP-238-1', 'sd', 'HS91', 'default') reject_funnel_ceiling H0=0 X=54
+  TAIL ('TRAIN-238', 'sd', 'HS91', 'default') rejected_steps H0=11 X=66
+  TAIL ('TRAIN-238', 'sd', 'HS91', 'default') reject_funnel_ceiling H0=0 X=54
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=3 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=3 violations=0
+STAGE1 G2 pass=False plus=[] vacuous=[] lost=1
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=6 floor_exits=6 restoration_entries=205 restoration_cells=113 qn_resets_radius_floor=16
+  LOST ('CAP-238-1', 'sd', 'CRESC4', 'default') strict H0=optimal X=infeasible
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') majors H0=2 X=46
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=101
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=2 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=2 violations=0
+STAGE1 G3 pass=False plus=[] vacuous=[] lost=0
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=5 floor_exits=5 restoration_entries=203 restoration_cells=111 qn_resets_radius_floor=19
+  TAIL ('TRAIN-238', 'sd', 'HS102', 'sqp-qn') rejected_steps H0=9 X=35
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=4 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=4 violations=0
+STAGE1 G4 pass=False plus=[] vacuous=['SENS-P'] lost=2
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=6 floor_exits=6 restoration_entries=207 restoration_cells=111 qn_resets_radius_floor=17
+  LOST ('CAP-238-1', 'sd', 'CRESC100', 'default') strict H0=optimal X=max_iter
+  LOST ('TRAIN-238', 'sd', 'CRESC100', 'default') strict H0=optimal X=max_iter
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=0 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=0 violations=0
+STAGE1 G5 pass=False plus=['LA', 'EV'] vacuous=[] lost=3
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=4 floor_exits=4 restoration_entries=204 restoration_cells=107 qn_resets_radius_floor=16
+  LOST ('CAP-238-01', 'sd', 'DECONVC', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-1', 'sd', 'CRESC100', 'default') strict H0=optimal X=max_iter
+  LOST ('TRAIN-238', 'sd', 'CRESC100', 'default') strict H0=optimal X=max_iter
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') majors H0=2 X=40
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=110
+  V3' family sens-q cells=24 precheck=0 moved=2 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=4 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=3 violations=0
+STAGE1 G6 pass=False plus=['EV', 'cap'] vacuous=[] lost=0
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=2 floor_exits=2 restoration_entries=217 restoration_cells=113 qn_resets_radius_floor=19
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=43
+  TAIL ('CAP-238-01', 'sd', 'MESH', 'default') majors H0=52 X=268
+  TAIL ('CAP-238-01', 'sd', 'MESH', 'default') EV H0=141 X=562
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=1 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=1 violations=0
+STAGE1 G7 pass=False plus=[] vacuous=[] lost=2
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=5 floor_exits=5 restoration_entries=209 restoration_cells=112 qn_resets_radius_floor=15
+  LOST ('CAP-238-1', 'sd', 'CRESC4', 'default') strict H0=optimal X=infeasible
+  LOST ('TRAIN-238', 'sd', 'CRESC100', 'default') strict H0=optimal X=max_iter
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=44
+  TAIL ('TRAIN-238', 'sd', 'HS99EXP', 'sqp-qn') majors H0=1 X=171
+  TAIL ('TRAIN-238', 'sd', 'LAKES', 'sqp-qn') EV H0=44 X=192
+  V3' family sens-q cells=24 precheck=0 moved=0 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=4 violations=0
+  V3' family sensfix-x cells=4 precheck=4 moved=4 violations=0
+STAGE1 C1 pass=False plus=['LA', 'EV'] vacuous=[] lost=20
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=4 floor_exits=4 restoration_entries=201 restoration_cells=109 qn_resets_radius_floor=12
+  LOST ('CAP-238-01', 'sd', 'CRESC100', 'sqp-qn') strict H0=optimal X=numerical_error
+  LOST ('CAP-238-01', 'sd', 'DECONVC', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-01', 'sd', 'HS74', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-01', 'sd', 'HS75', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-01', 'sd', 'HS92', 'default') strict H0=optimal X=numerical_error
+  LOST ('CAP-238-1', 'sd', 'CRESC100', 'default') strict H0=optimal X=stalled
+  LOST ('CAP-238-1', 'sd', 'HS88', 'sqp-qn') strict H0=optimal X=infeasible
+  LOST ('CAP-238-1', 'sd', 'HS89', 'sqp-qn') strict H0=optimal X=numerical_error
+  LOST ('CAP-238-1', 'sd', 'HS90', 'sqp-qn') strict H0=optimal X=infeasible
+  LOST ('CAP-238-1', 'sd', 'HS91', 'default') strict H0=optimal X=infeasible
+  LOST ('CAP-238-1', 'sd', 'HS92', 'sqp-qn') strict H0=optimal X=infeasible
+  LOST ('SENS-P', 'sensfix', 'F-CAP', 'default') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-SOC', 'default') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('TRAIN-238', 'sd', 'ACOPP30', 'default') strict H0=optimal X=numerical_error
+  LOST ('TRAIN-238', 'sd', 'CRESC4', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('TRAIN-238', 'sd', 'HS104', 'default') strict H0=optimal X=infeasible
+  LOST ('TRAIN-238', 'sd', 'HS90', 'default') strict H0=optimal X=infeasible
+  LOST ('TRAIN-238', 'sd', 'HS91', 'default') strict H0=optimal X=infeasible
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') majors H0=2 X=87
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=192
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') rejected_steps H0=0 X=29
+  TAIL ('CAP-238-01', 'sd', 'HS92', 'default') majors H0=54 X=172
+  TAIL ('CAP-238-01', 'sd', 'HS92', 'default') rejected_steps H0=12 X=98
+  TAIL ('CAP-238-01', 'sd', 'HS92', 'default') reject_funnel_ceiling H0=0 X=73
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') majors H0=80 X=264
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') EV H0=131 X=397
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=37 X=133
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=37 X=132
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=82 X=264
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=37 X=133
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=37 X=132
+  TAIL ('CAP-238-1', 'sd', 'HS89', 'sqp-qn') rejected_steps H0=0 X=44
+  TAIL ('CAP-238-1', 'sd', 'HS89', 'sqp-qn') reject_funnel_ceiling H0=0 X=30
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') majors H0=40 X=196
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') EV H0=69 X=295
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=18 X=99
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=18 X=97
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=40 X=190
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') EV H0=74 X=286
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=19 X=96
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=19 X=94
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'default') rejected_steps H0=36 X=150
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'default') reject_funnel_ceiling H0=36 X=149
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') rejected_steps H0=36 X=148
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') reject_funnel_ceiling H0=36 X=147
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') majors H0=35 X=200
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') EV H0=89 X=303
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') rejected_steps H0=14 X=100
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') reject_funnel_ceiling H0=14 X=99
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') majors H0=37 X=200
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') EV H0=94 X=305
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') rejected_steps H0=15 X=98
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') reject_funnel_ceiling H0=15 X=97
+  TAIL ('TRAIN-238', 'sd', 'CRESC4', 'sqp-qn') majors H0=68 X=284
+  TAIL ('TRAIN-238', 'sd', 'CRESC4', 'sqp-qn') rejected_steps H0=16 X=140
+  TAIL ('TRAIN-238', 'sd', 'CRESC4', 'sqp-qn') reject_funnel_ceiling H0=16 X=116
+  TAIL ('TRAIN-238', 'sd', 'HS104', 'default') majors H0=11 X=137
+  TAIL ('TRAIN-238', 'sd', 'HS104', 'default') EV H0=25 X=202
+  TAIL ('TRAIN-238', 'sd', 'HS104', 'default') rejected_steps H0=0 X=82
+  TAIL ('TRAIN-238', 'sd', 'HS104', 'default') reject_funnel_ceiling H0=0 X=50
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') majors H0=40 X=196
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') EV H0=69 X=295
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=18 X=99
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=18 X=97
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=40 X=190
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') EV H0=74 X=286
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=19 X=96
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=19 X=94
+  V3' family sens-q cells=24 precheck=0 moved=1 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=2 violations=2
+  V3' family sensfix-x cells=4 precheck=4 moved=2 violations=2
+STAGE1 C2 pass=False plus=['EV'] vacuous=[] lost=10
+  REPORT H0 floor_hit_cells=4 floor_exits=4 restoration_entries=211 restoration_cells=113 qn_resets_radius_floor=21
+  REPORT X floor_hit_cells=4 floor_exits=4 restoration_entries=204 restoration_cells=114 qn_resets_radius_floor=11
+  LOST ('CAP-238-01', 'sd', 'CRESC100', 'sqp-qn') strict H0=optimal X=numerical_error
+  LOST ('CAP-238-01', 'sd', 'HS74', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-01', 'sd', 'HS75', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('CAP-238-1', 'sd', 'CRESC100', 'default') strict H0=optimal X=infeasible
+  LOST ('CAP-238-1', 'sd', 'HS101', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-CAP', 'default') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-SOC', 'default') strict H0=optimal X=max_iter
+  LOST ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') strict H0=optimal X=max_iter
+  LOST ('TRAIN-238', 'sd', 'HS101', 'sqp-qn') strict H0=optimal X=max_iter
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') majors H0=2 X=51
+  TAIL ('CAP-238-01', 'sd', 'CRESC100', 'default') EV H0=13 X=131
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') majors H0=80 X=264
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') EV H0=131 X=397
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=37 X=133
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=37 X=132
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=82 X=264
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=37 X=133
+  TAIL ('CAP-238-01', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=37 X=132
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') majors H0=40 X=196
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') EV H0=69 X=295
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=18 X=99
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=18 X=97
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=40 X=190
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') EV H0=74 X=286
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=19 X=96
+  TAIL ('CAP-238-1', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=19 X=94
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'default') rejected_steps H0=36 X=150
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'default') reject_funnel_ceiling H0=36 X=149
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') rejected_steps H0=36 X=148
+  TAIL ('SENS-P', 'sensfix', 'F-CAP', 'sqp-qn') reject_funnel_ceiling H0=36 X=147
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') majors H0=35 X=200
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') EV H0=89 X=303
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') rejected_steps H0=14 X=100
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'default') reject_funnel_ceiling H0=14 X=99
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') majors H0=37 X=200
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') EV H0=94 X=305
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') rejected_steps H0=15 X=98
+  TAIL ('SENS-P', 'sensfix', 'F-SOC', 'sqp-qn') reject_funnel_ceiling H0=15 X=97
+  TAIL ('TRAIN-238', 'sd', 'LAKES', 'sqp-qn') EV H0=44 X=208
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') majors H0=40 X=196
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') EV H0=69 X=295
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') rejected_steps H0=18 X=99
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'default') reject_funnel_ceiling H0=18 X=97
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') majors H0=40 X=190
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') EV H0=74 X=286
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') rejected_steps H0=19 X=96
+  TAIL ('TRAIN-238', 'sd', 'OPTPRLOC', 'sqp-qn') reject_funnel_ceiling H0=19 X=94
+  V3' family sens-q cells=24 precheck=0 moved=1 violations=0
+  V3' family sens-x cells=24 precheck=0 moved=0 violations=0
+  V3' family sensfix-q cells=4 precheck=4 moved=2 violations=2
+  V3' family sensfix-x cells=4 precheck=4 moved=2 violations=2
+K members: none (K does not exist)
+EXIT code 3 message ('STOP: NLP-46/H0: results row cutest/MSS2/hven-sqp/default has no counters side row (A10: no zero-fill)',)

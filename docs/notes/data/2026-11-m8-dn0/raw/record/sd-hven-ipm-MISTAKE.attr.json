@@ -1,0 +1,143 @@
+{
+ "samples": 4247,
+ "period": 1000003,
+ "instr_sampled_all": 4266234741,
+ "instr_sampled_solver": 4255192708,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 7021021,
+  "B_kkt": 1007003,
+  "B_eval": 1000003,
+  "B_setup": 4246164681,
+  "B_eng": 0,
+  "B_proc": 11042033
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0016499889621450253,
+  "B_kkt": 0.00023665273680949353,
+  "B_eval": 0.0002350076879291362,
+  "B_setup": 0.9978783506131164,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0025882384984309984,
+ "rule_instr": 4266234741,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9962326348010361,
+ "init_instr": 4244157675,
+ "steady_state_instr": 11035033,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.6362483012058052,
+  "B_kkt": 0.09125509638258444,
+  "B_eval": 0.09062075301451296,
+  "B_setup": 0.18187584939709742,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   7021021
+  ]
+ ],
+ "mkl_serv_instr": 4244157675,
+ "kmp_instr": 8035024,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_upd_real_block",
+    2007006
+   ],
+   [
+    "__kmp_stg_parse",
+    1007003
+   ],
+   [
+    "mkl_pds_lp64_dsytf2_pardiso",
+    1007003
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_metis_fm_2waynoderefine",
+    1000003
+   ],
+   [
+    "mkl_blas_idamax",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::IpmSolverImpl::barrier_hessian",
+    1007003
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    2693041043
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1183372534
+   ],
+   [
+    "__vdso_time",
+    193924579
+   ],
+   [
+    "difftime@plt",
+    161763483
+   ],
+   [
+    "time@plt",
+    12056036
+   ],
+   [
+    "__strlen_avx2",
+    1007003
+   ],
+   [
+    "__GI_____strtod_l_internal",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    5014015
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2007006
+   ],
+   [
+    "_dl_runtime_resolve_xsavec",
+    2007006
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1007003
+   ],
+   [
+    "mmap64",
+    1007003
+   ]
+  ]
+ }
+}

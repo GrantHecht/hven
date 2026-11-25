@@ -1,0 +1,13 @@
+diff --git a/src/kkt/kkt_factor.cpp b/src/kkt/kkt_factor.cpp
+index ff16313be..eeef3b96e 100644
+--- a/src/kkt/kkt_factor.cpp
++++ b/src/kkt/kkt_factor.cpp
+@@ -130,7 +130,7 @@ class SwapGuard {
+   public:
+     explicit SwapGuard(KktFactor &k) : k_(k) {}
+     ~SwapGuard() {
+-        if (in_ && k_.factor.session_id() == in_->session_id && k_.factor.epoch() == in_->epoch) {
++        if (false && in_ && k_.factor.session_id() == in_->session_id && k_.factor.epoch() == in_->epoch) {
+             accumulate(k_.departed_counters, k_.factor.counters(), +1);
+             std::swap(k_.factor, in_->spare);
+             k_.analyzed = false;

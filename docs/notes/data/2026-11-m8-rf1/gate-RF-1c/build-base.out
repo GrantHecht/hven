@@ -1,0 +1,4 @@
+[68/71] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[69/71] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[70/71] Linking CXX executable bench/hven_sqp_corpus
+rc=0

@@ -1,0 +1,267 @@
+{
+ "samples": 505,
+ "period": 1000003,
+ "instr_sampled_all": 570948515,
+ "instr_sampled_solver": 396424053,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 329135876,
+  "B_kkt": 10931030,
+  "B_eval": 4665012,
+  "B_setup": 13582036,
+  "B_eng": 38110099,
+  "B_proc": 174524462
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8302621233732252,
+  "B_kkt": 0.02757408365430339,
+  "B_eval": 0.011767731964538489,
+  "B_setup": 0.03426138221739033,
+  "B_eng": 0.09613467879054251
+ },
+ "proc_share_of_all": 0.30567460535386454,
+ "rule_instr": 554862473,
+ "fallback_instr": 5728015,
+ "fallback_by_bucket": {
+  "B_fac": 5728015
+ },
+ "unmatched_instr": 10358027,
+ "unmatched_share_of_solver": 0.026128654206559965,
+ "chains_reaching_main": 0.061386138613861385,
+ "init_instr": 0,
+ "steady_state_instr": 396424053,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8302621233732252,
+  "B_kkt": 0.02757408365430339,
+  "B_eval": 0.011767731964538489,
+  "B_setup": 0.03426138221739033,
+  "B_eng": 0.09613467879054251
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   317050843
+  ],
+  [
+   "<no hven::linear frame>",
+   5728015
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   2168006
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   2042006
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   1112003
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   1035003
+  ]
+ ],
+ "mkl_serv_instr": 24674066,
+ "kmp_instr": 210471561,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   5882015
+  ],
+  [
+   "MKL_Read_ThreadENV_Count_Cores",
+   2287006
+  ],
+  [
+   "hven::WarmStart::operator=",
+   1119003
+  ],
+  [
+   "<empty>",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_fork_call",
+    25541069
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    19953054
+   ],
+   [
+    "__kmp_serialized_parallel",
+    18065048
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    17897048
+   ],
+   [
+    "__strcmp_avx2",
+    12484033
+   ],
+   [
+    "mkl_pds_lp64_sssslv_thr_pardiso",
+    11477030
+   ],
+   [
+    "rml::internal::internalPoolMalloc",
+    11407030
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    9819027
+   ]
+  ],
+  "B_kkt": [
+   [
+    "malloc",
+    4595012
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    2063006
+   ],
+   [
+    "_int_malloc",
+    1168003
+   ],
+   [
+    "__libc_malloc2",
+    1084003
+   ],
+   [
+    "hven::detail::SchurComplement::solve",
+    1021003
+   ],
+   [
+    "hven::detail::SchurComplement::append_border",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    2406006
+   ],
+   [
+    "cutest_cofg_",
+    1252003
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_ci",
+    1007003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_gfortrani_read_block_form",
+    2259006
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1182003
+   ],
+   [
+    "__cutest_double_MOD_cutest_initialize_workspace",
+    1168003
+   ],
+   [
+    "_gfortrani_read_f",
+    1161003
+   ],
+   [
+    "_gfortrani_flush_if_preconnected",
+    1154003
+   ],
+   [
+    "__GI_____strtod_l_internal",
+    1147003
+   ],
+   [
+    "cutest_csetup_threadsafe_",
+    1133003
+   ],
+   [
+    "__getrusage",
+    1126003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    5882015
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    3595009
+   ],
+   [
+    "malloc",
+    3364009
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    2518006
+   ],
+   [
+    "MKL_Read_ThreadENV_Count_Cores",
+    2287006
+   ],
+   [
+    "hven::detail::bordered_regularized_residual",
+    2217006
+   ],
+   [
+    "void std::__final_insertion_sort<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, std::less<void> >",
+    1259003
+   ],
+   [
+    "hven::detail::SqpSolverImpl::solve_impl_body",
+    1231003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    66812177
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    44411117
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    17401045
+   ],
+   [
+    "check_match",
+    8812024
+   ],
+   [
+    "strcmp",
+    7756021
+   ],
+   [
+    "_int_free_merge_chunk",
+    3378009
+   ],
+   [
+    "__strlen_avx2",
+    2406006
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ]
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+s1,a kInfeasible exit substitutes (rule),ok,ReturnBestForcedExits.ACertifiedInfeasibleExitNeverSubstitutes drivers rc=1 
+s2,SQP restoration exits bypass the rule,ok,Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve drivers rc=1 
+l1,kOnLimit does not cover work/time limits (rule),ok,ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+l2,SQP limit exit narrowed to the iteration cap,ok,ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+o1,order compares f before the violation,ok,BestIterate.IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot WarmStart.BudgetReturnsUsableIterate drivers rc=1 sqp rc=1 
+o2,non-strict improvement,ok,ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1 
+o3,no tolerance band,ok,ReturnBestForcedExits.TheSharedOrderIsFeasibilityFirstBandedStrictAndObjectiveSecond drivers rc=1 
+n1,IPM non-finite abort substitutes under kOnLimit,ok,SURVIVES
+n2,SQP non-limit exits never substitute,ok,ReturnBestForcedExits.ANonFiniteAbortSubstitutesUnderOnAnyNonOptimalOnly drivers rc=1 
+p1,SQP probe-budget stop not excluded,ok,ReturnBestForcedExits.TheProbeBudgetStopKeepsItsOrdinaryExitUnderEveryMode drivers rc=1 
+t1,IPM limit door claims the best, returns the last,ok,ReturnBestForcedExits.TheLimitExitsSubstituteUnderOnLimitAndOnAnyNonOptimalOnly drivers rc=1 
+r1,IPM shared measure reads econ_inf only (REPORTED),ok,SURVIVES

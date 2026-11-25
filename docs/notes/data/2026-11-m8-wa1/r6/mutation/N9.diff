@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 8b30fb747..6f2049919 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1487,7 +1487,7 @@ inline FootprintSlope footprint_merit_slope(const QpProblem &qp, const WorkingSe
+         rows_abs += std::abs(t);
+     }
+     FootprintSlope m;
+-    m.slope = gx.dot(d) + rows / mu;
++    m.slope = gx.dot(d) - rows / mu;
+     m.tol = kEngineDenomTol * (gx.norm() * d.norm() + rows_abs / mu);
+     return m;
+ }

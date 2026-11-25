@@ -1,0 +1,25 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = StopToken.*:StopTokenSolve.T2*:StopTokenSolve.T10*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from StopToken
+[ RUN      ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested
+[       OK ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested (0 ms)
+[ RUN      ] StopToken.EveryTokenOfASourceSeesItsStop
+[       OK ] StopToken.EveryTokenOfASourceSeesItsStop (0 ms)
+[ RUN      ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource
+[       OK ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource (0 ms)
+[----------] 3 tests from StopToken (0 ms total)
+
+[----------] 3 tests from StopTokenSolve
+[ RUN      ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint
+[       OK ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint (20 ms)
+[ RUN      ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial
+[       OK ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial (10 ms)
+[ RUN      ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep
+[       OK ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep (2 ms)
+[----------] 3 tests from StopTokenSolve (32 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (32 ms total)
+[  PASSED  ] 6 tests.

@@ -1,0 +1,4 @@
+lane,problem,mode,prior_wall_s
+hven-ipm,hs025,full,0
+hven-sqp,hs025,full,0
+hven-sqp,hs033,full,0

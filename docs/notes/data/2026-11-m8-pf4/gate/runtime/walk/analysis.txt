@@ -1,0 +1,5 @@
+declared residual-class cells (walk): f7_n800_path_warm
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r1-A-f7_n1000_bound_neutral.csv /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r1-B-f7_n1000_bound_neutral.csv
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r2-A-f7_n1000_bound_neutral.csv /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r2-B-f7_n1000_bound_neutral.csv
+MISSING CSV /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r3-A-f7_n1000_bound_neutral.csv /home/ghecht/Projects/hven/.claude/worktrees/pf4/docs/notes/data/2026-11-m8-pf4/gate/runtime/walk/raw/walk-r3-B-f7_n1000_bound_neutral.csv
+STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing -> STOP

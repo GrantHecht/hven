@@ -1,0 +1,42 @@
+M8 AP-5 G6 -- consumer catch-up list (IpmCounters and the regrouped IpmResult). Full table: docs/migration-0.2.md, section G6.
+Names move, values do not. A consumer built against origin/m8 before G6 stops compiling at each line below.
+
+IpmResult counters (prefix or rename)
+  r.nonfinite_step_rollbacks          -> r.counters.nonfinite_step_rollbacks
+  r.polish_ignored                    -> r.counters.polish_ignored
+  r.payload_ignored                   -> r.counters.payload_ignored
+  r.watchdog_activations              -> r.counters.watchdog_activations
+  r.recovery_depth_histogram          -> r.counters.recovery_depth_histogram
+  r.second_order_corrections          -> r.counters.soc_steps
+  r.kkt_analyses_this_call            -> r.counters.symbolic_analyses
+  r.dense_residual_ratio_triggers     -> r.counters.dense_solve_residual_refusals
+  r.dense_factorizations              -> r.counters.dense_factorizations
+  (new) r.counters.factorizations == r.work.factorizations
+
+IpmResult last_* fields (moved onto the phase; helper hven::last_ran_phase(r), nullptr when no phase ran)
+  r.last_funnel_width                 -> last_ran_phase(r)->funnel_width
+  r.last_filter_size / _resets        -> last_ran_phase(r)->filter_size / filter_resets
+  r.last_monotone_switches            -> last_ran_phase(r)->monotone_switches
+  r.last_monotone_iterations          -> last_ran_phase(r)->monotone_iterations
+  r.last_proximal_regularization_primal / _dual -> last_ran_phase(r)->proximal_regularization_primal / _dual
+  r.last_feasibility_restoration_entries    -> r.counters.restoration_entries (whole solve, Index, 0 when off)
+                                               or r.phases[i].restoration_entries (per phase, optional)
+  r.last_feasibility_restoration_iterations -> r.counters.restoration_iters / r.phases[i].restoration_iters
+  r.last_kkt_info (Eigen::ComputationInfo)  -> last_ran_phase(r)->kkt_factor_status (hven::IpmKktFactorStatus: kSuccess,
+                                               kNumericalIssue, kNoConvergence, kInvalidInput)
+
+Trace
+  ipm.phase.exit key "last_kkt_info" -> "kkt_factor_status" (a consumer parsing the JSON-lines stream).
+  IpmPhaseExitTraceEvent::last_kkt_info -> ::kkt_factor_status (a custom TraceSink reading the event).
+  The ipm.solve.end line is unchanged.
+
+Ledger
+  IpmSolveRecord gains `counters` (IpmCounters). Its analyses, soc_steps_taken, watchdog_activations, factorizations keep names and values.
+
+Custom globalization components (detail API): append_diagnostics(IpmResult&) is now append_diagnostics(IpmPhaseReport&).
+
+Not in G6 (design 2.1 rows deferred): IpmCounters::start_level_used and ::inertia_corrections (new values, with G7).
+
+hven-bench (private, local branch g6-catchup, not pushed):
+  lanes/hven/hven_bench_cell.cpp   five IPM side-file reads (kkt_analyses_this_call, soc_steps_taken, watchdog_activations, payload_ignored, polish_ignored)
+  lanes/chain/hven_bench_chain.cpp the same five reads. The side-file COLUMN names are unchanged.

@@ -1,0 +1,2 @@
+I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet

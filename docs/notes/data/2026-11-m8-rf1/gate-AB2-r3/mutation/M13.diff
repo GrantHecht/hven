@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index aa2d79156..cf09eafb8 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6593,7 +6593,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+     // exit (the shared order reads the wrapper's objective, the penalty h, the wrapper's own
+     // feasibility being satisfied throughout), so the resume gates below read the best point
+     // instead of wherever the phase stopped. The parent's best is still its own.
+-    ropts.common.return_best = ReturnBest::kOnAnyNonOptimal;
++    ropts.common.return_best = ReturnBest::kNever;
+     ropts.advanced.equality_basis = false;
+     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
+     // MODE IS. Without this line the copy above would carry `qp_mode`

@@ -1,0 +1,5 @@
+differences: 26 (parsed 26)
+  hs071_x1_fixed: 23
+  infeas2_spike: 2
+  infeas2_stationary: 1
+MOVERS_AS_DECLARED

@@ -1,0 +1,13 @@
+r1 A total=553615 excluded=21354 filtered=532261 matched=['__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+r2 A total=553309 excluded=21078 filtered=532231 matched=['__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+r3 A total=553707 excluded=21463 filtered=532244 matched=['__vdso_clock_gettime', '__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+r1 B total=550578 excluded=17921 filtered=532657 matched=['__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+r2 B total=550401 excluded=17739 filtered=532662 matched=['__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+r3 B total=550583 excluded=17920 filtered=532663 matched=['__vdso_time', 'difftime', 'difftime@plt', 'mkl_serv_get_clocks_frequency']
+filtered (CRITERION)   A=532244 B=532662 B/A=1.000785
+all samples            A=553615 B=550578 B/A=0.994514
+excluded               A=21354 B=17920 B/A=0.839187
+round 1 filtered B/A=1.000744
+round 2 filtered B/A=1.000810
+round 3 filtered B/A=1.000787
+CORRECTED READING interior FILTERED B/A = 1.000785 -> WITHIN [0.995, 1.005]

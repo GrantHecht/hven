@@ -1,0 +1,3 @@
+DIAG3 rho1=1 rho_f=1 conv=1 verdict_f=IND
+DIAG3 rho1=0.790569 rho_f=0.790569 conv=1 verdict_f=IND
+DIAG3 rho1=0.0641616 rho_f=1.24731e-06 conv=0 verdict_f=UNDEC

@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index 47e8626e1..25729067f 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -65,8 +65,7 @@ class RestorationStallWindow {
+         while (samples_.size() >= 2 && samples_[1].factorizations <= horizon) {
+             samples_.pop_front();
+         }
+-        return samples_.front().factorizations <= horizon &&
+-               !(best_ <= kRestorationStallFraction * samples_.front().best_h);
++        return false;
+     }
+ 
+   private:

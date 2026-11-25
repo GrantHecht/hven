@@ -1,0 +1,15 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..fb2e012fb 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -145,9 +145,7 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
+             granted_by = in.actual_df / in.pred_df;
+             break;
+         case SqpTrustRegionGrowth::kRatioOrFeasibilityStep:
+-            if (!in.feasibility_step) {
+-                granted_by = in.actual_df / in.pred_df;
+-            }
++            granted_by = in.actual_df / in.pred_df;
+             break;
+         case SqpTrustRegionGrowth::kAnyAccepted:
+             break;

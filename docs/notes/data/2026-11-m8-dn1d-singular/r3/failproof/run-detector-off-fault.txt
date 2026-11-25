@@ -1,0 +1,25 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-detector-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmFallbackFault.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from DenseArmFallbackFault
+[ RUN      ] DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError
+[       OK ] DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError (2 ms)
+[ RUN      ] DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown
+[       OK ] DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown (0 ms)
+[ RUN      ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_fault_injection.cpp:239: Failure
+Value of: flagged.inertia.numerically_singular
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable (0 ms)
+[----------] 3 tests from DenseArmFallbackFault (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable
+
+ 1 FAILED TEST

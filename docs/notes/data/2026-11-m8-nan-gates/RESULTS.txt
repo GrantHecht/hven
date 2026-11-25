@@ -1,0 +1,20 @@
+M8 NaN-sticky gates -- RESULTS (against DECLARATION.txt and DECLARATION-r2.txt; written after the legs; criteria unchanged)
+================================================================================
+Code head 32f86b265; arm A a86ef490... (origin/m8 9c6059593), arm B ea1c3a71...; chain run legs/chain.sh -> chain.out (worst=0).
+
+STEP 1   LIVE: lpNorm<Infinity> reads a NaN only in element 0, Release and Debug (probe/probe.out: 1341 of 1359 NaN
+         positions read finite; maxCoeff<PropagateNaN> 0 of 1359).
+P5       runtime/ run 1 VOID (instrument defect, DECLARATION-r2). P5-r2 (runtime-r2/): VERDICT PASS -- counter identity
+         in all four modes, THROTTLE 0, filtered B/A interior 1.000141, ipm 1.000039, ssn 1.000044, walk 1.000179.
+P1       NOT MET AS WRITTEN, by a DECLARATION ERROR: the criterion string said "out of 3582"; 3582 is the REGISTERED test
+         count (ctest -N), and ctest's summary excludes the two pre-existing DISABLED tests
+         (EqpRefinementAb.FootprintRuleProbe, EqpRefinementAb.FullBattery; disabled at the base too -- DN-1d r3's
+         "out of 3564" was 3566 registered minus the same two). Observed, both trees: "100% tests passed, 0 tests failed
+         out of 3580" (suites/ctest-rel.log, suites/ctest-dbg.log); skips identical in kind to DN-1d r3's (Release:
+         FailByDesignControl only; Debug: that plus the six YORKNET/STEENBRB/ACOPP118 fixtures). No failure in either
+         tree. Recorded as stated; no re-run (a re-run cannot change the count).
+P2       replay walk / ssn / ipm: 27 cells x 75 columns, 0 differences each (replay/nan-comparison-*.txt).
+P3       interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior/).
+P4       FAILPROOF_AS_DECLARED: head 13/13 pass; helper-lpnorm fails exactly the declared 8, max-std exactly the
+         declared 2 (failproof/failing-*.txt).
+P6       check_pch_neutrality.sh PASS (pch/pch-neutrality.txt).

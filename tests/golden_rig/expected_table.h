@@ -35,7 +35,7 @@
 #include <string>
 #include <vector>
 
-#include "hven/core/types.h"
+#include <hven/core/types.h>
 
 namespace hven::rig {
 

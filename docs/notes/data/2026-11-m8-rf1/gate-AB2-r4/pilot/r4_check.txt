@@ -1,0 +1,3 @@
+CELL_054 C stalled | ABr3 infeasible cert=1 | NEW numerical_error cert=0 it=106 fact=22907 f=14704.17642690343
+SOLVED C' 12 ABr3 19 NEW 19
+VERDICT PILOT_BARS_MET

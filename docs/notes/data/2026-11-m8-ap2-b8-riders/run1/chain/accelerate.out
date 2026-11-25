@@ -1,0 +1,95 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-06T06:56:21-05:00
+accelerate-sweep.txt files 30 clean 20 known-header 6 known-sizeof 0 stub-gap 0 not-in-build 0 OTHER 11
+OTHER tests/interior/test_kkt_factorization.cpp tests/interior/test_kkt_factorization.cpp:389:18: error: no member named 'refinement_steps' in 'hven::IpmLinearOptions'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:86:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:138:17: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:139:17: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:141:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_partial_solve.cpp tests/sqp/test_kkt_partial_solve.cpp:111:31: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:596:21: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:597:21: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:599:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:701:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:890:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+accelerate-sweep-stub.txt files 30 clean 22 known-header 0 known-sizeof 0 stub-gap 2 not-in-build 0 OTHER 57
+OTHER src/drivers/ipm_solver.cpp include/hven/detail/interior/utils/accelerate_threads.h:88:20: error: no matching function for call to 'SparseFactor'
+OTHER src/drivers/ipm_solver.cpp include/hven/detail/interior/utils/accelerate_threads.h:104:5: error: use of undeclared identifier 'vDSP_dotprD'
+OTHER src/drivers/ipm_solver.cpp src/drivers/ipm_solver.cpp:214:22: error: no member named 'refinement_steps' in 'hven::IpmLinearOptions'
+OTHER src/drivers/ipm_solver.cpp src/drivers/ipm_solver.cpp:219:26: error: no member named 'refinement_steps' in 'hven::IpmLinearOptions'
+OTHER src/drivers/solver_init.cpp include/hven/detail/interior/utils/accelerate_threads.h:88:20: error: no matching function for call to 'SparseFactor'
+OTHER src/drivers/solver_init.cpp include/hven/detail/interior/utils/accelerate_threads.h:104:5: error: use of undeclared identifier 'vDSP_dotprD'
+OTHER tests/interior/test_kkt_factorization.cpp tests/interior/test_kkt_factorization.cpp:389:18: error: no member named 'refinement_steps' in 'hven::IpmLinearOptions'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:35:2: error: "lapacke_shim.h requires ACCELERATE_NEW_LAPACK (see cmake/hven_sparse_backend.cmake)"
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:60:20: error: unknown type name '__LAPACK_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:71:30: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:75:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:75:64: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:76:34: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:76:50: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:83:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:87:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:95:70: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:96:25: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:105:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:105:64: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:105:78: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:106:51: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:106:73: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:107:34: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:111:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:47:29: error: no member named 'lapack_int' in namespace 'hven::linear::detail'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:126:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:127:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:138:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:150:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:151:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:161:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:169:64: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:170:32: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:205:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:86:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:138:17: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:139:17: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_inertia_probe.cpp tests/sqp/test_kkt_inertia_probe.cpp:141:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_kkt_partial_solve.cpp tests/sqp/test_kkt_partial_solve.cpp:111:31: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:596:21: error: no member named 'n_pos' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:597:21: error: no member named 'n_neg' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:599:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:701:21: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_qp_engine_indefinite.cpp tests/sqp/test_qp_engine_indefinite.cpp:890:17: error: no member named 'n_zero' in 'hven::linear::InertiaEvidence'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:139:76: error: unknown type name 'DenseMatrix_Double'; did you mean 'SparseMatrix_Double'?
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:144:28: error: use of undeclared identifier 'DenseVector_Float'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:282:61: error: no matching function for call to 'SparseFactor'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:403:8: error: no member named 'attributes' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:404:8: error: no member named 'columnCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:405:8: error: no member named 'rowCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:406:8: error: no member named 'columnStride' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:410:8: error: no member named 'attributes' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:411:8: error: no member named 'columnCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:412:8: error: no member named 'rowCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:413:8: error: no member named 'columnStride' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:416:3: error: no matching function for call to 'SparseSolve'
+sweep rc=1
+PASS A: OTHER lines present: ['tests/interior/test_kkt_factorization.cpp', 'tests/sqp/test_kkt_inertia_probe.cpp', 'tests/sqp/test_kkt_partial_solve.cpp', 'tests/sqp/test_qp_engine_indefinite.cpp']
+PASS A: LEFT src/drivers/ipm_options.cpp (B8 ['CLEAN'])
+PASS A: LEFT tests/drivers/test_options_dump.cpp (B8 ['KNOWN-SIZEOF'])
+PASS A: CLASS tests/interior/test_kkt_factorization.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS A: CLASS tests/sqp/test_kkt_inertia_probe.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS A: CLASS tests/sqp/test_kkt_partial_solve.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS A: CLASS tests/sqp/test_qp_engine_indefinite.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS_A_NOT_AS_DECLARED
+PASS B: OTHER lines present: ['src/drivers/ipm_solver.cpp', 'src/drivers/solver_init.cpp', 'tests/interior/test_kkt_factorization.cpp', 'tests/sqp/test_accelerate_probes.cpp', 'tests/sqp/test_kkt_inertia_probe.cpp', 'tests/sqp/test_kkt_partial_solve.cpp', 'tests/sqp/test_qp_engine_indefinite.cpp', 'tests/sqp/test_scaffold.cpp']
+PASS B: LEFT src/drivers/ipm_options.cpp (B8 ['CLEAN'])
+PASS B: LEFT tests/drivers/test_options_dump.cpp (B8 ['KNOWN-SIZEOF'])
+PASS B: CLASS tests/interior/test_kkt_factorization.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS B: CLASS tests/sqp/test_kkt_inertia_probe.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS B: CLASS tests/sqp/test_kkt_partial_solve.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS B: CLASS tests/sqp/test_qp_engine_indefinite.cpp B8 ['CLEAN'] riders ['OTHER']
+PASS_B_NOT_AS_DECLARED
+367a4b697bf9ad01ff0a6208070d75de039df069a73ed980842c7be169b159be  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8/accelerate/accelerate-sweep.txt
+772f99b08f1ed521a41cea4fc3c30d3c14c26cec4d10a572fc40110be4644e76  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8-riders/accelerate/accelerate-sweep.txt
+3259a4fad640985aafc1bfc6ef600ac78ad4c8967f9535c95673a6fcccfa1b77  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8/accelerate/accelerate-sweep-stub.txt
+f208ec858ca3115a223d1cee9974bd57658ad38504b31e2fc89203f7b5513da9  /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/docs/notes/data/2026-11-m8-ap2-b8-riders/accelerate/accelerate-sweep-stub.txt
+rc=1
+FOREGROUND_END 2026-11-06T06:56:47-05:00

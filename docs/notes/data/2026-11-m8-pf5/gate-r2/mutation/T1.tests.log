@@ -1,0 +1,95 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = RetainedAnalyses.*:PF5/*:KktFactor.*
+[==========] Running 13 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from KktFactor
+[ RUN      ] KktFactor.IsConstructedAtTheThreadCountItIsGiven
+[       OK ] KktFactor.IsConstructedAtTheThreadCountItIsGiven (0 ms)
+[ RUN      ] KktFactor.FreshAnalyzeFactorizeAndSolve
+[       OK ] KktFactor.FreshAnalyzeFactorizeAndSolve (2 ms)
+[ RUN      ] KktFactor.RefactorizesAValueChangeWithoutReanalyzing
+[       OK ] KktFactor.RefactorizesAValueChangeWithoutReanalyzing (0 ms)
+[ RUN      ] KktFactor.NeedsAnalysisPreservesCallSiteCounting
+[       OK ] KktFactor.NeedsAnalysisPreservesCallSiteCounting (0 ms)
+[----------] 4 tests from KktFactor (2 ms total)
+
+[----------] 5 tests from RetainedAnalyses
+[ RUN      ] RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss
+[       OK ] RetainedAnalyses.AnEqualHashOnAnotherPatternIsAMiss (0 ms)
+[ RUN      ] RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns
+[       OK ] RetainedAnalyses.TheListHoldsTheEightMostRecentlyUsedPatterns (1 ms)
+[ RUN      ] RetainedAnalyses.ReleaseFreesTheListAndKeepsTheCurrentNumerics
+[       OK ] RetainedAnalyses.ReleaseFreesTheListAndKeepsTheCurrentNumerics (0 ms)
+[ RUN      ] RetainedAnalyses.TheCountsCarryAcrossSwaps
+[       OK ] RetainedAnalyses.TheCountsCarryAcrossSwaps (0 ms)
+[ RUN      ] RetainedAnalyses.EveryOpenTallyRecordsAHit
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/kkt/test_kkt_retained_analyses.cpp:334: Failure
+Expected equality of these values:
+  outer.reuses()
+    Which is: 1
+  2
+
+[  FAILED  ] RetainedAnalyses.EveryOpenTallyRecordsAHit (0 ms)
+[----------] 5 tests from RetainedAnalyses (2 ms total)
+
+[----------] 4 tests from PF5/RetainedAnalysesIdentity
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_regularized
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_regularized (5 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_saddle
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/sparse_saddle (5 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized (1 ms)
+[ RUN      ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized_platform
+[       OK ] PF5/RetainedAnalysesIdentity.AReusedRefactorizationIsBitIdenticalToAFreshAnalysis/dense_sized_platform (2 ms)
+[----------] 4 tests from PF5/RetainedAnalysesIdentity (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 3 test suites ran. (20 ms total)
+[  PASSED  ] 12 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] RetainedAnalyses.EveryOpenTallyRecordsAHit
+
+ 1 FAILED TEST
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRetainedAnalyses.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from QpRetainedAnalyses
+[ RUN      ] QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt
+[       OK ] QpRetainedAnalyses.AFailedRefactorizationOfASwappedInSessionDiscardsIt (2 ms)
+[ RUN      ] QpRetainedAnalyses.TheWalkFreesK0sRetainedSessionsAtSolveExit
+[       OK ] QpRetainedAnalyses.TheWalkFreesK0sRetainedSessionsAtSolveExit (1 ms)
+[ RUN      ] QpRetainedAnalyses.TheSsnEngineFreesItsRetainedSessionsAtSolveExit
+[       OK ] QpRetainedAnalyses.TheSsnEngineFreesItsRetainedSessionsAtSolveExit (0 ms)
+[ RUN      ] QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+/home/ghecht/Projects/hven/.claude/worktrees/pf5b/tests/qp/seam/test_qp_retained_analyses.cpp:206: Failure
+Expected equality of these values:
+  s.counters.symbolic_analysis_reuses
+    Which is: 23
+  reuses.reuses()
+    Which is: 0
+
+[  FAILED  ] QpRetainedAnalyses.AWalkSubproblemCountsItsReuses (469 ms)
+[----------] 4 tests from QpRetainedAnalyses (473 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (473 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpRetainedAnalyses.AWalkSubproblemCountsItsReuses
+
+ 1 FAILED TEST
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/pf5b/.scratch/build-pf5/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpBackendAnalysisTally.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from SqpBackendAnalysisTally
+[ RUN      ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession
+[       OK ] SqpBackendAnalysisTally.CoversTheCountedAnalysesOnThePlatformSession (5 ms)
+[ RUN      ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis
+[       OK ] SqpBackendAnalysisTally.TheDenseArmPaysNoPlatformAnalysis (0 ms)
+[----------] 2 tests from SqpBackendAnalysisTally (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 2 tests.

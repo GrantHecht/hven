@@ -1,0 +1,3 @@
+G10 CI: gh workflow run ci.yml --ref rs-1, run 44233600742 on origin rs-1 head 48a4ecd5b (RS-1a..1e): conclusion success.
+linux-clang-release success, linux-clang-coverage success, macos-clang-release success, windows-clang-release success.
+The macOS and Windows evidence is for this head only (intermediate commits were verified on Linux; design S8, Q15).

@@ -1,0 +1,64 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/fp-unwired/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArm*
+[==========] Running 24 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from DenseArm
+[ RUN      ] DenseArm.LifecycleMatchesTheSparseArm
+[       OK ] DenseArm.LifecycleMatchesTheSparseArm (3 ms)
+[ RUN      ] DenseArm.EvidenceIsObservedCountedAndUnperturbed
+[       OK ] DenseArm.EvidenceIsObservedCountedAndUnperturbed (0 ms)
+[ RUN      ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+[       OK ] DenseArm.LakesMatrixCountsTheReferenceNegatives (0 ms)
+[ RUN      ] DenseArm.ExactlySingularFallsBackToThePlatformSession
+[       OK ] DenseArm.ExactlySingularFallsBackToThePlatformSession (0 ms)
+[ RUN      ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms
+[       OK ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms (0 ms)
+[ RUN      ] DenseArm.ShareAndAdoptOnDenseNumerics
+[       OK ] DenseArm.ShareAndAdoptOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership
+[       OK ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership (0 ms)
+[ RUN      ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy
+[       OK ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy (0 ms)
+[ RUN      ] DenseArm.HandleSolveAndInertiaOnDenseNumerics
+[       OK ] DenseArm.HandleSolveAndInertiaOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics
+[       OK ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.OptionsValidation
+[       OK ] DenseArm.OptionsValidation (0 ms)
+[ RUN      ] DenseArm.AutoSelectsByDimension
+[       OK ] DenseArm.AutoSelectsByDimension (0 ms)
+[ RUN      ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations
+[       OK ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations (0 ms)
+[ RUN      ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress
+[       OK ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress (0 ms)
+[ RUN      ] DenseArm.PatternGuardRunsAsOnTheSparseArm
+[       OK ] DenseArm.PatternGuardRunsAsOnTheSparseArm (0 ms)
+[ RUN      ] DenseArm.CounterIdentityOnAMixedRun
+[       OK ] DenseArm.CounterIdentityOnAMixedRun (0 ms)
+[ RUN      ] DenseArm.ThreadsRoundTrip
+[       OK ] DenseArm.ThreadsRoundTrip (0 ms)
+[----------] 17 tests from DenseArm (4 ms total)
+
+[----------] 5 tests from DenseArmBlockWalk
+[ RUN      ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative
+[       OK ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative (0 ms)
+[ RUN      ] DenseArmBlockWalk.SignsFromDeterminantAndTrace
+[       OK ] DenseArmBlockWalk.SignsFromDeterminantAndTrace (0 ms)
+[ RUN      ] DenseArmBlockWalk.ZeroDeterminantIsSingular
+[       OK ] DenseArmBlockWalk.ZeroDeterminantIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.NonFiniteIsSingular
+[       OK ] DenseArmBlockWalk.NonFiniteIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.MalformedPivotDataThrows
+[       OK ] DenseArmBlockWalk.MalformedPivotDataThrows (0 ms)
+[----------] 5 tests from DenseArmBlockWalk (0 ms total)
+
+[----------] 2 tests from DenseArmConditionCheck
+[ RUN      ] DenseArmConditionCheck.SingularToWorkingPrecisionFallsBack
+[       OK ] DenseArmConditionCheck.SingularToWorkingPrecisionFallsBack (0 ms)
+[ RUN      ] DenseArmConditionCheck.RefusedUnderNeverAndCarriedByAFallbackHandle
+[       OK ] DenseArmConditionCheck.RefusedUnderNeverAndCarriedByAFallbackHandle (0 ms)
+[----------] 2 tests from DenseArmConditionCheck (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 24 tests from 3 test suites ran. (4 ms total)
+[  PASSED  ] 24 tests.

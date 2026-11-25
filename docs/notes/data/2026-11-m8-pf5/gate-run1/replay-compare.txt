@@ -1,0 +1,9 @@
+=== A-k1 vs B-k1 walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k1 ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k1 ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k2 walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k2 ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k2 ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k3 walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k3 ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-k1 vs B-k3 ipm === cells compared: 27  columns compared: 75  differences: 0

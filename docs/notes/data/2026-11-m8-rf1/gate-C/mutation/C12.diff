@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index e589f446f..f2f3b16e1 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -145,7 +145,7 @@ void validate(const SqpOptions &opts) {
+             throw std::invalid_argument(
+                 fmt::format("SqpSolver: termination.{} ({}) must be finite and > 0", name, v));
+         }
+-        if (!(floor <= v)) {
++        if (false) {
+             throw std::invalid_argument(fmt::format(
+                 "SqpSolver: {} ({}) must be <= termination.{} ({})", floor_name, floor, name, v));
+         }

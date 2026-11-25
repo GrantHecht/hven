@@ -1,0 +1,164 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T22:43:02-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T22:43:02-05:00
+
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2497 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2498 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T22:44:17-05:00
+STEP ctest-rel rc=0 2026-11-16T22:44:17-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T22:44:17-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2497 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2498 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T22:51:16-05:00
+STEP ctest-dbg rc=0 2026-11-16T22:51:16-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T22:51:16-05:00
+6d323ea60f7f9fb87edcdafdc83cfa663a610ee11e75cb200c3fe291fb7c7be1  /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/armAbin/hven_sqp_corpus
+071822cdb75a262e55c4208e6b98eacc244ac362b256fbdd5a074717b4a825c1  /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-16T22:51:16-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-16T22:56:06-05:00
+run rc=0
+compare A vs B rc=0
+=== trb-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-16T23:00:55-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-16T23:01:16-05:00
+run rc=0
+compare A vs B rc=0
+=== trb-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-16T23:01:36-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-16T23:02:02-05:00
+run rc=0
+compare A vs B rc=0
+=== trb-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-16T23:02:28-05:00
+run rc=0
+compare armed rc=0
+=== trb-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-16T23:07:16-05:00
+run rc=0
+compare armed rc=0
+=== trb-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-16T23:07:37-05:00
+run rc=0
+compare armed rc=0
+=== trb-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-16T23:08:03-05:00
+STEP replay rc=0 2026-11-16T23:08:03-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T23:08:03-05:00
+6d323ea60f7f9fb87edcdafdc83cfa663a610ee11e75cb200c3fe291fb7c7be1  /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/armAbin/hven_sqp_corpus
+071822cdb75a262e55c4208e6b98eacc244ac362b256fbdd5a074717b4a825c1  /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/tr-b/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-16T23:08:47-05:00
+STEP interior rc=0 2026-11-16T23:08:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T23:08:47-05:00
+SMOKE_START default 2026-11-16T23:08:47-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-16T23:09:52-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/tr-b/.scratch/build-trb/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-16T23:10:33-05:00
+STEP install-smoke rc=0 2026-11-16T23:10:33-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T23:10:33-05:00
+control build rc=0
+CONTROL failures: []
+APPLIED i1 src/drivers/ipm_solver.cpp
+MUT i1: TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired drivers rc=1 
+APPLIED i2 src/drivers/ipm_solver.cpp
+MUT i2: IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit drivers rc=1 interior rc=1 
+APPLIED i3 src/drivers/ipm_solver.cpp
+MUT i3: IpmTrace.ACallbackStopWritesOneStopAtIterationMessageWithSourceCallback TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit drivers rc=1 interior rc=1 
+APPLIED i4 src/drivers/ipm_solver.cpp
+MUT i4: TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+APPLIED s1 src/drivers/sqp_solver.cpp
+MUT s1: TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters drivers rc=1 
+APPLIED s2 src/drivers/sqp_solver.cpp
+MUT s2: TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem drivers rc=1 
+APPLIED s3 src/drivers/sqp_solver.cpp
+MUT s3: TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo drivers rc=1 
+APPLIED s4 src/drivers/sqp_solver.cpp
+MUT s4: TraceMessageSites.TheSqpMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+APPLIED s5 src/drivers/sqp_solver.cpp
+MUT s5: SURVIVES
+APPLIED s6 src/drivers/sqp_solver.cpp
+MUT s6: ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs TraceMessageSites.TheSqpSourceConstructsExactlyTheDeclaredSites drivers rc=1 sqp rc=1 
+APPLIED a1 src/drivers/ipm_solver.cpp
+MUT a1: ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1 
+APPLIED a2 src/drivers/ipm_solver.cpp
+MUT a2: ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1 
+APPLIED g1 src/drivers/sqp_solver.cpp
+MUT g1: TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1 
+FOREGROUND_END 2026-11-16T23:16:57-05:00
+STEP mutations rc=0 2026-11-16T23:16:57-05:00
+control: fails nothing
+i1   must-kill KILLED by TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired drivers rc=1
+i2   must-kill KILLED by IpmTrace.EveryRestorationEntryWritesARestorationEnteredMessage TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit drivers rc=1 interior rc=1
+i3   must-kill KILLED by IpmTrace.ACallbackStopWritesOneStopAtIterationMessageWithSourceCallback TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit drivers rc=1 interior rc=1
+i4   must-kill KILLED by TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+s1   must-kill KILLED by TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters drivers rc=1
+s2   must-kill KILLED by TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem drivers rc=1
+s3   must-kill KILLED by TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo drivers rc=1
+s4   must-kill KILLED by TraceMessageSites.TheSqpMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+s5   must-kill SURVIVES
+s6   must-kill KILLED by ScaledConvergenceGuard.AShrunkRowIsNotConvergedUntilTheCallersResidualIs TraceMessageSites.TheSqpSourceConstructsExactlyTheDeclaredSites drivers rc=1 sqp rc=1
+a1   must-kill KILLED by ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1
+a2   must-kill KILLED by ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1
+g1   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+MUTATION_VERDICT FAIL
+STEP mutation-verdict rc=1 2026-11-16T23:16:57-05:00
+CHAIN_STOPPED_AT mutation-verdict
+FOREGROUND_END 2026-11-16T23:16:57-05:00

@@ -1,0 +1,82 @@
+== gate RS-R1 head af26098a8 base b02e88eb4 steps: build psym flags lists ctest smoke replay pch debug sweep mutation 2026-11-19T15:18:51-05:00
+build-release rc=0 2026-11-19T15:22:36-05:00
+psym-arms rc=0 2026-11-19T15:30:06-05:00
+objects-as-declared rc=0 2026-11-19T15:30:06-05:00
+flags-as-declared rc=0 2026-11-19T15:30:06-05:00
+lists-as-declared rc=0 2026-11-19T15:30:45-05:00
+union: base 3833 names, after 3835 names
+  hven_core_tests                    base    44 after    45  removed 1 added 2
+  hven_linear_tests                  base   154 after   155  removed 0 added 1
+  hven_model_tests                   base   476 after   476  removed 0 added 0
+  hven_kkt_tests                     base    53 after    53  removed 0 added 0
+  hven_qp_tests                      base   450 after   451  removed 0 added 1
+  hven_warmstart_tests               base   364 after   364  removed 0 added 0
+  hven_solver_tests                  base   363 after   363  removed 0 added 0
+  hven_trace_tests                   base   158 after   158  removed 0 added 0
+  hven_ipm_tests                     base   451 after   451  removed 0 added 0
+  hven_sqp_tests                     base   751 after   751  removed 0 added 0
+  hven_bench_tests                   base   148 after   148  removed 0 added 0
+  hven_linear_seam_tests             base    29 after    29  removed 0 added 0
+  hven_kkt_seam_tests                base     7 after     7  removed 0 added 0
+  hven_qp_seam_tests                 base   312 after   311  removed 1 added 0
+  hven_solver_seam_tests             base    21 after    21  removed 0 added 0
+  hven_ipm_seam_tests                base    19 after    19  removed 0 added 0
+  hven_sqp_seam_tests                base    31 after    31  removed 0 added 0
+  hven_linear_alloc_tests            base     2 after     2  removed 0 added 0
+declared move hven_core_tests -> hven_linear_tests (SparseBackendLink.*): 1 names
+declared move hven_qp_seam_tests -> hven_qp_tests (RouteReference.*): 1 names
+names in more than one after executable: 0 (base 0)
+ctest -N: base 3911 (+2 declared), after 3913; added [] removed []
+LISTS_AS_DECLARED
+ctest-release rc=0 2026-11-19T15:32:46-05:00
+100% tests passed, 0 tests failed out of 3911
+          Start    1: HeaderSelfContained
+          Start   62: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+          Start   63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+  60/3913 Test   #62: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.00 sec
+          Start   64: Layering.TheScanReadsTheWholeTree
+  61/3913 Test   #63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.00 sec
+          Start   65: Layering.NoIncludeGoesUpTheLayerOrder
+  62/3913 Test   #65: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.02 sec
+          Start   66: Layering.EveryAllowListedPairStillOccurs
+  63/3913 Test   #64: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.02 sec
+          Start   67: Layering.PublicHeadersDoNotIncludeDetail
+  64/3913 Test   #66: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.02 sec
+          Start   68: Layering.NoForwardDeclarationGoesUpTheLayerOrder
+  65/3913 Test   #67: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.02 sec
+          Start   69: Layering.KnownForwardDeclarationsStillOccur
+  99/3913 Test   #68: Layering.NoForwardDeclarationGoesUpTheLayerOrder ...................................................................................................................................................................   Passed    0.17 sec
+ 100/3913 Test   #69: Layering.KnownForwardDeclarationsStillOccur ........................................................................................................................................................................   Passed    0.17 sec
+1382/3913 Test    #1: HeaderSelfContained ................................................................................................................................................................................................   Passed   35.45 sec
+install-smoke rc=0 2026-11-19T15:34:37-05:00
+580a581
+> include/hven/qp/qp_options.h
+replay rc=0 2026-11-19T15:40:13-05:00
+=== ipm === cells compared: 27  columns compared: 75  differences: 0
+=== ssn === cells compared: 27  columns compared: 75  differences: 0
+=== walk === cells compared: 27  columns compared: 75  differences: 0
+pch-neutrality rc=0 2026-11-19T15:41:28-05:00
+build-debug rc=0 2026-11-19T15:44:06-05:00
+ctest-debug rc=0 2026-11-19T15:52:22-05:00
+100% tests passed, 0 tests failed out of 3911
+          Start    1: HeaderSelfContained
+          Start   62: CoreLayering.TheScanActuallyReadsTheCoreHeaders
+  59/3913 Test   #62: CoreLayering.TheScanActuallyReadsTheCoreHeaders ....................................................................................................................................................................   Passed    0.01 sec
+          Start   63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+  60/3913 Test   #63: CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier ................................................................................................................................................................   Passed    0.01 sec
+          Start   64: Layering.TheScanReadsTheWholeTree
+  61/3913 Test   #64: Layering.TheScanReadsTheWholeTree ..................................................................................................................................................................................   Passed    0.09 sec
+          Start   65: Layering.NoIncludeGoesUpTheLayerOrder
+          Start   66: Layering.EveryAllowListedPairStillOccurs
+          Start   67: Layering.PublicHeadersDoNotIncludeDetail
+  64/3913 Test   #65: Layering.NoIncludeGoesUpTheLayerOrder ..............................................................................................................................................................................   Passed    0.11 sec
+          Start   68: Layering.NoForwardDeclarationGoesUpTheLayerOrder
+  65/3913 Test   #66: Layering.EveryAllowListedPairStillOccurs ...........................................................................................................................................................................   Passed    0.11 sec
+          Start   69: Layering.KnownForwardDeclarationsStillOccur
+  66/3913 Test   #67: Layering.PublicHeadersDoNotIncludeDetail ...........................................................................................................................................................................   Passed    0.11 sec
+ 176/3913 Test   #69: Layering.KnownForwardDeclarationsStillOccur ........................................................................................................................................................................   Passed    3.07 sec
+ 177/3913 Test   #68: Layering.NoForwardDeclarationGoesUpTheLayerOrder ...................................................................................................................................................................   Passed    3.09 sec
+ 746/3913 Test    #1: HeaderSelfContained ................................................................................................................................................................................................   Passed   27.86 sec
+PASS 171 FAIL 3
+mutation rc=0 2026-11-19T15:53:44-05:00
+== gate RS-R1 done 2026-11-19T15:53:44-05:00

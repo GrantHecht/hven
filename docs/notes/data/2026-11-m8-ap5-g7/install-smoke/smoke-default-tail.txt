@@ -1,0 +1,4 @@
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g7/build-g7/smoke-default/hven-configure.log

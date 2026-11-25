@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_options.cpp b/src/sqp/sqp_options.cpp
+index 3f377fc47..8633ba834 100644
+--- a/src/sqp/sqp_options.cpp
++++ b/src/sqp/sqp_options.cpp
+@@ -133,7 +133,7 @@ void validate(const SqpOptions &opts) {
+     }
+     enum_in_range(opts.qp.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder,
+                   "qp.working_set_algebra");
+-    if (!(opts.qp.trust_region_radius >= 0.0)) { // +inf passes; NaN and negatives do not
++    if (false) { // +inf passes; NaN and negatives do not
+         throw std::invalid_argument(fmt::format(
+             "SqpSolver: qp.trust_region_radius ({}) must be >= 0 (+inf is legal and means none)",
+             opts.qp.trust_region_radius));

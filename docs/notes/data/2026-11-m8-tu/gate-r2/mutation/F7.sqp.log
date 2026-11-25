@@ -1,0 +1,135 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/tu0/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Tu0*:SqpSolverElasticSeed.*:SqpSolverRestorationSeed.*
+[==========] Running 50 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from SqpSolverRestorationSeed
+[ RUN      ] SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer
+[       OK ] SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (15 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (32 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm
+[       OK ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm (6 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (119 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm
+[       OK ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm (12 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpSolverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (8 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (98 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm
+[       OK ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm (34 ms)
+[ RUN      ] SqpSolverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpSolverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (0 ms)
+[ RUN      ] SqpSolverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpSolverRestorationSeed.AZeroElasticStepIsNotACandidate (1 ms)
+[ RUN      ] SqpSolverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpSolverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (6 ms)
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (971 ms)
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm (207 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt
+[       OK ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt (2 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm
+[       OK ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm (5 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpSolverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (1 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (61 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm (5 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe (10 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption
+[       OK ] SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption (27 ms)
+[----------] 20 tests from SqpSolverRestorationSeed (1630 ms total)
+
+[----------] 14 tests from SqpSolverElasticSeed
+[ RUN      ] SqpSolverElasticSeed.TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence
+[       OK ] SqpSolverElasticSeed.TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence (1 ms)
+[ RUN      ] SqpSolverElasticSeed.TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations
+[       OK ] SqpSolverElasticSeed.TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations (6 ms)
+[ RUN      ] SqpSolverElasticSeed.TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing
+[       OK ] SqpSolverElasticSeed.TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing (3 ms)
+[ RUN      ] SqpSolverElasticSeed.GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere
+[       OK ] SqpSolverElasticSeed.GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere (2 ms)
+[ RUN      ] SqpSolverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds
+[       OK ] SqpSolverElasticSeed.TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds (1 ms)
+[ RUN      ] SqpSolverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt
+[       OK ] SqpSolverElasticSeed.AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt (4 ms)
+[ RUN      ] SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling
+[       OK ] SqpSolverElasticSeed.TheEscalationHeadroomIsTheOptionsNumberOfRungsBelowTheCeiling (4 ms)
+[ RUN      ] SqpSolverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay
+[       OK ] SqpSolverElasticSeed.ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay (2 ms)
+[ RUN      ] SqpSolverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly
+[       OK ] SqpSolverElasticSeed.ADefaultConstructedEvidenceBlockIsW1sLadderExactly (2 ms)
+[ RUN      ] SqpSolverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung
+[       OK ] SqpSolverElasticSeed.T6bAClimbingConsistentLadderClosesAtEveryRung (0 ms)
+[ RUN      ] SqpSolverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo
+[       OK ] SqpSolverElasticSeed.T6bTheLadderAboveLambda1e6ClosesToo (1 ms)
+[ RUN      ] SqpSolverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines
+[       OK ] SqpSolverElasticSeed.T6bTheUncontainedInBranchRouteNoLongerDeclines (1 ms)
+[ RUN      ] SqpSolverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable
+[       OK ] SqpSolverElasticSeed.T6bCoversTheBandWhereThePlacementMarginIsUnachievable (0 ms)
+[ RUN      ] SqpSolverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum
+[       OK ] SqpSolverElasticSeed.T6bTheBandsHIGHRungsReachTheOptimum (0 ms)
+[----------] 14 tests from SqpSolverElasticSeed (34 ms total)
+
+[----------] 5 tests from Tu0TrustRegionGrowth
+[ RUN      ] Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule
+[       OK ] Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep
+[       OK ] Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll
+[       OK ] Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards
+[       OK ] Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+[       OK ] Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius (1 ms)
+[----------] 5 tests from Tu0TrustRegionGrowth (1 ms total)
+
+[----------] 4 tests from Tu0RowScalingPowerOfTwo
+[ RUN      ] Tu0RowScalingPowerOfTwo.OffIsTheUnroundedRule
+[       OK ] Tu0RowScalingPowerOfTwo.OffIsTheUnroundedRule (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+[       OK ] Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp
+[       OK ] Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+[       OK ] Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors (0 ms)
+[----------] 4 tests from Tu0RowScalingPowerOfTwo (0 ms total)
+
+[----------] 2 tests from Tu0AdaptiveDualRegularizationMax
+[ RUN      ] Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade
+[       OK ] Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade (2 ms)
+[ RUN      ] Tu0AdaptiveDualRegularizationMax.ItBoundsEveryMajorsMuFromAbove
+[       OK ] Tu0AdaptiveDualRegularizationMax.ItBoundsEveryMajorsMuFromAbove (0 ms)
+[----------] 2 tests from Tu0AdaptiveDualRegularizationMax (3 ms total)
+
+[----------] 3 tests from Tu0SsnLevers
+[ RUN      ] Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+/home/ghecht/Projects/hven/.claude/worktrees/tu0/tests/sqp/test_tu0_levers.cpp:320: Failure
+Expected: (base.counters.factorizations) != (linear.counters.factorizations), actual: 77 vs 77
+
+[  FAILED  ] Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine (1 ms)
+[ RUN      ] Tu0SsnLevers.TheUncertainToleranceReachesTheEngine
+[       OK ] Tu0SsnLevers.TheUncertainToleranceReachesTheEngine (1 ms)
+[ RUN      ] Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+[       OK ] Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine (4 ms)
+[----------] 3 tests from Tu0SsnLevers (7 ms total)
+
+[----------] 2 tests from Tu0SchurBorder
+[ RUN      ] Tu0SchurBorder.ZeroIsAValidSettingAndTheSolveStillConverges
+[       OK ] Tu0SchurBorder.ZeroIsAValidSettingAndTheSolveStillConverges (0 ms)
+[ RUN      ] Tu0SchurBorder.ZeroAlsoSolvesAnInequalityConstrainedProblemInTheRefactorizeAlgebraToo
+[       OK ] Tu0SchurBorder.ZeroAlsoSolvesAnInequalityConstrainedProblemInTheRefactorizeAlgebraToo (0 ms)
+[----------] 2 tests from Tu0SchurBorder (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 50 tests from 7 test suites ran. (1677 ms total)
+[  PASSED  ] 49 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+
+ 1 FAILED TEST

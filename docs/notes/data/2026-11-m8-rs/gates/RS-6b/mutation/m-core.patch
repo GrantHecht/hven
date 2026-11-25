@@ -1,0 +1,13 @@
+diff --git a/src/core/ledger.cpp b/src/core/ledger.cpp
+index e083c0e10..b88c0fecc 100644
+--- a/src/core/ledger.cpp
++++ b/src/core/ledger.cpp
+@@ -25,7 +25,7 @@ StartLevelHistogram Ledger::level_histogram() const {
+             ++h.seeded;
+             break;
+         case StartLevel::kWarm:
+-            ++h.warm;
++            ++h.hot;
+             break;
+         case StartLevel::kHot:
+             ++h.hot;

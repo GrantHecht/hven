@@ -1,0 +1,4 @@
+6955c6955
+<         st.row_work_base_minor += phase.counters.qp_minor_iters; // I19-1: not this row's work
+---
+>         (void)0;

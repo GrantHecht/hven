@@ -1,0 +1,1620 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// The result core: the shared declared diagnostics, the snapshot export, the
+// interior-point phase sequence and the shared budget.
+//
+// THE DIAGNOSTICS PINS BELOW ARE INDEPENDENT COMPUTATIONS. Nothing here asks an
+// engine what it measured; the model quantities are written out by hand at a
+// point whose KKT multipliers are known, and the expected answers follow from
+// the definitions in solver/solve_result.h rather than from any engine's own
+// convergence test. That is the whole point of the pin: if the shared
+// definition ever drifts toward one engine's internal measure, these fail.
+
+#include <cmath>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <gtest/gtest.h>
+
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/declared_diagnostics.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
+#include <hven/ipm/ipm_solver.h>
+#include <hven/ipm/ipm_solver_types.h>
+#include <hven/model/nlp.h>
+#include <hven/model/problem.h>
+#include <hven/solver/solve_result.h>
+#include <hven/sqp/sqp_solver.h>
+#include <hven/sqp/sqp_solver_types.h>
+
+#include "model/support/hs071_problem.h"
+#include "model/support/hs_problems.h"
+
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
+
+namespace {
+using hven::detail::WarmStartAccess;
+} // namespace
+
+using hven::Index;
+using hven::SpMatRM;
+using hven::Vec;
+using hven::detail::compute_declared_diagnostics;
+using hven::detail::DeclaredDiagnostics;
+
+namespace {
+
+/// An empty m x n sparse block, for a problem class the fixture does not use.
+SpMatRM empty_block(Index rows, Index cols) { return SpMatRM(rows, cols); }
+
+/// A dense row vector as a one-row sparse Jacobian block.
+SpMatRM row_block(const std::vector<double> &row) {
+    const Index n = static_cast<Index>(row.size());
+    SpMatRM m(1, n);
+    std::vector<Eigen::Triplet<double>> t;
+    for (Index j = 0; j < n; ++j) {
+        t.emplace_back(0, j, row[static_cast<std::size_t>(j)]);
+    }
+    m.setFromTriplets(t.begin(), t.end());
+    m.makeCompressed();
+    return m;
+}
+
+Vec vec_of(const std::vector<double> &v) {
+    Vec out(static_cast<Index>(v.size()));
+    for (std::size_t i = 0; i < v.size(); ++i) {
+        out(static_cast<Index>(i)) = v[i];
+    }
+    return out;
+}
+
+constexpr double kInf = std::numeric_limits<double>::infinity();
+
+} // namespace
+
+// ===========================================================================
+// (1) The definition closes on a genuine KKT point.
+// ===========================================================================
+
+// HS071 -- min x1*x4*(x1+x2+x3) + x3, subject to
+//   x1*x2*x3*x4 >= 25, x1^2+x2^2+x3^2+x4^2 = 40, 1 <= xi <= 5.
+//
+// In hven's declared convention the inequality is written ci <= 0, so
+//   ce(x) = x1^2+x2^2+x3^2+x4^2 - 40,   ci(x) = 25 - x1*x2*x3*x4,
+// and the Lagrangian is L = f + lambda_e*ce + lambda_i*ci - z.
+//
+// THE POINT AND ITS PRICES BELOW WERE COMPUTED OUTSIDE THIS TREE, by Newton's
+// method on the five KKT equations (stationarity in x2, x3, x4; the equality
+// row; the active inequality row) with x1 pinned at its lower bound -- not by
+// running either hven engine on the problem. x1 sits ON its lower bound, which
+// is what makes z(0) non-zero and gives the canonical bound product something
+// to price.
+TEST(DeclaredDiagnostics, ClosesOnAKktPointOfHs071) {
+    const double x1 = 1.0;
+    const double x2 = 4.7429996372644174;
+    const double x3 = 3.8211499841848742;
+    const double x4 = 1.3794082931726723;
+    const double lambda_e = 0.16146856677050586;
+    const double lambda_i = 0.55229366012072689;
+
+    const Vec x = vec_of({x1, x2, x3, x4});
+    // grad f, by hand: d/dx1 = x4*(2*x1+x2+x3), d/dx2 = x1*x4,
+    //                  d/dx3 = x1*x4 + 1,       d/dx4 = x1*(x1+x2+x3).
+    const Vec grad =
+        vec_of({x4 * (2.0 * x1 + x2 + x3), x1 * x4, x1 * x4 + 1.0, x1 * (x1 + x2 + x3)});
+    // Je = grad(sum xi^2) = 2x; Ji = grad(25 - prod xi) = -(the cofactors).
+    const SpMatRM Je = row_block({2.0 * x1, 2.0 * x2, 2.0 * x3, 2.0 * x4});
+    const SpMatRM Ji =
+        row_block({-(x2 * x3 * x4), -(x1 * x3 * x4), -(x1 * x2 * x4), -(x1 * x2 * x3)});
+    const Vec ce = vec_of({x1 * x1 + x2 * x2 + x3 * x3 + x4 * x4 - 40.0});
+    const Vec ci = vec_of({25.0 - x1 * x2 * x3 * x4});
+
+    // z is the bound price: zero on the three interior coordinates, and on the
+    // coordinate at its lower bound it is exactly what stationarity leaves --
+    // grad L there. Written out rather than read back from the function under
+    // test.
+    const double grad_lag_1 = grad(0) + lambda_e * 2.0 * x1 + lambda_i * (-(x2 * x3 * x4));
+    const Vec z = vec_of({grad_lag_1, 0.0, 0.0, 0.0});
+    EXPECT_NEAR(grad_lag_1, 1.0878712286669412, 1e-12);
+
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        x, vec_of({lambda_e}), vec_of({lambda_i}), z, grad, Je, Ji, ce, ci,
+        vec_of({1.0, 1.0, 1.0, 1.0}), vec_of({5.0, 5.0, 5.0, 5.0}), {});
+
+    EXPECT_LT(d.stationarity, 1e-9);
+    EXPECT_LT(d.feasibility_e, 1e-9);
+    // The inequality is ACTIVE here, so its residual is 0 rather than negative;
+    // the positive part is 0 either way and no bound is violated.
+    EXPECT_LT(d.feasibility_i, 1e-9);
+    // Both complementarity families vanish at this point for DIFFERENT reasons:
+    // lambda_i * ci because ci is 0 at an active row, and the lower-bound
+    // product because x1 - l1 is 0 at a bound the price is paid at. A
+    // definition that dropped either family would still read 0 here, which is
+    // why the two tests below pin the families themselves.
+    EXPECT_LT(d.complementarity, 1e-9);
+}
+
+// ===========================================================================
+// (2) The canonical two-sided bound split.
+// ===========================================================================
+
+// A signed z = zL - zU cannot recover two separate prices at a two-sided bound
+// where both are positive. The shared diagnostic therefore prices the LOWER
+// side with max(z,0) and the UPPER side with max(-z,0), and this pins that
+// choice against the alternative it is not.
+TEST(DeclaredDiagnostics, TwoSidedBoundUsesCanonicalSplit) {
+    // One variable, strictly inside [0, 1], with a signed price that came from
+    // zL = 2 and zU = 3 -- both strictly positive, which is the case the split
+    // exists for.
+    const Vec x = vec_of({0.5});
+    const Vec z = vec_of({2.0 - 3.0});
+    const Vec grad = vec_of({z(0)}); // stationary at that price: grad - z = 0
+    const Vec empty(0);
+
+    const DeclaredDiagnostics d =
+        compute_declared_diagnostics(x, empty, empty, z, grad, empty_block(0, 1), empty_block(0, 1),
+                                     empty, empty, vec_of({0.0}), vec_of({1.0}), {});
+
+    EXPECT_NEAR(d.stationarity, 0.0, 1e-15);
+    // z is negative, so the LOWER product max(z,0)*(x-l) is 0 and the UPPER
+    // product max(-z,0)*(u-x) = 1 * 0.5 carries the whole measure.
+    EXPECT_NEAR(d.complementarity, 0.5, 1e-15);
+    // What it is NOT: the true two-price measure max(zL*(x-l), zU*(u-x)) would
+    // read max(2*0.5, 3*0.5) = 1.5 here. The canonical split cannot see zL and
+    // zU separately and does not pretend to -- an engine that holds both keeps
+    // its own measure on its own result.
+    EXPECT_NE(d.complementarity, 1.5);
+}
+
+// ===========================================================================
+// (3) An excluded coordinate is not measured.
+// ===========================================================================
+
+// Under the interior-point engine's MakeParameter treatment an eliminated
+// variable has no row in the reduced problem at all: the reduced gradient
+// reports 0 there, and a 0 that means "no row" must not enter an inf-norm
+// beside 0s that mean "stationary". The exclusion list is how the engine says
+// so.
+TEST(DeclaredDiagnostics, ExcludedCoordinateIsNotMeasured) {
+    // Coordinate 0 carries a large residual; coordinate 1 a tiny one. No
+    // constraints, no finite bounds, so stationarity is the whole measurement.
+    const Vec x = vec_of({3.0, 7.0});
+    const Vec grad = vec_of({100.0, 1e-9});
+    const Vec z = vec_of({0.0, 0.0});
+    const Vec empty(0);
+    const Vec lower = vec_of({-kInf, -kInf});
+    const Vec upper = vec_of({kInf, kInf});
+
+    const DeclaredDiagnostics measured =
+        compute_declared_diagnostics(x, empty, empty, z, grad, empty_block(0, 2), empty_block(0, 2),
+                                     empty, empty, lower, upper, {});
+    EXPECT_NEAR(measured.stationarity, 100.0, 1e-15);
+
+    const DeclaredDiagnostics excluded =
+        compute_declared_diagnostics(x, empty, empty, z, grad, empty_block(0, 2), empty_block(0, 2),
+                                     empty, empty, lower, upper, {0});
+    EXPECT_NEAR(excluded.stationarity, 1e-9, 1e-18);
+
+    // An infinite bound prices nothing: 0 * inf is not a measurement, and the
+    // complementarity here has no finite bound and no inequality row to read.
+    EXPECT_NEAR(excluded.complementarity, 0.0, 1e-15);
+
+    // Excluding EVERY coordinate leaves nothing measured, which is NaN and not
+    // zero -- the same discipline the rest of the result core keeps.
+    const DeclaredDiagnostics none =
+        compute_declared_diagnostics(x, empty, empty, z, grad, empty_block(0, 2), empty_block(0, 2),
+                                     empty, empty, lower, upper, {0, 1});
+    EXPECT_TRUE(std::isnan(none.stationarity));
+    // The other three were still measured: exclusion is about the stationarity
+    // coordinates alone.
+    EXPECT_FALSE(std::isnan(none.feasibility_e));
+    EXPECT_FALSE(std::isnan(none.feasibility_i));
+    EXPECT_FALSE(std::isnan(none.complementarity));
+}
+
+// ===========================================================================
+// (4) The interior-point engine's half of the result core: phases, the budget,
+//     the model-taking pattern query and the export snapshot.
+// ===========================================================================
+//
+// These need a live solve, which is why they sit after the definition pins
+// above rather than beside them: what they check is that the ENGINE fills the
+// shared shape correctly, not what the shape means.
+
+TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
+    // {kOptimize, kSolve} -- what the old optimize_solve() entry ran. The
+    // trailing solve is conditional on the phase BEFORE it, so on a problem the
+    // optimize phase converges it never runs at all.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.phases = {hven::IpmPhase::kOptimize, hven::IpmPhase::kSolve};
+    hven::IpmSolver solver(o);
+
+    hven_model_tests::Hs071Problem problem;
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult converged =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(converged.status, hven::SolveStatus::kOptimal);
+    ASSERT_EQ(converged.phases.size(), 2u);
+    EXPECT_EQ(converged.phases[0].phase, hven::IpmPhase::kOptimize);
+    EXPECT_TRUE(converged.phases[0].ran);
+    EXPECT_EQ(converged.phases[0].status, hven::SolveStatus::kOptimal);
+    EXPECT_EQ(converged.phases[1].phase, hven::IpmPhase::kSolve);
+    EXPECT_FALSE(converged.phases[1].ran) << "a kSolve after a converged kOptimize must not run";
+    EXPECT_EQ(converged.phases[1].iterations, 0);
+    // The call's own account is the phases that RAN: the sum, and the last
+    // ran phase's verdict.
+    EXPECT_EQ(converged.iterations, converged.phases[0].iterations);
+
+    // The same sequence with the optimize phase capped so it cannot converge:
+    // now the trailing solve DOES run, off exactly the same rule.
+    hven::IpmOptions capped = o;
+    capped.common.max_iterations = 1;
+    hven::IpmSolver tight(capped);
+    const hven::IpmResult exhausted =
+        tight.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(exhausted.phases.size(), 2u);
+    EXPECT_TRUE(exhausted.phases[0].ran);
+    EXPECT_NE(exhausted.phases[0].status, hven::SolveStatus::kOptimal);
+    EXPECT_TRUE(exhausted.phases[1].ran) << "a kSolve after a NON-converged kOptimize runs";
+    EXPECT_EQ(exhausted.iterations,
+              exhausted.phases[0].iterations + exhausted.phases[1].iterations);
+}
+
+// THE PER-PHASE VERDICT, which is the whole of the defect design §2.3
+// registered for this task. Before T8.4 the stop reason was phase-scoped and
+// the verdict was per CALL, so a later phase that left without assigning one
+// reported the EARLIER phase's answer. The engine resets the verdict at every
+// phase start now, so the two cannot disagree.
+TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    // {kSolve, kOptimize} -- the old solve_optimize(). The second phase is
+    // UNCONDITIONAL, so both always run, and a cap tight enough to stop the
+    // optimize phase leaves the feasibility phase's own verdict standing beside
+    // it rather than overwriting it.
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+    // RE-DERIVED at M7 W2 D1 (2026-09-18), the declared IPM-default event: 10
+    // became 7. The cap here is an instrument, not a claim -- it exists to stop
+    // the optimality phase while leaving the feasibility phase's own verdict
+    // standing -- and the trajectory it is tuned against moved. Measured
+    // uncapped at the shipped default (filter over the monitored governor),
+    // this HS071 pair runs 6 then 8 iterations; under the old default the
+    // optimality phase ran past 10, which is what made 10 the right cap then
+    // and the wrong one now. 7 is the only value that stops the second phase
+    // (it needs 8) while leaving the first (it needs 6) short of the cap.
+    o.common.max_iterations = 7;
+    hven::IpmSolver solver(o);
+
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*model), x0);
+
+    ASSERT_EQ(r.phases.size(), 2u);
+    ASSERT_TRUE(r.phases[0].ran);
+    ASSERT_TRUE(r.phases[1].ran);
+    // The call reports the LAST RAN phase's status, and the first phase's own
+    // verdict is still readable beside it.
+    EXPECT_EQ(r.status, r.phases[1].status);
+    EXPECT_EQ(r.phases[1].status, hven::SolveStatus::kIterationLimit);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::StopReason::kNone);
+    // The feasibility phase ended on its own verdict, not on the cap.
+    EXPECT_LT(r.phases[0].iterations, o.common.max_iterations);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::StopReason::kNone);
+    // Both phases are timed separately, and neither timing is the call's.
+    EXPECT_GE(r.phases[0].phase_seconds, 0.0);
+    EXPECT_GE(r.phases[1].phase_seconds, 0.0);
+    EXPECT_GE(r.wall_seconds, 0.0);
+}
+
+TEST(IpmPhases, EmptySequenceIsRefused) {
+    hven::IpmOptions o;
+    o.phases.clear();
+    EXPECT_THROW(hven::validate(o), std::invalid_argument);
+    // And the refusal reaches a caller through every door that validates.
+    EXPECT_THROW(hven::IpmSolver{o}, std::invalid_argument);
+}
+
+TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.common.max_iterations = 200;
+    hven::IpmSolver solver(o);
+
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult capped =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start(), {},
+                     hven::SolveBudget{.max_iterations = 2});
+    EXPECT_EQ(capped.status, hven::SolveStatus::kIterationLimit);
+    EXPECT_LE(capped.iterations, 2);
+    ASSERT_EQ(capped.phases.size(), 1u);
+    EXPECT_EQ(capped.phases[0].stop_reason, hven::StopReason::kNone);
+
+    // TIGHTEN ONLY: a budget ABOVE the engine's own limit does not raise it.
+    hven::IpmOptions tight = o;
+    tight.common.max_iterations = 2;
+    hven::IpmSolver small(tight);
+    const hven::IpmResult still_capped =
+        small.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start(), {},
+                    hven::SolveBudget{.max_iterations = 10000});
+    EXPECT_EQ(still_capped.status, hven::SolveStatus::kIterationLimit);
+    EXPECT_LE(still_capped.iterations, 2);
+
+    // AND THE DEFAULT BUDGET IS THE IDENTITY, which is what makes the whole
+    // feature trajectory-neutral: the same solve with no budget named converges.
+    const hven::IpmResult unbudgeted =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    EXPECT_EQ(unbudgeted.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(unbudgeted.iterations, 2);
+}
+
+TEST(IpmIntrospection, PatternQueryTakesTheModel) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+
+    const auto first =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+    const auto second =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    // Nothing analysed yet: no program answers true.
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*first)));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*second)));
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*first), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*first)));
+
+    // A SECOND PROGRAM OF THE SAME DECLARED STRUCTURE answers FALSE. Its
+    // structure key and its structure epoch both match the analysed one -- every
+    // epoch counter starts at 0 -- so a token made of those two alone would say
+    // true here, and a solve would then scatter through location tables that
+    // are all -1. This is the case that makes the third conjunct load-bearing.
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*second)))
+        << "a different program of identical structure is not the analysed program";
+
+    // Solving the second re-analyses, and the first stops being the answer.
+    const hven::IpmResult r2 =
+        solver.solve(hven::detail::problem_ref(*second), hven_model_tests::hs071_start());
+    ASSERT_EQ(r2.status, hven::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*second)));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*first)));
+    EXPECT_EQ(r2.counters.symbolic_analyses, 1);
+    EXPECT_GT(r2.kkt_analyses_total, r.kkt_analyses_total);
+
+    // A REPEAT solve of the program already analysed re-analyses nothing.
+    const hven::IpmResult r3 =
+        solver.solve(hven::detail::problem_ref(*second), hven_model_tests::hs071_start());
+    EXPECT_EQ(r3.counters.symbolic_analyses, 0);
+    EXPECT_EQ(r3.kkt_analyses_total, r2.kkt_analyses_total);
+}
+
+TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+
+    const hven::WarmStart before = r.warm_start;
+    ASSERT_TRUE(!before.empty());
+    ASSERT_EQ(WarmStartAccess::primal(before).size(), 4);
+    const Eigen::VectorXd captured = WarmStartAccess::primal(before);
+
+    // Scribble on every public field. The snapshot was taken at solve exit and
+    // is not a view of these.
+    r.x.setZero();
+    hven::detail::engine_rows(r).lambda_e.setZero();
+    hven::detail::engine_rows(r).lambda_i.setZero();
+    r.z.setZero();
+    r.f = 0.0;
+    r.status = hven::SolveStatus::kNumericalError;
+
+    const hven::WarmStart after = r.warm_start;
+    ASSERT_TRUE(!after.empty());
+    ASSERT_EQ(WarmStartAccess::primal(after).size(), captured.size());
+    for (Index i = 0; i < captured.size(); ++i) {
+        EXPECT_EQ(WarmStartAccess::primal(after)[i], captured[i]);
+    }
+    EXPECT_GT(WarmStartAccess::primal(after).lpNorm<Eigen::Infinity>(), 0.0)
+        << "the export still carries the solution, not the zeroed field";
+}
+
+// The four shared diagnostics on a live interior-point solve, checked against
+// an INDEPENDENT computation over the same returned point. This is the pin that
+// ties §(1)'s definition to what the engine actually reports.
+TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+
+    // Declared shapes, in the caller's space.
+    ASSERT_EQ(r.x.size(), 4);
+    ASSERT_EQ(r.z.size(), 4);
+    ASSERT_EQ(hven::detail::engine_rows(r).lambda_e.size(), 1);
+    ASSERT_EQ(hven::detail::engine_rows(r).lambda_i.size(), 1);
+    ASSERT_EQ(hven::detail::engine_rows(r).ce.size(), 1);
+    ASSERT_EQ(hven::detail::engine_rows(r).ci.size(), 1);
+
+    // Every diagnostic MEASURED (not NaN), and every one small at a converged
+    // KKT point of HS071.
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_e));
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+    EXPECT_LT(hven::detail::engine_rows(r).feasibility_e, 1e-6);
+    EXPECT_LT(hven::detail::engine_rows(r).feasibility_i, 1e-6);
+    EXPECT_LT(r.complementarity, 1e-6);
+
+    // INDEPENDENTLY: the same four from the shared function, over the model
+    // quantities written out by hand at the returned point -- so a wrong
+    // reduced->declared mapping in the engine's own fill would show here.
+    const double x1 = r.x[0], x2 = r.x[1], x3 = r.x[2], x4 = r.x[3];
+    const Vec grad =
+        vec_of({x4 * (2.0 * x1 + x2 + x3), x1 * x4, x1 * x4 + 1.0, x1 * (x1 + x2 + x3)});
+    const SpMatRM Je = row_block({2.0 * x1, 2.0 * x2, 2.0 * x3, 2.0 * x4});
+    const SpMatRM Ji =
+        row_block({-(x2 * x3 * x4), -(x1 * x3 * x4), -(x1 * x2 * x4), -(x1 * x2 * x3)});
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        r.x, hven::detail::engine_rows(r).lambda_e, hven::detail::engine_rows(r).lambda_i, r.z,
+        grad, Je, Ji, hven::detail::engine_rows(r).ce, hven::detail::engine_rows(r).ci,
+        vec_of({1.0, 1.0, 1.0, 1.0}), vec_of({5.0, 5.0, 5.0, 5.0}), {});
+    EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::detail::engine_rows(r).feasibility_e, 1e-12);
+    EXPECT_NEAR(d.feasibility_i, hven::detail::engine_rows(r).feasibility_i, 1e-12);
+    EXPECT_NEAR(d.complementarity, r.complementarity, 1e-9);
+}
+
+// ===========================================================================
+// (5) The SQP engine's half of the result core.
+// ===========================================================================
+
+namespace {
+
+/// A model whose evaluation is NaN everywhere: the SQP's non-finite-start exit.
+///
+/// The point of the fixture is that NOTHING can be measured at the returned
+/// point, so the result has to say so rather than fill zeros.
+class NonFiniteModel final : public hven::detail::NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &) const override { return std::numeric_limits<double>::quiet_NaN(); }
+    Vec eval_grad(const Vec &) const override {
+        return Vec::Constant(2, std::numeric_limits<double>::quiet_NaN());
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInf);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInf);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+hven::SqpOptions quiet_sqp() {
+    hven::SqpOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    return o;
+}
+
+} // namespace
+
+TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
+    NonFiniteModel model;
+    hven::SqpSolver driver(quiet_sqp());
+    const hven::SqpResult r = driver.solve(hven::detail::problem_ref(model), model.start_point());
+
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError);
+    // NaN means UNMEASURED. A 0.0 in any of these would read as a converged
+    // residual at a point the model could not even be evaluated at.
+    EXPECT_TRUE(std::isnan(r.stationarity));
+    EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_e));
+    EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_i));
+    EXPECT_TRUE(std::isnan(r.complementarity));
+    // EMPTY, not zero-filled: the problem declares no rows here, and on a
+    // problem that did they would still be empty, because nothing was measured.
+    EXPECT_EQ(hven::detail::engine_rows(r).ce.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(r).ci.size(), 0);
+    // The engine's own four say the same thing under their own names.
+    EXPECT_TRUE(std::isnan(r.convergence.stationarity));
+    EXPECT_TRUE(std::isnan(r.convergence.feasibility));
+    EXPECT_TRUE(std::isnan(r.convergence.complementarity));
+
+    // AND NO FRESH EVALUATION WAS TAKEN TO FIND THAT OUT. One evaluation, the
+    // one at x0 that failed. This is the whole reason the diagnostics are
+    // computed from a stash: an exit that measured nothing must not pay for a
+    // measurement, and no path may move the evaluation bill.
+    EXPECT_EQ(r.counters.evals_full, 1);
+
+    // The export is still present -- this engine's is never nullopt, even here:
+    // the returned point is the caller's own finite x0 with zero multipliers.
+    EXPECT_FALSE(r.warm_start.empty());
+}
+
+TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
+    const auto p = hven::test_support::make_hs(7);
+    hven::SqpSolver driver(quiet_sqp());
+    const hven::SqpResult r =
+        driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+
+    // Measured, small, and reported in the declared shapes.
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+    EXPECT_LT(hven::detail::engine_rows(r).feasibility_e, 1e-6);
+    EXPECT_LT(hven::detail::engine_rows(r).feasibility_i, 1e-6);
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_EQ(hven::detail::engine_rows(r).ce.size(), p.model->me());
+    EXPECT_EQ(hven::detail::engine_rows(r).ci.size(), p.model->mi());
+    EXPECT_EQ(r.x.size(), p.model->n());
+    EXPECT_EQ(r.z.size(), p.model->n());
+
+    // INDEPENDENTLY, from the shared function over the model's own quantities
+    // at the returned point. This is what ties the engine's fill to §(1)'s
+    // definition; it evaluates the model itself, which a SOLVE may not do.
+    const hven::detail::NlpEval ev = hven::detail::eval_nlp(*p.model, r.x);
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        r.x, hven::detail::engine_rows(r).lambda_e, hven::detail::engine_rows(r).lambda_i, r.z,
+        ev.grad, ev.Je, ev.Ji, ev.ce, ev.ci, p.model->lower(), p.model->upper(), {});
+    EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::detail::engine_rows(r).feasibility_e, 1e-12);
+    EXPECT_NEAR(d.feasibility_i, hven::detail::engine_rows(r).feasibility_i, 1e-12);
+    EXPECT_NEAR(d.complementarity, r.complementarity, 1e-9);
+
+    // THE TWO CLOCKS ARE DIFFERENT MEASUREMENTS, and both are present: the
+    // base's runs from the public entry, the engine's around solve_impl alone,
+    // so the first is never the smaller.
+    EXPECT_GE(r.wall_seconds, r.timing.engine_seconds);
+    // The shared iteration count is the TOP-LEVEL major count.
+    EXPECT_EQ(r.iterations, r.counters.major_iters);
+
+    // And the export snapshot is a snapshot: editing the public fields does not
+    // reach it.
+    hven::SqpResult edited = r;
+    const hven::WarmStart before = edited.warm_start;
+    ASSERT_TRUE(!before.empty());
+    edited.x.setZero();
+    const hven::WarmStart after = edited.warm_start;
+    ASSERT_TRUE(!after.empty());
+    EXPECT_GT(WarmStartAccess::primal(after).template lpNorm<Eigen::Infinity>(), 0.0);
+}
+
+namespace {
+
+/// min 0.5||x||^2 s.t. x0 = 5, over the box [0,1]^2 -- an equality the box
+/// blocks, so the elastic tier exhausts and the RESTORATION phase runs and
+/// certifies at x = (1, 0). Copied from tests/sqp/test_sqp_restoration.cpp's
+/// fixture of the same name, because this directory links no SQP fixtures.
+class BoxBlockedEqualityModel final : public hven::detail::NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) - 5.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Ones(2);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 0.5); }
+};
+
+} // namespace
+
+TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
+    // The effective cap governs the exit conjunction, the restoration REFUSAL
+    // and the restoration sub-driver's budget alike -- three reads, and a sweep
+    // that reached only some of them would let a capped solve enter restoration
+    // it has no budget for.
+    //
+    // ON A RESTORATION FIXTURE (M6 W5 T8.4 fix1). T8.4 ran this on HS7, which
+    // never restores, so the two reads a partial sweep would have missed were
+    // never exercised and the test could not tell a swept implementation from
+    // an unswept one. This model's equality is blocked by its box, so the
+    // elastic tier exhausts and the phase RUNS -- asserted first, because
+    // everything below is vacuous without it.
+    BoxBlockedEqualityModel model;
+    hven::SqpOptions o = quiet_sqp();
+    o.common.max_iterations = 200;
+    hven::SqpSolver driver(o);
+
+    const hven::SqpResult free_run =
+        driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(free_run.status, hven::SolveStatus::kInfeasible);
+    ASSERT_GT(free_run.counters.restoration_iters, 0)
+        << "the restoration phase must RUN, or this test measures nothing";
+    const Index unbudgeted_total =
+        free_run.counters.major_iters + free_run.counters.restoration_iters;
+    ASSERT_GT(unbudgeted_total, 2);
+
+    // THE SUB-BUDGET READ: a cap the solve reaches only by spending majors on
+    // both phases. The sub-driver is allocated from the EFFECTIVE cap minus
+    // what the outer loop has already spent, so the two together stay inside it.
+    const hven::SqpResult capped =
+        driver.solve(hven::detail::problem_ref(model), model.start_point(), {},
+                     hven::SolveBudget{.max_iterations = 2});
+    EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
+        << "the cap bounds the majors AND the restoration majors together";
+
+    // THE REFUSAL READ: at a cap of ONE the outer loop's first major has
+    // already spent the whole budget, so the request is REFUSED rather than
+    // sub-budgeted -- no restoration major is spent at all.
+    const hven::SqpResult refused =
+        driver.solve(hven::detail::problem_ref(model), model.start_point(), {},
+                     hven::SolveBudget{.max_iterations = 1});
+    EXPECT_LE(refused.counters.major_iters, 1);
+    EXPECT_EQ(refused.counters.restoration_iters, 0)
+        << "a spent budget refuses the phase rather than entering it";
+
+    // TIGHTEN ONLY: a budget above the engine's own limit does not raise it,
+    // and the ENGINE's own max_iter reaches the same three reads.
+    hven::SqpOptions tight = quiet_sqp();
+    tight.common.max_iterations = 2;
+    hven::SqpSolver small(tight);
+    const hven::SqpResult still = small.solve(hven::detail::problem_ref(model), model.start_point(),
+                                              {}, hven::SolveBudget{.max_iterations = 100000});
+    EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
+
+    // THE DEFAULT BUDGET IS THE IDENTITY, which is what makes this
+    // trajectory-neutral on every existing path: the unbudgeted solve above
+    // spent more than any cap here allowed and reached its own exit.
+    EXPECT_GT(unbudgeted_total, 2);
+}
+
+// ===========================================================================
+// (6) EVALUATION PROVENANCE (M6 W5 T8.4 fix1).
+//
+// The four shared diagnostics are a statement about the RETURNED point of the
+// DECLARED problem. Three things can be true of the evaluation an engine has
+// in hand at its exit, and none of them can be read off the captured vector's
+// size: it may carry no declared objective gradient (a feasibility phase, or a
+// restoration seam substituting its own objective), it may belong to an
+// iterate a restoration return has since moved away from, and its constraint
+// rows may be a restoration subproblem's condensed residuals rather than the
+// declared ones. Each pin below is one of those.
+// ===========================================================================
+
+namespace {
+
+/// c(x) = x0^2 + x1^2 + 1 = 0 has no real solution, and the violation has a
+/// STRICT stationary point at the origin -- the shape a restoration phase
+/// converges to and then declares locally infeasible. A copy, for the reason
+/// the bench leg's own copy states: a test in this directory links no interior
+/// fixtures.
+struct LocallyInfeasibleProblem final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        xl << -kInf, -kInf;
+        xu << kInf, kInf;
+        gl << 0.0;
+        gu << 0.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] + x[1];
+        return f;
+    }
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        v << 2.0 * x[0], 2.0 * x[1];
+    }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        v << 2.0 * lambda[0], 2.0 * lambda[0];
+    }
+    std::string name() const override { return "LocallyInfeasibleProblem"; }
+};
+
+Eigen::VectorXd two_var_start(double a, double b) {
+    Eigen::VectorXd x(2);
+    x << a, b;
+    return x;
+}
+
+} // namespace
+
+TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
+    // THE SETTLER'S S1 / the lane's Critical, pinned on both sides.
+    //
+    // A `{kSolve}` call runs the feasibility phase alone. That phase evaluates
+    // through eval_soe at objective scale 0.0 and then zeroes both primal
+    // blocks, so the right-hand side it leaves behind carries NO declared
+    // objective gradient at all -- and the T8.4 result assembly nevertheless
+    // divided that vector by the objective scale and reported it as a measured
+    // declared stationarity. On the bench leg's `infeas2_spike` cell that
+    // printed 0.000000000e+00 for a problem whose objective is f = x[1] and
+    // whose honest declared stationarity is at least 1.
+    //
+    // The honest REPORT is NaN: no declared-objective evaluation of the
+    // returned point exists, and manufacturing one would move evals_full on
+    // every solve.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.phases = {hven::IpmPhase::kSolve};
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal)
+        << "the feasibility phase does find a feasible point of HS071";
+    ASSERT_EQ(r.phases.size(), 1u);
+    EXPECT_EQ(r.phases[0].phase, hven::IpmPhase::kSolve);
+
+    EXPECT_TRUE(std::isnan(r.stationarity))
+        << "a feasibility phase carries no objective gradient, so the declared "
+           "stationarity of its exit is UNMEASURED, never 0";
+    // THE OTHER THREE ARE MEASURED AND KEPT. They read ce, ci, x, the box,
+    // lambda_i and z -- every one of which a feasibility phase does evaluate --
+    // so NaN-ing them would throw away real measurements.
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_e));
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(hven::detail::engine_rows(r).feasibility_e, 1e-6);
+    // And `f` is measured: the exit assembles the true objective at the
+    // returned primals on every non-OPT exit.
+    EXPECT_FALSE(std::isnan(r.f));
+    EXPECT_EQ(hven::detail::engine_rows(r).ce.size(), 1);
+    EXPECT_EQ(hven::detail::engine_rows(r).ci.size(), 1);
+}
+
+TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
+    // The other side of the same rule: a `{kSolve, kOptimize}` call ends in an
+    // objective-bearing phase, so all four are measured. The feasibility phase
+    // having run FIRST does not taint them -- the provenance is a fact about
+    // the LAST evaluation, not about the sequence.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    ASSERT_EQ(r.phases.size(), 2u);
+    EXPECT_TRUE(r.phases[0].ran);
+    EXPECT_TRUE(r.phases[1].ran);
+
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_e));
+    EXPECT_FALSE(std::isnan(hven::detail::engine_rows(r).feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+}
+
+TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
+    // CLAUSE (c). Nested restoration replaces the constraint rows of the
+    // right-hand side with the CONDENSED residuals of its own subproblem
+    // (eval_nlp's nested arm), so an exit taken while it was active carries
+    // rows that are not the declared ones: this fixture's declared equality is
+    // x0^2 + x1^2 + 1, which is >= 1 EVERYWHERE, while the copied row is a
+    // tiny condensed number that reads as a nearly feasible point. T8.4
+    // reported the four diagnostics as NaN here and then copied those rows
+    // anyway. Empty is the contract's word for unmeasured; a zero-length
+    // vector cannot be misread the way a copied one can.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.common.threads = 1;
+    o.common.max_iterations = 200;
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
+    o.advanced.max_restoration_entries = 1;
+    hven::IpmSolver solver(o);
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+    ASSERT_EQ(r.status, hven::SolveStatus::kInfeasible);
+    ASSERT_EQ(r.phases.back().stop_reason, hven::StopReason::kRestorationLocallyInfeasible);
+    EXPECT_FALSE(r.infeasibility_certified);
+
+    EXPECT_TRUE(std::isnan(r.stationarity));
+    EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_e));
+    EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_i));
+    EXPECT_TRUE(std::isnan(r.complementarity));
+    EXPECT_EQ(hven::detail::engine_rows(r).ce.size(), 0)
+        << "a condensed restoration residual is not the declared one";
+    EXPECT_EQ(hven::detail::engine_rows(r).ci.size(), 0);
+}
+
+TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
+    // THE INHERITED MISMATCH, fixed here because IpmResult is T8.4's. The
+    // return_best_ substitution replaces XSL and RHS with the BEST iterate's
+    // pair, so x, the multipliers and the residuals all describe that point --
+    // while `f` was taken from iters.back(), the LAST one. On a solve whose
+    // last iterate is not its best, the objective did not belong to the point
+    // being returned.
+    // ON A FIXTURE WHOSE ITERATES GET WORSE. HS071 descends monotonically, so
+    // its last iterate IS its best at every cap and the substitution never
+    // fires there. This equality has no real root and the feasibility measure
+    // the default criterion (ECONS) scores runs away from its own best early
+    // iterate, which is exactly the case return_best exists for.
+    LocallyInfeasibleProblem problem;
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+
+    // THE CAP IS SEARCHED FOR, NOT ASSUMED. What makes the fixture
+    // discriminating is that the substitution actually FIRES -- that the best
+    // iterate is not the last one at the cap -- and which caps have that
+    // property is a fact about the trajectory, not something a test may assert
+    // by construction. The search asserts that at least one exists; the pin
+    // below then runs at it.
+    hven::IpmResult best;
+    hven::IpmResult last;
+    int chosen_cap = -1;
+    for (int cap = 2; cap <= 30 && chosen_cap < 0; ++cap) {
+        hven::IpmOptions probe;
+        probe.common.verbosity = hven::Verbosity::kSilent;
+        probe.common.threads = 1;
+        probe.common.max_iterations = cap;
+        hven::IpmOptions with_best = probe;
+        with_best.common.return_best = hven::ReturnBest::kOnAnyNonOptimal;
+
+        hven::IpmSolver best_solver(with_best);
+        hven::IpmSolver last_solver(probe);
+        const hven::IpmResult b =
+            best_solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+        const hven::IpmResult l =
+            last_solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+        if (b.status != hven::SolveStatus::kOptimal && b.x.allFinite() &&
+            (b.x - l.x).lpNorm<Eigen::Infinity>() > 1e-12) {
+            best = b;
+            last = l;
+            chosen_cap = cap;
+        }
+    }
+    ASSERT_GE(chosen_cap, 0)
+        << "no cap in [2, 30] made return_best substitute a different point -- "
+           "the pin below would not discriminate";
+    ::testing::Test::RecordProperty("cap", chosen_cap);
+
+    // The objective REPORTED is the objective OF THE POINT RETURNED, evaluated
+    // here from the model itself.
+    double f_at_returned = 0.0;
+    f_at_returned = problem.eval_f(best.x);
+    EXPECT_NEAR(best.f, f_at_returned, 1e-9 * std::max(1.0, std::abs(f_at_returned)));
+
+    // And the unsubstituted solve is unchanged -- the fix touches one branch.
+    double f_at_last = 0.0;
+    f_at_last = problem.eval_f(last.x);
+    EXPECT_NEAR(last.f, f_at_last, 1e-9 * std::max(1.0, std::abs(f_at_last)));
+}
+
+TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
+    // THE LIFETIME HOLE T8.4's fourth conjunct left open. That conjunct
+    // compared a captured value-array ADDRESS, which answers "did I lay this
+    // program's tables" only while no other solver can be handed the same
+    // address. Here solver A analyses the program and DIES; solver B is
+    // constructed afterwards and may well take A's storage. An address-based
+    // token can coincide; a never-reused owner id cannot.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    {
+        hven::IpmSolver a(o);
+        const hven::IpmResult r =
+            a.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+        ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+        ASSERT_TRUE(a.kkt_pattern_is_analyzed(hven::detail::problem_ref(*model)));
+    }
+    // A is gone. Its matrix is gone with it; the program's retained pointer to
+    // it is a dangling one, which is exactly why nothing may take that program
+    // as "already analysed" on the strength of an address.
+
+    hven::IpmSolver b(o);
+    EXPECT_FALSE(b.kkt_pattern_is_analyzed(hven::detail::problem_ref(*model)))
+        << "B did not lay this program's tables, whatever address it was given";
+
+    const hven::IpmResult r2 =
+        b.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    EXPECT_EQ(r2.status, hven::SolveStatus::kOptimal);
+    EXPECT_EQ(r2.counters.symbolic_analyses, 1) << "B's first solve re-analyses";
+    EXPECT_TRUE(b.kkt_pattern_is_analyzed(hven::detail::problem_ref(*model)));
+
+    // And B's SECOND solve reuses, so the id is an identity token and not a
+    // blanket refusal.
+    const hven::IpmResult r3 =
+        b.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    EXPECT_EQ(r3.counters.symbolic_analyses, 0);
+}
+
+TEST(SolveBudget, IpmClampsBeforeNarrowing) {
+    // INT_MAX is the largest accepted budget and a WEAK constraint: it is far
+    // above this engine's own limit, so the effective cap is that limit. (A
+    // budget above INT_MAX is refused at entry: tests/solver/test_limits.cpp.)
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult huge =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start(), {},
+                     hven::SolveBudget{.max_iterations = std::numeric_limits<int>::max()});
+    EXPECT_EQ(huge.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(huge.iterations, 0);
+
+    // The same solve with no budget named runs identically -- which is what
+    // "a budget above the engine's limit is the identity" means.
+    const hven::IpmResult none =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    EXPECT_EQ(none.iterations, huge.iterations);
+}
+
+TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
+    // The shared clock is INFORMATIONAL (CLAUDE.md section 7) and is asserted
+    // here only for the boundary it brackets: it starts at the public entry,
+    // after the argument check, and stops at the return, so it is positive on
+    // any solve that did work and is never smaller than the engine's own older
+    // measurement, which stops before the final reporting.
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    hven::IpmSolver solver(o);
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_model_tests::Hs071Problem>());
+
+    const hven::IpmResult r =
+        solver.solve(hven::detail::problem_ref(*model), hven_model_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(r.wall_seconds, 0.0);
+    EXPECT_GE(r.wall_seconds, r.timing.total_seconds);
+
+    // And the argument check is at that entry: a mis-sized start point is
+    // refused by name.
+    Eigen::VectorXd wrong(3);
+    wrong.setOnes();
+    EXPECT_THROW(solver.solve(hven::detail::problem_ref(*model), wrong), std::invalid_argument);
+}
+
+TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
+    // Design section 2.2 puts the budget on EVERY public overload. T8.4 left
+    // the cold and bridge entries hardcoding SolveBudget{}, which meant a
+    // STAGED warm start could not be budgeted at all: the warm-start overloads
+    // refuse to run beside a staged value.
+    const auto p = hven::test_support::make_hs(7);
+    hven::SqpOptions o = quiet_sqp();
+    o.common.max_iterations = 200;
+
+    hven::SqpSolver model_driver(o);
+    const hven::SqpResult capped =
+        model_driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point(), {},
+                           hven::SolveBudget{.max_iterations = 2});
+    EXPECT_LE(capped.counters.major_iters, 2);
+    EXPECT_EQ(capped.status, hven::SolveStatus::kIterationLimit);
+
+    // The bridge-taking form, and a PAYLOAD riding it -- the combination that
+    // had no budgeted door at all before T8.4, and which T8.5 turned from a
+    // staged value into an argument on this same overload family.
+    hven::SqpSolver bridge_driver(o);
+    // The borrow idiom this suite's bench neighbours use: a shared_ptr with an
+    // EMPTY owner, so the bridge names a model it does not own.
+    const std::shared_ptr<const hven::detail::NlpModel> borrowed(std::shared_ptr<const void>(),
+                                                                 p.model.get());
+    hven::detail::NlpModelAssembly bridge(borrowed);
+    const hven::SqpResult warmup =
+        bridge_driver.solve(hven::detail::problem_ref(bridge), p.model->start_point());
+    ASSERT_EQ(warmup.status, hven::SolveStatus::kOptimal);
+    const hven::WarmStart currency = warmup.warm_start;
+    ASSERT_TRUE(!currency.empty());
+    const hven::SqpResult payload_and_capped =
+        bridge_driver.solve(hven::detail::problem_ref(bridge), p.model->start_point(), currency,
+                            hven::SolveBudget{.max_iterations = 1});
+    EXPECT_LE(payload_and_capped.counters.major_iters, 1);
+
+    // AND THE DEFAULT IS THE IDENTITY on both new doors.
+    hven::SqpSolver free_driver(o);
+    const hven::SqpResult free_run = free_driver.solve(
+        hven::detail::problem_ref(*p.model), p.model->start_point(), {}, hven::SolveBudget{});
+    EXPECT_EQ(free_run.status, hven::SolveStatus::kOptimal);
+    EXPECT_GT(free_run.counters.major_iters, 2);
+    // The shared clock is present on the new overloads too, and is never the
+    // smaller of the two measurements.
+    EXPECT_GT(free_run.wall_seconds, 0.0);
+    EXPECT_GE(free_run.wall_seconds, free_run.timing.engine_seconds);
+}
+
+// ===========================================================================
+// (12) The boundary refusals, and the finiteness gate (M6 W6 T2).
+// ===========================================================================
+//
+// Every throw in solve_result.cpp is a SIZE check at the public boundary --
+// CLAUDE.md §4's rule that Eigen's own asserts, compiled out under NDEBUG, must
+// never be the only guard. The W6 T0 coverage read found all of them cold
+// (src/solver/solve_result.cpp was the lowest-read driver TU, 66.67 % lines,
+// and 33 of its 33 missed lines are these checks plus the finiteness gate).
+//
+// Each case below is asserted on the MESSAGE as well as the type: five
+// different checks throw the same exception class, so a type-only assertion
+// would pass with the wrong one firing.
+
+namespace {
+
+/// A well-formed argument set: n = 2, one declared equality row, one declared
+/// inequality row, nothing at a bound. Each refusal test perturbs ONE piece.
+struct DeclaredArgs {
+    Vec x = vec_of({0.25, -0.5});
+    Vec lambda_e = vec_of({0.5});
+    Vec lambda_i = vec_of({0.25});
+    Vec z = vec_of({0.0, 0.0});
+    Vec grad = vec_of({1.0, 2.0});
+    SpMatRM jac_eq = row_block({1.0, 1.0});
+    SpMatRM jac_ineq = row_block({1.0, -1.0});
+    Vec ce = vec_of({0.0});
+    Vec ci = vec_of({-1.0});
+    Vec lower = vec_of({-kInf, -kInf});
+    Vec upper = vec_of({kInf, kInf});
+
+    DeclaredDiagnostics run() const {
+        return compute_declared_diagnostics(x, lambda_e, lambda_i, z, grad, jac_eq, jac_ineq, ce,
+                                            ci, lower, upper, {});
+    }
+};
+
+/// Runs `call` and requires it to throw std::invalid_argument whose message
+/// contains `fragment` -- the phrase that names the check that fired.
+template <class Fn> void expect_refusal(Fn &&call, const char *fragment, const char *what) {
+    try {
+        call();
+        ADD_FAILURE() << "expected a refusal: " << what;
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find(fragment), std::string::npos)
+            << what << " -- wrong check fired: " << e.what();
+    }
+}
+
+} // namespace
+
+// The premise: the unperturbed argument set is accepted and measures something.
+TEST(DeclaredDiagnostics, TheRefusalFixtureIsItselfWellFormed) {
+    const DeclaredDiagnostics d = DeclaredArgs{}.run();
+    EXPECT_FALSE(std::isnan(d.stationarity));
+    EXPECT_FALSE(std::isnan(d.feasibility_e));
+    EXPECT_FALSE(std::isnan(d.feasibility_i));
+    EXPECT_FALSE(std::isnan(d.complementarity));
+}
+
+// The five checks the (grad, Je, Ji) front door owns.
+TEST(DeclaredDiagnostics, RefusesEveryMalformedDeclaredBlock) {
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.grad = vec_of({1.0, 2.0, 3.0});
+            return a.run();
+        },
+        "grad has 3", "a gradient wider than x");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.lambda_e = vec_of({0.5, 0.5});
+            return a.run();
+        },
+        "declared equality block is one width", "two equality prices for one row");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.lambda_i = vec_of({0.5, 0.5});
+            return a.run();
+        },
+        "declared inequality block is one width", "two inequality prices for one row");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.jac_eq = row_block({1.0, 1.0, 1.0});
+            return a.run();
+        },
+        "Je is 1x3", "an equality Jacobian wider than x");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.jac_ineq = row_block({1.0, 1.0, 1.0});
+            return a.run();
+        },
+        "Ji is 1x3", "an inequality Jacobian wider than x");
+}
+
+// The checks the grad_lag front door owns: the four n-wide blocks, and the
+// inequality pairing it re-checks because it is reachable without the overload
+// above.
+TEST(DeclaredDiagnostics, TheGradLagDoorChecksItsOwnBlockWidths) {
+    using hven::detail::compute_declared_diagnostics_from_grad_lag;
+    const Vec x = vec_of({0.25, -0.5});
+    const Vec lambda_i = vec_of({0.25});
+    const Vec z = vec_of({0.0, 0.0});
+    const Vec grad_lag = vec_of({1.0, 2.0});
+    const Vec ce = vec_of({0.0});
+    const Vec ci = vec_of({-1.0});
+    const Vec lower = vec_of({-kInf, -kInf});
+    const Vec upper = vec_of({kInf, kInf});
+
+    // The premise: accepted as written.
+    EXPECT_NO_THROW((void)compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce,
+                                                                     ci, lower, upper, {}));
+
+    const char *kWidth = "must too";
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, vec_of({0.0}), grad_lag,
+                                                              ce, ci, lower, upper, {});
+        },
+        kWidth, "a bound-price vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, vec_of({1.0}), ce, ci,
+                                                              lower, upper, {});
+        },
+        kWidth, "a Lagrangian gradient narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce, ci,
+                                                              vec_of({-kInf}), upper, {});
+        },
+        kWidth, "a lower-bound vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce, ci,
+                                                              lower, vec_of({kInf}), {});
+        },
+        kWidth, "an upper-bound vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, vec_of({0.25, 0.25}), z, grad_lag,
+                                                              ce, ci, lower, upper, {});
+        },
+        "declared inequality block is one width", "two inequality prices for one row");
+}
+
+// THE FINITENESS GATE. A single non-finite entry anywhere in the measured set
+// makes the whole reading UNMEASURED -- all four NaN -- rather than a
+// finite-looking inf-norm that measured nothing (std::max propagates a NaN
+// unpredictably, which is the reason the gate is inside the function and not
+// left to callers). Each of the six vectors it reads gets its own case.
+TEST(DeclaredDiagnostics, ANonFiniteEntryReportsUnmeasuredRatherThanANumber) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    const auto unmeasured = [](const DeclaredDiagnostics &d, const char *what) {
+        EXPECT_TRUE(std::isnan(d.stationarity)) << what;
+        EXPECT_TRUE(std::isnan(d.feasibility_e)) << what;
+        EXPECT_TRUE(std::isnan(d.feasibility_i)) << what;
+        EXPECT_TRUE(std::isnan(d.complementarity)) << what;
+    };
+
+    {
+        DeclaredArgs a;
+        a.x = vec_of({nan, -0.5});
+        unmeasured(a.run(), "a non-finite primal");
+    }
+    {
+        DeclaredArgs a;
+        a.z = vec_of({0.0, kInf});
+        unmeasured(a.run(), "an infinite bound price");
+    }
+    {
+        DeclaredArgs a;
+        a.ce = vec_of({nan});
+        unmeasured(a.run(), "a non-finite equality residual");
+    }
+    {
+        DeclaredArgs a;
+        a.ci = vec_of({nan});
+        unmeasured(a.run(), "a non-finite inequality residual");
+    }
+    {
+        DeclaredArgs a;
+        a.lambda_i = vec_of({nan});
+        unmeasured(a.run(), "a non-finite inequality price");
+    }
+    {
+        // Through the gradient, which reaches the gate as the formed
+        // Lagrangian gradient rather than as its own argument.
+        DeclaredArgs a;
+        a.grad = vec_of({nan, 2.0});
+        unmeasured(a.run(), "a non-finite objective gradient");
+    }
+}
+
+// ===========================================================================
+// SolveResult::work, ::message and ::feasibility.
+// ===========================================================================
+
+namespace {
+
+// HS071 behind an Nlp of the test's own that counts the five evaluation
+// callbacks it is asked for, so the result's tally is checked against counts
+// the library had no hand in.
+class CountedHs071 final : public hven::Nlp {
+  public:
+    hven::NlpDimensions dimensions() const override { return inner_.dimensions(); }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        inner_.bounds(xl, xu, gl, gu);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        ++f;
+        return inner_.eval_f(x);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        ++grad;
+        inner_.eval_grad_f(x, g);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        ++cons;
+        inner_.eval_g(x, g);
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        inner_.jacobian_structure(r, c);
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        ++jac;
+        inner_.eval_jacobian(x, v);
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        inner_.hessian_structure(r, c);
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        ++hess;
+        inner_.eval_hessian(x, obj_factor, lambda, v);
+    }
+    void reset() { f = grad = cons = jac = hess = 0; }
+
+    mutable Index f = 0, grad = 0, cons = 0, jac = 0, hess = 0;
+
+  private:
+    hven_model_tests::Hs071Problem inner_;
+};
+
+void expect_work_matches(const hven::WorkCounters &work, const CountedHs071 &nlp) {
+    EXPECT_EQ(work.objective_evals, nlp.f);
+    EXPECT_EQ(work.gradient_evals, nlp.grad);
+    EXPECT_EQ(work.constraint_evals, nlp.cons);
+    EXPECT_EQ(work.jacobian_evals, nlp.jac);
+    EXPECT_EQ(work.hessian_evals, nlp.hess);
+    EXPECT_GT(work.objective_evals, 0);
+    EXPECT_GT(work.gradient_evals, 0);
+    EXPECT_GT(work.constraint_evals, 0);
+    EXPECT_GT(work.jacobian_evals, 0);
+    EXPECT_GT(work.hessian_evals, 0);
+    EXPECT_GT(work.factorizations, 0);
+}
+
+bool names(const std::string &message, const char *needle) {
+    return message.find(needle) != std::string::npos;
+}
+
+} // namespace
+
+// The tally is the callbacks the solve itself made. The first solve of an
+// interior-point Problem also builds its program (a one-time structure probe of
+// one Hessian and one Jacobian evaluation); the tally restarts before that
+// build, so the first solve reports it (the next test pins the first solve
+// against the fixture's own count since construction).
+TEST(SolveWork, IsTheNlpCallbacksOfTheSolveOnTheInteriorPointEngine) {
+    auto nlp = std::make_shared<CountedHs071>();
+    hven::Problem problem(nlp);
+    hven::IpmSolver solver{hven::IpmOptions{}};
+    const Vec x0 = hven_model_tests::hs071_start();
+    (void)solver.solve(problem, x0);
+    nlp->reset();
+    const hven::IpmResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    expect_work_matches(r.work, *nlp);
+}
+
+TEST(SolveWork, TheFirstInteriorPointSolveCountsItsProgramBuild) {
+    auto nlp = std::make_shared<CountedHs071>();
+    hven::Problem problem(nlp);
+    hven::IpmSolver solver{hven::IpmOptions{}};
+    const Vec x0 = hven_model_tests::hs071_start();
+    nlp->reset();
+    const hven::IpmResult first = solver.solve(problem, x0);
+    ASSERT_EQ(first.status, hven::SolveStatus::kOptimal);
+    // Everything the Nlp was asked since construction, the build's probe included.
+    expect_work_matches(first.work, *nlp);
+    nlp->reset();
+    const hven::IpmResult second = solver.solve(problem, x0);
+    ASSERT_EQ(second.status, hven::SolveStatus::kOptimal);
+    expect_work_matches(second.work, *nlp);
+    // The same trajectory twice: the first solve exceeds the second by exactly
+    // the build's probe (no gradient, objective or constraint evaluation).
+    EXPECT_EQ(first.work.objective_evals, second.work.objective_evals);
+    EXPECT_EQ(first.work.gradient_evals, second.work.gradient_evals);
+    EXPECT_EQ(first.work.constraint_evals, second.work.constraint_evals);
+    EXPECT_EQ(first.work.factorizations, second.work.factorizations);
+    EXPECT_EQ(first.work.jacobian_evals, second.work.jacobian_evals + 1);
+    EXPECT_EQ(first.work.hessian_evals, second.work.hessian_evals + 1);
+}
+
+// Literal, hand-counted HS071 work. The counts are numbers rather than a
+// counting fixture's read-back: a change in how often an engine evaluates the
+// model moves these pins and is a deliberate re-pin, not a silent drift.
+TEST(SolveWork, Hs071InteriorPointSecondSolveHasTheHandCountedWork) {
+    hven::Problem problem(std::make_shared<hven_model_tests::Hs071Problem>());
+    hven::IpmSolver solver{hven::IpmOptions{}};
+    const Vec x0 = hven_model_tests::hs071_start();
+    (void)solver.solve(problem, x0);
+    const hven::IpmResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    // Ten iterations, one gradient / constraint / Jacobian / Hessian evaluation
+    // and one factorization per iteration, two objective evaluations per
+    // iteration. The same totals the counting fixture reads back above.
+    EXPECT_EQ(r.iterations, 10);
+    EXPECT_EQ(r.work.objective_evals, 20);
+    EXPECT_EQ(r.work.gradient_evals, 10);
+    EXPECT_EQ(r.work.constraint_evals, 10);
+    EXPECT_EQ(r.work.jacobian_evals, 10);
+    EXPECT_EQ(r.work.hessian_evals, 10);
+    EXPECT_EQ(r.work.factorizations, 10);
+}
+
+TEST(SolveWork, Hs071SqpHasTheHandCountedWork) {
+    hven::Problem problem(std::make_shared<hven_model_tests::Hs071Problem>());
+    hven::SqpSolver solver{hven::SqpOptions{}};
+    const Vec x0 = hven_model_tests::hs071_start();
+    const hven::SqpResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    // Five iterations; the totals are the ones the counting fixture reads back
+    // above (the Jacobian is evaluated once more than the other callbacks, and
+    // the QP subproblems factor 19 times in all).
+    EXPECT_EQ(r.iterations, 5);
+    EXPECT_EQ(r.work.objective_evals, 6);
+    EXPECT_EQ(r.work.gradient_evals, 6);
+    EXPECT_EQ(r.work.constraint_evals, 6);
+    EXPECT_EQ(r.work.jacobian_evals, 7);
+    EXPECT_EQ(r.work.hessian_evals, 6);
+    EXPECT_EQ(r.work.factorizations, 19);
+}
+
+TEST(SolveWork, IsTheNlpCallbacksOfTheSolveOnTheSqpEngine) {
+    auto nlp = std::make_shared<CountedHs071>();
+    hven::Problem problem(nlp);
+    hven::SqpSolver solver{hven::SqpOptions{}};
+    const Vec x0 = hven_model_tests::hs071_start();
+    (void)solver.solve(problem, x0);
+    nlp->reset();
+    const hven::SqpResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
+    expect_work_matches(r.work, *nlp);
+    EXPECT_EQ(r.work.factorizations, r.counters.factorizations);
+}
+
+// ===========================================================================
+// message: one line naming why the solve stopped.
+// ===========================================================================
+
+TEST(SolveMessage, NamesTheStopOnTheInteriorPointEngine) {
+    using hven::SolveStatus;
+    const Vec x0 = hven_model_tests::hs071_start();
+    {
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::IpmSolver solver{hven::IpmOptions{}};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_TRUE(names(r.message, "converged")) << r.message;
+        EXPECT_EQ(r.message.find('\n'), std::string::npos);
+    }
+    {
+        hven::IpmOptions o;
+        o.common.max_iterations = 2;
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::IpmSolver solver{o};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kIterationLimit);
+        EXPECT_TRUE(names(r.message, "iteration limit")) << r.message;
+        EXPECT_TRUE(names(r.message, "max_iterations = 2")) << r.message;
+    }
+    {
+        hven::IpmOptions o;
+        o.common.max_factorizations = 2;
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::IpmSolver solver{o};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kWorkLimit);
+        EXPECT_TRUE(names(r.message, "factorization ceiling")) << r.message;
+        EXPECT_TRUE(names(r.message, "max_factorizations = 2")) << r.message;
+    }
+}
+
+TEST(SolveMessage, NamesTheStopOnTheSqpEngine) {
+    using hven::SolveStatus;
+    const Vec x0 = hven_model_tests::hs071_start();
+    {
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::SqpSolver solver{hven::SqpOptions{}};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_TRUE(names(r.message, "converged")) << r.message;
+        EXPECT_EQ(r.message.find('\n'), std::string::npos);
+    }
+    {
+        hven::SqpOptions o;
+        o.common.max_iterations = 2;
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::SqpSolver solver{o};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kIterationLimit);
+        EXPECT_TRUE(names(r.message, "iteration limit")) << r.message;
+        EXPECT_TRUE(names(r.message, "max_iterations = 2")) << r.message;
+        EXPECT_FALSE(r.returned_best_iterate);
+    }
+    {
+        hven::SqpOptions o;
+        o.common.max_factorizations = 2;
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::SqpSolver solver{o};
+        const auto r = solver.solve(p, x0);
+        ASSERT_EQ(r.status, SolveStatus::kWorkLimit);
+        EXPECT_TRUE(names(r.message, "factorization ceiling")) << r.message;
+        EXPECT_TRUE(names(r.message, "max_factorizations = 2")) << r.message;
+    }
+}
+
+// The best-iterate clause rides on every status the flag is set with.
+TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
+    using hven::SolveStatus;
+    const std::string clause = "; returned the best iterate";
+    const auto has_clause = [&](const std::string &message) {
+        return message.size() >= clause.size() &&
+               message.compare(message.size() - clause.size(), clause.size(), clause) == 0;
+    };
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+    const auto run = [&](int cap, bool return_best) {
+        hven::IpmOptions o;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.common.threads = 1;
+        o.common.max_iterations = cap;
+        o.common.return_best =
+            return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
+        hven::IpmSolver solver{o};
+        return solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+    };
+
+    // kIterationLimit with the substitution: the iteration-limit line plus the clause.
+    bool saw_max_iter = false;
+    for (int cap = 2; cap <= 30 && !saw_max_iter; ++cap) {
+        const hven::IpmResult r = run(cap, true);
+        if (r.status == SolveStatus::kIterationLimit && r.returned_best_iterate) {
+            saw_max_iter = true;
+            EXPECT_TRUE(has_clause(r.message)) << r.message;
+            EXPECT_TRUE(names(r.message, "iteration limit reached")) << r.message;
+        }
+    }
+    EXPECT_TRUE(saw_max_iter) << "no cap in [2, 30] gave a best-iterate kMaxIter";
+
+    // A non-kIterationLimit, non-optimal exit with the flag on: HS071 against
+    // tolerances it cannot meet ends kAcceptable, and the same clause follows
+    // that status's own line.
+    const auto run_hs071 = [&](bool return_best) {
+        hven::IpmOptions o;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.common.threads = 1;
+        o.common.optimality_tol = 1e-12;
+        o.common.feasibility_tol = 1e-12;
+        o.common.return_best =
+            return_best ? hven::ReturnBest::kOnAnyNonOptimal : hven::ReturnBest::kNever;
+        hven::Problem p(std::make_shared<hven_model_tests::Hs071Problem>());
+        hven::IpmSolver solver{o};
+        return solver.solve(p, hven_model_tests::hs071_start());
+    };
+    const hven::IpmResult flagged = run_hs071(true);
+    ASSERT_EQ(flagged.status, SolveStatus::kAcceptable);
+    EXPECT_TRUE(flagged.returned_best_iterate);
+    EXPECT_TRUE(has_clause(flagged.message)) << flagged.message;
+    EXPECT_TRUE(names(flagged.message, "acceptable level")) << flagged.message;
+
+    // Without the option the same exit carries no clause.
+    const hven::IpmResult plain = run_hs071(false);
+    ASSERT_EQ(plain.status, SolveStatus::kAcceptable);
+    EXPECT_FALSE(plain.returned_best_iterate);
+    EXPECT_FALSE(names(plain.message, "best iterate")) << plain.message;
+}
+
+// ===========================================================================
+// feasibility: max of the two parts, NaN if either is unmeasured.
+// ===========================================================================
+
+TEST(SolveFeasibility, IsTheMaxOfTheTwoPartsAndNaNIfEitherIsNaN) {
+    using hven::detail::combine_feasibility;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_EQ(combine_feasibility(0.25, 0.5), 0.5);
+    EXPECT_EQ(combine_feasibility(0.5, 0.25), 0.5);
+    EXPECT_EQ(combine_feasibility(0.0, 0.0), 0.0);
+    EXPECT_TRUE(std::isnan(combine_feasibility(nan, 1.0)));
+    EXPECT_TRUE(std::isnan(combine_feasibility(1.0, nan)));
+    EXPECT_TRUE(std::isnan(combine_feasibility(nan, nan)));
+}

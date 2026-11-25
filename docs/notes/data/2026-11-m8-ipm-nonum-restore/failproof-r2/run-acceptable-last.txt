@@ -1,0 +1,121 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-acceptable-last/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:*/IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*
+[==========] Running 19 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from BackendErrorSeam
+[ RUN      ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine (3 ms)
+[ RUN      ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine (0 ms)
+[ RUN      ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult
+[       OK ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult (1 ms)
+[----------] 3 tests from BackendErrorSeam (6 ms total)
+
+[----------] 2 tests from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (2 ms)
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep (3 ms)
+[----------] 2 tests from IpmDenseGuardSeam (6 ms total)
+
+[----------] 8 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration
+[       OK ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+[       OK ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:706: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <01-00 00-00>
+  hven::SolveStatus::kNumericalError
+    Which is: 4-byte object <06-00 00-00>
+converged to an acceptable level: the acceptable tolerances were met; stopped at an acceptable iterate: the KKT factorization at iteration 2 left no numerics
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:708: Failure
+Expected: (r.message.find("(numerical issue)")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+converged to an acceptable level: the acceptable tolerances were met; stopped at an acceptable iterate: the KKT factorization at iteration 2 left no numerics
+
+[  FAILED  ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop
+[       OK ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop (0 ms)
+[----------] 8 tests from IpmNoNumericsSeam (5 ms total)
+
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:589: Failure
+Expected: (r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration " "0 left no numerics")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+converged to an acceptable level: the acceptable tolerances were met; stopped at an acceptable iterate: the KKT factorization at iteration 1 left no numerics
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:591: Failure
+Expected equality of these values:
+  r.last_feasibility_restoration_entries.value_or(0)
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:592: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration]
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:593: Failure
+Expected equality of these values:
+  run.rows.size()
+    Which is: 2
+  1U
+    Which is: 1
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:589: Failure
+Expected: (r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration " "0 left no numerics")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+converged to an acceptable level: the acceptable tolerances were met; stopped at an acceptable iterate: the KKT factorization at iteration 2 left no numerics
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:591: Failure
+Expected equality of these values:
+  r.last_feasibility_restoration_entries.value_or(0)
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:592: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration]
+    Which is: 2
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-acceptable-last/tests/sqp/test_ipm_dense_guard_seams.cpp:593: Failure
+Expected equality of these values:
+  run.rows.size()
+    Which is: 3
+  1U
+    Which is: 1
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested (1 ms)
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 4 test suites ran. (22 ms total)
+[  PASSED  ] 16 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+
+ 3 FAILED TESTS

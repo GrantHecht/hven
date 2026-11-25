@@ -1,0 +1,102 @@
+## determinism and baseline checks
+f7_n1000_path_corrupted | u0 | Optimal fact 2976 minors 4049 | instr/minor 372982588.8 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n1000_path_corrupted | prev | Optimal fact 3590 minors 4762 | instr/minor 487702672.5 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_corrupted | newL | Optimal fact 3590 minors 4762 | instr/minor 480476982.7 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_corrupted | newF | Optimal fact 3590 minors 4762 | instr/minor 465901747.9 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_corrupted | newG | Optimal fact 3590 minors 4762 | instr/minor 444629356.1 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | u0 | Optimal fact 9951 minors 11043 | instr/minor 108772464.9 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n1000_path_neutral | prev | Optimal fact 11401 minors 12593 | instr/minor 139382617.5 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | newL | Optimal fact 11401 minors 12593 | instr/minor 136249740.1 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | newF | Optimal fact 11401 minors 12593 | instr/minor 131726772.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n1000_path_neutral | newG | Optimal fact 11401 minors 12593 | instr/minor 122196174.7 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | u0 | Optimal fact 8 minors 1505 | instr/minor 186522538.3 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n2000_path_activity | prev | Optimal fact 18 minors 1881 | instr/minor 378540128.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | newL | Optimal fact 18 minors 1881 | instr/minor 373560806.9 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | newF | Optimal fact 18 minors 1881 | instr/minor 373561690.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_activity | newG | Optimal fact 18 minors 1881 | instr/minor 370656177.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | u0 | Optimal fact 9 minors 1396 | instr/minor 199254489.5 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n2000_path_physics | prev | Optimal fact 12 minors 1638 | instr/minor 478997250.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | newL | Optimal fact 12 minors 1638 | instr/minor 453360235.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | newF | Optimal fact 12 minors 1638 | instr/minor 453363662.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n2000_path_physics | newG | Optimal fact 12 minors 1638 | instr/minor 382459618.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | u0 | Optimal fact 7865 minors 9297 | instr/minor 76067184.6 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n750_path_neutral_control | prev | Optimal fact 8779 minors 10298 | instr/minor 104310270.1 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | newL | Optimal fact 8779 minors 10298 | instr/minor 101775397.5 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | newF | Optimal fact 8779 minors 10298 | instr/minor 98567064.9 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n750_path_neutral_control | newG | Optimal fact 8779 minors 10298 | instr/minor 90885253.8 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | u0 | Optimal fact 14 minors 1795 | instr/minor 451402752.7 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n800_path_corrupted | prev | Optimal fact 14 minors 2310 | instr/minor 587762687.2 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | newL | Optimal fact 14 minors 2310 | instr/minor 578462190.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | newF | Optimal fact 14 minors 2310 | instr/minor 561555342.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_corrupted | newG | Optimal fact 14 minors 2310 | instr/minor 533353722.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | u0 | Optimal fact 29222 minors 30165 | instr/minor 86098703.8 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n800_path_neutral | prev | Optimal fact 9637 minors 10822 | instr/minor 112249903.1 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | newL | Optimal fact 9637 minors 10822 | instr/minor 109710052.8 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | newF | Optimal fact 9637 minors 10822 | instr/minor 106381945.8 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n800_path_neutral | newG | Optimal fact 9637 minors 10822 | instr/minor 98670213.6 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | u0 | Optimal fact 7605 minors 9561 | instr/minor 95482138.3 | spread 0.000% | rounds identical True(3) | = U0 baseline True
+f7_n825_path_neutral_control | prev | Optimal fact 10440 minors 10589 | instr/minor 111012892.9 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | newL | Optimal fact 10440 minors 10589 | instr/minor 108851445.4 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | newF | Optimal fact 10440 minors 10589 | instr/minor 105054833.3 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+f7_n825_path_neutral_control | newG | Optimal fact 10440 minors 10589 | instr/minor 98430919.9 | spread 0.000% | rounds identical True(3) | = U0 baseline None
+
+## PF-2d: per-minor instruction ratio vs U0 (instructions:u / qp_minors, medians), bar 1.15 on tier A
+cell | prev/U0 | newL/U0 | newF/U0 | newG/U0 | newL/prev | newL bar | minors prev/newL/newF/newG | status prev/newL/newF/newG
+f7_n1000_path_corrupted | 1.308 | 1.288 | 1.249 | 1.192 | 0.985 | not met | 4762/4762/4762/4762 | Optimal/Optimal/Optimal/Optimal
+f7_n1000_path_neutral | 1.281 | 1.253 | 1.211 | 1.123 | 0.978 | not met | 12593/12593/12593/12593 | Optimal/Optimal/Optimal/Optimal
+f7_n2000_path_activity | 2.029 | 2.003 | 2.003 | 1.987 | 0.987 | not met | 1881/1881/1881/1881 | Optimal/Optimal/Optimal/Optimal
+f7_n2000_path_physics | 2.404 | 2.275 | 2.275 | 1.919 | 0.946 | not met | 1638/1638/1638/1638 | Optimal/Optimal/Optimal/Optimal
+f7_n750_path_neutral_control | 1.371 | 1.338 | 1.296 | 1.195 | 0.976 | not met | 10298/10298/10298/10298 | Optimal/Optimal/Optimal/Optimal
+f7_n800_path_corrupted | 1.302 | 1.281 | 1.244 | 1.182 | 0.984 | not met | 2310/2310/2310/2310 | Optimal/Optimal/Optimal/Optimal
+f7_n800_path_neutral | 1.304 | 1.274 | 1.236 | 1.146 | 0.977 | not met | 10822/10822/10822/10822 | Optimal/Optimal/Optimal/Optimal
+f7_n825_path_neutral_control | 1.163 | 1.140 | 1.100 | 1.031 | 0.981 | MET | 10589/10589/10589/10589 | Optimal/Optimal/Optimal/Optimal
+
+## solves per qp minor by bucket (ordinary, detector, polish, border; total), designated solve only
+
+f7_n1000_path_corrupted:
+  prev  ord 2.088 | det 0.594 | pol 1.932 | bor 0.591 | total 5.206
+  newL  ord 2.088 | det 0.552 | pol 1.932 | bor 0.591 | total 5.163
+  newF  ord 2.088 | det 0.373 | pol 1.932 | bor 0.591 | total 4.984
+  newG  ord 2.088 | det 0.285 | pol 1.932 | bor 0.591 | total 4.897
+
+f7_n1000_path_neutral:
+  prev  ord 2.044 | det 1.425 | pol 1.120 | bor 0.246 | total 4.836
+  newL  ord 2.044 | det 1.223 | pol 1.120 | bor 0.246 | total 4.634
+  newF  ord 2.044 | det 0.947 | pol 1.120 | bor 0.246 | total 4.358
+  newG  ord 2.044 | det 0.346 | pol 1.120 | bor 0.246 | total 3.757
+
+f7_n2000_path_activity:
+  prev  ord 2.602 | det 1.667 | pol 3.247 | bor 2.972 | total 10.488
+  newL  ord 2.602 | det 1.523 | pol 3.247 | bor 2.972 | total 10.343
+  newF  ord 2.602 | det 1.523 | pol 3.247 | bor 2.972 | total 10.343
+  newG  ord 2.602 | det 1.440 | pol 3.247 | bor 2.972 | total 10.260
+
+f7_n2000_path_physics:
+  prev  ord 2.750 | det 4.497 | pol 3.695 | bor 2.507 | total 13.449
+  newL  ord 2.750 | det 3.744 | pol 3.695 | bor 2.507 | total 12.695
+  newF  ord 2.750 | det 3.744 | pol 3.695 | bor 2.507 | total 12.695
+  newG  ord 2.750 | det 1.692 | pol 3.695 | bor 2.507 | total 10.644
+
+f7_n750_path_neutral_control:
+  prev  ord 2.080 | det 1.485 | pol 1.215 | bor 0.415 | total 5.195
+  newL  ord 2.080 | det 1.273 | pol 1.215 | bor 0.415 | total 4.983
+  newF  ord 2.080 | det 1.013 | pol 1.215 | bor 0.415 | total 4.723
+  newG  ord 2.080 | det 0.386 | pol 1.215 | bor 0.415 | total 4.096
+
+f7_n800_path_corrupted:
+  prev  ord 2.383 | det 0.475 | pol 2.987 | bor 3.983 | total 9.828
+  newL  ord 2.383 | det 0.420 | pol 2.987 | bor 3.983 | total 9.772
+  newF  ord 2.383 | det 0.344 | pol 2.987 | bor 3.983 | total 9.696
+  newG  ord 2.383 | det 0.177 | pol 2.987 | bor 3.983 | total 9.530
+
+f7_n800_path_neutral:
+  prev  ord 2.071 | det 1.533 | pol 1.175 | bor 0.298 | total 5.078
+  newL  ord 2.071 | det 1.330 | pol 1.175 | bor 0.298 | total 4.874
+  newF  ord 2.071 | det 1.076 | pol 1.175 | bor 0.298 | total 4.620
+  newG  ord 2.071 | det 0.474 | pol 1.175 | bor 0.298 | total 4.019
+
+f7_n825_path_neutral_control:
+  prev  ord 2.017 | det 1.286 | pol 1.047 | bor 0.029 | total 4.379
+  newL  ord 2.017 | det 1.115 | pol 1.047 | bor 0.029 | total 4.208
+  newF  ord 2.017 | det 0.834 | pol 1.047 | bor 0.029 | total 3.927
+  newG  ord 2.017 | det 0.324 | pol 1.047 | bor 0.029 | total 3.417

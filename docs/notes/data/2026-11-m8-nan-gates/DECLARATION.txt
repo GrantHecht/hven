@@ -1,0 +1,134 @@
+M8 NaN-sticky residual and ratio gates (review register, ruling C286) -- DECLARATION
+(committed before the first identity leg; never edited afterwards; a failed or void leg is answered by DECLARATION-r2,
+this file and its outputs kept; criteria are never changed after data; every invocation below uses ABSOLUTE paths)
+================================================================================
+Base        9c6059593 (origin/m8).
+Code head   32f86b265 -- one commit on the base. Evidence commits (this directory) follow and touch no source.
+Arm A       the base, built Release in build-nan/rel BEFORE any source change (legs/build.sh; log build-nan/build-rel-base.out)
+            and frozen to build-nan/armAbin/hven_sqp_corpus, sha256
+            a86ef490b29e2e7cf3a98905270d37d769cecc390a576ac748704d08a1c92c8b.
+Arm B       the code head: build-nan/rel rebuilt incrementally (log build-nan/build-dev1.out) -> frozen by runtime/run_all.sh
+            to build-nan/armBbin, hven_sqp_corpus sha256 ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78.
+            build-nan/dbg (Debug) at the head.
+Toolchain   clang 22.1.8, HVEN_FP_MODE=SAFER_FAST (Release: -O3 -march=native -ffast-math -fno-finite-math-only), Eigen
+            5.0.1 (dep/eigen bc3b3987), MKL 2026.2, MKL_NUM_THREADS=1. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf
+            7.2.12. Apple/Accelerate and Windows: UNOBSERVED (macOS CI is the settler's).
+Scratch     build-nan/ (git-ignored).
+Instruments legs/build.sh, legs/ctest.sh, legs/replay.sh, legs/interior.sh, runtime/ = ../2026-11-m8-dn1d-singular/r3/'s,
+            copied and re-pointed (worktree nan, build-nan/, this directory, arm A's sha256); legs/pch.sh = the pch half
+            of r3's legs/misc.sh, re-pointed; legs/failproof.sh and legs/chain.sh new; probe/ new.
+
+STEP 1, THE MEASUREMENT (before any change; probe/, output probe/probe.out)
+--------------------------------------------------------------------------------
+probe/norms.cpp (out of line, so nothing folds) + probe/main.cpp against the vendored Eigen, Release with the library's
+own flags and Debug (-g, no SIMD flags), sizes 1..1001 (packet widths 2/4/8, unrolled bodies, scalar tails), a NaN at
+EVERY index of every size: v.lpNorm<Infinity>(), v.cwiseProduct(d).lpNorm, v.segment(1, n-1).lpNorm, (a-b).lpNorm,
+against cwiseAbs().maxCoeff<PropagateNaN>().
+RESULT, identical in Release and Debug: lpNorm<Infinity> returns NaN ONLY when the NaN is element 0 of the expression
+(1341 of 1359 positions read FINITE; the 18 NaN reads are exactly the k = 0 cases); a NaN beside an inf reads inf.
+maxCoeff<PropagateNaN> reads NaN at all 1359 positions, equals lpNorm bit for bit on finite input, inf on inf, NaN on
+inf + NaN. THE DEFECT IS LIVE on this toolchain, both build types: every existing NaN test put its NaN in element 0.
+
+THE CHANGE (32f86b265)
+--------------------------------------------------------------------------------
+NEW include/hven/core/detail/inf_norm.h (namespace hven::detail; PROVISIONAL names):
+  nan_sticky_inf_norm(const MatrixBase&)  0 on empty, else cwiseAbs().maxCoeff<Eigen::PropagateNaN>() (one pass).
+  nan_sticky_max(a, b)                    std::max(a, b), except a NaN in either argument is returned.
+Applied at (every other ||.||inf in src/ and include/ is listed in INVENTORY below with why it is not changed):
+  kkt_calls.h       refine_shifted_solve's monitor (2); shifted_residual_ratio (2) -> shifted_solve_refused.
+  eqp_solve.h       polish_eqp_core (res_inf, cap, delta gate, cres_inf); the E4-4 row ratio (rhs_rows_inf, scale, ratio)
+                    and row_residual; the shifted factor's one-step keep (2).
+  bordered_eqp.h    refine_bordered_solve_iterated (shifted first-step keep, rel_floor, best_norm, footprint x2,
+                    candidate_norm) and its free_inf fold (nan_sticky_max: the old `if (!(a <= m)) m = a` dropped a NaN
+                    at the next free entry); iterate_meets_equality_rows' xmag; polish_bordered_unregularized (4);
+                    bordered_shifted_residual_ratio (5); solve_bordered_eqp's row ratio (3), row_residual, step_tol.
+  qp_engine.cpp     refine_eliminated_face_for_verdict's shifted step keep (2); working_face_measure's two folds
+                    (nan_sticky_max: std::max(worst, NaN) returned worst at ANY index).
+  ws_independence.cpp both dependency-solve refinement monitors (5).
+  ssn_engine.cpp, ipqp_engine.cpp  the Farkas residual (rel_resid numerator and denominator), read by an isfinite test.
+  soc_elastic_restoration.cpp  subgradient_certificate_residual_inf -> feasibility_subsolve_certifies' `<= kkt_tol`.
+  schur_complement.h iterate_direction's isfinite stop.
+  ipm_solver.cpp    dual_infeasibility_inf (2), fill_residual_info's econ_inf / icon_inf: they feed iterate_divergent's
+                    and the nan_inf exit's !isfinite tests. The include is appended AFTER the PCH-mirrored list.
+
+INVENTORY (every max/min reduction or ||.||inf whose result decides something, src/ and include/; NaN must refuse = R)
+--------------------------------------------------------------------------------
+file:line (head)                                decides                                   R?  action
+kkt_calls.h:248,254                             shifted refinement keep-while-falling     R   changed
+kkt_calls.h:270-272                             shifted rho gate (shifted_solve_refused)  R   changed
+eqp_solve.h:360-371                             polish keep-while-falling + step cap      R   changed
+eqp_solve.h:477,504-505,528                     E4-4 row-ratio refusal (+ reported value) R   changed
+eqp_solve.h:553-554                             shifted one-step keep                     R   changed
+bordered_eqp.h:320-321,337,354-386              border refinement keep / target / free_inf R  changed
+bordered_eqp.h:448-459                          border polish keep-while-falling          R   changed
+bordered_eqp.h:567                              equality-row certificate scale (per-row test already refuses) - changed (uniform)
+bordered_eqp.h:624-629                          per-block shifted rho gate                R   changed
+bordered_eqp.h:678-706,715                      border row-ratio refusal, row_residual, step_tol R changed
+qp_engine.cpp:3391-3398                         verdict measure fold (keep-while-falling) R   changed
+qp_engine.cpp:3615-3616                         eliminated verdict shifted step keep      R   changed
+ws_independence.cpp:271-276,728-734             dependency-solve refinement monitors      R   changed
+ssn_engine.cpp:1494, ipqp_engine.cpp:292        Farkas certificate residual               R   changed
+soc_elastic_restoration.cpp:697                 infeasibility certificate residual        R   changed
+schur_complement.h:471                          power-iteration isfinite stop             R   changed
+ipm_solver.cpp:699,703,1277,1300                IPM divergence / nan_inf exit inputs      R   changed
+ipm_solver.cpp:2123 dense_residual_ratio (DN-1b guard)  2-norm (sum of squares): IEEE-sticky   -   unchanged
+ipm_solver.cpp:400-401 complementarity min/max  iterates; guarded upstream (DXSL squaredNorm finite test, GoodStep); avgcomp is a sum; the block is pinned by its own no-reorder note   -   unchanged
+ipm_solver.cpp:1278,1301 max_i/e_mult; 1523-1525,1717-1720 theta_orig; 1747-1753 primal_dual_error (Ipopt map, dead on the default path; std::max would drop a NaN anyway); 1659-1669 bound_mult_max; 4536 last_step_norm   reported / iterate-derived; iterates guarded   -   unchanged
+ssn_engine.cpp:1121,1378-1384,1549 (SsnNorms inf_norm)  convergence on iterates guarded by dw.allFinite (699); the merit is a sum   -   unchanged
+ipqp_engine.cpp:186,234-239,1054-1068,1370-1431,2379-2387,2609  residual/scale measures on iterates guarded by sol/iterate allFinite (2106, 2506, 2554, 2601) and QP data checked finite by the SQP (sqp_solver.cpp 1937-1949)   -   unchanged
+sqp_solver.cpp (728, 1472-1556, 1959-2043, 5494, 5548, 7984-8142, 8309, 8507)  evaluations guarded by all_finite (521-623, 1849-1855) and QP answers by allFinite (899, 914, 1047)   -   unchanged
+qp_engine.cpp (1117-1161, 1334, 1762, 2258-2772, 3178-3385, 4326, 4382, 5136, 5362, 6338-6454), qp_engine.h:1254-1263,1370, qp_walk_trace.h:1005, qp_degeneracy_arm.h:1578  step lengths, xmag scales and trace fields on an answer qp_engine.h section 5 already refuses when non-finite   -   unchanged
+lbfgs_damped.cpp, qn_models.cpp, mixed_lift.cpp, problem_scaling.cpp, equality_basis.cpp, ws_independence.cpp:340,1025, sqp_solver.cpp:344-345, solve_result.cpp, non_linear_program.cpp, assembly_declaration.cpp   preceded by allFinite, or reductions of finite data/scales, not refusal gates   -   unchanged
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above. Behaviour differs ONLY on input holding a NaN at a non-first index (and, for the free_inf and
+    working_face_measure folds, at any index); on every vector without a NaN each reduction is bit-identical
+    (NanStickyInfNorm.OnFiniteInputItEqualsLpNormBitForBit, NanStickyMax.WithoutANaNItIsStdMax).
+D1  ENGINES AT THE DEFAULTS: NO MOVERS -- replay P2, interior P3, runtime counter identity P5.
+D2  API: none public. NEW detail names (PROVISIONAL, for owner approval): hven::detail::nan_sticky_inf_norm,
+    hven::detail::nan_sticky_max, header hven/core/detail/inf_norm.h.
+D3  TESTS: 3582 (Release and Debug; base 3569 + 13): NanStickyInfNorm.{ANaNAtEveryIndexReadsNaN,
+    ANaNFirstMiddleOrLastReadsNaNThroughExpressions, AnInfReadsInfAndANaNBesideAnInfReadsNaN, AnEmptyVectorReadsZero,
+    OnFiniteInputItEqualsLpNormBitForBit}, NanStickyMax.{ANaNInEitherArgumentIsKept, WithoutANaNItIsStdMax}
+    (hven_tests); QpNanGates.{TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses, TheBorderedShiftedRatioReadsANonFirstNaN,
+    TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN, TheUnregularizedPolishDoesNotFallToANonFirstNaN,
+    TheVerdictFaceMeasureKeepsANaNInALaterRow} (hven_qp_walk_seam_tests; QpEngineTestAccess gains face_measure);
+    SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN (hven_sqp_tests). Gate tests use n = 9 and 17
+    and NaN indices 1, n/2, n-1 (the last in every packet width's scalar tail).
+D4  No iparm change, no IPARM-SURFACE label; no notices/ change; no trace key.
+
+PROOFS AND PASS CRITERIA (legs/, runtime/; each under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` empty first)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-nan/rel) and Debug (build-nan/dbg), -j4 under setsid: "100% tests passed, 0 tests failed
+    out of 3582" in both (legs/ctest.sh; logs suites/).
+P2  27-cell replay x (walk, ssn, ipm) on arm B's tree: EXACT against docs/notes/data/2026-10-m7-wx2-gates/gates/replay/
+    head-*.csv via scripts/compare_replay.py, 0 differences each (x3) (legs/replay.sh; replay/).
+P3  interior: arm A vs arm B, 27 cells, compare_replay.py EXACT 0 differences (unmoved); arm B under the promoted
+    baseline's invocation against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences
+    (promoted) (legs/interior.sh; interior/).
+P4  THE FALSIFIER (legs/failproof.sh, two mutations of the code head's `git archive` export of inf_norm.h, each fail
+    closed unless its site occurs exactly once; Release; failproof/): FAILPROOF_AS_DECLARED -- the head runs 13 tests and
+    fails none; each mutation fails EXACTLY:
+      helper-lpnorm (nan_sticky_inf_norm := lpNorm<Infinity>, i.e. every changed ||.||inf site as before): 8 --
+        NanStickyInfNorm.ANaNAtEveryIndexReadsNaN, NanStickyInfNorm.ANaNFirstMiddleOrLastReadsNaNThroughExpressions,
+        NanStickyInfNorm.AnInfReadsInfAndANaNBesideAnInfReadsNaN, QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN,
+        QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses,
+        QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN,
+        QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN,
+        SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN;
+      max-std (nan_sticky_max := std::max, i.e. both folds as before): 2 -- NanStickyMax.ANaNInEitherArgumentIsKept,
+        QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow.
+    Because step 1 found the defect LIVE, the falsifier is the old reduction itself (not a synthetic finite-on-NaN
+    stand-in): the new non-first-index tests fail under it. The finite-identity tests pass under both mutations.
+    (Measured on a dev run before this declaration: build-nan/dev/fp, exactly these sets.)
+P5  runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode (interior, ipm, ssn, walk),
+    THROTTLE 0, filtered B/A in [0.995, 1.005] per mode; perf record period 400000. Run FIRST and alone.
+P6  scripts/check_pch_neutrality.sh: PASS (ipm_solver.cpp's include block grows by one line after the PCH-mirrored
+    list) (legs/pch.sh; pch/).
+NOT RUN (proportionate, per the brief): census, S/T legs, objects/flags diffs, install smoke, Accelerate sweep. They are
+run only if P2, P3 or P5 fails identity.
+ORDER: P5 alone first, then legs/chain.sh (P1, P2, P3, P4, P6):
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/nan/docs/notes/data/2026-11-m8-nan-gates/runtime/run_all.sh ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/nan/docs/notes/data/2026-11-m8-nan-gates/legs/chain.sh 32f86b265 ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data.

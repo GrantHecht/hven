@@ -1,0 +1,12 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T00:24:58-05:00
+probe-off: probe-test rc=1 soc-test rc=0
+soc-off: probe-test rc=0 soc-test rc=1
+restored: probe-test rc=0 soc-test rc=0
+TREE_CLEAN
+probe-off 1 0
+soc-off 0 1
+restored 0 0
+FAILPROOF_AS_DECLARED
+rc=0
+FOREGROUND_END 2026-11-07T00:25:46-05:00

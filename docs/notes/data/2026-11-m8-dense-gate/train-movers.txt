@@ -1,0 +1,43 @@
+# M8 dense gate (DECLARATION.md, I4D): the 41 TRAIN cells whose default (kAuto) row moves against DN-3 r5's
+# flip row, from the disclosed dev run (dev/identity/). One tag per line, then its moved keys as a comment.
+sd-hven-ipm-ALLINITC  # side.dn3b_kkt_dense_flagged_count 66->0
+sd-hven-ipm-BT8  # side.dn3b_kkt_dense_flagged_count 1->0
+sd-hven-ipm-BURKEHAN  # side.dn3b_kkt_dense_flagged_count 4->0
+sd-hven-ipm-DEMBO7  # side.dn3b_kkt_dense_flagged_count 46->0
+sd-hven-ipm-DNIEPER  # side.dn3b_kkt_dense_flagged_count 3->0
+sd-hven-ipm-FLETCHER  # side.dn3b_kkt_dense_flagged_count 10->0
+sd-hven-ipm-HS100MOD  # side.dn3b_kkt_dense_flagged_count 6->0
+sd-hven-ipm-HS101  # side.dn3b_kkt_dense_flagged_count 33->0
+sd-hven-ipm-HS102  # side.dn3b_kkt_dense_flagged_count 1->0
+sd-hven-ipm-HS103  # side.dn3b_kkt_dense_flagged_count 22->0
+sd-hven-ipm-HS107  # side.dn3b_kkt_dense_flagged_count 3->0
+sd-hven-ipm-HS108  # side.dn3b_kkt_dense_flagged_count 1->0
+sd-hven-ipm-HS61  # side.dn3b_kkt_dense_flagged_count 2->0
+sd-hven-ipm-HS64  # side.dn3b_kkt_dense_flagged_count 21->0
+sd-hven-ipm-HS75  # side.dn3b_kkt_dense_flagged_count 5->0
+sd-hven-ipm-HS84  # side.dn3b_kkt_dense_flagged_count 25->0
+sd-hven-ipm-HS85  # side.dn3b_kkt_dense_flagged_count 8->0
+sd-hven-ipm-HS88  # side.dn3b_kkt_dense_flagged_count 9->0
+sd-hven-ipm-HS89  # side.dn3b_kkt_dense_flagged_count 11->0
+sd-hven-ipm-HS90  # side.dn3b_kkt_dense_flagged_count 32->0
+sd-hven-ipm-HS91  # side.dn3b_kkt_dense_flagged_count 17->0
+sd-hven-ipm-HS92  # side.dn3b_kkt_dense_flagged_count 12->0
+sd-hven-ipm-HS99EXP  # side.dn3b_kkt_dense_flagged_count 24->1
+sd-hven-ipm-LAUNCH  # side.dn3b_kkt_dense_flagged_count 13->0
+sd-hven-ipm-LEWISPOL  # side.dn3b_kkt_dense_flagged_count 179->2
+sd-hven-ipm-LOOTSMA  # side.dn3b_kkt_dense_flagged_count 2->0
+sd-hven-ipm-LSNNODOC  # side.dn3b_kkt_dense_flagged_count 10->4
+sd-hven-ipm-MATRIX2  # side.dn3b_kkt_dense_flagged_count 3->0
+sd-hven-ipm-MESH  # side.dn3b_kkt_dense_flagged_count 186->0
+sd-hven-ipm-MSS1  # side.dn3b_kkt_dense_flagged_count 18->2
+sd-hven-ipm-NET1  # side.dn3b_kkt_dense_flagged_count 17->2
+sd-hven-ipm-SPANHYD  # side.dn3b_kkt_dense_flagged_count 186->11
+sd-hven-ipm-WATER  # side.dn3b_kkt_dense_flagged_count 6->2
+sd-hven-sqp-ALLINITC  # kkt_stationarity 3.5527136788005009e-15->7.1054273576010019e-15; side.dn1_inertia_suspect_verdicts 8->0; side.dn1d_dense_flagged_factorizations 20->0; side.dn1d_dense_singular_refactors 20->0; side.dn3_dense_factorizations 72->52; side.eqp_refine_iters 39->0; side.sqp_kkt_residual 3.5527136788005009e-15->7.1054273576010019e-15; side.sqp_stationarity 3.5527136788005009e-15->7.1054273576010019e-15
+sd-hven-sqp-BT7  # side.dn1d_dense_shifted_solve_refusals 1->0
+sd-hven-sqp-BURKEHAN  # side.dn1d_dense_shifted_solve_refusals 6->0
+sd-hven-sqp-HS88  # side.dn1d_dense_shifted_solve_refusals 1->0
+sd-hven-sqp-HS90  # side.dn1d_dense_flagged_factorizations 1->0; side.dn1d_dense_singular_refactors 1->0; side.dn3_dense_factorizations 99->98; side.eqp_refine_iters 2->0
+sd-hven-sqp-HS92  # side.dn1d_dense_shifted_solve_refusals 23->0
+sd-hven-sqp-MESH  # side.dn1d_dense_shifted_solve_refusals 4->0; side.eqp_residual_refusals 4->2
+sd-hven-sqp-SPANHYD  # factorizations 47890->47884; side.dn1d_dense_flagged_factorizations 6->0; side.dn1d_dense_shifted_solve_refusals 6->0; side.dn1d_dense_singular_refactors 6->0; side.dn3_dense_factorizations 25188->25176; side.eqp_refine_iters 29->14; side.eqp_residual_refusals 16->10; side.factorizations 47890->47884; side.harness_factorizations_total 47923->47917

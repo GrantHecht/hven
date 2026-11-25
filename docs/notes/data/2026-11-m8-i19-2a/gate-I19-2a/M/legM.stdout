@@ -1,0 +1,294 @@
+box-lane: lane 0 acquired 2026-11-24T16:21:16-05:00
+FOREGROUND_START 2026-11-24T16:21:16-05:00 tree=/home/ghecht/Projects/hven/.claude/worktrees/i19-2a head=a18fe131f0ea87899ac1aa62b63bef675c250c57
+PREFLIGHT every mutation applies and restores: [M1 M2 M3 M3b M19 M20 M4 M5 M5b M5c M6 M7 M7b M28 M17 M18 M29 M8 M9 M9b M9c M10 M10b M10c M10d M11 M21 M22 M23 M12 M12b M25 M26 M27 M31 M15 M16 M30 M32 M33 M34 M35 M36 M37 M38 M24 D1 D2 D3 D4 D5 D6 D7]
+MUT control rc=0 killers=0
+MUT M1 rc=1 killers=8
+   I19GrowthRule.RatioCeilingReadsTheViolationRatioUnderStepTypeRatio
+   I19GrowthRule.StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolationDecrease
+   I19GrowthRule.StepTypeRatioReadsTheViolationRatioOnAnHTypeStep
+   I19GrowthRule.StepTypeRatioRefusesANonPositivePredictedViolationDecrease
+   I19GrowthRule.StepTypeRatioRefusesWithoutALinearization
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M2 rc=1 killers=1
+   I19GrowthRule.StepTypeRatioRefusesWithoutALinearization
+MUT M3 rc=1 killers=1
+   I19GrowthRule.StepTypeRatioRefusesANonPositivePredictedViolationDecrease
+MUT M3b rc=1 killers=1
+   I19GrowthRule.StepTypeRatioRefusesANonPositivePredictedViolationDecrease
+MUT M19 rc=1 killers=1
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+MUT M20 rc=1 killers=1
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+MUT M4 rc=1 killers=5
+   I19GrowthRule.NoGrowthAfterSocWhenTheLeverIsOff
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M5 rc=1 killers=6
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne
+   I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M5b rc=1 killers=2
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+MUT M5c rc=1 killers=2
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+MUT M6 rc=1 killers=5
+   I19GrowthRule.ARejectionRestartsTheCleanCount
+   I19GrowthRule.MemoryClearsAfterNCleanAcceptancesAndTheNthCannotGrow
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+MUT M7 rc=1 killers=6
+   I19GrowthRule.ARejectionRestartsTheCleanCount
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne
+   I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+MUT M7b rc=1 killers=3
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+MUT M28 rc=1 killers=9
+   I19GrowthRule.MemoryClearsAfterNCleanAcceptancesAndTheNthCannotGrow
+   I19GrowthRule.MemoryRefusesAGrowthReachingTheRememberedRadius
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne
+   I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+   SqpSolverNonfiniteRollback.TheMemoryRecordsARolledBackRadiusAGrowthSet
+MUT M17 rc=1 killers=1
+   I19RadiusCycle.ScriptedMemoryIsClearedAtARestorationResume
+MUT M18 rc=0 killers=0
+SURVIVED_AS_ARGUED M18
+MUT M29 rc=1 killers=1
+   SqpSolverNonfiniteRollback.TheMemoryRecordsARolledBackRadiusAGrowthSet
+MUT M8 rc=1 killers=6
+   I19GrowthRule.RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilityStepAlone
+   I19GrowthRule.RatioCeilingReadsTheViolationRatioUnderStepTypeRatio
+   I19GrowthRule.RatioCeilingRefusesARatioAboveItAndNotAtIt
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.TheRatioCeilingReachesTheDriver
+MUT M9 rc=1 killers=1
+   I19GrowthRule.RatioCeilingLeavesARatioFreeGrantAlone
+MUT M9b rc=1 killers=1
+   I19GrowthRule.RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilityStepAlone
+MUT M9c rc=1 killers=1
+   I19GrowthRule.RatioCeilingReadsTheViolationRatioUnderStepTypeRatio
+MUT M10 rc=1 killers=3
+   I19GrowthRule.ShrinkToStepKeepsHalvingARadiusBoundStep
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone
+MUT M10b rc=1 killers=1
+   I19GrowthRule.ShrinkToStepLeavesAFailedSubproblemsStepAlone
+MUT M10c rc=1 killers=1
+   I19GrowthRule.ShrinkToStepHalvesTheStepWhenTheRadiusDidNotHoldIt
+MUT M10d rc=1 killers=1
+   I19GrowthRule.ShrinkToStepHalvesTheStepWhenTheRadiusDidNotHoldIt
+MUT M11 rc=1 killers=2
+   I19GrowthRule.ShrinkToStepFloorTestReadsTheShrunkRadius
+   I19RadiusCycle.ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep
+MUT M21 rc=0 killers=0
+SURVIVED_AS_ARGUED M21
+MUT M22 rc=1 killers=1
+   SqpSolverNonfiniteRollback.TheRollbackHalvesTheRadiusEvenUnderShrinkToStep
+MUT M23 rc=1 killers=1
+   I19RadiusCycle.ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone
+MUT M12 rc=1 killers=6
+   I19GrowthRule.CapOnlyStepIsNotEligibleWhenCapPinsDoNotGrow
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.OnElasticMajorsTheRadiusAndTheCapStaySeparated
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M12b rc=1 killers=1
+   I19RadiusCycle.AMixedStepStaysGrowthEligibleWithoutCapPinGrowth
+MUT M25 rc=1 killers=7
+   I19GrowthRule.FunnelHeadroomReadsTheUncorrectedTrialAfterSoc
+   I19GrowthRule.FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesTheWidth
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.AStopPollExitCountsThePushedRowsRefusal
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M26 rc=1 killers=1
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+MUT M27 rc=1 killers=4
+   I19RadiusCycle.AStopPollExitCountsThePushedRowsRefusal
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+MUT M31 rc=1 killers=2
+   I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+MUT M15 rc=1 killers=3
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+   SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+MUT M16 rc=1 killers=4
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.OnElasticMajorsTheRadiusAndTheCapStaySeparated
+   I19RadiusCycle.ScriptedMemoryIsClearedAtARestorationResume
+   SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+MUT M30 rc=1 killers=1
+   SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+MUT M32 rc=0 killers=0
+SURVIVED M32
+MUT M33 rc=0 killers=0
+SURVIVED M33
+MUT M34 rc=1 killers=2
+   I19GrowthRule.ARejectionRestartsTheCleanCount
+   I19GrowthRule.MemoryRecordsOnlyARadiusThatCameFromAGrowth
+MUT M35 rc=0 killers=0
+SURVIVED M35
+MUT M36 rc=1 killers=1
+   I19RadiusCycle.ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep
+MUT M37 rc=1 killers=1
+   I19RadiusCycle.AStopPollExitCountsThePushedRowsRefusal
+MUT M38 rc=1 killers=1
+   SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+MUT M24 rc=1 killers=1
+   I19RadiusCycle.ScriptedMemoryIsClearedAtARestorationResume
+MUT D1 rc=2 killers=23
+   I19GrowthRule.StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolationDecrease
+   I19GrowthRule.StepTypeRatioReadsTheViolationRatioOnAnHTypeStep
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FCycDefaultReadingExact
+   I19RadiusCycle.FCycDefaultReadingQn
+   I19RadiusCycle.FHDefaultReadingExact
+   I19RadiusCycle.FHDefaultReadingQn
+   I19RadiusCycle.FHGrowsOnHTypeStepsWhoseViolationRose
+   I19RadiusCycle.FSocDefaultReadingExact
+   I19RadiusCycle.FSocDefaultReadingQn
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRatioCeilingReachesTheDriver
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   OptionsDump.SqpDumpsTheTu0LeversAtTheirOldConstants
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+   SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+   SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers
+   Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+MUT D2 rc=2 killers=16
+   I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+   I19GrowthRule.FunnelHeadroomReadsTheUncorrectedTrialAfterSoc
+   I19GrowthRule.NoGrowthAfterSocWhenTheLeverIsOff
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FSocDefaultReadingExact
+   I19RadiusCycle.FSocDefaultReadingQn
+   I19RadiusCycle.FSocGrowsOnSocRescuedAcceptancesAndIsThenRejected
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+MUT D3 rc=2 killers=20
+   I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+   I19GrowthRule.MemoryRefusesAGrowthReachingTheRememberedRadius
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FCycDefaultReadingExact
+   I19RadiusCycle.FCycDefaultReadingQn
+   I19RadiusCycle.FHDefaultReadingExact
+   I19RadiusCycle.FHDefaultReadingQn
+   I19RadiusCycle.FHGrowsOnHTypeStepsWhoseViolationRose
+   I19RadiusCycle.FSocDefaultReadingExact
+   I19RadiusCycle.FSocDefaultReadingQn
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRatioCeilingReachesTheDriver
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+MUT D4 rc=2 killers=11
+   I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+   I19GrowthRule.RatioCeilingRefusesARatioAboveItAndNotAtIt
+   I19GrowthRule.StepTypeRatioReadsTheViolationRatioOnAnHTypeStep
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCycDefaultReadingQn
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+MUT D5 rc=2 killers=17
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FCapGrowsOnCapOnlyStepsAndResolvesTheIdenticalQp
+   I19RadiusCycle.FCycDefaultReadingExact
+   I19RadiusCycle.FCycDefaultReadingQn
+   I19RadiusCycle.FHDefaultReadingExact
+   I19RadiusCycle.FHDefaultReadingQn
+   I19RadiusCycle.FSocDefaultReadingQn
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+   SqpSolverNonfiniteRollback.AWatchdogRestoreInvalidatesTheSnapshot
+   SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+MUT D6 rc=2 killers=15
+   I19GrowthRule.CapOnlyStepIsNotEligibleWhenCapPinsDoNotGrow
+   I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FCapGrowsOnCapOnlyStepsAndResolvesTheIdenticalQp
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+   SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+MUT D7 rc=2 killers=21
+   I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+   I19GrowthRule.FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesTheWidth
+   I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+   I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+   I19RadiusCycle.FCapDefaultReadingExact
+   I19RadiusCycle.FCapDefaultReadingQn
+   I19RadiusCycle.FCycDefaultReadingExact
+   I19RadiusCycle.FCycDefaultReadingQn
+   I19RadiusCycle.FHDefaultReadingExact
+   I19RadiusCycle.FHDefaultReadingQn
+   I19RadiusCycle.FHGrowsOnHTypeStepsWhoseViolationRose
+   I19RadiusCycle.FSocDefaultReadingExact
+   I19RadiusCycle.FSocDefaultReadingQn
+   I19RadiusCycle.FSocGrowsOnSocRescuedAcceptancesAndIsThenRejected
+   I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+   I19RadiusCycle.TheRatioCeilingReachesTheDriver
+   I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+   OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+   OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+   OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+   Options.SqpTheTuningLeversDefaultToTheirOldConstants
+VERDICT MUTATION_SURVIVED
+FOREGROUND_END 2026-11-24T17:44:38-05:00

@@ -1,0 +1,2 @@
+APPLIED R1 to src/kkt/kkt_factor.cpp
+MUT R1 rc=0 killers=0

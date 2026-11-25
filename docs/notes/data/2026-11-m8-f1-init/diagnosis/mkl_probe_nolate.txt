@@ -1,0 +1,75 @@
+== round 1 mode none nolate
+mode=none pre_us=0.7
+pardiso_13[1]_us=2456.5 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.1 err=0 x0=0.21951219512195125
+6080895,,instructions:u,3819091,100.00,,
+== round 1 mode maxthreads nolate
+mode=maxthreads pre_us=2035.4
+pardiso_13[1]_us=301.4 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.0 err=0 x0=0.21951219512195125
+6081829,,instructions:u,3617372,100.00,,
+== round 1 mode version nolate
+mode=version pre_us=5.0
+pardiso_13[1]_us=2276.7 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=42.0 err=0 x0=0.21951219512195125
+6076384,,instructions:u,3649241,100.00,,
+== round 2 mode none nolate
+mode=none pre_us=0.6
+pardiso_13[1]_us=2273.7 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.7 err=0 x0=0.21951219512195125
+6075240,,instructions:u,3634931,100.00,,
+== round 2 mode maxthreads nolate
+mode=maxthreads pre_us=2009.8
+pardiso_13[1]_us=297.2 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.3 err=0 x0=0.21951219512195125
+6081792,,instructions:u,3673771,100.00,,
+== round 2 mode version nolate
+mode=version pre_us=4.6
+pardiso_13[1]_us=2323.9 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.9 err=0 x0=0.21951219512195125
+6080681,,instructions:u,3607081,100.00,,
+== round 3 mode none nolate
+mode=none pre_us=0.6
+pardiso_13[1]_us=2269.9 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.7 err=0 x0=0.21951219512195125
+6075938,,instructions:u,3592191,100.00,,
+== round 3 mode maxthreads nolate
+mode=maxthreads pre_us=2054.9
+pardiso_13[1]_us=299.5 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.2 err=0 x0=0.21951219512195125
+6081531,,instructions:u,3668421,100.00,,
+== round 3 mode version nolate
+mode=version pre_us=4.5
+pardiso_13[1]_us=2322.1 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=41.3 err=0 x0=0.21951219512195125
+6080842,,instructions:u,3622362,100.00,,
+== round 4 mode none nolate
+mode=none pre_us=0.6
+pardiso_13[1]_us=2282.0 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.4 err=0 x0=0.21951219512195125
+6080939,,instructions:u,3649991,100.00,,
+== round 4 mode maxthreads nolate
+mode=maxthreads pre_us=2049.7
+pardiso_13[1]_us=294.7 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=46.4 err=0 x0=0.21951219512195125
+6081567,,instructions:u,3616361,100.00,,
+== round 4 mode version nolate
+mode=version pre_us=4.4
+pardiso_13[1]_us=2312.7 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.5 err=0 x0=0.21951219512195125
+6080887,,instructions:u,3609441,100.00,,
+== round 5 mode none nolate
+mode=none pre_us=0.6
+pardiso_13[1]_us=2312.2 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=45.6 err=0 x0=0.21951219512195125
+6080625,,instructions:u,3629791,100.00,,
+== round 5 mode maxthreads nolate
+mode=maxthreads pre_us=2055.5
+pardiso_13[1]_us=311.2 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.6 err=0 x0=0.21951219512195125
+6076375,,instructions:u,3616741,100.00,,
+== round 5 mode version nolate
+mode=version pre_us=4.6
+pardiso_13[1]_us=2301.3 err=0 x0=0.21951219512195125
+pardiso_13[2]_us=40.1 err=0 x0=0.21951219512195125
+6080621,,instructions:u,3617221,100.00,,

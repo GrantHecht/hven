@@ -1,0 +1,47 @@
+FOREGROUND_START 2026-11-21T20:34:54-05:00
+PREFLIGHT every mutation applies and restores: [C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 R1]
+MUT control rc=0 killers=0
+MUT C1 rc=1 killers=2
+   SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+MUT C2 rc=1 killers=1
+   Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+MUT C3 rc=1 killers=1
+   Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+MUT C4 rc=1 killers=1
+   Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+MUT C5 rc=1 killers=2
+   Continuation.ProbeBudgetBoundsAFailingProposal
+   Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+MUT C6 rc=1 killers=1
+   Rf1AcceptableLabel.EachTierIsReadInclusivelyAndANanFails
+MUT C7 rc=1 killers=1
+   Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+MUT C8 rc=1 killers=10
+   Continuation.ProbeBudgetBoundsAFailingProposal
+   QpCapBudget.ABudgetOfThreeRoutesThreeFailuresAndThenExits
+   QpCapBudget.TheDefaultIsThreeAndOneIsTheOldGate
+   QpCapCounters.TheCappedExitIsCountedApartFromANumericalOne
+   QpCapRetry.ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo
+   QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps
+   Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves
+   Rf1MinorCapExit.TheCappedExitIsStalledBesideItsOwnStopReason
+   SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates
+   SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+MUT C9 rc=2 killers=4
+   Rf1AcceptableLabel.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves
+   Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves
+   SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+   SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+MUT C10 rc=2 killers=4
+   Rf1AcceptableLabel.ASubproblemFailureAtAnAcceptablePointIsLabelledAndNothingElseMoves
+   Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves
+   SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+   SqpLadderSeam.Rf1ARestorationFailureIsLabelledAtTheTopLevelOnly
+MUT C11 rc=1 killers=1
+   Rf1MinorCapExit.AtAnAcceptablePointTheSameExitIsAcceptableAndNothingElseMoves
+MUT C12 rc=1 killers=1
+   Rf1AcceptableLabel.TheTierIsValidatedOnTheConvergenceTiersOrder
+MUT R1 rc=0 killers=0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-21T20:41:19-05:00

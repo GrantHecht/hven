@@ -1,0 +1,42 @@
+# problems.requested: ACOPP118,ACOPP57,ACOPR57,DALLASM,NET3,READING6,SMBANK,STEENBRB,STEENBRC,STEENBRD,STEENBRE,STEENBRG,ZAMB2-8
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T12:40:22Z
+# mkl.num_threads: 1
+# run.mode: co-run
+# wall.columns: wall_s
+# wall.quotable: false
+# run.corun.width: 4
+# run.corun.pinning: one process per physical core via taskset; the core map is derived at run time from sysfs (one logical CPU per (package, core_id), the lowest allowed); SMT siblings left idle
+# run.corun.core_map: pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+# run.corun.threads: MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every child
+# run.corun.tiering: a cell co-runs iff its lane has no solver-side wall option (the hven lanes: SolveBudget counts iterations, not seconds, so the watchdog is the only clock) and it is not named solo; external lanes (ipopt, snopt) and --solo-problems cells run SOLO in a serial tier after the co-run tier; a co-run cell that ends dnf_wall or error is discarded and re-run SOLO, and only the solo row is reported
+# run.corun.asserted_columns: statuses and counters EXACT; residual/measure columns under the calibrated near-ulp gate of docs/corun.md; wall_s NOT asserted
+# run.corun.row_order: cell_id ascending, independent of completion order
+# run.corun.cells: 13 co-run tier, 0 solo tier (0 of them flagged from the co-run)
+# run.corun.flagged_for_solo: none
+# wall.note: wall_s is INFORMATIONAL in this file; it was taken with other cells running and is never a measurement (hven CLAUDE.md section 7)
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/ACOPP118/hven-sqp/default,cutest,ACOPP118,cutest-nlp-35 v2,f142a354fbd8324d6e2521e110a99ab9c3eab96cff408b391301eade87820f08,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,14,34235,15,15,14,13,129660.68619604249,3.869368847648753e-10,2.5165980410690736e-13,0,0,42.085603187792003
+cutest/ACOPP57/hven-sqp/default,cutest,ACOPP57,cutest-nlp-35 v2,3b7ed2b065d229e8cc992b5352621fc45043df228114a37bbcd09618a5477b25,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,5,82,6,6,7,6,41737.786849846256,1.0016503966872789e-07,7.465003615259036e-11,0,0,0.078681970946490765
+cutest/ACOPR57/hven-sqp/default,cutest,ACOPR57,cutest-nlp-35 v2,1dd0ee1f3a0bdf0d5069790c48fbb9943e6825cfb2f94ede576cbf8aa7cf65b8,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,16,1750,17,17,16,15,41737.786035180863,7.980477547460379e-11,2.1760371282653068e-13,7.716050021144838e-14,4.6780474918126802e-11,1.9886905620805919
+cutest/DALLASM/hven-sqp/default,cutest,DALLASM,cutest-nlp-35 v2,bbf65ba2d2e06b081b0f298b4970fabce7d47e55598211da01957115fbf81507,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,18,413,19,19,20,19,-48198.188192052978,6.7454414609535718e-07,3.5527136788005009e-15,0,5.4836846175021491e-12,0.9015329978428781
+cutest/NET3/hven-sqp/default,cutest,NET3,cutest-nlp-35 v2,d97bff8b1c7d2a7d47c4b71256434b675593ffb71c7428808d0c3a6f798532ba,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,stalled,error,1,13749,3,1,2,4,218961.90061283048,24484.782993960373,3045.1700000000001,0,0,17.199192973319441
+cutest/READING6/hven-sqp/default,cutest,READING6,cutest-nlp-35 v2,1ab4a2d908d95c869b0eb8573002292e8475aee700fa4c1255b099d8983791a2,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,8,568,9,9,9,9,-144.65970057278301,1.8913759447514167e-12,4.9513171340720419e-13,0,0,0.52744537405669689
+cutest/SMBANK/hven-sqp/default,cutest,SMBANK,cutest-nlp-35 v2,8021b2235d72a6defba6b7e95f44c0b715889a133af1a6bc23af76f667099b82,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,29,29,30,30,31,30,-7129292,9.251150398823216e-10,1.4188117347657681e-10,0,0,0.10088710160925984
+cutest/STEENBRB/hven-sqp/default,cutest,STEENBRB,cutest-nlp-35 v2,1f7c4db10260fae9108f1b3529c6017bd23153d8f2eab1cd8567f1a770377096,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,81,29827,93,103,69,69,9075.8553755339981,2.9437292803358162e-07,1.2904215133044957e-17,1.2904215133044957e-17,2.4232010000333491e-26,25.02254270715639
+cutest/STEENBRC/hven-sqp/default,cutest,STEENBRC,cutest-nlp-35 v2,a53f0b6ed248f9acddda6733281aae3ba543023f2c1f4115da3ade23f0dbe21c,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,91,41279,101,115,76,76,27504.936820482199,5.7568122491247209e-10,2.8374351189232835e-19,2.8374351189232835e-19,8.5284027962611831e-30,43.050260975956917
+cutest/STEENBRD/hven-sqp/default,cutest,STEENBRD,cutest-nlp-35 v2,92b8f2e3745a2328925b8310d6fae4a2346de0982b5e7d13ec9a2880fbe5332d,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,107,29308,118,129,81,81,9074.1942666909217,8.9187796925571661e-08,6.2014277437207791e-15,3.1007143462732352e-15,1.8972027781006057e-26,26.699246514122933
+cutest/STEENBRE/hven-sqp/default,cutest,STEENBRE,cutest-nlp-35 v2,d86e81658af2105de40056cf156cb725e4df34c12f0b2a8a9026a190b2caef76,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,82,28100,94,108,75,75,27464.970959577724,2.4610273902103685e-07,2.4535013862130767e-15,1.8347350464015905e-15,2.0409640351652911e-24,31.77955376682803
+cutest/STEENBRG/hven-sqp/default,cutest,STEENBRG,cutest-nlp-35 v2,77f736839fe6b605bac158213fe0cfe5ff78ef47eae15ac2c048d3cf5fafe8f8,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,116,38206,136,150,90,90,27420.929665199492,4.8793962420523584e-07,2.0765458362946616e-18,1.155266859949028e-17,4.9880968689494241e-27,39.419522492215037
+cutest/ZAMB2-8/hven-sqp/default,cutest,ZAMB2-8,cutest-nlp-35 v2,6d52681f9da339a0725f6f00e8a147adf2e9a1839bef3150aa379f35c57a6e87,TRAIN,hven-sqp,default,08dd8dcc82418eba78f8ac32874a268c6abb41a4683b9bc92490ba2c72bd1006,exact,300,250000,300,0,optimal,optimal,8,144,9,9,10,9,-0.15293592839679393,2.2605042363237245e-13,1.3742620930123906e-10,0,0,0.26307029509916902

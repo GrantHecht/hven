@@ -1,0 +1,2 @@
+DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused

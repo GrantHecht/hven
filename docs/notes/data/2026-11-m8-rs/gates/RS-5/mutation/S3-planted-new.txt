@@ -1,0 +1,45 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/rs5/build
+    Start 843: HeaderSelfContained
+1/1 Test #843: HeaderSelfContained ..............***Failed    2.60 sec
+[0/2] Re-checking globbed directories...
+-- GLOB mismatch!
+The following files were added:
+  +hven/detail/util/planted_not_selfcontained.h
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- Configuring done (2.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/rs5/build
+[0/4] Re-checking globbed directories...
+[1/4] Building CXX object tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp.o
+FAILED: [code=1] tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp.o 
+/usr/bin/ccache /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_TEST_REFERENCE_DISPATCH=1 -I/home/ghecht/Projects/hven/.claude/worktrees/rs5/include -I/opt/intel/oneapi/mkl/latest/include -isystem /home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/eigen -isystem /home/ghecht/Projects/hven/.claude/worktrees/rs5/dep/fmt/include -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -MD -MT tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp.o -MF tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp.o.d -o tests/CMakeFiles/hven_header_selfcheck.dir/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/rs5/build/tests/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rs5/build/tests/header_selfcheck/hven_detail_util_planted_not_selfcontained.h.cpp:1:
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/util/planted_not_selfcontained.h:2:25: error: unknown type name 'Vec'
+    2 | namespace hven { inline Vec planted_uses_vec_without_including_it() { return Vec(); } }
+      |                         ^
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/util/planted_not_selfcontained.h:2:78: error: use of undeclared identifier 'Vec'
+    2 | namespace hven { inline Vec planted_uses_vec_without_including_it() { return Vec(); } }
+      |                                                                              ^~~
+2 errors generated.
+ninja: build stopped: subcommand failed.
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   2.68 sec
+
+The following tests FAILED:
+	843 - HeaderSelfContained (Failed)
+Errors while running CTest

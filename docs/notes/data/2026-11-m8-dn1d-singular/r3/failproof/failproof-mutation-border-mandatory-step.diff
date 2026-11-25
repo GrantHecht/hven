@@ -1,0 +1,4 @@
+319c319
+<     if (shifted_k0 && !(residual_of(best).lpNorm<Eigen::Infinity>() <
+---
+>     if (false && shifted_k0 && !(residual_of(best).lpNorm<Eigen::Infinity>() <

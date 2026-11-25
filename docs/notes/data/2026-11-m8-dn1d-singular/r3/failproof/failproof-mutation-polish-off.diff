@@ -1,0 +1,4 @@
+4593c4593
+<         !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
+---
+>         !r.lambda_w.allFinite() || (false && local.dense_shifted && r.residual_refused)) {

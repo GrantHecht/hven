@@ -1,0 +1,201 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-policy-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:84: Failure
+Expected equality of these values:
+  sqp_kkt_options(0, DensePolicy::kAlways).dense_singular_policy
+    Which is: 4-byte object <00-00 00-00>
+  DenseSingularPolicy::kReport
+    Which is: 4-byte object <01-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:86: Failure
+Expected equality of these values:
+  sqp_kkt_options(0, DensePolicy::kAuto).dense_singular_policy
+    Which is: 4-byte object <00-00 00-00>
+  DenseSingularPolicy::kReport
+    Which is: 4-byte object <01-00 00-00>
+
+[  FAILED  ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:125: Failure
+Value of: cd.shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:127: Failure
+Value of: dense.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:128: Failure
+Expected equality of these values:
+  dense.dense_scale.size()
+    Which is: 0
+  3
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:132: Failure
+Value of: cd.outcome.inertia.perturbed_pivots.has_value()
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization (2 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:180: Failure
+Value of: c.shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:182: Failure
+Expected equality of these values:
+  flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:183: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:184: Failure
+Expected equality of these values:
+  k.shifted_exact_singular
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:200: Failure
+Value of: c.retaken
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:203: Failure
+Expected equality of these values:
+  flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:204: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:205: Failure
+Expected equality of these values:
+  retakes
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:258: Failure
+Expected equality of these values:
+  d.flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:259: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:272: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:274: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:291: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:294: Failure
+Expected: ((d.res.x - s.res.x).lpNorm<Eigen::Infinity>()) <= (1e-6), actual: 1.2 vs 1e-06
+
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:307: Failure
+Expected equality of these values:
+  d.flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:308: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (10 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:501: Failure
+Expected equality of these values:
+  flagged
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:502: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:504: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:505: Failure
+Expected equality of these values:
+  inertia_verdict(k.factor.inertia(), 2, 1)
+    Which is: 4-byte object <00-00 00-00>
+  InertiaVerdict::kSuspect
+    Which is: 4-byte object <01-00 00-00>
+
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de/fp-src-policy-off/tests/qp/test_qp_dense_arm.cpp:535: Failure
+Value of: factorize_checked(k, K, DenseShiftSite{3, 0.0, 0.0}).shifted
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[----------] 13 tests from QpDenseArm (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (15 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 8 tests, listed below:
+[  FAILED  ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization
+[  FAILED  ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[  FAILED  ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+
+ 8 FAILED TESTS

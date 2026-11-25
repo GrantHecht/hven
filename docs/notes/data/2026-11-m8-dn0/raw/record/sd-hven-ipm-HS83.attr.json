@@ -1,0 +1,139 @@
+{
+ "samples": 5048,
+ "period": 1000003,
+ "instr_sampled_all": 5069883144,
+ "instr_sampled_solver": 5059848114,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3014009,
+  "B_kkt": 0,
+  "B_eval": 1000003,
+  "B_setup": 5053827096,
+  "B_eng": 2007006,
+  "B_proc": 10035030
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0005956718328482221,
+  "B_kkt": 0.0,
+  "B_eval": 0.00019763498379192653,
+  "B_setup": 0.9988100397750398,
+  "B_eng": 0.0003966534083200743
+ },
+ "proc_share_of_all": 0.001979341478881234,
+ "rule_instr": 5069883144,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9966323296354992,
+ "init_instr": 5051820090,
+ "steady_state_instr": 8028024,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.375435972787326,
+  "B_kkt": 0.0,
+  "B_eval": 0.124564027212674,
+  "B_setup": 0.25,
+  "B_eng": 0.25
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3014009
+  ]
+ ],
+ "mkl_serv_instr": 5051820090,
+ "kmp_instr": 5021015,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "_strnlen_s_chk",
+    1007003
+   ],
+   [
+    "mkl_blas_dscal",
+    1007003
+   ],
+   [
+    "_memcpy_s_chk",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "elfun_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3207722582
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1378003116
+   ],
+   [
+    "__vdso_time",
+    256134765
+   ],
+   [
+    "difftime@plt",
+    195896585
+   ],
+   [
+    "time@plt",
+    14063042
+   ],
+   [
+    "std::basic_filebuf<char, std::char_traits<char> >::underflow",
+    1007003
+   ],
+   [
+    "memcpy@plt",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__ieee754_log_fma",
+    1007003
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4007012
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2014006
+   ],
+   [
+    "strcmp",
+    1007003
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "mprotect",
+    1000003
+   ]
+  ]
+ }
+}

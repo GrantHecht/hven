@@ -1,0 +1,26 @@
+cells: PF-1 23, this run 23
+ACOPP118   PF-1 optimal/optimal/8 f=129660.68619604065 | DN-1b optimal/optimal/8 f=129660.68619604065 wall 24.248116737930104
+ACOPP57    PF-1 optimal/optimal/5 f=41737.786849846176 | DN-1b optimal/optimal/5 f=41737.786849846176 wall 0.087274617981165648
+ACOPR118   PF-1 optimal/optimal/61 f=129660.68370269195 | DN-1b optimal/optimal/61 f=129660.68370269195 wall 90.633172936970368
+ACOPR57    PF-1 optimal/optimal/16 f=41737.786035029698 | DN-1b optimal/optimal/16 f=41737.786035029698 wall 1.9809170651715249
+BIGBANK    PF-1 optimal/optimal/23 f=-4205693.2995377351 | DN-1b optimal/optimal/23 f=-4205693.2995377351 wall 24.692194690927863
+BRITGAS    PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.10556974308565
+DALLASM    PF-1 optimal/optimal/18 f=-48198.188192052978 | DN-1b optimal/optimal/18 f=-48198.188192052978 wall 1.0406916190404445
+MSS2       PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.11282944702543
+MSS3       PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.14424578798935
+NET3       PF-1 optimal/optimal/23 f=5859393.7023180835 | DN-1b optimal/optimal/23 f=5859393.7023180835 wall 95.890800729161128
+READING6   PF-1 optimal/optimal/8 f=-144.65970057278301 | DN-1b optimal/optimal/8 f=-144.65970057278301 wall 0.88966822996735573
+READING8   PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.06273955106735
+SAWPATH    PF-1 optimal/optimal/9 f=750.45894675975114 | DN-1b optimal/optimal/9 f=750.45894675975114 wall 0.77796682715415955
+SMBANK     PF-1 optimal/optimal/29 f=-7129292 | DN-1b optimal/optimal/29 f=-7129292 wall 0.11501446389593184
+STEENBRB   PF-1 optimal/optimal/136 f=9075.8553755338289 | DN-1b optimal/optimal/136 f=9075.8553755338289 wall 31.426431422820315
+STEENBRC   PF-1 optimal/optimal/102 f=27504.936820482559 | DN-1b optimal/optimal/102 f=27504.936820482559 wall 50.026435904903337
+STEENBRD   PF-1 optimal/optimal/85 f=9030.0818667716558 | DN-1b optimal/optimal/85 f=9030.0818667716558 wall 28.95714247901924
+STEENBRE   PF-1 optimal/optimal/80 f=27459.163311770888 | DN-1b optimal/optimal/80 f=27459.163311770888 wall 29.504553261911497
+STEENBRG   PF-1 optimal/optimal/78 f=27420.929665317915 | DN-1b optimal/optimal/78 f=27420.929665317915 wall 38.408192580798641
+TAX213322  PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.1186941228807
+TAX53322   PF-1 null/dnf_wall/null f=null | DN-1b null/dnf_wall/null f=null wall 300.0675067238044
+YORKNET    PF-1 numerical_error/error/40 f=14706.403707417367 | DN-1b numerical_error/error/40 f=14706.403707417367 wall 35.292671720962971
+ZAMB2-8    PF-1 optimal/optimal/8 f=-0.15293592839679399 | DN-1b optimal/optimal/8 f=-0.15293592839679399 wall 0.3220781700219959
+optimal 16/23 (PF-1 16/23); lost []; objective moved []; non-success moves []
+T_PASS

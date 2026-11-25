@@ -1,0 +1,14 @@
+CERT_BOTH sd-hven-sqp-BURKEHAN.D C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-BURKEHAN.K C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-FLETCHER.D C infeasible cert=0 | NEW infeasible cert=0 f=4 h=1
+CERT_BOTH sd-hven-sqp-FLETCHER.K C infeasible cert=0 | NEW infeasible cert=0 f=4 h=1
+CERT_BOTH sd-hven-sqp-HS88.D C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-HS88.K C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-HS92.D C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-HS92.K C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_C_ONLY sd-hven-sqp-LEWISPOL.D C infeasible cert=1 | NEW numerical_error cert=0 f=3.0003768489350362 h=3.9991370131231925
+CERT_C_ONLY sd-hven-sqp-LEWISPOL.K C infeasible cert=1 | NEW numerical_error cert=0 f=3.0001382876515432 h=3.9992810323148262
+CERT_BOTH sd-hven-sqp-LOOTSMA.D C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+CERT_BOTH sd-hven-sqp-LOOTSMA.K C infeasible cert=1 | NEW infeasible cert=1 f=0 h=0
+rows 476
+VERDICT TRAIN_BARS_MET

@@ -1,0 +1,2 @@
+== export contract OK for platform=linux, align=32
+== export contract OK for platform=linux, align=32

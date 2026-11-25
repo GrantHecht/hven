@@ -1,0 +1,29 @@
+3855/3887 Test #3469: SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation ...................................................................................................................................................***Failed    0.01 sec
+Note: Google Test filter = SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+[----------] 1 test from SqpGl0
+[ RUN      ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+[  FAILED  ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation (0 ms)
+[----------] 1 test from SqpGl0 (0 ms total)
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+ 1 FAILED TEST
+99% tests passed, 1 tests failed out of 3885
+The following tests FAILED:
+	3469 - SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation (Failed)
+3855/3887 Test #3469: SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation .................................
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpGl0
+[ RUN      ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation
+/home/ghecht/Projects/hven/.claude/worktrees/gl0/tests/sqp/test_sqp_solver.cpp:13177: Failure
+Expected equality of these values:
+  std::fetestexcept(0x04 | 0x01)
+    Which is: 1
+  0
+
+[  FAILED  ] SqpGl0.TheSwitchingRatioRaisesNoFloatingPointFlagAtZeroViolation (0 ms)
+[----------] 1 test from SqpGl0 (0 ms total)
+
+[----------] Global test environment tear-down

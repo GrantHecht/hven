@@ -1,0 +1,21 @@
+# problems.requested: BRITGAS
+# set.version: cutest-nlp-35 v2
+# schema: v1
+# harness.sha: 56fa03fdf40acb38275f0a46058ddbd2da925f0e
+# hven.pin.sha: 91787d329a06ae99770879762804a1babf316cbe
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-25T05:41:31Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/BRITGAS/hven-sqp/default+trust_region_initial=1.000000000000001,cutest,BRITGAS,cutest-nlp-35 v2,f2be874fd2123e70655244fd13c01d50a039cf1dc88e74514ae457479a715b2b,TRAIN,hven-sqp,default+trust_region_initial=1.000000000000001,967f91549ca88cc4965374346d48833793221aa5ff9443a393290b851daac4e5,exact,300,250000,300,0,max_iter,dnf_budget,1,28400,3,300,301,7,7.8791625437736661,0.97743281939379045,0.033425852871981063,3.1982204191737688e-23,0,114.61554125370458

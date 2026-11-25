@@ -1,0 +1,73 @@
+box-lane: lane 0 acquired 2026-11-23T15:51:52-05:00
+M1_tr_binding_exports_merged: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+    [  FAILED  ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+M2_cap_binding_never_set: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+    [  FAILED  ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+M3_growth_reads_radius_only: test rc=1 (3 failure lines)
+    [  FAILED  ] 1 test, listed below:
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+    [  FAILED  ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+M4_total_is_cumulative: test rc=1 (7 failure lines)
+    [  FAILED  ] 3 tests, listed below:
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+    [  FAILED  ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+    [  FAILED  ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+M5_base_never_advances: test rc=1 (7 failure lines)
+    [  FAILED  ] 3 tests, listed below:
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+    [  FAILED  ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+    [  FAILED  ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+M6_ladder_total_is_last_rung: test rc=1 (3 failure lines)
+    [  FAILED  ] 1 test, listed below:
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+M7_restoration_work_not_excluded: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+M8_pred_df_not_in_caller_units: test rc=1 (3 failure lines)
+    [  FAILED  ] 1 test, listed below:
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+M9_f_trial_not_in_caller_units: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (2 ms)
+M10_eq_row_factor_dropped: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (1 ms)
+M11_ineq_row_factor_dropped: test rc=1 (3 failure lines)
+    [  FAILED  ] 1 test, listed below:
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+    [  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (1 ms)
+M12_zero_step_reads_radius_only: test rc=0 (0 failure lines)
+M14_main_judge_reads_radius_only: test rc=0 (0 failure lines)
+M15_soc_judge_reads_radius_only: test rc=0 (0 failure lines)
+M13_minor_base_not_excluded: test rc=1 (5 failure lines)
+    [  FAILED  ] 2 tests, listed below:
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+    [  FAILED  ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+    [  FAILED  ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+restored: tree clean of mutations

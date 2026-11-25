@@ -1,0 +1,2260 @@
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch less than a minute ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  * Run actions/checkout@v4
+  * Install ninja
+  * Derive this runner's machine-class label
+  * Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  * Run actions/checkout@v4
+  * Install ninja
+  * Report runner image and MSVC toolset
+  * Install LLVM (pinned clang-cl matching the image's STL)
+  * Cache Intel oneAPI MKL + OpenMP install
+  * Install Intel MKL (offline installer, cached)
+  * Install Intel MKL (retry after a failed or timed-out first attempt)
+  * Point FindMKL.cmake at the install
+  * Put the MKL / OpenMP runtime DLLs on PATH
+  * Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  * Run actions/checkout@v4
+  * Install ninja, clang, and llvm coverage tools
+  * Install Intel MKL via the oneAPI apt repository
+  * Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  * Run actions/checkout@v4
+  * Install ninja and clang
+  * Install Intel MKL via the oneAPI apt repository
+  * Configure
+  * Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 2 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  * Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  * Run actions/checkout@v4
+  * Install ninja
+  * Report runner image and MSVC toolset
+  * Install LLVM (pinned clang-cl matching the image's STL)
+  * Cache Intel oneAPI MKL + OpenMP install
+  * Install Intel MKL (offline installer, cached)
+  * Install Intel MKL (retry after a failed or timed-out first attempt)
+  * Point FindMKL.cmake at the install
+  * Put the MKL / OpenMP runtime DLLs on PATH
+  * Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 4 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  * Install LLVM (pinned clang-cl matching the image's STL)
+  * Cache Intel oneAPI MKL + OpenMP install
+  * Install Intel MKL (offline installer, cached)
+  * Install Intel MKL (retry after a failed or timed-out first attempt)
+  * Point FindMKL.cmake at the install
+  * Put the MKL / OpenMP runtime DLLs on PATH
+  * Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 6 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 8 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 10 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 12 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 14 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 16 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 18 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 20 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 22 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  * Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 24 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 26 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  * Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 28 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 30 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 32 minutes ago
+
+JOBS
+* macos-clang-release (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (macOS)
+  * Emit the Accelerate observations for derivation
+  * Upload the Accelerate observations
+  * Upload gtest XML (macOS)
+  * Post Run actions/checkout@v4
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 34 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  * Test
+  * Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 36 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  * Test
+  * Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 38 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* windows-clang-release (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  * Run hven install smoke (configure/build/install/consume)
+  * Assert installed export contract (Windows)
+  * Upload gtest XML (Windows)
+  * Save oneAPI install logs
+  * Post Cache Intel oneAPI MKL + OpenMP install
+  * Post Run actions/checkout@v4
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 40 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 42 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  * Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 44 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 46 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  * Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 48 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 50 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 52 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  * Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 54 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+Refreshing run status every 120 seconds. Press Ctrl+C to quit.
+
+* i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 56 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+* linux-clang-coverage (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  * Coverage build, suite, and report
+  * Totals to the job summary
+  * Upload the coverage report
+  * Upload to Codecov
+  * Post Run actions/checkout@v4
+* linux-clang-release (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Run hven install smoke, clang front end (Linux)
+  * Run hven install smoke, sequential MKL threading (Linux)
+  * Assert installed export contract (Linux)
+  * Upload gtest XML (Linux)
+  * Post Run actions/checkout@v4
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+✓ i19-2a ci · 45528580294
+Triggered via workflow_dispatch about 58 minutes ago
+
+JOBS
+✓ macos-clang-release in 34m18s (ID 138917943167)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Derive this runner's machine-class label
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (macOS)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (macOS)
+  ✓ Emit the Accelerate observations for derivation
+  ✓ Upload the Accelerate observations
+  ✓ Upload gtest XML (macOS)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ windows-clang-release in 40m10s (ID 138917943420)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja
+  ✓ Report runner image and MSVC toolset
+  ✓ Install LLVM (pinned clang-cl matching the image's STL)
+  ✓ Cache Intel oneAPI MKL + OpenMP install
+  - Install Intel MKL (offline installer, cached)
+  - Install Intel MKL (retry after a failed or timed-out first attempt)
+  ✓ Point FindMKL.cmake at the install
+  ✓ Put the MKL / OpenMP runtime DLLs on PATH
+  ✓ Configure
+  ✓ Build
+  ✓ Test
+  ✓ Assert PCH engagement (Windows)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Assert installed export contract (Windows)
+  ✓ Upload gtest XML (Windows)
+  - Save oneAPI install logs
+  ✓ Post Cache Intel oneAPI MKL + OpenMP install
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ linux-clang-coverage in 58m36s (ID 138917943510)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja, clang, and llvm coverage tools
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Runner CPU
+  ✓ Coverage build, suite, and report
+  ✓ Totals to the job summary
+  ✓ Upload the coverage report
+  ✓ Upload to Codecov
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+✓ linux-clang-release in 58m3s (ID 138917943528)
+  ✓ Set up job
+  ✓ Run actions/checkout@v4
+  ✓ Install ninja and clang
+  ✓ Install Intel MKL via the oneAPI apt repository
+  ✓ Configure
+  ✓ Runner CPU and MKL dispatch
+  ✓ Build
+  ✓ Test
+  ✓ Accelerate backend syntax check (Linux, stubbed)
+  ✓ Assert PCH neutrality (Linux)
+  ✓ Run hven install smoke (configure/build/install/consume)
+  ✓ Run hven install smoke, clang front end (Linux)
+  ✓ Run hven install smoke, sequential MKL threading (Linux)
+  ✓ Assert installed export contract (Linux)
+  ✓ Upload gtest XML (Linux)
+  ✓ Post Run actions/checkout@v4
+  ✓ Complete job
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+macos-clang-release: .github#2
+
+- Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
+macos-clang-release: .github#1
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+windows-clang-release: .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4, codecov/codecov-action@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+linux-clang-coverage: .github#2
+
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+linux-clang-release: .github#2
+

@@ -1,0 +1,4 @@
+8046c8046
+<         st.row_work_base_fact = st.out.counters.factorizations;
+---
+>         (void)0;

@@ -1,0 +1,35 @@
+{
+ "lane": "hven-sqp",
+ "base": "sqp-qn",
+ "set": "hs",
+ "config": {
+  "advanced.second_order_correction": false,
+  "advanced.trust_region_growth": "kRatioOrFeasibilityStep"
+ },
+ "label": "sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep",
+ "problems": [
+  "hs003",
+  "hs005",
+  "hs006",
+  "hs007",
+  "hs010",
+  "hs011",
+  "hs012",
+  "hs014",
+  "hs022",
+  "hs025",
+  "hs026",
+  "hs027",
+  "hs028",
+  "hs030",
+  "hs033",
+  "hs035",
+  "hs039",
+  "hs043",
+  "hs045",
+  "hs071",
+  "hs077",
+  "hs079"
+ ],
+ "tier": "corun"
+}

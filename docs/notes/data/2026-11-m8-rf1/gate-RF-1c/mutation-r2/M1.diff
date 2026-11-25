@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index 766a57166..989124900 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -43,7 +43,7 @@ inline constexpr double kRestorationStallFraction = 0.9;
+ 
+ /// The fewest passes a stall verdict may rest on (RF-1c): the reference sample must lie at least
+ /// this many passes back, so one pass costing more than the window cannot fire it alone.
+-inline constexpr std::size_t kRestorationStallMinPasses = 5;
++inline constexpr std::size_t kRestorationStallMinPasses = 0;
+ 
+ /// @brief The restoration phase's stall test (RF-1 ruling S-1, replacing design 4.1's fixed
+ ///        budget): the phase is stalled when its best parent h has not fallen by at least

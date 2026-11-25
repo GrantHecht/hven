@@ -1,0 +1,30 @@
+{
+ "lane": "hven-sqp",
+ "base": "default",
+ "set": "cutest",
+ "config": {
+  "advanced.trust_region_growth": "kRatioOrFeasibilityStep"
+ },
+ "label": "default+advanced.trust_region_growth=kRatioOrFeasibilityStep",
+ "problems": [
+  "ACOPP118",
+  "ACOPP57",
+  "ACOPR118",
+  "ACOPR57",
+  "BIGBANK",
+  "BRITGAS",
+  "DALLASM",
+  "NET3",
+  "READING6",
+  "SAWPATH",
+  "SMBANK",
+  "STEENBRB",
+  "STEENBRC",
+  "STEENBRD",
+  "STEENBRE",
+  "STEENBRG",
+  "YORKNET",
+  "ZAMB2-8"
+ ],
+ "tier": "corun"
+}

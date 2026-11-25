@@ -1,0 +1,5 @@
+DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder
+DenseAuto.SqpAboveItsThresholdIsThePlatformSession
+DenseAuto.SqpBelowItsThresholdIsTheDenseArm
+DenseAuto.TheSsnTierSelectsByTheSqpThreshold
+DenseAuto.TheWalkSelectsByTheSqpThreshold

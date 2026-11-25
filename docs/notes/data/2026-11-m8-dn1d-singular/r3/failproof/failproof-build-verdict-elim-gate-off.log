@@ -1,0 +1,247 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T09:39:17-05:00
+source /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off'
+[1/147] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/147] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/147] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[4/147] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[5/147] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/147] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[7/147] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[8/147] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[9/147] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[10/147] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[11/147] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[12/147] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[13/147] Building CXX object CMakeFiles/hven.dir/src/linear/dense_session.cpp.o
+[14/147] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[15/147] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[16/147] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[17/147] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[18/147] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[19/147] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[20/147] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[21/147] Building CXX object CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o
+[22/147] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[23/147] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[24/147] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-verdict-elim-gate-off/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[25/147] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[26/147] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[27/147] Building CXX object CMakeFiles/hven.dir/src/drivers/common_options.cpp.o
+[28/147] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[29/147] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[30/147] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[31/147] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[32/147] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[33/147] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[34/147] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[35/147] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[36/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[37/147] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[38/147] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[39/147] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[40/147] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[41/147] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[42/147] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[43/147] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[44/147] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[45/147] Linking CXX static library lib/libgtest.a
+[46/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[47/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[48/147] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[49/147] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[50/147] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_version.cpp.o
+[51/147] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[52/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[53/147] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[54/147] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_sparse_backend_link.cpp.o
+[55/147] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[56/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[57/147] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o
+[58/147] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/src/drivers/sqp_solver.cpp:6448:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6448 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[59/147] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[60/147] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[61/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_evidence_invariants.cpp.o
+[62/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_pardiso_only_options.cpp.o
+[63/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor.cpp.o
+[64/147] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[65/147] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[66/147] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_pattern_hash.cpp.o
+[67/147] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_warm_start_data.cpp.o
+[68/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+[69/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[70/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/interior/test_kkt_factorization_faults.cpp.o
+[71/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/pardiso_session.cpp.o
+[72/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+[73/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/linear/test_fault_injection.cpp.o
+[74/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/ledger.cpp.o
+[75/147] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[76/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[77/147] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/dense_session.cpp.o
+[78/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor.cpp.o
+[79/147] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o
+[80/147] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[81/147] Linking CXX static library libhven.a
+[82/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor_growth.cpp.o
+[83/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[84/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/common_options.cpp.o
+[85/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[86/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[87/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[88/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/enum_names.cpp.o
+[89/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[90/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/ledger.cpp.o
+[91/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+[92/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[93/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/dense_session.cpp.o
+[94/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[95/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[96/147] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_dense_arm.cpp.o
+[97/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+[98/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+[99/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+[100/147] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[101/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+[102/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+[103/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+[104/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+[105/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+[106/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+[107/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+[108/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+[109/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+[110/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+[111/147] Linking CXX static library lib/libgtest_main.a
+[112/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+[113/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+[114/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+[115/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[116/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_session.cpp.o
+[117/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+[118/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+[119/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[120/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_release_readmission.cpp.o
+[121/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+[122/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+[123/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[124/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_dense_arm_engines.cpp.o
+[125/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmTerminationOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+7 warnings generated.
+[126/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+[127/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+[128/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+[129/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o
+[130/147] Linking CXX executable tests/hven_fault_injection_tests
+[131/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+[132/147] Linking CXX executable tests/hven_tests
+[133/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+[134/147] Linking CXX executable tests/hven_ipqp_seam_tests
+[135/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+[136/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o
+[137/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+[138/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_callback.cpp:539:67: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/detail/model/nlp_model.h:85:7: note: 'eval_grad' has been explicitly marked deprecated here
+   85 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_callback.cpp:539:85: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                                     ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/detail/model/nlp_model.h:113:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  113 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_callback.cpp:540:19: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/detail/model/nlp_model.h:117:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  117 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_callback.cpp:540:38: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/detail/model/nlp_model.h:89:7: note: 'eval_ce' has been explicitly marked deprecated here
+   89 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/tests/drivers/test_callback.cpp:540:54: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-verdict-elim-gate-off/include/hven/detail/model/nlp_model.h:93:7: note: 'eval_ci' has been explicitly marked deprecated here
+   93 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[139/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_problem.cpp.o
+[140/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o
+[141/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+[142/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+[143/147] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_dense_arm.cpp.o
+[144/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+[145/147] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o
+[146/147] Linking CXX executable tests/hven_qp_walk_seam_tests
+[147/147] Linking CXX executable tests/drivers/hven_drivers_tests
+rc=0
+FOREGROUND_END 2026-11-11T09:40:38-05:00

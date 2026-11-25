@@ -1,0 +1,42 @@
+M8 AP-2 group B4 -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt (8737bb97), DECLARATION-r2.txt (5a948867), DECLARATION-r3.txt (3fd6dd6e),
+               runtime/DECLARATION.txt (8737bb97); each committed before the legs it governs.
+Code head      0323a725 (74084e73 + a test-only fix to an off-reference #else region, DECLARATION-r2).
+               Every leg except P7 ran on 74084e73; 0323a725 changes no line a default build compiles.
+Base           f1117a86.
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-02 21:3x (chain) to 2026-11-03 04:48 (runtime gate end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid. The non-timing legs
+               ran in sequence from legs/chain1.sh (chain/chain1.log, chain/*.out). The runtime gate ran
+               alone (runtime/run_all.log). DEVIATION, disclosed in DECLARATION-r2: one diagnostic keep-going
+               rebuild of the off-reference tree was run by hand without the lock (box idle; not evidence).
+
+RESULTS (criteria as declared)
+P1  suites      Release 3309/3309, Debug 3309/3309 (suites/ctest-release.log, ctest-debug.log). PASS.
+                Includes the golden rig; tests/golden_rig/expected, bench/baselines and every pre-existing
+                docs/notes/data artifact are byte-unchanged f1117a86..head.
+P2  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/b4-comparison-*.txt). PASS.
+P3  iparm       15 configurations, BYTE-IDENTICAL to the B3 riders' dump, sha256
+                34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479 (iparm/iparm-b4.txt). PASS.
+                This is the IPARM-SURFACE validation evidence for 010471cd.
+P4  census      57 baseline cells, 57 fresh, 0 mismatches, serial-confirm list empty (census/). PASS.
+P5  smoke       default and clang arms rc=0; export contract OK on both with the detail-include rule
+                armed and no allow-list ("no public header includes a detail/ header") (install-smoke/). PASS.
+P6  PCH         PASS, 57 objects + libhven.a byte-identical with and without PCH (pch/). PASS.
+P7  off-ref     r1 FAILED to build (offref-r1-failed/: kkt_inf in an #else region); fixed 0323a725;
+                r2 ABORTED by a relative evidence path before ctest (offref-r2-aborted/; build passed);
+                r3 clean build rc=0 and ctest Release 3309/3309 (offref/). PASS at r3.
+P8  Accelerate  pass A: 32 files, clean 25, known-header 6, known-sizeof 2, OTHER 0 -- the B3 classes.
+                Pass B (stub, informational) identical to B3's except the re-pinned sizeof value (X1).
+                Leg rc=1 is pass B's, as at B3. PASS. Apple hardware UNOBSERVED.
+P9  examples    8/8 exit 0 (chain/examples.out). PASS.
+P10 flags       library TUs: 0 differing flag lists; only-after = src/drivers/callback_rows.cpp,
+                src/drivers/result_message.cpp, each with the baseline library flags (flags/). PASS.
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 0.999867, ipm 1.000013,
+                ssn 1.000017, walk 0.999997; counter identity on every pair; 0 throttled processes.
+DECLARED DIFFERENCES MATCHED: X1 (dump 67 lines, sizeof 472/48), X2 (0 corpus rows moved), X3 (0 rows
+moved), X4 (no existing value moved: replay/census/runtime counter identity), X5 (the two TUs; PCH count
+56).

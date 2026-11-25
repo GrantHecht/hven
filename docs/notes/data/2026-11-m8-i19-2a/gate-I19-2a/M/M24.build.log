@@ -1,0 +1,27 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- MKL threading layer = intel
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- hven tests: 204 test sources, each in exactly one executable or recorded absent
+-- Configuring done (2.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel
+[0/4] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+[2/9] Linking CXX static library libhven.a
+[3/9] Linking CXX executable bench/hven_sqp_corpus
+[4/9] Linking CXX executable tests/solver/hven_solver_tests
+[5/9] Linking CXX executable tests/sqp/hven_sqp_tests
+[6/9] Linking CXX executable tests/bench/hven_bench_tests

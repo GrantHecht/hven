@@ -1,0 +1,12 @@
+diff --git a/src/qp/ssn/ssn_engine.cpp b/src/qp/ssn/ssn_engine.cpp
+index 5d86286cf..a9ddc88fc 100644
+--- a/src/qp/ssn/ssn_engine.cpp
++++ b/src/qp/ssn/ssn_engine.cpp
+@@ -91,7 +91,6 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
+         RetainedExit &operator=(const RetainedExit &) = delete;
+         ~RetainedExit() {
+             out->symbolic_analysis_reuses = reuses.reuses();
+-            detail::release_retained_analyses(kkt);
+         }
+     } retained_exit(kkt_, out);
+ 

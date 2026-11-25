@@ -1,0 +1,285 @@
+Placebo-unstable problem names (P vs H0, outcome-level on any TRAIN/CAP cell): 26 of 119
+
+## 2a. Lost and GAINED cells per arm (stage-1 corpora incl. SENS-P guard cells; strict = status optimal; acceptable level = optimal or acceptable)
+| arm | lost strict | lost (acc level only) | gained strict | gained (acc level only) | RESULTS lost count |
+|---|---|---|---|---|---|
+| P | 0 | 0 | 2 | 0 | 0 (harness lost_cells() recount: 0) |
+| G1 | 2 | 0 | 0 | 0 | 2 (harness lost_cells() recount: 2) |
+| G2 | 1 | 0 | 2 | 2 | 1 (harness lost_cells() recount: 1) |
+| G3 | 0 | 0 | 0 | 1 | 0 (harness lost_cells() recount: 0) |
+| G4 | 2 | 0 | 0 | 2 | 2 (harness lost_cells() recount: 2) |
+| G5 | 3 | 0 | 2 | 1 | 3 (harness lost_cells() recount: 3) |
+| G6 | 0 | 0 | 2 | 0 | 0 (harness lost_cells() recount: 0) |
+| G7 | 2 | 0 | 0 | 0 | 2 (harness lost_cells() recount: 2) |
+| C1 | 20 | 0 | 3 | 0 | 20 (harness lost_cells() recount: 20) |
+| C2 | 10 | 0 | 3 | 0 | 10 (harness lost_cells() recount: 10) |
+
+Per arm lists (stage-1 corpora):
+
+### P
+- GAINED CAP-238-01 CRESC50/sqp-qn: numerical_error -> optimal  (majors 239 -> 140, LA 1072 -> 880, f 0.59361169865007923 -> 0.59351687596910097)  [placebo-unstable problem]
+- GAINED CAP-238-01 DEMBO7/sqp-qn: stalled -> optimal  (majors 47 -> 66, LA 1929 -> 2723, f 175.1542702569879 -> 174.78699440942279)  [placebo-unstable problem]
+
+### G1
+- LOST TRAIN-238 ACOPP30/default: optimal -> numerical_error  [placebo-unstable problem]
+- LOST TRAIN-238 DEMBO7/sqp-qn: optimal -> stalled  [placebo-unstable problem]
+
+### G2
+- LOST CAP-238-1 CRESC4/default: optimal -> infeasible  [placebo-unstable problem]
+- GAINED CAP-238-01 CRESC100/default: numerical_error -> optimal  (majors 2 -> 46, LA 7980 -> 9963, f 18.54281792173208 -> 0.56760271659564943)  [placebo-unstable problem]
+- GAINED CAP-238-01 CRESC50/sqp-qn: numerical_error -> optimal  (majors 239 -> 158, LA 1072 -> 1224, f 0.59361169865007923 -> 0.59344271112615843)  [placebo-unstable problem]
+- GAINED (acceptable only) CAP-238-1 CRESC50/sqp-qn: max_iter -> acceptable
+- GAINED (acceptable only) TRAIN-238 CRESC50/sqp-qn: max_iter -> acceptable
+
+### G3
+- GAINED (acceptable only) CAP-238-01 CRESC50/sqp-qn: numerical_error -> acceptable
+
+### G4
+- LOST CAP-238-1 CRESC100/default: optimal -> max_iter  [placebo-unstable problem]
+- LOST TRAIN-238 CRESC100/default: optimal -> max_iter  [placebo-unstable problem]
+- GAINED (acceptable only) CAP-238-1 CRESC50/sqp-qn: max_iter -> acceptable
+- GAINED (acceptable only) TRAIN-238 CRESC50/sqp-qn: max_iter -> acceptable
+
+### G5
+- LOST CAP-238-01 DECONVC/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST CAP-238-1 CRESC100/default: optimal -> max_iter  [placebo-unstable problem]
+- LOST TRAIN-238 CRESC100/default: optimal -> max_iter  [placebo-unstable problem]
+- GAINED CAP-238-01 CRESC100/default: numerical_error -> optimal  (majors 2 -> 40, LA 7980 -> 8069, f 18.54281792173208 -> 0.56760271102843984)  [placebo-unstable problem]
+- GAINED SENS-P F3-n50-p0.4/sqp-qn: max_iter -> optimal  (majors 100 -> 76, LA 66 -> 73, f 3.5900646952696623e-07 -> 2.8077570002810027e-12)
+- GAINED (acceptable only) CAP-238-01 CRESC50/sqp-qn: numerical_error -> acceptable
+
+### G6
+- GAINED CAP-238-01 DEMBO7/sqp-qn: stalled -> optimal  (majors 47 -> 43, LA 1929 -> 714, f 175.1542702569879 -> 174.78699440926511)  [placebo-unstable problem]
+- GAINED SENS-P F3-n50-p0.4/sqp-qn: max_iter -> optimal  (majors 100 -> 91, LA 66 -> 73, f 3.5900646952696623e-07 -> 2.6845822679548473e-12)
+
+### G7
+- LOST CAP-238-1 CRESC4/default: optimal -> infeasible  [placebo-unstable problem]
+- LOST TRAIN-238 CRESC100/default: optimal -> max_iter  [placebo-unstable problem]
+
+### C1
+- LOST CAP-238-01 CRESC100/sqp-qn: optimal -> numerical_error  [placebo-unstable problem]
+- LOST CAP-238-01 DECONVC/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST CAP-238-01 HS74/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST CAP-238-01 HS75/sqp-qn: optimal -> max_iter
+- LOST CAP-238-01 HS92/default: optimal -> numerical_error
+- LOST CAP-238-1 CRESC100/default: optimal -> stalled  [placebo-unstable problem]
+- LOST CAP-238-1 HS88/sqp-qn: optimal -> infeasible  [placebo-unstable problem]
+- LOST CAP-238-1 HS89/sqp-qn: optimal -> numerical_error
+- LOST CAP-238-1 HS90/sqp-qn: optimal -> infeasible
+- LOST CAP-238-1 HS91/default: optimal -> infeasible
+- LOST CAP-238-1 HS92/sqp-qn: optimal -> infeasible
+- LOST SENS-P F-CAP/default: optimal -> max_iter
+- LOST SENS-P F-CAP/sqp-qn: optimal -> max_iter
+- LOST SENS-P F-SOC/default: optimal -> max_iter
+- LOST SENS-P F-SOC/sqp-qn: optimal -> max_iter
+- LOST TRAIN-238 ACOPP30/default: optimal -> numerical_error  [placebo-unstable problem]
+- LOST TRAIN-238 CRESC4/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST TRAIN-238 HS104/default: optimal -> infeasible
+- LOST TRAIN-238 HS90/default: optimal -> infeasible
+- LOST TRAIN-238 HS91/default: optimal -> infeasible
+- GAINED CAP-238-01 CRESC100/default: numerical_error -> optimal  (majors 2 -> 87, LA 7980 -> 14710, f 18.54281792173208 -> 0.56760272221174479)  [placebo-unstable problem]
+- GAINED CAP-238-1 MSS1/sqp-qn: numerical_error -> optimal  (majors 109 -> 82, LA 906 -> 655, f -15.000000281934552 -> -15.000000000000114)  [placebo-unstable problem]
+- GAINED TRAIN-238 MSS1/sqp-qn: numerical_error -> optimal  (majors 109 -> 82, LA 906 -> 655, f -15.000000281934552 -> -15.000000000000114)  [placebo-unstable problem]
+
+### C2
+- LOST CAP-238-01 CRESC100/sqp-qn: optimal -> numerical_error  [placebo-unstable problem]
+- LOST CAP-238-01 HS74/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST CAP-238-01 HS75/sqp-qn: optimal -> max_iter
+- LOST CAP-238-1 CRESC100/default: optimal -> infeasible  [placebo-unstable problem]
+- LOST CAP-238-1 HS101/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- LOST SENS-P F-CAP/default: optimal -> max_iter
+- LOST SENS-P F-CAP/sqp-qn: optimal -> max_iter
+- LOST SENS-P F-SOC/default: optimal -> max_iter
+- LOST SENS-P F-SOC/sqp-qn: optimal -> max_iter
+- LOST TRAIN-238 HS101/sqp-qn: optimal -> max_iter  [placebo-unstable problem]
+- GAINED CAP-238-01 CRESC100/default: numerical_error -> optimal  (majors 2 -> 51, LA 7980 -> 14156, f 18.54281792173208 -> 0.56760271248640493)  [placebo-unstable problem]
+- GAINED CAP-238-1 MSS1/sqp-qn: numerical_error -> optimal  (majors 109 -> 81, LA 906 -> 655, f -15.000000281934552 -> -15.000000000000114)  [placebo-unstable problem]
+- GAINED TRAIN-238 MSS1/sqp-qn: numerical_error -> optimal  (majors 109 -> 81, LA 906 -> 655, f -15.000000281934552 -> -15.000000000000114)  [placebo-unstable problem]
+
+### P on NLP-46 (informational; only P and C1 have NLP-46 rows)
+- LOST NLP-46 ACOPR118/default: optimal -> acceptable
+- LOST NLP-46 BRITGAS/default: optimal -> max_iter
+- LOST NLP-46 SAWPATH/sqp-qn: optimal -> numerical_error
+  strict-optimal count H0 24, P 21
+
+### C1 on NLP-46 (informational; only P and C1 have NLP-46 rows)
+- LOST NLP-46 BRITGAS/default: optimal -> numerical_error
+  strict-optimal count H0 24, C1 23
+
+## 2b. Tail lines (harness tail_guard over the stage-1 corpora incl. SENS-P) reclassified by the H0 status of the cell
+Classes: baseline-solved (H0 strict optimal; real tail hit), gained-cell (H0 not strict optimal, arm strict optimal), both-failed (neither strict optimal).
+| arm | tail lines | cells | baseline-solved (real) lines/cells | gained-cell lines/cells | both-failed lines/cells | RESULTS lines |
+|---|---|---|---|---|---|---|
+| P | 0 | 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 |
+| G1 | 5 | 3 | 5 / 3 | 0 / 0 | 0 / 0 | 5 |
+| G2 | 2 | 1 | 0 / 0 | 2 / 1 | 0 / 0 | 2 |
+| G3 | 1 | 1 | 1 / 1 | 0 / 0 | 0 / 0 | 1 |
+| G4 | 0 | 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 |
+| G5 | 2 | 1 | 0 / 0 | 2 / 1 | 0 / 0 | 2 |
+| G6 | 3 | 2 | 0 / 0 | 0 / 0 | 3 / 2 | 3 |
+| G7 | 3 | 3 | 0 / 0 | 0 / 0 | 3 / 3 | 3 |
+| C1 | 50 | 15 | 47 / 14 | 3 / 1 | 0 / 0 | 50 |
+| C2 | 38 | 12 | 35 / 10 | 2 / 1 | 1 / 1 | 38 |
+
+### P tail lines
+
+### G1 tail lines
+- [real] CAP-238-1 DEMBO7/sqp-qn rejected_steps 1 -> 28   (H0 optimal, G1 optimal)
+- [real] CAP-238-1 HS91/default rejected_steps 11 -> 66   (H0 optimal, G1 optimal)
+- [real] CAP-238-1 HS91/default reject_funnel_ceiling 0 -> 54   (H0 optimal, G1 optimal)
+- [real] TRAIN-238 HS91/default rejected_steps 11 -> 66   (H0 optimal, G1 optimal)
+- [real] TRAIN-238 HS91/default reject_funnel_ceiling 0 -> 54   (H0 optimal, G1 optimal)
+
+### G2 tail lines
+- [gained] CAP-238-01 CRESC100/default majors 2 -> 46   (H0 numerical_error, G2 optimal)
+- [gained] CAP-238-01 CRESC100/default EV 13 -> 101   (H0 numerical_error, G2 optimal)
+
+### G3 tail lines
+- [real] TRAIN-238 HS102/sqp-qn rejected_steps 9 -> 35   (H0 optimal, G3 optimal)
+
+### G4 tail lines
+
+### G5 tail lines
+- [gained] CAP-238-01 CRESC100/default majors 2 -> 40   (H0 numerical_error, G5 optimal)
+- [gained] CAP-238-01 CRESC100/default EV 13 -> 110   (H0 numerical_error, G5 optimal)
+
+### G6 tail lines
+- [both-failed] CAP-238-01 CRESC100/default EV 13 -> 43   (H0 numerical_error, G6 numerical_error)
+- [both-failed] CAP-238-01 MESH/default majors 52 -> 268   (H0 numerical_error, G6 max_iter)
+- [both-failed] CAP-238-01 MESH/default EV 141 -> 562   (H0 numerical_error, G6 max_iter)
+
+### G7 tail lines
+- [both-failed] CAP-238-01 CRESC100/default EV 13 -> 44   (H0 numerical_error, G7 numerical_error)
+- [both-failed] TRAIN-238 HS99EXP/sqp-qn majors 1 -> 171   (H0 max_iter, G7 max_iter)
+- [both-failed] TRAIN-238 LAKES/sqp-qn EV 44 -> 192   (H0 stalled, G7 stalled)
+
+### C1 tail lines by class: real 47, gained 3, both-failed 0; real-class lines on cells (distinct problems): ['CRESC4', 'F-CAP', 'F-SOC', 'HS104', 'HS89', 'HS92', 'OPTPRLOC']
+
+### C2 tail lines by class: real 35, gained 2, both-failed 1; real-class lines on cells (distinct problems): ['F-CAP', 'F-SOC', 'OPTPRLOC']
+
+### P NLP-46 tail lines (informational)
+- [both-failed] NLP-46 MSS2/sqp-qn majors 7 -> 37 (H0 numerical_error, P numerical_error)
+
+### C1 NLP-46 tail lines (informational)
+- [real] NLP-46 ACOPR118/default majors 22 -> 192 (H0 optimal, C1 optimal)
+- [real] NLP-46 ACOPR118/default EV 47 -> 289 (H0 optimal, C1 optimal)
+- [real] NLP-46 ACOPR118/default rejected_steps 6 -> 98 (H0 optimal, C1 optimal)
+- [real] NLP-46 ACOPR118/default reject_funnel_ceiling 6 -> 88 (H0 optimal, C1 optimal)
+- [both-failed] NLP-46 YORKNET/default majors 12 -> 55 (H0 numerical_error, C1 numerical_error)
+
+## 3. Objective differences: both strict optimal, |f_arm - f_H0| > 1e-6 * max(1, |f_H0|)
+
+### P: 5 cells
+- CAP-238-1 BT7/default: f_H0 = 360.3797672, f_P = 306.5  (arm lower; |df|/max(1,|f_H0|) = 0.15)
+- TRAIN-238 BT7/default: f_H0 = 360.3797672, f_P = 306.5  (arm lower; |df|/max(1,|f_H0|) = 0.15)
+- NLP-46 STEENBRC/default: f_H0 = 27504.93682, f_P = 27510.74447  (arm higher; |df|/max(1,|f_H0|) = 0.000211)
+- NLP-46 STEENBRD/default: f_H0 = 9074.194267, f_P = 9030.081867  (arm lower; |df|/max(1,|f_H0|) = 0.00486)
+- NLP-46 STEENBRE/default: f_H0 = 27464.97096, f_P = 27459.16331  (arm lower; |df|/max(1,|f_H0|) = 0.000211)
+
+### G1: 2 cells
+- CAP-238-1 HS81/default: f_H0 = 0.4388512199, f_G1 = 0.05394984777  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+- TRAIN-238 HS81/default: f_H0 = 0.4388512199, f_G1 = 0.05394984777  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+
+### G2: 0 cells
+
+### G3: 0 cells
+
+### G4: 0 cells
+
+### G5: 2 cells
+- CAP-238-1 BT7/default: f_H0 = 360.3797672, f_G5 = 306.4999999  (arm lower; |df|/max(1,|f_H0|) = 0.15)
+- TRAIN-238 DECONVC/default: f_H0 = 2.078853039e-11, f_G5 = 0.0003881608105  (arm higher; |df|/max(1,|f_H0|) = 0.000388)
+
+### G6: 1 cells
+- CAP-238-1 HS61/sqp-qn: f_H0 = -143.6461422, f_G6 = -81.91909609  (arm higher; |df|/max(1,|f_H0|) = 0.43)
+
+### G7: 2 cells
+- CAP-238-1 HS81/default: f_H0 = 0.4388512199, f_G7 = 0.05394984777  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+- TRAIN-238 HS81/default: f_H0 = 0.4388512199, f_G7 = 0.05394984777  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+
+### C1: 5 cells
+- CAP-238-1 BT7/default: f_H0 = 360.3797672, f_C1 = 306.5  (arm lower; |df|/max(1,|f_H0|) = 0.15)
+- CAP-238-1 DECONVC/default: f_H0 = 2.078853039e-11, f_C1 = 0.003734328221  (arm higher; |df|/max(1,|f_H0|) = 0.00373)
+- TRAIN-238 DECONVC/default: f_H0 = 2.078853039e-11, f_C1 = 0.003734328221  (arm higher; |df|/max(1,|f_H0|) = 0.00373)
+- NLP-46 STEENBRD/default: f_H0 = 9074.194267, f_C1 = 9030.081867  (arm lower; |df|/max(1,|f_H0|) = 0.00486)
+- NLP-46 STEENBRE/default: f_H0 = 27464.97096, f_C1 = 27459.16331  (arm lower; |df|/max(1,|f_H0|) = 0.000211)
+
+### C2: 4 cells
+- CAP-238-1 DECONVC/default: f_H0 = 2.078853039e-11, f_C2 = 0.007689781625  (arm higher; |df|/max(1,|f_H0|) = 0.00769)
+- CAP-238-1 HS81/default: f_H0 = 0.4388512199, f_C2 = 0.05394984758  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+- TRAIN-238 DECONVC/default: f_H0 = 2.078853039e-11, f_C2 = 0.007689781625  (arm higher; |df|/max(1,|f_H0|) = 0.00769)
+- TRAIN-238 HS81/default: f_H0 = 0.4388512199, f_C2 = 0.05394984758  (arm lower; |df|/max(1,|f_H0|) = 0.385)
+
+Union of problem names with an objective difference (any arm): ['BT7', 'DECONVC', 'HS61', 'HS81', 'STEENBRC', 'STEENBRD', 'STEENBRE']
+
+## 5. Exploratory re-read on placebo-stable problems (ONE placebo draw only; NOT the ensemble rule, NOT a re-verdict)
+A problem is 'placebo-stable' when P shows no outcome-level move on any of its TRAIN-238 / CAP-238-1 / CAP-238-01 cells (93 of 119 names).
+
+Wins-losses over placebo-stable cells (cell rule: 10%% integer rule, both strict optimal). hs025 note: its cells tie at zero factorizations; the 'no hs025' columns remove it.
+| arm | corpus | stable cells | LA W-L | EV W-L | LA W-L no hs025 | EV W-L no hs025 | LA W-L excl. different-solution cells | EV W-L excl. different-solution cells |
+|---|---|---|---|---|---|---|---|---|
+| G1 | TRAIN-238 | 186 | 13-12 | 11-12 | 13-12 | 11-12 | 13-11 | 11-11 |
+| G1 | CAP-238-1 | 186 | 13-14 | 9-10 | 13-14 | 9-10 | 13-13 | 9-9 |
+| G1 | CAP-238-01 | 186 | 3-3 | 4-5 | 3-3 | 4-5 | 3-3 | 4-5 |
+| G2 | TRAIN-238 | 186 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 |
+| G2 | CAP-238-1 | 186 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 |
+| G2 | CAP-238-01 | 186 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 |
+| G3 | TRAIN-238 | 186 | 2-0 | 1-1 | 2-0 | 1-1 | 2-0 | 1-1 |
+| G3 | CAP-238-1 | 186 | 2-0 | 1-0 | 2-0 | 1-0 | 2-0 | 1-0 |
+| G3 | CAP-238-01 | 186 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 | 0-0 |
+| G4 | TRAIN-238 | 186 | 2-6 | 1-3 | 2-6 | 1-3 | 2-6 | 1-3 |
+| G4 | CAP-238-1 | 186 | 1-6 | 0-3 | 1-6 | 0-3 | 1-6 | 0-3 |
+| G4 | CAP-238-01 | 186 | 0-1 | 0-0 | 0-1 | 0-0 | 0-1 | 0-0 |
+| G5 | TRAIN-238 | 186 | 5-1 | 9-1 | 5-1 | 9-1 | 5-1 | 9-1 |
+| G5 | CAP-238-1 | 186 | 6-1 | 11-1 | 6-1 | 11-1 | 6-1 | 11-1 |
+| G5 | CAP-238-01 | 186 | 4-1 | 9-1 | 4-1 | 9-1 | 4-1 | 9-1 |
+| G6 | CAP-238-1 | 186 | 2-2 | 2-0 | 2-2 | 2-0 | 2-1 | 2-0 |
+| G6 | CAP-238-01 | 186 | 5-2 | 6-0 | 5-2 | 6-0 | 5-2 | 6-0 |
+| G7 | TRAIN-238 | 186 | 2-5 | 2-5 | 2-5 | 2-5 | 2-4 | 2-4 |
+| G7 | CAP-238-1 | 186 | 2-5 | 3-3 | 2-5 | 3-3 | 2-4 | 3-2 |
+| G7 | CAP-238-01 | 186 | 0-1 | 0-0 | 0-1 | 0-0 | 0-1 | 0-0 |
+| C1 | TRAIN-238 | 186 | 20-11 | 21-10 | 20-11 | 21-10 | 20-11 | 21-10 |
+| C1 | CAP-238-1 | 186 | 19-11 | 19-9 | 19-11 | 19-9 | 19-11 | 19-9 |
+| C1 | CAP-238-01 | 186 | 4-4 | 7-3 | 4-4 | 7-3 | 4-4 | 7-3 |
+| C2 | TRAIN-238 | 186 | 6-1 | 5-0 | 6-1 | 5-0 | 5-1 | 4-0 |
+| C2 | CAP-238-1 | 186 | 4-1 | 5-1 | 4-1 | 5-1 | 4-1 | 4-1 |
+| C2 | CAP-238-01 | 186 | 1-2 | 7-1 | 1-2 | 7-1 | 1-2 | 7-1 |
+
+Per-arm effects split by placebo stability of the problem (SENS-P cells are outside the TRAIN/CAP stability set and are listed on their own)
+| arm | lost: stable problems | lost: unstable | lost: SENS-P | gained: stable | gained: unstable | gained: SENS-P | real tail lines: stable | real tail lines: unstable | real tail lines: SENS-P |
+|---|---|---|---|---|---|---|---|---|---|
+| P | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 |
+| G1 | 0 | 2 | 0 | 0 | 0 | 0 | CAP-238-1 HS91/default rejected_steps 11->66; CAP-238-1 HS91/default reject_funnel_ceiling 0->54; TRAIN-238 HS91/default rejected_steps 11->66; TRAIN-238 HS91/default reject_funnel_ceiling 0->54 | 1 | 0 |
+| G2 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 0 | 0 |
+| G3 | 0 | 0 | 0 | 0 | 0 | 0 | TRAIN-238 HS102/sqp-qn rejected_steps 9->35 | 0 | 0 |
+| G4 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| G5 | 0 | 3 | 0 | 0 | 1 | 1 | 0 | 0 | 0 |
+| G6 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 |
+| G7 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| C1 | CAP-238-01 HS75/sqp-qn, CAP-238-01 HS92/default, CAP-238-1 HS89/sqp-qn, CAP-238-1 HS90/sqp-qn, CAP-238-1 HS91/default, CAP-238-1 HS92/sqp-qn, TRAIN-238 HS104/default, TRAIN-238 HS90/default, TRAIN-238 HS91/default | 7 | 4 | 0 | 3 | 0 | CAP-238-01 HS92/default majors 54->172; CAP-238-01 HS92/default rejected_steps 12->98; CAP-238-01 HS92/default reject_funnel_ceiling 0->73; CAP-238-1 HS89/sqp-qn rejected_steps 0->44; CAP-238-1 HS89/sqp-qn reject_funnel_ceiling 0->30; TRAIN-238 HS104/default majors 11->137; TRAIN-238 HS104/default EV 25->202; TRAIN-238 HS104/default rejected_steps 0->82; TRAIN-238 HS104/default reject_funnel_ceiling 0->50 | 26 | 12 |
+| C2 | CAP-238-01 HS75/sqp-qn | 5 | 4 | 0 | 3 | 0 | 0 | 23 | 12 |
+
+Distinct problem names behind each arm's V1 losses (one vote per problem name, B4 rule 5): 
+- P: none
+- G1: ['ACOPP30', 'DEMBO7']
+- G2: ['CRESC4']
+- G3: none
+- G4: ['CRESC100']
+- G5: ['CRESC100', 'DECONVC']
+- G6: none
+- G7: ['CRESC100', 'CRESC4']
+- C1: ['ACOPP30', 'CRESC100', 'CRESC4', 'DECONVC', 'HS104', 'HS74', 'HS75', 'HS88', 'HS89', 'HS90', 'HS91', 'HS92']
+- C2: ['CRESC100', 'HS101', 'HS74', 'HS75']
+
+Stable-problem cost LOSSES (10% integer cell rule, both strict optimal) for G3, G5, G6 (the arms the review's B3 discusses):
+- G3 TRAIN-238 HS102/sqp-qn EV: H0 84 -> G3 114
+- G5 CAP-238-01 HS89/sqp-qn LA: H0 52 -> G5 160
+- G5 CAP-238-01 HS89/sqp-qn EV: H0 91 -> G5 168
+- G5 CAP-238-1 HS68/sqp-qn LA: H0 20 -> G5 25
+- G5 CAP-238-1 HS68/sqp-qn EV: H0 42 -> G5 51
+- G5 TRAIN-238 HS68/sqp-qn LA: H0 20 -> G5 25
+- G5 TRAIN-238 HS68/sqp-qn EV: H0 42 -> G5 51
+- G6 CAP-238-01 HIMMELP6/sqp-qn LA: H0 15 -> G6 17
+- G6 CAP-238-01 HS84/sqp-qn LA: H0 27 -> G6 30
+- G6 CAP-238-1 HS61/default LA: H0 9 -> G6 11
+- G6 CAP-238-1 HS61/sqp-qn LA: H0 10 -> G6 12

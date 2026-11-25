@@ -52,7 +52,7 @@ namespace hven::linear::detail {
 // statement sits between a scope's construction and the call it guards -- so no
 // SOLVE in this tree can force a throw INSIDE the scope. The destructor's
 // restore on an unwind is measured anyway, AT THIS CLASS, since M6 W6 T4:
-// `tests/linear/test_fault_injection.cpp`'s
+// `tests/linear/seam/test_fault_injection.cpp`'s
 // `ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` throws
 // inside a scope and catches outside it. The session throw seam once registered
 // for that job was declined and RETIRED -- `docs/testing.md`'s dated W6 note.

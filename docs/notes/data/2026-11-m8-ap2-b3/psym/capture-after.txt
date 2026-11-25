@@ -1,0 +1,16 @@
+captured 171 objects from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-b3/rel into build-b3/psym-after
+  hven                             53
+  hven_sqp_tests                   71
+  hven_interior_tests              4
+  hven_model_tests                 10
+  hven_tests                       11
+  hven_drivers_tests               13
+  hven_sqp_corpus                  2
+  hven_sqp_bench                   1
+  hven_sqp_ssn_safeguard_probe     1
+  hven_sqp_f7_cold                 1
+  hven_sqp_tau_bar_sweep_probe     1
+  hven_sqp_crossover               1
+  hven_sqp_ipqp_e1_arm             1
+  libhven.a                        1
+psym_compare: tool sha256 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a

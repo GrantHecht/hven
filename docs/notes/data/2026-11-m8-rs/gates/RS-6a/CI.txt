@@ -1,0 +1,3 @@
+RS-6a CI (workflow_dispatch on origin rs-6a; the branch was pushed once, at 434be3265).
+Run 44516172559 on head 434be3265 (all code of RS-6a is in 3c20f7c53 + 185586a41; every later commit is declarations, instruments or evidence): linux-clang-release success, linux-clang-coverage success, windows-clang-release success, macos-clang-release success. All four lanes green on the first run; no fix commit was needed.
+Windows (the lane that builds the Windows-reduced layout: sqp/qp/bench ordinary executables absent or reduced, seam executables present) and macOS (Accelerate arm: test_symmetric_factor.cpp absent, seams on accelerate_session) pass ctest with the new executable set; the membership guard ran at every configure.

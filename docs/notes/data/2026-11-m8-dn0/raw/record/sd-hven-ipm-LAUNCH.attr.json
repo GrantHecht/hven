@@ -1,0 +1,130 @@
+{
+ "samples": 1401,
+ "period": 1000003,
+ "instr_sampled_all": 1401004203,
+ "instr_sampled_solver": 1397004191,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 7000021,
+  "B_kkt": 0,
+  "B_eval": 1000003,
+  "B_setup": 1389004167,
+  "B_eng": 0,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.005010737294201861,
+  "B_kkt": 0.0,
+  "B_eval": 0.0007158196134574087,
+  "B_setup": 0.9942734430923408,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0028551034975017845,
+ "rule_instr": 1401004203,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9921484653818701,
+ "init_instr": 1387004161,
+ "steady_state_instr": 10000030,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7,
+  "B_kkt": 0.0,
+  "B_eval": 0.1,
+  "B_setup": 0.2,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   7000021
+  ]
+ ],
+ "mkl_serv_instr": 1388004164,
+ "kmp_instr": 5000015,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__GI___getuid",
+    1000003
+   ],
+   [
+    "__printf_buffer",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_metis_compute2waypartitionparams",
+    1000003
+   ],
+   [
+    "mkl_blas_dsyr",
+    1000003
+   ],
+   [
+    "mkl_serv_cbwr_get",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_check_input_fc",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    890002670
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    379001137
+   ],
+   [
+    "__vdso_time",
+    61000183
+   ],
+   [
+    "difftime@plt",
+    49000147
+   ],
+   [
+    "time@plt",
+    8000024
+   ],
+   [
+    "_gfortrani_read_block_form",
+    1000003
+   ],
+   [
+    "formatted_transfer",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ]
+  ]
+ }
+}

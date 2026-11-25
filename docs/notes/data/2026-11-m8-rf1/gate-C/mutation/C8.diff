@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index c46ae936d..a1c5a0fe5 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10012,7 +10012,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+             // applicability as kNumericalError (return_best.h), so the point is unchanged.
+             const bool minor_cap_exit = !is_restoration_sub_driver_ &&
+                                         st.exit_reason == StopReason::kNone &&
+-                                        mj.qs.status == QpStatus::kIterationLimit;
++                                        false && mj.qs.status == QpStatus::kIterationLimit;
+             const SolveStatus qp_exit_status =
+                 minor_cap_exit ? SolveStatus::kStalled : map_status(mj.qs.status);
+             publish_stop_at(iter,

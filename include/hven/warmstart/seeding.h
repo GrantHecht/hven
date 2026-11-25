@@ -4,7 +4,7 @@
 #pragma once
 
 // seeding.h -- the three constants that govern how a warm start's MULTIPLIERS
-// are admitted, in one place and DELIBERATELY NOT UNIFIED (design 2.4).
+// are admitted, in one place and DELIBERATELY NOT UNIFIED.
 //
 // Each of the three is a policy of ONE engine, with its own derivation, and
 // they are gathered here because a reader looking for "what does this project
@@ -13,21 +13,16 @@
 // retune two engines to each other; the header exists to make the difference
 // legible, not to erase it.
 //
-//   kSeededIqMultFloor   IPM   the lower end of the interior the barrier
+//   kSeededInequalityMultiplierFloor   IPM   the lower end of the interior the barrier
 //                              method is defined on.
-//   kSeededMultInitMax   IPM   the magnitude ceiling on any seeded multiplier.
+//   kSeededMultiplierMax   IPM   the magnitude ceiling on any seeded multiplier.
 //   kSeededDualClampTol  SQP   the sign band inside which a slightly negative
 //                              inequality price is a rounding artefact rather
 //                              than a corrupt object.
 //
-// COMPATIBILITY, AND ITS END: the two IPM values were also reachable as static
-// members of the solver class -- `InteriorPointSolver::kSeededIqMultFloor` and
-// `::kSeededMultInitMax` -- until M6 W5 T8.10 swept the call sites and DROPPED
-// those aliases. `hven::solvers::kSeededIqMultFloor` and `::kSeededMultInitMax`
-// are the only names for them now. `hven::solvers::kSeededDualClampTol` was
-// already at this namespace scope and is simply defined here.
+// All three are defined at namespace scope in `hven`.
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief IPM. Floor applied to seeded INEQUALITY multipliers when they are
 ///        installed.
@@ -36,16 +31,16 @@ namespace hven::solvers {
 /// below zero would put the very first iterate outside the interior the method
 /// is defined on. An IPM policy about an IPM invariant; the SQP has no such
 /// division and applies no floor.
-inline constexpr double kSeededIqMultFloor = 1.0e-8;
+inline constexpr double kSeededInequalityMultiplierFloor = 1.0e-8;
 
 /// @brief IPM. Ceiling applied to EVERY seeded multiplier.
 ///
 /// Both signs for equality rows; the upper end for inequality rows, alongside
-/// kSeededIqMultFloor's lower end. Parity with Ipopt's own seeded-multiplier
+/// kSeededInequalityMultiplierFloor's lower end. Parity with Ipopt's own seeded-multiplier
 /// ceiling (`warm_start_mult_init_max`, default 1e6) and with the interior
 /// solver's own bound-multiplier seeding precedent (`kBoundMultInitCap = 1e3`
 /// in `push_initial_point_interior`, bound_set.h).
-inline constexpr double kSeededMultInitMax = 1.0e6;
+inline constexpr double kSeededMultiplierMax = 1.0e6;
 
 /// @brief SQP. The sign band on an INGESTED inequality price at kSeeded.
 ///
@@ -57,4 +52,4 @@ inline constexpr double kSeededMultInitMax = 1.0e6;
 /// not the IPM's floor and does not move with it.
 inline constexpr double kSeededDualClampTol = 1e-6;
 
-} // namespace hven::solvers
+} // namespace hven

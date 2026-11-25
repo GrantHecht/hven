@@ -1,0 +1,13 @@
+diff --git a/src/core/ledger.cpp b/src/core/ledger.cpp
+index e083c0e10..55ff6a65b 100644
+--- a/src/core/ledger.cpp
++++ b/src/core/ledger.cpp
+@@ -49,7 +49,7 @@ std::string Ledger::summary_table() const {
+ 
+     for (const auto &rec : records_) {
+         result += fmt::format("{:<30} {:<10} {:<8} {:<16} {:<14}\n", rec.label,
+-                              rec.warm ? "yes" : "no", rec.counters.minor_iters,
++                              rec.warm ? "no" : "no", rec.counters.minor_iters,
+                               rec.counters.factorizations, rec.counters.schur_updates);
+     }
+ 

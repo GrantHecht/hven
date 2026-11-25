@@ -1,0 +1,4 @@
+2063c2063
+<     row.cap_binding = r.cap_binding;
+---
+>     row.cap_binding = false;

@@ -1,0 +1,17 @@
+{
+ "lane": "hven-sqp",
+ "base": "sqp-qn",
+ "set": "cutest",
+ "config": {
+  "advanced.trust_region_growth": "kAnyAccepted"
+ },
+ "label": "sqp-qn+advanced.trust_region_growth=kAnyAccepted",
+ "problems": [
+  "BIGBANK",
+  "MSS3",
+  "READING8",
+  "TAX213322",
+  "TAX53322"
+ ],
+ "tier": "exclusive"
+}

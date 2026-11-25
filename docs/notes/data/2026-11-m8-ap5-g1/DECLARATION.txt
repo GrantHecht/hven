@@ -1,0 +1,127 @@
+M8 AP-5 G1 -- the stop token and one StopReason -- DECLARATION
+(committed before the first leg; never edited afterwards; criteria are never changed after data; a failed or void leg
+is answered by DECLARATION-r2, this file and its outputs kept; every invocation below uses ABSOLUTE paths)
+================================================================================
+Spec        docs/notes/2026-11-m8-ap5-interface-design.md (APPROVED IN FULL by the owner: Q1-Q15 and every public name
+            of section 4), group G1 of section 5, with section 3's semantics and section 4's names. Deferred to G7 by the
+            settler's brief: the D1/D2 doc fixes (they sit in the three option headers another agent is editing).
+Base        030bae675 (origin/m8 at rebase time: the DN-3 dense-default flip and its r5 record; both engines default
+            DensePolicy::kAuto). G1 was written on b09f1bbc0 and rebased onto the flip without conflict.
+Code head   08afb7f3d. Commits after the base, oldest first:
+            353594f8d feat(m8-ap5-g1): the stop token and one StopReason (design G1)
+            08afb7f3d fix(m8-ap5-g1): token-stop console kinds, the G1 baseline from the flip's, T1's SQP work
+            Evidence commits (this directory) follow and touch no source (legs/chain.sh refuses to start otherwise).
+Arm A       the base (the POST-FLIP head 030bae675; no WX2/B7/pre-flip reference is compared against), rebuilt by legs/prebuild.sh from its archive export (build-g1/armA-src, dep/eigen and dep/fmt copied
+            at the commits the base pins), Release, legs/build.sh's flags: build-g1/armAbin/hven_sqp_corpus sha256
+            54d8216068f25d69fe5f4bc1e9d082f209071a1c88ae9ecdf4cc9255d4ac9ce6.
+Arm B       the code head: build-g1/rel (fresh Release, every target) -> frozen to build-g1/armBbin/hven_sqp_corpus,
+            sha256 3d845bf861888ccef9b09d718d72285bb0cdf3c39a373bce90e367bdf01be837. build-g1/dbg (fresh Debug, every target).
+Toolchain   clang 22.1.8, HVEN_FP_MODE=SAFER_FAST, MKL (intel_thread layer), MKL_NUM_THREADS=1; AMD Ryzen 7 5800X3D, Linux
+            7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED (nothing pushed; their CI lanes are the settler's).
+Pre-declaration dev runs (NOT evidence, disclosed): the dev Release tree (build-g1/dev) and the fresh build-g1/dbg
+            ran the full suite at the code head before this file was written: 100% of 3645 each. No corpus, replay,
+            interior or runtime leg ran before this file was committed.
+Instruments legs/ (build.sh, prebuild.sh, ctest.sh copied from ../2026-11-m8-dn3b/legs/ and re-pointed; replay.sh
+            rewritten as an A/B leg; interior.sh from DN-3b's with the column map; install_smoke.sh from
+            ../2026-11-m8-ap2-b8-riders/legs/; chain.sh new in DN-3b's shape; tsan.sh new; stop_reason_map.py new: the
+            column map). runtime/ (= ../2026-11-m8-dn3b/runtime/, re-pointed, same path depth; analyze_r11.py changed in
+            ONE place, before data: the interior mode compares map(arm A) with arm B; run_all.sh takes arm A's sha256 as
+            its second argument; runtime_leg.sh also unsets the flip's pre-flip pin HVEN_LEG_IPM_PRE_DN3_DEFAULT, as
+            legs/interior.sh does; legs/interior.sh's frozen predecessor is the FLIP's baseline file; legs/ctest.sh sets
+            GIT_CEILING_DIRECTORIES=build-g1 so BenchStampGuard.SelfTest's scratch repo cannot see this worktree). No
+            co-run: every leg is serial under the box lock.
+
+THE CHANGE (code head; names as the page's section 4)
+--------------------------------------------------------------------------------
+C1  include/hven/core/stop.h (new): StopSource / StopToken, hven's own type (Q1). Shared std::atomic<bool>; an empty
+    token's stop_requested() is a null test; request_stop() one release store, static_assert is_always_lock_free.
+    In the umbrella hven/hven.h.
+C2  SolveBudget::stop (StopToken, default empty) (Q2). run_major now takes `const SolveBudget &` (it was by value; the
+    budget is no longer trivially copyable).
+C3  ONE StopReason (core/solver_status.h) replaces IpmStopReason and SqpStopReason (Q3), values per page section 2.3:
+    kNone, kCallbackStop, kStopRequested, kException, kNonFiniteStart, kNonFiniteIterate, kEvaluationFailure,
+    kStageStalled, kRestorationLocallyInfeasible, kSubproblemFailure, kInconsistentEqualities, kRestorationRefused,
+    kRestorationNonFinite, kRestorationNoClaim, kRestorationFailed; to_string(StopReason) (one spelling table; shared
+    values keep their strings, the two stops are `callback_stop`, `stop_requested`). SolveResult::stop_reason (placed
+    in the padding after `status`: no SolveResult member offset moves); IpmPhaseReport::stop_reason : StopReason.
+    IpmSolver::last_stop_reason() and SqpSolver::last_stop_reason() removed; the handles fill result.stop_reason.
+C4  The interior-point engine keeps its own finer record, detail::IpmPhaseStop (detail/drivers/ipm_phase_status.h),
+    because resolve_ipm_phase_status needs the three limit doors apart; detail::to_stop_reason maps it, the three
+    limit doors -> kNone (the page's kNone rule).
+C5  POLLS. IPM: the iteration top, right after the event and before the factorization, beside the callback's stop
+    (a callback stop already latched wins the label; a token stop latches interrupt_requested_, so it ends the phase
+    sequence; no return_best substitution on either stop). SQP: the exit conjunction (the latch's terms), and the
+    post-push poll at MajorOutcome::kCommitAccepted (the accepted row is recorded, the commit not yet run): a token
+    stop OR a latched callback stop (Q15) returns the row's own point with the kFinishCurrent arguments, no step
+    committed. Message: "interrupted by a stop request (SolveBudget::stop)" for kStopRequested.
+C5b CONSOLE / TRACE MESSAGE KINDS (the orchestrator's ruling, after the code commit: a token stop has its OWN console
+    message kind). IpmMessageKind gains kStopRequestedAtIteration = 9 (`stop_requested_at_iteration`, `iter` = the
+    row) and kStopRequestedSkippingPhases = 10 (`stop_requested_skipping_phases`, no payload); console "Solve stopped
+    by a stop request (SolveBudget::stop) at iteration N." and "...; skipping remaining phases.". The callback's
+    kInterruptAtIteration / kInterruptSkippingPhases and their texts are unchanged and are no longer emitted on a token
+    stop (an IpmSolverImpl bool appended last records which stop latched). SQP: no console message exists for either
+    stop (unchanged).
+C6  bench/ipm_corpus_leg.cpp writes to_string(result.stop_reason) (was to_string(ipm.last_stop_reason())).
+C7  Tests: migrated to the new names; tests/drivers/test_stop_token.cpp new (the page's T1, T2, T6, T8, T10, T13, the
+    type's own cases and an unfired-token identity); test_callback's SqpStopReturnsInterruptedAtTheCurrentPoint
+    re-derived (Q15); install smoke include_core_stop.cpp (36 -> 37 standalone TUs); two console tests
+    (StopTokenSolve.ATokenStopPrintsItsOwnConsoleMessagesNotTheCallbacks, .ACallbackStopKeepsItsOwnConsoleMessages).
+C8  Docs: docs/migration-0.2.md (NEW: the page names no migration-guide location, so the settler's fallback), CHANGELOG,
+    docs/trace-schema-v0.md (the stop_reason row), docs/concurrency.md (the cross-thread stop), header contract text.
+
+THE COLUMN MAP (old -> new stop-reason columns; legs/stop_reason_map.py, total over the old vocabulary, fail closed)
+--------------------------------------------------------------------------------
+  interior corpus CSV column `stop_reason` (schema 31) and trace key ipm.phase.exit `stop_reason`:
+    none -> none; iteration_cap -> none; work_limit -> none; time_limit -> none; interrupted -> callback_stop;
+    restoration_locally_infeasible, stage_stalled, non_finite_start, non_finite_iterate, evaluation_failure,
+    exception -> unchanged.
+  SQP corpus CSV (schema 76, walk/ssn/ipm): carries no stop-reason column -- the map is the identity.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults; no corpus cell stops or carries a token)
+--------------------------------------------------------------------------------
+D1  SQP CORPUS: NO ROW MOVES. Replay x walk/ssn/ipm, arm A vs arm B, EXACT.
+D2  INTERIOR CORPUS: map(arm A) == arm B EXACT on the 27 replay cells (arm A = the flip head). Raw (reported, not a criterion): exactly 2
+    (row, column) differences, both `stop_reason` iteration_cap -> none (f7_n1000_bound_neutral/MakeParameter/cap1,
+    hs071_x1_fixed/MakeParameter/cap1).
+D3  THE INTERIOR BASELINE, re-derived through the map FROM THE FLIP'S FILE:
+    bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+    = banner + map(bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv) (the flip file frozen, unedited;
+    the B7 file frozen, unedited, and no longer derived from); the same 2 pairs (both cap1 stop_reason iteration_cap ->
+    none). tests/sqp/CMakeLists.txt re-pointed from the B7 file (which the flip left it on) to the G1 file;
+    test_corpus_cells' two cap1 expected rows -> "none".
+D4  TRACE (declared): ipm.phase.exit `stop_reason` follows the map; no key added or removed. ipm.message `kind` gains
+    two values (C5b), emitted only on a token stop (never on a corpus cell). Golden expectations re-derived:
+    test_ipm_stop_reason's interrupt door ("interrupted" -> "callback_stop"), test_trace_writer's stop-reason spelling
+    table (fifteen values) and its static_assert count (11 -> 15), its message-kind tables and count (9 -> 11).
+D5  LEDGER: neither IpmSolveRecord nor SqpSolveRecord carries a stop reason, and G1 adds none (no unapproved public
+    name); the records and both summary tables are unchanged, their existing pins pass unchanged in P1.
+D6  BEHAVIOUR off the corpus: (a) a requested token stops a solve (new); (b) Q15: an SQP callback kStop on a row that
+    records an accepted step is honoured at that row (declared change for callback-stopped SQP solves only; any
+    other row: unchanged); (c) the IPM limit reasons read kNone on the result and on each phase.
+D7  API breaks: the migration lines in docs/migration-0.2.md, section G1.
+D8  No iparm change, no IPARM-SURFACE label, no notices/ change, no option header touched.
+D9  TESTS: 3633 -> 3645 run, as ctest counts them ("out of N"), Release and Debug (base: the flip's r5 suites
+    record, 3633; +12 new TESTs: 11 in test_stop_token.cpp, 1 in test_solve_status.cpp).
+
+PROOFS AND PASS CRITERIA (each its own script under `flock /tmp/box-build.lock`; `pgrep -a hven_bench_cell` empty first,
+as its own command; the runtime gate FIRST and alone, then legs/chain.sh)
+--------------------------------------------------------------------------------
+P0  arm A / arm B sha256 above (checked by runtime/run_all.sh, legs/replay.sh, legs/interior.sh; fail closed).
+P1  BOTH SUITES: ctest Release (build-g1/rel) and Debug (build-g1/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3645" in both (legs/ctest.sh; suites/). The GOLDEN RIG is the hven_golden_rig ctest entries
+    inside it (native arms; the old-seam arms are not configured), listed by the chain.
+P2  RUNTIME GATE (runtime/; arm A vs arm B at the defaults; modes interior, ipm, ssn, walk; 27 cells; rounds 3, core 2,
+    perf period 400000; THROTTLE == 0 or VOID): VERDICT PASS -- counter identity in every mode (interior: map(A) vs B),
+    filtered B/A in [0.995, 1.005] per mode.
+P3  REPLAY: 27 cells x (walk, ssn, ipm), arm A vs arm B, scripts/compare_replay.py EXACT, 0 differences each
+    (legs/replay.sh; replay/).
+P4  INTERIOR (legs/interior.sh; interior/): unmoved map(A) vs B EXACT 0; promoted (arm B under the G1 baseline's own
+    invocation vs that file) EXACT 0; derived (map(flip baseline) vs the G1 baseline) EXACT 0.
+P5  INSTALL SMOKE, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass; 37 standalone
+    TUs (legs/install_smoke.sh; install-smoke/).
+P6  THE PAGE'S TESTS, inside P1 (both builds): StopTokenSolve.T1..., .T2..., .T6..., .T8..., .T10..., .T13... and
+    StopTokenSolve.AnUnfiredTokenChangesNothing, the two console tests (C7), StopToken.* -- every one passes.
+P7  (the ledger: D5, inside P1.)
+P8  THREADSANITIZER (legs/tsan.sh; tsan/): build-g1/tsan, -fsanitize=thread, hven_drivers_tests, filter
+    StopToken.*:StopTokenSolve.T2*:StopTokenSolve.T10*: exit 0 and 0 "WARNING: ThreadSanitizer" lines.
+ON FAIL: stop, commit the evidence, report; a successor declaration (DECLARATION-r2) for any re-run; criteria unchanged.

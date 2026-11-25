@@ -1,0 +1,21 @@
+H0 cells 864 (NLP-46 46; not-ended NLP cells 10)
+== P: common cells 864 (NLP-46 46)
+NLP-46 stand-alone (R3): ok=False {"pooled": {"LA": {"wins": 3, "losses": 3, "ties": 15, "net": 0, "sign": 0}, "EV": {"wins": 2, "losses": 3, "ties": 16, "net": -1, "sign": -1}}, "families": {"nlp-q": {"LA": {"wins": 1, "losses": 0, "ties": 5, "net": 1, "sign": 1}, "EV": {"wins": 0, "losses": 0, "ties": 6, "net": 0, "sign": 0}}, "nlp-x": {"LA": {"wins": 2, "losses": 3, "ties": 10, "net": -1, "sign": -1}, "EV": {"wins": 2, "losses": 3, "ties": 10, "net": -1, "sign": -1}}}, "geo": {"n": 21, "majors": 0.987494084616538, "factorizations": 0.9042907891864956, "eval_f": 0.9829383456461187, "eval_jac": 0.9847038730992168, "evals_values": 0.9533021101808785, "LA": 0.9042907891864956, "EV": 0.98127612033499}, "negative": [["pooled", "EV"], ["nlp-x", "LA"], ["nlp-x", "EV"]]}
+NLP-46 pooled: solved {'h0_strict': 24, 'x_strict': 21, 'h0_acc': 25, 'x_acc': 23} | tally {'LA': (0, 0), 'EV': (-1, -1)} | geo {'n': 21, 'majors': 0.987494084616538, 'factorizations': 0.9042907891864956, 'eval_f': 0.9829383456461187, 'eval_jac': 0.9847038730992168, 'evals_values': 0.9533021101808785, 'LA': 0.9042907891864956, 'EV': 0.98127612033499}
+NLP-46 tail guard (V4) violations: 1
+  TAIL (('NLP-46', 'nlp', 'MSS2', 'sqp-qn'), 'majors', 7, 37)
+NLP-46 V1 ok=False lost=[(('NLP-46', 'nlp', 'ACOPR118', 'default'), 'strict', 'optimal', 'acceptable'), (('NLP-46', 'nlp', 'BRITGAS', 'default'), 'strict', 'optimal', 'max_iter'), (('NLP-46', 'nlp', 'SAWPATH', 'sqp-qn'), 'strict', 'optimal', 'numerical_error')]
+NLP-46 family signs {'nlp-q': (1, 0), 'nlp-x': (-1, -1)}
+restoration/floor {"H0": {"trust_region_floor_exits": 2, "floor_hit_cells": 2, "restoration_entries": 42, "restoration_cells": 19, "qn_resets_radius_floor": 2}, "X": {"trust_region_floor_exits": 2, "floor_hit_cells": 2, "restoration_entries": 45, "restoration_cells": 21, "qn_resets_radius_floor": 3}}
+== C1: common cells 864 (NLP-46 46)
+NLP-46 stand-alone (R3): ok=False {"pooled": {"LA": {"wins": 6, "losses": 4, "ties": 13, "net": 2, "sign": 1}, "EV": {"wins": 7, "losses": 3, "ties": 13, "net": 4, "sign": 1}}, "families": {"nlp-q": {"LA": {"wins": 1, "losses": 1, "ties": 5, "net": 0, "sign": 0}, "EV": {"wins": 2, "losses": 1, "ties": 4, "net": 1, "sign": 1}}, "nlp-x": {"LA": {"wins": 5, "losses": 3, "ties": 8, "net": 2, "sign": 1}, "EV": {"wins": 5, "losses": 2, "ties": 9, "net": 3, "sign": 1}}}, "geo": {"n": 23, "majors": 1.0694877617010106, "factorizations": 0.9497761878393989, "eval_f": 0.9965308510025055, "eval_jac": 1.0531237822835102, "evals_values": 0.9242057053885251, "LA": 0.9497761878393989, "EV": 1.0211414987219596}, "negative": []}
+NLP-46 pooled: solved {'h0_strict': 24, 'x_strict': 23, 'h0_acc': 25, 'x_acc': 25} | tally {'LA': (1, 2), 'EV': (1, 4)} | geo {'n': 23, 'majors': 1.0694877617010106, 'factorizations': 0.9497761878393989, 'eval_f': 0.9965308510025055, 'eval_jac': 1.0531237822835102, 'evals_values': 0.9242057053885251, 'LA': 0.9497761878393989, 'EV': 1.0211414987219596}
+NLP-46 tail guard (V4) violations: 5
+  TAIL (('NLP-46', 'nlp', 'ACOPR118', 'default'), 'majors', 22, 192)
+  TAIL (('NLP-46', 'nlp', 'ACOPR118', 'default'), 'EV', 47, 289)
+  TAIL (('NLP-46', 'nlp', 'ACOPR118', 'default'), 'rejected_steps', 6, 98)
+  TAIL (('NLP-46', 'nlp', 'ACOPR118', 'default'), 'reject_funnel_ceiling', 6, 88)
+  TAIL (('NLP-46', 'nlp', 'YORKNET', 'default'), 'majors', 12, 55)
+NLP-46 V1 ok=False lost=[(('NLP-46', 'nlp', 'BRITGAS', 'default'), 'strict', 'optimal', 'numerical_error')]
+NLP-46 family signs {'nlp-q': (0, 1), 'nlp-x': (1, 1)}
+restoration/floor {"H0": {"trust_region_floor_exits": 2, "floor_hit_cells": 2, "restoration_entries": 42, "restoration_cells": 19, "qn_resets_radius_floor": 2}, "X": {"trust_region_floor_exits": 2, "floor_hit_cells": 2, "restoration_entries": 44, "restoration_cells": 19, "qn_resets_radius_floor": 0}}

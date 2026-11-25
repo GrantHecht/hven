@@ -1,0 +1,13 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-04T17:58:51-05:00
+build rc=0
+26
+[342/343] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[343/343] Linking CXX executable tests/sqp/hven_sqp_tests
+The following tests did not run:
+	634 - RouteReference.TheReferenceBuildRunsAtMklsAutoDispatch (Skipped)
+	669 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2130 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2131 - EqpRefinementAb.FullBattery (Disabled)
+ctest rc=0
+FOREGROUND_END 2026-11-04T18:01:59-05:00

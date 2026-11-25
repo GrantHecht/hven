@@ -1,0 +1,76 @@
+Running main() from /home/ghecht/Projects/hven/.scratch/i19-1-build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IterationTelemetry.*:CallerStepLimit*
+[==========] Running 30 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (4 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (5 ms total)
+
+[----------] 10 tests from CallerStepLimitSolve
+[ RUN      ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum
+[       OK ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum (1 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+[       OK ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder
+[       OK ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder (3 ms)
+[ RUN      ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox
+[       OK ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox (0 ms)
+[ RUN      ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit
+[       OK ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit (1 ms)
+[ RUN      ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit
+[       OK ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit
+[       OK ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit (0 ms)
+[ RUN      ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit
+[       OK ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits
+[       OK ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits (28 ms)
+[ RUN      ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit
+[       OK ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit (1 ms)
+[----------] 10 tests from CallerStepLimitSolve (42 ms total)
+
+[----------] 15 tests from IterationTelemetry
+[ RUN      ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation
+[       OK ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep
+[       OK ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep (0 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn
+[       OK ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn (1 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[       OK ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (1 ms)
+[ RUN      ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[       OK ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction
+[       OK ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction (0 ms)
+[ RUN      ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere
+[       OK ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere (0 ms)
+[ RUN      ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+[       OK ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+[ RUN      ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding
+[       OK ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding (0 ms)
+[ RUN      ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep
+[       OK ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep (0 ms)
+[ RUN      ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+[       OK ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+[ RUN      ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+[       OK ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+[ RUN      ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+[       OK ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+[ RUN      ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost
+[       OK ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost (1 ms)
+[ RUN      ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve
+[       OK ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve (0 ms)
+[----------] 15 tests from IterationTelemetry (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 3 test suites ran. (56 ms total)
+[  PASSED  ] 30 tests.

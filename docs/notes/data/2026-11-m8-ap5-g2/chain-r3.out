@@ -1,0 +1,124 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:23:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:23:29-05:00
+
+The following tests did not run:
+	809 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2368 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2369 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T18:24:42-05:00
+STEP ctest-rel rc=0 2026-11-14T18:24:42-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:24:42-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	809 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2368 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2369 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T18:31:23-05:00
+STEP ctest-dbg rc=0 2026-11-14T18:31:23-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:31:23-05:00
+0ef55263b35bebd516805e28cf6a0c1ec2da27ca4319f4b830752019352a8498  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armBbin3/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=B3 2026-11-14T18:31:24-05:00
+run rc=0
+compare vs r2 rc=0
+=== r3-vs-r2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=B3 2026-11-14T18:36:12-05:00
+run rc=0
+compare vs r2 rc=0
+=== r3-vs-r2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=B3 2026-11-14T18:36:33-05:00
+run rc=0
+compare vs r2 rc=0
+=== r3-vs-r2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B3 2026-11-14T18:36:59-05:00
+run rc=0
+compare armed rc=0
+=== r3-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B3 2026-11-14T18:41:48-05:00
+run rc=0
+compare armed rc=0
+=== r3-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B3 2026-11-14T18:42:09-05:00
+run rc=0
+compare armed rc=0
+=== r3-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-14T18:42:35-05:00
+STEP replay rc=0 2026-11-14T18:42:35-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:42:35-05:00
+d80ce1bfd2512b7e830d693eefae6b9d4da48c757add091b5e55bab5cfe31334  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armAbin/hven_sqp_corpus
+0ef55263b35bebd516805e28cf6a0c1ec2da27ca4319f4b830752019352a8498  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armBbin3/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-14T18:43:20-05:00
+STEP interior rc=0 2026-11-14T18:43:20-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:43:20-05:00
+[42/43] Linking CXX executable tests/drivers/hven_drivers_tests
+[----------] 5 tests from StopRecovery (195 ms total)
+
+[----------] Global test environment tear-down
+[==========] 65 tests from 7 test suites ran. (1116 ms total)
+[  PASSED  ] 65 tests.
+tsan rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-14T18:44:01-05:00
+STEP tsan rc=0 2026-11-14T18:44:01-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T18:44:01-05:00
+control build rc=0
+CONTROL failures: []
+applied a src/drivers/ipm_solver.cpp
+MUT a: IpmStopReason.G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEntryPoint IpmStopReason.G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint drivers rc=1 interior rc=1 
+applied b src/drivers/ipm_solver.cpp
+MUT b: StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint drivers rc=1 
+applied c src/drivers/ipm_solver.cpp
+MUT c: IpmStopReason.G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEntryPoint IpmStopReason.G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint drivers rc=1 interior rc=1 
+applied d src/drivers/sqp_solver.cpp
+MUT d: Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes drivers rc=1 
+applied e src/drivers/sqp_solver.cpp
+MUT e: Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict Callback.SqpStopInsideRestorationLatchesAndReachesTheParent Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture drivers rc=1 
+applied f src/drivers/sqp_solver.cpp
+MUT f: Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture drivers rc=1 
+applied g src/drivers/sqp_solver.cpp
+MUT g: Callback.ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied drivers rc=1 
+applied h src/drivers/sqp_solver.cpp
+MUT h: Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture drivers rc=1 
+applied i src/drivers/sqp_solver.cpp
+MUT i: SURVIVES
+applied j src/drivers/ipm_solver.cpp
+MUT j: IpmStopReason.G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEntryPoint IpmStopReason.G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint StopRecovery.T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEitherScope StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheShownPoint StopRecovery.T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate drivers rc=1 interior rc=1 
+applied k src/drivers/ipm_solver.cpp
+MUT k: SURVIVES
+applied l src/drivers/ipm_solver.cpp
+MUT l: StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint drivers rc=1 
+applied m src/drivers/sqp_solver.cpp
+MUT m: Callback.SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit drivers rc=1 
+applied n src/drivers/sqp_solver.cpp
+MUT n: Callback.SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit Callback.SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint drivers rc=1 
+applied o src/drivers/sqp_solver.cpp
+MUT o: Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict Callback.SqpStopInsideRestorationLatchesAndReachesTheParent Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture drivers rc=1 
+applied p src/drivers/ipm_solver.cpp
+MUT p: IpmStopReason.G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEntryPoint IpmStopReason.G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint drivers rc=1 interior rc=1 
+FOREGROUND_END 2026-11-14T18:48:51-05:00
+STEP mutations rc=0 2026-11-14T18:48:51-05:00
+worst=0
+FOREGROUND_END 2026-11-14T18:48:51-05:00

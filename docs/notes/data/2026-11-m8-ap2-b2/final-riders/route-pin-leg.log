@@ -1,0 +1,31 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T02:10:46-05:00
+ed4ff3cc760c962747192a7fc861ffe27aa18ca7a0bffd8a0fc796903cc78997  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/rel/bench/hven_sqp_corpus
+RUN mode=walk route=nlp-internal 2026-11-02T02:10:46-05:00
+run rc=0
+RUN mode=walk route=nlp-public 2026-11-02T02:10:51-05:00
+run rc=0
+compare-exact mode=walk rc=0
+=== b2a-walk === cells compared: 10  columns compared: 75  differences: 0
+RUN mode=ssn route=nlp-internal 2026-11-02T02:10:57-05:00
+run rc=0
+RUN mode=ssn route=nlp-public 2026-11-02T02:11:03-05:00
+run rc=0
+compare-exact mode=ssn rc=0
+=== b2a-ssn === cells compared: 10  columns compared: 75  differences: 0
+RUN mode=ipm route=nlp-internal 2026-11-02T02:11:10-05:00
+run rc=0
+RUN mode=ipm route=nlp-public 2026-11-02T02:11:17-05:00
+run rc=0
+compare-exact mode=ipm rc=0
+=== b2a-ipm === cells compared: 10  columns compared: 75  differences: 0
+RUN mode=interior route=nlp-internal 2026-11-02T02:11:25-05:00
+run rc=0
+RUN mode=interior route=nlp-public 2026-11-02T02:11:37-05:00
+run rc=0
+compare-exact mode=interior rc=1
+=== b2a-interior === cells compared: 41  columns compared: 30  differences: 0  UNMATCHED CELLS: ['f7_n1000_bound_neutral/MakeConstraint/parts2', 'f7_n1000_bound_neutral/MakeParameter/parts2']
+compare-gate mode=interior rc=1
+=== b2a-interior-gate === cells compared: 41  columns compared: 30  differences: 0  within gate: 0  UNMATCHED CELLS: ['f7_n1000_bound_neutral/MakeConstraint/parts2', 'f7_n1000_bound_neutral/MakeParameter/parts2']
+worst_run_rc=0
+FOREGROUND_END 2026-11-02T02:11:49-05:00

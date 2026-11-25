@@ -1,0 +1,21 @@
+clean tree: configure rc=0 (want 0)
+R1-seam-takes-ordinary-source hven_ipm_seam_tests also lists tests/ipm/test_soc.cpp: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+R1-seam-takes-ordinary-source restored -> configure passes (rc=0)
+R2-ordinary-takes-seam-source hven_ipm_tests also lists seam/test_ipm_dense_guard_seams.cpp: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+R2-ordinary-takes-seam-source restored -> configure passes (rc=0)
+R6a-orphan a tests/core source in no executable: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+R6a-orphan restored -> configure passes (rc=0)
+R6b-seam-orphan a tests/ipm/seam source in no executable: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+R6b-seam-orphan restored -> configure passes (rc=0)
+R6c-seam-links-hven hven_ipm_seam_tests linked to hven::hven: planted -> configure FAILED with the expected message (rc=1) [KILLED]
+R6c-seam-links-hven restored -> configure passes (rc=0)
+R3 clean: Layering.* rc=0 (want 0)
+R3 funnel.h re-added to json_lines_trace_sink.cpp: Layering.NoIncludeGoesUpTheLayerOrder FAILED naming the include (rc=1) [KILLED]
+R3 restored: Layering.* rc=0 (want 0)
+R4 unlisted upward forward declaration in core/types.h: Layering.NoForwardDeclarationGoesUpTheLayerOrder FAILED naming it (rc=1) [KILLED]
+R4 restored: Layering.* rc=0 (want 0)
+R5 clean: qp_options.h standalone TU rc=0 (want 0)
+R5 qp_options.h without core/types.h: its standalone TU FAILED to compile, naming the header (rc=1) [KILLED]
+R5 restored: qp_options.h standalone TU rc=0 (want 0)
+killed: 8
+survived: 0

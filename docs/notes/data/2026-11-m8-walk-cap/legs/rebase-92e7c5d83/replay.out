@@ -1,0 +1,13 @@
+PGREP_EMPTY
+START 2026-11-14T07:52:35-05:00
+0e8168c8b443456325ef8c0cafd910ae32eb6809be81c19f4cbe0463ada8c50f  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin-rb/hven_sqp_corpus
+run walk rc=0
+compare rc=0
+=== rebase-vs-leg-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+run ssn rc=0
+compare rc=0
+=== rebase-vs-leg-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+run ipm rc=0
+compare rc=0
+=== rebase-vs-leg-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+END 2026-11-14T07:58:09-05:00

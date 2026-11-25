@@ -1,0 +1,267 @@
+{
+ "samples": 683,
+ "period": 1000003,
+ "instr_sampled_all": 772154049,
+ "instr_sampled_solver": 603665602,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 526921401,
+  "B_kkt": 13533036,
+  "B_eval": 2364006,
+  "B_setup": 5406015,
+  "B_eng": 55441144,
+  "B_proc": 168488447
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8728696802571831,
+  "B_kkt": 0.022418100277974758,
+  "B_eval": 0.003916085316386803,
+  "B_setup": 0.008955313971989412,
+  "B_eng": 0.09184082017646585
+ },
+ "proc_share_of_all": 0.2182057417405319,
+ "rule_instr": 761684022,
+ "fallback_instr": 2294006,
+ "fallback_by_bucket": {
+  "B_fac": 2294006
+ },
+ "unmatched_instr": 8176021,
+ "unmatched_share_of_solver": 0.013543957073108168,
+ "chains_reaching_main": 0.029282576866764276,
+ "init_instr": 0,
+ "steady_state_instr": 603665602,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8728696802571831,
+  "B_kkt": 0.022418100277974758,
+  "B_eval": 0.003916085316386803,
+  "B_setup": 0.008955313971989412,
+  "B_eng": 0.09184082017646585
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   515619371
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   4392012
+  ],
+  [
+   "<no hven::linear frame>",
+   2294006
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   1210003
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   1196003
+  ],
+  [
+   "hven::linear::detail::FactorSession::~FactorSession",
+   1147003
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   1063003
+  ]
+ ],
+ "mkl_serv_instr": 73274195,
+ "kmp_instr": 286795762,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   3574009
+  ],
+  [
+   "_IO_setb",
+   1182003
+  ],
+  [
+   "MKL_Read_ThreadENV_Count_Cores",
+   1182003
+  ],
+  [
+   "_int_free_create_chunk",
+   1168003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    36235096
+   ],
+   [
+    "__kmp_fork_call",
+    32612087
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    24856066
+   ],
+   [
+    "__kmp_serialized_parallel",
+    20744054
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    20611054
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    18051048
+   ],
+   [
+    "__strcmp_avx2",
+    14190039
+   ],
+   [
+    "__kmp_resume_if_soft_paused",
+    13589036
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    4322012
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    2399006
+   ],
+   [
+    "hven::detail::solve_vec",
+    1245003
+   ],
+   [
+    "hven::detail::build_bordered_system",
+    1217003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1133003
+   ],
+   [
+    "hven::detail::AssemblyEvalSeam::build_subproblem",
+    1133003
+   ],
+   [
+    "malloc",
+    1070003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1014003
+   ]
+  ],
+  "B_eval": [
+   [
+    "hven_bench::hs::{anon}::AbsentBoundNormalizer::eval_ce_in_place",
+    1231003
+   ],
+   [
+    "__libc_malloc2",
+    1133003
+   ]
+  ],
+  "B_setup": [
+   [
+    "void Eigen::internal::conservative_sparse_sparse_product_impl<Eigen::SparseMatrix<double, 0, int>, Eigen::SparseMatrix<double, 0, int>, Eigen::SparseMatrix<double, 0, int> >",
+    1140003
+   ],
+   [
+    "hven_bench::SplitModelNlp::SplitModelNlp",
+    1098003
+   ],
+   [
+    "_int_malloc",
+    1077003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ],
+   [
+    "hven::detail::{anon}::GramOperator::~GramOperator",
+    1028003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::QpEngine::run",
+    6036015
+   ],
+   [
+    "malloc",
+    4707012
+   ],
+   [
+    "void Eigen::internal::call_assignment<Eigen::Block<Eigen::Matrix<double, -1, 1, 0, -1, 1>, -1, 1, false>, Eigen::Product<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0>, Eigen::internal::assign_op<double, double> >",
+    4560012
+   ],
+   [
+    "__internal_syscall_cancel",
+    3574009
+   ],
+   [
+    "hven::detail::bordered_regularized_residual",
+    3350009
+   ],
+   [
+    "hven::detail::{anon}::dependency_test_to",
+    2427006
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    2420006
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2343006
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    55342147
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    39991105
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    22562060
+   ],
+   [
+    "strcmp",
+    12568033
+   ],
+   [
+    "check_match",
+    10029027
+   ],
+   [
+    "mprotect",
+    2392006
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ],
+   [
+    "_dl_runtime_resolve_xsavec",
+    1252003
+   ]
+  ]
+ }
+}

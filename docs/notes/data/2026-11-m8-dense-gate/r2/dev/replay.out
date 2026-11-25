@@ -1,0 +1,41 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T09:09:39-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin-r2/hven_sqp_corpus sha256 db46a7a11cfefba25cd1e7659aa03a0648f067110222649269284d4b4948c6bd
+RUN k=1 mode=walk 2026-11-14T09:09:39-05:00
+run rc=0
+compare rc=0
+=== dg-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ssn 2026-11-14T09:14:26-05:00
+run rc=0
+compare rc=0
+=== dg-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ipm 2026-11-14T09:14:46-05:00
+run rc=0
+compare rc=0
+=== dg-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=walk 2026-11-14T09:15:12-05:00
+run rc=0
+compare rc=0
+=== dg-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ssn 2026-11-14T09:19:59-05:00
+run rc=0
+compare rc=0
+=== dg-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ipm 2026-11-14T09:20:20-05:00
+run rc=0
+compare rc=0
+=== dg-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=walk 2026-11-14T09:20:46-05:00
+run rc=0
+compare rc=0
+=== dg-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ssn 2026-11-14T09:25:33-05:00
+run rc=0
+compare rc=0
+=== dg-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ipm 2026-11-14T09:25:53-05:00
+run rc=0
+compare rc=0
+=== dg-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-14T09:26:19-05:00

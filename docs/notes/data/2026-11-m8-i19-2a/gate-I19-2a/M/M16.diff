@@ -1,0 +1,17 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..e87434405 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10540,9 +10540,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+             // the default levers it is trust_region_grows on the same inputs.
+             const double grown = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
+             st.rollback.grew = mj.growth.grows && grown > st.delta;
++            if (grown > st.delta) {
++                ++st.out.counters.trust_region_growths;
++            }
+             if (mj.growth.grows) {
+                 if (grown > st.delta) {
+-                    ++st.out.counters.trust_region_growths;
+                     st.radius_from_growth = true;
+                 }
+                 st.delta = grown;

@@ -1,0 +1,9 @@
+G5 consumer catch-up list (callback payload). Consumers that tracked the pre-G5 interface rewrite:
+  e.phase / e.mu / e.depth / e.radius            -> e.ipm->phase / e.ipm->mu / e.sqp->depth / e.sqp->trust_radius
+  IterationSnapshot::{phase,mu,depth,radius}     -> IterationSnapshot::ipm / ::sqp
+  IterationPayload::kAll (old meaning)           -> kVectors | kDiagnostics (the default mask, public as hven::kDefaultIterationPayload)
+  SqpIterationInfo::dual_regularization (m8 dev) -> SqpIterationInfo::regularization_dual (same name as IpmIterationInfo's)
+  IterationEvent / IterationSnapshot member order changed (designated initialisers).
+  hven-bench: mu_trace `if (e.mu)` -> `if (e.ipm)` push e.ipm->mu (lanes/chain/hven_bench_chain.cpp).
+  Bench provenance: `--callback count` / HVEN_LEG_CALLBACK_PAYLOAD=all now mean the WIDENED kAll and are stamped
+  `count-g5` / `all-g5`; `count-vd` / `vectors-diagnostics` are the pre-G5 payload.

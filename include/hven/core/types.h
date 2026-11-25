@@ -6,6 +6,7 @@
 // Shared Eigen-based type aliases used across hven: only the aliases the
 // linear-algebra layer and its test rig need right now — nothing speculative.
 
+#include <limits>
 #include <type_traits>
 
 #include <Eigen/Core>
@@ -52,6 +53,11 @@ static_assert(std::is_same_v<Index, Eigen::Index>,
               "hven commits to one index vocabulary across every supported platform.");
 
 /// @brief Dense vector alias (column vector of double).
+///
+/// Eigen's brace rules apply: `Vec{3}` is an UNINITIALIZED vector of size 3 (the
+/// integer is a size, not an element), while `Vec{{a, b}}` is the two-element vector
+/// (a, b). Spell values with the doubled braces, or use `Vec::Zero(n)` /
+/// `Vec::Constant(n, v)`.
 using Vec = Eigen::VectorXd;
 
 /// @brief Dense matrix alias (dense matrix of double).
@@ -77,5 +83,14 @@ using ConstVecRef = const Eigen::Ref<const Vec> &;
 using VecRef = Eigen::Ref<Vec>;
 using ConstMatRef = const Eigen::Ref<const Mat> &;
 using MatRef = Eigen::Ref<Mat>;
+
+/// A column of indices, the shape a callback fills with a sparsity
+/// structure's row or column coordinates.
+using IndexVec = Eigen::Matrix<Index, Eigen::Dynamic, 1>;
+using IndexVecRef = Eigen::Ref<IndexVec>;
+
+/// An absent bound: x_lower = -kInfinity or x_upper = kInfinity leaves that
+/// side unbounded.
+inline constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
 } // namespace hven

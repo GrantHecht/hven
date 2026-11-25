@@ -1,0 +1,25 @@
+# problems.requested: ACOPR118,BIGBANK,MSS3,READING8,TAX213322,TAX53322
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T20:05:48Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+cell_id,problem_set,problem,set_version,set_digest,split,lane,options_label,options_digest,hessian_provenance,budget_iters,budget_facts,budget_wall_s,traced,status,outcome,iterations,factorizations,eval_f,eval_g,eval_jac,eval_hess,objective,kkt_stationarity,kkt_primal_eq,kkt_primal_ineq,kkt_complementarity,wall_s
+cutest/ACOPR118/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,ACOPR118,cutest-nlp-35 v2,c7c1d41e35ea6da2d08ddb2452d5321794677f4a153baefdc8f15c4aee57557b,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.10620944108814
+cutest/BIGBANK/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,BIGBANK,cutest-nlp-35 v2,682a07956985b1f0e71071cdeca977e5a3703caf683ddcf065e523e079a86f47,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.08949501207098
+cutest/MSS3/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,MSS3,cutest-nlp-35 v2,e5756e59cba1ca9bd3e87d3cae21a7e7bc3619379af1e613c28f7ef81d0f7cc1,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.26646194793284
+cutest/READING8/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,READING8,cutest-nlp-35 v2,2e22a90002963ee7697c3f40a5b01ac33c60af421c876e6fa4d87578fb3aa922,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.17511314619333
+cutest/TAX213322/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,TAX213322,cutest-nlp-35 v2,831a8fed0fd1157dd4ba518400cbc875cafbce57e24da37a8a84fdfcc82364d6,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.11710624489933
+cutest/TAX53322/hven-sqp/sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cutest,TAX53322,cutest-nlp-35 v2,1bc789fa8c848823c0790f2e7416d4583ceaba82b753c8fc30b587ee59822168,TRAIN,hven-sqp,sqp-qn+advanced.second_order_correction=false+advanced.trust_region_growth=kRatioOrFeasibilityStep,cce02b49a401b3ec4c50670178ebaf084842d456926b2b9ad1e33b80021fbaf6,none,null,250000,300,0,null,dnf_wall,null,null,null,null,null,null,null,null,null,null,null,300.07859779428691

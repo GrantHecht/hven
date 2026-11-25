@@ -1,0 +1,28 @@
+# option names (dump keys, validate messages, option docs). Applied to comments everywhere, and to
+# string literals only in the options TUs and the tests that pin their dumps and messages.
+tr_init	trust_region_initial
+tr_max	trust_region_max
+tr_min	trust_region_min
+enable_scaling	row_scaling
+budget_mode	return_best_on_max_iterations
+qn_memory	lbfgs_memory
+scaling_factor_limit	scaling_factor_max
+initial_barrier	barrier_initial
+max_barrier	barrier_max
+min_barrier	barrier_min
+best_criterion	best_iterate_criterion
+re:(?<![\w/])acceptance_strategy(?![\w.])	acceptance_mode
+re:(?<![\w/])barrier_governor(?![\w.])	barrier_governor_mode
+restoration_max_entries	max_restoration_entries
+line_search_max_backtracks	max_line_search_backtracks
+line_search_extended_backtracks	max_extended_backtracks
+inertia_correction_max_attempts	max_inertia_correction_attempts
+qp.feas_tol	qp.feasibility_tol
+qp.opt_tol	qp.optimality_tol
+qp.max_iter	qp.max_iterations
+qp.schur_cap	qp.max_schur_border_dimension
+qp.schur_cond_max	qp.schur_condition_max
+qp.ws_algebra	qp.working_set_algebra
+qp.tr_radius	qp.trust_region_radius
+qp.primal_delta	qp.primal_regularization
+qp.dual_mu	qp.dual_regularization

@@ -1,0 +1,2 @@
+k=0 period=80340595 CELL_RESULT record hven-sqp SPANHYD auto-default 1 rc=0 wall=55.51 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=numerical_error
+k=1 period=80902979 CELL_RESULT record hven-sqp SPANHYD auto-default 1 rc=0 wall=55.42 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=numerical_error

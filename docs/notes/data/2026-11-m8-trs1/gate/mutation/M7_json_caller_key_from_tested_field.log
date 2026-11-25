@@ -1,0 +1,1064 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 161 tests from 22 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from ConsoleLadder
+[ RUN      ] ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime
+[       OK ] ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime (13 ms)
+[ RUN      ] ConsoleLadder.ASqpSolveClimbsOneRungAtATime
+[       OK ] ConsoleLadder.ASqpSolveClimbsOneRungAtATime (22 ms)
+[ RUN      ] ConsoleLadder.TimingAddsExactlyOneInformationalLine
+[       OK ] ConsoleLadder.TimingAddsExactlyOneInformationalLine (3 ms)
+[----------] 3 tests from ConsoleLadder (40 ms total)
+
+[----------] 4 tests from ConsoleGolden
+[ RUN      ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung
+[       OK ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung (2 ms)
+[ RUN      ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheSummaryRung
+[       OK ] ConsoleGolden.AnInteriorPointSolveOfHs071AtTheSummaryRung (1 ms)
+[ RUN      ] ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung
+[       OK ] ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung (4 ms)
+[ RUN      ] ConsoleGolden.AnSqpSolveOfHs071AtTheSummaryRung
+[       OK ] ConsoleGolden.AnSqpSolveOfHs071AtTheSummaryRung (4 ms)
+[----------] 4 tests from ConsoleGolden (12 ms total)
+
+[----------] 3 tests from ConsoleMessages
+[ RUN      ] ConsoleMessages.EachTemplateRendersItsOwnLine
+[       OK ] ConsoleMessages.EachTemplateRendersItsOwnLine (0 ms)
+[ RUN      ] ConsoleMessages.TheSolverInitializedNoticeNeedsAMeasurableDuration
+[       OK ] ConsoleMessages.TheSolverInitializedNoticeNeedsAMeasurableDuration (0 ms)
+[ RUN      ] ConsoleMessages.WarningsPrintFromTheWarningsRungAndNoticesFromTheIterationsRung
+[       OK ] ConsoleMessages.WarningsPrintFromTheWarningsRungAndNoticesFromTheIterationsRung (0 ms)
+[----------] 3 tests from ConsoleMessages (0 ms total)
+
+[----------] 2 tests from ConsoleColour
+[ RUN      ] ConsoleColour.NeverEmitsNoEscapeAndAlwaysColoursOnlyTheWarningMarkAndTheExitLine
+[       OK ] ConsoleColour.NeverEmitsNoEscapeAndAlwaysColoursOnlyTheWarningMarkAndTheExitLine (0 ms)
+[ RUN      ] ConsoleColour.TheExitLineColourFollowsTheStatus
+[       OK ] ConsoleColour.TheExitLineColourFollowsTheStatus (0 ms)
+[----------] 2 tests from ConsoleColour (0 ms total)
+
+[----------] 3 tests from ConsoleColumns
+[ RUN      ] ConsoleColumns.TheColumnHeaderRepeatsEveryTwentyRowsAndAfterAMessageLine
+[       OK ] ConsoleColumns.TheColumnHeaderRepeatsEveryTwentyRowsAndAfterAMessageLine (0 ms)
+[ RUN      ] ConsoleColumns.TheStatFeasCompColumnsPrintTheTestedValuesNotTheCallerOnes
+[       OK ] ConsoleColumns.TheStatFeasCompColumnsPrintTheTestedValuesNotTheCallerOnes (0 ms)
+[ RUN      ] ConsoleColumns.ARestartedSolveWritesItsHeaderAgain
+[       OK ] ConsoleColumns.ARestartedSolveWritesItsHeaderAgain (0 ms)
+[----------] 3 tests from ConsoleColumns (1 ms total)
+
+[----------] 2 tests from ConsoleNesting
+[ RUN      ] ConsoleNesting.ANestedSolveBeginAndEndPrintNothingAndTheOuterFooterStillPrints
+[       OK ] ConsoleNesting.ANestedSolveBeginAndEndPrintNothingAndTheOuterFooterStillPrints (0 ms)
+[ RUN      ] ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth
+[       OK ] ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth (0 ms)
+[----------] 2 tests from ConsoleNesting (0 ms total)
+
+[----------] 1 test from ConsolePhases
+[ RUN      ] ConsolePhases.AMultiPhaseSolvePrintsOnePhaseLineEachAtTheSummaryRung
+[       OK ] ConsolePhases.AMultiPhaseSolvePrintsOnePhaseLineEachAtTheSummaryRung (0 ms)
+[----------] 1 test from ConsolePhases (0 ms total)
+
+[----------] 3 tests from ConsoleBlocks
+[ RUN      ] ConsoleBlocks.TheHeaderAndTheFooterRenderFromTheEventsFields
+[       OK ] ConsoleBlocks.TheHeaderAndTheFooterRenderFromTheEventsFields (0 ms)
+[ RUN      ] ConsoleBlocks.TheExitLineShowsTheStatusTheStopReasonAndTheMessage
+[       OK ] ConsoleBlocks.TheExitLineShowsTheStatusTheStopReasonAndTheMessage (0 ms)
+[ RUN      ] ConsoleBlocks.ASolveEndWithoutADeclaredResultPrintsNoFooter
+[       OK ] ConsoleBlocks.ASolveEndWithoutADeclaredResultPrintsNoFooter (0 ms)
+[----------] 3 tests from ConsoleBlocks (0 ms total)
+
+[----------] 3 tests from ConsoleRows
+[ RUN      ] ConsoleRows.TheColumnHeadersAreTheSpecsText
+[       OK ] ConsoleRows.TheColumnHeadersAreTheSpecsText (0 ms)
+[ RUN      ] ConsoleRows.InteriorPointRowsMatchTheSpecExamples
+[       OK ] ConsoleRows.InteriorPointRowsMatchTheSpecExamples (0 ms)
+[ RUN      ] ConsoleRows.SqpRowsMatchTheSpecExamples
+[       OK ] ConsoleRows.SqpRowsMatchTheSpecExamples (0 ms)
+[----------] 3 tests from ConsoleRows (0 ms total)
+
+[----------] 3 tests from FanOut
+[ RUN      ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond
+[       OK ] FanOut.ForwardsEveryEventToBothHalvesFirstThenSecond (0 ms)
+[ RUN      ] FanOut.ANullHalfIsSkippedRatherThanDereferenced
+[       OK ] FanOut.ANullHalfIsSkippedRatherThanDereferenced (0 ms)
+[ RUN      ] FanOut.AUserSinkIsNotDisplacedByTheConsole
+[       OK ] FanOut.AUserSinkIsNotDisplacedByTheConsole (3 ms)
+[----------] 3 tests from FanOut (3 ms total)
+
+[----------] 4 tests from HumanTraceGoldens
+[ RUN      ] HumanTraceGoldens.TheNumericGateAcceptsRoundoffAndRefusesRealDrift
+[       OK ] HumanTraceGoldens.TheNumericGateAcceptsRoundoffAndRefusesRealDrift (0 ms)
+[ RUN      ] HumanTraceGoldens.FourProblemsTwoEnginesFourRungs
+[       OK ] HumanTraceGoldens.FourProblemsTwoEnginesFourRungs (202 ms)
+[ RUN      ] HumanTraceGoldens.TheRestorationFixture
+[       OK ] HumanTraceGoldens.TheRestorationFixture (158 ms)
+[ RUN      ] HumanTraceGoldens.TheElasticFixture
+[       OK ] HumanTraceGoldens.TheElasticFixture (206 ms)
+[----------] 4 tests from HumanTraceGoldens (568 ms total)
+
+[----------] 3 tests from PrintTables
+[ RUN      ] PrintTables.PredictorOutcomeNamesEveryEnumerator
+[       OK ] PrintTables.PredictorOutcomeNamesEveryEnumerator (0 ms)
+[ RUN      ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue
+[       OK ] PrintTables.PredictorOutcomeFallbackBelongsToNoDeclaredValue (0 ms)
+[ RUN      ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem
+[       OK ] PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem (0 ms)
+[----------] 3 tests from PrintTables (0 ms total)
+
+[----------] 3 tests from VariableBoundCensusTable
+[ RUN      ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+[       OK ] VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable
+[       OK ] VariableBoundCensusTable.AnEmptySideMeansUnboundedThereForEveryVariable (0 ms)
+[ RUN      ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide
+[       OK ] VariableBoundCensusTable.RefusesANegativeWidthAndAMisSizedSide (0 ms)
+[----------] 3 tests from VariableBoundCensusTable (0 ms total)
+
+[----------] 4 tests from TraceMessagesIpm
+[ RUN      ] TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit
+[       OK ] TraceMessagesIpm.EveryRestorationEntryIsPairedWithAnExit (1 ms)
+[ RUN      ] TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit
+[       OK ] TraceMessagesIpm.AStopInsideRestorationWritesAnInterruptedExit (1 ms)
+[ RUN      ] TraceMessagesIpm.ANonFiniteEvaluationInsideRestorationWritesANonFiniteExit
+[       OK ] TraceMessagesIpm.ANonFiniteEvaluationInsideRestorationWritesANonFiniteExit (87 ms)
+[ RUN      ] TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired
+[       OK ] TraceMessagesIpm.ResumedExitsExistOnTheBatteryAndEveryEntryIsPaired (35 ms)
+[----------] 4 tests from TraceMessagesIpm (127 ms total)
+
+[----------] 6 tests from TraceMessagesSqp
+[ RUN      ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem
+[       OK ] TraceMessagesSqp.RestorationEntryExitAndTheElasticLadderOnAnInfeasibleProblem (122 ms)
+[ RUN      ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict
+[       OK ] TraceMessagesSqp.TheElasticExhaustionNamesItsEntryBothStatusesAndTheVerdict (121 ms)
+[ RUN      ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule
+[       OK ] TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule (4255 ms)
+[ RUN      ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters
+[       OK ] TraceMessagesSqp.SubproblemFailureLinesMatchTheExitCounters (3 ms)
+[ RUN      ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine
+[       OK ] TraceMessagesSqp.ANonFiniteSubproblemIsOneNonFiniteFailureLine (2 ms)
+[ RUN      ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter
+[       OK ] TraceMessagesSqp.AStartPointOutsideTheBoxIsOneClampLineCarryingTheCounter (26 ms)
+[----------] 6 tests from TraceMessagesSqp (4532 ms total)
+
+[----------] 1 test from TraceMessagesBoth
+[ RUN      ] TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo
+[       OK ] TraceMessagesBoth.StopAtIterationIsOneLineIffTheStopReasonSaysSo (15 ms)
+[----------] 1 test from TraceMessagesBoth (15 ms total)
+
+[----------] 5 tests from TraceOffPath
+[ RUN      ] TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder
+[       OK ] TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder (7596 ms)
+[ RUN      ] TraceOffPath.ThePlantedUnguardedConstructionAndCallAreCaught
+[       OK ] TraceOffPath.ThePlantedUnguardedConstructionAndCallAreCaught (0 ms)
+[ RUN      ] TraceOffPath.TheGuardedFormsPass
+[       OK ] TraceOffPath.TheGuardedFormsPass (0 ms)
+[ RUN      ] TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest
+[       OK ] TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest (16 ms)
+[ RUN      ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce
+[       OK ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce (16 ms)
+[----------] 5 tests from TraceOffPath (7631 ms total)
+
+[----------] 13 tests from TraceV1Contract
+[ RUN      ] TraceV1Contract.TheIterLinesAreTheIterationsAndTheLastRowsAgreeWithTheResult
+[       OK ] TraceV1Contract.TheIterLinesAreTheIterationsAndTheLastRowsAgreeWithTheResult (17 ms)
+[ RUN      ] TraceV1Contract.SqpEventAndRowAgreeRowForRow
+[       OK ] TraceV1Contract.SqpEventAndRowAgreeRowForRow (13 ms)
+[ RUN      ] TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind
+[       OK ] TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind (5 ms)
+[ RUN      ] TraceV1Contract.V2TheIpmStepNormIsWrittenWithOnlyASinkAttached
+[       OK ] TraceV1Contract.V2TheIpmStepNormIsWrittenWithOnlyASinkAttached (4 ms)
+[ RUN      ] TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon
+[       OK ] TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon (0 ms)
+[ RUN      ] TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork
+[       OK ] TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork (17 ms)
+[ RUN      ] TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections
+[       OK ] TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections (5 ms)
+[ RUN      ] TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale
+[       OK ] TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale (3 ms)
+[ RUN      ] TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm
+[       OK ] TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm (0 ms)
+[ RUN      ] TraceV1Contract.BothEnginesReportTheSameDeclaredCensusOnTheSameProblem
+[       OK ] TraceV1Contract.BothEnginesReportTheSameDeclaredCensusOnTheSameProblem (1 ms)
+[ RUN      ] TraceV1Contract.TheIpmRowMuIsTheBarrierParameterTheStepWasFormedAt
+[       OK ] TraceV1Contract.TheIpmRowMuIsTheBarrierParameterTheStepWasFormedAt (4 ms)
+[ RUN      ] TraceV1Contract.ObservationChangesNoCounterStatusOrPoint
+[       OK ] TraceV1Contract.ObservationChangesNoCounterStatusOrPoint (414 ms)
+[ RUN      ] TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve
+[       OK ] TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve (14 ms)
+[----------] 13 tests from TraceV1Contract (505 ms total)
+
+[----------] 3 tests from TraceV1Fixtures
+[ RUN      ] TraceV1Fixtures.IpmCompleteStream
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_trace_v1_fixtures.cpp:198: Failure
+Expected equality of these values:
+  actual
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":4,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":3,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":1,\"recovering\":true,\"tier\":\"rest\",\"f\":0,\"f_recovery\":null,\"stationarity\":2,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":6,\"stationarity_caller\":2,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n{\"v\":1,\"ev\":\"message\",\"seq\":4,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"solver_initialized\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":17.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"complementarity\":\"nan\",\"equality\":\"nan\",\"inequality\":\"nan\",\"feasibility\":\"nan\"},\"work\":null,\"counters\":{\"factorizations\":0,\"symbolic_analyses\":0,\"restoration_entries\":0,\"restoration_iters\":0,\"soc_steps\":0,\"nonfinite_step_rollbacks\":0,\"polish_ignored\":0,\"start_level_used\":\"cold\",\"payload_ignored\":0,\"watchdog_activations\":0,\"recovery_depth_histogram\":[0,0,0,0,0],\"inertia_corrections\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0},\"wall_s\":0,\"ipm\":{\"total_time_s\":0,\"pre_time_s\":0,\"func_time_s\":0,\"kkt_time_s\":0,\"print_time_s\":0,\"solver_init_time_s\":0,\"misc_time_s\":0,\"phases_ran\":0,\"kkt_analyses_total\":0,\"factor_memory\":null,\"factor_flops\":null}}\n"
+  want
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":0.5,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":3,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":1,\"recovering\":true,\"tier\":\"rest\",\"f\":0,\"f_recovery\":null,\"stationarity\":2,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":6,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n{\"v\":1,\"ev\":\"message\",\"seq\":4,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"solver_initialized\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,\"ladder\":null}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":17.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"complementarity\":\"nan\",\"equality\":\"nan\",\"inequality\":\"nan\",\"feasibility\":\"nan\"},\"work\":null,\"counters\":{\"factorizations\":0,\"symbolic_analyses\":0,\"restoration_entries\":0,\"restoration_iters\":0,\"soc_steps\":0,\"nonfinite_step_rollbacks\":0,\"polish_ignored\":0,\"start_level_used\":\"cold\",\"payload_ignored\":0,\"watchdog_activations\":0,\"recovery_depth_histogram\":[0,0,0,0,0],\"inertia_corrections\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0},\"wall_s\":0,\"ipm\":{\"total_time_s\":0,\"pre_time_s\":0,\"func_time_s\":0,\"kkt_time_s\":0,\"print_time_s\":0,\"solver_init_time_s\":0,\"misc_time_s\":0,\"phases_ran\":0,\"kkt_analyses_total\":0,\"factor_memory\":null,\"factor_flops\":null}}\n"
+With diff:
+@@ -1,5 +1,5 @@
+ {\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":4,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":3,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":1,\"recovering\":true,\"tier\":\"rest\",\"f\":0,\"f_recovery\":null,\"stationarity\":2,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":6,\"stationarity_caller\":2,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}
++{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":0.5,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}
++{\"v\":1,\"ev\":\"iter\",\"seq\":3,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":1,\"recovering\":true,\"tier\":\"rest\",\"f\":0,\"f_recovery\":null,\"stationarity\":2,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":6,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}
+ {\"v\":1,\"ev\":\"message\",\"seq\":4,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"kind\":\"solver_initialized\",\"severity\":\"notice\",\"phase\":null,\"iter\":null,\"a\":null,\"b\":null,\"k\":null,\"s\":null,\"p\":null,\"n\":null,\"z\":null,\"expected_p\":null,\"expected_n\":null,\"ladder\":null}
+ {\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":17.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"complementarity\":\"nan\",\"equality\":\"nan\",\"inequality\":\"nan\",\"feasibility\":\"nan\"},\"work\":null,\"counters\":{\"factorizations\":0,\"symbolic_analyses\":0,\"restoration_entries\":0,\"restoration_iters\":0,\"soc_steps\":0,\"nonfinite_step_rollbacks\":0,\"polish_ignored\":0,\"start_level_used\":\"cold\",\"payload_ignored\":0,\"watchdog_activations\":0,\"recovery_depth_histogram\":[0,0,0,0,0],\"inertia_corrections\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0},\"wall_s\":0,\"ipm\":{\"total_time_s\":0,\"pre_time_s\":0,\"func_time_s\":0,\"kkt_time_s\":0,\"print_time_s\":0,\"solver_init_time_s\":0,\"misc_time_s\":0,\"phases_ran\":0,\"kkt_analyses_total\":0,\"factor_memory\":null,\"factor_flops\":null}}\n
+
+ipm_complete.jsonl
+
+[  FAILED  ] TraceV1Fixtures.IpmCompleteStream (2 ms)
+[ RUN      ] TraceV1Fixtures.SqpCompleteStream
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_trace_v1_fixtures.cpp:198: Failure
+Expected equality of these values:
+  actual
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":0,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":7,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.begin\",\"seq\":3,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":4,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"iter\":1,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":8,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":6,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":2,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":7,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}\n"
+  want
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":0,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":7,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.begin\",\"seq\":3,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":4,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"iter\":1,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":8,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":6,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":2,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}\n{\"v\":1,\"ev\":\"solve.end\",\"seq\":7,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}\n"
+With diff:
+@@ -1,7 +1,7 @@
+ {\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":0,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":7,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}
++{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":0,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":7,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}
+ {\"v\":1,\"ev\":\"solve.begin\",\"seq\":3,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"sqp\":{\"me\":0,\"mi\":0,\"qp_mode\":\"walk\",\"ws_algebra\":\"schur_border\",\"hessian_mode\":\"exact\",\"row_scaling\":false,\"column_scaling\":\"off\"}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":4,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"iter\":1,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":8,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,\"ladder\":null}}
++{\"v\":1,\"ev\":\"iter\",\"seq\":4,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"iter\":1,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":false,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":8,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":1,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":null,\"ladder\":null}}
+ {\"v\":1,\"ev\":\"solve.end\",\"seq\":5,\"sid\":1,\"depth\":1,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":6,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":2,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"stationarity_caller\":0.25,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}
++{\"v\":1,\"ev\":\"iter\",\"seq\":6,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"iter\":2,\"recovering\":false,\"tier\":\"walk\",\"f\":-2.5,\"f_recovery\":null,\"stationarity\":0.25,\"feasibility\":0.125,\"complementarity\":0.5,\"step\":0.75,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":9,\"stationarity_caller\":0.0625,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"sqp\":{\"depth\":0,\"mode\":\"walk\",\"verdict\":null,\"trust_radius\":2,\"violation_l1\":1.5,\"regularization_dual\":null,\"qp_solved\":true,\"qp_status\":null,\"qp_minor_iterations\":null,\"qp_factorizations\":null,\"tr_binding\":false,\"elastic\":false,\"elastic_clamped\":false,\"restoration_seed_used\":false,\"ipqp_least_infeasible_primal\":null,\"ipqp_farkas_corroborated\":null,\"active_set_size\":0,\"active_set_delta\":0,\"weak_active_rows\":0,\"near_active_rows\":0,\"active_rows\":0,\"active_lower_sides\":0,\"active_upper_sides\":0,\"switching_ratio\":0.5,\"ladder\":null}}
+ {\"v\":1,\"ev\":\"solve.end\",\"seq\":7,\"sid\":1,\"depth\":0,\"eng\":\"sqp\",\"status\":\"optimal\",\"stop_reason\":null,\"message\":\"converged to the requested tolerances\",\"iterations\":2,\"returned_best_iterate\":false,\"infeasibility_certified\":false,\"f\":-2.5,\"diagnostics\":null,\"convergence\":{\"stationarity\":\"nan\",\"feasibility\":\"nan\",\"complementarity\":\"nan\",\"kkt_residual\":\"nan\"},\"work\":null,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"start_point_clamps\":0,\"qp_maxiter_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_peak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restoration_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":\"not_run\",\"eqp_refine_iters\":0,\"eqp_residual_refusals\":0,\"eqp_polish_steps\":0,\"terminal_polish_solves\":0,\"terminal_polish_rejected\":0,\"terminal_polish_adopted\":0,\"eqp_row_drift_refusals\":0,\"qp_failure_steps_judged\":0,\"qp_failure_steps_accepted\":0,\"nonfinite_subproblems\":0,\"nonfinite_box_projections\":0,\"elastic_last_rung_fallbacks\":0,\"restoration_reduction_resumes\":0,\"eval_hess_calls\":0,\"qn_updates\":0,\"qn_damped\":0,\"qn_skipped_nonfinite\":0,\"qn_skipped_zero_step\":0,\"qn_skipped_curvature\":0,\"qn_skipped_conditioning\":0,\"qn_rank_dropped\":0,\"qn_resets_consecutive_skips\":0,\"qn_resets_radius_floor\":0,\"qn_resets_restoration_resume\":0,\"qn_pairs_peak\":0,\"qn_lift_rank_peak\":0,\"qn_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"dense_solve_residual_refusals\":0,\"dense_factorizations\":0,\"optimal_row_gray_exits\":0,\"payload_ignored\":0,\"reject_funnel_ceiling\":0,\"reject_f_armijo\":0,\"reject_h_funnel\":0,\"reject_qp_failed\":0,\"reject_other\":0,\"accepted_f_type\":0,\"accepted_h_type\":0,\"rejection_run_histogram\":[0,0,0,0,0],\"sparse_scaled_retakes\":0,\"sparse_matched_retakes\":0,\"sparse_retake_refusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},\"wall_s\":0,\"sqp\":{\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1,\"start_level_used\":\"cold\"}}\n
+
+sqp_complete.jsonl
+
+[  FAILED  ] TraceV1Fixtures.SqpCompleteStream (8 ms)
+[ RUN      ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_trace_v1_fixtures.cpp:198: Failure
+Expected equality of these values:
+  actual
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":4,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n"
+  want
+    Which is: "{\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}\n{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":0.5,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n"
+With diff:
+@@ -1,2 +1,2 @@
+ {\"v\":1,\"ev\":\"solve.begin\",\"seq\":1,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"variables\":4,\"free_variables\":1,\"lower_bounded_variables\":1,\"upper_bounded_variables\":1,\"boxed_variables\":1,\"fixed_variables\":0,\"constraints\":2,\"equality_rows\":1,\"lower_bounded_rows\":1,\"upper_bounded_rows\":0,\"range_rows\":0,\"free_rows\":0,\"absent_bounds\":0,\"optimality_tol\":1e-08,\"feasibility_tol\":1e-08,\"max_iterations\":50,\"hven_version\":\"0.2.0\",\"ipm\":{\"n_reduced\":0,\"me\":0,\"mi\":0,\"internal_fixed_rows\":0,\"phases\":0,\"max_acceptable_iterations\":0,\"initial_mu\":0,\"obj_scale\":1,\"acceptable_stationarity_tol\":0,\"acceptable_complementarity_tol\":0,\"acceptable_equality_tol\":0,\"acceptable_inequality_tol\":0,\"inertia_mode\":\"classic\",\"restoration_mode\":\"off\",\"kkt_dim\":0,\"kkt_nnz\":0}}
+-{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":4,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n
++{\"v\":1,\"ev\":\"iter\",\"seq\":2,\"sid\":1,\"depth\":0,\"eng\":\"ipm\",\"iter\":0,\"recovering\":false,\"tier\":\"bar\",\"f\":17.5,\"f_recovery\":null,\"stationarity\":4,\"feasibility\":0.25,\"complementarity\":1,\"step\":0.5,\"accepted\":true,\"soc\":false,\"watchdog\":false,\"rolled_back\":false,\"factorizations\":3,\"stationarity_caller\":0.5,\"feasibility_caller\":0.25,\"complementarity_caller\":0.125,\"ipm\":{\"phase\":0,\"mu\":0.10000000000000001,\"alpha_primal\":1,\"alpha_dual\":0.5,\"alpha_scale\":null,\"line_search_trials\":null,\"regularization_primal\":null,\"regularization_primal_total\":null,\"regularization_dual\":null,\"proximal_primal\":null,\"inertia_corrections\":null,\"perturbed_pivots\":null,\"barrier_objective\":null,\"feasibility_eq\":0,\"feasibility_ineq\":0,\"merit\":null,\"merit_penalty_1\":0,\"merit_penalty_2\":0,\"max_multiplier_eq\":0,\"max_multiplier_ineq\":0,\"first_rejected_trial\":null,\"theta_first_rejected\":null,\"eval_exceptions\":0}}\n
+
+ipm_aborted.jsonl
+
+[  FAILED  ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd (1 ms)
+[----------] 3 tests from TraceV1Fixtures (12 ms total)
+
+[----------] 85 tests from JsonLinesTraceSink
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpReg
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpReg (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestart
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestart (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRoute
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRoute (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpCertify
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpCertify (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpMode
+[       OK ] JsonLinesTraceSink.GoldenLineQpMode (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+[       OK ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling
+[       OK ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling (4 ms)
+[ RUN      ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough
+[       OK ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough (0 ms)
+[ RUN      ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope
+[       OK ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles
+[       OK ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual
+[       OK ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject
+[       OK ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject (0 ms)
+[ RUN      ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm
+[       OK ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm (86 ms)
+[ RUN      ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows
+[       OK ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows (4 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas (0 ms)
+[ RUN      ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure
+[       OK ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure (0 ms)
+[ RUN      ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve
+[       OK ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve (108 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign
+[       OK ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign (1 ms)
+[ RUN      ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore
+[       OK ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow
+[       OK ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed (0 ms)
+[ RUN      ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter
+[       OK ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter (108 ms)
+[ RUN      ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned
+[       OK ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned (1 ms)
+[ RUN      ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation
+[       OK ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation (12 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell
+[       OK ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell (71 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4636737291354636288
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4491612892043412956
+stationarity_caller = 100
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4774636589561522284
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4629757762708671837
+stationarity_caller = 162493413579.3158
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4774636589561522284
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4629757762708671837
+stationarity_caller = 162493413579.3158
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4776177704638958929
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4631077854849104452
+stationarity_caller = 209524513354.60403
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 3
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4776177704638958929
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4631077854849104452
+stationarity_caller = 209524513354.60403
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4773488763882758783
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4628128660177256675
+stationarity_caller = 132451753612.88475
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 5
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4772566423913134407
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4627338599939358542
+stationarity_caller = 118377962572.47374
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 6
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4761862224926603918
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4616877780483861539
+stationarity_caller = 23120950406.494682
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 7
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4742563839294108656
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4597351862712838547
+stationarity_caller = 1138933014.9523888
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4750119717996781283
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4604881669467947196
+stationarity_caller = 3733306110.2147079
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 9
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4759656370162975123
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4614342388798749349
+stationarity_caller = 15943075727.657019
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 10
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4760068660448890256
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4614695549425091776
+stationarity_caller = 16729457040.819122
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 11
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4745996794449267581
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4600704150292599473
+stationarity_caller = 1957413305.1647637
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 12
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4739067314742809193
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4594122584345307858
+stationarity_caller = 689519211.81892121
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 13
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4739067314742809193
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4594122584345307858
+stationarity_caller = 689519211.81892121
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 14
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4742519512593454949
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4597275923764474487
+stationarity_caller = 1128364705.9662716
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 15
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4738974490247694846
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4594043072511159890
+stationarity_caller = 678453669.70342994
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4740571410931123527
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4595410966754719482
+stationarity_caller = 868821449.84391105
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 17
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4730981651559524601
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4585904756723396636
+stationarity_caller = 199843718.04816416
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 18
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4736856616009803408
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4591583043401002320
+stationarity_caller = 481427149.22324467
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 19
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4711806378676854217
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4566895973590396072
+stationarity_caller = 10327935.357924359
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 20
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4713625066927718455
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4568453830041879474
+stationarity_caller = 13715506.206359966
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 21
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4636979502687049685
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4491820366021783518
+stationarity_caller = 103.44203005530228
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 22
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4585119082665472930
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4440036353196642292
+stationarity_caller = 0.034404851396153249
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 23
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4529041275669657190
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4383860889681969877
+stationarity_caller = 6.2911252793458602e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 24
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 25
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 26
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 27
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 28
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 29
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 30
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 31
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 32
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 33
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 34
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 35
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 36
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 37
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 38
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 39
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 40
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 41
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 42
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 43
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 44
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 45
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 46
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 47
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 48
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 49
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 50
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 51
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 52
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 53
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 54
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 55
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 56
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 57
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 58
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 59
+
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:149: Failure
+Expected equality of these values:
+  std::bit_cast<std::uint64_t>(got)
+    Which is: 4518112344234985578
+  std::bit_cast<std::uint64_t>(expected)
+    Which is: 4373207568353747882
+stationarity_caller = 1.1658387017864489e-06
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/trs1/tests/trace/test_json_lines_trace_sink.cpp:2854: row 60
+
+[  FAILED  ] JsonLinesTraceSink.SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve (36 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk (2 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs
+[       OK ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs (3 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk (67 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject
+[       OK ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject (66 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous
+[       OK ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous (12 ms)
+[ RUN      ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm
+[       OK ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm (65 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish
+[       OK ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish (209 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet
+[       OK ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet (205 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals
+[       OK ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals (206 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne
+[       OK ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne (206 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct
+[       OK ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal
+[       OK ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal (65 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating
+[       OK ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating (4 ms)
+[ RUN      ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero
+[       OK ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero (2 ms)
+[ RUN      ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve
+[       OK ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve (3 ms)
+[ RUN      ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration
+[       OK ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration (210 ms)
+[ RUN      ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade
+[       OK ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade (5 ms)
+[ RUN      ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor
+[       OK ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor (205 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures
+[       OK ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork (0 ms)
+[ RUN      ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve
+[       OK ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder
+[       OK ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis
+[       OK ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization
+[       OK ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseExit
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseExit (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineMessageOnePerKind
+[       OK ] JsonLinesTraceSink.GoldenLineMessageOnePerKind (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire
+[       OK ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere
+[       OK ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere (0 ms)
+[ RUN      ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne
+[       OK ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull
+[       OK ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth
+[       OK ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth (0 ms)
+[ RUN      ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString
+[       OK ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString (3 ms)
+[----------] 85 tests from JsonLinesTraceSink (1987 ms total)
+
+[----------] 1 test from SqpCountersFieldTables
+[ RUN      ] SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct
+[       OK ] SqpCountersFieldTables.EachTableEnumeratesItsWholeStruct (0 ms)
+[----------] 1 test from SqpCountersFieldTables (0 ms total)
+
+[----------] 6 tests from SqpConsole
+[ RUN      ] SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole
+[       OK ] SqpConsole.TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole (621 ms)
+[ RUN      ] SqpConsole.TheLiveConsoleWritesOneRowPerIterLineIncludingTheRestorationRows
+[       OK ] SqpConsole.TheLiveConsoleWritesOneRowPerIterLineIncludingTheRestorationRows (237 ms)
+[ RUN      ] SqpConsole.TheSqpDefaultPrintLevelWritesNothing
+[       OK ] SqpConsole.TheSqpDefaultPrintLevelWritesNothing (21 ms)
+[ RUN      ] SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff
+[       OK ] SqpConsole.ACountingSinkSeesTheSameEventsWithPrintingOnAndOff (140 ms)
+[ RUN      ] SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints
+[       OK ] SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints (199 ms)
+[ RUN      ] SqpConsole.AttachTraceDuringASolveIsRefused
+[       OK ] SqpConsole.AttachTraceDuringASolveIsRefused (21 ms)
+[----------] 6 tests from SqpConsole (1241 ms total)
+
+[----------] Global test environment tear-down
+[==========] 161 tests from 22 test suites ran. (16683 ms total)
+[  PASSED  ] 157 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] TraceV1Fixtures.IpmCompleteStream
+[  FAILED  ] TraceV1Fixtures.SqpCompleteStream
+[  FAILED  ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd
+[  FAILED  ] JsonLinesTraceSink.SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve
+
+ 4 FAILED TESTS

@@ -1,0 +1,34 @@
+M8 R11 -- runtime neutrality gate -- DECLARATION (F1's r2 instrument, ../../2026-11-m8-f1-init/runtime-r2/, re-pointed;
+committed before the first leg; never edited; a failed leg is answered by a DECLARATION-r2 successor, this file and its
+outputs kept)
+================================================================================
+SOURCE. PF-1's standard gate (../../2026-11-m8-pf1/runtime/DECLARATION.txt, the B8 riders' criteria verbatim) as F1's
+DECLARATION-r2 ran it: run_all.sh and runtime_leg.sh are F1 runtime-r2's with the worktree (r11), the build directory
+(build-f1 -> build-r11e), the evidence directory (this one), the perf scratch directory (build-r11e/runtime-perf),
+arm A's sha256 and the analyzer replaced. The sampling period is 400000 instructions from the start (F1 DECLARATION-r2:
+the kernel's perf_event_max_sample_rate is 79000 on this boot). analyze_r5.py and the fixture are byte copies below
+their one added comment line.
+
+THE ONE ANALYZER CHANGE (analyze_r11.py = analyze_r5.py plus a comment and this): r5's interior FILTER-LIVENESS guard
+VOIDs a leg unless both arms' excluded (wall-clock) samples are > 0 -- it exists to prove the filter subtracts MKL's
+dsecnd() calibration spin. F1 (d546afd1) removed that spin, and BOTH arms here contain F1, so the guard would VOID a
+correct leg. It becomes a reported count (expected 0 in both arms), as r5 already does for walk/ssn/ipm. The filter,
+the stop condition, validity, rounds, band and aggregation are r5's verbatim. runtime_leg.sh keeps calling
+analyze_r5.py --excluded-count (unchanged code path).
+
+ARMS
+  A  a8c540cf (origin/m8): build-r11e/armAbin/hven_sqp_corpus, ../legs/prebuild.sh's Release build of its `git archive`
+     export, sha256 141799a091e2673fd2efee4938f3fff88cd0a216aa4b0e5883020e99b37d6902.
+  B  the code head c2ce3ed3: build-r11e/rel/bench/hven_sqp_corpus copied by run_all.sh to build-r11e/armBbin/, sha256
+     f7058d55f7a1ed9e092b8e7b93d86993e33b10ab64ae9b8c26a0a81ab8329797. run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase
+alignment, period 400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition,
+band 0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults in every mode. VERDICT PASS iff every mode's
+analysis exits 0.
+WHAT THE ARMS DIFFER BY: block_evidence()'s 2x2 decode (a few more flops per 2x2 block, one isfinite per block). On these
+27 cells the walk factors C 530 times with 33,890 1x1 blocks and NO 2x2 block (../measurement/); ssn, ipm and interior
+never call it.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a hven_bench_cell` empty
+before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44,
+clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2; Apple/Windows UNOBSERVED.

@@ -1,0 +1,93 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- MKL threading layer = intel
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- hven tests: 198 test sources, each in exactly one executable or recorded absent
+-- Configuring done (2.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/rf1/.scratch/build-rf1/rel
+[0/4] Re-checking globbed directories...
+[1/11] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_options.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+3 warnings generated.
+[2/11] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_options.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+3 warnings generated.
+[3/11] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp:7153:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 7153 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[4/11] Linking CXX static library libhven.a
+[5/11] Linking CXX executable tests/trace/hven_trace_tests
+[6/11] Building CXX object tests/qp/CMakeFiles/hven_testing_library.dir/__/__/src/sqp/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/rf1/src/sqp/sqp_solver.cpp:7153:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 7153 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[7/11] Linking CXX executable tests/sqp/hven_sqp_tests
+[8/11] Linking CXX executable tests/sqp/hven_sqp_seam_tests

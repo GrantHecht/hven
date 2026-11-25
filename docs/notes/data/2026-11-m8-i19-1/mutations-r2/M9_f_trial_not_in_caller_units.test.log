@@ -1,0 +1,447 @@
+Running main() from /home/ghecht/Projects/hven/.scratch/i19-1-build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IterationTelemetry.*:CallerStepLimit*
+[==========] Running 30 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (4 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (5 ms total)
+
+[----------] 10 tests from CallerStepLimitSolve
+[ RUN      ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum
+[       OK ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum (1 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+[       OK ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder
+[       OK ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder (3 ms)
+[ RUN      ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox
+[       OK ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox (0 ms)
+[ RUN      ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit
+[       OK ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit (1 ms)
+[ RUN      ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit
+[       OK ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit
+[       OK ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit (0 ms)
+[ RUN      ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit
+[       OK ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits
+[       OK ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits (28 ms)
+[ RUN      ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit
+[       OK ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit (1 ms)
+[----------] 10 tests from CallerStepLimitSolve (42 ms total)
+
+[----------] 15 tests from IterationTelemetry
+[ RUN      ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation
+[       OK ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep
+[       OK ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep (0 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn
+[       OK ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn (1 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 49500, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 500,
+f_trial evaluates to 50000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 5.0001000000000005e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 49500, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 50000,
+*h.sqp->f_trial evaluates to 500, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 5.0001000000000005e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 29700, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 300,
+f_trial evaluates to 30000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 3.0001000000000003e-05.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 29700, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 30000,
+*h.sqp->f_trial evaluates to 300, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 3.0001000000000003e-05.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 9900, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -100,
+f_trial evaluates to -10000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.0001000000000001e-05.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 9900, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -10000,
+*h.sqp->f_trial evaluates to -100, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.0001000000000001e-05.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14850, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -150,
+f_trial evaluates to -15000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.5001000000000001e-05.
+row 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14850, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -15000,
+*h.sqp->f_trial evaluates to -150, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.5001000000000001e-05.
+row 3
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14025.000000000002, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.66666666666669,
+f_trial evaluates to -14166.666666666668, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4167666666666668e-05.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14025.000000000002, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14166.666666666668,
+*h.sqp->f_trial evaluates to -141.66666666666669, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4167666666666668e-05.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14000.735294117649, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.42156862745099,
+f_trial evaluates to -14142.1568627451, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.41431568627451e-05.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14000.735294117649, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14142.1568627451,
+*h.sqp->f_trial evaluates to -141.42156862745099, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.41431568627451e-05.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14000.714267509429, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.42135623746898,
+f_trial evaluates to -14142.135623746899, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.41431356237469e-05.
+row 6
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14000.714267509429, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14142.135623746899,
+*h.sqp->f_trial evaluates to -141.42135623746898, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.41431356237469e-05.
+row 6
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: inequality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 49500, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 500,
+f_trial evaluates to 50000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 5.0001000000000005e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 49500, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 50000,
+*h.sqp->f_trial evaluates to 500, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 5.0001000000000005e-05.
+row 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 29700, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 300,
+f_trial evaluates to 30000, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 3.0001000000000003e-05.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 29700, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 30000,
+*h.sqp->f_trial evaluates to 300, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 3.0001000000000003e-05.
+row 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 18150, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 183.33333333333331,
+f_trial evaluates to 18333.333333333332, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.8334333333333332e-05.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 18150, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 18333.333333333332,
+*h.sqp->f_trial evaluates to 183.33333333333331, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.8334333333333332e-05.
+row 2
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14475.007940569747, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to 146.21220141989645,
+f_trial evaluates to 14621.220141989643, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4622220141989644e-05.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14475.007940569749, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to 14621.220141989645,
+*h.sqp->f_trial evaluates to 146.21220141989645, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4622220141989644e-05.
+row 4
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 428.11626327874353, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -4.3244066997852881,
+f_trial evaluates to -432.44066997852883, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 4.3344066997852887e-07.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 428.11626327874353, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -432.44066997852883,
+*h.sqp->f_trial evaluates to -4.3244066997852881, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 4.3344066997852887e-07.
+row 5
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 19585.575494836114, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -197.83409590743548,
+f_trial evaluates to -19783.409590743548, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.978440959074355e-05.
+row 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 19585.575494836114, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -19783.409590743548,
+*h.sqp->f_trial evaluates to -197.83409590743548, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.978440959074355e-05.
+row 8
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 15544.985184487216, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -157.02005236855774,
+f_trial evaluates to -15702.005236855774, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.5703005236855775e-05.
+row 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 15544.985184487216, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -15702.005236855774,
+*h.sqp->f_trial evaluates to -157.02005236855774, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.5703005236855775e-05.
+row 9
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14096.383450999798, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -142.3877116262606,
+f_trial evaluates to -14238.771162626059, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.423977116262606e-05.
+row 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14096.383450999798, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14238.771162626059,
+*h.sqp->f_trial evaluates to -142.3877116262606, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.423977116262606e-05.
+row 10
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14001.313297372455, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.42740704416622,
+f_trial evaluates to -14142.740704416621, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143740704416622e-05.
+row 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14001.313297372455, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14142.740704416621,
+*h.sqp->f_trial evaluates to -141.42740704416622, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143740704416622e-05.
+row 11
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14000.714368953177, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.42135726215332,
+f_trial evaluates to -14142.135726215331, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143135726215331e-05.
+row 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14000.714368953179, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14142.135726215332,
+*h.sqp->f_trial evaluates to -141.42135726215332, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143135726215331e-05.
+row 12
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:371: Failure
+The difference between *h.sqp->f_trial and f_trial is 14000.714267493644, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+*h.sqp->f_trial evaluates to -141.42135623730954,
+f_trial evaluates to -14142.135623730954, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143135623730955e-05.
+row 13
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:375: Failure
+The difference between r.history[k + 1].f.value_or(0.0) and *h.sqp->f_trial is 14000.714267493644, which exceeds 1e-9 * (1.0 + std::abs(f_trial)), where
+r.history[k + 1].f.value_or(0.0) evaluates to -14142.135623730954,
+*h.sqp->f_trial evaluates to -141.42135623730954, and
+1e-9 * (1.0 + std::abs(f_trial)) evaluates to 1.4143135623730955e-05.
+row 13
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:412: equality
+
+[  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (2 ms)
+[ RUN      ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:461: Failure
+The difference between *h.sqp->f_trial and m->eval_f(xn) is 1359320, which exceeds 1e-7 * (1.0 + std::abs(m->eval_f(xn))), where
+*h.sqp->f_trial evaluates to 680,
+m->eval_f(xn) evaluates to 1360000, and
+1e-7 * (1.0 + std::abs(m->eval_f(xn))) evaluates to 0.13600009999999998.
+row 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:466: Failure
+The difference between *r.history[k + 1].f and *h.sqp->f_trial is 1359320, which exceeds 1e-7 * (1.0 + std::abs(pred)), where
+*r.history[k + 1].f evaluates to 1360000,
+*h.sqp->f_trial evaluates to 680, and
+1e-7 * (1.0 + std::abs(pred)) evaluates to 0.0040000999999999995.
+row 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:461: Failure
+The difference between *h.sqp->f_trial and m->eval_f(xn) is 1079460, which exceeds 1e-7 * (1.0 + std::abs(m->eval_f(xn))), where
+*h.sqp->f_trial evaluates to 540,
+m->eval_f(xn) evaluates to 1080000, and
+1e-7 * (1.0 + std::abs(m->eval_f(xn))) evaluates to 0.1080001.
+row 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:466: Failure
+The difference between *r.history[k + 1].f and *h.sqp->f_trial is 1079460, which exceeds 1e-7 * (1.0 + std::abs(pred)), where
+*r.history[k + 1].f evaluates to 1080000,
+*h.sqp->f_trial evaluates to 540, and
+1e-7 * (1.0 + std::abs(pred)) evaluates to 0.0280001.
+row 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:461: Failure
+The difference between *h.sqp->f_trial and m->eval_f(xn) is 119940, which exceeds 1e-7 * (1.0 + std::abs(m->eval_f(xn))), where
+*h.sqp->f_trial evaluates to 60,
+m->eval_f(xn) evaluates to 120000, and
+1e-7 * (1.0 + std::abs(m->eval_f(xn))) evaluates to 0.0120001.
+row 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-1/tests/sqp/test_iteration_telemetry.cpp:466: Failure
+The difference between *r.history[k + 1].f and *h.sqp->f_trial is 119940, which exceeds 1e-7 * (1.0 + std::abs(pred)), where
+*r.history[k + 1].f evaluates to 120000,
+*h.sqp->f_trial evaluates to 60, and
+1e-7 * (1.0 + std::abs(pred)) evaluates to 0.096000099999999991.
+row 2
+
+[  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction
+[       OK ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction (0 ms)
+[ RUN      ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere
+[       OK ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere (0 ms)
+[ RUN      ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+[       OK ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+[ RUN      ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding
+[       OK ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding (0 ms)
+[ RUN      ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep
+[       OK ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep (0 ms)
+[ RUN      ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+[       OK ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+[ RUN      ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+[       OK ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+[ RUN      ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+[       OK ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+[ RUN      ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost
+[       OK ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost (1 ms)
+[ RUN      ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve
+[       OK ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve (0 ms)
+[----------] 15 tests from IterationTelemetry (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 3 test suites ran. (57 ms total)
+[  PASSED  ] 28 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[  FAILED  ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+
+ 2 FAILED TESTS

@@ -1,0 +1,33 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Layering.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from Layering
+[ RUN      ] Layering.TheScanReadsTheWholeTree
+[       OK ] Layering.TheScanReadsTheWholeTree (18 ms)
+[ RUN      ] Layering.NoIncludeGoesUpTheLayerOrder
+[       OK ] Layering.NoIncludeGoesUpTheLayerOrder (15 ms)
+[ RUN      ] Layering.EveryAllowListedPairStillOccurs
+[       OK ] Layering.EveryAllowListedPairStillOccurs (15 ms)
+[ RUN      ] Layering.PublicHeadersDoNotIncludeDetail
+[       OK ] Layering.PublicHeadersDoNotIncludeDetail (15 ms)
+[ RUN      ] Layering.NoForwardDeclarationGoesUpTheLayerOrder
+/home/ghecht/Projects/hven/.claude/worktrees/rsr1/tests/core/test_layering.cpp:899: Failure
+Value of: report.empty()
+  Actual: false
+Expected: true
+A forward declaration of a higher layer's type is an upward dependency. Move the type down, or (a design decision with a named owner) list it in kKnownForward:
+  include/hven/core/types.h:94: forward-declares 'SqpOptions', which is defined in a layer above this file
+
+[  FAILED  ] Layering.NoForwardDeclarationGoesUpTheLayerOrder (166 ms)
+[ RUN      ] Layering.KnownForwardDeclarationsStillOccur
+[       OK ] Layering.KnownForwardDeclarationsStillOccur (170 ms)
+[----------] 6 tests from Layering (401 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (401 ms total)
+[  PASSED  ] 5 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Layering.NoForwardDeclarationGoesUpTheLayerOrder
+
+ 1 FAILED TEST

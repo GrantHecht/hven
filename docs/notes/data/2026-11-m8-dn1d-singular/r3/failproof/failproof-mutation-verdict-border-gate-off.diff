@@ -1,0 +1,4 @@
+3454c3454
+<         if (border.kkt.dense_shifted &&
+---
+>         if (false && border.kkt.dense_shifted &&

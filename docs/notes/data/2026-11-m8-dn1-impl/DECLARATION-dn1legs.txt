@@ -1,0 +1,119 @@
+M8 DN-1 -- the DN-1 set (A1-A7, A-thr, S1-S3, M, T) -- DECLARATION-dn1legs: instruments and exact commands (committed
+before the set's first run; never edited afterwards; a failed leg is answered by a -r2 successor, this file and its
+outputs kept)
+================================================================================
+Criteria    DECLARATION.txt (3c3249977), "THE DN-1 SET", COPIED VERBATIM at the end of this file. This file adds
+            instruments and commands; it changes and drops no criterion (settler rulings C269/C270: two-declaration
+            split accepted; criteria never changed after data).
+Code head   2171f8dd4 (DECLARATION-r2.txt's; its N set ran first: r2/).
+Status rule owner-accepted: successes keep status + objective; moves among non-success cells reported in full.
+HOLDOUT     NEVER run (T runs --split TRAIN only; S runs DN-0's TRAIN roster).
+Box         every leg `flock /tmp/box-build.lock bash <leg>`; `pgrep -a hven_bench_cell` empty before the lock (own
+            command) and PGREP_EMPTY inside; set -o pipefail (dn1_cell/s_run/m_run: set -uo pipefail); no timeout
+            wrapper (the cell watchdog is the scripts' own SIGKILL of their own lane process, DN-0's); serial, alone.
+Toolchain   clang 22.1.8, MKL 2026.2, AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Windows UNOBSERVED.
+
+INSTRUMENTS (this directory, dn1legs/), built before this declaration (dev builds; their outputs scratch, not
+evidence):
+  tools/dn1_replay.cpp + tools/CMakeLists.txt  the A replay tool, a consumer of the installed code head
+      (cmake --install build-dn1r2/rel -> build-dn1r2/inst-dn1; find_package; EIGEN_MAX_ALIGN_BYTES=32), adapted from
+      DN-0's tools/dn0_replay.cpp (dump reader, options_from verbatim, residual). Per matrix: kNever and kAlways
+      SymmetricFactor (Options from the captured iparm, threads 0; kAlways adds dense_factorization) -- outcome,
+      evidence, factor fields, counters, residual, solution bitwise equality; LAPACKE_dsytrf_work on the densified
+      upper triangle (the session's call) read by the det/trace walk (negative count, singularity, min |D-block
+      eigenvalue| / max |a_ij|); LAPACKE_dsytrf_rook_work / dsytrs_rook_work (negative count, singularity, max |U
+      multiplier|, residual, instructions:u per factorization and per solve, median of 3). Mode `dense`: the kAlways
+      arm only.
+      Frozen: build-dn1r2/dn1bin/dn1_replay sha256 c20dce440d6bd8f889237b278edb0f22a9b978dbc9b0495e2fe748a906ce60a2 (a_build.sh).
+  a_list.py   the 5501-matrix list from ../../2026-11-m8-dn1-design/matrices.csv.gz (sha256 f204be2c2a444b8fcdda8081a53f5940e04fc8ab8cf858b4c257f6e9b53b078c), fail closed
+      against DN-0's raw dumps /home/ghecht/Projects/hven-bench-sd/.scratch/dn0/run/dump/<cell>.dump/mat_*.bin (233
+      cells; the CSV and the directory must be the same set).
+  a_analyze.py  A1-A7 and A-thr (stdlib), joins the two replay CSVs with matrices.csv.gz. Reference at safety factor
+      s: true_neg where dec_u{s}, else ref_neg_scaled where dec_s{s} (the decidable union); engine from the cell name.
+      A2's "Pardiso (unperturbed)" = the kNever replay with perturbed_pivots == 0. A5's "DN-0's dense column" =
+      matrices.csv dense_neg; "the 14 LAKES matrices" = the differing set must be exactly 14, all LAKES cells, each
+      arm - dense_neg = +6. A7 uses the tool's own dsytrf (its negative count is checked equal to the arm's on every
+      dense-taken matrix, printed). Verdict lines: A1_IPM/A1_SQP, A2_IPM/A2_SQP, A3, A5 (PASS/FAIL), A_THR_IDENTICAL
+      or A_THR_DIFFERENCES_LISTED; A4, A6, A7 reported.
+  hb_setup_a.sh  the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed; origin removed; the
+      repositories /home/ghecht/Projects/hven-bench and hven-bench-sd are not written): clone of hven-bench-sd at
+      bcf1d92 (= hven-bench main; lanes/ and sets/ unchanged since DN-0's harness commit 6ad47d7), branch dn1-legs,
+      sets/cutest/sif copied in (git-ignored), commit A c3ed8a95593020a10fdabb3ad5d26c0d6e595b35 = cmake/hven_pin.cmake moved to 2171f8dd4 (the LOCAL
+      OVERRIDE; PF-1's pattern), scripts/build_hven_pin.sh (.hven/install-2171f8dd4233), configure.sh (fresh build/:
+      hven-bench-sd's stale build/ is not used), build. T binary frozen: build-dn1r2/dn1bin/hven_bench_cell.T
+      sha256 9a39b99eec1d929c6ccb8b4411858c90735085bb46094e7a41601be961ccfd8b.
+  hb_patch.py + hb_setup_b.sh  commit B 5751a59f0fe0873b869bd477a8bbf02ce752d5b6 on dn1-legs: two label prefixes (dense-<base>: dense_factorization =
+      kAlways; t0-<base>: common.threads = 0) and four appended side columns (IPM kkt dense_factorize_count /
+      dense_fallback_count; SQP inertia_suspect_verdicts / inertia_wrong_verdicts); nothing else moves. Built in
+      .scratch/dn1-build-s; S binary frozen: build-dn1r2/dn1bin/hven_bench_cell.S sha256 552a772eaae1d7c0e2d37a1ce4afe2bc0748f48ba18765f0b42a2b9af69964a2. HEAD returned to
+      commit A (detached) for the T leg.
+  hb_decode.sh  the clone's CUTEst decode (the harness's scripts/decode_cutest.sh, SIFDecode external): SET=small-dense
+      (97 TRAIN) and the 23 cutest-nlp-35 TRAIN problems by name (their SIF files copied read-only from the hven-bench
+      main checkout's fetched set; no HOLDOUT file copied or decoded). 120 decoded.
+  DEV-SETUP RECORD (before this declaration): hb_setup_a.sh's first form copied the SIF directory onto sets/cutest
+      (no sif/ level, so the files showed untracked); they were moved by hand into sets/cutest/sif (diff -rq against
+      hven-bench-sd's: identical) and the script line corrected to the form committed here. The T binary does not
+      read SIF files at build time; its sha256 is unaffected. The dev smoke (scratch) found the IPM lane refuses
+      t0- labels (IpmOptions requires common.threads >= 1); M uses only the SQP lane, where all four labels are
+      accepted.
+  dn1_cell.sh  one cell process (DN-0's argv with the label; cwd the clone; THREADS=1: MKL_NUM_THREADS=1
+      OMP_NUM_THREADS=1, core 2; THREADS=default: both unset, unpinned); modes run / stat / record (period >= 400000).
+  s_analyze.py, t_compare.py, m_analyze.py  as their headers state (criteria verbatim below).
+  M's init exclusion: an unwind-capable attribution -- perf record -e instructions:u --call-graph dwarf,16384
+      (period >= 400000, DN-0's P-leg repetition rule) per arm; the period-weighted share of samples whose call chain
+      holds __kmp_(do_)?(serial|middle|parallel)_initialize, __kmp_internal_begin, MKL_Read_ThreadENV_Count_Cores or
+      ensure_solver_initialized is the init share; init-excluded = perf stat median (whole process, all threads) x (1 -
+      init share). Raw = the perf stat median. OpenMP worker-thread share reported, not excluded.
+
+LEGS AND EXACT COMMANDS (outputs under dn1legs/out/; each leg its own flock, in this order; driver dn1legs/run_set.sh
+  > dn1legs/out/run_set.out, which issues exactly these four)
+  A  flock /tmp/box-build.lock bash dn1legs/a_run.sh dn1legs/out/a c20dce440d6bd8f889237b278edb0f22a9b978dbc9b0495e2fe748a906ce60a2
+       full replay at MKL_NUM_THREADS=1 pinned core 2 -> replay-full-mkl1.csv; dense replay at the default thread
+       setting (both variables unset, unpinned) -> replay-dense-default.csv; a_analyze.py -> a-analysis.txt.
+  T  flock /tmp/box-build.lock bash dn1legs/t_run.sh dn1legs/out/t
+       in the clone at commit A: python3 runners/run_serial.py --set-version 'cutest-nlp-35 v1' --split TRAIN
+       --budget-wall-s 300 --budget-iters 0 --options default --lanes hven-sqp --out runs/dn1-train/default
+       (MKL_NUM_THREADS=1); copied to out/t; t_compare.py against hven-bench runs/2026-11-m8-pf1-train/default.
+       T's arm is the default options (kNever), as the criterion says.
+  S  flock /tmp/box-build.lock bash dn1legs/s_run.sh dn1legs/out/s 552a772eaae1d7c0e2d37a1ce4afe2bc0748f48ba18765f0b42a2b9af69964a2
+       ../../2026-11-m8-dn0/raw/roster.tsv (238), per cell `default` then `dense-default`, THREADS=1, CAP 300 s;
+       s_analyze.py -> s-analysis.txt. No cell is excluded (S's n_kkt cap of 2,000: DN-0's replay window peaks at
+       406; none expected, none named).
+  M  flock /tmp/box-build.lock bash dn1legs/m_run.sh dn1legs/out/m 552a772eaae1d7c0e2d37a1ce4afe2bc0748f48ba18765f0b42a2b9af69964a2
+       hs043 and HS84, hven-sqp; THREADS=1 (default / dense-default) and THREADS=default (t0-default /
+       t0-dense-default); warm-up each arm, perf stat N A A N N A, perf record per arm; m_analyze.py -> m-analysis.txt.
+ON FAIL: an A1-A3, A5 or M failure stops DN-1 and goes to the settler (design §14); an S1 miss is reported per cell
+for the settler; T below its bar is reported. The failing leg's outputs are committed; nothing is re-run under this
+declaration.
+
+THE DN-1 SET'S CRITERIA, VERBATIM FROM DECLARATION.txt (3c3249977)
+--------------------------------------------------------------------------------
+A1-IPM / A1-SQP  dense-arm negative count = the reference's on the engine's decidable union at s = 1 (decidable under
+       the unscaled or the congruence-scaled reference, ../2026-11-m8-dn1-design/matrices.csv.gz's dec_u1/dec_s1 and
+       true_neg/ref_neg_scaled), dense-taken matrices: = 100 % per engine (expected 2575/2575, 2764/2764). s = 10, 100
+       reported beside. A failure stops DN-1 with the matrix, both references and the D blocks.
+A2-IPM / A2-SQP  matrices where Pardiso (unperturbed) matches the reference and the arm does not, union: = 0 per engine.
+A3     every matrix the arm finds exactly singular is taken by the fallback, arm == kSparse, outcome and evidence
+       field-for-field equal to the kNever replay of the same matrix: all (expected 25/25).
+A4     literal agreement with unperturbed Pardiso at n <= 8, 16, 24, 32, 48, 64, 96, 128, all, per engine: REPORTED.
+A5     on every dense-taken matrix the arm's negative count = MKL dsytrf read by det/trace (mkl_bk_neg); against DN-0's
+       dense column it differs on exactly the 14 LAKES matrices of design [E3d], by +6 each: all.
+A6     dsytrf_rook column (negative count vs the reference, exactly-singular count, max |L|, replay residual, isolated
+       instructions per factorization and solve): REPORTED.
+A7     min |D-block eigenvalue| / max |a_ij| over dense-taken factorizations, per engine, decidable/undecidable: REPORTED.
+A-thr  the arm's negative counts at the default thread setting: identical to MKL_NUM_THREADS=1, or the differences listed.
+S1     both engines on DN-0's 238 cells, kAlways vs kNever on the same build: every kNever success (optimal or
+       acceptable) keeps its status and objective within 1e-8*max(1,|f|). Not met -> reported per cell with its
+       kSuspect-conversion trace; the settler rules.
+S2     every kNever non-success cell's kAlways status reported; a move to success with objective and terminal KKT
+       residuals; a move between two non-success statuses in the same detail. Not gating (owner-accepted, C266).
+S3     reported per cell, both arms: iterations, factorizations, dense_factorize_count, dense_fallback_count (where the
+       engine exposes them), inertia_suspect_verdicts, inertia_wrong_verdicts, suspect_escalations,
+       eqp_residual_refusals, eqp_row_drift_refusals, border_uncertified_fallbacks, dep_inertia_rereads,
+       dep_inertia_reread_flips, zero_motion_exhausted. Every move declared.
+S4     not run: no census or replay cell has n_kkt <= 2000 (design §14 S4, C265).
+M      (kNever - kAlways)/kNever solver instructions >= 0.20, process-once OpenMP init excluded, on BOTH hs043 and HS84
+       (SQP), serial perf stat, at BOTH the default thread setting and MKL_NUM_THREADS=1. Holding at only one setting is
+       a thread-policy finding reported to the settler, not a pass. Raw reading reported beside.
+T      CUTEst TRAIN (23, hven-sqp, default options, the PF-1 terms): >= 16/23 optimal and no cell lost against PF-1's
+       reading. HOLDOUT is never run.

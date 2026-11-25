@@ -1,0 +1,6 @@
+PF4PROBE_BEGIN
+PF4 skipped_retake=0 syncs_zero=0
+PF4 analyses=2347 repeat_of_last=0 repeat_of_any_seen=8 distinct=2339
+PF4K k=64 batches=23 cols=11684 instr_single=57261705786 instr_multi=24575572349 ns_single=4573980633 ns_multi=2737944766 identical=230 differ=11454 max_rel=4.662e-12
+PF4N n0=3192 batches=23
+PF4PROBE_END

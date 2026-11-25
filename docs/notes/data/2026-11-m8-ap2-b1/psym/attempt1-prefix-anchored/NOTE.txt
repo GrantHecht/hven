@@ -1,0 +1,10 @@
+Attempt 1 of the P-SYM compare (head a6459461). The generator (gen_maps.sh, copied here as it
+ran) mapped only symbols whose demangled name BEGINS with hven::solvers::IpmSolver:: /
+SqpSolver::. DECLARATION.txt B1-c states the rule as the substitution
+s/hven::solvers::(Ipm|Sqp)Solver::/hven::solvers::\1SolverImpl::/ applied to the pin's symbol
+names, i.e. everywhere the class qualifier occurs -- including a nested type spelled in a
+parameter list (hven::solvers::SqpSolver::SolveState&). The anchored version under-implemented
+the declared rule, so the nested-type spellings (SolveState, MajorState, RestorationCandidate,
+PhaseStep, ...) were reported as ONLY-BEFORE / ONLY-AFTER pairs. This attempt's output is kept
+unedited as evidence. Attempt 2 (../compare.txt) uses a generator that implements the declared
+substitution; no criterion changed between the two, only the implementation of the declared one.

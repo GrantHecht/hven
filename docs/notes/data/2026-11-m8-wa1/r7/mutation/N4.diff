@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 3e11d4b9b..733666c0d 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1521,7 +1521,7 @@ inline bool footprint_rows_within_budget(const QpProblem &qp, const WorkingSet &
+         }
+     }
+     for (const Index j : ws.active_ineq()) {
+-        if (!within(qp.Ai.row(j).dot(a.x) - qp.bi(j), qp.bi(j), a.ai_row_norm1(j))) {
++        if (!within(std::abs(qp.Ai.row(j).dot(a.x) - qp.bi(j)), qp.bi(j), a.ai_row_norm1(j))) {
+             return false;
+         }
+     }

@@ -1,0 +1,47 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/tsan/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = StopToken.*:StopTokenSolve.T2*:StopTokenSolve.T10*:StopRecovery.*:Callback.SqpToken*
+[==========] Running 14 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from Callback
+[ RUN      ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture
+[       OK ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture (13 ms)
+[ RUN      ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate
+[       OK ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate (79 ms)
+[ RUN      ] Callback.SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificateAtTheEntryPoint
+[       OK ] Callback.SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificateAtTheEntryPoint (80 ms)
+[----------] 3 tests from Callback (173 ms total)
+
+[----------] 3 tests from StopToken
+[ RUN      ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested
+[       OK ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested (0 ms)
+[ RUN      ] StopToken.EveryTokenOfASourceSeesItsStop
+[       OK ] StopToken.EveryTokenOfASourceSeesItsStop (0 ms)
+[ RUN      ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource
+[       OK ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource (0 ms)
+[----------] 3 tests from StopToken (0 ms total)
+
+[----------] 3 tests from StopTokenSolve
+[ RUN      ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint
+[       OK ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint (3 ms)
+[ RUN      ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial
+[       OK ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial (10 ms)
+[ RUN      ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep
+[       OK ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep (2 ms)
+[----------] 3 tests from StopTokenSolve (16 ms total)
+
+[----------] 5 tests from StopRecovery
+[ RUN      ] StopRecovery.T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEitherScope
+[       OK ] StopRecovery.T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEitherScope (56 ms)
+[ RUN      ] StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint
+[       OK ] StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint (31 ms)
+[ RUN      ] StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheShownPoint
+[       OK ] StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheShownPoint (31 ms)
+[ RUN      ] StopRecovery.T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate
+[       OK ] StopRecovery.T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate (31 ms)
+[ RUN      ] StopRecovery.T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve
+[       OK ] StopRecovery.T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve (47 ms)
+[----------] 5 tests from StopRecovery (197 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 4 test suites ran. (387 ms total)
+[  PASSED  ] 14 tests.

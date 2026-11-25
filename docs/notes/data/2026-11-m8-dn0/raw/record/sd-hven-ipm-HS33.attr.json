@@ -1,0 +1,129 @@
+{
+ "samples": 4779,
+ "period": 1000003,
+ "instr_sampled_all": 4799489337,
+ "instr_sampled_solver": 4790454310,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 2007006,
+  "B_kkt": 0,
+  "B_eval": 2000006,
+  "B_setup": 4785440295,
+  "B_eng": 1007003,
+  "B_proc": 9035027
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.00041895942850564416,
+  "B_kkt": 0.0,
+  "B_eval": 0.00041749818922706726,
+  "B_setup": 0.9989533320483752,
+  "B_eng": 0.00021021033389211053
+ },
+ "proc_share_of_all": 0.0018824975670531424,
+ "rule_instr": 4798482334,
+ "fallback_instr": 1007003,
+ "fallback_by_bucket": {
+  "B_proc": 1007003
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9958150240636117,
+ "init_instr": 4783433289,
+ "steady_state_instr": 7021021,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.28585671514157274,
+  "B_kkt": 0.0,
+  "B_eval": 0.2848597091505637,
+  "B_setup": 0.28585671514157274,
+  "B_eng": 0.14342686056629086
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2007006
+  ]
+ ],
+ "mkl_serv_instr": 4783433289,
+ "kmp_instr": 2007006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_str_buf_print",
+    1007003
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "hven::detail::IpmSolverImpl::eval_nlp",
+    1000003
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3003811973
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1349800032
+   ],
+   [
+    "__vdso_time",
+    213945639
+   ],
+   [
+    "difftime@plt",
+    203833609
+   ],
+   [
+    "time@plt",
+    12042036
+   ],
+   [
+    "__internal_syscall_cancel",
+    2007006
+   ]
+  ],
+  "B_eng": [
+   [
+    "[unknown]",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4007012
+   ],
+   [
+    "strcmp",
+    2007006
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1007003
+   ],
+   [
+    "munmap",
+    1007003
+   ]
+  ]
+ }
+}

@@ -1,0 +1,18 @@
+PREFLIGHT every mutation applies and restores: MUST=[ B1 B2 B3 B4 B5 B6 B7 T2 T3 T4 T5 T6 R1 R2] REC=[]
+MUT control rc=0 killers=0
+MUT B1 rc=1 killers=1
+MUT B2 rc=1 killers=1
+MUT B3 rc=1 killers=3
+MUT B4 rc=1 killers=3
+MUT B5 rc=1 killers=1
+MUT B6 rc=1 killers=1
+MUT B7 rc=1 killers=1
+MUT T2 rc=1 killers=5
+MUT T3 rc=1 killers=4
+MUT T4 rc=1 killers=1
+MUT T5 rc=1 killers=1
+MUT T6 rc=1 killers=1
+MUT R1 rc=1 killers=1
+MUT R2 rc=0 killers=0
+VERDICT MUTATION_SURVIVED_R2
+MUT rc=1

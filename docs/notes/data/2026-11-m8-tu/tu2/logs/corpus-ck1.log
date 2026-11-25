@@ -1,0 +1,5 @@
+box-lane: lane 0 acquired 2026-11-23T15:12:53-05:00
+[68/71] Linking CXX static library libhven.a
+[69/71] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[70/71] Linking CXX executable bench/hven_sqp_corpus
+rc=0

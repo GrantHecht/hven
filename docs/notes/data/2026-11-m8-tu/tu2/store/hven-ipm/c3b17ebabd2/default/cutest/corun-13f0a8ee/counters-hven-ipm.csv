@@ -1,0 +1,53 @@
+# problems.requested: ACOPP118,ACOPP57,ACOPR118,ACOPR57,BIGBANK,BRITGAS,DALLASM,MSS2,NET3,READING6,SAWPATH,SMBANK,STEENBRB,STEENBRC,STEENBRD,STEENBRE,STEENBRG,TAX53322,YORKNET,ZAMB2-8
+# schema: v1
+# harness.sha: 5858082a1c9f282982df2bf6c7312de2e95c5974
+# hven.pin.sha: fd1e318b5d8f52eabf635012bbc3207922c75505
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-23T17:13:11Z
+# mkl.num_threads: 1
+# run.mode: co-run
+# wall.columns: wall_s
+# wall.quotable: false
+# run.corun.width: 4
+# run.corun.pinning: one process per physical core via taskset; the core map is derived at run time from sysfs (one logical CPU per (package, core_id), the lowest allowed); SMT siblings left idle
+# run.corun.core_map: pkg0/core4=cpu4,pkg0/core5=cpu5,pkg0/core6=cpu6,pkg0/core7=cpu7
+# run.corun.threads: MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every child
+# run.corun.tiering: a cell co-runs iff its lane has no solver-side wall option (the hven lanes: SolveBudget counts iterations, not seconds, so the watchdog is the only clock) and it is not named solo; external lanes (ipopt, snopt) and --solo-problems cells run SOLO in a serial tier after the co-run tier; a co-run cell that ends dnf_wall or error is discarded and re-run SOLO, and only the solo row is reported
+# run.corun.asserted_columns: statuses and counters EXACT; residual/measure columns under the calibrated near-ulp gate of docs/corun.md; wall_s NOT asserted
+# run.corun.row_order: cell_id ascending, independent of completion order
+# run.corun.cells: 20 co-run tier, 0 solo tier (0 of them flagged from the co-run)
+# run.corun.flagged_for_solo: none
+# wall.note: wall_s is INFORMATIONAL in this file; it was taken with other cells running and is never a measurement (hven CLAUDE.md section 7)
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+# NOT ASSERTED by schema/compare.py: this is a per-engine
+# surface, hand-enumerated from hven's public structs because
+# hven has no counters dump. harness_* fields are the harness's
+# own, not hven counters. See schema/v1.md.
+cell_id,factorizations,symbolic_analyses,restoration_entries,restoration_iters,soc_steps,nonfinite_step_rollbacks,polish_ignored,start_level_used,payload_ignored,watchdog_activations,recovery_depth_histogram,inertia_corrections,dense_solve_residual_refusals,dense_factorizations,kkt_analyses_total,kkt_factor_counters.analyze_count,kkt_factor_counters.factorize_count,kkt_factor_counters.solve_count,kkt_factor_counters.partial_solve_count,kkt_factor_counters.pattern_verify_count,kkt_factor_counters.dense_factorize_count,kkt_factor_counters.dense_fallback_count,kkt_factor_counters.dense_singular_count,kkt_factor_counters.dense_flagged_count,kkt_factor_counters.dense_condition_estimate_count,kkt_factor_counters.dense_equilibrated_estimate_count,kkt_factor_counters.dense_shift_refactor_count,kkt_factor_counters.dense_retake_count,phases_ran,ipm_kkt_inf,ipm_barr_inf,ipm_econ_inf,ipm_icon_inf,harness_eval_f,harness_eval_grad_f,harness_eval_g,harness_eval_jac,harness_eval_hess,harness_dual_sign_violation
+cutest/ACOPP118/hven-ipm/default+barrier_initial=0.01,50,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],20,0,0,1,1,50,30,0,0,0,0,0,0,0,0,0,0,1,3.2382152775798582e-08,4.6195287392961339e-11,1.6484591469634324e-12,0,60,30,30,31,31,0
+cutest/ACOPP57/hven-ipm/default+barrier_initial=0.01,23,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],8,0,0,1,1,23,15,0,0,0,0,0,0,0,0,0,0,1,5.3241015085923824e-08,1.7657270051466875e-09,1.6216361586884886e-11,0,30,15,15,16,16,0
+cutest/ACOPR118/hven-ipm/default+barrier_initial=0.01,152,1,0,0,0,0,0,Cold,0,0,[0;0;0;20;0],78,0,0,1,1,152,89,0,0,0,0,0,0,0,0,0,0,1,0.00011509377856027638,3.6214148380704753e-11,5.2841286901639251e-11,1.1178501740639603e-12,206,89,137,90,90,0
+cutest/ACOPR57/hven-ipm/default+barrier_initial=0.01,111,1,0,0,0,0,0,Cold,0,0,[0;0;0;13;0],51,0,0,1,1,111,69,0,0,0,0,0,0,0,0,0,0,1,2.1909920633333968e-07,6.0627490417899858e-10,3.0198066269804258e-14,0,160,69,104,70,70,0
+cutest/BIGBANK/hven-ipm/default+barrier_initial=0.01,51,2,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],36,0,0,2,1,51,37,0,0,0,0,0,0,0,0,0,0,1,7.5689331607471255e-07,1.2872343944577975e-10,1.9099388737231493e-11,0,74,37,37,38,38,0
+cutest/BRITGAS/hven-ipm/default+barrier_initial=0.01,23,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],11,0,0,1,1,23,13,0,0,0,0,0,0,0,0,0,0,1,7.0441335582343359e-07,9.9810929549791699e-09,9.0098534322180512e-07,0,26,13,13,14,14,0
+cutest/DALLASM/hven-ipm/default+barrier_initial=0.01,24,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],5,0,0,1,1,24,19,0,0,0,0,0,0,0,0,0,0,1,1.0318190108854933e-08,1.2664119941839263e-12,9.9800193498698641e-09,0,39,19,20,20,20,0
+cutest/MSS2/hven-ipm/default+barrier_initial=0.01,1831,1,0,0,0,0,0,Cold,0,0,[0;0;0;356;0],1573,0,0,1,1,1831,1001,0,0,0,0,0,0,0,0,0,0,1,56.096453852955868,0,3.4904241145638719e-07,0,2366,1000,1722,1001,1001,0
+cutest/NET3/hven-ipm/default+barrier_initial=0.01,1843,2,0,0,0,0,0,Cold,0,0,[0;0;0;367;0],1464,0,0,2,1,1843,1001,0,0,0,0,0,0,0,0,0,0,1,61464704.888495386,376110804.2557047,0.087968690501729729,0.11331914449474947,2399,1000,1765,1001,1001,0
+cutest/READING6/hven-ipm/default+barrier_initial=0.01,52,2,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],28,0,52,2,1,52,34,0,0,52,0,0,0,1,1,0,0,1,5.1046238347396411e-08,4.2565205543322649e-09,1.9505742798742176e-08,0,68,34,34,35,35,0
+cutest/SAWPATH/hven-ipm/default+barrier_initial=0.01,71,2,0,0,0,0,0,Cold,0,0,[0;0;0;7;0],0,0,0,2,1,71,71,0,0,0,0,0,0,0,0,0,0,1,0.0012322131387578459,1.0000000000500416e-12,3.5527136788005009e-15,1.9616751839303104e-12,158,71,94,71,72,0
+cutest/SMBANK/hven-ipm/default+barrier_initial=0.01,32,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],9,0,0,1,1,32,23,0,0,0,0,0,0,0,0,0,0,1,1.6618005905591887e-08,3.1575377204705729e-08,1.127773430198431e-10,0,46,23,23,24,24,0
+cutest/STEENBRB/hven-ipm/default+barrier_initial=0.01,346,1,0,0,0,0,0,Cold,0,0,[0;0;0;5;0],233,0,0,1,1,346,212,0,0,0,0,0,0,0,0,0,0,1,6.9111891409290305e-05,1.0002894539619749e-12,1.0792076792585133e-12,0,431,212,224,213,213,0
+cutest/STEENBRC/hven-ipm/default+barrier_initial=0.01,210,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],170,0,0,1,1,210,136,0,0,0,0,0,0,0,0,0,0,1,0.0034329872995755854,1.000000062294914e-12,2.3421044808461273e-12,0,273,136,137,137,137,0
+cutest/STEENBRD/hven-ipm/default+barrier_initial=0.01,703,1,0,0,0,0,0,Cold,0,0,[0;0;0;20;0],525,0,0,1,1,703,396,0,0,0,0,0,0,0,0,0,0,1,1.9579054771047642e-06,1.137552206365629e-12,1.9608466101614515e-12,0,815,396,439,397,397,0
+cutest/STEENBRE/hven-ipm/default+barrier_initial=0.01,381,1,0,0,0,0,0,Cold,0,0,[0;0;0;9;0],300,0,0,1,1,381,228,0,0,0,0,0,0,0,0,0,0,1,0.0039307745456609805,1.1375522063657647e-12,2.2253594957510202e-12,0,470,228,251,229,229,0
+cutest/STEENBRG/hven-ipm/default+barrier_initial=0.01,301,1,0,0,0,0,0,Cold,0,0,[0;0;0;3;0],242,0,0,1,1,301,185,0,0,0,0,0,0,0,0,0,0,1,0.0039909908804255942,1.000000062294914e-12,2.3676302922229055e-12,0,373,185,191,186,186,0
+cutest/TAX53322/hven-ipm/default+barrier_initial=0.01,1475,1,0,0,0,0,0,Cold,0,0,[0;0;0;3;0],606,0,0,1,1,1475,1001,0,0,0,0,0,0,0,0,0,0,1,170.74525597885355,7.343752522539549e-07,0,1.177763343620623e-10,2008,1000,1011,1001,1001,0
+cutest/YORKNET/hven-ipm/default+barrier_initial=0.01,466,1,0,0,0,0,0,Cold,0,0,[0;0;0;43;0],350,0,0,1,1,466,285,0,0,0,0,0,0,0,0,0,0,1,0.00056898688661555143,1.010880337655904e-12,5.9657876329733374e-08,0,619,285,377,286,286,0
+cutest/ZAMB2-8/hven-ipm/default+barrier_initial=0.01,26,2,0,0,0,0,0,Cold,0,0,[0;0;0;8;0],0,0,0,2,1,26,26,0,0,0,0,0,0,0,0,0,0,1,9.5479996040676657e-08,3.0821285982879751e-08,1.1970977371877911e-07,0,60,26,42,27,27,0

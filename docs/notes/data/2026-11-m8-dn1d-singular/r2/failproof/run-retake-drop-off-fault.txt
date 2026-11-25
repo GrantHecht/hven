@@ -1,0 +1,27 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-retake-drop-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmFallbackFault.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from DenseArmFallbackFault
+[ RUN      ] DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError
+[       OK ] DenseArmFallbackFault.AFallbackBackendFailureSurfacesAsTheSparseArmsError (2 ms)
+[ RUN      ] DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown
+[       OK ] DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown (0 ms)
+[ RUN      ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-retake-drop-off/tests/linear/test_fault_injection.cpp:252: Failure
+Expected: factor.solve(Vec::Ones(2), x) throws an exception of type std::logic_error.
+  Actual: it throws nothing.
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-retake-drop-off/tests/linear/test_fault_injection.cpp:253: Failure
+Expected: (factor.inertia().state) != (InertiaEvidence::State::kObserved), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+
+[  FAILED  ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable (0 ms)
+[----------] 3 tests from DenseArmFallbackFault (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (2 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable
+
+ 1 FAILED TEST

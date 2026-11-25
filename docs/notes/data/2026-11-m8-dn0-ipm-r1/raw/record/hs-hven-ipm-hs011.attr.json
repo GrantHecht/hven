@@ -1,0 +1,288 @@
+{
+ "samples": 2058,
+ "period": 250007,
+ "instr_sampled_all": 676533768,
+ "instr_sampled_solver": 227060798,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 92561563,
+  "B_kkt": 1941054,
+  "B_eval": 5020392,
+  "B_setup": 41296149,
+  "B_eng": 86241640,
+  "B_proc": 449472970
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.4076510071985213,
+  "B_kkt": 0.008548609082224753,
+  "B_eval": 0.02211034244669571,
+  "B_setup": 0.1818726498089732,
+  "B_eng": 0.379817391463585
+ },
+ "proc_share_of_all": 0.664376253278166,
+ "rule_instr": 540633749,
+ "fallback_instr": 56072557,
+ "fallback_by_bucket": {
+  "B_fac": 55474539,
+  "B_proc": 598018
+ },
+ "unmatched_instr": 79827462,
+ "unmatched_share_of_solver": 0.35156866664407654,
+ "chains_reaching_main": 0.16326530612244897,
+ "init_instr": 300759,
+ "steady_state_instr": 226760039,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.40819168760153546,
+  "B_kkt": 0.008559947372385131,
+  "B_eval": 0.022139668092048616,
+  "B_setup": 0.18078754167086733,
+  "B_eng": 0.38032115526316346
+ },
+ "fac_split": [
+  [
+   "<no hven::linear frame>",
+   55474539
+  ],
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   36684763
+  ],
+  [
+   "hven::linear::SymmetricFactor::require_solvable",
+   402261
+  ]
+ ],
+ "mkl_serv_instr": 13059356,
+ "kmp_instr": 154006268,
+ "top_unmatched_leaf": [
+  [
+   "__strcmp_avx2",
+   37933054
+  ],
+  [
+   "__internal_syscall_cancel",
+   13696131
+  ],
+  [
+   "msort_with_tmp.part.0",
+   4123614
+  ],
+  [
+   "vsnprintf",
+   2581072
+  ],
+  [
+   "__printf_buffer",
+   2346815
+  ],
+  [
+   "__vfscanf_internal",
+   1988304
+  ],
+  [
+   "__strchr_avx2",
+   1907804
+  ],
+  [
+   "_int_malloc",
+   1510793
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    20314816
+   ],
+   [
+    "_strnlen_s_chk",
+    6575433
+   ],
+   [
+    "_int_malloc",
+    3700351
+   ],
+   [
+    "__kmp_env_initialize",
+    2923831
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    2784076
+   ],
+   [
+    "__kmp_do_serial_initialize",
+    2131808
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    1941052
+   ],
+   [
+    "__kmp_stg_parse",
+    1762801
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    605016
+   ],
+   [
+    "hven::detail::NonLinearProgram::declaration",
+    386511
+   ],
+   [
+    "hven::detail::NonLinearProgram::require_master_lists_unmoved",
+    370761
+   ],
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    318259
+   ],
+   [
+    "hven::detail::NonLinearProgram::set_rhs_coeffs_zero",
+    260507
+   ]
+  ],
+  "B_eval": [
+   [
+    "malloc",
+    725770
+   ],
+   [
+    "void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > >, Eigen::SparseMatrix<double, 1, int>, Eigen::internal::scalar_sum_op<double, double> >",
+    369011
+   ],
+   [
+    "hven::detail::ProblemState::refresh_nlp",
+    367261
+   ],
+   [
+    "hven_bench::SplitModel::eval_ci_in_place",
+    351509
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    332259
+   ],
+   [
+    "hven::detail::NlpProblemModel::compose_into",
+    330509
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_hess_in_place",
+    314759
+   ],
+   [
+    "__memcmp_avx2_movbe",
+    313009
+   ]
+  ],
+  "B_setup": [
+   [
+    "__internal_syscall_cancel",
+    6244673
+   ],
+   [
+    "_int_malloc",
+    5541657
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    5438652
+   ],
+   [
+    "__memchr_avx2",
+    4438120
+   ],
+   [
+    "isspace",
+    4130616
+   ],
+   [
+    "hven::detail::get_core_count",
+    2783829
+   ],
+   [
+    "std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >",
+    1733049
+   ],
+   [
+    "std::pair<std::_Rb_tree_iterator<std::pair<int, int> >, bool> std::_Rb_tree<std::pair<int, int>, std::pair<int, int>, std::_Identity<std::pair<int, int> >, std::less<std::pair<int, int> >, std::allocator<std::pair<int, int> > >::_M_insert_unique<std::pair<int, int> const&>",
+    685520
+   ]
+  ],
+  "B_eng": [
+   [
+    "__strcmp_avx2",
+    37933054
+   ],
+   [
+    "__internal_syscall_cancel",
+    13696131
+   ],
+   [
+    "msort_with_tmp.part.0",
+    4123614
+   ],
+   [
+    "vsnprintf",
+    2581072
+   ],
+   [
+    "__printf_buffer",
+    2346815
+   ],
+   [
+    "__vfscanf_internal",
+    1988304
+   ],
+   [
+    "__strchr_avx2",
+    1907804
+   ],
+   [
+    "_int_malloc",
+    1510793
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    154025524
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    116175717
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    67681130
+   ],
+   [
+    "strcmp",
+    36156263
+   ],
+   [
+    "check_match",
+    22056852
+   ],
+   [
+    "mprotect",
+    5821163
+   ],
+   [
+    "_dl_addr",
+    5382646
+   ],
+   [
+    "syscall",
+    2899329
+   ]
+  ]
+ }
+}

@@ -1,0 +1,24 @@
+M8 AP-5 G-RB -- consumer catch-up list (one `return_best`, one "best"). Full table: docs/migration-0.2.md, section G-RB.
+A consumer built against origin/m8 before G-RB stops compiling at each rename below.
+
+Renames (compile errors)
+  IpmOptions::return_best = true                       -> ipm.common.return_best = hven::ReturnBest::kOnAnyNonOptimal   (false -> kNever)
+  SqpOptions::return_best_on_max_iterations = true     -> sqp.common.return_best = hven::ReturnBest::kOnLimit           (false -> kNever)
+  IpmOptions::best_iterate_criterion / IpmBestIterateCriterion -> REMOVED (rider r4, owner ruling 2026-11-17): delete the assignment;
+                                                          the shared ordering is always used (no override, no way to get the old equality-only pick)
+
+Text a consumer may parse
+  dump_options(IpmOptions) / dump_options(SqpOptions): the line `common.return_best = <kNever|kOnLimit|kOnAnyNonOptimal>` replaces
+  `return_best` (IPM) / `return_best_on_max_iterations` (SQP), at the end of the common block (line counts unchanged).
+  dump_options(IpmOptions): the `best_iterate_criterion` line is gone (IPM dump 67 -> 66 lines; the SQP dump is unchanged).
+  Validation: common.return_best out of range is refused by name.
+
+Behaviour (return-best on, or a tracker armed by a callback or token; a solve with all three off is bitwise unchanged)
+  The IPM best-iterate pick is always the shared ordering (feasibility-first, banded at feasibility_tol, then objective, strictly better only):
+  the pick of the best iterate, and best_iterate, can differ from the old default kEquality, and the old override values no longer exist.
+  SQP best order: the engine's convergence feasibility (inf-norm) inside a feasibility_tol band, then f, strictly better only (was l1 violation, f).
+  SQP kOnLimit now also covers kWorkLimit and kTimeLimit; SQP kOnAnyNonOptimal is new; IPM kOnLimit is new.
+  IPM work/time limit exits under return-best now return the best point in full (they claimed the best and returned the last point).
+  kInfeasible exits never substitute, certified or not.
+
+hven-bench (private; local branch grb-catchup, not pushed): see VERDICTS.txt.

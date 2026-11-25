@@ -1,0 +1,111 @@
+M8 DN-1 -- the dense arm behind SymmetricFactor -- DECLARATION-r2: the N set on the review-fix code head (committed
+before its first leg; never edited afterwards; a failed leg is answered by a DECLARATION-r3 successor, this file and its
+outputs kept; criteria are never changed after data)
+================================================================================
+Predecessor DECLARATION.txt (3c3249977) and its record (chain/, census/, suites/, ..., PROVENANCE.txt; bd669695c) are
+            kept untouched. This successor exists because the code moved (settler ruling C270: the Fable review's
+            required fixes), not because a leg failed. Its N set is DECLARATION.txt's, re-run on the new head, with ONE
+            criterion reworded for this new declaration by settler ruling C269 (P8, below); every other criterion is
+            copied. The DN-1 set (A1-A7, A-thr, S1-S3, M, T) stays frozen in DECLARATION.txt; its instruments and
+            commands follow in DECLARATION-dn1legs.txt, committed before its first run.
+Spec        docs/notes/2026-11-m8-dn1-design.md (§13, §14), rulings C264-C267, C269, C270.
+Base        02065dac (origin/m8).
+Code head   2171f8dd4 = a8c50e99 (DECLARATION.txt's head) + bd669695 (evidence only, no source) + three review-fix
+            commits:
+              53a3b9e8  fix(linear): C270 findings 1 (the shared dense epoch commits max(epoch+1, proposed): never
+                        rewinds or repeats), 2 (a platform-session handle carries the emitter's dense policy; adopt()
+                        applies it; an adopter of a fallback handle builds its dense session at its first factorize()),
+                        3 (a fallback fork's analyze() failure is reported: kBackendError, arm kSparse, backend_code
+                        kDenseFallbackAnalyzeFailed, counted), 5 (mirror note in both adapters), 7 (2x2 ipiv check;
+                        nrhs/ldb narrowing guards), 8 (shim prose); the factor-layer test gaps.
+              ecc9bcc2  fix(sqp): finding 4 (predictor + equality_basis documented sparse in DN-1; KktFactor and
+                        sqp_kkt_options() lose their defaults; every construction site states its policy).
+              2171f8dd  test: findings 6 (T9 malloc-level counter via --wrap on Linux) and 9 (T13 note).
+Evidence    this file and r2/ (legs, runtime, outputs). Evidence commits touch no source.
+Arm A       02065dac, UNCHANGED and REUSED READ-ONLY from DECLARATION.txt's prebuild: build-dn1e/armA (Release),
+            build-dn1e/armAbin/hven_sqp_corpus sha256 4ee3af3ba96395333eeb433a2f3ee1155cc01ceb443659075f16c0552741041c,
+            build-dn1e/armA-compile_commands.json sha256
+            d29b82f856b157addb7c4e26eb215a97998c86ae7979d80f3ad15a4e53875994, build-dn1e/armA.build.log (its Release
+            build log, P8). Not rebuilt (P0 re-checks both sha256 values).
+Arm B       the code head: build-dn1r2/rel (fresh, r2/legs/build.sh, built at 2171f8dd4 on a clean tree; log
+            build-dn1r2/build-rel.out) -> frozen by r2/runtime/run_all.sh to build-dn1r2/armBbin, hven_sqp_corpus sha256
+            8931420f4803d564cafb8d49f34ff5f37400c3d7b3a69fb59dc45671b31461e7. build-dn1r2/dbg fresh at the head (Debug).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1 unless a leg says
+            otherwise. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED.
+Scratch     build-dn1r2/ (arm B evidence trees, git-ignored); build-dn1e/ read for arm A only; build-dn1/ (dev trees: not
+            evidence).
+Instruments r2/legs/ = ../legs/ (DECLARATION.txt's) copied and re-pointed (evidence r2/, arm B trees build-dn1r2/,
+            python root depth +1; arm A paths unchanged; prebuild.sh not copied: arm A is reused), one provenance line
+            added to each; iparm.sh's output directory moved to r2/iparm (its dumper source stays ../iparm, read only);
+            NEW: legs/warnings.sh + legs/warnings_compare.py (P8). r2/runtime/ = ../runtime/ copied and re-pointed the
+            same way (r2/runtime/DECLARATION.txt).
+
+THE DEV MEASUREMENTS THE EXPECTATIONS ARE DECLARED FROM (before this declaration, scratch outputs, not evidence):
+- Debug suite on the dev tree build-dn1/dbg at 2171f8dd4: "100% tests passed, 0 tests failed out of 3522". Release
+  suite on build-dn1r2/rel (r2/legs/ctest.sh into scratch): "100% tests passed, 0 tests failed out of 3522".
+- r2/legs/objects.sh: A 56, B 57, added exactly dense_session.cpp.o, dense_symmetric_factor.cpp.o BYTE-IDENTICAL,
+  21 other objects differ (the same 21 as DECLARATION.txt's record): OBJECTS_AS_DECLARED.
+- r2/legs/failproof.sh on 2171f8dd4: head 22 tests all OK; mutant fails exactly the four declared tests, LAKES
+  negative reads 72: FAILPROOF_AS_DECLARED.
+- r2/legs/flags.sh: 0 differing TUs, one added TU with the baseline flags: FLAGS_AS_DECLARED.
+- r2/legs/warnings_compare.py on build-dn1e/armA.build.log vs build-dn1r2/build-rel.out: arm A 26 warning lines / 19
+  distinct (file, message), arm B 26 / 19: WARNINGS_SET_EQUAL.
+- The epoch fix's test was run against the old commit rule (epoch_ = next_epoch) on the dev tree: it fails there
+  ("(session 1, epoch 3) named twice"), and passes on the head.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0-D2, D4, D6-D9   as DECLARATION.txt, unchanged.
+D3  TESTS: 3486 -> 3522: DECLARATION.txt's 3517 plus five from the review fixes --
+    DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership, DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy,
+    DenseArm.HandleSolveAndInertiaOnDenseNumerics (hven_tests), DenseArmAllocation.MallocCounterIsWired
+    (hven_dense_alloc_tests, Linux only), DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown
+    (hven_fault_injection_tests); DenseArmBlockWalk.MalformedPivotDataThrows gains two cases. Test construction sites
+    of KktFactor / sqp_kkt_options() now pass (0, kNever) explicitly (the values the removed defaults supplied).
+D5  OBJECTS: arm B = arm A's 56 objects plus src/linear/dense_session.cpp.o; dense_symmetric_factor.cpp.o
+    BYTE-IDENTICAL; the other differing objects are listed, not judged.
+D10 THE REVIEW FIXES (code head above). At kNever: each sparse factorize() on an engine with no dense session adds one
+    policy test (DensePolicy::kNever -> not selected); share() of a platform-session handle copies two option fields;
+    adopt() of one applies them. No counter, status, iterate or printed string moves (D1 stands).
+
+PROOFS AND PASS CRITERIA, THE N SET (r2/legs/; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (r2/legs/armA.sh): the two sha256 values above: ARM_A_OK.
+P1  suites: ctest Release (build-dn1r2/rel) and Debug (build-dn1r2/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3522" in both (r2/legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (r2/legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), r2/legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each.
+P4  iparm: BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations (r2/legs/iparm.sh).
+P5  walk census, 57 rows, on the frozen arm B binary (r2/legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: r2/legs/census_check.py with census-movers.csv (this
+    directory's, PF-1's two rows, read only) prints CENSUS_AS_DECLARED. A third non-baseline row fails it.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass.
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  (REWORDED by settler ruling C269 for this declaration.) Off-reference CLEAN build (linux-clang-release preset, fresh
+    build-dn1r2/offref, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, bench + examples ON) then ctest: build rc 0, "0 tests
+    failed out of 3522" (r2/legs/offref.sh); AND arm B's Release warning set (file + message, build-dir prefix
+    normalized) equals arm A's: r2/legs/warnings.sh on build-dn1e/armA.build.log vs build-dn1r2/build-rel.out prints
+    WARNINGS_SET_EQUAL. Per-pair counts and the off-reference warning line count are reported, not judged.
+P9  Accelerate syntax sweep (the Linux half; r2/legs/misc.sh accelerate; r2/legs/accel_compare.py): PASS_A_AS_DECLARED.
+    Pass B reported. The macOS CI lane is the settler's (the branch is not pushed by this lane).
+P10 compile-flags diff (r2/legs/flags.sh, r2/legs/flags_check.py): FLAGS_AS_DECLARED (D6).
+P11 runtime gate (r2/runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A
+    in [0.995, 1.005] in every mode; perf record period 400000.
+P12 interior (r2/legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT; promoted (arm B under
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv's invocation) EXACT.
+P14 THE FALSIFIER (r2/legs/failproof.sh): the code head with dense_block_walk()'s 2x2 read replaced by the
+    (trace +- disc)/2 read (one site, fail closed): every DenseArm / DenseArmBlockWalk test passes on the head; on the
+    mutant exactly LakesMatrixCountsTheReferenceNegatives (negative reads 72), IllScaledNegativeDeterminantCountsOneNegative,
+    ZeroDeterminantIsSingular and NonFiniteIsSingular fail: FAILPROOF_AS_DECLARED.
+P16 OBJECTS (r2/legs/objects.sh): OBJECTS_AS_DECLARED (D5).
+PRE-FLIGHT (r2/legs/chain1.sh, fail closed, before the first leg): every script under r2/ names this worktree,
+build-dn1r2/ (arm B), build-dn1e/armA* (arm A, read only) and this directory only (build-dn1/ and other trees refused),
+except the read-only pins named in P3/P4/P5/P9/P12.
+ORDER: the runtime gate alone first (r2/runtime/run_all.sh 8931420f...), then
+`ARMB_SHA=8931420f4803d564cafb8d49f34ff5f37400c3d7b3a69fb59dc45671b31461e7 CODE_HEAD=2171f8dd4233b1bc21682fc250060294e7d42a3d
+bash r2/legs/chain1.sh > r2/chain/chain1.out`.
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END.
+ON FAIL: the failing leg's outputs are committed, the chain stops at that leg's own rc only where a leg's script stops;
+a failure is answered by DECLARATION-r3, never by editing this file.

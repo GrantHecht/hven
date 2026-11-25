@@ -1,0 +1,29 @@
+     1.58%  [.] difftime
+            |
+            ---mkl_serv_get_clocks_frequency
+               mkl_serv_dsecnd
+               std::once_flag::_Prepare_execution::_Prepare_execution<std::call_once<hven::solvers::ensure_solver_initialized()::$_0>(std::once_flag&, hven::solvers::ensure_solver_initialized()::$_0&&)::{lambda()#1}>(hven::solvers::ensure_solver_initialized()::$_0&)::{lambda()#1}::__invoke()
+               __pthread_once_slow.isra.0
+               pthread_once@GLIBC_2.2.5
+               hven::solvers::ensure_solver_initialized()
+               hven::solvers::IpmSolverImpl::run_phase_sequence(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, std::vector<hven::solvers::IpmSolverImpl::PhaseStep, std::allocator<hven::solvers::IpmSolverImpl::PhaseStep> > const&, hven::solvers::SolveBudget, hven::solvers::WarmStartData const*)
+               hven::solvers::IpmSolverImpl::solve(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+               hven::solvers::IpmSolver::solve(hven::solvers::Problem&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+               hven::solvers::corpus::run_interior_problem(std::shared_ptr<hven::solvers::Nlp> const&, hven::solvers::corpus::InteriorRowIdentity const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+               hven::solvers::corpus::run_interior_cell(hven::solvers::corpus::CorpusCell const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+               main
+     0.67%  [.] mkl_serv_get_clocks_frequency
+            |
+            ---mkl_serv_dsecnd
+               std::once_flag::_Prepare_execution::_Prepare_execution<std::call_once<hven::solvers::ensure_solver_initialized()::$_0>(std::once_flag&, hven::solvers::ensure_solver_initialized()::$_0&&)::{lambda()#1}>(hven::solvers::ensure_solver_initialized()::$_0&)::{lambda()#1}::__invoke()
+               __pthread_once_slow.isra.0
+               pthread_once@GLIBC_2.2.5
+               hven::solvers::ensure_solver_initialized()
+               hven::solvers::IpmSolverImpl::run_phase_sequence(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, std::vector<hven::solvers::IpmSolverImpl::PhaseStep, std::allocator<hven::solvers::IpmSolverImpl::PhaseStep> > const&, hven::solvers::SolveBudget, hven::solvers::WarmStartData const*)
+               hven::solvers::IpmSolverImpl::solve(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+               hven::solvers::IpmSolver::solve(hven::solvers::Problem&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SolveBudget)
+               hven::solvers::corpus::run_interior_problem(std::shared_ptr<hven::solvers::Nlp> const&, hven::solvers::corpus::InteriorRowIdentity const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+               hven::solvers::corpus::run_interior_cell(hven::solvers::corpus::CorpusCell const&, hven::solvers::FixedVariableTreatments, hven::solvers::corpus::InteriorLevers const&, hven::solvers::corpus::InteriorVariant const&)
+               main
+     0.15%  [.] __vdso_time
+     0.11%  [.] difftime@plt

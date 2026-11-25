@@ -1,0 +1,44 @@
+# schema: v1
+# harness.sha: 7b1edd8942ad18541b53515d796f2fcb76c26fe0
+# hven.pin.sha: 24b2a7e42f3a56f1f3293fe9d70d13fc4d50e708
+# hven.pin.compiler: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+# host.name: fedora
+# host.cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+# host.physical_cores: 8
+# generated.utc: 2026-11-17T08:27:25Z
+# mkl.num_threads: 1
+# run.mode: serial
+# wall.columns: wall_s
+# wall.quotable: true
+# split.policy: split-v1
+# apple.accelerate: UNOBSERVED
+# windows: UNOBSERVED
+# external.cutest: 2.7.1 (d76788ae042785ff6518378478057191ed884e53)
+# external.sifdecode: 3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)
+# NOT ASSERTED by schema/compare.py: this is a per-engine
+# surface, hand-enumerated from hven's public structs because
+# hven has no counters dump. harness_* fields are the harness's
+# own, not hven counters. See schema/v1.md.
+cell_id,factorizations,symbolic_analyses,restoration_entries,restoration_iters,soc_steps,nonfinite_step_rollbacks,polish_ignored,start_level_used,payload_ignored,watchdog_activations,recovery_depth_histogram,inertia_corrections,dense_solve_residual_refusals,dense_factorizations,kkt_analyses_total,kkt_factor_counters.analyze_count,kkt_factor_counters.factorize_count,kkt_factor_counters.solve_count,kkt_factor_counters.partial_solve_count,kkt_factor_counters.pattern_verify_count,kkt_factor_counters.dense_factorize_count,kkt_factor_counters.dense_fallback_count,kkt_factor_counters.dense_singular_count,kkt_factor_counters.dense_flagged_count,kkt_factor_counters.dense_condition_estimate_count,kkt_factor_counters.dense_equilibrated_estimate_count,kkt_factor_counters.dense_shift_refactor_count,kkt_factor_counters.dense_retake_count,phases_ran,ipm_kkt_inf,ipm_barr_inf,ipm_econ_inf,ipm_icon_inf,harness_eval_f,harness_eval_grad_f,harness_eval_g,harness_eval_jac,harness_eval_hess,harness_dual_sign_violation
+hs/hs003/hven-ipm/default,5,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,5,1,1,5,5,0,0,5,0,0,0,0,0,0,0,1,1.7980399584606339e-10,1.0000000100000286e-08,0,0,10,5,0,0,6,0
+hs/hs005/hven-ipm/default,8,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,8,1,1,8,8,0,0,8,0,0,0,0,0,0,0,1,4.6901153022640393e-09,5.6279965070160175e-09,0,0,16,8,0,0,9,0
+hs/hs006/hven-ipm/default,16,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],9,0,16,1,1,16,7,0,0,16,0,0,0,0,0,0,0,1,0,0,0,0,17,7,10,8,8,0
+hs/hs007/hven-ipm/default,16,1,0,0,0,0,0,Cold,0,0,[0;0;0;1;0],6,0,16,1,1,16,10,0,0,16,0,0,0,0,0,0,0,1,1.2871624321952879e-08,0,4.1828975838598126e-09,0,21,10,12,11,11,0
+hs/hs010/hven-ipm/default,10,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,10,1,1,10,10,0,0,10,0,0,0,0,0,0,0,1,4.7339841968696561e-07,9.9997154949668656e-13,0,1.5058885404160835e-07,20,10,10,11,11,0
+hs/hs011/hven-ipm/default,8,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,8,1,1,8,8,0,0,8,0,0,0,0,0,0,0,1,8.4376949871511897e-14,3.0493278589810136e-12,0,0,16,8,8,9,9,0
+hs/hs012/hven-ipm/default,13,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,13,1,1,13,13,0,0,13,0,0,0,0,0,0,0,1,1.5822997134762318e-08,9.9999941377371339e-13,0,4.014598252497992e-09,26,13,13,13,14,0
+hs/hs014/hven-ipm/default,7,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,7,1,1,7,7,0,0,7,0,0,0,0,0,0,0,1,1.1597043325650702e-08,9.9981600337673563e-13,0,5.606055974911011e-09,14,7,7,8,8,0
+hs/hs022/hven-ipm/default,6,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,6,1,1,6,6,0,0,6,0,0,0,0,0,0,0,1,6.5891553679975345e-07,4.7238657427371604e-11,0,5.9371637737236737e-07,12,6,6,7,7,0
+hs/hs025/hven-ipm/default,5,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],1,0,5,1,1,5,4,0,0,5,0,0,0,0,0,0,0,1,4.5265527891951006e-08,2.3383022594746396e-09,0,0,8,4,0,0,5,0
+hs/hs026/hven-ipm/default,20,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,20,1,1,20,20,0,0,20,0,0,0,0,0,0,0,1,7.1613377371034053e-09,0,8.2932582001760125e-07,0,40,20,20,21,21,0
+hs/hs027/hven-ipm/default,28,1,0,0,0,0,0,Cold,0,0,[0;0;0;1;0],13,0,28,1,1,28,18,0,0,28,0,0,0,0,0,0,0,1,2.709423332769818e-08,0,1.5079640880433232e-07,0,37,18,20,19,19,0
+hs/hs028/hven-ipm/default,2,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,2,1,1,2,2,0,0,2,0,0,0,0,0,0,0,1,2.6645352591003757e-15,0,2.2204460492503131e-16,0,4,2,2,3,3,0
+hs/hs030/hven-ipm/default,16,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,16,1,1,16,16,0,0,16,0,0,0,2,0,0,0,1,1.6973499014193029e-07,7.1805517467347197e-11,0,0,32,16,16,17,17,0
+hs/hs033/hven-ipm/default,15,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],5,0,15,1,1,15,10,0,0,15,0,0,0,0,0,0,0,1,2.283441613570858e-07,2.7294888653944421e-07,0,0,20,10,10,11,11,0
+hs/hs035/hven-ipm/default,6,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,6,1,1,6,6,0,0,6,0,0,0,0,0,0,0,1,3.7133434737881719e-13,3.7140595549767398e-08,0,0,12,6,6,7,7,0
+hs/hs039/hven-ipm/default,32,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],14,0,32,1,1,32,19,0,0,32,0,0,0,0,0,0,0,1,6.1982374788271954e-10,0,1.6731505079947129e-11,0,38,19,19,20,20,0
+hs/hs043/hven-ipm/default,12,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,12,1,1,12,12,0,0,12,0,0,0,0,0,0,0,1,2.7541700475808284e-08,2.8811308148396204e-09,0,1.7182492372901265e-08,24,12,12,12,13,0
+hs/hs045/hven-ipm/default,19,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],9,0,19,1,1,19,10,0,0,19,0,0,0,0,0,0,0,1,4.7995907248576941e-10,5.4534242832370458e-08,0,0,20,10,0,0,11,0
+hs/hs077/hven-ipm/default,9,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,9,1,1,9,9,0,0,9,0,0,0,0,0,0,0,1,4.8743328562306232e-07,0,4.4026602363800293e-08,0,19,9,10,10,10,0
+hs/hs079/hven-ipm/default,5,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,5,1,1,5,5,0,0,5,0,0,0,0,0,0,0,1,3.4126632353359554e-09,0,3.8876264429887897e-09,0,10,5,5,6,6,0
+hs/hs071/hven-ipm/default,10,1,0,0,0,0,0,Cold,0,0,[0;0;0;0;0],0,0,10,1,1,10,10,0,0,10,0,0,0,0,0,0,0,1,2.0331975919282083e-08,3.8930401032546998e-11,1.6303047800647619e-09,3.837213986919957e-09,20,10,10,11,11,0

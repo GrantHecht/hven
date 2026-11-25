@@ -1,0 +1,10 @@
+NLP-46 ACOPP118/default: H0 optimal maj 14 LA 34235 EV 29 | P optimal maj 6 LA 1733 EV 15 | C1 optimal maj 6 LA 6392 EV 15
+NLP-46 ACOPR118/default: H0 optimal maj 22 LA 14874 EV 47 | P acceptable maj 40 LA 21957 EV 77 | C1 optimal maj 192 LA 18254 EV 289
+NLP-46 BRITGAS/default: H0 optimal maj 50 LA 74805 EV 133 | P max_iter maj 1 LA 28400 EV 304 | C1 numerical_error maj 16 LA 68400 EV 135
+NLP-46 SAWPATH/sqp-qn: H0 optimal maj 44 LA 47406 EV 115 | P numerical_error maj 17 LA 24108 EV 55 | C1 optimal maj 53 LA 82381 EV 109
+NLP-46 STEENBRD/default: H0 optimal maj 107 LA 29308 EV 199 | P optimal maj 47 LA 20785 EV 99 | C1 optimal maj 69 LA 28462 EV 127
+NLP-46 STEENBRE/default: H0 optimal maj 82 LA 28100 EV 169 | P optimal maj 117 LA 46487 EV 225 | C1 optimal maj 84 LA 26369 EV 156
+NLP-46 MSS2/sqp-qn: H0 numerical_error maj 7 LA 7610 EV 51 | P numerical_error maj 37 LA 16544 EV 149 | C1 numerical_error maj 7 LA 7610 EV 51
+TRAIN-238 BT7/default: H0 optimal maj 97 LA 1428 f 360.37976717416603 | P optimal maj 17 LA 272 f 306.49999999995509
+TRAIN-238 CRESC100/default: H0 optimal maj 211 LA 16943 f 0.56760271636285275 | P optimal maj 40 LA 26907 f 0.56760270787355926
+TRAIN moved rows 198; rows differing in eqp_polish_steps 188, backend_solves_polish 163, border_refine_steps 109

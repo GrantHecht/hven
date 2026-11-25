@@ -1,0 +1,10 @@
+sparse-equil v4 r2 -- the frozen leg binaries (../DECLARATION-SEQ4-r2.md section 1), built by .scratch/r2/frozen.sh under the box
+lock from the code commit 4d70afbd025889a0b845a2902863edd17a5ecc3f (corpus B: build-k/rel; lane B: r2/legs/train_setup.sh B,
+private hven-bench clone pinned to the code commit) and the base 44f74446f5e5c973de3b06b5628b41fd39449cd8 (corpus A: seq4-base
+build-k/rel; lane A: train_setup.sh A2, the dev lane pinned to the base). Committed before the chain.
+CODE 4d70afbd025889a0b845a2902863edd17a5ecc3f
+CORPUS_A 078fe2984bb101462450ce4888f387a02de9f18fd51a4729d4f90b5780ba19ab
+CORPUS_B 003806283cd4666bc915ea18ecf52d9005b92846c3309852f2653eb969c2d8ed
+LANE_A 5e9d20cf4fe693ba53eeb6daa39cf8f4d8e7a25777f846c17e9420f802d4fec6
+LANE_B 9533b0dbc2bb2c9b057360dede7fea7f6df8baa14e2fea196e09d53d50d53f5d
+NTESTS 3909

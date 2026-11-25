@@ -1,0 +1,2 @@
+PF-4 r3: the per-process perf symbol tables (syms/, 30 MB) are not kept (the WA-1/TR-B convention); analysis.txt, stat/, raw/ and throttle/ are.
+The leg VOIDED at round 2 on one THROTTLED process (B, f7_n10000_bound_corrupted, 1 event); kernel.perf_event_max_sample_rate read 63000 afterwards.

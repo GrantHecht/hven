@@ -1,0 +1,1 @@
+.scratch/r5/dev-train-B: rows 476; qp minors 209264 -> 209591 (+0.16%); factorizations 249651 -> 251535 (+0.75%); status changes 1: sd-hven-sqp-CRESC100.K:infeasible->optimal

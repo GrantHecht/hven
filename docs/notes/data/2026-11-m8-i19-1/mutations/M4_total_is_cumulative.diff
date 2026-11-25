@@ -1,0 +1,4 @@
+8043c8043
+<         exported.qp_factorizations_total = st.out.counters.factorizations - st.row_work_base_fact;
+---
+>         exported.qp_factorizations_total = st.out.counters.factorizations;

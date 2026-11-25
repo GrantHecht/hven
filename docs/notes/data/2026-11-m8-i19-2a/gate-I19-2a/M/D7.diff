@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..9d5254925 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -480,7 +480,7 @@ struct SqpAdvancedOptions {
+ 
+     /// true: a growth is refused when the violation predicted at twice the radius,
+     /// h_lin + 4 * max(0, h_trial - h_lin), exceeds 0.99 of the funnel width.
+-    bool trust_region_growth_funnel_guard = false;
++    bool trust_region_growth_funnel_guard = true;
+ 
+     /// SSN Farkas certificate's relative-residual threshold (kFarkasGated only). In (0, 1).
+     double ssn_farkas_residual_tol = 1e-6;

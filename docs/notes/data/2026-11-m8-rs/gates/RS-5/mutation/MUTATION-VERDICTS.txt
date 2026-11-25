@@ -1,0 +1,36 @@
+clean tree: layering gtests rc=0 (want 0)
+clean install tree: export contract rc=0 (want 0)
+L1-core-up planted (include/hven/core/types.h -> hven/trace/trace.h): layering gtests rc=1 (want nonzero)
+  include/hven/core/types.h:93: #include of 'hven/trace/trace.h' reaches UP into hven/trace/ -- core/ is the bottom tier and may depend on no tier above it
+  include/hven/core/types.h:93: #include <hven/trace/trace.h> -- a core file includes a trace file -- upward
+L1-core-up restored: layering gtests rc=0 (want 0)
+L2-mid-up planted (include/hven/detail/barrier/barrier_math.h -> hven/detail/kkt/kkt_assembly.h): layering gtests rc=1 (want nonzero)
+  include/hven/detail/barrier/barrier_math.h:266: #include <hven/detail/kkt/kkt_assembly.h> -- a barrier file includes a kkt file -- upward
+L2-mid-up restored: layering gtests rc=0 (want 0)
+L3-sibling planted (src/ipm/ipm_options.cpp -> hven/sqp/sqp_options.h): layering gtests rc=1 (want nonzero)
+  src/ipm/ipm_options.cpp:763: #include <hven/sqp/sqp_options.h> -- an ipm file includes an sqp file -- ipm and sqp are siblings
+L3-sibling restored: layering gtests rc=0 (want 0)
+R1 planted root header (install tree): export contract rc=1 (want nonzero)
+FAIL: no such file: /home/ghecht/Projects/hven/.claude/worktrees/rs5/.scratch/mut-prefix/lib/cmake/hven/hvenTargets.cmake
+R2 planted unknown directory (install tree): export contract rc=1 (want nonzero)
+FAIL: no such file: /home/ghecht/Projects/hven/.claude/worktrees/rs5/.scratch/mut-prefix/lib/cmake/hven/hvenTargets.cmake
+R3 restored: export contract rc=1 (want 0)
+R4 planted root header (source tree): layering gtests rc=1 (want nonzero)
+  include/hven/stray.h
+R5 restored: layering gtests rc=0 (want 0)
+S0 clean tree: HeaderSelfContained rc=0 (want 0)
+S1 planted (nlp_eval.h loses its core/types.h include): HeaderSelfContained rc=8 (want nonzero)
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/sqp/nlp_eval.h:26:5: error: unknown type name 'Vec'
+S2 restored: HeaderSelfContained rc=0 (want 0)
+S3 planted NEW header (uses Vec, includes nothing): HeaderSelfContained rc=8 (want nonzero)
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/util/planted_not_selfcontained.h:2:25: error: unknown type name 'Vec'
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/include/hven/detail/util/planted_not_selfcontained.h:2:78: error: use of undeclared identifier 'Vec'
+S4 restored: HeaderSelfContained rc=0 (want 0)
+--- R1-R3 re-run by hand (the first pass derived the install prefix wrongly: lib64, not lib; legs/mutation5.sh corrected) ---
+R1 planted root header (install tree): export contract rc=1 (want nonzero)
+FAIL: file(s) at the include/hven root other than hven.h:
+stray.h
+R2 planted unknown directory (install tree): export contract rc=1 (want nonzero)
+FAIL: unknown directory under include/hven (not a known component: core detail ipm linear model qp solver sqp trace warmstart):
+not_a_component
+R3 restored: export contract rc=0 (want 0)

@@ -1,0 +1,110 @@
+== exp-c1/qp6_head.csv: 20000 minors
+  first dual_mu drop at record 5338 (1.000e-08 -> 1.000e-10)
+  verdicts: kOk 13063 kSuspect 6937 kWrong 0; perturbed passes 6937, pivots 58137, max in a pass 52
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=6937 median=1.97e-13 p99=5.12e-11 max=1.03e-09
+  EQP row residual, clean passes:     n=13063 median=6.94e-17 p99=9.47e-13 max=2.62e-11
+  EQP refusals 0
+  last pass: action 11 verdict 0 perturbed 0 mu 1.000e-10
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00  1188 | a0=8 a10=1658 | 0
+      1666 +3.1501657281e-01  2837 | a0=13 a4=166 a10=1155 a11=332 | 0
+      3332 +4.5703027117e-01  3776 | a0=52 a4=482 a10=425 a11=707 | 0
+      4998 +4.6752799544e-01  3586 | a4=564 a10=203 a11=899 | 1326
+      6664 +4.4095327527e-01  3226 | a4=588 a10=78 a11=1000 | 1627
+      8330 +3.9715613789e-01  2716 | a4=550 a10=249 a11=867 | 1298
+      9996 +3.1725578760e-01  2415 | a4=556 a10=240 a11=870 | 864
+     11662 +2.4766021328e-01  2099 | a4=553 a10=264 a11=849 | 546
+     13328 +1.8205738882e-01  1810 | a4=556 a10=300 a11=810 | 243
+     14994 +1.3672588156e-01  1554 | a4=561 a10=267 a11=838 | 390
+     16660 +9.4012649557e-02  1260 | a4=560 a10=282 a11=824 | 560
+     18326 +6.2830657863e-02   982 | a4=566 a10=298 a11=802 | 83
+     19992 +3.8426634104e-02   714 | a4=3 a10=1 a11=4 | 0
+== exp-c2/qp6_full.csv: 23431 minors
+  first dual_mu drop at record 5338 (1.000e-08 -> 1.000e-10)
+  verdicts: kOk 15934 kSuspect 7497 kWrong 0; perturbed passes 7497, pivots 58712, max in a pass 52
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=7497 median=1.88e-13 p99=5.06e-11 max=1.03e-09
+  EQP row residual, clean passes:     n=15934 median=6.94e-17 p99=1.69e-11 max=4.79e-11
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 1.000e-10
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00  1188 | a0=11 a10=1941 | 0
+      1952 +3.6039768898e-01  3114 | a0=15 a4=331 a10=979 a11=627 | 0
+      3904 +4.6423663787e-01  3695 | a0=47 a4=613 a10=417 a11=875 | 518
+      5856 +4.5033713597e-01  3390 | a4=683 a10=125 a11=1144 | 1943
+      7808 +4.3153372519e-01  2832 | a4=644 a10=264 a11=1044 | 1763
+      9760 +3.2646375490e-01  2452 | a4=652 a10=287 a11=1013 | 891
+     11712 +2.4532320691e-01  2087 | a4=647 a10=311 a11=994 | 607
+     13664 +1.7092736935e-01  1751 | a4=658 a10=360 a11=934 | 252
+     15616 +1.2170075482e-01  1453 | a4=656 a10=290 a11=1006 | 687
+     17568 +7.4493085899e-02  1087 | a4=657 a10=370 a11=925 | 239
+     19520 +4.5902628679e-02   800 | a4=665 a10=351 a11=936 | 465
+     21472 +1.9470347256e-02   486 | a4=668 a10=331 a11=953 | 132
+     23424 -3.4712982866e-03   149 | a4=2 a7=1 a11=4 | 0
+== exp-c2/qp6_norung.csv: 20000 minors
+  first dual_mu drop at record None
+  verdicts: kOk 20000 kSuspect 0 kWrong 0; perturbed passes 0, pivots 0, max in a pass 0
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: none
+  EQP row residual, clean passes:     n=20000 median=6.94e-17 p99=8.09e-13 max=2.62e-11
+  EQP refusals 0
+  last pass: action 11 verdict 0 perturbed 0 mu 1.000e-08
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00  1188 | a0=8 a10=1658 | 0
+      1666 +3.1501657281e-01  2837 | a0=13 a4=166 a10=1155 a11=332 | 0
+      3332 +4.5703027117e-01  3776 | a0=52 a4=482 a10=425 a11=707 | 0
+      4998 +4.6752799544e-01  3586 | a4=561 a10=204 a11=901 | 0
+      6664 +4.4110306062e-01  3230 | a4=589 a10=83 a11=994 | 0
+      8330 +3.9888480520e-01  2724 | a4=548 a10=247 a11=871 | 0
+      9996 +3.1872680460e-01  2423 | a4=557 a10=244 a11=865 | 0
+     11662 +2.4999569935e-01  2110 | a4=553 a10=262 a11=851 | 0
+     13328 +1.8372103892e-01  1819 | a4=557 a10=298 a11=811 | 0
+     14994 +1.3808636099e-01  1560 | a4=561 a10=271 a11=834 | 0
+     16660 +9.5299261417e-02  1270 | a4=559 a10=279 a11=828 | 0
+     18326 +6.3604279529e-02   990 | a4=565 a10=299 a11=802 | 0
+     19992 +3.9086030577e-02   724 | a4=3 a10=2 a11=3 | 0
+== exp-c3/qp6/wide.csv: 20000 minors
+  first dual_mu drop at record 4309 (1.000e-08 -> 1.000e-10)
+  verdicts: kOk 11496 kSuspect 8504 kWrong 0; perturbed passes 8504, pivots 131450, max in a pass 84
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: n=8504 median=7.86e-12 p99=1.14e-05 max=4.00e-05
+  EQP row residual, clean passes:     n=11496 median=2.22e-15 p99=9.93e-13 max=2.62e-11
+  EQP refusals 0
+  last pass: action 11 verdict 1 perturbed 1 mu 1.000e-12
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00  1188 | a0=8 a10=1658 | 0
+      1666 +3.1501657281e-01  2837 | a0=13 a4=166 a10=1155 a11=332 | 0
+      3332 +4.5703027117e-01  3776 | a0=15 a4=442 a10=476 a11=733 | 689
+      4998 +4.8246164840e-01  3683 | a4=566 a10=208 a11=892 | 1666
+      6664 +4.5881529786e-01  3325 | a4=587 a10=77 a11=1002 | 1656
+      8330 +4.2115550759e-01  2815 | a4=550 a10=233 a11=883 | 1374
+      9996 +3.3554424419e-01  2498 | a4=558 a10=247 a11=861 | 1205
+     11662 +2.6437673652e-01  2187 | a4=557 a10=262 a11=847 | 432
+     13328 +1.9779609588e-01  1892 | a4=558 a10=293 a11=815 | 180
+     14994 +1.4863629711e-01  1627 | a4=562 a10=308 a11=796 | 395
+     16660 +1.1023831130e-01  1373 | a4=559 a10=251 a11=856 | 694
+     18326 +7.2342747637e-02  1065 | a4=561 a10=327 a11=778 | 212
+     19992 +4.8773225286e-02   831 | a4=2 a10=2 a11=4 | 1
+== exp-c3/qp7/full.csv: 24338 minors
+  first dual_mu drop at record None
+  verdicts: kOk 24338 kSuspect 0 kWrong 0; perturbed passes 0, pivots 0, max in a pass 0
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: none
+  EQP row residual, clean passes:     n=24338 median=4.16e-17 p99=1.11e-12 max=2.37e-12
+  EQP refusals 0
+  last pass: action 7 verdict 0 perturbed 0 mu 1.000e-08
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +1.0650807133e-02  1172 | a0=9 a10=2019 | 0
+      2028 +1.6904537587e-01  3182 | a0=35 a4=201 a10=1395 a11=397 | 0
+      4056 +2.2452546719e-01  3891 | a0=1 a4=662 a10=345 a11=1020 | 0
+      6084 +2.2203395734e-01  3463 | a4=670 a10=334 a11=1024 | 0
+      8112 +1.8954164846e-01  3127 | a4=681 a10=339 a11=1008 | 0
+     10140 +1.6172725192e-01  2785 | a4=690 a10=357 a11=981 | 0
+     12168 +1.3718230827e-01  2452 | a4=684 a10=303 a11=1041 | 0
+     14196 +1.1036978356e-01  2071 | a4=693 a10=276 a11=1059 | 0
+     16224 +8.3357323049e-02  1654 | a4=690 a10=274 a11=1064 | 0
+     18252 +5.8094229762e-02  1238 | a4=688 a10=290 a11=1050 | 0
+     20280 +3.5403936310e-02   840 | a4=686 a10=297 a11=1045 | 0
+     22308 +1.4341333407e-02   451 | a4=681 a10=377 a11=970 | 0
+     24336 -3.5340590166e-03   147 | a7=1 a11=1 | 0

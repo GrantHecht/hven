@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:11:01-05:00
+ cmake/hven_pin.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+HVEN_PIN_SHA 006ccc49663611dc27440989860d1a1f468e4090
+39e08bce607540430a0b882dcb92d1c438799cf72d964fc606e4617f216bf348  /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/bin/B/hven_bench_cell
+31a5192058dd471e58b73281974ee39d5c993eb78853857d1dac220dca32263d  /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/.scratch/hb/.hven/install-006ccc496636/lib64/libhven.a
+ecfaa06 EVIDENCE-ONLY (private clone, never pushed): pin hven 006ccc496 (kopt-1x arm B)
+FOREGROUND_END 2026-11-15T15:11:26-05:00

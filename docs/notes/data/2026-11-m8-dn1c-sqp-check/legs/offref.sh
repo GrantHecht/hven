@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# M8 DN-1c (../DECLARATION.txt): copied from ../../2026-11-m8-dn1b-guard/ and re-pointed (worktree dn1c, evidence this directory, arm A and arm B trees build-dn1ce/, arm A 2199d1a2f rebuilt by legs/prebuild.sh); older provenance lines below are historical.
+# M8 DN-1b (../DECLARATION.txt): copied from ../../2026-11-m8-dn1-impl/r2/ and re-pointed (worktree dn1b, evidence this directory, arm A and arm B trees build-dn1be/, arm A 7784e4f59 rebuilt by legs/prebuild.sh); older provenance lines below are historical.
+# M8 DN-1 r2 (../../DECLARATION-r2.txt): copied from ../../legs/ and re-pointed (evidence r2/, arm B trees build-dn1r2/; arm A read-only from build-dn1e/).
+# M8 DN-1 impl: copied from R11 (2026-11-m8-r11-block-decode) and re-pointed: worktree dn1, build-dn1e, this directory, arm A 02065dac.
+# M8 R11: copied from F1 (2026-11-m8-f1-init; runtime from its runtime-r2, period 400000; census legs from PF-1) and re-pointed: worktree r11, build-r11e, this directory, arm A a8c540cf.
+# M8 F1 (copied from PF-1, re-pointed: worktree f1, build-f1, this directory, arm A 2340b95d). Was: M8 PF-1, copied from PF-HB (which copied the B8 riders) and re-pointed (worktree, build-f1, this directory); was: AP-2 B8 riders (copied from B7 riders, re-pointed) (the B3/B4 instrument), settler C222 addition: the off-reference CI-flag build. The linux-clang-release
+# preset with -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON and
+# HVEN_BUILD_EXAMPLES=ON, into build-r11e/offref (the preset's binaryDir overridden with -B),
+# built clean, then ctest Release (-j4 under setsid).
+# usage: offref.sh <evidence-dir>   Run as: flock /tmp/box-build.lock bash offref.sh ...
+set -o pipefail
+WT=/home/ghecht/Projects/hven/.claude/worktrees/dn1c
+EV=${1:?evidence dir}
+if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo "PGREP_BUSY"; pgrep -a hven_bench_cell; exit 3; fi
+echo PGREP_EMPTY
+echo "FOREGROUND_START $(date -Is)"
+export MKL_NUM_THREADS=1
+cd "$WT" || exit 1
+mkdir -p "$EV"
+DIR=$WT/build-dn1ce/offref
+rm -rf "$DIR"
+cmake --preset linux-clang-release -B "$DIR" -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF \
+  -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON > "$EV/configure.log" 2>&1 || { echo CONFIGURE_FAIL; tail -20 "$EV/configure.log"; exit 1; }
+ninja -C "$DIR" -j16 > "$EV/build.log" 2>&1
+rc=$?
+echo "build rc=$rc"; grep -cE 'warning:' "$EV/build.log"; tail -2 "$EV/build.log"
+[ $rc -ne 0 ] && { grep -E 'error' "$EV/build.log" | head -40; echo "FOREGROUND_END $(date -Is)"; exit $rc; }
+cd "$DIR" || exit 1
+setsid ctest -j4 --output-on-failure > "$EV/ctest-release.log" 2>&1
+rc=$?
+tail -5 "$EV/ctest-release.log"
+echo "ctest rc=$rc"
+echo "FOREGROUND_END $(date -Is)"
+exit $rc

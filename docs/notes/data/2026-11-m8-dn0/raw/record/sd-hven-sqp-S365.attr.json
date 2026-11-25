@@ -1,0 +1,138 @@
+{
+ "samples": 174,
+ "period": 1000003,
+ "instr_sampled_all": 196477522,
+ "instr_sampled_solver": 27507072,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 0,
+  "B_kkt": 0,
+  "B_eval": 1273003,
+  "B_setup": 24129063,
+  "B_eng": 2105006,
+  "B_proc": 168970450
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.04627911687583469,
+  "B_setup": 0.8771948900995351,
+  "B_eng": 0.07652599302463017
+ },
+ "proc_share_of_all": 0.8599988857758497,
+ "rule_instr": 195407519,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1070003,
+ "unmatched_share_of_solver": 0.03889919654116585,
+ "chains_reaching_main": 0.2471264367816092,
+ "init_instr": 0,
+ "steady_state_instr": 27507072,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.04627911687583469,
+  "B_setup": 0.8771948900995351,
+  "B_eng": 0.07652599302463017
+ },
+ "fac_split": [],
+ "mkl_serv_instr": 0,
+ "kmp_instr": 2105006,
+ "top_unmatched_leaf": [
+  [
+   "<empty>",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    1273003
+   ]
+  ],
+  "B_setup": [
+   [
+    "formatted_transfer_scalar_read",
+    3490009
+   ],
+   [
+    "_gfortrani_set_fpu_rounding_mode",
+    2385006
+   ],
+   [
+    "_gfortrani_read_block_form",
+    2336006
+   ],
+   [
+    "formatted_transfer",
+    2280006
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>& Eigen::SparseMatrix<double, 1, int>::operator=<Eigen::SparseMatrix<double, 0, int> >",
+    2259006
+   ],
+   [
+    "malloc",
+    1231003
+   ],
+   [
+    "operator new",
+    1224003
+   ],
+   [
+    "_gfortrani_unget_format",
+    1210003
+   ]
+  ],
+  "B_eng": [
+   [
+    "<empty>",
+    1070003
+   ],
+   [
+    "hven::WarmStart::operator=",
+    1035003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    60622162
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    42271111
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    17331045
+   ],
+   [
+    "strcmp",
+    14491039
+   ],
+   [
+    "check_match",
+    5609015
+   ],
+   [
+    "_dl_runtime_resolve_xsavec",
+    3497009
+   ],
+   [
+    "mprotect",
+    2434006
+   ],
+   [
+    "__strlen_avx2",
+    2266006
+   ]
+  ]
+ }
+}

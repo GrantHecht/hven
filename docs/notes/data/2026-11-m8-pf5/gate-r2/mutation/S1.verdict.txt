@@ -1,0 +1,2 @@
+APPLIED S1 to src/sqp/sqp_solver.cpp
+MUT S1 rc=0 killers=0

@@ -1,4 +1,4 @@
-# M6 W1 T9 fix round 1 -- THE kIpm ARM's SCHEMA-76 BASELINE, a DECLARED
+# M6 W1 T9 fix round 1 -- THE kIpqp ARM's SCHEMA-76 BASELINE, a DECLARED
 # artifact (CLAUDE.md section 7). The 27-cell U0 replay set under --engine ipm,
 # every one of the 76 columns including the 39 IpqpCounters fields T9 appended.
 # It is a NEW artifact: no committed baseline was regenerated to make it.

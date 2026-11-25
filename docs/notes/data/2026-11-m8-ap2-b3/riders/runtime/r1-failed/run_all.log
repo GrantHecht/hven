@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T18:33:21-05:00
+d7c14361143f673e49c0679d3a8f3f5632b65615f4bdf54a9a86605b35a27234  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-r/armAbin/hven_sqp_corpus
+24a097eaad6abacc0a5ff9a689c7b39ca245cc5961e98cfc832e10afca5a061d  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-r/armB/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-02T18:35:18-05:00
+ANALYSIS mode=interior rc=2
+STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing -> STOP
+VERDICT FAIL(mode=interior leg_rc=0 analysis_rc=2)
+FOREGROUND_END 2026-11-02T18:35:19-05:00

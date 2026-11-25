@@ -1,0 +1,9 @@
+label=default+advanced.trust_region_growth=kRatioOrFeasibilityStep
+rc=0
+CELL_BEGIN
+lane=hven-sqp
+problem=ACOPR118
+options_label=default+advanced.trust_region_growth=kRatioOrFeasibilityStep
+threw=1
+exception=cutest: cannot enter .scratch/h3/decoded/ACOPR118 (No such file or directory). Run scripts/decode_cutest.sh first.
+CELL_END

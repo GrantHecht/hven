@@ -1,0 +1,14 @@
+M8 AP-2 group B6 riders -- DECLARATION-r2 (successor to DECLARATION.txt; committed before the re-run;
+never edited afterwards)
+================================================================================
+WHAT FAILED. The first invocation of legs/chain1.sh (2026-11-04, after the runtime gate passed) stopped in
+its fail-closed PRE-FLIGHT, before its first leg: PREFLIGHT_STALE_PATH on two lines that are not stale --
+chain1.sh's own grep pattern line, and legs/armA_config.sh's informational `sha256sum` of B6's frozen arm B
+(build-b6/armBbin), a script that ran before DECLARATION.txt was committed and that the chain does not run.
+No leg ran; no proof data was produced. The record is kept: chain/chain1-run1-preflight-refused.log.
+THE FIX. legs/chain1.sh's pre-flight scans every script in this directory EXCEPT chain1.sh itself and
+armA_config.sh (comment in the script). No other script changed. The runtime gate's evidence
+(runtime/, committed at 62d7a0bb) is unaffected: it does not run through chain1.sh.
+CRITERIA. Unchanged: DECLARATION.txt's P1-P10 and declared differences X1-X6 apply verbatim to the re-run;
+P11 is satisfied by the committed runtime gate (VERDICT PASS). Code head unchanged (add9128c); arm B
+sha256 ba7735c4f0d3a6ad9e3cc0473da3af6d3fca9e485bfdd9496683af9e79da0bd8.

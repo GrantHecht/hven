@@ -1,0 +1,15 @@
+PF4PROBE_BEGIN
+PF4 skipped_retake=0 syncs_zero=37
+PF4 analyses=42 repeat_of_last=0 repeat_of_any_seen=11 distinct=31
+PF4K k=1 batches=9 cols=9 instr_single=4863848 instr_multi=4857578 ns_single=366169 ns_multi=393747 identical=9 differ=0 max_rel=0.000e+00
+PF4K k=3 batches=3 cols=9 instr_single=4849862 instr_multi=3973597 ns_single=367387 ns_multi=367549 identical=0 differ=9 max_rel=3.038e-10
+PF4K k=7 batches=1 cols=7 instr_single=3781971 instr_multi=2290485 ns_single=288138 ns_multi=272259 identical=0 differ=7 max_rel=4.208e-08
+PF4K k=8 batches=2 cols=16 instr_single=8635356 instr_multi=4898112 ns_single=657416 ns_multi=446228 identical=0 differ=16 max_rel=4.208e-08
+PF4K k=9 batches=5 cols=45 instr_single=24315464 instr_multi=13561361 ns_single=1833370 ns_multi=1232863 identical=0 differ=45 max_rel=4.632e-08
+PF4K k=10 batches=7 cols=70 instr_single=37820919 instr_multi=20311120 ns_single=2853504 ns_multi=1873119 identical=0 differ=70 max_rel=4.632e-08
+PF4K k=11 batches=3 cols=33 instr_single=17833525 instr_multi=9565809 ns_single=1355311 ns_multi=858757 identical=0 differ=33 max_rel=4.632e-08
+PF4K k=12 batches=3 cols=36 instr_single=19455083 instr_multi=10008221 ns_single=1486991 ns_multi=879517 identical=0 differ=36 max_rel=4.632e-08
+PF4K k=13 batches=4 cols=52 instr_single=28099353 instr_multi=14324275 ns_single=2128867 ns_multi=1287573 identical=0 differ=52 max_rel=4.632e-08
+PF4K k=14 batches=2 cols=28 instr_single=15129671 instr_multi=7636145 ns_single=1149802 ns_multi=711147 identical=0 differ=28 max_rel=4.208e-08
+PF4N n0=242 batches=39
+PF4PROBE_END

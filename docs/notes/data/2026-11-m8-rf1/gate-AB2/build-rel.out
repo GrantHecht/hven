@@ -1,0 +1,4 @@
+[22/27] Linking CXX executable bench/hven_sqp_crossover
+[23/27] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[24/27] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+rc=0

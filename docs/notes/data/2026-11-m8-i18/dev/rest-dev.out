@@ -1,0 +1,126 @@
+P5-A 2026-11-20T15:20:14-05:00
+box-lane: lane 0 acquired 2026-11-20T15:20:14-05:00
+FOREGROUND_START 2026-11-20T15:20:14-05:00 lane=0 phys=0 1 2 3 width=4
+jobs: 42; results: 42; capped: 0
+FOREGROUND_END 2026-11-20T15:22:21-05:00
+P5-B 2026-11-20T15:22:21-05:00
+box-lane: lane 0 acquired 2026-11-20T15:22:21-05:00
+FOREGROUND_START 2026-11-20T15:22:21-05:00 lane=0 phys=0 1 2 3 width=4
+jobs: 42; results: 42; capped: 0
+FOREGROUND_END 2026-11-20T15:24:41-05:00
+MOVER NEUTRAL  hven-sqp-NET3
+    A: status=max_iter iterations=1 objective=227947.49139694648 reference_abs_err=null elastic_activations=1 restoration_iters=4 qp_minor_iters=16138
+    B: status=max_iter iterations=1 objective=227947.49139694648 reference_abs_err=null elastic_activations=1 restoration_iters=4 qp_minor_iters=16138
+    diff: factorizations: 16198 -> 16102; side.eqp_refine_steps: 0 -> 3; side.factorizations: 16198 -> 16102; side.harness_factorizations_total: 16201 -> 16105; side.harness_qpsum_dep_deferred_adds: 2961 -> 2958; side.harness_qpsum_dep_dependent: 11630 -> 8583; side.harness_qpsum_dep_grey_rereads: 425 -> 422; side.harness_qpsum_dep_implied_passovers: 4107 -> 1152; side.harness_qpsum_dep_inertia_rereads: 2 -> 1; side.harness_qpsum_dep_known_dependent_refusals: 1 -> 0; side.harness_qpsum_dep_passovers: 4002 -> 4004; side.harness_qpsum_dep_pin_skips: 434 -> 331
+MOVER NEUTRAL  hven-sqp-ACOPR118
+    A: status=max_iter iterations=5 objective=129584.10453300638 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=7505
+    B: status=max_iter iterations=5 objective=129584.10453300638 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=7505
+    diff: side.eqp_polish_steps: 1186 -> 1180; side.eqp_refine_steps: 0 -> 1
+MOVER NEUTRAL  hven-sqp-STEENBRC
+    A: status=optimal iterations=88 objective=27504.936820531504 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=27973
+    B: status=optimal iterations=91 objective=27504.936820482199 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=32554
+    diff: eval_f: 93 -> 101; eval_g: 107 -> 115; factorizations: 35787 -> 41279; iterations: 88 -> 91; side.active_set_delta_total: 3606 -> 3742; side.border_refine_steps: 601 -> 412; side.eqp_polish_steps: 15949 -> 15476; side.eqp_refine_iters: 745 -> 738; side.eqp_refine_steps: 0 -> 168; side.eqp_residual_refusals: 320 -> 325; side.evals_values: 33 -> 41; side.factorizations: 35787 -> 41279
+MOVER NEUTRAL  hven-sqp-STEENBRG
+    A: status=optimal iterations=72 objective=27420.929665048159 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=23432
+    B: status=optimal iterations=116 objective=27420.929665199492 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=28710
+    diff: eval_f: 79 -> 136; eval_g: 93 -> 150; eval_hess: 68 -> 90; eval_jac: 68 -> 90; factorizations: 31079 -> 38209; iterations: 72 -> 116; side.accepted_f_type: 48 -> 70; side.active_set_delta_peak: 299 -> 296; side.active_set_delta_total: 2676 -> 3246; side.border_refine_steps: 586 -> 432; side.eqp_polish_steps: 14817 -> 15965; side.eqp_refine_iters: 729 -> 839
+MOVER NEUTRAL  hven-sqp-YORKNET
+    A: status=numerical_error iterations=6 objective=53368.040358179773 reference_abs_err=null elastic_activations=5 restoration_iters=27 qp_minor_iters=13391
+    B: status=numerical_error iterations=23 objective=79784.384178059176 reference_abs_err=null elastic_activations=12 restoration_iters=84 qp_minor_iters=18251
+    diff: eval_f: 7 -> 24; eval_g: 37 -> 114; eval_hess: 17 -> 36; eval_jac: 26 -> 94; factorizations: 14825 -> 21565; iterations: 6 -> 23; kkt_complementarity: 0 -> 2.5429132446736311e-13; side.accepted_f_type: 0 -> 12; side.accepted_h_type: 4 -> 9; side.active_set_delta_total: 88 -> 126; side.border_refine_steps: 1451 -> 1216; side.elastic_activations: 5 -> 12
+MOVER NEUTRAL  hven-sqp-STEENBRB
+    A: status=optimal iterations=67 objective=9086.1898281220529 reference_abs_err=null elastic_activations=5 restoration_iters=9 qp_minor_iters=19099
+    B: status=optimal iterations=81 objective=9075.8553755339981 reference_abs_err=null elastic_activations=4 restoration_iters=10 qp_minor_iters=22871
+    diff: eval_f: 69 -> 93; eval_g: 78 -> 103; eval_hess: 61 -> 69; eval_jac: 61 -> 69; factorizations: 25305 -> 29878; iterations: 67 -> 81; side.accepted_f_type: 45 -> 53; side.accepted_h_type: 4 -> 3; side.active_set_delta_peak: 252 -> 253; side.active_set_delta_total: 2433 -> 2406; side.border_refine_steps: 799 -> 549; side.elastic_activations: 5 -> 4
+MOVER NEUTRAL  hven-sqp-STEENBRE
+    A: status=optimal iterations=80 objective=27459.163311770888 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=14948
+    B: status=optimal iterations=82 objective=27464.970959577724 reference_abs_err=null elastic_activations=4 restoration_iters=14 qp_minor_iters=17935
+    diff: eval_f: 84 -> 94; eval_g: 98 -> 108; eval_hess: 73 -> 75; eval_jac: 73 -> 75; factorizations: 23434 -> 28100; iterations: 80 -> 82; side.accepted_f_type: 53 -> 55; side.active_set_delta_peak: 294 -> 293; side.active_set_delta_total: 2407 -> 2427; side.border_refine_steps: 505 -> 434; side.eqp_polish_steps: 13309 -> 16168; side.eqp_refine_iters: 363 -> 730
+MOVER NEUTRAL  hven-sqp-STEENBRD
+    A: status=optimal iterations=85 objective=9030.0818667716558 reference_abs_err=null elastic_activations=4 restoration_iters=11 qp_minor_iters=21336
+    B: status=optimal iterations=77 objective=9030.0818667776184 reference_abs_err=null elastic_activations=3 restoration_iters=11 qp_minor_iters=24844
+    diff: eval_f: 97 -> 82; eval_g: 108 -> 93; factorizations: 30397 -> 32927; iterations: 85 -> 77; side.accepted_f_type: 54 -> 55; side.accepted_h_type: 3 -> 2; side.active_set_delta_peak: 247 -> 250; side.active_set_delta_total: 2267 -> 1753; side.border_refine_steps: 914 -> 429; side.elastic_activations: 4 -> 3; side.elastic_escalations: 18 -> 12; side.eqp_polish_steps: 12928 -> 20098
+MOVER NEUTRAL  hven-sqp-ACOPR57
+    A: status=optimal iterations=16 objective=41737.786035029698 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=2296
+    B: status=optimal iterations=16 objective=41737.786035029756 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=2461
+    diff: factorizations: 1618 -> 1750; side.border_refine_steps: 1089 -> 1110; side.eqb_gram_factorizations: 2 -> 1; side.eqb_recomputes: 1 -> 0; side.eqp_polish_steps: 580 -> 578; side.factorizations: 1618 -> 1750; side.harness_factorizations_total: 1621 -> 1752; side.harness_qp_ledger_solves: 17 -> 18; side.harness_qpsum_dep_blocker_terminations: 0 -> 1; side.harness_qpsum_dep_border_retreats: 12 -> 13; side.harness_qpsum_dep_dependent: 1153 -> 1283; side.harness_qpsum_dep_grey_rereads: 5 -> 6
+MOVER NEUTRAL  hven-sqp-ACOPP57
+    A: status=optimal iterations=5 objective=41737.786849846176 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=85
+    B: status=optimal iterations=5 objective=41737.786849846176 reference_abs_err=null elastic_activations=0 restoration_iters=0 qp_minor_iters=85
+    diff: side.border_refine_steps: 59 -> 57
+
+SUMMARY rows 42; movers 10; worse 0; missing/capped 0
+REPORT_ONLY
+P6 2026-11-20T15:24:41-05:00
+box-lane: lane 0 acquired 2026-11-20T15:24:41-05:00
+FOREGROUND_START 2026-11-20T15:24:41-05:00 lane=0
+A1 include/hven/detail/qp/walk/eqp_solve.h count=1
+A2 include/hven/detail/qp/walk/bordered_eqp.h count=1
+A3 include/hven/detail/qp/walk/eqp_solve.h count=1
+A4 include/hven/detail/qp/walk/eqp_solve.h count=1
+A5 include/hven/detail/qp/walk/eqp_solve.h count=1
+A6 include/hven/detail/qp/walk/bordered_eqp.h count=1
+A7 include/hven/detail/qp/walk/eqp_solve.h count=1
+A8 include/hven/detail/qp/walk/bordered_eqp.h count=1
+L1 tests/qp/support/qp_dump.h count=1
+ANCHORS_OK
+control: 0 failing
+APPLIED A1 include/hven/detail/qp/walk/eqp_solve.h
+A1: KILLED (1) QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheRefactorizeAlgebra 
+APPLIED A2 include/hven/detail/qp/walk/bordered_eqp.h
+A2: KILLED (1) QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheBorderAlgebra 
+APPLIED A3 include/hven/detail/qp/walk/eqp_solve.h
+A3: KILLED (3) QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheBorderAlgebra QpIssue18AccuracyStop.TheFeasibleQpIsSolvedOnTheRefactorizeAlgebra QpIssue18AccuracyStop.TheVerdictAndKeepRules 
+APPLIED A4 include/hven/detail/qp/walk/eqp_solve.h
+A4: KILLED (2) QpE4ProximalEqp.TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy QpIssue18AccuracyStop.TheVerdictAndKeepRules 
+APPLIED A5 include/hven/detail/qp/walk/eqp_solve.h
+A5: KILLED (1) QpIssue18AccuracyStop.TheVerdictAndKeepRules 
+APPLIED A6 include/hven/detail/qp/walk/bordered_eqp.h
+A6: SURVIVED (0) 
+APPLIED A7 include/hven/detail/qp/walk/eqp_solve.h
+A7: KILLED (12) QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible QpE2Fix9StandstillRetreat.Acopp118Qp0Border QpE2WorkingSet.TheLockedVertexUnlocksOnTheAcopr57PrimalQps 
+APPLIED A8 include/hven/detail/qp/walk/bordered_eqp.h
+A8: KILLED (2) QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget 
+APPLIED L1 tests/qp/support/qp_dump.h
+L1: KILLED (1) QpIssue18AccuracyStop.TheLoaderKeepsTheDumpedConvexityPromise 
+FOREGROUND_END 2026-11-20T15:46:45-05:00
+P7 2026-11-20T15:46:45-05:00
+box-lane: lane 0 acquired 2026-11-20T15:46:45-05:00
+FOREGROUND_START 2026-11-20T15:46:45-05:00
+SMOKE_START default 2026-11-20T15:46:45-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-20T15:49:23-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/i18fix/.scratch/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-20T15:51:10-05:00
+DEV_REST_DONE 2026-11-20T15:51:10-05:00

@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index c46ae936d..813fa7a8a 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10824,7 +10824,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
+         if (!stop_detail_.empty()) {
+             origin += fmt::format(" ({})", stop_detail_);
+         }
+-        publish_stop(StopReason::kNone, std::move(origin));
++        publish_stop(StopReason::kNone, std::string());
+         out.status = SolveStatus::kAcceptable;
+         out.best_iterate.reset();
+     }

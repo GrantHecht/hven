@@ -1,0 +1,4 @@
+hven_drivers_tests       HVEN_GOLDEN_DIR          literal size 82 -> 90  (30 TUs)
+hven_drivers_tests       HVEN_SRC_ROOT            literal size 73 -> 72  (30 TUs)
+hven_drivers_tests       HVEN_TRACE_FIXTURE_DIR   literal size 79 -> 87  (30 TUs)
+3 symbol-map entries

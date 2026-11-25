@@ -1,0 +1,272 @@
+{
+ "samples": 561,
+ "period": 1000003,
+ "instr_sampled_all": 634221683,
+ "instr_sampled_solver": 455235209,
+ "bucket_instr": {
+  "B_sym": 1238003,
+  "B_fac": 380771014,
+  "B_kkt": 8008021,
+  "B_eval": 3658009,
+  "B_setup": 16932045,
+  "B_eng": 44628117,
+  "B_proc": 178986474
+ },
+ "share_of_solver": {
+  "B_sym": 0.0027194798985770013,
+  "B_fac": 0.836426986472393,
+  "B_kkt": 0.01759095263653036,
+  "B_eval": 0.008035426363517503,
+  "B_setup": 0.03719405851141009,
+  "B_eng": 0.09803309611757205
+ },
+ "proc_share_of_all": 0.28221437203685135,
+ "rule_instr": 620506647,
+ "fallback_instr": 5476015,
+ "fallback_by_bucket": {
+  "B_fac": 5476015
+ },
+ "unmatched_instr": 8239021,
+ "unmatched_share_of_solver": 0.018098382631911058,
+ "chains_reaching_main": 0.0677361853832442,
+ "init_instr": 0,
+ "steady_state_instr": 455235209,
+ "steady_state_share": {
+  "B_sym": 0.0027194798985770013,
+  "B_fac": 0.836426986472393,
+  "B_kkt": 0.01759095263653036,
+  "B_eval": 0.008035426363517503,
+  "B_setup": 0.03719405851141009,
+  "B_eng": 0.09803309611757205
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   360670960
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   6805018
+  ],
+  [
+   "<no hven::linear frame>",
+   5476015
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   3231009
+  ],
+  [
+   "hven::linear::detail::FactorSession::~FactorSession",
+   1238003
+  ],
+  [
+   "hven::linear::detail::FactorSession::FactorSession",
+   1203003
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   1126003
+  ],
+  [
+   "hven::linear::SymmetricFactor::epoch",
+   1021003
+  ]
+ ],
+ "mkl_serv_instr": 60426162,
+ "kmp_instr": 197457522,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   5707015
+  ],
+  [
+   "unlink_chunk.isra.0",
+   1273003
+  ],
+  [
+   "MKL_Read_ThreadENV_Count_Cores",
+   1259003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "hven::linear::SymmetricFactor::analyze",
+    1238003
+   ]
+  ],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    22729063
+   ],
+   [
+    "__strcmp_avx2",
+    17065045
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    16778045
+   ],
+   [
+    "__kmp_fork_call",
+    16128042
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    14785039
+   ],
+   [
+    "__kmp_serialized_parallel",
+    14044036
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    13708036
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    13337036
+   ]
+  ],
+  "B_kkt": [
+   [
+    "malloc",
+    2378006
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    2364006
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    1182003
+   ],
+   [
+    "hven::detail::SchurComplement::drop_border",
+    1049003
+   ],
+   [
+    "hven::detail::SchurComplement::solve",
+    1035003
+   ]
+  ],
+  "B_eval": [
+   [
+    "unlink_chunk.isra.0",
+    1231003
+   ],
+   [
+    "hven::detail::AssemblyEvalSeam::jacobians_only",
+    1224003
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_hess_in_place",
+    1203003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_gfortrani_read_block_form",
+    3427009
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >::resize",
+    1189003
+   ],
+   [
+    "round_and_return",
+    1168003
+   ],
+   [
+    "_gfortrani_check_for_recursive",
+    1161003
+   ],
+   [
+    "__mpn_mul",
+    1154003
+   ],
+   [
+    "wrap_scalar_transfer.constprop.0",
+    1147003
+   ],
+   [
+    "data_transfer_init",
+    1140003
+   ],
+   [
+    "__getrusage",
+    1126003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    5707015
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    4546012
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    3798009
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    3378009
+   ],
+   [
+    "malloc",
+    2273006
+   ],
+   [
+    "hven::detail::bordered_regularized_residual",
+    2245006
+   ],
+   [
+    "unlink_chunk.isra.0",
+    1273003
+   ],
+   [
+    "Eigen::internal::sparse_time_dense_product_impl<Eigen::SparseMatrix<double, 1, int>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, double, 1, true>::run",
+    1266003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    58517156
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    38144102
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    24982066
+   ],
+   [
+    "strcmp",
+    14261036
+   ],
+   [
+    "check_match",
+    9358024
+   ],
+   [
+    "rml::internal::LargeObjectCache::reset",
+    3371009
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2371006
+   ],
+   [
+    "memmove",
+    2294006
+   ]
+  ]
+ }
+}

@@ -1,0 +1,17 @@
+M8 TR-A verdicts (r3-r5 supersede r1/r2: r1/r2 results are kept in DECLARATION.md/DECLARATION-r2.md history and r3/ evidence). Base fa97d6bf0 (arm A, unmoved on fetch); code head d5fe12d26 (declarations: DECLARATION-r3.md 2e1308aa2, -r4 123d415c9, -r5 deabd7ee6, each committed before its legs).
+arm A sha256 8ad4cc11eb5ea78b9988bdd7fa5cbb01e4f4993ed7151c187420adef97b3e477
+arm B sha256 c661694c1aaace8e7365a205523c023f5008bfa16a1a1dd43090c4efca1dd9d2 (r4; r3's db4f8e60f build was f09806ab9ad0feeb6b4128f1276f08324fe3b955ce8cf476d7a2b00ddab5c9f3)
+RUN HISTORY
+ r3 (db4f8e60f): A/A PASS, runtime P2 PASS, ctest Release PASS; ctest Debug FAILED (HumanTraceGoldens: roundoff-level residuals in Release-derived goldens) -> chain stopped; evidence in r3/.
+ r4 (d5fe12d26): all legs PASS; the verdict step failed on an instrument fault (comma in two mutation descriptions shifted CSV columns); evidence in r4/.
+ r5 (d5fe12d26): mutation leg + verdict re-run with the fix: PASS. Every other r4 leg stands (inputs unmoved).
+P1 ctest Release (3821 tests, rel tree) 100% passed; ctest Debug (3821, dbg tree, every target) 100% passed, at d5fe12d26 (r4: suites/).
+P2 A/A calibration (r3, arm A as both arms): interior 1.000000, ipm 1.000000, ssn 1.000000, walk 0.999998; largest within-arm round spread 0.00000 / 0.00006 / 0.00043 / 0.00063 -> the frozen band [0.995, 1.005] is CONFIRMED (all inside the declared [0.999, 1.001]). runtime/aa/.
+P2 runtime/instructions off (solo, serial, r4): PASS. FILTERED B/A interior 1.000080, ipm 1.000000, ssn 1.000000, walk 0.999998 (band 0.995-1.005); counter identity holds, 0 throttled processes. runtime/<mode>/analysis.txt.
+P3 replay 27 cells x walk/ssn/ipm exact, differences 0 x3; armed (callback count + unfired token + counting sink) 0 x3. PASS (replay/).
+P4 interior unmoved / promoted / armed: 43 cells x 30 columns, differences 0 x3. PASS (interior/).
+P5 install smoke default and clang: pass; export contract OK x2 (install-smoke/).
+P6 TraceOffPath.* source scan + planted falsification + the non-finite-abort single-accumulation scan: PASS (inside P1).
+P7 contract tests: V1-V4 (V4 exact), identities 1 (SQP iterations+1) / 2 / 3 / 5 on the HS battery, both engines, observation changes nothing, goldens (35 + IPM restoration (R rows asserted) + SQP elastic (E rows asserted)), TraceUnwind (both sinks, both engines, depth 1), RiderNonFiniteAbort, multiplier scale, no-step barrier objective, shared census, row-mu identity: PASS (inside P1, Release and Debug).
+M mutations (r5, mutation/verdict.txt): control fails nothing; 23 of 23 must-kills KILLED (w1 w2 w3 w4 c1 c2 c3 o1 o2 v2 v3 v4 t1 t2 p1a p1b p1c p2 p3 p4 p5 p11a p11b); v4 killed by TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections. MUTATION_VERDICT PASS. p2 reproduces the review's head (second PGX accumulation): the no-sink regression test FAILS on it (stationarity 8.15 against 12.41; r3/p2demo.out).
+Caveat: the human-trace goldens compare numbers at 2 % / a 1e-9 roundoff floor (structure, words, integers exact), self-tested; Debug and Release differ in residual noise. Windows/Accelerate UNOBSERVED. hven-bench not edited (TR-E).

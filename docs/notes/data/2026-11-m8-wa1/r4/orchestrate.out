@@ -1,0 +1,83 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:47:03-05:00
+code paths == 879d52bd43e13da863f402a47c0c78bba1f6e38a, clean; HEAD c16171d23c7d0d1a40d301cbf6afd5585f266769
+LEG P5 start 2026-11-19T07:47:03-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:47:03-05:00
+MUT control rc=0 killers=0
+APPLIED M1
+RESTORED
+MUT M1 rc=1 killers=2
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED M2
+RESTORED
+MUT M2 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionNothingWhenTheMeritDoesNotRise
+APPLIED M3
+RESTORED
+MUT M3 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+APPLIED M4
+RESTORED
+MUT M4 rc=1 killers=4
+   QpWa1AscentFootprint.DecisionRidesWhenTheBlockerComesFirst
+   QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+   QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+APPLIED M5
+RESTORED
+MUT M5 rc=1 killers=2
+   QpWa1AscentFootprint.DecisionMovesToTheMeritMinimiserBeforeTheBlocker
+   QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+APPLIED M8
+RESTORED
+MUT M8 rc=1 killers=1
+   QpWa1AscentFootprint.DecisionStopsAtTheRowBudget
+M6 rc=1 (recorded); killers: 0
+M7 rc=1 (recorded); killers: 0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-19T07:55:26-05:00
+LEG P5 rc=0 2026-11-19T07:55:26-05:00
+LEG P6 start 2026-11-19T07:55:26-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T07:55:26-05:00
+SMOKE_START default 2026-11-19T07:55:26-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-19T07:56:27-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- include/hven holds only hven.h and component directories
+-- every include/hven and include/hven/detail directory is a known component
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-19T07:57:05-05:00
+LEG P6 rc=0 2026-11-19T07:57:05-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-19T07:57:05-05:00

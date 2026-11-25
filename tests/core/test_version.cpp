@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/core/version.h"
+#include <hven/core/version.h>
 
 #ifndef HVEN_VERSION_STRING
 #error "HVEN_VERSION_STRING must be defined by the build (see tests/CMakeLists.txt)"

@@ -1,0 +1,15 @@
+== on bc8ed0e12 (dev2 inside dev3.out, before the LAKES test)
+100% tests passed, 0 tests failed out of 3903
+100% tests passed, 0 tests failed out of 3903
+=== A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+== on 44f74446f (dev2 inside dev6.out; the legs' reference)
+100% tests passed, 0 tests failed out of 3909
+100% tests passed, 0 tests failed out of 3909
+=== A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== Bbc8-vs-B44-walk === cells compared: 27  columns compared: 75  differences: 0
+=== Bbc8-vs-B44-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== Bbc8-vs-B44-ipm === cells compared: 27  columns compared: 75  differences: 0

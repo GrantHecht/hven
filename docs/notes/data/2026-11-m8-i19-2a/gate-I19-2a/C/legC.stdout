@@ -1,0 +1,21 @@
+box-lane: lane 0 acquired 2026-11-24T12:24:53-05:00
+LEG C start 2026-11-24T12:24:53-05:00 head=b6c5fe9cbe72ba4af0765dc6872ba2c464555bc4 lane=0 jobs=4
+== Release build start 2026-11-24T12:24:53-05:00
+== Release build rc=0 end 2026-11-24T12:25:33-05:00
+== Release ctest rc=0 end 2026-11-24T12:27:54-05:00
+Total Test time (real) = 140.90 sec
+
+The following tests did not run:
+	  2 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	883 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	884 - EqpRefinementAb.FullBattery (Disabled)
+== Debug build start 2026-11-24T12:27:54-05:00
+== Debug build rc=0 end 2026-11-24T12:28:29-05:00
+== Debug ctest rc=0 end 2026-11-24T12:37:50-05:00
+	1395 - QpE2WorkingSet.AGreyPinOnYorknetThatIsIndependentStaysIndependent (Skipped)
+	1402 - QpE4ProximalEqp.TheYorknetRestorationQpIsDriftFreeAndOptimal (Skipped)
+	1536 - QpNc2FlatFace.TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder (Skipped)
+	1635 - QpE2Fix9StandstillRetreat.Acopp118Qp0Border (Skipped)
+	1636 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	1637 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+LEG C end 2026-11-24T12:37:50-05:00

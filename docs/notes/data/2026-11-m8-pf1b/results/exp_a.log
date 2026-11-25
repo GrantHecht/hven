@@ -1,0 +1,91 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T16:30:40-05:00
+== head rc=0 [HVEN_PF1B_TRACE=1  | --exact --sv --hpd ]
+PF1H info=0 Dmin=7.507508e-04 Dmax=1.601600e-03 nneg=0
+PF1R status=0 minors=4758 facts=3588 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=4552 stag_drops=0 stag_stops=0 shift_adds=20 wall=68.491 q=-3.231904984786683e-03 pins=0 tr=0 active=97 mu=1e-08
+PF1A records=4758 truncated=0 a0=1 a4=1583 a7=1 a10=823 a11=2350 | verdict ok=3315 suspect=1443 wrong=0 none=0 perturbed_passes=1443 perturbed_total=2394
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.805e-18 sign=0.000e+00 compl=3.272e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.342e-15 |lam_exact-lam|inf=6.383e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+PF1S rows=3097 cols=5000 sigma_max=nan s3091=9.400591e-04 s3092=9.373796e-04 s3093=9.352286e-04 s3094=9.331120e-04 s3095=6.990345e-04 s3096=2.329486e-04
+rungs_traced=1
+== cyc400 rc=0 [HVEN_PF1B_RUNGS=0  | --maxiter 400 --exact --sv ]
+PF1R status=1 minors=400 facts=271 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=0 stag_drops=0 stag_stops=0 shift_adds=41 wall=8.506 q=1.394624338487414e-01 pins=200 tr=37 active=835 mu=1e-08
+PF1A records=400 truncated=0 a0=1 a4=48 a10=242 a11=109 | verdict ok=400 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=8.634e-08 ineq=1.821e-07 box=0.000e+00 stat=4.734e-16 sign=9.838e-01 compl=1.392e-03 scale=1.407e+01
+PF1E nf=4763 mw=3835 kkt_rel_res=7.475e-15 |x_exact-x|inf=4.067e-02 |lam_exact-lam|inf=1.938e+01 |lam|inf=2.800e+01 exact_neg_rows=413 exact_inactive_viol=0.000e+00 q_exact=1.405529699512210e-01
+PF1S rows=3835 cols=4763 sigma_max=2.237296e+00 s3829=1.576660e-05 s3830=1.546990e-05 s3831=1.519446e-05 s3832=1.375480e-05 s3833=8.786228e-06 s3834=2.547798e-06
+rungs_traced=0
+== r0_mu1e-8 rc=0 [HVEN_PF1B_RUNGS=0  | --maxiter 6000 --exact ]
+PF1R status=1 minors=6000 facts=5871 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=0 stag_drops=0 stag_stops=0 shift_adds=1441 wall=90.669 q=1.394624338487415e-01 pins=200 tr=37 active=835 mu=1e-08
+PF1A records=6000 truncated=0 a0=1 a4=1448 a10=242 a11=4309 | verdict ok=6000 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=8.634e-08 ineq=1.821e-07 box=0.000e+00 stat=5.523e-16 sign=9.838e-01 compl=1.392e-03 scale=1.407e+01
+PF1E nf=4763 mw=3835 kkt_rel_res=7.475e-15 |x_exact-x|inf=4.067e-02 |lam_exact-lam|inf=1.938e+01 |lam|inf=2.800e+01 exact_neg_rows=413 exact_inactive_viol=0.000e+00 q_exact=1.405529699512210e-01
+rungs_traced=0
+== r0_mu5e-9 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 5e-9 --maxiter 6000 --exact ]
+PF1R status=0 minors=4951 facts=3764 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=3583 stag_drops=0 stag_stops=0 shift_adds=19 wall=67.828 q=-3.231904984786682e-03 pins=0 tr=0 active=97 mu=5e-09
+PF1A records=4951 truncated=0 a4=1630 a7=1 a10=870 a11=2450 | verdict ok=4951 suspect=0 wrong=0 none=0 perturbed_passes=0 perturbed_total=0
+PF1K eq=2.776e-17 ineq=5.204e-18 box=0.000e+00 stat=1.511e-18 sign=0.000e+00 compl=2.365e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=4.895e-15 |lam_exact-lam|inf=7.921e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu2e-9 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 2e-9 --maxiter 6000 --exact ]
+PF1R status=0 minors=5003 facts=3842 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4028 stag_drops=0 stag_stops=0 shift_adds=19 wall=70.155 q=-3.231904984786681e-03 pins=0 tr=0 active=97 mu=2e-09
+PF1A records=5003 truncated=0 a0=1 a4=1644 a7=1 a10=885 a11=2472 | verdict ok=4967 suspect=36 wrong=0 none=0 perturbed_passes=36 perturbed_total=36
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.999e-18 sign=0.000e+00 compl=2.068e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=5.267e-15 |lam_exact-lam|inf=5.557e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu1e-9 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 1e-9 --maxiter 6000 --exact ]
+PF1R status=0 minors=5080 facts=3912 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4205 stag_drops=0 stag_stops=0 shift_adds=19 wall=71.999 q=-3.231904984786682e-03 pins=0 tr=0 active=97 mu=1e-09
+PF1A records=5080 truncated=0 a4=1677 a7=1 a10=919 a11=2483 | verdict ok=4129 suspect=951 wrong=0 none=0 perturbed_passes=951 perturbed_total=995
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=2.133e-18 sign=0.000e+00 compl=3.863e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=4.618e-15 |lam_exact-lam|inf=6.320e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu5e-10 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 5e-10 --maxiter 6000 --exact ]
+PF1R status=0 minors=4970 facts=3771 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4638 stag_drops=0 stag_stops=0 shift_adds=19 wall=71.668 q=-3.231904984786683e-03 pins=0 tr=0 active=97 mu=5e-10
+PF1A records=4970 truncated=0 a4=1652 a7=1 a10=894 a11=2423 | verdict ok=3897 suspect=1073 wrong=0 none=0 perturbed_passes=1073 perturbed_total=1584
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.735e-18 sign=0.000e+00 compl=3.272e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=4.212e-15 |lam_exact-lam|inf=5.474e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu2e-10 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 2e-10 --maxiter 6000 --exact ]
+PF1R status=0 minors=4945 facts=3756 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4783 stag_drops=0 stag_stops=0 shift_adds=19 wall=69.831 q=-3.231904984786683e-03 pins=0 tr=0 active=97 mu=2e-10
+PF1A records=4945 truncated=0 a4=1651 a7=1 a10=892 a11=2401 | verdict ok=3219 suspect=1726 wrong=0 none=0 perturbed_passes=1726 perturbed_total=2804
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=2.118e-18 sign=0.000e+00 compl=3.782e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=5.128e-15 |lam_exact-lam|inf=5.028e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu1e-10 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 1e-10 --maxiter 6000 --exact ]
+PF1R status=0 minors=5008 facts=3840 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4864 stag_drops=0 stag_stops=0 shift_adds=19 wall=71.203 q=-3.231904984786682e-03 pins=0 tr=0 active=97 mu=1e-10
+PF1A records=5008 truncated=0 a4=1668 a7=1 a10=910 a11=2429 | verdict ok=3007 suspect=2001 wrong=0 none=0 perturbed_passes=2001 perturbed_total=4371
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=2.040e-18 sign=0.000e+00 compl=6.757e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.412e-15 |lam_exact-lam|inf=7.400e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu1e-11 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 1e-11 --maxiter 6000 --exact ]
+PF1R status=0 minors=4619 facts=3571 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=4675 stag_drops=1 stag_stops=0 shift_adds=19 wall=64.561 q=-3.231904984786681e-03 pins=0 tr=0 active=97 mu=1e-11
+PF1A records=4619 truncated=0 a4=1556 a7=1 a10=797 a11=2265 | verdict ok=2968 suspect=1651 wrong=0 none=0 perturbed_passes=1651 perturbed_total=2406
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.799e-18 sign=0.000e+00 compl=3.477e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=5.433e-15 |lam_exact-lam|inf=7.312e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== r0_mu1e-12 rc=0 [HVEN_PF1B_RUNGS=0  | --mu 1e-12 --maxiter 6000 --exact ]
+PF1R status=0 minors=4485 facts=3556 rungs=0 suspect=0 resid_ref=0 drift_ref=0 polish=5241 stag_drops=2 stag_stops=0 shift_adds=19 wall=65.276 q=-3.231904984786682e-03 pins=0 tr=0 active=97 mu=1e-12
+PF1A records=4485 truncated=0 a4=1510 a7=1 a10=751 a11=2223 | verdict ok=3660 suspect=825 wrong=0 none=0 perturbed_passes=825 perturbed_total=1663
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.503e-18 sign=0.000e+00 compl=3.140e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=5.534e-15 |lam_exact-lam|inf=6.788e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=0
+== f1e-1_r1 rc=0 [HVEN_PF1B_TRACE=1 HVEN_PF1B_FACTOR=0.1 HVEN_PF1B_RUNGS=1  | --maxiter 6000 --exact ]
+PF1R status=0 minors=4801 facts=3631 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=3896 stag_drops=0 stag_stops=0 shift_adds=20 wall=68.593 q=-3.231904984786690e-03 pins=0 tr=0 active=97 mu=1e-08
+PF1A records=4801 truncated=0 a0=1 a4=1583 a7=1 a10=823 a11=2393 | verdict ok=3921 suspect=880 wrong=0 none=0 perturbed_passes=880 perturbed_total=919
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.376e-18 sign=0.000e+00 compl=3.556e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.099e-15 |lam_exact-lam|inf=7.396e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=1
+== f1e-1_r2 rc=0 [HVEN_PF1B_TRACE=1 HVEN_PF1B_FACTOR=0.1 HVEN_PF1B_RUNGS=2  | --maxiter 6000 --exact ]
+PF1R status=0 minors=4801 facts=3631 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=3896 stag_drops=0 stag_stops=0 shift_adds=20 wall=68.429 q=-3.231904984786690e-03 pins=0 tr=0 active=97 mu=1e-08
+PF1A records=4801 truncated=0 a0=1 a4=1583 a7=1 a10=823 a11=2393 | verdict ok=3921 suspect=880 wrong=0 none=0 perturbed_passes=880 perturbed_total=919
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.376e-18 sign=0.000e+00 compl=3.556e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.099e-15 |lam_exact-lam|inf=7.396e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=1
+== f1e-1_r4 rc=0 [HVEN_PF1B_TRACE=1 HVEN_PF1B_FACTOR=0.1 HVEN_PF1B_RUNGS=4  | --maxiter 6000 --exact ]
+PF1R status=0 minors=4801 facts=3631 rungs=1 suspect=0 resid_ref=0 drift_ref=0 polish=3896 stag_drops=0 stag_stops=0 shift_adds=20 wall=68.503 q=-3.231904984786690e-03 pins=0 tr=0 active=97 mu=1e-08
+PF1A records=4801 truncated=0 a0=1 a4=1583 a7=1 a10=823 a11=2393 | verdict ok=3921 suspect=880 wrong=0 none=0 perturbed_passes=880 perturbed_total=919
+PF1K eq=2.776e-17 ineq=6.939e-18 box=0.000e+00 stat=1.376e-18 sign=0.000e+00 compl=3.556e-20 scale=1.000e+00
+PF1E nf=5000 mw=3097 kkt_rel_res=2.776e-17 |x_exact-x|inf=6.099e-15 |lam_exact-lam|inf=7.396e-15 |lam|inf=9.738e-03 exact_neg_rows=0 exact_inactive_viol=0.000e+00 q_exact=-3.231904984786681e-03
+rungs_traced=1
+rc=0
+FOREGROUND_END 2026-11-07T16:46:25-05:00

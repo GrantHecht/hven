@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..8646746ca 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -183,7 +183,7 @@ class TrustRegionRejectionMemory {
+         if (!radius_from_growth) {
+             return;
+         }
+-        cap_ = std::min(cap_, radius);
++        cap_ = radius;
+         clean_ = 0;
+     }
+     /// An acceptance, after its growth decision: the `window`-th clears the cap.

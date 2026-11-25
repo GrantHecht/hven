@@ -1,0 +1,41 @@
+H0 cells 818 P cells 818
+| arm | pass | (a) V1 | (b) no -1 | (c) V3' | (d) tail | (e) moves | lost | tail cells | live moved | pooled net strict | LA net/sign | EV net/sign | plus |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| P | NO | yes | NO | PASS | yes | yes | 0 | 0 | 198 | +0 | +4/+1 | -3/-1 | - |
+| G1 | NO | NO | NO | PASS | NO | yes | 2 | 5 | 76 | -2 | +6/+1 | +9/+1 | LA,EV |
+| G2 | NO | NO | NO | PASS | NO | yes | 1 | 2 | 16 | +0 | +1/+1 | +1/+1 | - |
+| G3 | NO | yes | yes | PASS | NO | yes | 0 | 1 | 25 | +0 | +3/+1 | +1/+1 | - |
+| G4 | NO | NO | NO | VACUOUS | yes | yes | 2 | 0 | 18 | -1 | -4/-1 | -2/-1 | - |
+| G5 | NO | NO | NO | PASS | NO | yes | 3 | 2 | 44 | -1 | +7/+1 | +11/+1 | LA,EV |
+| G6 | NO | yes | NO | PASS | NO | yes | 0 | 3 | 79 | +1 | +3/+1 | +7/+1 | EV,cap |
+| G7 | NO | NO | NO | PASS | NO | yes | 2 | 3 | 43 | -1 | +4/+1 | +0/+0 | - |
+| C1 | NO | NO | NO | FAIL | NO | yes | 20 | 50 | 107 | -4 | +14/+1 | +19/+1 | LA,EV |
+| C2 | NO | NO | NO | FAIL | NO | yes | 10 | 38 | 59 | +0 | +3/+1 | +4/+1 | EV |
+
+Placebo floor (P vs H0 on the live set of the arm; TRAIN/CAP):
+  P {'solved': 0, 'LA': 4, 'EV': 3}
+  G6 {'solved': 2, 'LA': 4, 'EV': 1}
+
+Per-arm minus-one families and failing V1 families:
+  P minus_one: [('cap01-x', 'LA'), ('cap01-x', 'EV'), ('cap1-q', 'EV'), ('hs-q', 'EV'), ('hs-x', 'EV'), ('sd-q', 'EV')] | V1: {}
+  G1 minus_one: [('cap01-x', 'LA'), ('cap01-x', 'EV'), ('sd-x', 'LA')] | V1: {'sd-q': {'h0_strict': 83, 'x_strict': 82, 'h0_acc': 83, 'x_acc': 82, 'ok': False}, 'sd-x': {'h0_strict': 83, 'x_strict': 82, 'h0_acc': 83, 'x_acc': 82, 'ok': False}}
+  G2 minus_one: [('cap01-q', 'LA'), ('cap01-q', 'EV'), ('cap01-x', 'EV')] | V1: {'cap1-x': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 103, 'ok': False}}
+  G3 minus_one: [] | V1: {}
+  G4 minus_one: [('cap01-q', 'LA'), ('cap1-q', 'LA'), ('cap1-q', 'EV'), ('hs-q', 'LA'), ('hs-q', 'EV'), ('sd-q', 'LA'), ('sd-q', 'EV')] | V1: {'cap1-x': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 103, 'ok': False}, 'sd-x': {'h0_strict': 83, 'x_strict': 82, 'h0_acc': 83, 'x_acc': 82, 'ok': False}}
+  G5 minus_one: [('cap01-x', 'LA'), ('cap01-x', 'EV')] | V1: {'cap01-q': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 104, 'ok': False}, 'cap1-x': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 103, 'ok': False}, 'sd-x': {'h0_strict': 83, 'x_strict': 82, 'h0_acc': 83, 'x_acc': 82, 'ok': False}}
+  G6 minus_one: [('cap01-x', 'EV'), ('cap1-q', 'LA'), ('cap1-q', 'EV')] | V1: {}
+  G7 minus_one: [('cap01-q', 'LA'), ('cap01-q', 'EV'), ('cap01-x', 'EV'), ('cap1-q', 'LA'), ('cap1-q', 'EV'), ('hs-x', 'LA'), ('hs-x', 'EV'), ('sd-q', 'LA')] | V1: {'cap1-x': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 103, 'ok': False}, 'sd-x': {'h0_strict': 83, 'x_strict': 82, 'h0_acc': 83, 'x_acc': 82, 'ok': False}}
+  C1 minus_one: [('cap01-x', 'LA'), ('cap01-x', 'EV')] | V1: {'cap01-q': {'h0_strict': 104, 'x_strict': 100, 'h0_acc': 104, 'x_acc': 100, 'ok': False}, 'cap1-q': {'h0_strict': 105, 'x_strict': 102, 'h0_acc': 105, 'x_acc': 102, 'ok': False}, 'cap1-x': {'h0_strict': 104, 'x_strict': 102, 'h0_acc': 104, 'x_acc': 102, 'ok': False}, 'sd-x': {'h0_strict': 83, 'x_strict': 79, 'h0_acc': 83, 'x_acc': 79, 'ok': False}, 'sensfix-q': {'h0_strict': 4, 'x_strict': 2, 'h0_acc': 4, 'x_acc': 2, 'ok': False}, 'sensfix-x': {'h0_strict': 4, 'x_strict': 2, 'h0_acc': 4, 'x_acc': 2, 'ok': False}}
+  C2 minus_one: [('cap01-q', 'LA'), ('cap01-x', 'LA'), ('cap01-x', 'EV'), ('cap1-q', 'LA'), ('cap1-x', 'EV'), ('sd-q', 'LA')] | V1: {'cap01-q': {'h0_strict': 104, 'x_strict': 101, 'h0_acc': 104, 'x_acc': 101, 'ok': False}, 'cap1-x': {'h0_strict': 104, 'x_strict': 103, 'h0_acc': 104, 'x_acc': 103, 'ok': False}, 'sensfix-q': {'h0_strict': 4, 'x_strict': 2, 'h0_acc': 4, 'x_acc': 2, 'ok': False}, 'sensfix-x': {'h0_strict': 4, 'x_strict': 2, 'h0_acc': 4, 'x_acc': 2, 'ok': False}}
+
+Family signs (LA/EV) per arm:
+  P {'cap01-q': (1, 1), 'cap01-x': (-1, -1), 'cap1-q': (0, -1), 'cap1-x': (1, 1), 'hs-q': (0, -1), 'hs-x': (0, -1), 'sd-q': (1, -1), 'sd-x': (1, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (0, 0), 'sensfix-x': (0, 0)}
+  G1 {'cap01-q': (1, 1), 'cap01-x': (-1, -1), 'cap1-q': (1, 1), 'cap1-x': (1, 1), 'hs-q': (1, 1), 'hs-x': (1, 1), 'sd-q': (1, 1), 'sd-x': (-1, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (1, 0), 'sensfix-x': (0, 0)}
+  G2 {'cap01-q': (-1, -1), 'cap01-x': (0, -1), 'cap1-q': (0, 0), 'cap1-x': (1, 1), 'hs-q': (0, 0), 'hs-x': (0, 0), 'sd-q': (0, 1), 'sd-x': (1, 0), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (0, 0), 'sensfix-x': (1, 0)}
+  G3 {'cap01-q': (1, 1), 'cap01-x': (1, 1), 'cap1-q': (1, 1), 'cap1-x': (1, 1), 'hs-q': (0, 0), 'hs-x': (0, 0), 'sd-q': (1, 0), 'sd-x': (1, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (1, 1), 'sensfix-x': (1, 1)}
+  G4 {'cap01-q': (-1, 0), 'cap01-x': (0, 0), 'cap1-q': (-1, -1), 'cap1-x': (0, 1), 'hs-q': (-1, -1), 'hs-x': (0, 0), 'sd-q': (-1, -1), 'sd-x': (0, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (0, 0), 'sensfix-x': (0, 0)}
+  G5 {'cap01-q': (1, 1), 'cap01-x': (-1, -1), 'cap1-q': (1, 1), 'cap1-x': (1, 1), 'hs-q': (0, 1), 'hs-x': (1, 1), 'sd-q': (1, 1), 'sd-x': (1, 1), 'sens-q': (1, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (1, 1), 'sensfix-x': (1, 1)}
+  G6 {'cap01-q': (1, 1), 'cap01-x': (0, -1), 'cap1-q': (-1, -1), 'cap1-x': (1, 1), 'hs-q': (0, 0), 'hs-x': (0, 0), 'sd-q': (0, 0), 'sd-x': (0, 0), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (1, 1), 'sensfix-x': (1, 1)}
+  G7 {'cap01-q': (-1, -1), 'cap01-x': (1, -1), 'cap1-q': (-1, -1), 'cap1-x': (1, 0), 'hs-q': (0, 0), 'hs-x': (-1, -1), 'sd-q': (-1, 1), 'sd-x': (1, 0), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (1, 1), 'sensfix-x': (1, 1)}
+  C1 {'cap01-q': (1, 1), 'cap01-x': (-1, -1), 'cap1-q': (1, 1), 'cap1-x': (1, 1), 'hs-q': (1, 1), 'hs-x': (1, 1), 'sd-q': (1, 1), 'sd-x': (1, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (0, 0), 'sensfix-x': (0, 0)}
+  C2 {'cap01-q': (-1, 1), 'cap01-x': (-1, -1), 'cap1-q': (-1, 1), 'cap1-x': (1, -1), 'hs-q': (0, 1), 'hs-x': (0, 0), 'sd-q': (-1, 1), 'sd-x': (1, 1), 'sens-q': (0, 0), 'sens-x': (0, 0), 'senscap-q': (0, 0), 'senscap-x': (0, 0), 'sensfix-q': (0, 0), 'sensfix-x': (0, 0)}

@@ -1,0 +1,12 @@
+LEG_START mode=interior core=2 period=200000 event=instructions:u 2026-11-03T23:25:29-05:00
+0b9fc7ded01e16281003347d5b9a705903a0701bf91ca64ea4f4d78461ac0961  /home/ghecht/Projects/hven/.claude/worktrees/agent-a17ce5e51d9c90f96/build-b5/armAr/hven_sqp_corpus
+34984713d1183945d38cb5f7c0144985be6bc2f73bac8808cb1fa4ed930544da  /home/ghecht/Projects/hven/.claude/worktrees/agent-a17ce5e51d9c90f96/build-b5/armBr/hven_sqp_corpus
+WARMUP arm=A rc=0 2026-11-03T23:25:42-05:00
+WARMUP arm=B rc=0 2026-11-03T23:25:54-05:00
+RUN mode=interior round=1 arm=A tag=all 2026-11-03T23:25:54-05:00
+RUN mode=interior round=1 arm=B tag=all 2026-11-03T23:26:10-05:00
+RUN mode=interior round=2 arm=B tag=all 2026-11-03T23:26:26-05:00
+RUN mode=interior round=2 arm=A tag=all 2026-11-03T23:26:42-05:00
+RUN mode=interior round=3 arm=A tag=all 2026-11-03T23:26:58-05:00
+RUN mode=interior round=3 arm=B tag=all 2026-11-03T23:27:14-05:00
+LEG_END mode=interior worst_rc=0 2026-11-03T23:27:30-05:00

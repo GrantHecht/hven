@@ -1,0 +1,206 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T00:56:34-05:00
+LEG F1-rel start 2026-11-14T00:56:34-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T00:56:34-05:00
+
+The following tests did not run:
+	793 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2321 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2322 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T00:57:50-05:00
+LEG F1-rel rc=0 2026-11-14T00:57:50-05:00
+LEG F1-dbg start 2026-11-14T00:57:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T00:57:50-05:00
+	597 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	598 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	793 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2321 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2322 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T01:04:31-05:00
+LEG F1-dbg rc=0 2026-11-14T01:04:31-05:00
+LEG I1 start 2026-11-14T01:04:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T01:04:31-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin/hven_sqp_corpus sha256 927cfc3d8c7af0660719179b9db1e5aaf8d5fe3aa3cd695f0a4f2276b4c14a7b
+RUN k=1 mode=walk 2026-11-14T01:04:31-05:00
+run rc=0
+compare rc=0
+=== dg-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ssn 2026-11-14T01:09:20-05:00
+run rc=0
+compare rc=0
+=== dg-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ipm 2026-11-14T01:09:40-05:00
+run rc=0
+compare rc=0
+=== dg-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=walk 2026-11-14T01:10:06-05:00
+run rc=0
+compare rc=0
+=== dg-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ssn 2026-11-14T01:14:55-05:00
+run rc=0
+compare rc=0
+=== dg-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ipm 2026-11-14T01:15:16-05:00
+run rc=0
+compare rc=0
+=== dg-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=walk 2026-11-14T01:15:41-05:00
+run rc=0
+compare rc=0
+=== dg-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ssn 2026-11-14T01:20:30-05:00
+run rc=0
+compare rc=0
+=== dg-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ipm 2026-11-14T01:20:50-05:00
+run rc=0
+compare rc=0
+=== dg-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-14T01:21:16-05:00
+LEG I1 rc=0 2026-11-14T01:21:16-05:00
+LEG I3 start 2026-11-14T01:21:16-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T01:21:16-05:00
+927cfc3d8c7af0660719179b9db1e5aaf8d5fe3aa3cd695f0a4f2276b4c14a7b  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin/hven_sqp_corpus
+0752d9c807d4952330970f189f40a54ccb78acb4a1bd9aa93eea1b6c27349b31  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv
+b09d13fa78e770301a0630ee9b5a9820cf7697747d8bc240b90169daea41e976  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/docs/notes/data/2026-11-m8-dn3/r5/interior/interior-default.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+run default rc=0
+run default-baseline rc=0
+=== I3-1 === cells compared: 43  columns compared: 30  differences: 0
+compare I3-1 rc=0
+=== I3-2 === cells compared: 43  columns compared: 30  differences: 0
+compare I3-2 rc=0
+worst=0
+FOREGROUND_END 2026-11-14T01:21:39-05:00
+LEG I3 rc=0 2026-11-14T01:21:39-05:00
+LEG F3 start 2026-11-14T01:21:39-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T01:21:39-05:00
+SMOKE_START default 2026-11-14T01:21:39-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-14T01:22:42-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-14T01:23:23-05:00
+LEG F3 rc=0 2026-11-14T01:23:23-05:00
+LEG I4 start 2026-11-14T01:23:23-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T01:23:23-05:00
+cells run: 238 2026-11-14T01:28:12-05:00
+  status differs  sd-hven-ipm-MESH: D numerical_error/130 K diverging/101
+  status differs  sd-hven-sqp-ALLINITC: D optimal/28 K numerical_error/78
+  status differs  sd-hven-sqp-CRESC100: D optimal/40 K infeasible/25
+  status differs  sd-hven-sqp-CRESC50: D max_iter/240 K numerical_error/138
+  status differs  sd-hven-sqp-MESH: D max_iter/273 K infeasible/5
+  D-arm counter totals: {'side.dn3_dense_factorizations': 72797, 'side.dn1d_dense_flagged_factorizations': 1126, 'side.dn1d_dense_singular_refactors': 1126, 'side.dn1d_dense_shifted_solve_refusals': 41, 'side.dn3a_dense_solve_residual_refusals': 0}
+TALLY AFTER (dense gate): dense better 3, same 235, dense worse 0
+  better: ['sd-hven-ipm-LEWISPOL', 'sd-hven-sqp-ALLINITC', 'sd-hven-sqp-CRESC100']
+  worse: []
+  status differs  sd-hven-ipm-ALLINITC: D optimal/72 K acceptable/91
+  status differs  sd-hven-ipm-BURKEHAN: D diverging/7 K max_iter/1000
+  status differs  sd-hven-ipm-LEWISPOL: D optimal/762 K max_iter/1000
+  status differs  sd-hven-ipm-MESH: D numerical_error/130 K diverging/101
+  status differs  sd-hven-sqp-ALLINITC: D optimal/28 K numerical_error/78
+  status differs  sd-hven-sqp-CRESC100: D optimal/40 K infeasible/25
+  status differs  sd-hven-sqp-CRESC50: D max_iter/240 K numerical_error/138
+  status differs  sd-hven-sqp-MESH: D max_iter/273 K infeasible/5
+  D-arm counter totals: {'side.dn3_dense_factorizations': 72764, 'side.dn1d_dense_flagged_factorizations': 1099, 'side.dn1d_dense_singular_refactors': 1099, 'side.dn1d_dense_shifted_solve_refusals': 0, 'side.dn3a_dense_solve_residual_refusals': 0}
+MOVER_COUNTERS sd-hven-ipm-ALLINITC: before {'dn3_dense_factorizations': '72', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '72', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-BT8: before {'dn3_dense_factorizations': '82', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '82', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-BURKEHAN: before {'dn3_dense_factorizations': '7', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '7', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-DEMBO7: before {'dn3_dense_factorizations': '113', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '113', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-DNIEPER: before {'dn3_dense_factorizations': '60', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '60', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-FLETCHER: before {'dn3_dense_factorizations': '39', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '39', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS100MOD: before {'dn3_dense_factorizations': '15', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '15', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS101: before {'dn3_dense_factorizations': '82', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '82', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS102: before {'dn3_dense_factorizations': '59', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '59', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS103: before {'dn3_dense_factorizations': '80', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '80', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS107: before {'dn3_dense_factorizations': '27', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '27', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS108: before {'dn3_dense_factorizations': '36', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '36', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS61: before {'dn3_dense_factorizations': '22', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '22', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS64: before {'dn3_dense_factorizations': '27', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '27', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS75: before {'dn3_dense_factorizations': '12', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '12', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS84: before {'dn3_dense_factorizations': '44', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '44', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS85: before {'dn3_dense_factorizations': '24', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '24', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS88: before {'dn3_dense_factorizations': '15', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '15', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS89: before {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS90: before {'dn3_dense_factorizations': '54', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '54', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS91: before {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS92: before {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '26', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-HS99EXP: before {'dn3_dense_factorizations': '31', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '31', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-LAUNCH: before {'dn3_dense_factorizations': '14', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '14', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-LEWISPOL: before {'dn3_dense_factorizations': '1168', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '1168', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-LOOTSMA: before {'dn3_dense_factorizations': '37', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '37', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-LSNNODOC: before {'dn3_dense_factorizations': '17', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '17', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-MATRIX2: before {'dn3_dense_factorizations': '17', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '17', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-MESH: before {'dn3_dense_factorizations': '249', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '249', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-MSS1: before {'dn3_dense_factorizations': '19', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '19', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-NET1: before {'dn3_dense_factorizations': '65', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '65', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-SPANHYD: before {'dn3_dense_factorizations': '189', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '189', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-ipm-WATER: before {'dn3_dense_factorizations': '41', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'} after {'dn3_dense_factorizations': '41', 'dn1d_dense_flagged_factorizations': '-', 'dn1d_dense_singular_refactors': '-', 'dn1d_dense_shifted_solve_refusals': '-', 'dn3a_dense_solve_residual_refusals': '-'}
+MOVER_COUNTERS sd-hven-sqp-ALLINITC: before {'dn3_dense_factorizations': '72', 'dn1d_dense_flagged_factorizations': '20', 'dn1d_dense_singular_refactors': '20', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '52', 'dn1d_dense_flagged_factorizations': '0', 'dn1d_dense_singular_refactors': '0', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-BT7: before {'dn3_dense_factorizations': '1487', 'dn1d_dense_flagged_factorizations': '1', 'dn1d_dense_singular_refactors': '1', 'dn1d_dense_shifted_solve_refusals': '1', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '1487', 'dn1d_dense_flagged_factorizations': '1', 'dn1d_dense_singular_refactors': '1', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-BURKEHAN: before {'dn3_dense_factorizations': '160', 'dn1d_dense_flagged_factorizations': '6', 'dn1d_dense_singular_refactors': '6', 'dn1d_dense_shifted_solve_refusals': '6', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '160', 'dn1d_dense_flagged_factorizations': '6', 'dn1d_dense_singular_refactors': '6', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-HS88: before {'dn3_dense_factorizations': '46', 'dn1d_dense_flagged_factorizations': '1', 'dn1d_dense_singular_refactors': '1', 'dn1d_dense_shifted_solve_refusals': '1', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '46', 'dn1d_dense_flagged_factorizations': '1', 'dn1d_dense_singular_refactors': '1', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-HS90: before {'dn3_dense_factorizations': '99', 'dn1d_dense_flagged_factorizations': '1', 'dn1d_dense_singular_refactors': '1', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '98', 'dn1d_dense_flagged_factorizations': '0', 'dn1d_dense_singular_refactors': '0', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-HS92: before {'dn3_dense_factorizations': '154', 'dn1d_dense_flagged_factorizations': '23', 'dn1d_dense_singular_refactors': '23', 'dn1d_dense_shifted_solve_refusals': '23', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '154', 'dn1d_dense_flagged_factorizations': '23', 'dn1d_dense_singular_refactors': '23', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-MESH: before {'dn3_dense_factorizations': '7393', 'dn1d_dense_flagged_factorizations': '1068', 'dn1d_dense_singular_refactors': '1068', 'dn1d_dense_shifted_solve_refusals': '4', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '7393', 'dn1d_dense_flagged_factorizations': '1068', 'dn1d_dense_singular_refactors': '1068', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+MOVER_COUNTERS sd-hven-sqp-SPANHYD: before {'dn3_dense_factorizations': '25188', 'dn1d_dense_flagged_factorizations': '6', 'dn1d_dense_singular_refactors': '6', 'dn1d_dense_shifted_solve_refusals': '6', 'dn3a_dense_solve_residual_refusals': '0'} after {'dn3_dense_factorizations': '25176', 'dn1d_dense_flagged_factorizations': '0', 'dn1d_dense_singular_refactors': '0', 'dn1d_dense_shifted_solve_refusals': '0', 'dn3a_dense_solve_residual_refusals': '0'}
+I4_PASS
+tally rc=0
+FOREGROUND_END 2026-11-14T01:28:12-05:00
+LEG I4 rc=0 2026-11-14T01:28:12-05:00
+LEG I2 start 2026-11-14T01:28:12-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T01:28:12-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin/hven_sqp_corpus sha256 927cfc3d8c7af0660719179b9db1e5aaf8d5fe3aa3cd695f0a4f2276b4c14a7b
+census rc=0
+WARN: serial_confirm_list.txt and is NOT a regression until it has been
+WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+serial-confirm list: 2 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/census-run/serial_confirm_list.txt
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+DECLARED_MOVER ok f7_n1000_path_corrupted: base Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12 -> fresh Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12 (declared Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12)
+DECLARED_MOVER ok f7_n2000_path_corrupted: base WorkLimit,59745,60000,0,3,19872;20001;19872,9.843817033e-02 -> fresh WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02 (declared WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02)
+cells=57 exact=42 declared_movers=2 deadline_bound=13
+CENSUS_AS_DECLARED
+census_check rc=0
+FOREGROUND_END 2026-11-14T07:33:28-05:00
+LEG I2 rc=0 2026-11-14T07:33:28-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-14T07:33:28-05:00

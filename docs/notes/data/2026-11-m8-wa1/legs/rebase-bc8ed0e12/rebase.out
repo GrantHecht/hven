@@ -1,0 +1,50 @@
+FOREGROUND_START 2026-11-19T02:08:29-05:00
+HEAD 8df83a18d0ed1de32b9911218b24e5763853dc31
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T02:08:29-05:00
+[353/358] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[354/358] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[355/358] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-19T02:12:06-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T02:12:06-05:00
+[353/358] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[354/358] Linking CXX executable examples/hven_example_08_results_trace_options
+[355/358] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-19T02:14:36-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T02:14:36-05:00
+
+The following tests did not run:
+	845 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2530 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2531 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T02:15:53-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T02:15:53-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	845 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2530 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2531 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-19T02:23:29-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-19T02:23:29-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/wa1/build-wa/bin/R/hven_sqp_corpus sha256 68e6ed4ceb781f9584ec63584ab95acb03f0401bfca5eb246e72b0c725eb97c1
+RUN R k=1 mode=walk 2026-11-19T02:23:29-05:00
+run rc=0
+RUN R k=1 mode=ssn 2026-11-19T02:28:18-05:00
+run rc=0
+RUN R k=1 mode=ipm 2026-11-19T02:28:38-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-19T02:29:04-05:00
+=== rebased-vs-run1-B-walk === cells compared: 27  columns compared: 75  differences: 0
+=== rebased-vs-run1-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== rebased-vs-run1-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-19T02:29:04-05:00

@@ -1,0 +1,209 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:19:44-05:00
+code paths == b98a19841aba62e72886d1bae200d2dbeb1b8f41, clean; HEAD 2701abba96b9fee5c62f907bd408aa6ffc0f6733
+LEG F1-rel start 2026-11-13T18:19:44-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:19:44-05:00
+
+The following tests did not run:
+	791 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2318 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2319 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T18:20:59-05:00
+LEG F1-rel rc=0 2026-11-13T18:20:59-05:00
+LEG F1-rel-criterion start 2026-11-13T18:20:59-05:00
+LEG F1-rel-criterion rc=0 2026-11-13T18:20:59-05:00
+LEG F1-dbg start 2026-11-13T18:20:59-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:20:59-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	791 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2318 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2319 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T18:27:42-05:00
+LEG F1-dbg rc=0 2026-11-13T18:27:42-05:00
+LEG F1-dbg-criterion start 2026-11-13T18:27:42-05:00
+LEG F1-dbg-criterion rc=0 2026-11-13T18:27:42-05:00
+LEG I1 start 2026-11-13T18:27:42-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:27:42-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin/hven_sqp_corpus sha256 99ed4f2ba2af8fcb7cfb769616ade98865f6bc13d02d25d60e7ff18821a5d5de
+RUN k=1 mode=walk 2026-11-13T18:27:43-05:00
+run rc=0
+=== I1-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=1 mode=ssn 2026-11-13T18:32:31-05:00
+run rc=0
+=== I1-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=1 mode=ipm 2026-11-13T18:32:51-05:00
+run rc=0
+=== I1-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=2 mode=walk 2026-11-13T18:33:17-05:00
+run rc=0
+=== I1-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=2 mode=ssn 2026-11-13T18:38:06-05:00
+run rc=0
+=== I1-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=2 mode=ipm 2026-11-13T18:38:26-05:00
+run rc=0
+=== I1-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=3 mode=walk 2026-11-13T18:38:52-05:00
+run rc=0
+=== I1-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=3 mode=ssn 2026-11-13T18:43:41-05:00
+run rc=0
+=== I1-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+RUN k=3 mode=ipm 2026-11-13T18:44:01-05:00
+run rc=0
+=== I1-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+differences: 0 (parsed 0)
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I1-D-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+compare D rc=0
+worst=0
+FOREGROUND_END 2026-11-13T18:44:27-05:00
+LEG I1 rc=0 2026-11-13T18:44:27-05:00
+LEG I3 start 2026-11-13T18:44:27-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:44:27-05:00
+99ed4f2ba2af8fcb7cfb769616ade98865f6bc13d02d25d60e7ff18821a5d5de  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin/hven_sqp_corpus
+0752d9c807d4952330970f189f40a54ccb78acb4a1bd9aa93eea1b6c27349b31  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv
+b09d13fa78e770301a0630ee9b5a9820cf7697747d8bc240b90169daea41e976  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/docs/notes/data/2026-11-m8-dn3/r5/interior/interior-default.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+run default rc=0
+run default-baseline rc=0
+=== I3-A === cells compared: 43  columns compared: 30  differences: 0
+compare I3-A rc=0
+=== I3-B === cells compared: 43  columns compared: 30  differences: 0
+compare I3-B rc=0
+worst=0
+FOREGROUND_END 2026-11-13T18:44:50-05:00
+LEG I3 rc=0 2026-11-13T18:44:50-05:00
+LEG F3 start 2026-11-13T18:44:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:44:50-05:00
+SMOKE_START default 2026-11-13T18:44:50-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-13T18:45:54-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-13T18:46:35-05:00
+LEG F3 rc=0 2026-11-13T18:46:35-05:00
+LEG I4 start 2026-11-13T18:46:35-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:46:35-05:00
+cells run: 238 2026-11-13T18:51:07-05:00
+MOVER NEUTRAL  sd-hven-sqp-ALLINITC.K
+MOVER NEUTRAL  sd-hven-sqp-HS64.D
+MOVER NEUTRAL  sd-hven-sqp-HS64.K
+MOVER NEUTRAL  sd-hven-sqp-HS83.D
+MOVER NEUTRAL  sd-hven-sqp-HS83.K
+MOVER NEUTRAL  sd-hven-sqp-HS88.D
+MOVER NEUTRAL  sd-hven-sqp-HS88.K
+MOVER NEUTRAL  sd-hven-sqp-HS89.D
+MOVER NEUTRAL  sd-hven-sqp-HS89.K
+MOVER NEUTRAL  sd-hven-sqp-HS90.D
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+MOVER NEUTRAL  sd-hven-sqp-HS91.D
+MOVER NEUTRAL  sd-hven-sqp-HS91.K
+MOVER NEUTRAL  sd-hven-sqp-HS92.D
+MOVER NEUTRAL  sd-hven-sqp-HS92.K
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.D
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+SUMMARY rows 476; movers vs DN-3 r5 21 (better 0, worse 0, neutral 21); missing/capped 0
+I4_PASS
+train_check rc=0
+FOREGROUND_END 2026-11-13T18:51:07-05:00
+LEG I4 rc=0 2026-11-13T18:51:07-05:00
+LEG I2 start 2026-11-13T18:51:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T18:51:07-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin/hven_sqp_corpus sha256 99ed4f2ba2af8fcb7cfb769616ade98865f6bc13d02d25d60e7ff18821a5d5de
+09de2212ec8f3a9a270b32be447659f91ace6e170db678ee7e1bda06626b6787  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/docs/notes/data/2026-11-m8-dn1-impl/census-movers.csv
+census rc=0
+WARN: serial_confirm_list.txt and is NOT a regression until it has been
+WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+serial-confirm list: 2 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/census-run/serial_confirm_list.txt
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+cells=57 exact=44 movers=0 (worse 0, better 0, neutral 0) deadline_bound=13
+CENSUS_WALKCAP_PASS
+census_check rc=0
+FOREGROUND_END 2026-11-14T00:56:34-05:00
+LEG I2 rc=0 2026-11-14T00:56:34-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-14T00:56:34-05:00

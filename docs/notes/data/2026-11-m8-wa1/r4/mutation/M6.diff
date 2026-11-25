@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index d9772c70c..d8c1d05cd 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -2235,7 +2235,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             if (footprint_move < 0.0) {
+                 // The merit's minimiser along -p comes before any blocker: a move, nothing joins.
+                 ++counters.ascent_rides;
+-                x += footprint_move * p;
++                x -= footprint_move * p;
+                 degenerate_run = 0;
+                 pt_clear(seen);
+                 refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,

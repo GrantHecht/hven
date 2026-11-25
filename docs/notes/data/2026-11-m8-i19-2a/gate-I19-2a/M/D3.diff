@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..584acf26d 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -466,7 +466,7 @@ struct SqpAdvancedOptions {
+ 
+     /// N >= 1: a growth reaching the smallest radius a grown step was rejected at is refused
+     /// until N acceptances pass without such a rejection. 0 is off. Must be >= 0.
+-    Index trust_region_rejection_memory = 0;
++    Index trust_region_rejection_memory = 3;
+ 
+     /// A ratio-granted growth whose ratio exceeds this is refused. +inf is off. Must be > 1.
+     double trust_region_growth_ratio_max = std::numeric_limits<double>::infinity();

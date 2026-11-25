@@ -1,0 +1,42 @@
+M8 AP-2 group B7 RIDERS (C238 (1)(3)(4), C239 R1-R7) -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt + runtime/DECLARATION.txt (e9400e8d), committed before the first leg. No
+               leg failed; no successor declaration. No criterion changed.
+Code head      ee27e1b2 (m8-b7): a498abe0 fix, 9f97fbb2 test, ee27e1b2 bench (the promoted baseline). Base:
+               4996a7b8 (B7 evidence; B7 code head 8089104c on m8 31c73879).
+Arms           A = 8089104c, B7's frozen arm B binary copied to build-b7r/armAbin, sha256
+               d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c (chain/armA.out). B = ee27e1b2,
+               build-b7r/armBbin sha256 ff39639edf676a6c08741b105e37beb4c09e2efd5cbf48ac7901124d73c97004
+               (checked by run_all.sh, interior.sh and census.sh).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-05 10:02 EST (baseline capture) / 10:12 (runtime gate start) to 17:29 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths, chain1's fail-closed pre-flight (PREFLIGHT_OK; its negative case -- a planted
+               build-b7e path -- was checked to refuse, rc 9, before the declaration). The runtime gate ran
+               alone first (runtime/run_all.log), then chain1 (chain/chain1.log). No run outside the lock.
+
+RESULTS (criteria as declared)
+P1  suites      Release 3472/3472, Debug 3472/3472 (suites/). PASS.
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       15 configurations BYTE-IDENTICAL to B7's dump (iparm/iparm-b7r.txt; chain/iparm.out). PASS.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches; serial-confirm list empty (census/). PASS. (D1)
+P6  smoke       default and clang arms PASSED; export contract OK on both (linux, align 32), no public header
+                includes a detail/ header, no allow-list (install-smoke/). PASS.
+P7  PCH         PASS: 4 TUs engaged, 57 objects byte-identical (pch/pch-neutrality.txt).
+P8  off-ref     clean build rc 0, 26 warning lines, ctest Release 3472/3472 (offref/). PASS.
+P9  Accelerate  pass A OTHER 0, BYTE-IDENTICAL to B7's sweep (32 files); pass B (stub) byte-identical too, its
+                OTHER lines as at B4-B7 (accelerate/, chain/accelerate.out). PASS. Apple UNOBSERVED.
+P10 flags       60 library TUs both arms, 0 differing flag lists, RESULT IDENTICAL (flags/). PASS.
+P11 runtime     VERDICT PASS: filtered B/A interior 1.000145, ipm 1.000152, ssn 1.000217, walk 1.000011 (both
+                arms at the defaults); THROTTLE 0 in all 492 processes; counter identity on every (round,
+                cell) pair (interior 3, ipm/ssn/walk 81 each). PASS.
+P12 interior    unmoved: 27 cells, 43 rows x 30 columns, 0 differences; promoted: the evidence binary under the
+                baseline's invocation reproduces bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv,
+                0 differences; declared: frozen vs promoted, 237 pairs declared = 237 observed, missing 0,
+                extra 0, value 0 -> INTERIOR_AS_DECLARED (interior/). PASS. (D2)
+DECLARED DIFFERENCES matched: D1 (no SQP corpus row moved: replay x3, census), D2 (no interior row moved
+against B7; the promotion is exactly B7's declared event), D5 (3472 tests), D7/D8 (flags identical, iparm
+identical).

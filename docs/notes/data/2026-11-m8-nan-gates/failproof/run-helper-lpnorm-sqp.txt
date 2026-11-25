@@ -1,0 +1,88 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-helper-lpnorm/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpRestorationNanGate.*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SqpRestorationNanGate
+[ RUN      ] SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+9 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+9 4
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+9 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+17 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+17 8
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4682: Failure
+Value of: std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj))
+  Actual: false
+Expected: true
+17 16
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-helper-lpnorm/tests/sqp/test_sqp_restoration.cpp:4685: Failure
+Value of: hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle)
+  Actual: true
+Expected: false
+17 16
+
+[  FAILED  ] SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN (0 ms)
+[----------] 1 test from SqpRestorationNanGate (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN
+
+ 1 FAILED TEST

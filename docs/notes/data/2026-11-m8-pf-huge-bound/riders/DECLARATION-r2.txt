@@ -1,0 +1,25 @@
+M8 PF-HB riders -- DECLARATION-r2 (successor of DECLARATION.txt; committed before its leg; never edited afterwards)
+================================================================================
+Run 1 (run1/: chain.log and every leg output, unchanged) failed ONE leg, R2: CORPUS_DIFFERS. Every other leg passed as
+declared (F FAILPROOF_AS_DECLARED; R1, R3 rc 0; S Release and Debug 3481/3481; X 8/8; O rc 0, 26 warning lines,
+3481/3481; C 0 diagnostics).
+
+Diagnosis of R2 (dev, no lock needed: strings/cmp/readelf on two existing files). bench/CMakeLists.txt compiles a
+configure-time `git describe --always --dirty --abbrev=12` into the bench drivers (HVEN_SQP_CORPUS_GIT_DESCRIBE, and
+the crossover and e1-arm copies). Arm B carries f96a3a0f6c44, the riders build 9c205bb1d8b7 (HEAD at configure).
+`cmp -l` of the two corpus binaries: 32 bytes, offsets 977-996 (the 20-byte NT_GNU_BUILD_ID descriptor) and
+108227786-108227797 (the 12-byte stamp); sizes equal. All 56 library objects byte-identical (run1/engine-bytes.out).
+The criterion as declared (corpus sha256 == arm B's) holds for no commit other than f96a3a0f; no engine byte moved.
+
+Code head   b2c3efb5, unchanged; no source fix. The build dirs are run 1's (build-pfe/rel-r, dbg-r, offref-r).
+R2'  legs/engine_bytes_r2.sh (+ legs/stamp_normalize.py), under the box lock, output engine-bytes-r2.out:
+     (a) every library object (CMakeFiles/hven.dir/**/*.o) of build-pfe/rel-r byte-identical to arm B's build-pfe/rel,
+         object sets equal;
+     (b) bench object sets equal; an object differs only if its TU's compile command carries a *_GIT_DESCRIBE
+         define (one stamp value per build, the same TU list in both);
+     (c) arm B's pin unmoved; the corpus binaries differ only inside the stamp occurrences and the build-id
+         descriptor; with the riders stamp replaced by arm B's and both descriptors zeroed, sha256 equal:
+         prints CORPUS_IDENTICAL_BUT_STAMP.
+     A failure of (a), or of (c) outside the stamp and build-id, stops the riders (the full PF-HB set would run).
+CARRIED from run 1 (same head, same build dirs, no source or build change since, criteria unchanged): F, R1, R3, S,
+X, O, C. Only R2' runs.

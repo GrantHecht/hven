@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index 014977b18..0c289e088 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -33,7 +33,7 @@ inline constexpr double kTrShrinkFactor = 0.5;
+ inline bool trust_region_grows(SqpTrustRegionGrowth rule, bool failure_step, bool tr_binding,
+                                bool delta_finite, double pred_df, double actual_df,
+                                bool feasibility_step) {
+-    if (failure_step || !tr_binding || !delta_finite) {
++    if (!tr_binding || !delta_finite) {
+         return false;
+     }
+     const bool ratio = pred_df > 0.0 && actual_df >= kTrGrowThreshold * pred_df;

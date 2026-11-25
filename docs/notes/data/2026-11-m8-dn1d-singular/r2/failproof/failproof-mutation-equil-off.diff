@@ -1,0 +1,4 @@
+119c119
+<         Vec d = equilibration_scale(K);
+---
+>         Vec d = Vec::Ones(K.rows());

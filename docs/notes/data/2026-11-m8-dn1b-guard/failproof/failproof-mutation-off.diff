@@ -1,0 +1,8 @@
+3954c3954
+<         if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>         if (false) {
+4964c4964
+<     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>     if (false) {

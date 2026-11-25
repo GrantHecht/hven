@@ -1,0 +1,13 @@
+diff --git a/src/qp/ssn/ssn_engine.cpp b/src/qp/ssn/ssn_engine.cpp
+index 32724c23f..f78f6e79a 100644
+--- a/src/qp/ssn/ssn_engine.cpp
++++ b/src/qp/ssn/ssn_engine.cpp
+@@ -1554,7 +1554,7 @@ bool SsnEngine::farkas_certificate(const QpProblem &qp, const Vec &dle, const Ve
+     if (!std::isfinite(rel_resid) || !std::isfinite(rel_gap)) {
+         return false;
+     }
+-    return rel_resid <= resid_tol && rel_gap <= -detail::kSsnFarkasGapTol;
++    return rel_resid <= detail::kSsnFarkasResidualTol && rel_gap <= -detail::kSsnFarkasGapTol;
+ }
+ 
+ detail::SsnNorms SsnEngine::residual(const QpProblem &qp, const Vec &x, const Vec &le,

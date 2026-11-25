@@ -1,0 +1,4 @@
+EXECUTABLE SET DIFFERS ['hven_dense_alloc_tests.txt', 'hven_drivers_tests.txt', 'hven_golden_rig.txt', 'hven_golden_rig_audit.txt', 'hven_interior_tests.txt', 'hven_model_tests.txt', 'hven_sqp_seam_tests.txt', 'hven_sqp_tests.txt', 'hven_tests.txt']
+DIFFERS ctest-N.txt 3871 372 133 4
+executables 12; gtest names with a raw byte dump: 0; gtest lists raw-identical: True; ctest -N names with a raw byte dump (normalised, equal count): 133
+LISTS_DIFFER

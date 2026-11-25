@@ -1,0 +1,2 @@
+.scratch/dev8-ctest-dbg.log:100% tests passed, 0 tests failed out of 3857
+.scratch/dev8-ctest-rel.log:100% tests passed, 0 tests failed out of 3857

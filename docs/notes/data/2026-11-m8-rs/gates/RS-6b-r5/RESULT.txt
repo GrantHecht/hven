@@ -1,0 +1,8 @@
+RS-6b r5 RESULT (DECLARATION-RS-6b-r5.md; head e8bf3d0e5, base afc9744bf)
+R1 Linux Release ctest: 100% passed, 0 failed of 3927 (ctest-release.log)
+R2 Linux Debug ctest:   100% passed, 0 failed of 3927 (ctest-debug.log)
+   Note: the declared "3925 + 10" was a wrong expectation: the base at afc9744bf already carries the 10 examples in its ctest list when examples are configured on, so base and head are both 3929 listed / 3927 run; the head equals the base (R3). The Windows lane is 3772 + 10 = 3782.
+R3 ctest -N head == base list from afc9744bf: identical (3929 names, includes 10 hven_example_*), all 30 executables' gtest lists identical.
+R4 libhven.a members equal (59); 64 non-test objects byte-identical; the 3 bench objects differ only in the commit stamp (identical after normalisation); no library object embeds the stamp (objcmp-r3.txt).
+R5 four-lane CI green (CI.txt), examples ran on Windows.
+Carried forward: r1-r4 mutation evidence and the Windows gate run (code under test unchanged).

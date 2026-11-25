@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/snopt_f7_driver.h — PHASE-6 TASK 0. THE SNOPT BRIDGE: F7 at (N, p)
+// PHASE-6 TASK 0. THE SNOPT BRIDGE: F7 at (N, p)
 // mapped onto SNOPT's snOptA problem form, solved cold or warm-basis, with the
 // counters and the accuracy metrics the first-contact note needs.
 //
@@ -69,7 +69,7 @@
 // THE MAPPING, STATED IN BOTH DIRECTIONS (fidelity is the whole point: a
 // comparison against a DIFFERENT problem is worthless).
 //
-// F7 (tests/sqp/support/scale_problems.h, nlp_model.h's sign conventions) is
+// F7 (tests/model/support/scale_problems.h, nlp_model.h's sign conventions) is
 //
 //     min f(x)  s.t.  cE(x) = 0,  cI(x) <= 0,  l <= x <= u,
 //
@@ -208,7 +208,7 @@
 // solves: SnoptF7Driver owns x/xstate/Fstate/xmul/Fmul/nS for its lifetime,
 // so a second solve() at a new p starts from the first solve's exit state.
 // THE ARRAYS ARE THE WARM START -- there is no separate hand-off object,
-// which is the honest analogue of what our own SqpWarmStart does and is
+// which is the honest analogue of what our own SqpWarmState does and is
 // deliberately not dressed up as more than SNOPT offers.
 //
 // WHAT MOVES WHEN p MOVES, and it is only two things: the equality-row
@@ -269,11 +269,10 @@
 
 #include <hven/qp/qp_types.h>
 
+#include "model/support/scale_problems.h"
 #include "snoptProblem.hpp"
 
-#include "support/scale_problems.h"
-
-namespace hven::solvers::snopt_bridge {
+namespace hven::snopt_bridge {
 
 // SNOPT's default Infinite bound size (guide section 7.3, p.63). Identical to
 // parametric_families.h's kParamInf, which is what makes the box transcription
@@ -901,4 +900,4 @@ class SnoptF7Driver {
     long long stop_calls_ = 0;
 };
 
-} // namespace hven::solvers::snopt_bridge
+} // namespace hven::snopt_bridge

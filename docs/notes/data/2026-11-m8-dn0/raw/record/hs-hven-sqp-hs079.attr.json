@@ -1,0 +1,239 @@
+{
+ "samples": 380,
+ "period": 1000003,
+ "instr_sampled_all": 429582140,
+ "instr_sampled_solver": 256827681,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 222725591,
+  "B_kkt": 6721018,
+  "B_eval": 1133003,
+  "B_setup": 8959024,
+  "B_eng": 17289045,
+  "B_proc": 172754459
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8672180122204195,
+  "B_kkt": 0.026169367623577928,
+  "B_eval": 0.0044115299238324706,
+  "B_setup": 0.03488340495509127,
+  "B_eng": 0.06731768527707883
+ },
+ "proc_share_of_all": 0.4021453475696173,
+ "rule_instr": 418000110,
+ "fallback_instr": 5777015,
+ "fallback_by_bucket": {
+  "B_fac": 5777015
+ },
+ "unmatched_instr": 5805015,
+ "unmatched_share_of_solver": 0.022602762199920343,
+ "chains_reaching_main": 0.06315789473684211,
+ "init_instr": 0,
+ "steady_state_instr": 256827681,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8672180122204195,
+  "B_kkt": 0.026169367623577928,
+  "B_eval": 0.0044115299238324706,
+  "B_setup": 0.03488340495509127,
+  "B_eng": 0.06731768527707883
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   215864573
+  ],
+  [
+   "<no hven::linear frame>",
+   5777015
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   1084003
+  ]
+ ],
+ "mkl_serv_instr": 25346066,
+ "kmp_instr": 150101399,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   2203006
+  ],
+  [
+   "_int_malloc",
+   1217003
+  ],
+  [
+   "__memmove_avx_unaligned_erms",
+   1196003
+  ],
+  [
+   "__memchr_avx2",
+   1189003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    13875039
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    12015033
+   ],
+   [
+    "__kmp_hardware_timestamp",
+    11883030
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    10162027
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    9274024
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    8449021
+   ],
+   [
+    "__kmp_fork_call",
+    7994021
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    5868015
+   ]
+  ],
+  "B_kkt": [
+   [
+    "Eigen::SparseMatrix<double, 1, int>::operator=",
+    2273006
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    2140006
+   ],
+   [
+    "_int_malloc",
+    1245003
+   ],
+   [
+    "hven::detail::SchurComplement::solve",
+    1063003
+   ]
+  ],
+  "B_eval": [
+   [
+    "realloc",
+    1133003
+   ]
+  ],
+  "B_setup": [
+   [
+    "hven::detail::AssemblyEvalSeam::require_bundle_matches_layout",
+    1259003
+   ],
+   [
+    "hven::detail::EqualityBasis::compute",
+    1147003
+   ],
+   [
+    "hven::detail::compute_column_scaling",
+    1140003
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>& Eigen::SparseMatrix<double, 1, int>::operator=<Eigen::SparseMatrix<double, 0, int> >",
+    1105003
+   ],
+   [
+    "hven_bench::hs::normalize_absent_bounds",
+    1098003
+   ],
+   [
+    "_int_malloc",
+    1077003
+   ],
+   [
+    "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >",
+    1070003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ]
+  ],
+  "B_eng": [
+   [
+    "_int_malloc",
+    3560009
+   ],
+   [
+    "__internal_syscall_cancel",
+    2203006
+   ],
+   [
+    "hven::detail::QpSolution::operator=",
+    1210003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1196003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1196003
+   ],
+   [
+    "__memchr_avx2",
+    1189003
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    1189003
+   ],
+   [
+    "hven::detail::QpEngine::border_holds",
+    1182003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    63217168
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    42550114
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    16212042
+   ],
+   [
+    "strcmp",
+    10442027
+   ],
+   [
+    "check_match",
+    9281024
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    3343009
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    2350006
+   ],
+   [
+    "__GI___open64_nocancel",
+    2336006
+   ]
+  ]
+ }
+}

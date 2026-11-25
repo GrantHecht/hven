@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(hven VERSION 0.1.0 LANGUAGES CXX)
+project(hven VERSION 0.2.0 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -7,11 +7,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Submodule helpers
 #
 # cmake/git-submodule-init.cmake and cmake/git-submodule-update.cmake (both
-# migrated verbatim from the origin project) define the `git-submodule-init` /
+# carried verbatim from the project they were extracted from) define the `git-submodule-init` /
 # `git-submodule-update` convenience targets (run manually, e.g. `ninja
 # git-submodule-update`, after a fresh clone). The FATAL_ERROR checks below
 # tell a fresh clone exactly what command closes the gap when dep/eigen or
-# dep/fmt is missing — the same pattern the origin project's root
+# dep/fmt is missing — the same pattern a consumer's root
 # CMakeLists.txt uses for its own dep/ submodules.
 ################################################################################
 
@@ -41,9 +41,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ############### Options #########################################################
 ################################################################################
 
-option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
+# ON when hven is the top-level project; OFF under add_subdirectory(), so a consumer does
+# not pull Google Test over the network (FetchContent) just by adding hven to its tree.
+option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ${PROJECT_IS_TOP_LEVEL})
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
+# ON when hven is the top-level project (the examples are part of the normal build and
+# of ctest); OFF under add_subdirectory(), so a consumer does not compile them.
+option(HVEN_BUILD_EXAMPLES "Build the examples/ programs (one self-contained program per problem)" ${PROJECT_IS_TOP_LEVEL})
 
 # bindings/ is an empty scaffolding directory today (no CMakeLists.txt yet)
 # — fail loudly rather than silently no-op if someone turns the option on
@@ -87,6 +92,31 @@ option(HVEN_LINK_TIME_OPT
        "Build hven with IPO/LTO. Default OFF: measured to buy nothing on this library. Forced ON by BUILD_HVEN_WHEEL."
        OFF)
 set(CLANG_MAX_INLINE_DEPTH 225)
+
+# MKL threading layer (Linux/Windows; ignored on Apple, whose Accelerate backend
+# has no such choice).
+#   intel       (default) MKL's Intel-OpenMP layer: mkl_intel_thread + libiomp5.
+#               A positive Options::threads / MKL_NUM_THREADS > 1 runs Pardiso
+#               and LAPACK multi-threaded. The historical configuration.
+#   sequential  mkl_sequential, no OpenMP runtime linked or redistributed. Every
+#               MKL call is single-threaded; a threads > 1 request is IGNORED
+#               (see docs/build.md, "MKL threading layer"). Removes libiomp5's
+#               per-process bring-up and its idle-spin/barrier cost.
+# Installed packages record the choice (hvenConfig.cmake), so find_package(hven)
+# consumers link the same layer.
+set(HVEN_MKL_THREADING "intel" CACHE STRING "MKL threading layer: intel or sequential")
+set_property(CACHE HVEN_MKL_THREADING PROPERTY STRINGS intel sequential)
+if(NOT HVEN_MKL_THREADING STREQUAL "intel" AND NOT HVEN_MKL_THREADING STREQUAL "sequential")
+    message(FATAL_ERROR "HVEN_MKL_THREADING must be 'intel' or 'sequential', got '${HVEN_MKL_THREADING}'")
+endif()
+if(APPLE)
+    set(HVEN_MKL_THREADING "intel")  # no MKL here; keeps the recorded value neutral
+    unset(MKL_USE_SEQUENTIAL)
+elseif(HVEN_MKL_THREADING STREQUAL "sequential")
+    set(MKL_USE_SEQUENTIAL ON)
+else()
+    unset(MKL_USE_SEQUENTIAL)
+endif()
 
 # Floating-point optimization policy.
 # STRICT: no fast-math relaxations
@@ -166,7 +196,7 @@ else()
     message(STATUS "IEEE 754 compliance: FAST (full fast-math)")
 endif()
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT HVEN_MKL_THREADING STREQUAL "sequential")
     # MKL's threading layer is Intel's libiomp5; the compile flag matches the
     # runtime library resolved by hven_resolve_sparse_backend() below.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -222,23 +252,20 @@ if(UNIX)
 endif()
 
 ################################################################################
-# Preprocessor definitions the interior-point engine (ex-PSIOPT, migrated in
-# under src/drivers, src/model, src/interior) assumes were set project-wide by
-# its origin project's own root CMakeLists.txt. Applied here, at directory
-# scope, so every target configured below (hven itself, hven_tests, the
-# interior-engine test executable, and golden_rig) sees the same preprocessor
-# state the engine's own numerics depend on — most load-bearingly the first
-# two, which the origin project's build comments mark "NEVER EVER GET RID OF
-# THIS EVER": Eigen matrices left uninitialized (the release-build default)
-# can silently carry NaN/garbage into a computation instead of a
-# reproducible zero, and EIGEN_DONT_PARALLELIZE keeps Eigen's own internal
-# threading from contending with the engine's explicit thread pool.
+# Preprocessor definitions the interior-point engine (src/ipm, src/model,
+# src/util) assumes are set project-wide. Applied here, at directory
+# scope, so every target configured below (hven itself, the
+# hven_*_tests executables, and golden_rig) sees the same preprocessor
+# state the engine's numerics depend on — most load-bearingly the first
+# two, which must never be removed: Eigen matrices left uninitialized (the
+# release-build default) can silently carry NaN/garbage into a computation
+# instead of a reproducible zero, and EIGEN_DONT_PARALLELIZE keeps Eigen's own
+# internal threading from contending with the engine's explicit thread pool.
 add_compile_definitions(EIGEN_INITIALIZE_MATRICES_BY_ZERO)
 add_compile_definitions(EIGEN_DONT_PARALLELIZE)
 # fmt is already FMT_HEADER_ONLY (hven_dep_fmt, above); this additionally
-# matches the origin project's -DFMT_USE_LOCALE=0 so the engine's
-# fmt-based printing keeps the same (locale-independent) formatting
-# behavior it had there.
+# sets -DFMT_USE_LOCALE=0 so the engine's fmt-based printing is
+# locale-independent.
 add_compile_definitions(FMT_USE_LOCALE=0)
 # The two sizing knobs the engine's headers/sources read directly (the QP
 # thread default and the arena size) are NOT defined here at directory
@@ -252,36 +279,28 @@ if(WIN32)
     # thread_pool.h (many std::mutex members) then hits at compile time.
     add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
-    # VERIFIED header chain that pulls <windows.h> into the migrated
-    # interior-point engine's translation units, unguarded (no NOMINMAX
-    # defined anywhere before this fix): include/hven/detail/interior/
-    # utils/thread_pool.h itself does `#elif defined(_WIN32) #include
-    # <windows.h>` (its Windows thread-naming/affinity path), and that
-    # header is pulled in transitively by non_linear_program.h -> ipm_solver.h
-    # -> every driver TU, so windows.h's own `max`/`min` function-like
-    # macros are live for the rest of each such translation unit --
-    # exactly the classic collision with the `std::max`/`std::min` calls
-    # further down in thread_pool.h itself and in non_linear_program.h,
-    # barrier_math.h, inertia_regularization.h, and others reached the
-    # same way. Two further, independent sites, same pattern, found by a
-    # follow-up sweep of every <windows.h>/_WIN32 site in the moved tree:
-    # src/interior/utils/get_core_count.cpp includes <Windows.h> directly
-    # (its GetLogicalProcessorInformation path) and
-    # src/interior/utils/color_text.cpp includes <Windows.h> directly (its
-    # SetConsoleMode path) -- both with WIN32_LEAN_AND_MEAN locally
-    # defined but no NOMINMAX. None of this was hit in the origin project
-    # because its own include environment never manifested the
-    # collision (a different header-inclusion order/set) -- it is exposed
-    # here, not introduced here. NOMINMAX/WIN32_LEAN_AND_MEAN are
-    # compile-definition-only
-    # (edit-class (d)): the moved sources are not touched, and defining
-    # NOMINMAX before ANY <windows.h> inclusion in a TU is exactly the
-    # documented, standard fix for this exact collision. No pre-existing
-    # hven file (core/, linear/) includes <windows.h> at all (grepped
-    # clean), so narrowing what windows.h itself declares
-    # (WIN32_LEAN_AND_MEAN, which get_core_count.cpp already opts into
-    # locally) costs nothing here; hven uses none of the subsystems it
-    # excludes (winsock, COM, GDI, ...).
+    # VERIFIED header chain that pulls <windows.h> into the interior-point
+    # engine's translation units, unguarded (no NOMINMAX defined anywhere
+    # before this definition): include/hven/detail/util/thread_pool.h itself
+    # does `#elif defined(_WIN32) #include <windows.h>` (its Windows
+    # thread-naming/affinity path), and that header is pulled in transitively
+    # by non_linear_program.h -> ipm_solver.h -> every driver TU, so
+    # windows.h's own `max`/`min` function-like macros are live for the rest
+    # of each such translation unit -- exactly the classic collision with the
+    # `std::max`/`std::min` calls further down in thread_pool.h itself and in
+    # non_linear_program.h, barrier_math.h, inertia_regularization.h, and
+    # others reached the same way. One further, independent site, same
+    # pattern, found by a sweep of every <windows.h>/_WIN32 site:
+    # src/util/get_core_count.cpp includes <Windows.h> directly (its
+    # GetLogicalProcessorInformation path), with WIN32_LEAN_AND_MEAN locally
+    # defined but no NOMINMAX. NOMINMAX/WIN32_LEAN_AND_MEAN are
+    # compile-definition-only: no source is touched, and defining NOMINMAX
+    # before ANY <windows.h> inclusion in a TU is exactly the documented,
+    # standard fix for this exact collision. No core/ or linear/ file
+    # includes <windows.h> at all (grepped clean), so narrowing what
+    # windows.h itself declares (WIN32_LEAN_AND_MEAN, which
+    # get_core_count.cpp already opts into locally) costs nothing here; hven
+    # uses none of the subsystems it excludes (winsock, COM, GDI, ...).
     add_compile_definitions(NOMINMAX)
     add_compile_definitions(WIN32_LEAN_AND_MEAN)
 endif()
@@ -368,11 +387,12 @@ target_compile_definitions(hven PUBLIC
 #
 #   - USE_ACCELERATE_SPARSE gates two double members and two setter
 #     declarations directly on IpmSolver's settings struct
-#     (include/hven/drivers/ipm_solver.h) -- a real ABI-layout hazard on Apple.
+#     (include/hven/ipm/ipm_solver.h) -- a real ABI-layout hazard on Apple.
 #   - NOMINMAX / WIN32_LEAN_AND_MEAN / _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
-#     are needed for include/hven/detail/interior/utils/thread_pool.h to
-#     even COMPILE on Windows (it is reached from the public
-#     include/hven/model/non_linear_program.h); without them a Windows
+#     are needed for include/hven/detail/util/thread_pool.h to
+#     even COMPILE on Windows (it is reached from
+#     include/hven/detail/model/non_linear_program.h, an installed header
+#     that was public until M8 AP-2 B2); without them a Windows
 #     consumer hits the exact <windows.h> max/min collision and
 #     constexpr-mutex-constructor failure this project's own build works
 #     around for itself (see the if(WIN32) add_compile_definitions() block
@@ -481,10 +501,21 @@ target_compile_definitions(hven PUBLIC
 target_compile_definitions(hven_dep_eigen INTERFACE
     EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
 
+# The same value, readable from C++: the generated hven/core/build_config.h records the
+# alignment the library was built with (installed alongside the other headers), so a consumer
+# can check its own translation unit against it without reading hvenTargets.cmake.
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/hven/core/build_config.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/include/hven/core/build_config.h"
+    @ONLY)
+target_include_directories(hven PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/include/hven/core/build_config.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hven/core)
+
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
 
-# HVEN_VERSION_STRING follows the origin project's version-string-on-the-
-# command-line idiom: it makes src/core/version.cpp forward the single source
+# HVEN_VERSION_STRING follows the version-string-on-the-command-line idiom: it makes src/core/version.cpp forward the single source
 # of truth (this file's `project()` VERSION) instead of carrying its own hardcoded
 # copy, and gives tests/core/test_version.cpp the same macro to compare
 # against so the test actually guards against the two drifting apart.
@@ -492,20 +523,17 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 
 # The engine's two build-supplied sizing knobs.
 #
-# HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
-# -- include/hven/drivers/ipm_solver.h, in the qp_threads_ default
-# member initializer -- so a consumer that includes it without the definition
-# would fail on an undefined identifier inside a header it did not write.
-# (M6 W5 T1: it was two headers until the folded init_partitions moved out of
-# the public model/nlp_solver.h into src/model/nlp_solver.cpp; M6 W5 T8.9
-# retired both.) Carried as a usage requirement, linking hven::hven is all a
-# consumer has to do.
+# HVEN_DEFAULT_IPM_THREADS, the interior-point engine's default factorization
+# thread count, is PUBLIC: include/hven/ipm/ipm_options.h reads it in the
+# IpmOptions::common default member initializer (with an #ifndef fallback of the
+# same value for a consumer that includes the header without this target), and
+# src/ipm/solver_init.cpp sizes the Accelerate thread pool from it.
 #
 # HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is
-# src/interior/utils/memory_management.cpp, an hven source, and nothing in
+# src/util/memory_management.cpp, an hven source, and nothing in
 # any header names it.
 target_compile_definitions(hven
-    PUBLIC HVEN_DEFAULT_QP_THREADS=8
+    PUBLIC HVEN_DEFAULT_IPM_THREADS=8
     PRIVATE HVEN_DEFAULT_ARENA_SIZE=256)
 
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).
@@ -580,11 +608,20 @@ endif()
 # The SQP engine's bench harness (bench/CMakeLists.txt). Built whenever the
 # SQP suite is, not only under HVEN_BUILD_BENCH: the suite's subprocess
 # wall-deadline tests invoke the corpus runner binary, and the probes ride
-# along because an uncompiled probe rots silently (the origin project's own
-# committed rationale). UNIX-only, matching tests/sqp — the corpus runner
+# along because an uncompiled probe rots silently. UNIX-only, matching tests/sqp — the corpus runner
 # enforces wall deadlines by fork/exec.
 if(NOT WIN32 AND (HVEN_BUILD_TESTS OR HVEN_BUILD_BENCH))
     add_subdirectory(bench)
+endif()
+
+################################################################################
+# Examples. examples/CMakeLists.txt serves both ways it can be built: from here
+# (hven::hven is the in-tree alias) and as its own top-level project against an
+# install tree, the way a stranger would. Default ON at top level (see the option).
+################################################################################
+if(HVEN_BUILD_EXAMPLES)
+    enable_testing()
+    add_subdirectory(examples)
 endif()
 
 ################################################################################
@@ -686,6 +723,8 @@ if(APPLE)
 else()
     set(HVEN_SPARSE_SOLVER "MKL")
 endif()
+# hvenConfig.cmake.in replays this before find_dependency(MKL).
+set(HVEN_MKL_THREADING_INSTALLED "${HVEN_MKL_THREADING}")
 
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/hvenConfigVersion.cmake"

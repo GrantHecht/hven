@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_nlp_kkt_check.cpp — M6 W0.4. The pins on
+// M6 W0.4. The pins on
 // tests/sqp/support/nlp_kkt_check.h's `self_check_kkt` NON-FINITE CONTRACT.
 //
 // self_check_kkt is the primary correctness guard of the HS battery, the B1
@@ -33,25 +33,25 @@
 #include <limits>
 #include <vector>
 
+#include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <Eigen/SparseCore>
-
 #include <hven/core/types.h>
-#include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/sqp/sqp_solver_types.h>
 
-#include "support/nlp_kkt_check.h"
+#include "sqp/support/nlp_kkt_check.h"
 
 namespace {
 
 using hven::Index;
 using hven::SpMatRM;
+using hven::SqpResult;
 using hven::Vec;
-using hven::solvers::NlpModel;
-using hven::solvers::SqpResult;
-using hven::solvers::test_support::NlpKktResidual;
-using hven::solvers::test_support::self_check_kkt;
+using hven::detail::NlpModel;
+using hven::test_support::NlpKktResidual;
+using hven::test_support::self_check_kkt;
 
 constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -138,11 +138,11 @@ class PoisonableNlp : public NlpModel {
 // The KKT point above, as a driver would have returned it.
 SqpResult optimal_solution() {
     SqpResult sol;
-    sol.status = hven::solvers::SolveStatus::kOptimal;
+    sol.status = hven::SolveStatus::kOptimal;
     sol.x = Vec(2);
     sol.x << 1.0, 1.0;
-    sol.lambda_e = Vec::Constant(1, -1.0);
-    sol.lambda_i = Vec::Zero(1);
+    hven::detail::engine_rows(sol).lambda_e = Vec::Constant(1, -1.0);
+    hven::detail::engine_rows(sol).lambda_i = Vec::Zero(1);
     sol.z = Vec::Zero(2);
     return sol;
 }
@@ -283,8 +283,10 @@ TEST(NlpKktSelfCheck, NoPoisonedInputEverScoresAsACleanOptimum) {
         {"x infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.x(1) = kInf; }},
         {"z", [](PoisonableNlp &, SqpResult &s, double &) { s.z(1) = kNan; }},
         {"z infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.z(0) = kInf; }},
-        {"lambda_e", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_e(0) = kNan; }},
-        {"lambda_i", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_i(0) = kNan; }},
+        {"lambda_e", [](PoisonableNlp &, SqpResult &s,
+                        double &) { hven::detail::engine_rows(s).lambda_e(0) = kNan; }},
+        {"lambda_i", [](PoisonableNlp &, SqpResult &s,
+                        double &) { hven::detail::engine_rows(s).lambda_i(0) = kNan; }},
         {"gradient", [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kNan; }},
         {"gradient infinite",
          [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kInf; }},

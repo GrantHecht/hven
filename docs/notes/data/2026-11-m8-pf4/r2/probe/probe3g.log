@@ -1,0 +1,22 @@
+box-lane: lane 1 acquired 2026-11-20T09:32:40-05:00
+FOREGROUND_START 2026-11-20T09:32:40-05:00 lane=1 phys=[4 5 6 7]
+9b04c6909d3f5b8b125fea4de42d0d5991b4449d156ef10f7e888ce274b7e314  /home/ghecht/Projects/hven/.claude/worktrees/pf4/.scratch/bin/probe3g/hven_bench_cell
+ACOPP118.default.guard.j2 rc=0 status=optimal iterations=6 objective=129660.68619597278 side.qp_minor_iters=6229 
+ACOPP118.default.guard.j0 rc=0 status=optimal iterations=7 objective=129660.68619604289 side.qp_minor_iters=6133 
+ACOPP118.default.guard.j1 rc=0 status=optimal iterations=9 objective=129660.68619604313 side.qp_minor_iters=11120 
+STEENBRB.default.guard.j0 rc=0 status=optimal iterations=107 objective=9203.7988198051571 side.qp_minor_iters=19356 
+STEENBRD.default.guard.j0 rc=0 status=optimal iterations=107 objective=9074.1942666909217 side.qp_minor_iters=19836 
+STEENBRB.default.guard.j1 rc=0 status=optimal iterations=92 objective=9075.8553755470275 side.qp_minor_iters=28041 
+STEENBRD.default.guard.j1 rc=0 status=optimal iterations=73 objective=9030.0818667716503 side.qp_minor_iters=16854 
+STEENBRB.default.guard.j2 rc=0 status=optimal iterations=105 objective=9075.8553755338962 side.qp_minor_iters=23115 
+CRESC100.default.guard.j1 rc=0 status=max_iter iterations=280 objective=0.56892044425091282 side.qp_minor_iters=40246 
+MESH.never-default.guard.j2 rc=0 status=infeasible iterations=15 objective=-268423.98761858809 side.qp_minor_iters=825 
+CRESC100.default.guard.j2 rc=0 status=max_iter iterations=267 objective=0.5691205089555611 side.qp_minor_iters=37886 
+STEENBRD.default.guard.j2 rc=0 status=optimal iterations=50 objective=9030.0818668574138 side.qp_minor_iters=14350 
+MESH.never-default.guard.j0 rc=0 status=infeasible iterations=15 objective=-268423.98761858809 side.qp_minor_iters=1370 
+CRESC100.default.guard.j0 rc=0 status=optimal iterations=180 objective=0.567602709752278 side.qp_minor_iters=28467 
+CRESC50.never-default.guard.j0 rc=0 status=max_iter iterations=280 objective=0.59495778708089375 side.qp_minor_iters=14810 
+MESH.never-default.guard.j1 rc=0 status=infeasible iterations=15 objective=-268423.98761858809 side.qp_minor_iters=1388 
+CRESC50.never-default.guard.j1 rc=0 status=numerical_error iterations=171 objective=0.59566302669056626 side.qp_minor_iters=12735 
+CRESC50.never-default.guard.j2 rc=0 status=max_iter iterations=277 objective=0.64856224871031998 side.qp_minor_iters=17893 
+FOREGROUND_END 2026-11-20T09:34:43-05:00

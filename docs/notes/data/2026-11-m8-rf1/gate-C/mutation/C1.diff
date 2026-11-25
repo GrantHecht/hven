@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index c46ae936d..3a784752b 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10816,8 +10816,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
+     // caller-unit ones just written (NaN when unmeasured, which fails the test). Top level only:
+     // a restoration sub-solve's status is read by the parent's switch. The best iterate is
+     // dropped as attach_best_iterate drops it for any kAcceptable.
+-    if (!is_restoration_sub_driver_ &&
+-        detail::sqp_exit_is_labelable(out.status, last_stop_reason_) &&
++    if (detail::sqp_exit_is_labelable(out.status, last_stop_reason_) &&
+         detail::sqp_point_acceptable(kkt, detail::engine_rows(out).feasibility_e,
+                                      detail::engine_rows(out).feasibility_i, opts_.termination)) {
+         std::string origin = fmt::format("exit {}", to_string(last_stop_reason_));

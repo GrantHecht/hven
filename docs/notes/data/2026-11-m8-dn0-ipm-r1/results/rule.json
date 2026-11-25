@@ -1,0 +1,170 @@
+{
+ "primary": {
+  "reading": "primary (process total, one-time init included)",
+  "cells": {
+   "hven-ipm/hs": {
+    "median_cell": "hs010",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "instr_median",
+    "rank_value": 7062033,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.4188945101520027,
+     "B_kkt": 0.01492762300851916,
+     "B_eval": 0.02445966404289839,
+     "B_setup": 0.1662699914330676,
+     "B_eng": 0.3754482113635122
+    },
+    "fact_share": 0.4188945101520027,
+    "rho": 0.042357097783205386,
+    "rho_incl_densify": 0.04377011708198463,
+    "rho_engine_weighted": 0.17805667011770093,
+    "neg_agree": 1.0,
+    "replayed": 10,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": "",
+    "neg_agree_pooled_population": 1.0,
+    "pooled_matrices": 268,
+    "pooled_agreeing": 268,
+    "DN1_condition_if_pooled_agreement": true,
+    "samples_all_reps": 2097,
+    "samples_solver_est": 727,
+    "reps": 100,
+    "period_base": 250007,
+    "sampling_defects": 0
+   },
+   "hven-ipm/sd": {
+    "median_cell": "HS100MOD",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "instr_median",
+    "rank_value": 8694896,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.420964129950229,
+     "B_kkt": 0.010059101528645503,
+     "B_eval": 0.08842526225865154,
+     "B_setup": 0.23147182002401068,
+     "B_eng": 0.24907968623846327
+    },
+    "fact_share": 0.420964129950229,
+    "rho": 0.08478182543894731,
+    "rho_incl_densify": 0.08898490672084747,
+    "rho_engine_weighted": 0.41457366053906963,
+    "neg_agree": 1.0,
+    "replayed": 15,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": "",
+    "neg_agree_pooled_population": 0.9764072847682119,
+    "pooled_matrices": 2416,
+    "pooled_agreeing": 2359,
+    "DN1_condition_if_pooled_agreement": false,
+    "samples_all_reps": 2589,
+    "samples_solver_est": 1187,
+    "reps": 100,
+    "period_base": 250007,
+    "sampling_defects": 0
+   }
+  },
+  "engines": {
+   "hven-ipm": {
+    "DN1": true,
+    "DN2_provisional": false
+   }
+  },
+  "DN1_fires": true,
+  "DN2_fires": false,
+  "outcome": "DN-1 (IPM engine outcome; the SQP's is DN-0's)"
+ },
+ "secondary": {
+  "reading": "secondary (steady state, process-once solver init excluded)",
+  "cells": {
+   "hven-ipm/hs": {
+    "median_cell": "hs010",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "ss_instr",
+    "rank_value": 2383083,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.41986263755135306,
+     "B_kkt": 0.014962122961350903,
+     "B_eval": 0.024516193957626185,
+     "B_setup": 0.16434311761306603,
+     "B_eng": 0.37631592791660384
+    },
+    "fact_share": 0.41986263755135306,
+    "rho": 0.042357097783205386,
+    "rho_incl_densify": 0.04377011708198463,
+    "rho_engine_weighted": 0.17805667011770093,
+    "neg_agree": 1.0,
+    "replayed": 10,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": "",
+    "neg_agree_pooled_population": 1.0,
+    "pooled_matrices": 268,
+    "pooled_agreeing": 268,
+    "DN1_condition_if_pooled_agreement": true,
+    "samples_all_reps": 2097,
+    "samples_solver_est": 727,
+    "reps": 100,
+    "period_base": 250007,
+    "sampling_defects": 0
+   },
+   "hven-ipm/sd": {
+    "median_cell": "HS100MOD",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "ss_instr",
+    "rank_value": 3897245,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.42137595210385437,
+     "B_kkt": 0.01006894217909606,
+     "B_eval": 0.08851176721084912,
+     "B_setup": 0.23071998178487876,
+     "B_eng": 0.2493233567213217
+    },
+    "fact_share": 0.42137595210385437,
+    "rho": 0.08478182543894731,
+    "rho_incl_densify": 0.08898490672084747,
+    "rho_engine_weighted": 0.41457366053906963,
+    "neg_agree": 1.0,
+    "replayed": 15,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": "",
+    "neg_agree_pooled_population": 0.9764072847682119,
+    "pooled_matrices": 2416,
+    "pooled_agreeing": 2359,
+    "DN1_condition_if_pooled_agreement": false,
+    "samples_all_reps": 2589,
+    "samples_solver_est": 1187,
+    "reps": 100,
+    "period_base": 250007,
+    "sampling_defects": 0
+   }
+  },
+  "engines": {
+   "hven-ipm": {
+    "DN1": true,
+    "DN2_provisional": false
+   }
+  },
+  "DN1_fires": true,
+  "DN2_fires": false,
+  "outcome": "DN-1 (IPM engine outcome; the SQP's is DN-0's)"
+ }
+}

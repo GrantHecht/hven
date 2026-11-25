@@ -187,12 +187,12 @@ jobs:
         # options through to the binaries `gtest_discover_tests` registers, so
         # the flag has to arrive as an env var instead). It is pointed at a
         # DIRECTORY (trailing slash), not a fixed file: `gtest_discover_tests`
-        # invokes hven_tests once per test case, and GoogleTest's directory-mode
+        # invokes the test executable once per test case, and GoogleTest's directory-mode
         # writer (`FilePath::GenerateUniqueFileName`, gtest-filepath.cc)
         # generates a fresh, collision-free filename per invocation instead of
         # overwriting -- a fixed-file path would leave only the last test's
         # output behind. This is what makes `RecordProperty` observations (see
-        # tests/sqp/test_corpus_cells.cpp, test_ssn_engine.cpp) land somewhere
+        # tests/bench/test_corpus_cells.cpp, test_ssn_engine.cpp) land somewhere
         # durable instead of being formatted and discarded.
         #
         # MKL_NUM_THREADS pins Pardiso to one thread, matching CLAUDE.md §7's
@@ -202,7 +202,7 @@ jobs:
         # three counter-/trajectory-pinned test flakes on this lane (all
         # Linux-only, never local, objects byte-identical across the flake): see
         # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md's R5
-        # report §7-8 (SqpDriverRadius, B1Gate, CorpusTask6bPhaseB,
+        # report §7-8 (SqpSolverRadius, B1Gate, CorpusTask6bPhaseB,
         # SsnEngineLocal on run 31893392460 attempt 1, with two earlier
         # occurrences noted in docs/notes/2026-08-14-m3-gate-b-review-request.md
         # and docs/notes/2026-08-15-m3-phase-c-plan.md's microarch-flake watch
@@ -240,7 +240,7 @@ jobs:
       # nothing the compiler emits; that was measured once when it landed,
       # and without this step it would decay silently -- reordering
       # src/hven_pch.h's include list, or letting clang-format alphabetize
-      # the include block of src/drivers/ipm_solver.cpp, breaks
+      # the include block of src/ipm/ipm_solver.cpp, breaks
       # the property without breaking the build. See docs/build.md.
       #
       # Linux only. The full two-build comparison is the expensive half, and
@@ -299,6 +299,24 @@ jobs:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke-clang
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++
+
+      # PF-6: the sequential MKL threading layer, end to end through the
+      # installed package (the build records the choice in hvenConfig.cmake, so
+      # the consumer must come out sequential too). Asserts the consumer binary
+      # needs no OpenMP runtime. Separate workdir for the same reason as above.
+      - name: Run hven install smoke, sequential MKL threading (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke-seq
+          HVEN_INSTALL_SMOKE_JOBS: "6"
+        run: |
+          set -euo pipefail
+          ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++ -DHVEN_MKL_THREADING=sequential
+          grep -q 'MKL threading layer = sequential' "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log"
+          if readelf -d "${HVEN_INSTALL_SMOKE_WORKDIR}/smoke-build/hven_install_smoke" | grep -q 'iomp5'; then
+            echo "sequential consumer still needs libiomp5" >&2
+            exit 1
+          fi
 
       # Gated on the smoke step specifically, not `!cancelled()` alone, same
       # reason as the macOS lane: this step inspects the install tree the
@@ -417,7 +435,7 @@ jobs:
         # (env-var form of `--gtest_output`, directory-mode to avoid the
         # per-test-case overwrite collision). This is what a `RecordProperty`
         # observation -- the M3-4 register's open questions in
-        # tests/sqp/test_ssn_engine.cpp, tests/sqp/test_corpus_cells.cpp --
+        # tests/qp/test_ssn_engine.cpp, tests/bench/test_corpus_cells.cpp --
         # needs to land in durably on the only Apple hardware this project
         # reaches, instead of being formatted and discarded.
         #
@@ -590,9 +608,9 @@ jobs:
   windows-clang-release:
     # Like the macOS job above, this was a first-contact lane: the
     # Windows/clang-cl compile-flag set in cmake/hven_compile_options.cmake
-    # is a byte-for-byte copy of tycho's own already-Windows-verified flags
-    # (compared directly against tycho's cmake/tycho_compile_options.cmake
-    # at the time this job was written), but hven's own CMake plumbing
+    # is a byte-for-byte copy of an already-Windows-verified flag set
+    # (compared directly against it at the time this job was written), but
+    # hven's own CMake plumbing
     # around it -- HVEN_FP_MODE's SAFER_FAST clang-cl feature-detection
     # check, cmake/FindMKL.cmake's Windows hint paths, MKL discovery via a
     # freshly-installed oneAPI on this exact runner image -- had not run
@@ -614,6 +632,29 @@ jobs:
 
       - name: Install ninja
         run: choco install ninja --no-progress -y
+
+      - name: Report runner image and MSVC toolset
+        shell: pwsh
+        run: |
+          "ImageVersion=$env:ImageVersion ImageOS=$env:ImageOS"
+          Get-ChildItem 'C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC' | Select-Object -ExpandProperty Name
+
+      # Pin clang-cl to an exact LLVM release. The windows-2025-vs2026 image
+      # rolled from 20261103.298.1 (MSVC 14.51.36231) to 20261116.315.1 (MSVC
+      # 14.52.37025), whose STL static-asserts (STL1000) on clang older than
+      # 22; the image still preinstalls LLVM 20.1.8 (run 44373091547). The
+      # rollout is partial -- runners land on either image -- so the pin must
+      # work on both (clang 22.1.7 does). Installing over the preinstalled
+      # LLVM keeps C:/Program Files/LLVM, the path the windows-clang-release
+      # preset hard-codes. The exact version (not 'latest') keeps the lane
+      # from drifting with the image; bump deliberately. The STL version
+      # check is NOT silenced.
+      - name: Install LLVM (pinned clang-cl matching the image's STL)
+        shell: pwsh
+        run: |
+          choco upgrade llvm --version=22.1.7 --allow-downgrade --no-progress -y
+          & 'C:\Program Files\LLVM\bin\clang-cl.exe' --version
+          if (-not ((& 'C:\Program Files\LLVM\bin\clang-cl.exe' --version | Out-String) -match 'version 22\.1\.7')) { throw 'clang-cl 22.1.7 not installed' }
 
       - name: Cache Intel oneAPI MKL + OpenMP install
         id: cache-oneapi-mkl
@@ -669,10 +710,10 @@ jobs:
         # BUILD_SHARED_LIBS-only _dll.lib names -- this project never turns
         # that on), but Intel's OpenMP runtime is ALWAYS a DLL on Windows:
         # libiomp5md.lib ("md" = multithreaded DLL CRT) is an import stub,
-        # not a true static archive, so hven_tests.exe has a genuine
+        # not a true static archive, so each test executable (hven_*_tests.exe) has a genuine
         # load-time DLL dependency regardless of how "static" the rest of
         # the link looks. Confirmed the hard way: run 31284216427 built and
-        # linked hven_tests.exe successfully, then died with
+        # linked hven_tests.exe (then the single test executable; one per tests/ directory since RS-6a) successfully, then died with
         # STATUS_DLL_NOT_FOUND (0xc0000135) the moment CMake's own
         # gtest_discover_tests tried to execute it during the Build step
         # (see the DISCOVERY_MODE note in tests/CMakeLists.txt -- this repo
@@ -719,7 +760,7 @@ jobs:
         # per-test-case overwrite collision).
         #
         # MKL_NUM_THREADS: this lane also links and runs against MKL Pardiso
-        # (same hven_tests binary, same counter-/trajectory-pinned suite), so it
+        # (the same test binaries, same counter-/trajectory-pinned suite), so it
         # gets the same pin as the Linux lane's Test step, for the same reason --
         # see that step's comment and
         # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md §7-8.

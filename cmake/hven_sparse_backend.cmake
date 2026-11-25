@@ -1,5 +1,5 @@
 ################################################################################
-# Migrated from the origin project; flags kept identical.
+# Flags kept identical to the module this was extracted from.
 #
 # hven_resolve_sparse_backend()
 #
@@ -17,8 +17,7 @@
 # AccelerateSparse::AccelerateSparse (or the MKL_LIBRARIES/LINK_LIBS
 # variables) to still exist.
 #
-# Migrated from the origin project's sparse-backend module -- no behavior
-# changes.
+# Extracted from a sparse-backend module -- no behavior changes.
 #
 # Prerequisites the caller must set before invoking (all read from caller
 # scope):

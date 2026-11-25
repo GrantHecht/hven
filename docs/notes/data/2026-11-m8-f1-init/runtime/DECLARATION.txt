@@ -1,0 +1,47 @@
+M8 F1 -- runtime gate -- DECLARATION (PF-1's instrument, ../../2026-11-m8-pf1/runtime/, re-pointed, with the interior
+mode read for a DECLARED IMPROVEMENT; committed before the first leg; never edited; a failed leg is answered by a
+DECLARATION-r2 successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-pf1/runtime/DECLARATION.txt (itself the B8 riders' DECLARATION-r2 criteria, verbatim). run_all.sh
+and runtime_leg.sh are PF-1's with the worktree (f1), the build directory (build-pf1e -> build-f1), the evidence
+directory, arm A's sha256 and the comments' arm A replaced; run_all.sh calls analyze_f1.py where PF-1 called
+analyze_r5.py and greps its F1- lines. analyze_r5.py is PF-1's byte for byte (runtime_leg.sh still calls it for the
+per-process excluded count). The fixture is copied byte for byte.
+
+WHY THE INTERIOR READING CHANGES. The event removes the very spin the r5 filter exists to subtract: MKL's dsecnd()
+clock calibration behind ensure_solver_initialized(), reached only by the interior-point driver. r5's interior guard
+requires the EXCLUDED samples of BOTH arms to be > 0 ("filter liveness"); arm B no longer has them by construction, so
+the unchanged guard would VOID a correct leg. analyze_f1.py replaces that guard, interior mode only, by three checks
+and changes nothing else (stop condition, validity, filter, rounds, band, aggregation are r5's verbatim):
+  F1-a  arm A's excluded samples over all its processes and rounds > 0 (the filter is still live: arm A carries the
+        spin); else VOID (exit 4), as r5.
+  F1-b  arm B's SPIN samples -- symbols difftime, difftime@plt, mkl_serv_get_clocks_frequency, __vdso_time, time, the
+        calibration's own and a subset of the exclusion list -- are 0 in EVERY arm B process: the spin is gone and did
+        not move to a later call (clock_gettime-class samples, which std::chrono produces, stay excluded and are
+        reported, not judged).
+  F1-c  all-samples (unfiltered) B/A <= 0.995: the declared improvement is visible. Expected ~0.96-0.97 (PF-1's arm A
+        interior: 17,692 excluded of 514,571 samples per round-median; the phase-aligned spin is ~1 s).
+  The FILTERED B/A must be in [0.995, 1.005] as before: everything but the spin is unchanged. mkl_get_max_threads(),
+  which replaces dsecnd(), costs no measurable instructions (diagnosis/mkl_probe_nolate.txt: 6.08e6 per probe process
+  with or without it) -- it moves the OpenMP runtime's first-call bring-up, which every arm A process also pays inside
+  its first Pardiso call, to before the solve's timer.
+  walk / ssn / ipm (the SQP modes) never reach ensure_solver_initialized(): their reading is r5's, unchanged (excluded
+  count reported, expected 0; band; counter identity as the STOP condition).
+
+ARMS
+  A  2340b95d (origin/m8): build-f1/armAbin/hven_sqp_corpus, the corpus binary of ../legs/prebuild.sh's Release build
+     of 2340b95d's `git archive` export (build-f1/armA-src at build-f1/armA), ../legs/build.sh's flags; sha256
+     ef3f2682008580cf1b10988a9cf8aa9ce41542fc3852095f1b6e3e8f5bd0baa6.
+  B  the code head d546afd1: build-f1/rel/bench/hven_sqp_corpus (a fresh configure and build at the head,
+     ../legs/build.sh) copied by run_all.sh to build-f1/armBbin/, sha256
+     e48c2e34205b408a1616ef33c5f2bdf8b401a70aad04c355311ab744d8efc0e3. run_all.sh refuses to start on a mismatch for
+     either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase
+alignment, period 200000, THROTTLE == 0, counter identity as the STOP condition: exactly as the source declaration.
+Both arms at the defaults in every mode. VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY: src/drivers/solver_init.cpp's MKL branch calls mkl_get_max_threads() instead of dsecnd(), once
+per process, on the first interior-point solve. Nothing else.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a hven_bench_cell`
+empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux
+7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2 (INTEL_MKL_VERSION 20260200); Apple/Windows UNOBSERVED.

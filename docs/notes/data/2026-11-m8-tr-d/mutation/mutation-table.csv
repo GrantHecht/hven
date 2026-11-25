@@ -1,0 +1,10 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+d1,IPM history drops the last row of every phase,ok,ExitDoorWalk.EveryExitDoorOfBothEnginesKeepsTheCountIdentity drivers rc=1 
+d2,SQP history stops pushing after two rows,ok,BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm drivers rc=1 sqp rc=1 
+d3,IPM history row field miswired (complementarity from stationarity),ok,TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1 
+d4,SQP history row field miswired (trust_radius from violation_l1),ok,Callback.SqpEventRowsEqualHistoryInCallerUnits JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1 
+d5,factorizations not written on the SQP row,ok,TraceV1Contract.V4TheFactorizationCountIsMonotoneAndBoundedByTheWork drivers rc=1 
+d6i,IPM history built with tracing on only,ok,IterationHistory.HistoryExistsWithNoSinkAndIsTheSameWithOne drivers rc=1 
+d6s,SQP history rows real only with a sink attached,ok,Callback.SqpEventRowsEqualHistoryInCallerUnits drivers rc=1 
+d7,IPM provenance stamp omitted,ok,ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmTrace.EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder drivers rc=1 interior rc=1 

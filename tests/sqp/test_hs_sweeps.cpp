@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_hs_sweeps.cpp — PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
+// PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
 // the policy adjudications it exists to produce.
 //
 // STEP 1 (this file's first half) is the TRANSCRIPTION GUARD on
-// tests/sqp/support/hs_sweeps.h: derivative checks and pattern-invariance checks
+// tests/model/support/hs_sweeps.h: derivative checks and pattern-invariance checks
 // on every corpus member at several parameter values, plus the T6 contract
 // checks on set_parameters. Nothing in the second half means anything if a
 // wrapper reports a gradient its own objective does not have.
@@ -50,8 +50,8 @@
 // applies to BOUNDS. Step (3)'s argument is thereby made true again rather than
 // patched around: the ingested multipliers are complementary by construction,
 // so (stationarity, feasibility) is once more a COMPLETE KKT test where it
-// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/test_b1_gate.cpp; this
-// file carries element 1 of it (these three specs flipping to sound).
+// runs. THE REGRESSION CORPUS FOR THE REPAIR IS tests/sqp/test_warm_ingest_complementarity.cpp;
+// this file carries element 1 of it (these three specs flipping to sound).
 //
 // THE CRITERION FOR WHAT WAS EXPOSED -- READ THE NOTE'S §1.4, NOT THIS
 // CORPUS'S OWN SPLIT. A warm ingest was exposed exactly when moving p moved NO
@@ -63,7 +63,7 @@
 // trap a corpus designer falls into: ONE COUPLED GATE RESCUES A MODEL WHOSE
 // INEQUALITY ROW IS OTHERWISE EXPOSED, so a family can contain a perfectly
 // B-1-shaped relaxing inequality and still be immune. F4 of
-// tests/sqp/support/parametric_families.h is exactly that near-miss -- its cI row
+// tests/model/support/parametric_families.h is exactly that near-miss -- its cI row
 // IS exposed in isolation, and it survives only because the same scalar a(p)
 // simultaneously moves an equality row and a bound (note §1.4). CONSEQUENCE FOR
 // ANY REGRESSION CORPUS BUILT AGAINST B-1: it must contain a problem where a
@@ -71,7 +71,7 @@
 // repair and a non-repair alike and so demonstrates nothing. THIS CORPUS DOES
 // NOT CONTAIN SUCH A PROBLEM EITHER -- HS10/HS15/HS33 are exposed because their
 // specs carry `tilt == vec0` and a pure `ci_shift`, which is a property of the
-// SPEC and not of the model -- which is exactly why test_b1_gate.cpp exists and
+// SPEC and not of the model -- which is exactly why test_warm_ingest_complementarity.cpp exists and
 // why the repair is not regression-tested from here alone.
 //
 // CONVEXITY IS IRRELEVANT, and the me-vs-mi split this file's own
@@ -79,7 +79,7 @@
 // only, not the criterion -- see those constants' own note. The Task-7 review
 // reproduced the defect on a convex n = 3 problem of its own AND on
 // F6PathBoundQuadrature, a CONVEX family already shipped in
-// tests/sqp/support/parametric_families.h, whose p is a pure constant shift of cI.
+// tests/model/support/parametric_families.h, whose p is a pure constant shift of cI.
 // An earlier version of this banner and of the note scoped the defect by
 // convexity; that was wrong and is corrected in the note's §1.4.
 //
@@ -111,25 +111,26 @@
 #include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
+#include <hven/core/compiler.h>
 #include <hven/core/ledger.h>
-#include <hven/detail/globalization/sqp/globalization.h>
-#include <hven/detail/warmstart/continuation.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/globalization/funnel.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
-#include "../common_support/route_reference.h"
-#include "support/derivative_check.h"
-#include "support/hs_sweeps.h"
-#include "support/nlp_kkt_check.h"
-
-#include "hven/core/compiler.h"
+#include "model/support/derivative_check.h"
+#include "model/support/hs_sweeps.h"
+#include "sqp/support/nlp_kkt_check.h"
+#include "support/route_reference.h"
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::assert_gradient;
@@ -343,6 +344,8 @@ struct SweepCell {
     Index soc_steps = 0, soc_applied = 0, soc_qp_infeasible = 0, soc_rejected = 0;
     Index elastic_activations = 0, elastic_escalations = 0, restoration_iters = 0;
     Index full_step_majors = 0, watchdog = 0;
+    // kOptimal walk exits whose worst row is still past 1x of row_tolerance (the gray-zone census).
+    Index gray_exits = 0;
     Index n_cold = 0, n_warm = 0, n_hot = 0;
     Index status_failures = 0;
     Index solves = 0;
@@ -392,6 +395,7 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
     c.elastic_activations += r.counters.elastic_activations;
     c.elastic_escalations += r.counters.elastic_escalations;
     c.restoration_iters += r.counters.restoration_iters;
+    c.gray_exits += r.counters.optimal_row_gray_exits;
     c.full_step_majors += r.full_step_majors;
     c.watchdog += r.watchdog_restores;
     switch (r.start_level_used) {
@@ -423,7 +427,7 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 //
 // adaptive_mu IS OFF, for the reason test_warm_start_battery.cpp's
 // battery_options() gives: the Task-10 schedule drives dual_mu off the KKT
-// residual, which differs between two consecutive solves, and qp_engine.h's
+// residual, which differs between two consecutive solves, and walk_engine.h's
 // hot-start reuse condition (d) requires the effective (primal_delta,
 // dual_mu) pair to be byte-identical across them. Holding it off on the cold
 // arm too is what makes the arms differ in exactly one thing.
@@ -437,13 +441,13 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter,
                          bool failure_step = false) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
-    opts.warm_full_step = full_step;
-    opts.enable_soc = enable_soc;
+    opts.advanced.warm_full_step = full_step;
+    opts.advanced.second_order_correction = enable_soc;
     // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
     // the full-step mode by design -- the full-step funnel accepts every trial
     // unjudged -- so with it on the KD lever would differ in TWO things, not one.
@@ -452,7 +456,7 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
     // same status counts. Every other cell, and every KD-on cell, is unchanged.
     // That reading is pinned by HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep.
-    opts.qp_failure_step = failure_step;
+    opts.advanced.qp_failure_step = failure_step;
     return opts;
 }
 
@@ -549,8 +553,9 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         model->set_parameters(Vec::Constant(1, p));
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
         SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
-        const SqpResult sol = have_prev ? driver.solve(*model, prev.x, prev.warm_start)
-                                        : driver.solve(*model, model->start_point());
+        const SqpResult sol =
+            have_prev ? driver.solve(hven::detail::problem_ref(*model), prev.x, prev.sqp_warm_start)
+                      : driver.solve(hven::detail::problem_ref(*model), model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -594,7 +599,7 @@ SweepCell run_cold_grid(const HsSweepSpec &spec, const std::vector<double> &grid
         SqpSolver driver(sweep_options(StartLevel::kCold, full_step, enable_soc, spec.max_iter));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model->set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol = driver.solve(*model, model->start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*model), model->start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         if (sol.status == SolveStatus::kOptimal) {
             const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, sol, 1e-6);
@@ -740,7 +745,8 @@ std::string corpus_table() {
 //   ALSO WHY THEY ARE THE REPAIR'S CONTROL SET: the repair touches lambda_i
 //   only, and on a model with mi() == 0 its loop does not execute at all, so
 //   these three must be bit-identical across it (asserted in
-//   tests/test_b1_gate.cpp, against values measured at the pre-repair commit).
+//   tests/sqp/test_warm_ingest_complementarity.cpp, against values measured at the pre-repair
+//   commit).
 //
 //   BREAKAGE was confounded. HS10/HS15/HS33 are ALSO exactly the three specs
 //   with tilt == vec0 and a pure ci_shift, while HS26/HS40/HS77 all carry an
@@ -1111,10 +1117,38 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // warm arms performed no majors past their first point and so had no
     // engagement to report -- and HS26/HS40/HS77 are UNCHANGED, which is the
     // control saying the repair did not disturb the equality-only third.
+    // RE-DERIVED, M8 DN-3 flip (a DECLARED default event, docs/notes/data/2026-11-m8-dn3/
+    // DECLARATION-r4.md): SqpLinearOptions::dense_factorization moved kNever -> kAuto, so
+    // every HS factor is now on the dense arm. HS10's warm arm is CONFIG-SPLIT from here:
+    // Release reads 28 / 42 (was 26 / 40), Debug holds at 26 / 40.
+    // macOS (Accelerate) Release reads the Debug column here: 26 / 40, observed on CI run
+    // 43485700149 (dense_factorizations nonzero, so the dense arm IS selected there).
+    // OFF THE REFERENCE BUILD (MKL, not macOS): a route pin since the DN-3 flip put HS10 on
+    // the dense arm, whose LAPACK kernels MKL picks per CPU. AVX-512 Intel runners (CI runs
+    // 43501262925, 43655190606: Xeon 6973P-C / 6975P-C, mkl_auto_branch 14) read the Debug
+    // column, 26 / 40, in Release. Recorded, not pinned (WX design section 2.1); the corpus's
+    // portable contract -- every warm solve a genuine KKT point, the warm arm's objective
+    // against the cold oracle, the lever neutral in every count -- is asserted above.
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.hs10_warm",
+        fmt::format("full_step_majors={} majors={}",
+                    problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors,
+                    problem("HS10").cell[kArmWarm][kOn][kOn].majors));
+#else
+    // M8 kopt-1x r2: the first kopt-1x fix moved Release to 26 / 40 because its row measure read a
+    // working inequality row two-sided (slack counted as a violation); the one-sided read restores
+    // the earlier config split.
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#endif
+#endif
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
-    // 23/30. The shipped `SqpOptions::qp_failure_budget` moved from 1 to 3 on
+    // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
     // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
     // HS15's warm arm is the one cell in this corpus that routes a subproblem
     // failure at all: two more failures are now routed at the iterate that used
@@ -1123,8 +1157,34 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // THE CORPUS MOVES, which is the control that says this is the routing gate
     // and not a trajectory change: HS10, HS26, HS33, HS40 and HS77 hold at their
     // Task-7b values, and every cold arm is untouched.
-    EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // RF-1 A+B2 (declared mover): 23/30 -> 22/40. The arm's failing chain at p = 1 (the LICQ
+    // point) now takes the retry rungs and a restoration before the same kNumericalError; the
+    // status, the stop point and every objective are unchanged (section (1) and (3b) hold).
+    // CONFIG-SPLIT: Debug reads 21/39, and so do the off-reference Release lanes (macOS and
+    // Windows, CI run 44991274789); the reference Release build reads 22/40. A Linux Release
+    // runner whose MKL dispatch probe says OFF-REFERENCE (AMD, avx512, mkl_auto_branch=2; CI run
+    // 45036848180) also reads 22/40, so Linux Release is pinned to that column whatever the probe
+    // says.
+    // AND AN INTEL ONE READS 21/39 (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI run 45064036804):
+    // off the reference build the two Linux columns are both observed, so either is accepted
+    // there and the pair is recorded; the reference build keeps 22/40 exactly.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    {
+        const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
+        hven::test_support::record_off_reference_route(
+            "HsSweepCorpus.hs15_warm_on_on",
+            fmt::format("full_step_majors={} majors={}", hs15.full_step_majors, hs15.majors));
+        EXPECT_TRUE((hs15.full_step_majors == 22 && hs15.majors == 40) ||
+                    (hs15.full_step_majors == 21 && hs15.majors == 39))
+            << hs15.full_step_majors << "/" << hs15.majors;
+    }
+#else
+    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+#endif
     // HS26's TWO COLUMNS ARE CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared).
     // MEASURED: Release holds at 12 / 29 and Debug reads 13 / 30 -- one more major, a
     // full step, on the warm arm. This problem is rank-deficient at its solution
@@ -1135,12 +1195,26 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // HS15, HS33, HS40, HS77 and all five cold arms -- holds in BOTH configurations,
     // which is the control that says this is one cell's rounding and not a routing
     // change.
-#ifdef NDEBUG
-    EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+    // RE-DERIVED, M8 DN-3 flip (declared, as HS10 above): on the dense arm the split
+    // swaps -- Release reads 13 / 30 (was 12 / 29), Debug 12 / 29 (was 13 / 30).
+    // macOS (Accelerate) Release reads the Debug column here: 12 / 29, observed on CI run
+    // 43485700149.
+    // Off the reference build (MKL, not macOS): a route pin, as HS10's above; the AVX-512
+    // Intel runners read 12 / 29 in Release.
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.hs26_warm",
+        fmt::format("full_step_majors={} majors={}",
+                    problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors,
+                    problem("HS26").cell[kArmWarm][kOn][kOn].majors));
 #else
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#else
+    EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#endif
 #endif
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(16, problem("HS33").cell[kArmWarm][kOn][kOn].majors);
@@ -1241,7 +1315,7 @@ void check_soc_outcome_partition() {
 // extra factorizations.
 // ---------------------------------------------------------------------
 void check_soc_costs_what_it_costs() {
-    Index extra_minors = 0, extra_factorizations = 0, total_minors = 0;
+    Index extra_minors = 0, extra_factorizations = 0, total_minors = 0, gray_exits = 0;
     for (const ProblemCells &p : corpus()) {
         for (int a = 0; a < kArmCount; ++a) {
             const SweepCell &on = p.cell[a][kOn][kOn];
@@ -1253,8 +1327,28 @@ void check_soc_costs_what_it_costs() {
             extra_minors += on.minors - off.minors;
             extra_factorizations += on.factorizations - off.factorizations;
             total_minors += on.minors;
+            for (int kd = 0; kd < 2; ++kd) {
+                for (int soc = 0; soc < 2; ++soc) {
+                    gray_exits += p.cell[a][kd][soc].gray_exits;
+                }
+            }
         }
     }
+    // M8 kopt-1x: the gray-zone census (`optimal_row_gray_exits`: a kOptimal walk exit whose
+    // equality or working row is past 1x of its tolerance after the hold and the polish). Over the
+    // battery (every arm and lever cell) Release reads 4 -- HS15's warm arm, one exit in each of
+    // its four lever cells, the arm that also carries the corpus's one failing solve -- and Debug
+    // reads 0 (HS15's warm route differs there). A route census, pinned on the reference build
+    // only.
+#if HVEN_TEST_ROUTE_REFERENCE
+    // M8 kopt-1x r2 (declared mover): 4 -> 0 in Release. The four exits were an artifact of the
+    // first fix's row measure, which read a working inequality row two-sided (HS15's warm arm holds
+    // a zero-multiplier working row with slack); read one-sided, the corpus has no gray exit.
+    EXPECT_EQ(0, gray_exits) << corpus_table();
+#else
+    hven::test_support::record_off_reference_route("HsSweepCorpus.gray_exits",
+                                                   fmt::format("gray_exits={}", gray_exits));
+#endif
     // UNCHANGED BY THE B-1 REPAIR (Phase-5 Task 7b), and that is a result
     // rather than an accident: every SOC attempt in this corpus is on a cell
     // the repair does not touch (the cold arm) or on HS77's warm arm, which was
@@ -1316,7 +1410,7 @@ void check_soc_costs_what_it_costs() {
     // HS15's warm arm (99 -> 93 minors, 38 -> 31 factorizations in each KD/SOC
     // cell). Three of its QPs (n 2, two rows) take a null-space-vetoed ride
     // whose EQP step re-enters the released constraint: the drop is now undone
-    // (qp_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
+    // (walk_engine.h 4c, THE DECLINED RIDE) instead of the ordinary step, and each
     // ends kNumericalError at 4 minors instead of 6 -- the same status. Majors,
     // statuses and every other row identical. 22/3365 = 0.65 %.
     // RE-DERIVED, M7 W2 E4 fix round 1 (declared mover): 3365 -> 3340, -25, and it
@@ -1324,7 +1418,7 @@ void check_soc_costs_what_it_costs() {
     // complementarity term read 0.177 under c46485d8 and reads beneath 1e-6 here).
     // Cause: the UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the
     // proximal answer's O(primal_delta) bias out of every EQP answer, so the extra
-    // pass per face it used to cost is gone, and the TERMINAL POLISH (qp_engine.h
+    // pass per face it used to cost is gone, and the TERMINAL POLISH (walk_engine.h
     // section 5) re-solves a certified point mu-free on its final face. Majors,
     // statuses and every KKT column hold. 22/3340 = 0.66 %.
     // RE-DERIVED, M7 W2 E2 FIX ROUND 8 (declared mover; settler S40, THE BOUNDED REPAIR):
@@ -1348,10 +1442,23 @@ void check_soc_costs_what_it_costs() {
     // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale; the
     // corpus total moves by 2 minors and every status in the table is unchanged.
     // Debug's corpus does not move: CONFIG-SPLIT from here.
+    // M8 DN-3 flip (declared; the corpus now factors on the dense arm): Release 3340 -> 3347,
+    // Debug 3342 -> 3338. Every other assertion of this test, statuses included, holds.
+    // M8 walk cap (declared mover, docs/notes/data/2026-11-m8-walk-cap/): Release 3347 -> 3355,
+    // Debug 3338 -> 3346, +8 in both, ALL OF IT HS15's COLD ARM (Release table: 1062 -> 1070
+    // minors in the SOC-off KD/SOC cells, 1067 -> 1075 in the SOC-on ones; majors 86,
+    // factorizations 184, acc/rej 70/16, elastic 48/288 and every status unchanged). An elastic
+    // rung whose row residual the uncapped footprint once excused is now refined before its
+    // verdict: more QP work on the same answers.
+    // M8 kopt-1x r2: the first kopt-1x fix's re-pin (Release 3355 -> 3359, Debug 3346 -> 3355) is
+    // withdrawn: it came from the two-sided read of a working inequality row; read one-sided the
+    // corpus total is bit-identical to the base before kopt-1x.
+    // RF-1 A+B2 (declared mover): Release 3355 -> 3406, all of it HS15's warm arms (the rungs and
+    // the restoration of the failing chain at p = 1); Debug 3346 -> 3392.
 #ifdef NDEBUG
-    EXPECT_EQ(3340, total_minors) << corpus_table();
+    EXPECT_EQ(3406, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3342, total_minors) << corpus_table();
+    EXPECT_EQ(3392, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1384,7 +1491,7 @@ void check_soc_costs_what_it_costs() {
 //         :3908  the full-step arming              } unreachable on a cold solve
 //         :5109  make_warm_start's funnel->width() read, which runs on EVERY
 //                exit INCLUDING COLD -- so a decorated cold solve emits a
-//                SqpWarmStart whose funnel_width stays at the unset sentinel.
+//                SqpWarmState whose funnel_width stays at the unset sentinel.
 //       (Line numbers as of commit d83a8ed; sqp_solver.h has grown before and
 //       will again -- find the three sites by `dynamic_cast<.*FunnelStrategy`
 //       if these have drifted.)
@@ -1403,7 +1510,7 @@ void check_soc_costs_what_it_costs() {
 // PAIRING AN ATTEMPT TO ITS CORRECTED JUDGE CALL uses pred_df: a SOC-corrected
 // judge() reuses the REJECTED trial's own pred_df unchanged (sqp_solver.h's
 // SECOND-ORDER CORRECTION note, pinned exactly by
-// SqpDriverSoc.SocDefeatsMaratos), while a shrink-and-retry at the same
+// SqpSolverSoc.SocDefeatsMaratos), while a shrink-and-retry at the same
 // iterate solves a new QP against a different one.
 // ---------------------------------------------------------------------
 // THE THIRD NEAR-IDENTICAL RECORDING STRATEGY IN THE TEST TREE
@@ -1443,15 +1550,17 @@ void check_soc_trigger_ratios() {
             model->set_parameters(Vec::Constant(1, p));
             JudgeLog log;
             SqpOptions opts = sweep_options(StartLevel::kCold, true, true, spec.max_iter);
-            opts.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
+            opts.advanced.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
                 return std::make_unique<RecordingFunnel>(&log);
             };
             SqpSolver decorated(opts);
-            const SqpResult sd = decorated.solve(*model, model->start_point());
+            const SqpResult sd =
+                decorated.solve(hven::detail::problem_ref(*model), model->start_point());
 
             // (b): the decorator is inert on a cold solve. Asserted, not argued.
             SqpSolver plain(sweep_options(StartLevel::kCold, true, true, spec.max_iter));
-            const SqpResult sp = plain.solve(*model, model->start_point());
+            const SqpResult sp =
+                plain.solve(hven::detail::problem_ref(*model), model->start_point());
             ASSERT_EQ(sp.counters.major_iters, sd.counters.major_iters) << spec.name << " p=" << p;
             ASSERT_EQ(sp.counters.qp_minor_iters, sd.counters.qp_minor_iters)
                 << spec.name << " p=" << p;
@@ -1490,7 +1599,7 @@ void check_soc_trigger_ratios() {
     // THE DERIVATION'S LOAD-BEARING NUMBER: the largest ratio at which a SOC
     // attempt was WASTED and still sits BELOW the one ratio at which SOC has
     // ever been APPLIED anywhere in this project (9.115, measured on
-    // SqpDriverSoc.SocDefeatsMaratos's Maratos fixture: h_old = 6.229194e-4,
+    // SqpSolverSoc.SocDefeatsMaratos's Maratos fixture: h_old = 6.229194e-4,
     // h_raw = 5.678149e-3). Any kappa_soc large enough to preserve that rescue
     // is also large enough to admit this waste -- which is the whole
     // adjudication. See the note's §4.3.
@@ -1516,7 +1625,7 @@ TEST(HsSweepCorpus, Corpus) {
 // failed subproblems' own steps cost majors here and change neither the answers nor
 // the status count.
 TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
-    ASSERT_TRUE(SqpOptions{}.qp_failure_step) << "the shipped default this row pins";
+    ASSERT_TRUE(SqpOptions{}.advanced.qp_failure_step) << "the shipped default this row pins";
     const HsSweepSpec *spec = nullptr;
     for (const HsSweepSpec &sp : hs_sweep_specs()) {
         if (sp.name == std::string("HS15")) {
@@ -1531,27 +1640,58 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
                            c.factorizations, c.rejected, c.status_failures);
     };
     SCOPED_TRACE("held off: " + row(off) + " | default: " + row(on));
-    // MEASURED (MKL, clang++), majors / minors / factorizations / rejections. CONFIG-SPLIT
-    // like HS26's pin above: Release holds off at 30 / 91 / 31 / 3 and reads 34 / 99 / 39 / 7
-    // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
-    // M7 W2 BPS (declared mover): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, now
-    // Debug's own reading; the held-off arm, the failure count and every objective unchanged.
-    EXPECT_EQ(off.majors, 30);
-#ifdef NDEBUG
-    EXPECT_EQ(on.majors, 33);
-    EXPECT_EQ(on.minors, 95);
-    EXPECT_EQ(on.factorizations, 38);
+    // RF-1 A+B2 (declared mover). The held-off arm's failing chain at p = 1 now takes the rungs
+    // and a restoration before the same honest kNumericalError: 30 -> 40 majors, the stop point
+    // (x = (-2.3e-5, -6.1e-3), f = 1.0038, not a KKT point: a cold re-solve from it fails with
+    // stationarity 2 -- the LICQ point argued at kTruncatedWarmArms) and the failure count
+    // unchanged. The STEP arm, at the same p = 1, is now RESCUED: its failed-subproblem steps
+    // carry it off the singular branch to x = (0.5, 0.25), f = 0.25 -- a KKT point (a cold
+    // re-solve from it converges in 0 majors with every residual 0: x1 at its bound 0.5, both
+    // swept rows slack) -- and the sweep reaches p1 = 1.5 there (f = 0.25 at p = 1.25 and 1.5,
+    // 0 majors each). So the step arm no longer stops where the held-off arm does, and the old
+    // "same answers, same status count" pin is replaced by this reading. CONFIG-SPLIT: Release
+    // held off 40 majors, step arm 43 / 149 / 64 / 6; Debug held off 39, step arm 42 / 142 / 58 /
+    // 4, and its stop near the origin reads f = 1.00343 (Release 1.00378): where the failing chain
+    // stops on the singular branch is a rounding matter, so the stop is pinned to its
+    // neighbourhood.
+    // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39; the
+    // off-reference Linux Release runner of CI run 45036848180 reads the reference 40, and the
+    // off-reference Intel runner of CI run 45064036804 reads 39: either, off the reference build.
+#if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(off.majors, 40);
+#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
+#else
+    EXPECT_EQ(off.majors, 39);
+#endif
+    EXPECT_EQ(off.status_failures, 1);
+    EXPECT_FALSE(off.reached_p1);
+    ASSERT_EQ(off.fvals.size(), 5u);
+    EXPECT_NEAR(off.fvals[4], 1.0, 1e-2) << "the failing chain stops next to the origin";
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
+#else
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
+    EXPECT_EQ(on.majors, 43);
+    EXPECT_EQ(on.minors, 149);
+    EXPECT_EQ(on.factorizations, 64);
     EXPECT_EQ(on.rejected, 6);
 #else
-    EXPECT_EQ(on.majors, 33);
-    EXPECT_EQ(on.minors, 95);
-    EXPECT_EQ(on.factorizations, 38);
-    EXPECT_EQ(on.rejected, 6);
+    EXPECT_EQ(on.majors, 42);
+    EXPECT_EQ(on.minors, 142);
+    EXPECT_EQ(on.factorizations, 58);
+    EXPECT_EQ(on.rejected, 4);
 #endif
-    EXPECT_EQ(on.status_failures, off.status_failures);
-    EXPECT_EQ(on.fvals.size(), off.fvals.size());
-    for (std::size_t i = 0; i < std::min(on.fvals.size(), off.fvals.size()); ++i) {
-        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])));
+#endif
+    EXPECT_EQ(on.status_failures, 0);
+    EXPECT_TRUE(on.reached_p1);
+    ASSERT_EQ(on.fvals.size(), 7u);
+    for (std::size_t i = 0; i < 4; ++i) {
+        EXPECT_NEAR(on.fvals[i], off.fvals[i], 1e-6 * std::max(1.0, std::abs(off.fvals[i])))
+            << "the two arms agree before p = 1";
+    }
+    for (std::size_t i = 4; i < 7; ++i) {
+        EXPECT_NEAR(on.fvals[i], 0.25, 1e-9) << "the rescued branch's KKT point";
     }
 }
 
@@ -1584,32 +1724,33 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
 TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     auto model = make_hs_sweep(10);
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kWarm;
 
     // --- solve at p = 0: the published HS10, solved from its own start point.
     model->set_parameters(Vec::Constant(1, 0.0));
     SqpSolver d0(opts);
-    const SqpResult s0 = d0.solve(*model, model->start_point());
+    const SqpResult s0 = d0.solve(hven::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s0.status);
     EXPECT_NEAR(-1.0, s0.f, 1e-6);
     EXPECT_NEAR(1.0, s0.x(1), 1e-6);
-    ASSERT_EQ(1, s0.lambda_i.size());
-    EXPECT_NEAR(0.5, s0.lambda_i(0), 1e-6) << "the exact multiplier derived above";
+    ASSERT_EQ(1, hven::detail::engine_rows(s0).lambda_i.size());
+    EXPECT_NEAR(0.5, hven::detail::engine_rows(s0).lambda_i(0), 1e-6)
+        << "the exact multiplier derived above";
 
     // THE PRECONDITION OF THE WHOLE MECHANISM, checked from the model: at
     // p = 0.5 the row is strictly slack AT THE OLD POINT, by far more than
     // feas_tol, while the stale price is strictly positive.
     model->set_parameters(Vec::Constant(1, 0.5));
     EXPECT_NEAR(-0.5, model->eval_ci(s0.x)(0), 1e-6) << "released, by 5e5 x feas_tol";
-    EXPECT_GT(s0.lambda_i(0), 0.0);
+    EXPECT_GT(hven::detail::engine_rows(s0).lambda_i(0), 0.0);
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
     SqpSolver d1(opts);
-    const SqpResult s1 = d1.solve(*model, s0.x, s0.warm_start);
+    const SqpResult s1 = d1.solve(hven::detail::problem_ref(*model), s0.x, s0.sqp_warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.
@@ -1631,7 +1772,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
-    const SqpResult s2 = d2.solve(*model, model->start_point());
+    const SqpResult s2 = d2.solve(hven::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s2.status);
     EXPECT_NEAR(-std::sqrt(1.5), s2.f, 1e-6);
     const test_support::NlpKktResidual rc = test_support::self_check_kkt(*model, s2, 1e-6);
@@ -1709,6 +1850,6 @@ TEST(HsSweepModels, Hs15BranchEndsAtAPointWhereLicqFails) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// tests/sqp/support/nlp_kkt_check.h — test-support only, NOT part of the public
+// Test-support only, NOT part of the public
 // library surface. The IN-TEST KKT SELF-CHECK: given a model and the
 // SqpResult a driver returned for it, recompute the whole KKT quadruple
 // FROM THE MODEL at the returned point.
@@ -20,9 +20,9 @@
 // mismeasured its own residual cannot certify itself. It is the NLP analogue
 // of test_scale_smoke.cpp's self_check_kkt, which does the same for a QP.
 //
-// TASK 11 MOVED THIS OUT OF tests/test_sqp_solver.cpp, where it was a
+// TASK 11 MOVED THIS OUT OF tests/sqp/test_sqp_solver.cpp, where it was a
 // file-local helper, because the Hock-Schittkowski battery
-// (tests/test_hs_battery.cpp) needs the SAME check on 27 problems and a
+// (tests/sqp/test_hs_battery.cpp) needs the SAME check on 27 problems and a
 // second copy of it would be a second thing to keep correct. The code is
 // unchanged from that file's version; only its home and its namespace moved.
 //
@@ -46,15 +46,17 @@
 
 #include <Eigen/Dense>
 
-#include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-
 #include <hven/core/compiler.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/sqp/sqp_solver_types.h>
+
+using namespace hven::detail;
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 struct NlpKktResidual {
     double stationarity = 0.0;    // ||grad f + Je^T le + Ji^T li - z||inf
@@ -115,16 +117,17 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpResult &sol
         bounds_are_nan_free = !std::isnan(lo(i)) && !std::isnan(up(i));
     }
     if (!bounds_are_nan_free || !std::isfinite(bound_tol) || !sol.x.allFinite() ||
-        !sol.z.allFinite() || !sol.lambda_e.allFinite() || !sol.lambda_i.allFinite()) {
+        !sol.z.allFinite() || !hven::detail::engine_rows(sol).lambda_e.allFinite() ||
+        !hven::detail::engine_rows(sol).lambda_i.allFinite()) {
         return nlp_kkt_unscorable();
     }
 
     Vec grad = model.eval_grad(sol.x);
     if (model.me() > 0) {
-        grad += model.eval_jac_e(sol.x).transpose() * sol.lambda_e;
+        grad += model.eval_jac_e(sol.x).transpose() * hven::detail::engine_rows(sol).lambda_e;
     }
     if (model.mi() > 0) {
-        grad += model.eval_jac_i(sol.x).transpose() * sol.lambda_i;
+        grad += model.eval_jac_i(sol.x).transpose() * hven::detail::engine_rows(sol).lambda_i;
     }
     // Hoisted, not moved in cost: exactly the same two calls the two blocks
     // below used to make, under exactly the same me()/mi() guards -- the
@@ -178,13 +181,15 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpResult &sol
     if (model.mi() > 0) {
         for (Index j = 0; j < model.mi(); ++j) {
             r.primal = std::max(r.primal, std::max(0.0, ci(j)));
-            r.dual_sign = std::max(r.dual_sign, std::max(0.0, -sol.lambda_i(j)));
-            r.complementarity = std::max(r.complementarity, std::abs(sol.lambda_i(j) * ci(j)));
+            r.dual_sign =
+                std::max(r.dual_sign, std::max(0.0, -hven::detail::engine_rows(sol).lambda_i(j)));
+            r.complementarity = std::max(
+                r.complementarity, std::abs(hven::detail::engine_rows(sol).lambda_i(j) * ci(j)));
         }
     }
     return r;
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support
 
 HVEN_SUPPRESS_DEPRECATED_END

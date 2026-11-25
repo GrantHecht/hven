@@ -1,0 +1,11 @@
+STATUS_MOVER sd-hven-sqp-CRESC100.D optimal->stalled quality=worse f 0.5676027164->9.679640271 h 2.47e-09->724 stat 4.55e-08->7.67 it 211->1 fact 16943->5948
+STATUS_MOVER sd-hven-sqp-CRESC100.K optimal->stalled quality=worse f 0.5676027097->13.1867601 h 1.59e-11->987 stat 1.94e-10->9.53 it 38->1 fact 17010->5815
+STATUS_MOVER sd-hven-sqp-CRESC50.D max_iter->infeasible quality=incomparable f 0.5933938466->8.229870007e-09 h 0.000289->0.557 stat 0.0899->0.737 it 276->24 fact 6794->9099
+STATUS_MOVER sd-hven-sqp-HS99EXP.D max_iter->stalled quality=worse f -42266901.69->-65792.25 h 3.99e+05->4.05e+05 stat 1.3e+04->514 it 50->50 fact 11111->8083
+STATUS_MOVER sd-hven-sqp-HS99EXP.K max_iter->stalled quality=worse f -42266901.69->-65792.25 h 3.99e+05->4.05e+05 stat 1.3e+04->514 it 50->50 fact 12550->9045
+STATUS_MOVER sd-hven-sqp-MSS1.D numerical_error->stalled quality=incomparable f -8.083882548->-8.210720746 h 1.32e-07->0.0918 stat 5.47->5.43 it 10->6 fact 6379->6019
+LOST_SOLVE sd-hven-sqp-CRESC100.D optimal->stalled quality=worse f 0.5676027164->9.679640271 h 2.47e-09->724 stat 4.55e-08->7.67 it 211->1 fact 16943->5948
+LOST_SOLVE sd-hven-sqp-CRESC100.K optimal->stalled quality=worse f 0.5676027097->13.1867601 h 1.59e-11->987 stat 1.94e-10->9.53 it 38->1 fact 17010->5815
+TOTALS hven-ipm: rows 238 optimal 224->224 optimal+acceptable 225->225 factorizations 13477->13477 (+0) iterations 9415->9415 (+0)
+TOTALS hven-sqp: rows 238 optimal 210->208 optimal+acceptable 210->208 factorizations 200718->179402 (-21316) iterations 4480->4078 (-402)
+AB2_SUMMARY status movers 6; lost solves 2; missing 0

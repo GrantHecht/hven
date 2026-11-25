@@ -1,0 +1,24 @@
+box-lane: lane 0 acquired 2026-11-22T14:15:55-05:00
+FOREGROUND_START 2026-11-22T14:15:55-05:00 lane=0 phys=0 1 2 3
+train Cr3 rc=0 2026-11-22T14:18:43-05:00
+train ABr4 rc=0 2026-11-22T14:18:50-05:00
+T rc=0
+TOTALS hven-ipm: rows 238 optimal 224->224 optimal+acceptable 225->225 factorizations 13477->13477 (+0) iterations 9415->9415 (+0)
+TOTALS hven-sqp: rows 238 optimal 210->210 optimal+acceptable 210->210 factorizations 200718->200407 (-311) iterations 4480->4599 (+119)
+AB2_SUMMARY status movers 4; lost solves 0; missing 0
+T vs ABr3:
+STATUS_MOVER sd-hven-sqp-LEWISPOL.D infeasible->numerical_error quality=same f 3.000376849->3.000376849 h 4->4 stat 2->2 it 3->3 fact 26->26
+STATUS_MOVER sd-hven-sqp-LEWISPOL.K infeasible->numerical_error quality=same f 3.000138288->3.000138288 h 4->4 stat 2->2 it 3->3 fact 35->35
+TOTALS hven-ipm: rows 238 optimal 224->224 optimal+acceptable 225->225 factorizations 13477->13477 (+0) iterations 9415->9415 (+0)
+TOTALS hven-sqp: rows 238 optimal 210->210 optimal+acceptable 210->210 factorizations 200407->200407 (+0) iterations 4599->4599 (+0)
+AB2_SUMMARY status movers 2; lost solves 0; missing 0
+rows 476
+VERDICT TRAIN_BARS_MET
+pilot Cr3 rc=0 2026-11-22T14:57:41-05:00
+pilot ABr4 rc=0 2026-11-22T15:00:41-05:00
+P rc=0
+CELL_054 C stalled | ABr3 infeasible cert=1 | NEW numerical_error cert=0 it=106 fact=22907 f=14704.17642690343
+SOLVED C' 12 ABr3 19 NEW 19
+VERDICT PILOT_BARS_MET
+pilot cells that threw: 0
+FOREGROUND_END 2026-11-22T15:00:41-05:00

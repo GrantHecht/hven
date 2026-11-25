@@ -1,0 +1,15 @@
+OK   tests/sqp/test_trace_writer.cpp run#395: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#396: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#397: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#398: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#399: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#403: dual_regularization
+OK   tests/sqp/test_trace_writer.cpp run#410: {\"v\":1,\"ev\":\"iter\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#411: {\"v\":1,\"ev\":\"iter\",\"seq\":3,\"sid\":1,\"depth\":1,\"eng\":\"sqp
+OK   tests/sqp/test_trace_writer.cpp run#459: dual_regularization
+OK   tests/sqp/test_trace_writer.cpp run#464: dual_regularization
+OK   schema: `violation_l1`; `dual_regularization`; `qp_solved`; `qp_status`; `qp_minor_itera
+OK   schema: `dual_regularization`, `qp_status`, `qp_minor_iterations`, `qp_factorizations`. 
+OK   schema: | `sqp.major` | `iter` + `sqp`; `trial`, `kkt_residual` dropped; `mu` -> `sqp.du
+schema added lines that are not key renames (the freeze-table row): 1
+golden runs changed: 10; schema pairs: 3; failures: 0

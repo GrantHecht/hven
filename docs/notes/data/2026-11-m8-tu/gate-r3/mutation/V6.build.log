@@ -1,0 +1,7 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/tu0/build'
+[0/2] Re-checking globbed directories...
+[1/6] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_options.cpp.o
+[2/6] Linking CXX static library libhven.a
+[3/6] Linking CXX executable tests/solver/hven_solver_tests
+[4/6] Linking CXX executable tests/qp/hven_qp_tests
+[5/6] Linking CXX executable tests/sqp/hven_sqp_tests

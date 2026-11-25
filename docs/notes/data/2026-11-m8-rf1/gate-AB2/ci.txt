@@ -1,0 +1,2 @@
+CI run 44991274789 (workflow ci, workflow_dispatch, ref rf1 at aa3460b78): failure -- linux release + coverage green; macos and windows red on three off-reference RF-1 pins (HS15 warm 21/39, held-off 39; ProbeBudget arm A 686 on Accelerate)
+CI run 44995693469 (ref rf1 at 82c37da99, those pins recorded): success -- macos-clang-release, linux-clang-coverage, linux-clang-release, windows-clang-release (gh run watch --interval 120)

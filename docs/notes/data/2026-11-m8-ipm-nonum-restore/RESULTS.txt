@@ -1,0 +1,18 @@
+M8 IPM no-numerics restoration routing -- RESULTS (against DECLARATION.txt; written after the legs; criteria unchanged)
+================================================================================
+Code head 632ba77cc; arm A 5ba57d30... (origin/m8 b9626e7e5), arm B a0a71588...; declaration 981d220e1.
+P5 runtime/run_all.log (committed 09cb5ecdc); chain legs/chain.sh -> chain.out (worst=0).
+
+P5  runtime/: VERDICT PASS -- counter identity in all four modes (interior 3, ipm 81, ssn 81, walk 81 (round,cell)
+    pairs, 0 differences), THROTTLE 0 (6 + 3 x 162 processes), filtered B/A interior 1.000044, ipm 1.000000,
+    ssn 0.999998, walk 1.000000. Run first and alone.
+P1  MET: "100% tests passed, 0 tests failed out of 3590" in both trees (suites/ctest-rel.log, suites/ctest-dbg.log;
+    3592 registered, the two pre-existing DISABLED EqpRefinementAb tests excluded from the summary). Skips as declared:
+    Release FailByDesignControl only; Debug that plus the six YORKNET/STEENBRB/ACOPP118 fixtures.
+P2  MET: replay walk / ssn / ipm: 27 cells x 75 columns, 0 differences each (replay/nnr-comparison-*.txt).
+P3  MET: interior unmoved (A vs B) 0 differences; promoted (B vs the B7 baseline) 0 differences (interior/; the
+    comparator counts 43 rows over the 27 cells' treatments, as in the ladder round).
+P4  MET: FAILPROOF_AS_DECLARED -- head 14/14 pass, route property "scale 1.76 pass 3"; every mutation failed exactly
+    its declared set (revert-all 8, no-route 8, no-barrier-tail 1, no-acceptable-exit 1, no-guard-site 1,
+    no-probe-guard 2, diverging-override 5, hard-continues 1) (failproof/).
+No identity movement anywhere. No re-run. Apple/Accelerate and Windows: UNOBSERVED.

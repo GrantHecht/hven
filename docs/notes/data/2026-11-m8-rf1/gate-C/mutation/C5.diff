@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index c46ae936d..f09e6ea31 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -923,7 +923,7 @@ bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, doubl
+     return kkt.finite && kkt.stationarity <= t.acceptable_stationarity_tol &&
+            kkt.complementarity <= t.acceptable_complementarity_tol &&
+            feasibility_e <= t.acceptable_equality_tol &&
+-           feasibility_i <= t.acceptable_inequality_tol;
++           true;
+ }
+ 
+ bool detail::ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol) {

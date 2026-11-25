@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/trust_region.h b/include/hven/detail/sqp/globalization/trust_region.h
+index be63ce009..c81a1f647 100644
+--- a/include/hven/detail/sqp/globalization/trust_region.h
++++ b/include/hven/detail/sqp/globalization/trust_region.h
+@@ -131,7 +131,7 @@ inline TrustRegionGrowthDecision trust_region_growth_decision(const SqpAdvancedO
+     if (h_branch && !candidate) {
+         refusal |= SqpTrustRegionGrowthRefusal::kViolationRatio;
+     }
+-    if (!a.trust_region_growth_on_step_limit && !in.radius_binding) {
++    if (!a.trust_region_growth_on_step_limit && !in.region_limited) {
+         refusal |= SqpTrustRegionGrowthRefusal::kStepLimitPins;
+     }
+     if (!a.trust_region_growth_after_soc && in.soc_applied) {

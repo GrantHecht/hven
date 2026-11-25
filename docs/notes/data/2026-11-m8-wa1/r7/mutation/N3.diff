@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index 3e11d4b9b..4dc5a36c5 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1510,6 +1510,7 @@ struct FootprintBudgetArgs {
+ };
+ inline bool footprint_rows_within_budget(const QpProblem &qp, const WorkingSet &ws,
+                                          const FootprintBudgetArgs &a) {
++    return true;
+     const double xmag = a.x.lpNorm<Eigen::Infinity>();
+     const auto within = [&](double r, double b, double norm1) {
+         const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});

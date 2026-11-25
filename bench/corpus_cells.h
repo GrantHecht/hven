@@ -3,7 +3,7 @@
 
 #pragma once
 
-// bench/corpus_cells.h — PHASE-7 TASK 1: the replay corpus's cell table and
+// PHASE-7 TASK 1: the replay corpus's cell table and
 // engine interface. See docs/notes/2026-08-06-corpus-design.md for the full
 // design rationale (tag semantics, the census, the gate definitions verbatim
 // from the plan). This header is the MEASURING INSTRUMENT Phase 7's later
@@ -12,15 +12,15 @@
 // RECIPES, NOT MATRICES (spec section 3). A CorpusCell is a deterministic
 // GENERATION SPEC -- family, node count, p-path, start taxonomy, constraint
 // window -- replayed through the committed bench generators
-// (tests/sqp/support/scale_problems.h's F7CollocationChain, the same family
+// (tests/model/support/scale_problems.h's F7CollocationChain, the same family
 // bench/bench_scale.cpp and bench/bench_f7_cold.cpp already drive). Nothing
 // here stores a matrix or a solved point; every cell is re-derived from the
 // family's own analytic surface and the library's ordinary solve path each
 // time it is replayed, which is also what makes the determinism invariant
-// (tests/test_corpus_cells.cpp) meaningful rather than circular.
+// (tests/bench/test_corpus_cells.cpp) meaningful rather than circular.
 //
 // THIS IS BENCH-LOCAL, NOT PART OF THE LIBRARY SURFACE -- same standing as
-// bench/bench_cli.h and tests/sqp/support/*.h: nothing in include/ or src/
+// bench/bench_cli.h and tests/*/support/*.h: nothing in include/ or src/
 // depends on it, and it is never installed.
 //
 // =============================================================================
@@ -47,7 +47,7 @@
 // =============================================================================
 //
 // The taxonomy is about HOW THE START WAS BUILT, not about the StartLevel
-// (warm_start.h) a solve resolves to -- those are different axes, and a cell
+// (start_level.h) a solve resolves to -- those are different axes, and a cell
 // row's actual resolved level is exactly what a later task's gate reads to
 // judge whether a taxonomy earned the level its name promises.
 //
@@ -58,7 +58,7 @@
 //                     still through the 2-arg solve() -- so it is cold BY
 //                     RESOLUTION but starts in a physically sensible
 //                     neighbourhood rather than the generic flat profile.
-//   kCorrupted        a genuine SqpWarmStart object (built exactly as
+//   kCorrupted        a genuine SqpWarmState object (built exactly as
 //                     kFullWarm's is, one cold solve at p0 on the SAME
 //                     driver) that is then DELIBERATELY DAMAGED before being
 //                     fed to the 3-arg solve() at p -- see
@@ -67,7 +67,7 @@
 //                     to a stale/inconsistent hand-off, which is exactly the
 //                     class of input Phase 7's escape-rate gate (G4) prices.
 //   kActivityOnly     the interior-point crossover
-//                     (warm_start.h's `from_interior_point`): kPhysics-
+//                     (crossover.h's `from_interior_point`): kPhysics-
 //                     Informed's OWN primal rollout carrying a SYNTHESIZED
 //                     central-path hand-off (duals/slacks at the family's
 //                     analytic surface, i.e. an EXACT activity hint), fed
@@ -82,11 +82,11 @@
 //                     provenance (Task-0 carry).
 //   kFullWarm         TWO solves on the SAME driver instance: cold at p0,
 //                     then the 3-arg solve() at p fed that exit's own
-//                     SqpWarmStart -- the ordinary warm-start hand-off this
+//                     SqpWarmState -- the ordinary warm-start hand-off this
 //                     whole project is built around. Resolves kWarm or kHot
 //                     depending on whether the second solve's first
 //                     subproblem actually reused the first's factorization
-//                     (qp_engine.h's own reuse-eligibility conditions).
+//                     (walk_engine.h's own reuse-eligibility conditions).
 //
 // A CorpusRow ONLY reports the counters of the cell's OWN designated solve
 // (the one at parameter `p`) -- for kCorrupted/kFullWarm the SETUP solve at
@@ -105,9 +105,11 @@
 // hand-off. Both phases are separately bounded -- neither is unbounded.
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <set>
@@ -118,17 +120,23 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model_assembly.h>
+#include <hven/core/stop.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/solver/result_access.h>
+#include <hven/detail/sqp/sqp_solver_impl.h>
+#include <hven/detail/warmstart/crossover.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/qp/qp_types.h>
+#include <hven/sqp/sqp_solver_types.h>
 
+#include "model/support/scale_problems.h"
 #include "model_surface_kkt.h"
-#include "support/nlp_kkt_check.h"
-#include "support/scale_problems.h"
+#include "sqp/support/nlp_kkt_check.h"
 
-namespace hven::solvers::corpus {
+using namespace hven::detail;
+
+namespace hven::corpus {
 
 /// @brief The CAPITALISED status vocabulary the corpus and crossover CSVs are
 ///        pinned to, kept bench-local (M6 W5 T8.4).
@@ -156,14 +164,16 @@ inline const char *legacy_status_string(SolveStatus status) {
     switch (status) {
     case SolveStatus::kOptimal:
         return "Optimal";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return "MaxIter";
     case SolveStatus::kInfeasible:
         return "Infeasible";
     case SolveStatus::kNumericalError:
         return "NumericalError";
-    case SolveStatus::kBudgetExhausted:
-        return "BudgetExhausted";
+    case SolveStatus::kWorkLimit:
+        return "WorkLimit";
+    case SolveStatus::kTimeLimit:
+        return "TimeLimit";
     case SolveStatus::kAcceptable:
     case SolveStatus::kStalled:
     case SolveStatus::kDiverging:
@@ -174,28 +184,28 @@ inline const char *legacy_status_string(SolveStatus status) {
 }
 
 using hven::Index;
+using hven::IpmCrossoverOptions;
+using hven::model_surface_kkt_residuals;
+using hven::ModelSurfaceKktResiduals;
+using hven::QpMode;
+using hven::SolveStatus;
+using hven::SqpCounters;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::SsnCounters;
+using hven::StartLevel;
 using hven::Vec;
-using hven::solvers::from_interior_point;
-using hven::solvers::IpCrossoverOptions;
-using hven::solvers::model_surface_kkt_residuals;
-using hven::solvers::ModelSurfaceKktResiduals;
-using hven::solvers::NlpModelAssembly;
-using hven::solvers::QpMode;
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpCounters;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::SqpWarmStart;
-using hven::solvers::SsnCounters;
-using hven::solvers::StartLevel;
-using hven::solvers::test_support::F7CollocationChain;
-using hven::solvers::test_support::NlpKktResidual;
-using hven::solvers::test_support::self_check_kkt;
+using hven::detail::from_interior_point;
+using hven::detail::NlpModelAssembly;
+using hven::detail::SqpWarmState;
+using hven::test_support::F7CollocationChain;
+using hven::test_support::NlpKktResidual;
+using hven::test_support::self_check_kkt;
 
 // =============================================================================
 // TYPES (spec section 3's "produces" list -- later tasks rely on these exact
-// names and this exact namespace, hven::solvers::corpus).
+// names and this exact namespace, hven::corpus).
 // =============================================================================
 
 // An alias over the bench generators' own --family switch values
@@ -240,8 +250,8 @@ struct CorpusCell {
 // SCHEMA note). `escapes` is the SSN engine's QP-level escape-to-walk count,
 // summed over the solve; identically 0 for `engine == "walk"` today, since
 // the walk engine has nothing to escape TO -- Task 3+ is what makes this
-// field move. `kkt_residual` is the last history row's SqpIterate::
-// kkt_residual (sqp_solver_types.h), or -1.0 (SqpWarmStart's own "never populated"
+// field move. `kkt_residual` is the last history row's max(stationarity,
+// feasibility) (iteration_record.h), or -1.0 (SqpWarmState's own "never populated"
 // convention) on a solve whose history is empty (converged at x0 with no
 // subproblem built). `wall_s` is informational only, per this project's
 // standing timing-honesty rule (ledger.h's own note) -- never a regression
@@ -256,7 +266,7 @@ struct CorpusRow {
     double wall_s;
     // FIX ROUND 1 (C3). THE PER-QP READING THE GATES ACTUALLY NAME. One entry
     // per QP SUBPROBLEM the designated solve built, in history order, read
-    // straight off SqpIterate::qp_factorizations (sqp_solver_types.h) on every
+    // straight off SqpIterationRow::qp_factorizations (iteration_record.h) on every
     // history row with `qp_solved` -- the library already carried this
     // counter, so no include/ or src/ file changed to get it (the brief's own
     // "only if a tag needs a counter that does not exist -- expected: none").
@@ -284,7 +294,7 @@ struct CorpusRow {
     //
     // Recomputed FROM THE MODEL at the returned point on EVERY row, both
     // engines, by tests/sqp/support/nlp_kkt_check.h's `self_check_kkt` -- the same
-    // function tests/test_hs_battery.cpp gates its 27 problems with, reused
+    // function tests/sqp/test_hs_battery.cpp gates its 27 problems with, reused
     // rather than re-derived. Four residuals, `kkt_verdict` the ruling on them
     // (see `kkt_gate_verdict` below for the pre-registered rule and the two
     // scale denominators it divides by).
@@ -365,6 +375,11 @@ struct CorpusRow {
     double ms_primal = -1.0;
     double ms_dual_scale = -1.0;
     double ms_x_scale = -1.0;
+    // M8 PF-2b: the designated solve's backend-solve tally (SqpCounters::backend_solves_* /
+    // backend_solve_rhs_* / backend_solve_refine_*, in that family order, each over ordinary,
+    // detector, polish, border_refine). NOT a CSV column: the 76-column schema is unchanged; the
+    // internal-run-one child writes it to a `.tally` sidecar when HVEN_BENCH_SOLVE_TALLY is set.
+    std::array<long long, 12> solve_tally{};
 };
 
 // =============================================================================
@@ -373,7 +388,7 @@ struct CorpusRow {
 // =============================================================================
 //
 // W1 -- WHICH ROWS ARE GATED. Every row that CLAIMS kOptimal. A row exiting
-//      kMaxIter/kNumericalError/kInfeasible/kBudgetExhausted claims nothing
+//      kIterationLimit/kNumericalError/kInfeasible claims nothing
 //      about the point it returns, so re-checking it would manufacture
 //      "wrong answers" out of honest failures; those rows report their
 //      residuals in the artifact and carry the verdict `unchecked`.
@@ -394,7 +409,7 @@ struct CorpusRow {
 //      re-gate them -- a telemetry request, where NF-2's was a gate request.
 //      Folding it into the gate would answer a question Grant has not been
 //      asked yet, on a threshold this repository sets at 1e-9 for HS
-//      (tests/test_hs_battery.cpp's kSelfCheckDualSign) and has never set at
+//      (tests/sqp/test_hs_battery.cpp's kSelfCheckDualSign) and has never set at
 //      scale. So: `kkt_dual_sign` is recorded on every row, reported beside
 //      the gate, and the COUNTERFACTUAL ("how many rows would be wrong
 //      answers if dual feasibility joined the gate at the HS battery's own
@@ -420,8 +435,8 @@ struct CorpusRow {
 //
 //      with kKktGateRel = 1e-6: two orders of slack over the 1e-8 the solve
 //      claims, and exactly the absolute figure this repository already gates
-//      its HS battery and its scale smoke tests at (tests/test_hs_battery.cpp,
-//      tests/test_scale_smoke.cpp), lifted onto the scale denominator the
+//      its HS battery and its scale smoke tests at (tests/sqp/test_hs_battery.cpp,
+//      tests/sqp/test_scale_smoke.cpp), lifted onto the scale denominator the
 //      corpus needs. PRIMAL keeps a PRIMAL denominator: feasibility is not a
 //      dual quantity and scaling it by ||lambda|| would let a large multiplier
 //      buy slack on constraint violation, which is precisely the direction
@@ -484,7 +499,7 @@ inline KktVerdict kkt_verdict_from_string(const std::string &s) {
 
 // W3's constants. See the block above for the derivation and the precedent.
 // kKktGateRel is the GATE's; kKktDualSignRel is the COUNTERFACTUAL's, and it is
-// tests/test_hs_battery.cpp's own kSelfCheckDualSign to the digit -- the point
+// tests/sqp/test_hs_battery.cpp's own kSelfCheckDualSign to the digit -- the point
 // of the counterfactual is to ask what the standard this repository already
 // holds itself to would say at scale, not to invent a second one.
 constexpr double kKktGateRel = 1.0e-6;
@@ -961,7 +976,7 @@ constexpr double kPathInterfaceP0 = 0.80;
 // cell in this corpus, healthy or not. This is a Task-1 TRACTABILITY choice,
 // stated plainly: at N ranges this note never measured (5000/10000/20000)
 // the true per-subproblem demand is unknown, and the alternative -- the
-// library's own size-derived default (qp_engine.h's derived_qp_max_iter,
+// library's own size-derived default (walk_engine.h's derived_qp_max_iter,
 // 5 * (n + mi + #bounded) = 40 * N on this family) -- was rejected because it
 // scales FASTER than this cap and would make an already-known-hard cell's
 // wall time scale with N^2 instead of failing at a bounded cost. A cell that
@@ -997,7 +1012,7 @@ static_assert(kDnfChargedSubproblems == static_cast<int>(kMajorMaxIter),
 // budget cuts that to (roughly) kMinorBudget + one major's worth, via
 // SqpSolver's own 4-arg solve(model, x0, warm, minor_budget) overload
 // (Phase-6 Task 1's "controller retry economics" lever, checked BETWEEN
-// majors, returns kMaxIter with SqpCounters::probe_budget_stops == 1 and
+// majors, returns kIterationLimit with SqpCounters::probe_budget_stops == 1 and
 // real counters-so-far). It is NOT, on its own, the wall-clock bound this
 // corpus needs: kCorrupted/kFullWarm pay TWO independent solves (a SETUP
 // hop and the reported TARGET hop), each separately eligible to spend up to
@@ -1020,7 +1035,7 @@ constexpr Index kMinorBudget = 50000;
 // in bench_corpus.cpp (it needs to fork/exec and kill a child process,
 // which is orchestration, not engine-interface code); this function is the
 // PURE, testable part -- the nx -> seconds mapping -- shared by the runner
-// and tests/test_corpus_cells.cpp.
+// and tests/bench/test_corpus_cells.cpp.
 //
 // =============================================================================
 // THE BAND, RE-DERIVED IN FIX ROUND 1 (C2). THE RULE, STATED FIRST:
@@ -1043,7 +1058,7 @@ constexpr Index kMinorBudget = 50000;
 //
 // THE EVIDENCE (docs/notes/2026-07-30-scale-study-cold.md Sec. 4.2's Arm B
 // table, MKL_NUM_THREADS=1, uncontended, the same p = 0.85 wide window and
-// the same qp.max_iter = 20000 cap this corpus uses; kNeutralCold is the
+// the same qp.max_iterations = 20000 cap this corpus uses; kNeutralCold is the
 // hardest taxonomy at every N in this census, so its figure is the binding
 // one for the whole N):
 //
@@ -1133,7 +1148,7 @@ inline std::uint64_t budget_table_hash() {
     // The seed is the FNV-1a 64-bit offset basis with its final digit dropped
     // (14695981039346656037 mistyped as 19 digits). INTENTIONALLY AS-IS: the
     // pinned budget_table_hash 0x357aee91dee27391 -- asserted in
-    // tests/sqp/test_corpus_cells.cpp and stamped into six baseline CSV
+    // tests/bench/test_corpus_cells.cpp and stamped into six baseline CSV
     // headers under bench/baselines/ -- was computed with this value, so
     // "correcting" it silently breaks all seven. Any change here is a
     // declared re-derivation under CLAUDE.md section 7, never a tidy-up.
@@ -1347,11 +1362,12 @@ namespace detail {
 
 inline SqpOptions corpus_options() {
     SqpOptions opts;
-    opts.kkt_tol = kKktTol;
-    opts.feas_tol = kFeasTol;
-    opts.max_iter = kMajorMaxIter;
-    opts.adaptive_mu = false; // bench_scale.cpp's own choice, so kHot stays reachable
-    opts.warm_full_step = true;
+    opts.common.optimality_tol = kKktTol;
+    opts.common.feasibility_tol = kFeasTol;
+    opts.common.max_iterations = kMajorMaxIter;
+    opts.advanced.adaptive_dual_regularization =
+        false; // bench_scale.cpp's own choice, so kHot stays reachable
+    opts.advanced.warm_full_step = true;
     return opts;
 }
 
@@ -1389,7 +1405,7 @@ struct EngineConfig {
     // field and neither changes what the solve computes: they decide whether
     // the driver's two "runs only with something attached" paths execute at
     // all -- the iteration callback's dispatch (SqpSolver::fire_iteration_event,
-    // src/drivers/sqp_solver.cpp:4565, whose early-out is :4570-4572) and the
+    // src/sqp/sqp_solver.cpp:4565, whose early-out is :4570-4572) and the
     // trace sink's emit sites (the `ipqp_trace_ != nullptr` guards). Both
     // default to the SHIPPED shape, which is nothing attached.
     //
@@ -1403,14 +1419,15 @@ struct EngineConfig {
     // std::function cannot cross an execv. bench_corpus.cpp forwards the FLAGS
     // and the child rebuilds both, which is the rule every other lever here
     // already follows (run_cell_with_deadline's own note).
-    hven::solvers::TraceSink *trace = nullptr;
-    hven::solvers::IterationCallback iteration_callback{};
-    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the arm W6 T6
-    // measured (and the one-argument attach's own meaning); kScalars is the
+    hven::TraceSink *trace = nullptr;
+    hven::IterationCallback iteration_callback{};
+    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the one-argument
+    // attach's own meaning (the widened G5 payload, NOT the arm W6 T6 measured:
+    // that is kVectors | kDiagnostics, the `count-vd` lever); kScalars is the
     // payload-mask arm, which asks the driver to prepare no snapshot at all.
     // Read only when `iteration_callback` is set, and forwarded across the
     // subprocess boundary as a FLAG VALUE like every other lever here.
-    hven::solvers::IterationPayload iteration_payload = hven::solvers::IterationPayload::kAll;
+    hven::IterationPayload iteration_payload = hven::IterationPayload::kAll;
 
     // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
@@ -1429,15 +1446,15 @@ struct EngineConfig {
 inline SqpOptions options_for_cell(const CorpusCell &cell, const EngineConfig &cfg = {}) {
     SqpOptions opts = corpus_options();
     if (cell.ctag == ConstraintFamily::kPathInterface) {
-        opts.qp.max_iter = kPathInterfaceQpMaxIter;
+        opts.qp.max_iterations = kPathInterfaceQpMaxIter;
     }
     opts.qp_mode = cfg.qp_mode;
-    opts.ssn_prox_carry = cfg.ssn_prox_carry;
-    opts.ssn_certify_from_face = cfg.ssn_certify_from_face;
-    opts.ssn_sigma_rule = cfg.ssn_sigma_rule;
-    opts.ssn_hint_rule = cfg.ssn_hint_rule;
-    opts.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
-    opts.ipqp = cfg.ipqp;
+    opts.advanced.ssn_proximal_carry = cfg.ssn_prox_carry;
+    opts.advanced.ssn_certify_from_face = cfg.ssn_certify_from_face;
+    opts.advanced.ssn_sigma_rule = cfg.ssn_sigma_rule;
+    opts.advanced.ssn_hint_rule = cfg.ssn_hint_rule;
+    opts.advanced.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
+    opts.advanced.ipqp = cfg.ipqp;
     return opts;
 }
 
@@ -1463,7 +1480,7 @@ inline void attach_observers(SqpSolver &driver, const EngineConfig &cfg) {
     }
 }
 
-// The central-path synthesis Task 0's tests/test_warm_start.cpp
+// The central-path synthesis Task 0's tests/warmstart/test_warm_start.cpp
 // (namespace ip_repair, f7_ip_iterate) already established for this exact
 // family: s_j = mu/lambda_i*(j) on the analytically active rows, s_j =
 // -cI_j(x*) on the rest, lambda_i(j) = mu/s_j everywhere. Reproduced here
@@ -1491,7 +1508,7 @@ struct IpIterate {
 // kPhysicsInformed cell at the same (N, window) is its matched control.
 //
 // The duals stay at x*: `from_interior_point` infers activity from the
-// dual/slack pair ALONE (warm_start.h's ACTIVITY INFERENCE note -- it never
+// dual/slack pair ALONE (crossover.h's ACTIVITY INFERENCE note -- it never
 // re-evaluates the model at x), so displacing the primal leaves the hint
 // exact while making the solve real.
 inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double mu, const Vec &x) {
@@ -1513,22 +1530,27 @@ inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double
         it.lambda_i(j) = mu / s;
     }
     // F7's control box is inactive at the optimum for every p in the design
-    // range (Task 0's own reading, warm_start.h/test_warm_start.cpp), so both
+    // range (Task 0's own reading, crossover.h/test_warm_start.cpp), so both
     // IP bound multipliers vanish.
     it.z_lower = Vec::Zero(model.n());
     it.z_upper = Vec::Zero(model.n());
     return it;
 }
 
+// The engine-native state of a solve's result (the opaque handle, unwrapped).
+inline const hven::detail::SqpWarmState &SqpWarmStateOf(const SqpResult &result) {
+    return hven::detail::SqpWarmAccess::state(result.sqp_warm_start);
+}
+
 // kCorrupted's damage: drop the (foreign, untrustworthy) hot handle, then
 // displace x by a deterministic, no-RNG sin-index pattern of magnitude
 // kCorruptedXDisp -- see that constant's own note for why displacing x
 // (rather than only the duals) is the recipe that is guaranteed to matter
-// regardless of which of SqpWarmStart's several redundant activity encodings
+// regardless of which of SqpWarmState's several redundant activity encodings
 // (ineq_active/bound_active vs qp_working_set) a given ingest path actually
 // reads: the geometric activity AT THE NEW x disagrees with the stale
 // hand-off's own hint no matter which encoding is consulted.
-inline SqpWarmStart corrupt_warm_start(SqpWarmStart warm) {
+inline hven::detail::SqpWarmState corrupt_warm_start(hven::detail::SqpWarmState warm) {
     warm.hot = nullptr;
     for (Index i = 0; i < warm.x.size(); ++i) {
         warm.x(i) += kCorruptedXDisp * std::sin(7.0 * static_cast<double>(i));
@@ -1540,10 +1562,14 @@ inline F7CollocationChain make_model(const CorpusCell &cell) {
     return F7CollocationChain(cell.n_nodes, /*states=*/3, /*controls=*/2, cell.p, /*radius=*/1.0);
 }
 
-// The last history row's kkt_residual, or -1.0 (SqpWarmStart's own "never
+// The last history row's kkt_residual, or -1.0 (SqpWarmState's own "never
 // populated" sentinel convention) on an empty history.
 inline double last_kkt_residual(const SqpResult &sol) {
-    return sol.history.empty() ? -1.0 : sol.history.back().kkt_residual;
+    if (sol.history.empty()) {
+        return -1.0;
+    }
+    const hven::IterationRecord &last = sol.history.back();
+    return std::max(last.stationarity, last.feasibility);
 }
 
 // TASK 6, instrument requirement 1 + the NF-1 telemetry. Recomputes the whole
@@ -1555,7 +1581,7 @@ inline double last_kkt_residual(const SqpResult &sol) {
 // COST: one gradient and two Jacobian evaluations at the returned point, i.e.
 // strictly less than one major iteration of the solve it is checking, at any
 // N in this census. Nothing is factorized.
-inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResult &sol,
+inline void record_kkt_check(const hven::detail::NlpModel &model, const SqpResult &sol,
                              double bound_tol, CorpusRow &row) {
     const NlpKktResidual r = self_check_kkt(model, sol, bound_tol);
     row.kkt_stationarity = r.stationarity;
@@ -1564,11 +1590,13 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResu
     row.kkt_complementarity = r.complementarity;
 
     double dual_scale = 1.0;
-    if (sol.lambda_e.size() > 0) {
-        dual_scale = std::max(dual_scale, sol.lambda_e.template lpNorm<Eigen::Infinity>());
+    if (hven::detail::engine_rows(sol).lambda_e.size() > 0) {
+        dual_scale = std::max(
+            dual_scale, hven::detail::engine_rows(sol).lambda_e.template lpNorm<Eigen::Infinity>());
     }
-    if (sol.lambda_i.size() > 0) {
-        dual_scale = std::max(dual_scale, sol.lambda_i.template lpNorm<Eigen::Infinity>());
+    if (hven::detail::engine_rows(sol).lambda_i.size() > 0) {
+        dual_scale = std::max(
+            dual_scale, hven::detail::engine_rows(sol).lambda_i.template lpNorm<Eigen::Infinity>());
     }
     if (sol.z.size() > 0) {
         dual_scale = std::max(dual_scale, sol.z.template lpNorm<Eigen::Infinity>());
@@ -1577,8 +1605,8 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResu
     row.x_scale = sol.x.size() > 0 ? std::max(1.0, sol.x.template lpNorm<Eigen::Infinity>()) : 1.0;
 
     int negatives = 0;
-    for (Index j = 0; j < sol.lambda_i.size(); ++j) {
-        if (sol.lambda_i(j) < 0.0) {
+    for (Index j = 0; j < hven::detail::engine_rows(sol).lambda_i.size(); ++j) {
+        if (hven::detail::engine_rows(sol).lambda_i(j) < 0.0) {
             ++negatives;
         }
     }
@@ -1591,18 +1619,19 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpResu
 // through bench/model_surface_kkt.h's engine-independent scorer instead of
 // self_check_kkt, via a throwaway NlpModelAssembly bridge over `model`.
 //
-// A NON-OWNING BRIDGE, matching src/drivers/sqp_solver.cpp's own
+// A NON-OWNING BRIDGE, matching src/sqp/sqp_solver.cpp's own
 // `borrow_model` idiom exactly (shared_ptr's aliasing constructor over an
 // EMPTY owner: the stored pointer is `&model`, there is no control block, and
 // destruction does nothing) -- `model` is a stack-local F7CollocationChain
 // this function does not own and must not outlive.
-inline void record_model_surface_check(const hven::solvers::NlpModel &model, const SqpResult &sol,
+inline void record_model_surface_check(const hven::detail::NlpModel &model, const SqpResult &sol,
                                        CorpusRow &row) {
-    const std::shared_ptr<const hven::solvers::NlpModel> borrowed(std::shared_ptr<const void>(),
-                                                                  &model);
+    const std::shared_ptr<const hven::detail::NlpModel> borrowed(std::shared_ptr<const void>(),
+                                                                 &model);
     NlpModelAssembly aggregate(borrowed);
     const ModelSurfaceKktResiduals r =
-        model_surface_kkt_residuals(aggregate, sol.x, sol.lambda_e, sol.lambda_i, sol.z);
+        model_surface_kkt_residuals(aggregate, sol.x, hven::detail::engine_rows(sol).lambda_e,
+                                    hven::detail::engine_rows(sol).lambda_i, sol.z);
     row.ms_stationarity = r.stationarity_;
     row.ms_complementarity = r.complementarity_;
     row.ms_primal = r.primal_;
@@ -1621,15 +1650,24 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
     row.escapes = static_cast<int>(sol.counters.ssn.ssn_escapes);
     row.ssn = sol.counters.ssn;
     row.ipqp = sol.counters.ipqp;
+    {
+        const auto &c = sol.counters;
+        row.solve_tally = {c.backend_solves_ordinary,       c.backend_solves_detector,
+                           c.backend_solves_polish,         c.backend_solves_border_refine,
+                           c.backend_solve_rhs_ordinary,    c.backend_solve_rhs_detector,
+                           c.backend_solve_rhs_polish,      c.backend_solve_rhs_border_refine,
+                           c.backend_solve_refine_ordinary, c.backend_solve_refine_detector,
+                           c.backend_solve_refine_polish,   c.backend_solve_refine_border_refine};
+    }
     row.status = sol.status;
     row.kkt_residual = last_kkt_residual(sol);
     row.wall_s = wall_s;
     // C3: the PER-QP reading the gates name. `qp_factorizations` is
     // documented "meaningful iff qp_solved" (sqp_solver_types.h), so a
     // stopped-AT-iterate row contributes nothing -- it built no subproblem.
-    for (const hven::solvers::SqpIterate &it : sol.history) {
-        if (it.qp_solved) {
-            row.qp_factorizations.push_back(static_cast<int>(it.qp_factorizations));
+    for (const hven::IterationRecord &it : sol.history) {
+        if (it.sqp->qp_solved) {
+            row.qp_factorizations.push_back(static_cast<int>(*it.sqp->qp_factorizations));
         }
     }
     return row;
@@ -1637,23 +1675,35 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
 
 // Every solve this runner makes goes through here -- see kMinorBudget's own
 // note for why. `warm` defaults to an invalid (default-constructed)
-// SqpWarmStart, which resolves kCold exactly as the 2-arg solve() overload
+// SqpWarmState, which resolves kCold exactly as the 2-arg solve() overload
 // does; passing a real one (kCorrupted/kActivityOnly/kFullWarm's own
 // producers) is unaffected beyond gaining the same budget.
 // `budget` defaults to the corpus's own kMinorBudget; overridable ONLY so
-// tests/test_corpus_cells.cpp can prove the budget actually TRUNCATES a
+// tests/bench/test_corpus_cells.cpp can prove the budget actually TRUNCATES a
 // solve (a tiny explicit budget on a fixture that needs more than that many
 // minors) without needing a fixture that burns through 50000 real minors to
 // exercise the same code path. Every call site in run_cell_walk below uses
 // the default.
-inline SqpResult budgeted_solve(SqpSolver &driver, const hven::solvers::NlpModel &model,
-                                const Vec &x0, const SqpWarmStart &warm = SqpWarmStart{},
-                                Index budget = kMinorBudget) {
+// M8 AP-5 G2: THE ARMED LEG'S TOKEN HALF. With HVEN_LEG_UNFIRED_TOKEN set in the
+// environment every corpus solve carries a stop token whose source is never
+// requested; unset (the default) the budget is byte-for-byte what it always was
+// (a default, stateless token). The armed leg byte-compares the two captures.
+inline hven::StopToken corpus_leg_token() {
+    static hven::StopSource source;
+    return std::getenv("HVEN_LEG_UNFIRED_TOKEN") != nullptr ? source.token() : hven::StopToken{};
+}
+
+inline SqpResult
+budgeted_solve(SqpSolver &driver, const hven::detail::NlpModel &model, const Vec &x0,
+               const hven::detail::SqpWarmState &warm = hven::detail::SqpWarmState{},
+               Index budget = kMinorBudget) {
     // The MINOR budget, named (M6 W5 T8.4): the fourth argument is a
     // SolveBudget aggregate now, whose other member is the major cap. Every
     // corpus cell budgets minors and none caps majors, so this stays a one-field
     // value and every corpus row is byte-unchanged.
-    return driver.solve(model, x0, warm, SolveBudget{/*minor_budget=*/budget});
+    return driver.solve(hven::detail::problem_ref(model), x0,
+                        hven::detail::SqpWarmAccess::wrap(warm),
+                        SolveBudget{.max_minor_iterations = budget, .stop = corpus_leg_token()});
 }
 
 // kPhysicsInformed's own rollout: the family's analytic optimum displaced by
@@ -1690,7 +1740,7 @@ inline void notify_setup_complete(const SetupCompleteFn &fn) {
 // taken, no extra vector allocated and no extra evaluation run. Every call
 // site below passes `cfg.score_model_surface`.
 template <typename Fn>
-CorpusRow timed_row(const CorpusCell &cell, const hven::solvers::NlpModel &model,
+CorpusRow timed_row(const CorpusCell &cell, const hven::detail::NlpModel &model,
                     const SetupCompleteFn &on_setup_complete, Fn &&solve_target,
                     bool score_model_surface = false) {
     notify_setup_complete(on_setup_complete);
@@ -1707,11 +1757,55 @@ CorpusRow timed_row(const CorpusCell &cell, const hven::solvers::NlpModel &model
 
 // THE ENGINE INTERFACE'S IMPLEMENTATION, both kernels. `cfg.qp_mode` is the
 // ONLY thing that differs between the walk arm and the SSN arm: the same
+// AP-2 B2 -- THE ROUTE LEVER (`--internal-route`, a hidden measurement lever of
+// bench_corpus.cpp). kNative is the corpus route every pinned artifact was taken
+// on: the cell's own NlpModel, solved through detail::problem_from_model. The two
+// Nlp routes state the cell as an Nlp (crossover::ModelAsNlpProblem, the dual
+// binding) and solve it through today's triplet route (a fresh NlpProblemModel per
+// solve) or through the public Problem(Nlp) route (one Problem per cell); they are
+// the B2 public-vs-internal counter-identity pin's two arms. Process-wide: set once
+// from the command line before the first cell, read by run_cell_engine below and by
+// the interior leg (ipm_corpus_leg.cpp). The Nlp routes' runner lives in
+// crossover_legs.h (it needs ModelAsNlpProblem) and is installed through the hook.
+enum class NlpRoute { kNative, kNlpInternal, kNlpPublic };
+
+inline NlpRoute &nlp_route() noexcept {
+    static NlpRoute route = NlpRoute::kNative;
+    return route;
+}
+
+inline const char *to_string(NlpRoute route) noexcept {
+    switch (route) {
+    case NlpRoute::kNative:
+        return "native";
+    case NlpRoute::kNlpInternal:
+        return "nlp-internal";
+    case NlpRoute::kNlpPublic:
+        return "nlp-public";
+    }
+    return "unknown";
+}
+
+struct EngineConfig;
+using NlpRouteRunner = CorpusRow (*)(const CorpusCell &, const EngineConfig &,
+                                     const SetupCompleteFn &);
+inline NlpRouteRunner &nlp_route_runner() noexcept {
+    static NlpRouteRunner runner = nullptr;
+    return runner;
+}
+
 // generators, the same starts, the same budgets, the same driver, the same
 // number of solves. That is what makes the two CSV columns a comparison rather
 // than two studies.
 inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg,
                                  const SetupCompleteFn &on_setup_complete = {}) {
+    if (nlp_route() != NlpRoute::kNative) {
+        if (nlp_route_runner() == nullptr) {
+            throw std::logic_error("corpus::run_cell_engine: an Nlp route is selected but no "
+                                   "runner is installed (crossover::install_nlp_route_runner)");
+        }
+        return nlp_route_runner()(cell, cfg, on_setup_complete);
+    }
     F7CollocationChain model = make_model(cell);
     const SqpOptions opts = options_for_cell(cell, cfg);
 
@@ -1742,13 +1836,13 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         // -- an unbounded setup step would hang the runner exactly as an
         // unbounded target step would, and the row never reports it either
         // way (see the file banner). A budget-truncated seed is still a
-        // valid (if less converged) SqpWarmStart to feed forward -- every exit
+        // valid (if less converged) SqpWarmState to feed forward -- every exit
         // of solve() is "safe to feed forward" by this project's own
-        // contract (warm_start.h). It is bounded by its OWN wall deadline
+        // contract (warmstart/warm_start.h). It is bounded by its OWN wall deadline
         // too, and a setup that exhausts it is reported as `dnf_setup`, not
         // as this taxonomy's own hand-off failing (I1).
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
-        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        const hven::detail::SqpWarmState corrupted = corrupt_warm_start(SqpWarmStateOf(seed));
         model.set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, model, on_setup_complete,
@@ -1762,9 +1856,9 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(model, cell.p, mu, physics_informed_start(model, cell.p));
-        const SqpWarmStart crossover =
+        const hven::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
-                                model.lower(), model.upper(), IpCrossoverOptions{});
+                                model.lower(), model.upper(), IpmCrossoverOptions{});
         return timed_row(
             cell, model, on_setup_complete,
             [&] { return budgeted_solve(driver, model, crossover.x, crossover); },
@@ -1778,7 +1872,9 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         model.set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, model, on_setup_complete,
-            [&] { return budgeted_solve(driver, model, seed.warm_start.x, seed.warm_start); },
+            [&] {
+                return budgeted_solve(driver, model, SqpWarmStateOf(seed).x, SqpWarmStateOf(seed));
+            },
             cfg.score_model_surface);
     }
     }
@@ -1794,7 +1890,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
 // the QpProblem that call would build as its own first subproblem, instead
 // of solving it. This is bit-for-bit what SqpSolver::solve's first iteration
 // builds for the same (x, lambda_e, lambda_i) at obj_scale = 1
-// (hven::solvers::build_subproblem, sqp_solver.h) -- the driver's own first call
+// (hven::detail::build_subproblem, sqp_solver.h) -- the driver's own first call
 // is exactly this one, so a caller replaying this QP through an external
 // solver is replaying the SAME subproblem the walk baseline's own first
 // major iteration solved, not a re-derived approximation of it.
@@ -1816,7 +1912,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
 
     auto first_qp_at = [&](const Vec &x, const Vec &lambda_e, const Vec &lambda_i) {
         notify_setup_complete(on_setup_complete);
-        return hven::solvers::build_subproblem(model, x, lambda_e, lambda_i);
+        return hven::detail::build_subproblem(model, x, lambda_e, lambda_i);
     };
 
     switch (cell.start) {
@@ -1834,7 +1930,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         SqpSolver driver(opts);
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
-        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        const hven::detail::SqpWarmState corrupted = corrupt_warm_start(SqpWarmStateOf(seed));
         model.set_parameters(Vec::Constant(1, cell.p));
         return first_qp_at(corrupted.x, corrupted.lambda_e, corrupted.lambda_i);
     }
@@ -1843,9 +1939,9 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(model, cell.p, mu, physics_informed_start(model, cell.p));
-        const SqpWarmStart crossover =
+        const hven::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
-                                model.lower(), model.upper(), IpCrossoverOptions{});
+                                model.lower(), model.upper(), IpmCrossoverOptions{});
         return first_qp_at(crossover.x, crossover.lambda_e, crossover.lambda_i);
     }
     case StartTaxonomy::kFullWarm: {
@@ -1853,7 +1949,8 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
         model.set_parameters(Vec::Constant(1, cell.p));
-        return first_qp_at(seed.warm_start.x, seed.warm_start.lambda_e, seed.warm_start.lambda_i);
+        return first_qp_at(SqpWarmStateOf(seed).x, SqpWarmStateOf(seed).lambda_e,
+                           SqpWarmStateOf(seed).lambda_i);
     }
     }
     throw std::invalid_argument(fmt::format(
@@ -1872,7 +1969,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
 // (`EngineConfig::qp_mode`) -- see `run_cell_engine`.
 //
 // T6: an unrecognised engine name throws std::invalid_argument with the reason
-// folded into the message; tests/test_corpus_cells.cpp pins it.
+// folded into the message; tests/bench/test_corpus_cells.cpp pins it.
 inline CorpusRow run_cell(const CorpusCell &cell, const std::string &engine,
                           const detail::SetupCompleteFn &on_setup_complete = {},
                           const detail::EngineConfig &levers = {}) {
@@ -1892,11 +1989,11 @@ inline CorpusRow run_cell(const CorpusCell &cell, const std::string &engine,
     // for M6 (spec section 9), and no pinned artifact is measured on it -- the
     // acceptance battery that will is task 9's.
     if (engine == "ipm") {
-        cfg.qp_mode = QpMode::kIpm;
+        cfg.qp_mode = QpMode::kIpqp;
         return detail::run_cell_engine(cell, cfg, on_setup_complete);
     }
     throw std::invalid_argument(
         fmt::format("run_cell: '{}' is not a known engine (expected walk|ssn|ipm)", engine));
 }
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

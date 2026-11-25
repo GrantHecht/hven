@@ -1,0 +1,4 @@
+# M8 PF-1 declared census movers (DECLARATION D1, P5): the 13 asserted columns, measured before the declaration on the dev build of the code (not evidence).
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual
+f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12
+f7_n2000_path_corrupted,F7,2000,path,corrupted,1,WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02

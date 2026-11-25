@@ -1,0 +1,259 @@
+{
+ "samples": 487,
+ "period": 1000003,
+ "instr_sampled_all": 550484461,
+ "instr_sampled_solver": 374666993,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 313820831,
+  "B_kkt": 6812018,
+  "B_eval": 2266006,
+  "B_setup": 24192063,
+  "B_eng": 27576075,
+  "B_proc": 175817468
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8375993531941577,
+  "B_kkt": 0.018181526868581134,
+  "B_eval": 0.006048053451028178,
+  "B_setup": 0.06456950692744903,
+  "B_eng": 0.07360155955878397
+ },
+ "proc_share_of_all": 0.31938679555207283,
+ "rule_instr": 543903443,
+ "fallback_instr": 1084003,
+ "fallback_by_bucket": {
+  "B_fac": 1084003
+ },
+ "unmatched_instr": 5497015,
+ "unmatched_share_of_solver": 0.014671735441611213,
+ "chains_reaching_main": 0.08624229979466119,
+ "init_instr": 0,
+ "steady_state_instr": 374666993,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8375993531941577,
+  "B_kkt": 0.018181526868581134,
+  "B_eval": 0.006048053451028178,
+  "B_setup": 0.06456950692744903,
+  "B_eng": 0.07360155955878397
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   308267816
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   2182006
+  ],
+  [
+   "hven::linear::SymmetricFactor::require_solvable",
+   1154003
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   1133003
+  ],
+  [
+   "<no hven::linear frame>",
+   1084003
+  ]
+ ],
+ "mkl_serv_instr": 26080069,
+ "kmp_instr": 200478531,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   2161006
+  ],
+  [
+   "hven::NlpAssembly::structure_epoch",
+   1196003
+  ],
+  [
+   "<empty>",
+   1070003
+  ],
+  [
+   "MKL_Read_ThreadENV_Count_Cores",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    21688057
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    19247051
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    16960045
+   ],
+   [
+    "__kmp_fork_call",
+    16177042
+   ],
+   [
+    "__strcmp_avx2",
+    14694039
+   ],
+   [
+    "__kmp_serialized_parallel",
+    13568036
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    8805024
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    7889021
+   ]
+  ],
+  "B_kkt": [
+   [
+    "Eigen::SparseMatrix<double, 1, int>::resize",
+    1224003
+   ],
+   [
+    "malloc",
+    1189003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1126003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1126003
+   ],
+   [
+    "hven::detail::solve_vec",
+    1077003
+   ],
+   [
+    "hven::detail::QpProblem::QpProblem",
+    1070003
+   ]
+  ],
+  "B_eval": [
+   [
+    "hven::detail::ProblemState::map_row_values",
+    1266003
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>::operator=",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    3364009
+   ],
+   [
+    "_gfortrani_set_fpu_rounding_mode",
+    2350006
+   ],
+   [
+    "_gfortrani_read_block_form",
+    2315006
+   ],
+   [
+    "hven::detail::EqualityBasis::compute",
+    1266003
+   ],
+   [
+    "hven::detail::ProblemState::sqp_target",
+    1245003
+   ],
+   [
+    "__syscall_cancel",
+    1217003
+   ],
+   [
+    "cutest_csjp_",
+    1210003
+   ],
+   [
+    "__GI___pthread_self",
+    1203003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::{anon}::DepSystem::at_times",
+    3182009
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    3161009
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    2252006
+   ],
+   [
+    "hven::detail::refine_bordered_solve_iterated",
+    2231006
+   ],
+   [
+    "__internal_syscall_cancel",
+    2161006
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    1231003
+   ],
+   [
+    "void Eigen::internal::call_assignment<Eigen::Block<Eigen::Matrix<double, -1, 1, 0, -1, 1>, -1, 1, false>, Eigen::Product<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0>, Eigen::internal::assign_op<double, double> >",
+    1217003
+   ],
+   [
+    "_int_free_chunk",
+    1210003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    66428174
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    47334126
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    16771045
+   ],
+   [
+    "strcmp",
+    10714030
+   ],
+   [
+    "check_match",
+    5553015
+   ],
+   [
+    "__printf_buffer",
+    3420009
+   ],
+   [
+    "memmove",
+    2273006
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ]
+  ]
+ }
+}

@@ -1,0 +1,48 @@
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Layering.*:CoreLayering.*
+[==========] Running 6 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from CoreLayering
+[ RUN      ] CoreLayering.TheScanActuallyReadsTheCoreHeaders
+[       OK ] CoreLayering.TheScanActuallyReadsTheCoreHeaders (0 ms)
+[ RUN      ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/tests/core/test_layering.cpp:294: Failure
+Value of: violations.empty()
+  Actual: false
+Expected: true
+core/ is the bottom tier of CLAUDE.md section 2's map and must depend on no tier above it. A core/ header including a drivers/, qp/, model/, kkt/, interior/, linear/, globalization/, warmstart/ or detail/ header reopens the include-graph inversion M3 phase-C S2 eliminated.
+Offending include directive(s):
+  include/hven/core/types.h:93: #include of 'hven/trace/trace.h' reaches UP into hven/trace/ -- core/ is the bottom tier and may depend on no tier above it
+
+If the type you need lives above core/, MOVE THE TYPE DOWN rather than the include up -- that is what S2 did for the counters, the status enums and StartLevel. If a deliberate ruling changes the tier order itself, change this test with it, in the same commit, and say so.
+
+[  FAILED  ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier (0 ms)
+[----------] 2 tests from CoreLayering (0 ms total)
+
+[----------] 4 tests from Layering
+[ RUN      ] Layering.TheScanReadsTheWholeTree
+[       OK ] Layering.TheScanReadsTheWholeTree (18 ms)
+[ RUN      ] Layering.NoIncludeGoesUpTheLayerOrder
+/home/ghecht/Projects/hven/.claude/worktrees/rs5/tests/core/test_layering.cpp:696: Failure
+Value of: report.empty()
+  Actual: false
+Expected: true
+CLAUDE.md section 2's layer order is core < util < barrier < linear < model < qp-data < kkt < qp-engines < warmstart < solver < {ipm, sqp} public < trace < engine implementations. A file may include its own layer or a lower one; ipm and sqp never include each other. MOVE THE TYPE DOWN rather than the include up. Do not add to kAllowed to make this pass: an entry is a debt with a named owner, and a new one is a design decision.
+Offending include(s):
+  include/hven/core/types.h:93: #include <hven/trace/trace.h> -- a core file includes a trace file -- upward
+
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder (15 ms)
+[ RUN      ] Layering.EveryAllowListedPairStillOccurs
+[       OK ] Layering.EveryAllowListedPairStillOccurs (15 ms)
+[ RUN      ] Layering.PublicHeadersDoNotIncludeDetail
+[       OK ] Layering.PublicHeadersDoNotIncludeDetail (15 ms)
+[----------] 4 tests from Layering (64 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 2 test suites ran. (65 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier
+[  FAILED  ] Layering.NoIncludeGoesUpTheLayerOrder
+
+ 2 FAILED TESTS

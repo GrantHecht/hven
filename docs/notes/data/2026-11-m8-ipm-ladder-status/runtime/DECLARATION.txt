@@ -1,0 +1,26 @@
+M8 IPM ladder status -- runtime neutrality gate (../DECLARATION.txt P5) -- DECLARATION (committed before the first leg;
+never edited; a failed or void leg is answered by a successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-nan-gates/runtime-r2/ (run_all.sh, runtime_leg.sh, analyze_r5.py, analyze_r11.py, fixture/),
+re-pointed in CODE lines only: the worktree (ipmlad), both arms' trees (build-ipmlad/), the perf scratch directory
+(build-ipmlad/runtime-perf), the evidence directory (this one) and arm A's sha256; one provenance comment line added to
+each. PATH DEPTH CHECKED BEFORE THIS DECLARATION: this directory is five levels below the repository root, as
+runtime-r2/ was; analyze_r11.py resolves the root five levels up (resolved to the worktree root, with
+scripts/compare_replay.py present), and analyze_r5.py's root line -- six levels in the source, a leftover read by nothing
+on the --excluded-count path runtime_leg.sh uses -- is set to five as well. run_all.sh refuses to start if
+scripts/compare_replay.py is absent (exit 7). Period 400000; analyzer analyze_r11.py.
+ARMS
+  A  a4d687cd0 (origin/m8): `git archive` export built Release by ../legs/build.sh (target hven_sqp_corpus) in
+     build-ipmlad/armA-rel, frozen to build-ipmlad/armAbin/hven_sqp_corpus, sha256
+     a93ae7f94e2ccb5fdafa4e1453e6f60a4d9b486284e98a46fb94365c61b64d01.
+  B  the code head 78af82e2d: build-ipmlad/rel/bench/hven_sqp_corpus copied by run_all.sh to build-ipmlad/armBbin/,
+     sha256 973b7e732fc818b8033e0740986cf898c7a092de6bf09db9471740f88bd7366e. run_all.sh refuses to start on a
+     mismatch for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults. VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY: ../DECLARATION.txt THE CHANGE -- one read of the KKT factorization's info() and one
+predictable branch per interior-point iteration after the inertia ladder, the governor's guard gaining one boolean, the
+step solve wrapped in one branch, and (dense arm only) one more info() read after the step guard. Only the interior
+mode runs that code; ipm, ssn and walk are the SQP engine's modes and are measured as the unchanged-code control.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.

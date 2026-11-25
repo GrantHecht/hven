@@ -1,0 +1,33 @@
+== FA1: DN-0 238 cells, default (kNever) and dense-default (kAlways), head lane binary
+cells 238
+  S1 miss sd-hven-ipm-ALLINITC: acceptable f=30.480328379251095 -> optimal f=30.492605562772798
+  S1 miss sd-hven-ipm-CRESC100: optimal f=0.56948171775366063 -> acceptable f=0.56950450959614329
+  S1 miss sd-hven-sqp-HS91: optimal f=1.3626568148205342 -> optimal f=1.3626567971142309
+S1: 212/215
+
+== FA1 vs DN-1d r3 (same cell, same label)
+movers 0; exact-string objective differences without a mover: 0 
+
+FA1 tally nonzero or absent (SQP rows): 0 
+
+== FA2: 119 SQP cells, qp_mode kSsn and kIpqp; head kAlways vs BASE kAlways (b70e45cfb), head kNever
+-- sqp-ssn
+  head kAlways vs base kAlways movers (status/objective/iterations): 0
+  refusals (dense_solve_residual_refusals): 0 in 0 cells: 
+  head kAlways r2 vs r1 head kAlways (reported) differences: 0
+  head kAlways keeps 99/99 head kNever successes (reported)
+-- sqp-ipm
+  head kAlways vs base kAlways movers (status/objective/iterations): 0
+  refusals (dense_solve_residual_refusals): 13 in 2 cells: HS74:4 HS75:9
+  head kAlways r2 vs r1 head kAlways (reported) differences: 1
+    LOOTSMA: r1 infeasible it=4 f=0 -> r2 infeasible it=3 f=4.125 refusals=('0',)
+  head kAlways keeps 94/101 head kNever successes (reported)
+
+== VERDICTS
+S1_AS_DECLARED 212/215 misses sd-hven-ipm-ALLINITC,sd-hven-ipm-CRESC100,sd-hven-sqp-HS91
+FA1_AS_DN1D
+TALLY_DEFAULTS_ZERO
+NO_NEW_FAILURES
+TALLY_KNEVER_ZERO
+TALLY_COLUMNS_PRESENT
+FA_PASS

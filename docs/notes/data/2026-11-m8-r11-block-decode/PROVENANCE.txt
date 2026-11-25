@@ -1,0 +1,59 @@
+M8 R11 -- block_evidence()'s 2x2 decode from det and trace -- PROVENANCE AND RESULTS
+================================================================================
+Commits     c2ce3ed3 code (src/linear/dense_symmetric_factor.cpp, include/hven/linear/dense_symmetric_factor.h,
+            include/hven/detail/kkt/schur_complement.h, tests/linear/test_dense_symmetric_factor_growth.cpp,
+            tests/sqp/test_accelerate_probes.cpp); 758ea69e DECLARATION + instruments + the step-1 measurement;
+            1c0963d6 runtime gate (PASS); this commit: chain1 outputs and this file. Base / arm A a8c540cf (origin/m8).
+Binaries    arm A corpus 141799a0...6902, arm A db 8be6f4a5...79fd9 (ARM_A_OK); arm B corpus f7058d55...9797;
+            arm A libhven.a 37d2a2ae...db02 (= F1's arm B library: no source change d546afd1..a8c540cf), arm B libhven.a
+            fcdb8a17...692e; falsifier mutant hven_tests e3f620dc...5f51.
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2, MKL_NUM_THREADS=1,
+            kernel.perf_event_max_sample_rate 79000 (period 400000 used from the start). Apple/Accelerate: UNOBSERVED
+            (syntax sweep only). Windows: UNOBSERVED.
+Dates       2026-11-07/08: measurement 23:40 EST - 08:38 EST; declaration 08:55; runtime gate 08:57-09:42; chain1
+            09:43-16:11 EST (the census leg last).
+Protocol    every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+            set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; serial, alone; the runtime
+            gate first, then chain1 (chain/chain1.out: PREFLIGHT_OK, every leg rc 0, CHAIN1_DONE).
+
+STEP 1, THE MEASUREMENT (measurement/README.txt): one production consumer (the walk's Schur border stack); replay x3,
+census 57, CUTEst TRAIN 23 on probe builds of a8c540cf: 55,844 2x2 blocks, 0 sign disagreements, 0 decision
+differences in any consumer. Hence NO MOVERS were declared.
+
+RESULTS (criteria as declared)
+P0  arm A       ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release and Debug: 100% tests passed, 0 tests failed out of 3486 (suites/). PASS. (D4)
+P2  examples    8/8 rc 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       IPARM_BYTE_IDENTICAL, 15 configurations (iparm/iparm-r11.txt). PASS. (D7)
+P5  census      57/57 rows (census/): CENSUS_AS_DECLARED -- 42 cells equal the baseline exactly, the 2 declared rows
+                (PF-1's, inherited at arm A) exactly, 13 deadline-bound cells dnf_* (the baseline's statuses); NO R11
+                mover. PASS. (D1)
+P6  smoke       default and clang PASSED, 36 standalone-include TUs; export contract OK on both (install-smoke/). PASS.
+P7  PCH         PASS: 4 TUs engaged, 57 artifacts byte-identical (pch/). PASS.
+P8  off-ref     build rc 0, 26 warning lines (= F1's), none naming a touched file; ctest 0 failed out of 3486 (offref/).
+                PASS.
+P9  Accelerate  PASS_A_AS_DECLARED (accelerate/). PASS. Pass B (reported, not a criterion): PASS_B_NOT_AS_DECLARED, as at
+                F1, PF-1, PF-HB and the B8 riders.
+P10 flags       FLAGS_AS_DECLARED, 0 differing TUs (flags/). PASS. (D6)
+P11 runtime     runtime/run_all.log: VERDICT PASS -- filtered B/A interior 1.000000, ipm 1.000002, ssn 1.000002, walk
+                1.000004; THROTTLE 0 (492 processes); counter identity in every mode. PASS. (D10)
+P12 interior    unmoved 0 differences; promoted baseline reproduced, 0 differences (interior/). PASS. (D1)
+P14 falsifier   mutant (arm A's (trace +- disc)/2 restored, one site): EvidenceCountsTheNegativeOfAnIllScaled2x2Block
+                FAILED (neg_eigs 0, expected 1), EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block FAILED (|eig| 0,
+                expected 1e-10), the non-finite test passed; all three pass on the head: FAILPROOF_AS_DECLARED
+                (failproof/). PASS.
+P16 objects     56 objects, exactly dense_symmetric_factor.cpp.o differs: OBJECTS_AS_DECLARED (objects/). PASS. (D6)
+CUTEst TRAIN    not a proof leg (D11: the walk does not move). The measurement's TRAIN (probe build of a8c540cf's
+                arithmetic): 16/23, every cell's status/outcome/iterations/factorizations = PF-1's reading.
+
+SLIPS / DEVIATIONS
+- Measurement: the v1 probe wrote counts only at process exit, so the 13 deadline-bound census cells (children killed
+  at their budget) were missing; they were re-run on a probe-v2 build (10 s cumulative ticks) at full budget, 7-wide.
+  The first probe-v2 compile failed (a namespace slip in the probe), fixed before any run. The TRAIN clone needed the
+  harness's git-ignored SIF files and decoded problems copied from the hven-bench checkout (two refused starts, no cell
+  ran).
+- One pre-declaration dev run of legs/failproof.sh (into build-r11/dev-failproof/) was wrapped in `timeout 175` by
+  mistake; it completed (FAILPROOF_AS_DECLARED) and is not evidence. Every evidence leg ran without a timeout wrapper.
+- runtime/analyze_r11.py retires r5's interior filter-liveness guard (declared in runtime/DECLARATION.txt before the
+  gate): both arms contain F1, so neither carries the spin it checked for.
