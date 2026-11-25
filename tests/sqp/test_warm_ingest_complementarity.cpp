@@ -1477,6 +1477,10 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // c = x - eps <= 0, lambda * c = 0. Measured: x - x* = -1.1e-18, |grad L| 6.1e-12 (rel 6e-18),
     // lambda c 1.1e-12, f - f* 1.1e-12.
     const double x = sol.x(0), lam = sol.lambda(0);
+    // The certified point in hexfloat, for the exact-arithmetic recomputation
+    // (docs/notes/data/2026-11-m8-qpc/legs/b1gate_exact.py, which reads this line).
+    std::printf("[ b1gate ] S=%a eps=%a x=%a lambda=%a z=%a f=%a\n", kScale, kEps, x, lam,
+                sol.z.size() == 1 ? sol.z(0) : 0.0, sol.f);
     EXPECT_NEAR(model.x_star(), x, 1e-12);
     EXPECT_NEAR(model.f_star(), sol.f, 1e-9);
     EXPECT_LE(std::abs(-kScale + x + lam - (sol.z.size() == 1 ? sol.z(0) : 0.0)), 1e-9 * kScale)

@@ -114,6 +114,7 @@
 #include "model/support/hs_problems.h"
 #include "solver/support/iteration_record_eq.h"
 #include "support/mkl_threading.h"
+#include "support/route_reference.h"
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -728,7 +729,16 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     // linearization, the rows held inside dual_mu's footprint), which the certificate's data half
     // refuses -- so the reference build now ends, like Debug and Accelerate already did, with no
     // handle. The K0 thread count of the walk tier is still read through the handle on HS76
-    // above; here it is read when a handle exists and the reason is asserted when none does.
+    // above. ON THE REFERENCE ROUTE the absence is ASSERTED (pre-freeze review S4): a route that
+    // flips back to a certified last solve fails here, and the K0 read below can be reinstated.
+    // The restoration route's parent K0 read is LOST COVERAGE on this model (declared): no
+    // reference build observes it any more, as Debug and Accelerate already did not.
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr)
+        << "the route flipped back to a certified last walk solve: reinstate the K0 read";
+    EXPECT_GE(sol.counters.certificate_gate_refusals, 1);
+    RecordProperty("threads_restoration_k0_read", "no hot handle: the last walk QP was refused");
+#else
     if (SqpWarmAccess::state(sol.sqp_warm_start).hot != nullptr) {
         EXPECT_EQ(driver_k0_num_threads(sol), 0);
     } else {
@@ -736,6 +746,7 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
         RecordProperty("threads_restoration_k0_read",
                        "no hot handle: the last walk QP was refused");
     }
+#endif
 #endif
     EXPECT_EQ(max_threads_now(), before);
 }
@@ -940,12 +951,19 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     // RE-PREMISED AT M8 QPC (declared): see ZeroLeavesEveryFactorAtTheBackendDefault -- the last
     // walk QP of this route is refused by the certificate's data half, so no hot handle is
-    // emitted; the parent K0 count is read when one is.
+    // emitted; on the reference route that absence is asserted (a flip back fails here), elsewhere
+    // the parent K0 count is read when a handle exists.
+#if HVEN_TEST_ROUTE_REFERENCE
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr)
+        << "the route flipped back to a certified last walk solve: reinstate the K0 read";
+    EXPECT_GE(sol.counters.certificate_gate_refusals, 1);
+#else
     if (SqpWarmAccess::state(sol.sqp_warm_start).hot != nullptr) {
         EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);
     } else {
         EXPECT_GE(sol.counters.certificate_gate_refusals, 1);
     }
+#endif
 
     EXPECT_EQ(mkl_get_max_threads(), kCallerOverride)
         << "hven's call-scoped thread count must restore the caller's own thread-local "

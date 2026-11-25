@@ -109,6 +109,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <memory>
@@ -1729,6 +1730,27 @@ inline void notify_setup_complete(const SetupCompleteFn &fn) {
     }
 }
 
+// THE QPC SIDE FILE (M8 QPC, DECLARATION-QPC leg N1; pre-freeze review S10). With
+// HVEN_BENCH_QPC_SIDE set, one line per solved cell --
+// `id,converged_refinement_arms,certificate_gate_refusals` -- is appended to that file, so a replay
+// difference is attributed by the cell's OWN counters. The CSV row is untouched: the replay
+// comparison is byte-exact against a base binary that has no such counters. Unset (every pinned
+// run), this does nothing. Outside the timed window.
+inline void record_qpc_side(const CorpusCell &cell, const SqpResult &sol) {
+    const char *path = std::getenv("HVEN_BENCH_QPC_SIDE");
+    if (path == nullptr || *path == '\0') {
+        return;
+    }
+    std::FILE *f = std::fopen(path, "a");
+    if (f == nullptr) {
+        throw std::runtime_error(fmt::format("HVEN_BENCH_QPC_SIDE: cannot open {}", path));
+    }
+    std::fprintf(f, "%s,%lld,%lld\n", cell.id,
+                 static_cast<long long>(sol.counters.converged_refinement_arms),
+                 static_cast<long long>(sol.counters.certificate_gate_refusals));
+    std::fclose(f);
+}
+
 // THE KKT GATE IS OUTSIDE THE TIMED WINDOW, deliberately: `wall_s` has to stay
 // comparable to the walk baseline this task scores against, and that baseline
 // was measured by a binary with no such check in it. The check is charged to
@@ -1749,6 +1771,7 @@ CorpusRow timed_row(const CorpusCell &cell, const hven::detail::NlpModel &model,
     const auto t1 = std::chrono::steady_clock::now();
     CorpusRow row = row_from_solution(cell, sol, std::chrono::duration<double>(t1 - t0).count());
     record_kkt_check(model, sol, kFeasTol, row);
+    record_qpc_side(cell, sol);
     if (score_model_surface) {
         record_model_surface_check(model, sol, row);
     }
