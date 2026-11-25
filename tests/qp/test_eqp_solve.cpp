@@ -1,6 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+#include <cmath>
 #include <cstdio>
 
 #include <gtest/gtest.h>
@@ -285,4 +286,52 @@ TEST(EqpConvergedRefinement, UnborderedBorderedPathConvergesLikeTheEliminatedOne
     const EqpResult e =
         solve_eqp(qp, ws, Vec::Zero(2), k2, opts, nullptr, EqpRefinement::kConverged);
     EXPECT_LT((e.x - yc.head(2)).lpNorm<Eigen::Infinity>(), 1e-6);
+}
+
+// THE KEEP RULE of the converged loop (M8 QPC; pre-freeze review: the strict-decrease rule is
+// a guard a ten-line unit test reaches, not an argued survivor). Scalar residual r(y) = 1 - y
+// with three solves: a contracting one keeps every step to the floor; a DIVERGING one (it
+// overshoots, so the residual grows) keeps nothing and leaves y and res untouched; a NaN one
+// keeps nothing either; one that contracts once then diverges keeps exactly the first step.
+TEST(EqpConvergedRefinement, TheLoopKeepsOnlyStrictlyDecreasingSteps) {
+    const auto residual_of = [](const Vec &y) { return Vec::Constant(1, 1.0 - y(0)); };
+    {
+        Vec y = Vec::Zero(1);
+        Vec res = residual_of(y);
+        const Index kept = refine_until_converged(
+            y, res, 1e-3, 10, [](const Vec &r) { return Vec(0.5 * r); }, residual_of);
+        EXPECT_EQ(kept, 10); // 1/2^10 < 1e-3 is reached at the tenth step
+        EXPECT_NEAR(res(0), std::ldexp(1.0, -10), 0.0);
+    }
+    {
+        Vec y = Vec::Zero(1);
+        Vec res = residual_of(y);
+        const Index kept = refine_until_converged(
+            y, res, 1e-3, 10, [](const Vec &r) { return Vec(3.0 * r); }, residual_of);
+        EXPECT_EQ(kept, 0);
+        EXPECT_EQ(y(0), 0.0);
+        EXPECT_EQ(res(0), 1.0);
+    }
+    {
+        Vec y = Vec::Zero(1);
+        Vec res = residual_of(y);
+        const Index kept = refine_until_converged(
+            y, res, 1e-3, 10, [](const Vec &r) { return Vec::Constant(r.size(), std::nan("")); },
+            residual_of);
+        EXPECT_EQ(kept, 0);
+        EXPECT_EQ(y(0), 0.0);
+        EXPECT_EQ(res(0), 1.0);
+    }
+    {
+        Vec y = Vec::Zero(1);
+        Vec res = residual_of(y);
+        int calls = 0;
+        const Index kept = refine_until_converged(
+            y, res, 1e-3, 10,
+            [&calls](const Vec &r) { return Vec((calls++ == 0 ? 0.5 : 3.0) * r); }, residual_of);
+        EXPECT_EQ(kept, 1);
+        EXPECT_EQ(y(0), 0.5);
+        EXPECT_EQ(res(0), 0.5);
+        EXPECT_EQ(calls, 2);
+    }
 }

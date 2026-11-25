@@ -1220,6 +1220,23 @@ NOT pin, by measurement: on RDV_YORKNET_qp5 the 373 passes after the repair abso
 units on the first read (`YorknetQp5CertifiedGrayRowIsReturnedToTheWalk*`), red on the base engine (ratio 6.88,
 one gray exit counted, the Intel numbers: residual 2.082e-7, row scale 30.26, lambda 0.198474).
 
+### The data half's presentations and its verdict observer (M8 QPC)
+
+The same header carries two QPC extensions, on the same terms (`HVEN_TESTING` only, per-thread, no deviation, no
+`notices/` entry: no session file is touched).
+
+* `QpCertificateSeam::lambda_e` / `lambda_i`: OPTIONAL multipliers presented with `x` and `z` by the same hook
+  (`qp_certificate_present(x, z, lambda_e, lambda_i, eff_opts)`); an empty vector (the reset state) presents nothing.
+  They let a fixture put a NaN or a nonzero off-working-set multiplier in front of the certificate's DATA HALF
+  (`QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf`, `...AMultiplierOffTheWorkingSetIsRefused`).
+* `QpCertificateGateSeam` and its hook `qp_certificate_gate_verdict(holds)`, one call in `src/qp/walk/walk_engine.cpp`
+  immediately after the data half's verdict: it numbers every verdict on the thread (`gate_reads`), counts every
+  refusal (`gate_refusals`) and, armed, forces the refusal of the reads whose ordinal is in `[refuse_from, refuse_to)`.
+  The status and the counter after it are the production statements. Its purpose is the SQP fold fixtures
+  (`hven_sqp_seam_tests`, `SqpQpcFold.*`): a driver folds `certificate_gate_refusals` from its walk solves at five
+  sites, and the only observation that sees every walk solve whatever site ran it is the walk's own verdict, so the
+  fixtures compare the folded total against `gate_refusals`.
+
 ## A fifth seam, in the SQP driver: the equality basis (M7 W2 E1b)
 
 `hven/detail/sqp/equality_basis_testing.h` declares

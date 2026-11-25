@@ -488,11 +488,12 @@
 //
 //    THE CERTIFICATE'S DATA HALF (M8 QPC; certificate_gate_refusals). Last, after the
 //    gray-row returns, on the point and multipliers about to be exported:
-//    detail::terminal_kkt read from the QP's own data -- no regularization footprint
-//    in it -- must show rows <= kCertificateGateRowFactor * feas_tol and the
-//    complementarity product over the dual scale <= kCertificateGateComplFactor * feas_tol
-//    (rows relative to their own scales; terminal_kkt states them) and the free-block stationarity
-//    residual <= kCertificateGateStationarityFactor * opt_tol (relative to its scale);
+//    detail::certificate_reading from the QP's own data -- no regularization footprint
+//    in it -- must show rows <= kCertificateGateRowFactor * feas_tol, each row's
+//    complementarity product over its own LOCAL dual scale <= kCertificateGateComplFactor *
+//    feas_tol (rows relative to their own scales; CertificateReading states both), the
+//    free-block stationarity residual beyond rounding <= kCertificateGateStationarityFactor *
+//    opt_tol (relative to its scale) and no nonzero multiplier off the working set;
 //    a NaN or a non-finite exported vector refuses. A refusal is
 //    kNumericalError: the point is a KKT point of the REGULARIZED face, not of the QP.
 //    WHY: every earlier row test (row_tolerance, the structural margin, the gray
@@ -1072,38 +1073,50 @@ constexpr double kTerminalPolishComplFactor = 100.0;
 //
 // PRODUCT: kTerminalPolishComplFactor, i.e. 1e-07 at the defaults, one decade under
 // the drivers' kkt_tol: the worst |residual|/row_scale * |multiplier| over the
-// equality rows, the working rows and the pinned bounds, DIVIDED BY THE DUAL SCALE
-// (TerminalKkt::dual_scale: free_block_stationarity's scale joined by ||z||inf). The
-// division makes the verdict invariant to the objective's scaling, as every other
-// certificate reading is: scaling f by s scales every multiplier and the dual scale by
-// s. Unscaled, the product refused rounding-level points of elastic rungs whose
-// penalty multipliers reach 1e8-1e11 (YORKNET's ladder: rows 5e-16, product 3e-7; HS15's
-// elastic rung at rho 2e8: rows 9e-14, product 9e-6). Scaled, a row's product is at most
-// its rows reading when its multiplier dominates the dual scale, so on an equality row
-// the rows bound decides; the product's own job is the side the rows cannot see -- a
-// working inequality or pinned bound held SLACK under a multiplier (a KKT point of the
-// shifted row, not of the QP). (The P-1a deciders' D-4 sizing -- 165 of 11,339 TRAIN
-// kOptimal exits past the product bound -- read the UNSCALED product.)
+// equality rows, the working rows and the pinned bounds, each DIVIDED BY ITS OWN LOCAL
+// DUAL SCALE (CertificateReading::product, settler C567). The division makes the verdict
+// invariant to the objective's scaling, as every other certificate reading is: scaling f
+// by s scales every multiplier and every stationarity term by s. Unscaled, the product
+// refused rounding-level points of elastic rungs whose penalty multipliers reach
+// 1e8-1e11 (YORKNET's ladder: rows 5e-16, product 3e-7; HS15's elastic rung at rho 2e8:
+// rows 9e-14, product 9e-6). The scale is LOCAL so that nothing which does not touch row
+// j can inflate it: a global dual scale let one decoupled variable pinned under z = 1e9
+// switch the product off for every other row (the pre-freeze review's F-SLACK fixture).
+// When row j's own multiplier dominates its local scale the reading is at most
+// rel_j / ||a_j||inf, i.e. the row's slack relative to its scale -- the side the rows
+// reading cannot see on a working inequality or a pinned bound held SLACK under a
+// multiplier (a KKT point of the shifted row, not of the QP). When the multiplier is
+// small against the stationarity terms on its own columns, a slack of up to
+// 100 feas_tol * local_scale / |multiplier_j| (relative) passes: the objective error such
+// a slack carries is |multiplier_j| * slack, at most 100 feas_tol * local_scale *
+// row_scale. THE LIMITATION, stated: the bound is relative to the local stationarity
+// terms, not absolute, so a row priced at a small fraction of the gradient magnitude on
+// its columns can stand off its row by more than the footprint and still certify; the
+// objective error that buys is bounded by the expression above. (The P-1a deciders' D-4
+// sizing -- 165 of 11,339 TRAIN kOptimal exits past the product bound -- read the
+// UNSCALED product.)
 //
-// STATIONARITY (M8 QPC): terminal_kkt's free-block stationarity residual BEYOND ROUNDING
-// (TerminalKkt::stationarity_beyond_rounding), relative to its own scale, within 10 opt_tol. The
-// KKT-point test certification is reached through reads it at 1x opt_tol, but on the pass's point
-// and before the polish and the gray returns; the data half re-reads it on the EXPORTED (x,
-// lambda), so every term of the certificate is read last, from the QP's data, on what leaves the
-// engine. A correct exit reads <= 1x; the decade above is rounding room for the re-read.
+// STATIONARITY (M8 QPC): the free-block stationarity residual BEYOND ROUNDING
+// (CertificateReading::stationarity_beyond_rounding), relative to free_block_stationarity's
+// GLOBAL scale, within 10 opt_tol. The KKT-point test certification is reached through reads it
+// normwise at 1x opt_tol on the same scale, but on the pass's point and before the polish and the
+// gray returns; the data half re-reads it on the EXPORTED (x, lambda), so every term of the
+// certificate is read last, from the QP's data, on what leaves the engine. A correct exit reads
+// <= 1x; the decade above is rounding room for the re-read. Its scale is global, as the
+// upstream test's is: a decoupled block with large gradient terms widens it for every column.
+//
+// OFF THE WORKING SET (pre-freeze review S2): every exported lambda_i on a non-working row and z
+// on a free variable must be exactly zero (CertificateReading::off_working).
 constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
 constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
 constexpr double kCertificateGateStationarityFactor = 10.0;
 
-// THE CERTIFICATE'S DATA HALF's verdict on a terminal_kkt reading. Every comparison is `<=`,
-// so a NaN reading refuses. terminal_kkt's rows and product are running maxima that DROP a NaN
-// term, so the caller also requires the exported vectors to be finite (run()'s certified exit).
-inline bool certificate_data_half_holds(double rows, double complementarity, double stationarity,
-                                        double feas_tol, double opt_tol) {
-    return rows <= kCertificateGateRowFactor * feas_tol &&
-           complementarity <= kCertificateGateComplFactor * feas_tol &&
-           stationarity <= kCertificateGateStationarityFactor * opt_tol;
-}
+// THE CERTIFICATE'S DATA HALF's verdict on a certificate_reading (defined below terminal_kkt).
+// Every comparison is `<=` or `==`, so a NaN reading refuses; the reading's reductions are
+// NaN-sticky, so a NaN term anywhere reaches the verdict.
+struct CertificateReading;
+inline bool certificate_data_half_holds(const CertificateReading &r, double feas_tol,
+                                        double opt_tol);
 
 // THE ENTRY TEST's SECOND DISJUNCT (polish_footprint_open): the multiple of
 // opt_tol a terminal point's free-block STATIONARITY residual, relative to its own
@@ -1458,17 +1471,6 @@ struct TerminalKkt {
     double stationarity = 0.0;
     double rows = 0.0;
     double complementarity = 0.0;
-    // The dual scale: free_block_stationarity's scale max(1, ||Hx||, ||g||, ||Ae'lambda_e||,
-    // ||Ai'lambda_i||), joined by ||z||inf. Read by the certificate's data half only.
-    double dual_scale = 1.0;
-    // The free-block stationarity residual BEYOND ROUNDING, over the same scale: component i
-    // of Hx + g + Ae'lambda_e + Ai'lambda_i is a sum of c_i terms whose magnitudes add to m_i,
-    // so evaluating it in double can leave c_i * eps * m_i at an exact KKT point (Higham's
-    // gamma_n bound); this reads max_i max(0, |r_i| - c_i eps m_i) / scale, NaN-sticky (the
-    // measure of tests/qp/support/qp_dump.h's qp_dump_kkt). Read by the certificate's data
-    // half only: a normwise residual can sit below what double resolves where large terms
-    // cancel (SAWPATH's rung: terms of 2.4e13 summing to 3.6e2, floor 5e-3 absolute).
-    double stationarity_beyond_rounding = 0.0;
 
     bool all_finite() const {
         return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
@@ -1481,44 +1483,6 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
     double stat_scale = 1.0;
     const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
     out.stationarity = stat / std::max(stat_scale, 1e-300);
-    out.dual_scale = std::max(stat_scale, z.size() > 0 ? z.lpNorm<Eigen::Infinity>() : 0.0);
-    {
-        // THE ROUNDING FLOOR of each free component (TerminalKkt::stationarity_beyond_rounding).
-        const Vec ones = Vec::Ones(qp.n());
-        const SpMatRM h_abs = qp.H.cwiseAbs();
-        const SpMatRM h_pat = h_abs.cwiseSign();
-        Vec r = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
-        Vec m = h_abs.selfadjointView<Eigen::Upper>() * x.cwiseAbs() + qp.g.cwiseAbs();
-        Vec c = h_pat.selfadjointView<Eigen::Upper>() * ones + Vec::Constant(qp.n(), 1.0);
-        if (qp.me() > 0) {
-            const SpMatRM a_abs = qp.Ae.cwiseAbs();
-            r += qp.Ae.transpose() * lambda_e;
-            m += a_abs.transpose() * lambda_e.cwiseAbs();
-            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
-        }
-        if (qp.mi() > 0) {
-            const SpMatRM a_abs = qp.Ai.cwiseAbs();
-            r += qp.Ai.transpose() * lambda_i;
-            m += a_abs.transpose() * lambda_i.cwiseAbs();
-            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
-        }
-        constexpr double kEps = std::numeric_limits<double>::epsilon();
-        double beyond = 0.0;
-        for (Index i = 0; i < qp.n(); ++i) {
-            if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
-                continue;
-            }
-            const double excess = std::abs(r(i)) - c(i) * kEps * m(i);
-            if (std::isnan(excess)) { // NaN is sticky (free_block_stationarity's note)
-                beyond = excess;
-                break;
-            }
-            if (excess > beyond) {
-                beyond = excess;
-            }
-        }
-        out.stationarity_beyond_rounding = beyond / std::max(stat_scale, 1e-300);
-    }
 
     const double xmag = x.lpNorm<Eigen::Infinity>();
     if (qp.me() > 0) {
@@ -1561,6 +1525,181 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
         }
     }
     return out;
+}
+
+// THE CERTIFICATE'S DATA HALF's reading of an exported (x, lambda_e, lambda_i, z) (M8 QPC), from
+// the QP's own data and nothing else. EVERY reduction here is NaN-STICKY (detail::nan_sticky_max):
+// one NaN term anywhere, in the exported vectors or in the QP's data, makes the reading it enters
+// NaN, and certificate_data_half_holds refuses a NaN.
+//
+//  - `rows`: terminal_kkt's rows reading -- the worst relative row (equality two-sided,
+//    inequality one-sided, bound), each against max(1, |b_j|, ||a_j||_1 ||x||inf).
+//  - `product`: THE ROW-LOCAL COMPLEMENTARITY PRODUCT (settler C567). For each equality row,
+//    working inequality row and pinned bound j: |residual_j| / row_scale_j * |multiplier_j|,
+//    divided by j's LOCAL dual scale -- the largest stationarity-term magnitude on the columns j
+//    touches, t_i = max(|g_i|, |(Hx)_i|, |(Ae'lambda_e + Ai'lambda_i)_i|, |z_i|) over i in
+//    supp(a_j), joined by |multiplier_j| * ||a_j||inf (a pinned bound's support is its own
+//    column, and its join is |z_i|). Scaling the objective by s scales every term and the scale
+//    by s, so the verdict is invariant to it; and the scale is read only on j's own columns, so
+//    no block that does not touch row j can inflate it (a GLOBAL dual scale could: a decoupled
+//    variable pinned under z = 1e9 switched the product off for every other row).
+//  - `stationarity_beyond_rounding`: the free-block stationarity residual BEYOND ROUNDING over
+//    free_block_stationarity's scale: component i of Hx + g + Ae'lambda_e + Ai'lambda_i is a sum
+//    of c_i terms whose magnitudes add to m_i, so evaluating it in double can leave
+//    gamma_{c_i} m_i ~ c_i u m_i at an exact KKT point (Higham, Accuracy and Stability of
+//    Numerical Algorithms, 2nd ed., section 3.1, unit roundoff u = eps / 2); this reads
+//    max_i max(0, |r_i| - c_i u m_i) / scale (the measure of tests/qp/support/qp_dump.h's
+//    qp_dump_kkt). A normwise residual can sit below what double resolves where large terms
+//    cancel (SAWPATH's rung: terms of 2.4e13 summing to 3.6e2).
+//  - `stationarity`: the normwise residual over the same scale (reported, not gated).
+//  - `off_working`: the largest |multiplier| OFF the working set -- lambda_i on a non-working
+//    row, z on a free variable. The pricing writes exact zeros there (QpEngine::price), and
+//    neither of the readings above reads those entries, so a nonzero one is a multiplier the
+//    certificate would export unread: the verdict requires exactly zero.
+//  - `finite`: x, lambda_e, lambda_i and z are all finite.
+struct CertificateReading {
+    double rows = 0.0;
+    double product = 0.0;
+    double stationarity_beyond_rounding = 0.0;
+    double stationarity = 0.0;
+    double off_working = 0.0;
+    bool finite = true;
+};
+
+inline CertificateReading certificate_reading(const QpProblem &qp, const WorkingSet &ws,
+                                              const Vec &x, const Vec &lambda_e,
+                                              const Vec &lambda_i, const Vec &z) {
+    CertificateReading out;
+    const Index n = qp.n();
+    // Every running maximum below is NaN-sticky (detail::nan_sticky_max keeps a NaN in either
+    // argument).
+    const auto smax = [](double acc, double v) { return detail::nan_sticky_max(acc, v); };
+    out.finite = x.allFinite() && lambda_e.allFinite() && lambda_i.allFinite() && z.allFinite();
+    const auto &bs = ws.bound_state();
+    const auto &aw = ws.active_ineq();
+    const auto working = [&](Index j) { return std::binary_search(aw.begin(), aw.end(), j); };
+
+    // The stationarity terms, per column.
+    const Vec hx = qp.H.selfadjointView<Eigen::Upper>() * x;
+    Vec atl = Vec::Zero(n);
+    if (qp.me() > 0) {
+        atl += qp.Ae.transpose() * lambda_e;
+    }
+    if (qp.mi() > 0) {
+        atl += qp.Ai.transpose() * lambda_i;
+    }
+    Vec t(n);
+    for (Index i = 0; i < n; ++i) {
+        t(i) =
+            smax(smax(smax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), std::abs(z(i)));
+    }
+
+    // Stationarity, normwise and beyond rounding, over free_block_stationarity's scale.
+    double stat_scale = 1.0;
+    out.stationarity = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale) /
+                       std::max(stat_scale, 1e-300);
+    {
+        const Vec ones = Vec::Ones(n);
+        const SpMatRM h_abs = qp.H.cwiseAbs();
+        const SpMatRM h_pat = h_abs.cwiseSign();
+        const Vec r = hx + qp.g + atl;
+        Vec m = h_abs.selfadjointView<Eigen::Upper>() * x.cwiseAbs() + qp.g.cwiseAbs();
+        Vec c = h_pat.selfadjointView<Eigen::Upper>() * ones + Vec::Constant(n, 1.0);
+        if (qp.me() > 0) {
+            const SpMatRM a_abs = qp.Ae.cwiseAbs();
+            m += a_abs.transpose() * lambda_e.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
+        }
+        if (qp.mi() > 0) {
+            const SpMatRM a_abs = qp.Ai.cwiseAbs();
+            m += a_abs.transpose() * lambda_i.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
+        }
+        constexpr double kUnitRoundoff = 0.5 * std::numeric_limits<double>::epsilon();
+        double beyond = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (bs[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                continue;
+            }
+            beyond = smax(beyond, std::abs(r(i)) - c(i) * kUnitRoundoff * m(i));
+        }
+        out.stationarity_beyond_rounding = beyond / std::max(stat_scale, 1e-300);
+    }
+
+    // One row's (or bound's) local product. A zero numerator reads zero whatever the scale (a
+    // row with no multiplier or no residual); a NaN one stays NaN.
+    const auto local_product = [](double rel, double mult, double local_scale) {
+        const double num = rel * std::abs(mult);
+        if (num == 0.0) {
+            return 0.0;
+        }
+        return num / std::max(local_scale, std::numeric_limits<double>::min());
+    };
+    const auto row_reading = [&](const Eigen::SparseMatrix<double, Eigen::RowMajor> &A,
+                                 const Vec &b, const Vec &resid, Index j, double mult,
+                                 bool two_sided, bool read_product, double xmag) {
+        double norm1 = 0.0;
+        double norm_inf = 0.0;
+        double local = 0.0;
+        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(A, j); it; ++it) {
+            norm1 += std::abs(it.value());
+            norm_inf = smax(norm_inf, std::abs(it.value()));
+            local = smax(local, t(it.col()));
+        }
+        const double row_scale = std::max({1.0, std::abs(b(j)), norm1 * xmag});
+        const double viol = two_sided ? std::abs(resid(j)) : std::max(0.0, resid(j));
+        // std::max above drops a NaN residual; the sticky max below keeps it.
+        out.rows = smax(out.rows, std::isnan(resid(j)) ? resid(j) : viol / row_scale);
+        if (read_product) {
+            local = smax(local, std::abs(mult) * norm_inf);
+            out.product =
+                smax(out.product, local_product(std::abs(resid(j)) / row_scale, mult, local));
+        }
+    };
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    if (qp.me() > 0) {
+        const Vec resid = qp.Ae * x - qp.be;
+        for (Index j = 0; j < qp.me(); ++j) {
+            row_reading(qp.Ae, qp.be, resid, j, lambda_e(j), true, true, xmag);
+        }
+    }
+    if (qp.mi() > 0) {
+        const Vec resid = qp.Ai * x - qp.bi;
+        for (Index j = 0; j < qp.mi(); ++j) {
+            const bool w = working(j);
+            row_reading(qp.Ai, qp.bi, resid, j, lambda_i(j), false, w, xmag);
+            if (!w) {
+                out.off_working = smax(out.off_working, std::abs(lambda_i(j)));
+            }
+        }
+    }
+    for (Index i = 0; i < n; ++i) {
+        const double below = qp.lower(i) - x(i);
+        const double above = x(i) - qp.upper(i);
+        const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+        const double row_scale = std::max({1.0, std::abs(bound), xmag});
+        const double viol = std::max({0.0, below, above});
+        out.rows = smax(out.rows, std::isnan(below) || std::isnan(above)
+                                      ? std::numeric_limits<double>::quiet_NaN()
+                                      : viol / row_scale);
+        const BoundState st = bs[static_cast<std::size_t>(i)];
+        if (st != BoundState::kFree) {
+            const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+            out.product =
+                smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));
+        } else {
+            out.off_working = smax(out.off_working, std::abs(z(i)));
+        }
+    }
+    return out;
+}
+
+inline bool certificate_data_half_holds(const CertificateReading &r, double feas_tol,
+                                        double opt_tol) {
+    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&
+           r.product <= kCertificateGateComplFactor * feas_tol &&
+           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&
+           r.off_working == 0.0;
 }
 
 // --- Negative-curvature ride (see the header contract's section 4c) ---

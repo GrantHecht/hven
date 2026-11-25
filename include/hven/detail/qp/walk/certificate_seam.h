@@ -47,6 +47,11 @@ struct QpCertificateSeam {
     /// Their sizes must equal the problem's `n`.
     static inline thread_local Vec x{};
     static inline thread_local Vec z{};
+    /// OPTIONAL (M8 QPC): the equality and inequality multipliers presented with them. An EMPTY
+    /// vector (the reset state) presents nothing and leaves the walk's own; a non-empty one must
+    /// match the problem's me / mi.
+    static inline thread_local Vec lambda_e{};
+    static inline thread_local Vec lambda_i{};
     /// Present on the FIRST read only: a later read (the incumbent's, after a reverted
     /// polish) then sees the walk's own point and is merely counted.
     static inline thread_local bool first_only = false;
@@ -63,6 +68,8 @@ struct QpCertificateSeam {
         first_only = false;
         x = Vec{};
         z = Vec{};
+        lambda_e = Vec{};
+        lambda_i = Vec{};
         presentations = 0;
         eff_dual_mu = -1.0;
         eff_feas_tol = -1.0;
@@ -70,8 +77,9 @@ struct QpCertificateSeam {
 };
 
 /// The hook, called by the certificate's bound half immediately before it
-/// reads `x` and `z`. Unarmed it returns without touching anything.
-inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
+/// reads `x`, `z` and the multipliers. Unarmed it returns without touching anything.
+inline void qp_certificate_present(Vec &x, Vec &z, Vec &lambda_e, Vec &lambda_i,
+                                   const QpOptions &eff_opts) {
     using S = QpCertificateSeam;
     if (!S::armed) {
         return;
@@ -81,14 +89,63 @@ inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
             fmt::format("QpCertificateSeam: presented sizes x={} z={} do not match n={}",
                         S::x.size(), S::z.size(), x.size()));
     }
+    if ((S::lambda_e.size() != 0 && S::lambda_e.size() != lambda_e.size()) ||
+        (S::lambda_i.size() != 0 && S::lambda_i.size() != lambda_i.size())) {
+        throw std::invalid_argument(fmt::format(
+            "QpCertificateSeam: presented sizes lambda_e={} lambda_i={} do not match me={} mi={}",
+            S::lambda_e.size(), S::lambda_i.size(), lambda_e.size(), lambda_i.size()));
+    }
     const bool present = !(S::first_only && S::presentations > 0);
     if (present) {
         x = S::x;
         z = S::z;
+        if (S::lambda_e.size() != 0) {
+            lambda_e = S::lambda_e;
+        }
+        if (S::lambda_i.size() != 0) {
+            lambda_i = S::lambda_i;
+        }
     }
     S::eff_dual_mu = eff_opts.dual_regularization;
     S::eff_feas_tol = eff_opts.feasibility_tol;
     ++S::presentations;
+}
+
+/// THE DATA HALF's VERDICT, observed and optionally forced (M8 QPC: the SQP fold fixtures). Every
+/// data-half verdict on this thread is numbered (`gate_reads`, the 0-based ordinal of the read) and
+/// every refusal, read or forced, is counted (`gate_refusals`), so a driver-level fixture can
+/// compare the certificate_gate_refusals its driver FOLDED against the walk solves that actually
+/// refused, whatever site of the driver ran them. Armed, a read whose ordinal lies in [refuse_from,
+/// refuse_to) is refused whatever the reading says (the production statements after the verdict --
+/// the status, the counter -- run unmodified).
+struct QpCertificateGateSeam {
+    static inline thread_local bool armed = false;
+    static inline thread_local Index refuse_from = 0;
+    static inline thread_local Index refuse_to = 0;
+    static inline thread_local Index gate_reads = 0;
+    static inline thread_local Index gate_refusals = 0;
+
+    static void reset() {
+        armed = false;
+        refuse_from = 0;
+        refuse_to = 0;
+        gate_reads = 0;
+        gate_refusals = 0;
+    }
+};
+
+/// The hook, called with the data half's verdict at the certified exit; returns the verdict the
+/// exit acts on.
+inline bool qp_certificate_gate_verdict(bool holds) {
+    using S = QpCertificateGateSeam;
+    const Index k = S::gate_reads++;
+    if (S::armed && k >= S::refuse_from && k < S::refuse_to) {
+        holds = false;
+    }
+    if (!holds) {
+        ++S::gate_refusals;
+    }
+    return holds;
 }
 
 /// KOPT-1X R2: a REPAIR-PATH injector. Armed, it moves the iterate along one equality row's

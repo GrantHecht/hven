@@ -216,11 +216,12 @@ inline double qp_dump_objective(const QpDump &d, const Vec &x) {
 /// `stationarity_beyond_rounding` is the same residual with each component's ROUNDING FLOOR taken
 /// out first: component i is a sum of c_i terms (g_i, z_i and the nonzeros of column i of H, Ae and
 /// Ai) whose magnitudes add to m_i, so evaluating it in double -- and rounding the multipliers it
-/// is formed from -- can leave c_i * eps * m_i even at an exact KKT point (Higham, the gamma_n dot
-/// product bound). It reads max_i max(0, |r_i| - c_i * eps * m_i) / scale. Where the terms do not
-/// cancel it equals `stationarity` to within c_i * eps; where huge terms cancel to a small sum the
-/// normwise figure can sit below what double precision can resolve (C11 SAWPATH: terms of 2.4e13
-/// cancelling to 3.6e2), and only this one is a check a correct answer passes on every build.
+/// is formed from -- can leave c_i * u * m_i even at an exact KKT point (Higham, the gamma_n dot
+/// product bound, unit roundoff u = eps / 2). It reads max_i max(0, |r_i| - c_i * u * m_i) /
+/// scale. Where the terms do not cancel it equals `stationarity` to within c_i * u; where huge
+/// terms cancel to a small sum the normwise figure can sit below what double precision can resolve
+/// (C11 SAWPATH: terms of 2.4e13 cancelling to 3.6e2), and only this one is a check a correct
+/// answer passes on every build.
 struct QpDumpKkt {
     double eq = 0.0;
     double ineq = 0.0;
@@ -313,10 +314,10 @@ inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::detail::QpSolution &s)
             m += a_abs.transpose() * s.lambda_i.cwiseAbs();
             c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
         }
-        constexpr double kEps = std::numeric_limits<double>::epsilon();
+        constexpr double kUnitRoundoff = 0.5 * std::numeric_limits<double>::epsilon();
         double beyond = 0.0;
         for (Index i = 0; i < n; ++i) {
-            const double excess = std::abs(r(i)) - c(i) * kEps * m(i);
+            const double excess = std::abs(r(i)) - c(i) * kUnitRoundoff * m(i);
             // NaN-sticky: a NaN residual is never "within rounding".
             if (std::isnan(excess)) {
                 beyond = excess;

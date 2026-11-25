@@ -1912,7 +1912,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         const auto read_certificate = [&]() {
 #ifdef HVEN_TESTING
                             // Certificate seam: an armed fixture presents (x, z).
-                            detail::testing::qp_certificate_present(x, z, eff_opts);
+                            detail::testing::qp_certificate_present(x, z, lambda_e, lambda_i,
+                                                                    eff_opts);
 #endif
                             const double xmag = x.lpNorm<Eigen::Infinity>();
                             double bound_worst = 0.0;
@@ -1981,15 +1982,15 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             }
                             // THE CERTIFICATE'S DATA HALF (walk_engine.h, section 5; M8 QPC):
                             // the exported point read from the QP's own data, no footprint.
-                            const detail::TerminalKkt data =
-                                detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
-                            const bool exported_finite = x.allFinite() && lambda_e.allFinite() &&
-                                                         lambda_i.allFinite() && z.allFinite();
-                            if (exported_finite &&
-                                detail::certificate_data_half_holds(
-                                    data.rows, data.complementarity / data.dual_scale,
-                                    data.stationarity_beyond_rounding, eff_opts.feasibility_tol,
-                                    eff_opts.optimality_tol)) {
+                            const detail::CertificateReading data =
+                                detail::certificate_reading(qp, ws, x, lambda_e, lambda_i, z);
+                            bool holds = detail::certificate_data_half_holds(
+                                data, eff_opts.feasibility_tol, eff_opts.optimality_tol);
+#ifdef HVEN_TESTING
+                            // Gate seam: counts every verdict; an armed fixture forces a refusal.
+                            holds = detail::testing::qp_certificate_gate_verdict(holds);
+#endif
+                            if (holds) {
                                 status = QpStatus::kOptimal;
                             } else {
                                 ++counters.certificate_gate_refusals;
