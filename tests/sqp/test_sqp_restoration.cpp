@@ -5335,3 +5335,78 @@ TEST(SqpSolverRestorationSeed, TheElasticSiteOfferIsGatedByTheOption) {
 #endif
     }
 }
+
+// THE SEED GUARD'S JACOBIAN SCREEN, REACHED (pre-freeze review M3, settler C568). Since M8 QPC no
+// k of AJacobianPoisonedCandidateIsRefusedNotTaken reaches the screen (the h guard refuses every
+// candidate on that knife-edge model first), so mutant M7 (`jacobian_values_finite` returns true)
+// survived there. This model's guard TAKES its candidate on every build -- the radius-floor trial
+// of TheProductionCentreIsTheRequestingIterateNotTheSeed, h 1.65 at the start against an
+// O(1)-closer trial -- and the poison is put exactly where the screen reads: the request is major
+// 0's, so the FIRST Jacobian fetched at a point other than the start whose h is below the start's
+// is the candidate's in-place derivative upgrade (the measured route), and that one fetch carries a
+// NaN. The screen must refuse it: no take, the phase runs from the requesting iterate, no
+// non-finite value ever reaches a subproblem. Under M7 the poisoned candidate is taken (seeded_rows
+// 1).
+class JacobianPoisonedSeedModel final : public SeparatedRestorationModel {
+  public:
+    explicit JacobianPoisonedSeedModel(bool poison) : poison_(poison) {}
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j = SeparatedRestorationModel::eval_jac_e(x);
+        const Vec x0 = start_point();
+        const double h0 = std::abs(eval_ce(x0)(0));
+        if (!matched && x != x0 && std::abs(eval_ce(x)(0)) < h0) {
+            matched = true;
+            matched_x = x;
+            if (poison_) {
+                j.valuePtr()[0] = std::numeric_limits<double>::quiet_NaN();
+                ++poisoned;
+            }
+        }
+        return j;
+    }
+    mutable bool matched = false;
+    mutable Vec matched_x;
+    mutable Index poisoned = 0;
+
+  private:
+    bool poison_;
+};
+
+TEST(SqpSolverRestorationSeed, AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused) {
+    for (const auto policy :
+         {hven::linear::DensePolicy::kAuto, hven::linear::DensePolicy::kNever}) {
+        SCOPED_TRACE(policy == hven::linear::DensePolicy::kAuto ? "kAuto" : "kNever");
+        SqpOptions opts;
+        opts.linear.dense_factorization = policy;
+        opts.common.max_iterations = 200;
+        opts.trust_region_initial = 8.0;
+        opts.trust_region_min = 5.0;
+        opts.advanced.restoration_proximity = kCentreZeta;
+
+        // THE PREMISE, CLEAN: the guard takes its candidate, and the first sub-start Jacobian
+        // fetch the poison will key on happens.
+        const JacobianPoisonedSeedModel clean(false);
+        const SqpResult c =
+            SqpSolver(opts).solve(hven::detail::problem_ref(clean), clean.start_point());
+        ASSERT_EQ(1, seeded_rows(c)) << "fixture premise: the clean guard takes the offered trial";
+        ASSERT_TRUE(clean.matched);
+        ASSERT_EQ(1, c.counters.restoration_entries);
+
+        // POISONED at that one fetch.
+        const JacobianPoisonedSeedModel model(true);
+        const SqpResult sol =
+            SqpSolver(opts).solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_EQ(1, model.poisoned)
+            << "the candidate's derivatives were fetched: the screen was reached";
+        // The trajectory up to the screen is the clean one: the same point was poisoned.
+        ASSERT_TRUE(model.matched_x == clean.matched_x);
+        // THE SCREEN REFUSED IT: nothing taken, the phase still entered and run from the
+        // requesting iterate, and no NaN reached a subproblem.
+        EXPECT_EQ(0, seeded_rows(sol))
+            << "a candidate with a non-finite Jacobian was taken (mutant M7)";
+        EXPECT_EQ(1, sol.counters.restoration_entries);
+        EXPECT_GE(sol.counters.restoration_iters, 1);
+        EXPECT_EQ(0, sol.counters.nonfinite_subproblems);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+    }
+}
