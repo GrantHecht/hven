@@ -5162,6 +5162,95 @@ TEST(RstbBudget, ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes) {
     EXPECT_FALSE(cut.infeasibility_certified);
 }
 
+// THE CUMULATIVE READING OFF THE WINDOW EDGE (C576). The steep valley above has F1 = 1, so its
+// only budget inside [F2, F1 + F2) is B = F2, where the per-entry reading would hand the second
+// phase exactly what it needs. This fixture -- the same valley family with a stronger pull, a
+// start further up the wall and a smaller first radius -- has F1 >= 2 (4 on the reference build),
+// so B = F2 + 2 lies strictly inside: the per-entry reading would hand the second phase B > F2
+// (the free run shows that phase completing in F2 with no ceiling at all), the cumulative one
+// B - F1 < F2. Measured, not pinned.
+namespace {
+class TunableRunawayValleyModel : public RunawayValleyModel {
+  public:
+    TunableRunawayValleyModel(double wall, double pull, double y0)
+        : wall_(wall), pull_(pull), y0_(y0) {}
+    double eval_f(const Vec &x) const override {
+        return -pull_ * x(1) - 0.01 * x(0) + 0.0005 * (x(0) * x(0) + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.001 * x(0) - 0.01, 0.001 * x(1) - pull_;
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(1) + wall_ * x(0) * x(0);
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2.0 * wall_;
+        h.insert(1, 1) = obj_scale * 0.001;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0 * wall_ * x(0);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 0.0, y0_;
+        return x;
+    }
+
+  private:
+    double wall_;
+    double pull_;
+    double y0_;
+};
+
+SqpResult wide_window_valley_solve(std::optional<Index> budget, Index cap = 10) {
+    TunableRunawayValleyModel model(1.0e4, 10.0, 2.0);
+    SqpOptions opts;
+    opts.trust_region_initial = 2.0;
+    opts.common.max_iterations = 300;
+    opts.advanced.max_restoration_entries = cap;
+    opts.advanced.restoration_max_total_factorizations = budget;
+    return SqpSolver(opts).solve(hven::detail::problem_ref(model), model.start_point());
+}
+} // namespace
+
+TEST(RstbBudget, OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry) {
+    const SqpResult free_run = wide_window_valley_solve(std::nullopt);
+    const SqpResult first_only = wide_window_valley_solve(std::nullopt, 1);
+    print_budget_run("wide free", free_run);
+    print_budget_run("wide first-only", first_only);
+    ASSERT_EQ(free_run.counters.restoration_entries, 2) << "fixture premise: two entries";
+    ASSERT_EQ(free_run.counters.restoration_budget_cuts, 0) << "the derived budget never binds";
+    ASSERT_EQ(first_only.counters.restoration_entries, 1);
+    const Index f1 = first_only.counters.restoration_factorizations;
+    const Index f2 = free_run.counters.restoration_factorizations - f1;
+    std::printf("[ rstb ] wide window: F1=%ld F2=%ld\n", static_cast<long>(f1),
+                static_cast<long>(f2));
+    ASSERT_GE(f1, 2) << "fixture premise: the first phase factorizes at least twice";
+    ASSERT_GE(f2, 3) << "fixture premise: the second phase factorizes more than the margin";
+    const Index budget = f2 + 2;
+    ASSERT_GT(budget, f1) << "the first phase runs whole";
+    ASSERT_LT(budget, f1 + f2) << "strictly inside the window";
+    const SqpResult cut = wide_window_valley_solve(budget);
+    print_budget_run("wide cumulative", cut);
+    EXPECT_EQ(cut.counters.restoration_entries, 2);
+    EXPECT_EQ(cut.counters.restoration_budget_cuts, 1)
+        << "the second phase, handed B - F1 < F2, is cut; handed B > F2 it would not be";
+    EXPECT_LT(cut.counters.restoration_factorizations, f1 + f2);
+    EXPECT_FALSE(cut.infeasibility_certified);
+}
+
 TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {
     SqpOptions o;
     for (const Index bad : {Index{-1}, Index{-7}}) {
