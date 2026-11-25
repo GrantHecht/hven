@@ -674,8 +674,9 @@ struct QpCounters {
     // `converged_refinement_arms`: walks that re-admitted a released row and from then on
     // converged every EQP solve's mu-free refinement (0 or 1 per walk).
     // `certificate_gate_refusals`: would-be kOptimal exits whose exported point failed the
-    // certificate's DATA HALF (rows or complementarity product read from the QP's data past
-    // their feas_tol multiples); each ends kNumericalError.
+    // certificate's DATA HALF (rows, row-local complementarity product, slack under a priced
+    // multiplier, stationarity beyond rounding, a multiplier off the working set or a non-finite
+    // value, read from the QP's data); each ends kNumericalError.
     Index converged_refinement_arms = 0;
     Index certificate_gate_refusals = 0;
 };

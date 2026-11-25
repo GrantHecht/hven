@@ -493,7 +493,9 @@
 //    complementarity product over its own LOCAL dual scale <= kCertificateGateComplFactor *
 //    feas_tol (rows relative to their own scales; CertificateReading states both), the
 //    free-block stationarity residual beyond rounding <= kCertificateGateStationarityFactor *
-//    opt_tol (relative to its scale) and no nonzero multiplier off the working set;
+//    opt_tol (relative to its scale), every working row and pinned bound whose multiplier
+//    is not rounding-zero within kCertificateGateSlackFactor * feas_tol of its bound
+//    (settler C568) and no nonzero multiplier off the working set;
 //    a NaN or a non-finite exported vector refuses. A refusal is
 //    kNumericalError: the point is a KKT point of the REGULARIZED face, not of the QP.
 //    WHY: every earlier row test (row_tolerance, the structural margin, the gray
@@ -1107,9 +1109,22 @@ constexpr double kTerminalPolishComplFactor = 100.0;
 //
 // OFF THE WORKING SET (pre-freeze review S2): every exported lambda_i on a non-working row and z
 // on a free variable must be exactly zero (CertificateReading::off_working).
+//
+// SLACK (settler C568): the product's limitation above is reached in practice (TRAIN-238 HS101
+// sqp-qn certified a working inequality held 471-578 feas_tol slack under lambda 100-1000 against
+// a local scale of 1.3e5), so a working inequality row or pinned bound whose multiplier is NOT
+// ROUNDING-ZERO must also sit within kCertificateGateSlackFactor feas_tol of its bound, relative to
+// its row scale (CertificateReading::slack). Rounding-zero means |multiplier_j| ||a_j||inf <=
+// kCertificateGateRoundingZeroFactor * u * s_j, s_j the row-local scale and u = eps / 2: such a
+// multiplier prices nothing double resolves on the row's columns, so the row is weakly active and
+// its slack is no defect (CRESC4's lambda ~ 1e-21 against s ~ 161). Both sides are in row or
+// local-scale units, so the test is invariant to the objective's scaling. Equality rows need no
+// slack test: the rows reading holds them two-sided at 10 feas_tol.
 constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
 constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
 constexpr double kCertificateGateStationarityFactor = 10.0;
+constexpr double kCertificateGateSlackFactor = 100.0;
+constexpr double kCertificateGateRoundingZeroFactor = 100.0;
 
 // THE CERTIFICATE'S DATA HALF's verdict on a certificate_reading (defined below terminal_kkt).
 // Every comparison is `<=` or `==`, so a NaN reading refuses; the reading's reductions are
@@ -1556,6 +1571,10 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
 //    row, z on a free variable. The pricing writes exact zeros there (QpEngine::price), and
 //    neither of the readings above reads those entries, so a nonzero one is a multiplier the
 //    certificate would export unread: the verdict requires exactly zero.
+//  - `slack` (settler C568): the worst |residual_j| / row_scale_j over the WORKING inequality rows
+//    and the pinned bounds whose multiplier is not rounding-zero, i.e. |multiplier_j| ||a_j||inf >
+//    kCertificateGateRoundingZeroFactor * u * s_j with s_j the same row-local scale the product
+//    divides by (a pinned bound: ||a||inf = 1, s = t_i). A multiplier that is NaN counts as priced.
 //  - `finite`: x, lambda_e, lambda_i and z are all finite.
 struct CertificateReading {
     double rows = 0.0;
@@ -1563,6 +1582,7 @@ struct CertificateReading {
     double stationarity_beyond_rounding = 0.0;
     double stationarity = 0.0;
     double off_working = 0.0;
+    double slack = 0.0;
     bool finite = true;
 };
 
@@ -1574,6 +1594,12 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
     // Every running maximum below is NaN-sticky (detail::nan_sticky_max keeps a NaN in either
     // argument).
     const auto smax = [](double acc, double v) { return detail::nan_sticky_max(acc, v); };
+    // A multiplier is PRICED unless |mult| ||a||inf <= 100 u s (a NaN one is priced).
+    const auto priced = [](double mult, double norm_inf, double local_scale) {
+        constexpr double kRoundingZero =
+            kCertificateGateRoundingZeroFactor * 0.5 * std::numeric_limits<double>::epsilon();
+        return !(std::abs(mult) * norm_inf <= kRoundingZero * local_scale);
+    };
     out.finite = x.allFinite() && lambda_e.allFinite() && lambda_i.allFinite() && z.allFinite();
     const auto &bs = ws.bound_state();
     const auto &aw = ws.active_ineq();
@@ -1637,7 +1663,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
     };
     const auto row_reading = [&](const Eigen::SparseMatrix<double, Eigen::RowMajor> &A,
                                  const Vec &b, const Vec &resid, Index j, double mult,
-                                 bool two_sided, bool read_product, double xmag) {
+                                 bool two_sided, bool read_product, bool read_slack, double xmag) {
         double norm1 = 0.0;
         double norm_inf = 0.0;
         double local = 0.0;
@@ -1654,20 +1680,23 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
             local = smax(local, std::abs(mult) * norm_inf);
             out.product =
                 smax(out.product, local_product(std::abs(resid(j)) / row_scale, mult, local));
+            if (read_slack && priced(mult, norm_inf, local)) {
+                out.slack = smax(out.slack, std::abs(resid(j)) / row_scale);
+            }
         }
     };
     const double xmag = x.lpNorm<Eigen::Infinity>();
     if (qp.me() > 0) {
         const Vec resid = qp.Ae * x - qp.be;
         for (Index j = 0; j < qp.me(); ++j) {
-            row_reading(qp.Ae, qp.be, resid, j, lambda_e(j), true, true, xmag);
+            row_reading(qp.Ae, qp.be, resid, j, lambda_e(j), true, true, false, xmag);
         }
     }
     if (qp.mi() > 0) {
         const Vec resid = qp.Ai * x - qp.bi;
         for (Index j = 0; j < qp.mi(); ++j) {
             const bool w = working(j);
-            row_reading(qp.Ai, qp.bi, resid, j, lambda_i(j), false, w, xmag);
+            row_reading(qp.Ai, qp.bi, resid, j, lambda_i(j), false, w, w, xmag);
             if (!w) {
                 out.off_working = smax(out.off_working, std::abs(lambda_i(j)));
             }
@@ -1687,6 +1716,9 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
             const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
             out.product =
                 smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));
+            if (priced(z(i), 1.0, t(i))) {
+                out.slack = smax(out.slack, std::abs(x(i) - at) / row_scale);
+            }
         } else {
             out.off_working = smax(out.off_working, std::abs(z(i)));
         }
@@ -1699,7 +1731,7 @@ inline bool certificate_data_half_holds(const CertificateReading &r, double feas
     return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&
            r.product <= kCertificateGateComplFactor * feas_tol &&
            r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&
-           r.off_working == 0.0;
+           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;
 }
 
 // --- Negative-curvature ride (see the header contract's section 4c) ---

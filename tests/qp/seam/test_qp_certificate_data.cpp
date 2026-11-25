@@ -273,17 +273,22 @@ TEST(QpCertificateData, TheVerdictRefusesNanAndReadsEveryBoundInclusively) {
     const double ftol = 1e-9;
     const double otol = 1e-8; // distinct from ftol, so a disjunct read against the wrong one fails
     const auto reading = [](double rows, double product, double stat, double off = 0.0,
-                            bool finite = true) {
+                            bool finite = true, double slack = 0.0) {
         CertificateReading r;
         r.rows = rows;
         r.product = product;
         r.stationarity_beyond_rounding = stat;
         r.off_working = off;
         r.finite = finite;
+        r.slack = slack;
         return r;
     };
-    EXPECT_TRUE(
-        certificate_data_half_holds(reading(10.0 * ftol, 100.0 * ftol, 10.0 * otol), ftol, otol));
+    EXPECT_TRUE(certificate_data_half_holds(
+        reading(10.0 * ftol, 100.0 * ftol, 10.0 * otol, 0.0, true, 100.0 * ftol), ftol, otol));
+    // The slack disjunct (settler C568): 100 feas_tol, inclusive; NaN refuses.
+    EXPECT_FALSE(
+        certificate_data_half_holds(reading(0.0, 0.0, 0.0, 0.0, true, 100.1 * ftol), ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(reading(0.0, 0.0, 0.0, 0.0, true, nan), ftol, otol));
     EXPECT_FALSE(certificate_data_half_holds(reading(nan, 0.0, 0.0), ftol, otol));
     EXPECT_FALSE(certificate_data_half_holds(reading(0.0, nan, 0.0), ftol, otol));
     EXPECT_FALSE(certificate_data_half_holds(reading(0.0, 0.0, nan), ftol, otol));
@@ -299,6 +304,8 @@ TEST(QpCertificateData, TheVerdictRefusesNanAndReadsEveryBoundInclusively) {
     EXPECT_EQ(kCertificateGateRowFactor, 10.0);
     EXPECT_EQ(kCertificateGateComplFactor, 100.0);
     EXPECT_EQ(kCertificateGateStationarityFactor, 10.0);
+    EXPECT_EQ(kCertificateGateSlackFactor, 100.0);
+    EXPECT_EQ(kCertificateGateRoundingZeroFactor, 100.0);
 }
 
 // STATIONARITY, re-read on the EXPORTED point (settler C553 Q3). x = (0.5 + d, 0.5 - d) stays ON
@@ -787,4 +794,211 @@ TEST(QpCertificateData, TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm) {
         const double rel = std::max(std::abs(5.0 - 5.001) / 5.001, std::abs(-5.0 + 4.999) / 5.0);
         EXPECT_NEAR(r.product, rel * 5.0 / 50.0, 1e-15);
     }
+}
+
+// THE SLACK TEST (settler C568). Any product-type scaling lets a multiplier that is small against
+// the stationarity terms on its own columns excuse a slack of up to the footprint: TRAIN-238's
+// HS101 sqp-qn certified three exits with its working inequality I2 held 471-578 feas_tol SLACK
+// under lambda = 100 / 1000, local scale 1.3e5 (row-local product 0.44-4.2 feas_tol). So a working
+// row or pinned bound whose multiplier is not rounding-zero must sit within 100 feas_tol (relative
+// to its row scale) of its bound: refuse iff slack_j / row_scale_j > 100 feas_tol AND
+// |mult_j| ||a_j||inf > 100 u s_j (s_j the row-local scale, u = eps / 2).
+//
+// THE HS101 SHAPE, one column: min 1/2 h x0^2 + g0 x0 s.t. x0 <= 1 with g0 = -S, h = S - m, so the
+// unconstrained minimizer S / (S - m) > 1, the row binds and its multiplier is m. Presented:
+// x0 = 1 - d with lambda_i = m + h d -- the EXACT KKT point of the row shifted by d (stationarity
+// h x0 + g0 + lambda_i = 0, rows 0), whose row-local product d m / S certifies for every d here.
+
+/// min 1/2 (S - m) x0^2 - S x0  s.t.  x0 <= 1, x0 in [-10, 10]: optimum x0 = 1, lambda_i = m.
+QpProblem small_price_row_qp(double S, double m) {
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd::Constant(1, 1, S - m).sparseView();
+    qp.g = Vec::Constant(1, -S);
+    qp.Ae.resize(0, 1);
+    qp.be = Vec(0);
+    qp.Ai = Eigen::MatrixXd::Constant(1, 1, 1.0).sparseView();
+    qp.bi = Vec::Constant(1, 1.0);
+    qp.lower = Vec::Constant(1, -10.0);
+    qp.upper = Vec::Constant(1, 10.0);
+    return qp;
+}
+
+TEST(QpCertificateData, AWorkingRowSlackUnderASmallMultiplierIsRefused) {
+    DataSeamGuard guard;
+    const double ftol = QpOptions{}.feasibility_tol;
+    constexpr double S = 1.3e5;
+    for (const double m : {100.0, 1000.0}) {
+        SCOPED_TRACE(m);
+        const double h = S - m;
+        const auto present = [&](double d, QpWorkingSetAlgebra alg) {
+            Cert::reset();
+            Cert::x = Vec::Constant(1, 1.0 - d);
+            Cert::z = Vec::Zero(1);
+            Cert::lambda_i = Vec::Constant(1, m + h * d);
+            Cert::armed = true;
+            QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+            QpSolution s = engine.solve(small_price_row_qp(S, m));
+            Cert::armed = false;
+            return s;
+        };
+        // THE PREMISE: the row-local product passes HS101's slacks (and so does every other
+        // reading but the slack): the product test alone certified them.
+        for (const double d : {471.0 * ftol, 578.0 * ftol}) {
+            WorkingSet ws(1, 1);
+            ws.add_ineq(0);
+            const CertificateReading r =
+                certificate_reading(small_price_row_qp(S, m), ws, Vec::Constant(1, 1.0 - d), Vec(0),
+                                    Vec::Constant(1, m + h * d), Vec::Zero(1));
+            ASSERT_EQ(r.rows, 0.0);
+            ASSERT_LE(r.product, 100.0 * ftol);
+            ASSERT_LE(r.stationarity_beyond_rounding, 1e-12);
+            ASSERT_EQ(r.off_working, 0.0);
+            EXPECT_NEAR(r.slack, d, 1e-15);
+        }
+        for (const auto alg : kAlgebras) {
+            SCOPED_TRACE(static_cast<int>(alg));
+            QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+            const QpSolution natural = engine.solve(small_price_row_qp(S, m));
+            ASSERT_EQ(static_cast<int>(natural.status), static_cast<int>(QpStatus::kOptimal));
+            ASSERT_TRUE(natural.ineq_active[0]);
+            ASSERT_NEAR(natural.lambda_i(0), m, 1e-6 * m);
+            expect_refused(present(471.0 * ftol, alg));
+            expect_refused(present(578.0 * ftol, alg));
+            expect_refused(present(101.0 * ftol, alg));
+            expect_certified(present(99.0 * ftol, alg));
+        }
+    }
+}
+
+/// The pinned-bound analogue: min 1/2 S x0^2 + (m - S) x0 on [1, 10]: the unconstrained minimizer
+/// (S - m) / S < 1, so x0 pins at its lower bound 1 under z0 = m.
+QpProblem small_price_bound_qp(double S, double m) {
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd::Constant(1, 1, S).sparseView();
+    qp.g = Vec::Constant(1, m - S);
+    qp.Ae.resize(0, 1);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, 1);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(1, 1.0);
+    qp.upper = Vec::Constant(1, 10.0);
+    return qp;
+}
+
+// Presented: x0 = 1 + d INSIDE its box with z0 = m + S d, the exact KKT point of the bound shifted
+// by d. Row scale max(1, |bound| = 1, |x|inf = 1 + d), so the relative slack is d / (1 + d).
+TEST(QpCertificateData, APinnedBoundSlackUnderASmallMultiplierIsRefused) {
+    DataSeamGuard guard;
+    const double ftol = QpOptions{}.feasibility_tol;
+    constexpr double S = 1.3e5;
+    for (const double m : {100.0, 1000.0}) {
+        SCOPED_TRACE(m);
+        const auto present = [&](double d, QpWorkingSetAlgebra alg) {
+            Cert::reset();
+            Cert::x = Vec::Constant(1, 1.0 + d);
+            Cert::z = Vec::Constant(1, m + S * d);
+            Cert::armed = true;
+            QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+            QpSolution s = engine.solve(small_price_bound_qp(S, m));
+            Cert::armed = false;
+            return s;
+        };
+        {
+            const double d = 500.0 * ftol;
+            WorkingSet ws(1, 0);
+            ws.bound_state()[0] = BoundState::kAtLower;
+            const CertificateReading r =
+                certificate_reading(small_price_bound_qp(S, m), ws, Vec::Constant(1, 1.0 + d),
+                                    Vec(0), Vec(0), Vec::Constant(1, m + S * d));
+            ASSERT_EQ(r.rows, 0.0);
+            ASSERT_LE(r.product, 100.0 * ftol); // the premise: the product test certified it
+            ASSERT_LE(r.stationarity_beyond_rounding, 1e-12);
+            EXPECT_NEAR(r.slack, d / (1.0 + d), 1e-15);
+        }
+        for (const auto alg : kAlgebras) {
+            SCOPED_TRACE(static_cast<int>(alg));
+            QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+            const QpSolution natural = engine.solve(small_price_bound_qp(S, m));
+            ASSERT_EQ(static_cast<int>(natural.status), static_cast<int>(QpStatus::kOptimal));
+            ASSERT_EQ(natural.bound_state[0], BoundState::kAtLower);
+            ASSERT_NEAR(natural.z(0), m, 1e-6 * m);
+            expect_refused(present(500.0 * ftol, alg));
+            expect_refused(present(101.0 * ftol, alg));
+            expect_certified(present(99.0 * ftol, alg));
+        }
+    }
+}
+
+// THE ROUNDING-ZERO EXEMPTION (the CRESC4 shape: TRAIN-238 certified two exits with a working row
+// 9.4e6 / 6.5e7 feas_tol slack under lambda ~ 1e-21, local scale 161). A multiplier with
+// |mult_j| ||a_j||inf <= 100 u s_j prices nothing double can resolve on its columns, so its row is
+// weakly active and its slack is no defect. Read directly: ineq_line_qp(0.25)'s unconstrained
+// optimum (0.25, 0.25) sits 0.5 inside x0 + x1 <= 1; with the row WORKING, lambda_i = 1e-21
+// (threshold 100 u 0.25 = 2.8e-15) holds and lambda_i = 1e-12 refuses on the slack alone; the
+// bound twin likewise (box_qp(-0.5): x0 = 0.5 free-optimal, pinned at 0 under a rounding-zero z0).
+TEST(QpCertificateData, ARoundingZeroMultiplierExemptsItsSlack) {
+    constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
+    const double ftol = 1e-9;
+    const double otol = 1e-6;
+    {
+        const QpProblem qp = ineq_line_qp(0.25);
+        WorkingSet ws(2, 1);
+        ws.add_ineq(0);
+        const Vec x = Vec::Constant(2, 0.25);
+        const auto read = [&](double lam) {
+            return certificate_reading(qp, ws, x, Vec(0), Vec::Constant(1, lam), Vec::Zero(2));
+        };
+        ASSERT_LT(1e-21, 100.0 * u * 0.25);
+        ASSERT_GT(1e-12, 100.0 * u * 0.25);
+        const CertificateReading zero = read(1e-21);
+        EXPECT_EQ(zero.slack, 0.0);
+        EXPECT_TRUE(certificate_data_half_holds(zero, ftol, otol));
+        const CertificateReading priced = read(1e-12);
+        EXPECT_NEAR(priced.slack, 0.5, 1e-15);
+        EXPECT_LE(priced.product, 100.0 * ftol);
+        EXPECT_LE(priced.stationarity_beyond_rounding, 10.0 * otol);
+        EXPECT_FALSE(certificate_data_half_holds(priced, ftol, otol));
+        // Just either side of the threshold itself (s = 0.25 is |g_i| = |(Hx)_i|).
+        EXPECT_EQ(read(0.99 * 100.0 * u * 0.25).slack, 0.0);
+        EXPECT_NEAR(read(1.01 * 100.0 * u * 0.25).slack, 0.5, 1e-15);
+    }
+    {
+        QpProblem qp = box_qp(-0.5);
+        qp.g << -0.5, -0.25;
+        WorkingSet ws(2, 0);
+        ws.bound_state()[0] = BoundState::kAtLower;
+        Vec x(2);
+        x << 0.5, 0.25;
+        const auto read = [&](double z0) {
+            Vec z = Vec::Zero(2);
+            z(0) = z0;
+            return certificate_reading(qp, ws, x, Vec(0), Vec(0), z);
+        };
+        EXPECT_EQ(read(1e-21).slack, 0.0);
+        EXPECT_TRUE(certificate_data_half_holds(read(1e-21), ftol, otol));
+        EXPECT_NEAR(read(1e-12).slack, 0.5, 1e-15);
+        EXPECT_FALSE(certificate_data_half_holds(read(1e-12), ftol, otol));
+    }
+}
+
+// THE SLACK IS ONE-SIDED AND READ ONLY ON WORKING ROWS AND PINNED BOUNDS: a non-working slack row
+// reads nothing (its multiplier must be zero anyway, off_working), and an equality row's residual
+// is the rows reading's (10 feas_tol, two-sided), never the slack's.
+TEST(QpCertificateData, TheSlackReadsOnlyWorkingRowsAndPinnedBounds) {
+    const QpProblem qp = two_row_qp(1000.0);
+    WorkingSet ws(2, 2);
+    ws.add_ineq(0);
+    const Vec x = Vec::Constant(2, 0.5); // row 1 (x0 - x1 <= 5) is 5 slack, not working
+    Vec li(2);
+    li << 999.5, 0.0;
+    const CertificateReading r = certificate_reading(qp, ws, x, Vec(0), li, Vec::Zero(2));
+    EXPECT_EQ(r.slack, 0.0);
+    EXPECT_TRUE(certificate_data_half_holds(r, 1e-9, 1e-6));
+    const QpProblem eq = line_qp(1000.0);
+    const WorkingSet wse(2, 0);
+    Vec xe(2);
+    xe << 0.5 + 5e-9, 0.5;
+    const CertificateReading re =
+        certificate_reading(eq, wse, xe, Vec::Constant(1, 999.5), Vec(0), Vec::Zero(2));
+    EXPECT_EQ(re.slack, 0.0);
 }
