@@ -54,3 +54,11 @@ run_serial: 6 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/stor
 LEG NLP-46 P nlp/sqp-qn exclusive: 7 cells
 box-lane: exclusive acquired 2026-11-24T20:47:34-05:00
 run_serial: cutest/ACOPR118/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/BIGBANK/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/MSS3/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/READING8/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/SAWPATH/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/TAX213322/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: cutest/TAX53322/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: 7 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-H/NLP-46/P/sqp-qn/nlp/exclusive-11fdd1e1/results.csv
+ARM P lane=H end 2026-11-24T21:19:13-05:00 rc=0
