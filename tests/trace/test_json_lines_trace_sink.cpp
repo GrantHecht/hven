@@ -3202,7 +3202,10 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 121 -> 129 at M8 RF-1 (A + B2), the four `qp_retry_rung_*` counters, `qp_retry_replays`,
     // `qp_failure_box_projections`, `trust_region_floor_exits` and `soc_qp_iteration_limits`,
     // appended after PF-5's one, the same route, by eight keys.
-    EXPECT_EQ(kSqpCountersFieldCount, 129u);
+    //
+    // 129 -> 131 at M8 QPC, `converged_refinement_arms` and `certificate_gate_refusals`, appended
+    // after RF-1's eight, the same route, by two keys.
+    EXPECT_EQ(kSqpCountersFieldCount, 131u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.

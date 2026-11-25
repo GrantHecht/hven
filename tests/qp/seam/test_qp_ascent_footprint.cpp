@@ -503,7 +503,8 @@ TEST(QpWa1AscentFootprint, SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheB
                                  w.records[k].dual_mu * kDualRegDecreaseFactor);
             }
         }
-        EXPECT_LE(w.solution.counters.dual_regularization_decreases, kMaxDualRegDecreases);
+        // The release re-admission no longer lowers dual_mu (M8 QPC): the field is identically 0.
+        EXPECT_EQ(w.solution.counters.dual_regularization_decreases, 0);
     }
 }
 

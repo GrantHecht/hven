@@ -130,6 +130,32 @@
 // it shrinks both the residual and the free-variable correction by
 // kAccuracyContraction, within kMaxBorderRefineSteps total.
 //
+// --- THE CONVERGED REFINEMENT (M8 QPC, EqpRefinement::kConverged) ---
+//
+// The walk arms it for the rest of a solve at its first RELEASE RE-ADMISSION
+// (walk_engine.h, Degeneracy), where it replaces the dual_mu rung. Both paths:
+// after the mandatory mu-free step, further mu-free steps against the SAME
+// proximal target (mu backed out, delta kept) are taken, each kept only if it
+// STRICTLY reduces the residual's inf-norm, until that residual is at
+// kBorderRefineRelFloor * max(1, ||rhs||inf) or kMaxBorderRefineSteps steps in
+// all. It replaces the accuracy stop here and the footprint / STEP RESOLVED /
+// accuracy loop on the bordered path; dual_mu = 0 and a dense shifted factor keep
+// the model step. No state outlives the solve and no factorization is added.
+//
+// WHY. Eliminating x from the regularized system gives, per eigen-direction s_i
+// of S = A_W (H_FF + delta I)^-1 A_W', lambda_i = s_i lambda*_i / (s_i + mu): each
+// mu-free step contracts the multiplier error by mu / (mu + s_i), the same
+// contraction a proximal dual centre commit gives (P-1a diagnosis; iterated
+// Tikhonov / the proximal method of multipliers, Rockafellar 1976, papers only).
+// One step leaves a row s_min ~ mu off its bound by the footprint mu*|lambda|; at
+// release that row's allowance collapses to the feasibility floor and the shift
+// refresh re-admits it -- the release -> re-admission cycle (PF-1b). Converging
+// puts the iterate on the row before it is released. MEASURED (P-1a deciders,
+// p1a-diag 51b392194): contraction 0.74 per step on PF1's cycle face. Global
+// (every solve) convergence was measured and REJECTED -- it removes the
+// zero-centred stabilization a degenerate NLP needs (ALLINITC) -- so it is
+// armed only where the walk has evidence the footprint is cycling.
+//
 // --- THE EQP-SITE RESIDUAL CHECK (M7 W2 E4, ruling E4-4) ---
 //
 // A regularized solve can also simply be WRONG: on a face with cond(K) ~ 1e11
@@ -300,6 +326,34 @@ constexpr double kAccuracyStopRatio = 0.5;
 // THE ACCURACY STOP: the per-step contraction a further step must show to be kept.
 constexpr double kAccuracyContraction = 0.1;
 
+// THE CONVERGED REFINEMENT (header section): which refinement an EQP solve takes after its
+// mandatory mu-free step. kModel is the rule every solve took before M8 QPC.
+enum class EqpRefinement : unsigned char { kModel, kConverged };
+
+// THE CONVERGED REFINEMENT's loop, shared by both paths: from `y` with residual `res`, take
+// further steps `y += solve(res)` against `residual_of`, each kept only while the inf-norm
+// strictly falls (a NaN keeps nothing), until the norm is at `floor` or `max_steps` steps have
+// been kept. Returns the steps kept; `y` and `res` are updated in place.
+template <class SolveFn, class ResidualFn>
+inline Index refine_until_converged(Vec &y, Vec &res, double floor, Index max_steps,
+                                    const SolveFn &solve, const ResidualFn &residual_of) {
+    double res_inf = detail::nan_sticky_inf_norm(res);
+    Index kept = 0;
+    while (kept < max_steps && res_inf > floor) {
+        const Vec cand = y + solve(res);
+        Vec cres = residual_of(cand);
+        const double cres_inf = detail::nan_sticky_inf_norm(cres);
+        if (!(cres_inf < res_inf)) {
+            break; // stagnated, diverging, or NaN -- keep the better answer
+        }
+        y = cand;
+        res = std::move(cres);
+        res_inf = cres_inf;
+        ++kept;
+    }
+    return kept;
+}
+
 // The walk's zero-motion scale at the proximal centre x_k.
 inline double eqp_step_tol(const Vec &x_k, const QpOptions &opts) {
     return opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
@@ -435,9 +489,13 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
 // `x_k` is the PROXIMAL CENTRE: the iterate this EQP is being solved from, of
 // size qp.n(). See the header's PROXIMAL CENTRE section -- it is required, and
 // passing a zero vector is the pre-E4 ABSOLUTE centring, a different system.
+//
+// `refinement` selects THE CONVERGED REFINEMENT (header section) in place of the
+// accuracy stop; the walk passes it explicitly at every site it owns.
 inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec &x_k,
                            detail::KktFactor &kkt, const QpOptions &opts,
-                           EqpResult *unrefined_out = nullptr) {
+                           EqpResult *unrefined_out = nullptr,
+                           EqpRefinement refinement = EqpRefinement::kModel) {
     qp.validate();
     if (x_k.size() != qp.n()) {
         throw std::invalid_argument(
@@ -664,7 +722,15 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         if (!kkt.dense_shifted) {
             const Vec y_model = y;
             y = y + detail::solve_vec(kkt, residual_of(y));
-            if (opts.independent_working_set) {
+            if (refinement == EqpRefinement::kConverged && opts.dual_regularization > 0.0) {
+                // THE CONVERGED REFINEMENT (header section), in place of the accuracy stop.
+                Vec res = residual_of(y);
+                accuracy_steps += refine_until_converged(
+                    y, res,
+                    detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs)),
+                    detail::kMaxBorderRefineSteps - 1,
+                    [&](const Vec &r) { return detail::solve_vec(kkt, r); }, residual_of);
+            } else if (opts.independent_working_set) {
                 accuracy_steps += refine_to_accuracy(y_model, y);
             }
         } else {

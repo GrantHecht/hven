@@ -1595,6 +1595,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         out.eqp_refine_iters += qs_e.counters.eqp_refine_iters;
         out.eqp_residual_refusals += qs_e.counters.eqp_residual_refusals;
         out.eqp_row_drift_refusals += qs_e.counters.eqp_row_drift_refusals;
+        out.converged_refinement_arms += qs_e.counters.converged_refinement_arms;
+        out.certificate_gate_refusals += qs_e.counters.certificate_gate_refusals;
         out.optimal_row_gray_exits += qs_e.counters.optimal_row_gray_exits;
         out.sparse_scaled_retakes += qs_e.counters.sparse_scaled_retakes;
         out.sparse_matched_retakes += qs_e.counters.sparse_matched_retakes;
@@ -4542,7 +4544,7 @@ struct SqpSolverImpl::SolveState {
     //                   The value is the dual_regularization the subproblem
     //                   was DISPATCHED at: the walk may lower its effective
     //                   value within the solve (QpCounters::
-    //                   dual_regularization_decreases > 0), so the subproblem
+    //                   ascent_footprint_rungs > 0), so the subproblem
     //                   exited at a smaller mu than recorded and the
     //                   warm-start stamp over-states the footprint, which is
     //                   the safe direction.
@@ -6964,6 +6966,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.eqp_refine_iters += phase.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += phase.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += phase.counters.eqp_row_drift_refusals;
+        st.out.counters.converged_refinement_arms += phase.counters.converged_refinement_arms;
+        st.out.counters.certificate_gate_refusals += phase.counters.certificate_gate_refusals;
         st.out.counters.optimal_row_gray_exits += phase.counters.optimal_row_gray_exits;
         st.out.counters.sparse_scaled_retakes += phase.counters.sparse_scaled_retakes;
         st.out.counters.sparse_matched_retakes += phase.counters.sparse_matched_retakes;
@@ -9011,6 +9015,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.eqp_refine_iters += mj.qs.counters.eqp_refine_iters;
     st.out.counters.eqp_residual_refusals += mj.qs.counters.eqp_residual_refusals;
     st.out.counters.eqp_row_drift_refusals += mj.qs.counters.eqp_row_drift_refusals;
+    st.out.counters.converged_refinement_arms += mj.qs.counters.converged_refinement_arms;
+    st.out.counters.certificate_gate_refusals += mj.qs.counters.certificate_gate_refusals;
     st.out.counters.optimal_row_gray_exits += mj.qs.counters.optimal_row_gray_exits;
     st.out.counters.sparse_scaled_retakes += mj.qs.counters.sparse_scaled_retakes;
     st.out.counters.sparse_matched_retakes += mj.qs.counters.sparse_matched_retakes;
@@ -9126,6 +9132,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.eqp_refine_iters += retried.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += retried.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += retried.counters.eqp_row_drift_refusals;
+        st.out.counters.converged_refinement_arms += retried.counters.converged_refinement_arms;
+        st.out.counters.certificate_gate_refusals += retried.counters.certificate_gate_refusals;
         st.out.counters.optimal_row_gray_exits += retried.counters.optimal_row_gray_exits;
         st.out.counters.sparse_scaled_retakes += retried.counters.sparse_scaled_retakes;
         st.out.counters.sparse_matched_retakes += retried.counters.sparse_matched_retakes;
@@ -9980,6 +9988,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.eqp_refine_iters += mj.qs_soc.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += mj.qs_soc.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += mj.qs_soc.counters.eqp_row_drift_refusals;
+        st.out.counters.converged_refinement_arms += mj.qs_soc.counters.converged_refinement_arms;
+        st.out.counters.certificate_gate_refusals += mj.qs_soc.counters.certificate_gate_refusals;
         st.out.counters.optimal_row_gray_exits += mj.qs_soc.counters.optimal_row_gray_exits;
         st.out.counters.sparse_scaled_retakes += mj.qs_soc.counters.sparse_scaled_retakes;
         st.out.counters.sparse_matched_retakes += mj.qs_soc.counters.sparse_matched_retakes;

@@ -115,6 +115,9 @@ QpProblem box_qp(double k) {
 void expect_refused(const QpSolution &s) {
     ASSERT_GE(Cert::presentations, 1) << "the certificate never read the presented point";
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(s.counters.certificate_gate_refusals, 1);
+    EXPECT_EQ(s.counters.certificate_bound_refusals, 0); // the data half refused, no other half
+    EXPECT_EQ(s.counters.certificate_sign_refusals, 0);
     EXPECT_EQ(s.lambda_e.lpNorm<Eigen::Infinity>(), 0.0); // a refusal exports no prices
     EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
 }
@@ -122,6 +125,7 @@ void expect_refused(const QpSolution &s) {
 void expect_certified(const QpSolution &s) {
     ASSERT_GE(Cert::presentations, 1) << "the certificate never read the presented point";
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_EQ(s.counters.certificate_gate_refusals, 0);
 }
 
 // The data half recomputed here, independently of detail::terminal_kkt: the worst relative row
@@ -205,11 +209,27 @@ TEST(QpCertificateData, AProductPastAHundredFeasTolIsRefused) {
     }
 }
 
-// A NaN in the exported point refuses (every test is written so NaN fails it).
+// A NaN in the exported point is no certificate. R refused it already (dev/R-tdd.txt), through the
+// paths the gray-row reading of a NaN row takes before the data half is reached, so this pins the
+// status only; the data half's own NaN rule (certificate_data_half_holds) is pinned directly below.
 TEST(QpCertificateData, ANanPointIsRefused) {
     DataSeamGuard guard;
-    expect_refused(present_line(1.0, std::numeric_limits<double>::quiet_NaN(),
-                                QpWorkingSetAlgebra::kRefactorize));
+    const QpSolution s = present_line(1.0, std::numeric_limits<double>::quiet_NaN(),
+                                      QpWorkingSetAlgebra::kRefactorize);
+    ASSERT_GE(Cert::presentations, 1);
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+}
+
+TEST(QpCertificateData, TheVerdictRefusesNanAndReadsBothBoundsInclusively) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double ftol = 1e-9;
+    EXPECT_TRUE(certificate_data_half_holds(10.0 * ftol, 100.0 * ftol, ftol));
+    EXPECT_FALSE(certificate_data_half_holds(nan, 0.0, ftol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, nan, ftol));
+    EXPECT_FALSE(certificate_data_half_holds(10.01 * ftol, 0.0, ftol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, 100.1 * ftol, ftol));
+    EXPECT_EQ(kCertificateGateRowFactor, 10.0);
+    EXPECT_EQ(kCertificateGateComplFactor, 100.0);
 }
 
 // A BOUND, read the same way: x0 pinned at its lower bound 0 with z0 = 5e3. The bound half

@@ -79,6 +79,8 @@ TEST(QpReleaseReadmission, F7PathCorruptedQp1SolvesAtItsOwnRegularization) {
         EXPECT_LE(std::abs(f - kPf1Optimum), 1e-12 * std::abs(kPf1Optimum)) << f;
         // No rung: dual_mu on every pass record is the dump's own.
         EXPECT_EQ(s.counters.dual_regularization_decreases, 0);
+        EXPECT_EQ(s.counters.converged_refinement_arms, 1);
+        EXPECT_EQ(s.counters.certificate_gate_refusals, 0);
         if (capture_complete) {
             for (const Record &r : records) {
                 ASSERT_EQ(r.dual_mu, d.opts.dual_regularization) << "minor " << r.minor;
@@ -95,6 +97,35 @@ TEST(QpReleaseReadmission, F7PathCorruptedQp1SolvesAtItsOwnRegularization) {
     }
 }
 
+// THE CONVERGED REFINEMENT IS PER SOLVE: an engine that armed it on PF1 (400 minors; the first
+// re-admission is at minor 312) solves the next QP exactly as a fresh engine does.
+TEST(QpReleaseReadmission, TheConvergedRefinementIsPerSolve) {
+    const QpDump pf1 = load_fixture();
+    const QpDump qp7 = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) +
+                                                        "/QC8_DALLASM_qp7.txt");
+    QpOptions o = pf1.opts;
+    o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
+    o.max_iterations = kMinors;
+    QpOptions o7 = qp7.opts;
+    o7.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
+    ASSERT_EQ(o7.max_iterations, qp7.opts.max_iterations);
+    // One engine runs both; its options are PF1's, so qp7 runs under them on both sides.
+    const QpEngine shared(o, pf1.threads, hven::linear::DensePolicy::kNever);
+    const QpSolution first = shared.solve(pf1.qp, pf1.seed, pf1.overrides);
+    ASSERT_EQ(first.counters.converged_refinement_arms, 1);
+    const QpSolution second = qp7.has_seed ? shared.solve(qp7.qp, qp7.seed, qp7.overrides)
+                                           : shared.solve(qp7.qp, qp7.overrides);
+    const QpEngine fresh(o, pf1.threads, hven::linear::DensePolicy::kNever);
+    const QpSolution alone = qp7.has_seed ? fresh.solve(qp7.qp, qp7.seed, qp7.overrides)
+                                          : fresh.solve(qp7.qp, qp7.overrides);
+    EXPECT_EQ(second.counters.converged_refinement_arms, alone.counters.converged_refinement_arms);
+    EXPECT_EQ(static_cast<int>(second.status), static_cast<int>(alone.status));
+    EXPECT_EQ(second.counters.minor_iters, alone.counters.minor_iters);
+    EXPECT_EQ(second.counters.eqp_refine_steps, alone.counters.eqp_refine_steps);
+    EXPECT_EQ(second.x, alone.x);
+    EXPECT_EQ(second.lambda_e, alone.lambda_e);
+}
+
 // The rule belongs to the independent walk: the option-off walk never takes a rung.
 TEST(QpReleaseReadmission, TheOptionOffWalkKeepsItsRegularization) {
     const QpDump d = load_fixture();
@@ -106,4 +137,5 @@ TEST(QpReleaseReadmission, TheOptionOffWalkKeepsItsRegularization) {
                 static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
                 static_cast<long>(s.counters.dual_regularization_decreases));
     EXPECT_EQ(s.counters.dual_regularization_decreases, 0);
+    EXPECT_EQ(s.counters.converged_refinement_arms, 0);
 }

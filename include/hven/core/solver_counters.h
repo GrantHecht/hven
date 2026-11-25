@@ -140,13 +140,11 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
-    /// Rungs of the release re-admission rule this solve spent (walk_engine.h,
-    /// THE RELEASE RE-ADMISSION): each multiplies the effective
-    /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
-    /// refresh re-admitted the row the previous pass released, at most
-    /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
-    /// released row; independent_working_set walks only. The ascent guard's
-    /// footprint rungs are counted apart (ascent_footprint_rungs).
+    /// Rungs of the release re-admission rule (walk_engine.h, THE RELEASE
+    /// RE-ADMISSION). IDENTICALLY 0 since M8 QPC: the rung it counted (dual_mu
+    /// x1e-2 at a re-admission) was replaced by the converged refinement
+    /// (`converged_refinement_arms`), and the field stays as that invariant. The
+    /// ascent guard's footprint rungs are counted apart (ascent_footprint_rungs).
     Index dual_regularization_decreases = 0;
 
     /// True iff walk_engine.h's border-mode reuse gate (`reuse_eligible` in
@@ -672,6 +670,14 @@ struct QpCounters {
     // counts, the per-solve elimination factors included; `symbolic_analyses` keeps its
     // meaning (the border/rebuild path's analysis DECISIONS, taken before the lookup).
     Index symbolic_analysis_reuses = 0;
+    // M8 QPC (walk_engine.h, THE RELEASE RE-ADMISSION and section 5).
+    // `converged_refinement_arms`: walks that re-admitted a released row and from then on
+    // converged every EQP solve's mu-free refinement (0 or 1 per walk).
+    // `certificate_gate_refusals`: would-be kOptimal exits whose exported point failed the
+    // certificate's DATA HALF (rows or complementarity product read from the QP's data past
+    // their feas_tol multiples); each ends kNumericalError.
+    Index converged_refinement_arms = 0;
+    Index certificate_gate_refusals = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2560,6 +2566,13 @@ struct SqpCounters {
     /// soc_qp_iteration_limits: RF-1 -- second-order-correction re-solves that ended at their
     /// minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged.
     Index soc_qp_iteration_limits = 0;
+    /// converged_refinement_arms: M8 QPC -- QpCounters' field summed over every walk subproblem
+    /// (main, SOC, elastic rungs, retries, restoration sub-solves): walks that re-admitted a
+    /// released row and converged their mu-free refinement from then on.
+    Index converged_refinement_arms = 0;
+    /// certificate_gate_refusals: M8 QPC -- QpCounters' field summed the same way: would-be
+    /// kOptimal walk exits refused by the certificate's data half (each a kNumericalError).
+    Index certificate_gate_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2691,7 +2704,9 @@ struct SqpCounters {
     X(qp_retry_replays, counter_never_absent)                                                      \
     X(qp_failure_box_projections, counter_never_absent)                                            \
     X(trust_region_floor_exits, counter_never_absent)                                              \
-    X(soc_qp_iteration_limits, counter_never_absent)
+    X(soc_qp_iteration_limits, counter_never_absent)                                               \
+    X(converged_refinement_arms, counter_never_absent)                                             \
+    X(certificate_gate_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

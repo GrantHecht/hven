@@ -234,6 +234,16 @@ one of those three therefore cannot silently miss the trace.
   routed failure that took no rung (the radius floor, a judged failure step) is
   in `qp_failures_routed` only.
 
+  **THE QPC PAIR FOLDS LIKE THE E4 GROUP** (M8 QPC). `converged_refinement_arms`
+  (walks that re-admitted a released row and converged every EQP solve's mu-free
+  refinement from then on; 0 or 1 per walk) and `certificate_gate_refusals`
+  (would-be kOptimal walk exits the certificate's data half refused, each a
+  kNumericalError) are QpCounters fields summed over every walk subproblem -- main,
+  SOC, elastic rungs, retries and the restoration sub-solve -- at the same five
+  sites as `eqp_row_drift_refusals`. A refine_on_face call (SSN tier 3) runs no
+  walk and contributes 0 to both. QpCounters::`dual_regularization_decreases` is
+  identically 0 since QPC (the rung it counted was replaced).
+
   **THE FAILED-SUBPROBLEM STEP GROUP FOLDS WHOLE** (M7 W2 R2).
   `qp_failure_steps_judged`, `qp_failure_steps_accepted` and
   `nonfinite_subproblems` count work and events of the sub-solve's own majors, on

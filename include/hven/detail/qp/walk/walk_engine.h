@@ -486,6 +486,22 @@
 //    both halves are read on the incumbent;
 //    kOptimal only if both hold there, else kNumericalError.
 //
+//    THE CERTIFICATE'S DATA HALF (M8 QPC; certificate_gate_refusals). Last, after the
+//    gray-row returns, on the point and multipliers about to be exported:
+//    detail::terminal_kkt read from the QP's own data -- no regularization footprint
+//    in it -- must show rows <= kCertificateGateRowFactor * feas_tol and the
+//    complementarity product <= kCertificateGateComplFactor * feas_tol (both relative
+//    to the rows' own scales; terminal_kkt states them); a NaN refuses. A refusal is
+//    kNumericalError: the point is a KKT point of the REGULARIZED face, not of the QP.
+//    WHY: every earlier row test (row_tolerance, the structural margin, the gray
+//    contract) excuses min(dual_mu*|lambda|, kInfeasibilityAbsorbTol) per row, and
+//    with |lambda| ~ 1e5 that excuse is the 1e-6 cap -- a working set that is itself
+//    inconsistent at 7e-8 was certified at f 0.015 off the optimum (QC8 DALLASM qp7
+//    under the P-1a prototypes: rows 72.9x, product 7e6x feas_tol; the
+//    unregularized EQP of the final working set reproduces the false point, so no
+//    face re-solve can catch it). The data half removes the excuse from the
+//    certificate only; the walk's own tests keep it.
+//
 //    HOW A PASS IS RECOGNISED AS A KKT POINT OF ITS WORKING SET (M7 W2 E4,
 //    ruling E4-2) -- the free-block STATIONARITY RESIDUAL, in the engine's own
 //    opt_tol currency, AND the rows:
@@ -810,13 +826,18 @@
 // bring the rows to their floor within the minors left (the cap's status either way); a run that
 // can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
 // the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
-// THE RELEASE RE-ADMISSION (independent_working_set; dual_regularization_decreases). When the
-// shift refresh re-admits the row the previous pass's drop released, dual_mu is multiplied by
-// kDualRegDecreaseFactor (1e-2) and the factor state is discarded so the next pass factorizes with
-// it; at most kMaxDualRegDecreases times per solve. The release was on a residual dual_mu's
-// footprint excused; a face whose smallest singular value is below what dual_mu resolves then
-// cycles release -> re-admission until the minor cap. Nothing is certified; a walk that never
-// re-admits a released row is untouched.
+// THE RELEASE RE-ADMISSION (independent_working_set; converged_refinement_arms; M8 QPC). When
+// the shift refresh re-admits the row the previous pass's drop released, every EQP solve of the
+// rest of this solve takes THE CONVERGED REFINEMENT (eqp_solve.h) in place of its one mu-free
+// step; once per solve, dual_mu and the factor state untouched. The release was on a residual
+// dual_mu's footprint excused (the row sat mu*|lambda| off its bound while working, and its
+// allowance collapses to the feasibility floor once released); a face whose smallest singular
+// value is below what dual_mu resolves then cycles release -> re-admission until the minor cap.
+// Converging puts the iterate on the row before it is released, at the same dual_mu. It replaces
+// the dual_mu rung (x1e-2, at most twice) that answered the cycle before QPC, which took mu up to
+// 1.5 decades below the backend's static-pivot floor (PF-1b: 2394 perturbed pivots on the PF1
+// face); dual_regularization_decreases, which counted that rung, is identically 0. Nothing is
+// certified; a walk that never re-admits a released row is untouched, bit for bit.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -1036,6 +1057,34 @@ constexpr Index kTerminalPolishSteps = 2;
 // battery spent 145 stage-2 solves for 58 adoptions.
 constexpr double kTerminalPolishComplFactor = 100.0;
 
+// THE CERTIFICATE'S DATA HALF (section 5; M8 QPC), as multiples of feas_tol on
+// detail::terminal_kkt's two primal readings at a would-be kOptimal point.
+//
+// ROWS: kInfeasibilityMarginFactor, the classifier's own structural margin -- a
+// violation past 10x a row's tolerance is what the walk already calls structural
+// where no footprint excuses it, so the data half asks exactly that of the exported
+// point with the footprint excuse taken away. The reading is the worst relative row
+// (equality, inequality, bound), each against max(1, |b_j|, ||a_j||_1 ||x||inf), the
+// scale every row test of this engine reads, so the gate is invariant to a row's
+// scaling and to the size of x.
+//
+// PRODUCT: kTerminalPolishComplFactor, i.e. 1e-07 at the defaults, one decade under
+// the drivers' kkt_tol: the worst |residual|/row_scale * |multiplier| over the
+// equality rows, the working rows and the pinned bounds. It is the quantity a
+// consumer's own KKT check sees (the B-1 term, mu*lambda^2, on a footprint), and on
+// an equality row it is the objective error the residual buys (qp7: 2e5 * 7.3e-8).
+// MEASURED (P-1a deciders, D-4, base build): 24 of 11,339 TRAIN kOptimal QP exits
+// exceed the row bound and 165 the product bound (the 24 among them); the
+// in-repo fixture set none.
+constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
+constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
+
+// THE CERTIFICATE'S DATA HALF's verdict on a terminal_kkt reading (NaN refuses).
+inline bool certificate_data_half_holds(double rows, double complementarity, double feas_tol) {
+    return rows <= kCertificateGateRowFactor * feas_tol &&
+           complementarity <= kCertificateGateComplFactor * feas_tol;
+}
+
 // THE ENTRY TEST's SECOND DISJUNCT (polish_footprint_open): the multiple of
 // opt_tol a terminal point's free-block STATIONARITY residual, relative to its own
 // scale, must reach before stage 2 is spent.
@@ -1177,13 +1226,13 @@ inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
 constexpr double kSuspectDeltaFactor = 10.0;
 constexpr Index kMaxSuspectEscalations = 3;
 
-// THE RELEASE RE-ADMISSION's rung (Degeneracy): the effective dual_regularization is multiplied by
-// kDualRegDecreaseFactor, at most kMaxDualRegDecreases times per solve (1e-8 -> 1e-12 at the
-// defaults), never to 0. A mu below the backend's static-pivot floor reads kSuspect on perturbed
-// pivots and escalates nothing: the suspect ladder answers only a refused EQP answer or a kSuspect
-// would-be-kOptimal exit failing free-block stationarity (section 4b); the exit's gates guard it.
+// THE REGULARIZATION FOOTPRINT's rung (section 4c): the effective dual_regularization is
+// multiplied by kDualRegDecreaseFactor, never to 0. A mu below the backend's static-pivot floor
+// reads kSuspect on perturbed pivots and escalates nothing: the suspect ladder answers only a
+// refused EQP answer or a kSuspect would-be-kOptimal exit failing free-block stationarity
+// (section 4b); the exit's gates guard it. (The release re-admission took the same rung, at most
+// twice, until M8 QPC replaced it by the converged refinement.)
 constexpr double kDualRegDecreaseFactor = 1e-2;
-constexpr Index kMaxDualRegDecreases = 2;
 
 // --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
 //
@@ -1460,9 +1509,8 @@ constexpr double kCurvatureTolFactor = 1e-12;
 // inequality nor reads as drift, whatever the next face's multipliers.
 constexpr double kFootprintRowBudget = 0.5;
 
-// THE REGULARIZATION FOOTPRINT's dual_mu rungs per solve (section 4c): a cap of their own, outside
-// kMaxDualRegDecreases (the release re-admission's). At 1 a reverted rung ends footprint rungs for
-// the solve; a larger cap needs its own stop after a revert.
+// THE REGULARIZATION FOOTPRINT's dual_mu rungs per solve (section 4c). At 1 a reverted rung ends
+// footprint rungs for the solve; a larger cap needs its own stop after a revert.
 constexpr Index kMaxFootprintRungs = 1;
 
 // THE REGULARIZATION FOOTPRINT's merit slope: along d at x, the slope of M = f + |A_W x - b_W|^2 /
@@ -3174,6 +3222,10 @@ class QpEngine {
     // matches. Joined there by the usable-numerics conjunct.
     mutable std::uint64_t border_kkt_session_id_ = 0;
     mutable std::uint64_t border_kkt_epoch_ = 0;
+    // THE RELEASE RE-ADMISSION (Degeneracy): the refinement every EQP solve of the CURRENT run()
+    // takes -- kModel at run() entry and exit, kConverged once the walk has re-admitted a released
+    // row. Per solve, never carried between solves.
+    mutable EqpRefinement eqp_refinement_ = EqpRefinement::kModel;
     const std::atomic<bool> *stop_flag_ = nullptr;
 };
 

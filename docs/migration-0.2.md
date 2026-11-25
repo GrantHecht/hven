@@ -1037,3 +1037,17 @@ unchanged (reporting only); `docs/notes/2026-11-m8-rf1-design.md` section 1 has 
   each finite, > 0 and >= its convergence tolerance. Same dumped names as the IPM's.
 - Restoration sub-solves are never relabelled (`restoration_sub_status` keeps its values).
 - A relabelled exit carries no `best_iterate`, as no kAcceptable does.
+
+## QPC -- the walk QP's release re-admission and its certificate (M8 QPC)
+
+- A walk that re-admits the row its previous drop released no longer lowers `dual_regularization` (the x1e-2 rung,
+  at most twice per solve). From that pass on, every EQP solve of the walk converges its mu-free iterative refinement
+  (strict decrease, to the relative floor or ten steps) at the same `dual_regularization`. `QpCounters::
+  dual_regularization_decreases` is identically 0 (kept, not removed).
+- A would-be kOptimal walk exit is certified only if its exported point, read from the QP's own data, has every row
+  and bound within 10 `feasibility_tol` (relative to the row's scale) and the worst |residual| x |multiplier| product
+  within 100 `feasibility_tol`; otherwise the subproblem ends kNumericalError (routed by the SQP like any other).
+- New counters `QpCounters::converged_refinement_arms`, `QpCounters::certificate_gate_refusals` and their
+  `SqpCounters` sums (trace keys after `soc_qp_iteration_limits`).
+
+Rebuild: `QpCounters` and `SqpCounters` change size; code built against the old headers needs a rebuild.

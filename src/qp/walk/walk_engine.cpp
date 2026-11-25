@@ -388,6 +388,13 @@ QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
 QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
                          const QpSolveOverrides &overrides,
                          const std::shared_ptr<const HotState> &hot) const {
+    // THE RELEASE RE-ADMISSION's refinement (walk_engine.h, Degeneracy) is per solve: kModel
+    // from here, and back to kModel on every way out of this call, a throw included.
+    eqp_refinement_ = EqpRefinement::kModel;
+    struct RefinementReset {
+        EqpRefinement &mode;
+        ~RefinementReset() { mode = EqpRefinement::kModel; }
+    } const refinement_reset{eqp_refinement_};
     // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmState::hot, opaque) is a
     // snapshot possibly produced by a DIFFERENT QpEngine instance's
     // hot_state(). Adopted ONLY when this engine's OWN instance-level
@@ -1972,7 +1979,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 }
                                 ++counters.optimal_row_gray_exits;
                             }
-                            status = QpStatus::kOptimal;
+                            // THE CERTIFICATE'S DATA HALF (walk_engine.h, section 5; M8 QPC):
+                            // the exported point read from the QP's own data, no footprint.
+                            const detail::TerminalKkt data =
+                                detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
+                            if (detail::certificate_data_half_holds(data.rows, data.complementarity,
+                                                                    eff_opts.feasibility_tol)) {
+                                status = QpStatus::kOptimal;
+                            } else {
+                                ++counters.certificate_gate_refusals;
+                                status = QpStatus::kNumericalError;
+                            }
                         }
                     }
                 }
@@ -3202,14 +3219,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
         // THE RELEASE RE-ADMISSION (walk_engine.h, Degeneracy): the refresh just re-admitted the
         // row the previous pass released, so the residual the row was released with was dual_mu's
-        // footprint. One rung down, and the factor state discarded so the next pass factorizes with
-        // it.
+        // footprint. Every EQP solve from here on converges its mu-free refinement (eqp_solve.h),
+        // at the same dual_mu and on the same factor state; once per solve.
         if (released_row_out && in_working(ws, dropped.idx) &&
-            counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
-            eff_opts.dual_regularization > 0.0) {
-            ++counters.dual_regularization_decreases;
-            eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
-            discard_factor_state();
+            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {
+            ++counters.converged_refinement_arms;
+            eqp_refinement_ = EqpRefinement::kConverged;
         }
         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
             standstill_steps = standstill_steps_in + 1;
@@ -3790,7 +3805,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         }
         best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
                                               *border.schur, sys.rhs, best, opts, nullptr, nullptr,
-                                              nullptr, border.kkt.dense_shifted);
+                                              nullptr, border.kkt.dense_shifted, eqp_refinement_);
         best_x = point_of(best);
         best_measure = measure_of(best_x);
         for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
@@ -3932,7 +3947,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         // the walk itself refused. Its answer is discarded (the replay re-derives
         // the incumbent); its factorization is the one charged above, its retakes
         // the scope's.
-        (void)solve_eqp(qp, ws, x, fresh, opts);
+        (void)solve_eqp(qp, ws, x, fresh, opts, nullptr, eqp_refinement_);
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
     // reports a singular K as a status, so a throw from here is a genuine
@@ -4054,7 +4069,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
             counters.dense_singular_refactors, counters.dense_platform_retakes);
         const detail::RetakeTallyScope retakes(kkt, counters.sparse_scaled_retakes,
                                                counters.sparse_matched_retakes);
-        return solve_eqp(qp, ws, x_k, kkt, opts);
+        return solve_eqp(qp, ws, x_k, kkt, opts, nullptr, eqp_refinement_);
     }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
@@ -4257,9 +4272,9 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // A K0 holding dense shifted numerics: the answer is gated on its
         // backward error against the unshifted bordered system
         // (solve_bordered_eqp).
-        EqpResult res =
-            solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
-                               opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
+        EqpResult res = solve_bordered_eqp(
+            qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k, opts,
+            border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr, eqp_refinement_);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
         counters.eqp_refine_iters += res.residual_refine_iters;

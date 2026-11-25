@@ -122,7 +122,7 @@ struct SqpMajorRow {
     /// other qp_* fields. Always opts.qp.dual_regularization (the engine default) when
     /// SqpAdvancedOptions::adaptive_dual_regularization is false -- byte-identical across the whole
     /// history. This is the dual_regularization the subproblem was DISPATCHED at: the walk may
-    /// lower its effective value within the solve (QpCounters::dual_regularization_decreases > 0),
+    /// lower its effective value within the solve (QpCounters::ascent_footprint_rungs > 0),
     /// in which case the subproblem exited at a smaller mu than recorded and the warm-start stamp
     /// over-states the footprint, which is the safe direction.
     double mu = 0.0;

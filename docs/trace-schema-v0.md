@@ -925,6 +925,8 @@ group; `SqpOptions::hessian_mode`).
 | `qp_failure_box_projections` | integer | `SqpCounters::qp_failure_box_projections` | failed subproblems ended by a stagnation stop whose iterate was projected onto the subproblem's box (trust-region window included) before the retryable test (M8 RF-1) |
 | `trust_region_floor_exits` | integer | `SqpCounters::trust_region_floor_exits` | solves ended at the trust-region floor at a feasible point whose last rejected step promised less than the objective's rounding floor (StopReason::kTrustRegionFloor) (M8 RF-1) |
 | `soc_qp_iteration_limits` | integer | `SqpCounters::soc_qp_iteration_limits` | second-order-correction re-solves that ended at their minor-iteration cap (QpStatus::kIterationLimit); observation only, SOC is unchanged (M8 RF-1) |
+| `converged_refinement_arms` | integer | `SqpCounters::converged_refinement_arms` | walk subproblems that re-admitted a released row and converged every EQP solve's mu-free refinement from then on (0 or 1 per walk; summed over every walk subproblem, restoration included) (M8 QPC) |
+| `certificate_gate_refusals` | integer | `SqpCounters::certificate_gate_refusals` | would-be kOptimal walk exits refused by the certificate's data half (rows past 10 feas_tol or the complementarity product past 100 feas_tol, read from the QP's data); each a kNumericalError (M8 QPC) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two

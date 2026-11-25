@@ -304,13 +304,12 @@ struct BorderedRefineOutcome {
     bool target_met = true;
 };
 
-inline Vec
-refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
-                               const std::vector<double> &border_d, const SchurComplement &schur,
-                               const Vec &rhs, const Vec &sol, const QpOptions &opts,
-                               Index *steps_out = nullptr,
-                               const BorderedResolution *resolution = nullptr,
-                               BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
+inline Vec refine_bordered_solve_iterated(
+    const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
+    const std::vector<double> &border_d, const SchurComplement &schur, const Vec &rhs,
+    const Vec &sol, const QpOptions &opts, Index *steps_out = nullptr,
+    const BorderedResolution *resolution = nullptr, BorderedRefineOutcome *outcome = nullptr,
+    bool shifted_k0 = false, EqpRefinement refinement = EqpRefinement::kModel) {
     const hven::linear::SolveContextScope solve_context(hven::linear::SolveContext::kBorderRefine);
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
@@ -327,6 +326,27 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
     if (shifted_k0 && !(detail::nan_sticky_inf_norm(residual_of(best)) <
                         detail::nan_sticky_inf_norm(residual_of(sol)))) {
         best = sol;
+    }
+    // THE CONVERGED REFINEMENT (eqp_solve.h's header section), in place of everything below --
+    // the footprint rule, STEP RESOLVED and the accuracy stop -- on any stack, dim() == 0
+    // included, because the unbordered path converges too. A shifted K0 keeps the model rule
+    // (solve_eqp's dense-shifted rule).
+    if (refinement == EqpRefinement::kConverged && opts.dual_regularization > 0.0 && !shifted_k0) {
+        const double floor =
+            detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs));
+        Vec res = residual_of(best);
+        steps += refine_until_converged(
+            best, res, floor, detail::kMaxBorderRefineSteps - 1,
+            [&](const Vec &r) { return schur.solve(r); }, residual_of);
+        if (steps_out != nullptr) {
+            *steps_out = steps;
+        }
+        if (outcome != nullptr) {
+            const Vec reg = bordered_regularization(K0.rows(), var_count, border_d, opts);
+            const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
+            outcome->target_met = !(detail::nan_sticky_inf_norm(res) > std::max(footprint, floor));
+        }
+        return best;
     }
     if (schur.dim() == 0) {
         if (steps_out != nullptr) {
@@ -685,7 +705,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,
                                     const WorkingSet &ws, const Vec &x_k, const QpOptions &opts,
-                                    const Vec *k0_shift_scale) {
+                                    const Vec *k0_shift_scale,
+                                    EqpRefinement refinement = EqpRefinement::kModel) {
     const Index n = qp.n();
     const Index me = qp.me();
     const Index n0 = k0.K.rows();
@@ -757,10 +778,10 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     BorderedRefineOutcome outcome;
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     resolution.certify = certify;
-    sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
-                                         opts, &refine_steps,
-                                         opts.independent_working_set ? &resolution : nullptr,
-                                         certify ? &outcome : nullptr, k0_shift_scale != nullptr);
+    sol = refine_bordered_solve_iterated(
+        k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol, opts, &refine_steps,
+        opts.independent_working_set ? &resolution : nullptr, certify ? &outcome : nullptr,
+        k0_shift_scale != nullptr, refinement);
     // THE PLATFORM SOLVE CHECK (detail/kkt/kkt_factor.h), the bordered twin of
     // solve_eqp's: the answer refined against the bordered K (the residual loop's,
     // or at dual_mu = 0 the refinement's), judged on the bordered system in K0's

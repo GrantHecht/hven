@@ -1,8 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+#include <cstdio>
+
 #include <gtest/gtest.h>
 
+#include <hven/detail/qp/walk/bordered_eqp.h>
 #include <hven/detail/qp/walk/eqp_solve.h>
 
 #include "qp/support/dense_oracle.h"
@@ -162,4 +165,124 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
     // EXTRA-step counter is identically zero -- the same statement the QP
     // engine's eqp_refine_steps aggregate makes at solve level (solver_counters.h).
     EXPECT_EQ(refined.refine_steps, 0);
+}
+
+// ---- THE CONVERGED REFINEMENT (M8 QPC; eqp_solve.h's header section) ----------------------------
+//
+// A near-dependent CONSISTENT face: rows a1 = (1, 0), a2 = (1, eps), b = (1, 1 + eps/2), so the
+// face is the single point x = (1, 0.5); H = I, g = 0, centred at x_k = 0. The multipliers are
+// lambda = (1/eps - 1, -1/(2 eps)), |lambda| ~ 5e3 at eps = 1e-4, and the Schur complement's small
+// eigenvalue is ~ eps^2 / 2 = 5e-9 < mu = 1e-8: one mu-free step leaves the rows off by a fraction
+// mu / (mu + s) ~ 0.67 of what the regularized solve left, and each further step contracts by the
+// same factor. The model step leaves the rows ~1e-5 off; converged, ten steps in all.
+namespace {
+
+QpProblem near_dependent_face(double eps) {
+    QpProblem qp;
+    qp.H =
+        Eigen::MatrixXd::Identity(2, 2).triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd A(2, 2);
+    A << 1.0, 0.0, 1.0, eps;
+    qp.Ae = A.sparseView();
+    qp.be = Vec(2);
+    qp.be << 1.0, 1.0 + 0.5 * eps;
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -1e20);
+    qp.upper = Vec::Constant(2, 1e20);
+    return qp;
+}
+
+double row_miss(const QpProblem &qp, const Vec &x) {
+    return (qp.Ae * x - qp.be).lpNorm<Eigen::Infinity>();
+}
+
+} // namespace
+
+TEST(EqpConvergedRefinement, EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint) {
+    const QpProblem qp = near_dependent_face(1e-4);
+    const WorkingSet ws(2, 0);
+    const Vec x_k = Vec::Zero(2);
+    detail::KktFactor k1(0, hven::linear::DensePolicy::kNever);
+    const EqpResult model = solve_eqp(qp, ws, x_k, k1, QpOptions{}, nullptr, EqpRefinement::kModel);
+    detail::KktFactor k2(0, hven::linear::DensePolicy::kNever);
+    const EqpResult conv =
+        solve_eqp(qp, ws, x_k, k2, QpOptions{}, nullptr, EqpRefinement::kConverged);
+    const double m = row_miss(qp, model.x);
+    const double c = row_miss(qp, conv.x);
+    std::printf("[ qpc-conv ] eliminated: model miss %.3e (steps %ld), converged miss %.3e (steps "
+                "%ld)\n",
+                m, static_cast<long>(model.refine_steps), c, static_cast<long>(conv.refine_steps));
+    EXPECT_EQ(model.refine_steps, 0); // no trust region: the accuracy stop does not fire
+    EXPECT_GE(conv.refine_steps, 3);
+    EXPECT_LE(conv.refine_steps, detail::kMaxBorderRefineSteps - 1);
+    EXPECT_GT(m, 1e-7);
+    EXPECT_LT(c, 0.1 * m);
+    // The same answer the walk would price toward: closer to the exact multipliers.
+    EXPECT_LT(std::abs(conv.lambda_e(1) - (-0.5 / 1e-4)),
+              std::abs(model.lambda_e(1) - (-0.5 / 1e-4)));
+}
+
+// A face the model step already resolves: converging changes nothing material (the loop stops at
+// the floor or on the first non-decreasing step), and at dual_mu = 0 the mode is inert bit for bit.
+TEST(EqpConvergedRefinement, AWellConditionedFaceAndTheUnregularizedSystemAreUnmoved) {
+    const QpProblem qp = equality_only_qp();
+    const WorkingSet ws(2, 0);
+    const Vec x_k = Vec::Zero(2);
+    detail::KktFactor k1(0, hven::linear::DensePolicy::kNever);
+    const EqpResult model = solve_eqp(qp, ws, x_k, k1, QpOptions{}, nullptr, EqpRefinement::kModel);
+    detail::KktFactor k2(0, hven::linear::DensePolicy::kNever);
+    const EqpResult conv =
+        solve_eqp(qp, ws, x_k, k2, QpOptions{}, nullptr, EqpRefinement::kConverged);
+    EXPECT_LT((conv.x - model.x).lpNorm<Eigen::Infinity>(), 1e-12);
+    QpOptions no_mu;
+    no_mu.dual_regularization = 0.0;
+    const QpProblem nd = near_dependent_face(1e-4);
+    detail::KktFactor k3(0, hven::linear::DensePolicy::kNever);
+    const EqpResult a = solve_eqp(nd, ws, x_k, k3, no_mu, nullptr, EqpRefinement::kModel);
+    detail::KktFactor k4(0, hven::linear::DensePolicy::kNever);
+    const EqpResult b = solve_eqp(nd, ws, x_k, k4, no_mu, nullptr, EqpRefinement::kConverged);
+    EXPECT_EQ(a.x, b.x);
+    EXPECT_EQ(a.lambda_e, b.lambda_e);
+    EXPECT_EQ(a.refine_steps, b.refine_steps);
+}
+
+// The bordered refinement with an EMPTY border stack is solve_eqp's arithmetic: under kConverged it
+// converges too (the unbordered path does), where the model rule takes its one step.
+TEST(EqpConvergedRefinement, UnborderedBorderedPathConvergesLikeTheEliminatedOne) {
+    const QpProblem qp = near_dependent_face(1e-4);
+    const WorkingSet ws(2, 0);
+    const QpOptions opts;
+    const KktAssembly asm_ = assemble_kkt(qp, ws, opts);
+    detail::KktFactor k(0, hven::linear::DensePolicy::kNever);
+    (void)detail::factorize_checked(k, asm_.K, detail::DenseShiftSite{2});
+    SchurComplement schur(k, opts);
+    ASSERT_EQ(schur.dim(), 0);
+    Vec rhs(4);
+    rhs << 0.0, 0.0, qp.be(0), qp.be(1); // g = 0, x_k = 0: no proximal term
+    const Vec sol = schur.solve(rhs);
+    const std::vector<Vec> no_v;
+    const std::vector<double> no_d;
+    Index s_model = 0;
+    Index s_conv = 0;
+    const Vec ym =
+        refine_bordered_solve_iterated(asm_.K, 2, no_v, no_d, schur, rhs, sol, opts, &s_model,
+                                       nullptr, nullptr, false, EqpRefinement::kModel);
+    const Vec yc =
+        refine_bordered_solve_iterated(asm_.K, 2, no_v, no_d, schur, rhs, sol, opts, &s_conv,
+                                       nullptr, nullptr, false, EqpRefinement::kConverged);
+    const double m = row_miss(qp, ym.head(2));
+    const double c = row_miss(qp, yc.head(2));
+    std::printf("[ qpc-conv ] unbordered: model miss %.3e (steps %ld), converged miss %.3e (steps "
+                "%ld)\n",
+                m, static_cast<long>(s_model), c, static_cast<long>(s_conv));
+    EXPECT_EQ(s_model, 1);
+    EXPECT_GE(s_conv, 4);
+    EXPECT_LT(c, 0.1 * m);
+    // and it agrees with the eliminated path's converged answer
+    detail::KktFactor k2(0, hven::linear::DensePolicy::kNever);
+    const EqpResult e =
+        solve_eqp(qp, ws, Vec::Zero(2), k2, opts, nullptr, EqpRefinement::kConverged);
+    EXPECT_LT((e.x - yc.head(2)).lpNorm<Eigen::Infinity>(), 1e-6);
 }
