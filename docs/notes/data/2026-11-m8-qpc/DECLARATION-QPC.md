@@ -363,7 +363,11 @@ C1 off every mover still fails; with both off the tree reads R. **All sixteen ar
 diagnosis found TWO DEFECTS IN C2 AS FIRST BUILT, both fixed (section 1): the residual x multiplier product was read
 unscaled (not invariant to the objective's scaling; it refused rounding-level elastic-rung points), and the Q3 stationarity
 disjunct as first written read the normwise residual (it refused a point whose residual is beneath double precision's
-rounding floor). The component-arm builds of section 2 re-confirm the attribution (leg C runs them on the movers).
+rounding floor). **Re-confirmed on the component-arm builds of section 2** (development, the movers' test binaries
+built in each arm's own tree, Release): on `qpc-c1` (C1 only, `e4660dd31`) exactly the C2-dependent re-pins fail -- the
+re-premised movers and the `QpCertificateData.*` fixtures -- and nothing else; on `qpc-c2` (C2 only, `1ed77a336`) only
+`QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization` and `.TheConvergedRefinementIsPerSolve` (C1's own
+fixtures) fail, and every mover's new pin holds. Every mover is C2's; C1 moves none.
 
 | test | mechanism (readings from the data half at the refused exit) | verdict |
 |---|---|---|
@@ -418,8 +422,8 @@ added; control clean; every other id killed); the leg-M reading is the evidence.
 | Q21 | the finiteness guard on the exported vectors dropped | ARGUED: every NaN presentation the seam can make (ANanPointIsRefused) is refused before the data half by the gray-row reading, so no fixture reaches the guard with a non-finite vector; the guard is the data half's own proof of "NaN refuses" (terminal_kkt's max reductions drop a NaN term) and is defence in depth, not a path a test can isolate without a seam inside terminal_kkt |
 | Q22 | the product read UNSCALED (the dual-scale division dropped; the first QPC build) | QpCertificateData.{AWorkingRowSlackPastAHundredFeasTolIsRefused, TheProductIsReadAgainstTheDualScale} |
 
-ARGUED (the runner's set, parity-checked): Q14, Q17, Q21. Q18's killer is to be confirmed by the extended runner
-(control + Q18) before freeze ⟨reading⟩.
+ARGUED (the runner's set, parity-checked): Q14, Q17, Q21. Q18 confirmed by the extended runner (development, tree
+08805d8ba, control + Q18): control clean, Q18 killed by B1Gate.TheWatchdogRestore..., VERDICT MUTATIONS_AS_DECLARED.
 
 ## 9. Stops
 A pre-flight mismatch; any N0-N3 difference outside the declared-mover rule; an unreported error row; a false NLP
