@@ -1,0 +1,27 @@
+# QPC TDD reading at R = 96789b9be + tests only (Release, box lane 0, 2026-11-25); hven_qp_seam_tests --gtest_filter=QpCertificateData.*:QpReleaseReadmission.*
+[  FAILED  ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified (3 ms)
+[  FAILED  ] QpCertificateData.AProductPastAHundredFeasTolIsRefused (0 ms)
+[       OK ] QpCertificateData.ANanPointIsRefused (0 ms)
+[  FAILED  ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused (0 ms)
+[       OK ] QpCertificateData.TheSmallQpsCertifyUnarmed (0 ms)
+[ qpc-data ] qp7 border row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[ qpc-data ] qp7 refactorize row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[  FAILED  ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused (1452 ms)
+[ qpc-data ] QC8_DALLASM_qp1.txt border rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp1.txt refactorize rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp7.txt border rows/ftol=1.91e-06 product/ftol=0.000825
+[ qpc-data ] QC8_DALLASM_qp7.txt refactorize rows/ftol=9.8e-05 product/ftol=9.77
+[ qpc-data ] QC8_DALLASM_entry6.txt border rows/ftol=1.91e-06 product/ftol=0.00105
+[ qpc-data ] QC8_DALLASM_entry6.txt refactorize rows/ftol=0.001 product/ftol=41.3
+[       OK ] QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf (2103 ms)
+[ pf1 ] refactorize status=0 minors=4758 facts=4758 border_refine=0 eqp_refine=0 dual_regularization_decreases=1 f=-0.003231904984786682
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization (68025 ms)
+[ pf1 ] option-off status=1 minors=400 dual_regularization_decreases=0
+[       OK ] QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization (6020 ms)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+[  FAILED  ] QpCertificateData.AProductPastAHundredFeasTolIsRefused
+[  FAILED  ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+[  FAILED  ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization

@@ -72,6 +72,7 @@ hven_add_seam_executable(hven_qp_seam_tests
         seam/test_qp_ascent_footprint.cpp
         seam/test_qp_ascent_guard.cpp
         seam/test_qp_border_certificate.cpp
+        seam/test_qp_certificate_data.cpp
         seam/test_qp_certificate_sign.cpp
         seam/test_qp_convex_certificate.cpp
         seam/test_qp_degeneracy_arm.cpp
