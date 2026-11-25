@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..467ef1bb2 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -1016,8 +1016,7 @@ bool detail::sqp_exit_is_labelable(SolveStatus status, StopReason reason) {
+     }
+     return status == SolveStatus::kStalled && (reason == StopReason::kSubproblemIterationLimit ||
+                                                reason == StopReason::kTrustRegionFloor ||
+-                                               reason == StopReason::kRestorationWorkLimit ||
+-                                               reason == StopReason::kRestorationNoProgress);
++                                               reason == StopReason::kRestorationWorkLimit);
+ }
+ 
+ bool detail::sqp_point_acceptable(const SqpKkt &kkt, double feasibility_e, double feasibility_i,

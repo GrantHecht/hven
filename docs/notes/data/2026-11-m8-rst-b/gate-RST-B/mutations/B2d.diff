@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index f86f37234..b426b943c 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -105,7 +105,7 @@ inline constexpr Index kRestorationTotalWorkRatio = 4;
+ ///        folded in) less @p restoration_factorizations (the phases' share of it).
+ inline Index restoration_total_budget(const std::optional<Index> &configured, Index factorizations,
+                                       Index restoration_factorizations) {
+-    const Index main_factorizations = factorizations - restoration_factorizations;
++    const Index main_factorizations = factorizations;
+     return configured ? *configured
+                       : std::max(kRestorationTotalWorkFloor,
+                                  kRestorationTotalWorkRatio * main_factorizations);

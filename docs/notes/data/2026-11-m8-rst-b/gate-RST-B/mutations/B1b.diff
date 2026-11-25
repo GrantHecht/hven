@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index f86f37234..271fb9ab1 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -175,7 +175,6 @@ class RestorationEntryLedger {
+         v.tested = true;
+         v.productive = solved_since_resume_;
+         if (v.productive) {
+-            unproductive_run_ = 0;
+         } else {
+             ++unproductive_run_;
+         }

@@ -1,0 +1,2 @@
+Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled

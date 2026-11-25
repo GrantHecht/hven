@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index f86f37234..2565c7f5d 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -169,9 +169,6 @@ class RestorationEntryLedger {
+ 
+     RestorationEntryVerdict judge(Index max_unproductive) {
+         RestorationEntryVerdict v;
+-        if (!resumed_) {
+-            return v;
+-        }
+         v.tested = true;
+         v.productive = solved_since_resume_;
+         if (v.productive) {

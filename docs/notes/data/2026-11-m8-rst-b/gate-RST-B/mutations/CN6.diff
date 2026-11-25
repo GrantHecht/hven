@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..37fa1e2b0 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6445,7 +6445,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+             ++st.out.counters.restoration_no_accept_refusals;
+         }
+         if (allow_restoration_) {
+-            st.out.counters.restoration_refusal_feasibility = mj.kkt.feasibility;
+         }
+         emit_message([&] {
+             MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);

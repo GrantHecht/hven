@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index f86f37234..64f617ffd 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -159,7 +159,6 @@ class RestorationEntryLedger {
+         }
+         retractable_ = false;
+         solved_since_resume_ = solved_before_last_accept_;
+-        --kept_accepts_;
+     }
+ 
+     /// Accepted steps since the last resume that were not rolled back. The public

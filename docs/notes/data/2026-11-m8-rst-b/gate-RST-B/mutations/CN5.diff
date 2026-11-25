@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..cb13466c6 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6442,7 +6442,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         // the resume, or one the progress test refuses. The cap outranks it.
+         const bool no_progress = allow_restoration_ && below_entry_cap;
+         if (no_progress && !accepted_since_resume) {
+-            ++st.out.counters.restoration_no_accept_refusals;
+         }
+         if (allow_restoration_) {
+             st.out.counters.restoration_refusal_feasibility = mj.kkt.feasibility;

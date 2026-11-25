@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..a7b9794e4 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6983,7 +6983,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         phase_stalled =
+             phase_result.status == SolveStatus::kWorkLimit && sub.restoration_stall_fired_;
+         phase_budget_cut =
+-            phase_result.status == SolveStatus::kWorkLimit && !phase_stalled && budget_binds;
++            phase_result.status == SolveStatus::kWorkLimit && budget_binds;
+         if (phase_budget_cut) {
+             ++st.out.counters.restoration_budget_cuts;
+         }

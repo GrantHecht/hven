@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..fbb323303 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -959,7 +959,7 @@ detail::RetryRung detail::choose_retry_rung(const RetryRungInputs &in) {
+     const bool r4 = unused(RetryRung::kRegularization) && in.walk_owned &&
+                     in.dependent_or_zero_motion &&
+                     retry_regularization(in.primal_regularization) != in.primal_regularization;
+-    if (in.regularization_first && r4) {
++    if (false && r4) {
+         return RetryRung::kRegularization;
+     }
+     // R2 only after a warm start from a non-empty working set: else the cold start IS the seed.

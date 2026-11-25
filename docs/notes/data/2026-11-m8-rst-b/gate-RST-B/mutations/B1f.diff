@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..d899f6666 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6464,7 +6464,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         // h = 3.6e-13, SAWPATH at h = 0). kInfeasible is the certified arm's
+         // alone. The no-progress refusal is kStalled: the loop stopped making
+         // progress; nothing failed.
+-        st.resto.status = no_progress ? SolveStatus::kStalled : SolveStatus::kNumericalError;
++        st.resto.status = no_progress ? SolveStatus::kInfeasible : SolveStatus::kNumericalError;
+         st.resto.reason =
+             no_progress ? StopReason::kRestorationNoProgress : StopReason::kRestorationRefused;
+         st.resto.detail.clear();

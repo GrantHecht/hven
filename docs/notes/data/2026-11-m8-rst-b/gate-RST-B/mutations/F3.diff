@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..87a506a49 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9829,7 +9829,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+                 if (trust_region_floor_exit(mj, st.ev.f, pred)) {
+                     // RST-B F3: with no rung left ABOVE the floor the exit is the subproblem's
+                     // own (kSubproblemFailure / kSubproblemIterationLimit), not the floor's.
+-                    const bool at_floor = shrink_hits_floor(st.delta);
++                    const bool at_floor = true;
+                     if (at_floor) {
+                         ++st.out.counters.trust_region_floor_exits;
+                         st.exit_reason = StopReason::kTrustRegionFloor;

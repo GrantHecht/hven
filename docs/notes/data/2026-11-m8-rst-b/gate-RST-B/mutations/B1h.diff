@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..955de2dfd 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10550,7 +10550,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+             }
+             ++st.out.counters.steps_accepted;
+             // A failed subproblem's own step is no evidence of progress (RST-B).
+-            st.resto.progress.note_accept(!mj.failure_step);
++            st.resto.progress.note_accept(!mj.failure_step && !mj.row.elastic_applied);
+             if (mj.row.verdict == StepVerdict::kAcceptObjectiveStep) {
+                 ++st.out.counters.accepted_f_type;
+             } else {

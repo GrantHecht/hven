@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/sqp/globalization/restoration.h b/include/hven/detail/sqp/globalization/restoration.h
+index f86f37234..96102875a 100644
+--- a/include/hven/detail/sqp/globalization/restoration.h
++++ b/include/hven/detail/sqp/globalization/restoration.h
+@@ -133,7 +133,6 @@ class RestorationEntryLedger {
+   public:
+     void record_resume() {
+         resumed_ = true;
+-        solved_since_resume_ = false;
+         kept_accepts_ = 0;
+         retractable_ = false;
+     }

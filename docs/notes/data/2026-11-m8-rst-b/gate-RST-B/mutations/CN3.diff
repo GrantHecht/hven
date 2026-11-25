@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..9d41e687b 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7009,7 +7009,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         st.out.counters.restoration_iters += phase.counters.major_iters;
+         st.out.counters.qp_minor_iters += phase.counters.qp_minor_iters;
+         st.out.counters.factorizations += phase.counters.factorizations;
+-        st.out.counters.restoration_factorizations += phase.counters.factorizations;
+         st.row_work_base_minor += phase.counters.qp_minor_iters; // I19-1: not this row's work
+         st.row_work_base_fact += phase.counters.factorizations;
+         st.out.counters.eqp_refine_steps += phase.counters.eqp_refine_steps;

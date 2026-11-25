@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..1f6b96792 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8178,7 +8178,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         // THE ROLLED-BACK ACCEPT IS NO PROGRESS (RST-B): the step to this point was credited
+         // to the restoration progress ledger at its commit; it moved nothing, so the credit
+         // is withdrawn and a later request judges the interval as if it had not been taken.
+-        st.resto.progress.retract_last_accept();
+         // COUNTED AS A REJECTED EVALUATION (M8 B5), in the model's own words when
+         // it threw.
+         note_evaluation_error(st.out.evaluation_errors, describe_nonfinite_point(st, iter) +

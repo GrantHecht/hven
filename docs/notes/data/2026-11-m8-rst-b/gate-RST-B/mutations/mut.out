@@ -1,0 +1,219 @@
+box-lane: lane 0 acquired 2026-11-25T14:43:41-05:00
+FOREGROUND_START 2026-11-25T14:43:41-05:00
+PARITY ok: 32 ids, argued ['B2x']
+PREFLIGHT every mutation applies and restores: [B1a B1b B1c B1d B1e B1f B1g B1h RB1 RB2 F1 F2 F3 B2a B2b B2c B2d B2r B2z B2s B2x FR1 CAP1 RR1 LAB1 CN1 CN2 CN3 CN4 CN5 CN5b CN6]
+MUT control rc=0 killers=0
+MUT B1a rc=1 killers=6
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   RstbEntrySeam.ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone
+   DECLARED_KILLER B1a RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+MUT B1b rc=2 killers=2
+   RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   DECLARED_KILLER B1b RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+   DECLARED_KILLER B1b RstbEntrySeam.AProductiveIntervalClearsTheRun
+MUT B1c rc=2 killers=9
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+   RstbEntryLedger.FailureStepsAloneAreUnproductiveAndTheSecondRunIsRefusedAtOne
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER B1c RstbEntryLedger.FailureStepsAloneAreUnproductiveAndTheSecondRunIsRefusedAtOne
+   DECLARED_KILLER B1c RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+MUT B1d rc=2 killers=15
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   RstbEntryLedger.ARetractedAcceptIsNoProgress
+   RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+   RstbEntryLedger.FailureStepsAloneAreUnproductiveAndTheSecondRunIsRefusedAtOne
+   RstbEntryLedger.TheFirstRequestIsNeverTested
+   RstbEntryLedger.ToleranceZeroRefusesEveryUnproductiveReEntryAndALargeOneNone
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   RstbEntrySeam.ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER B1d RstbEntryLedger.TheFirstRequestIsNeverTested
+   DECLARED_KILLER B1d RstbEntrySeam.ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone
+MUT B1e rc=2 killers=10
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   RstbEntrySeam.ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+   DECLARED_KILLER B1e RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   DECLARED_KILLER B1e SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+MUT B1f rc=2 killers=7
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+   DECLARED_KILLER B1f RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   DECLARED_KILLER B1f SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+MUT B1g rc=2 killers=8
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   RstbBudgetSeam.ABudgetCutTakesTheReductionResume
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+   SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+   DECLARED_KILLER B1g RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+MUT B1h rc=1 killers=1
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   DECLARED_KILLER B1h RstbEntrySeam.AnElasticRungAcceptIsProgress
+MUT RB1 rc=1 killers=3
+   RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   DECLARED_KILLER RB1 RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   DECLARED_KILLER RB1 RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance
+MUT RB2 rc=1 killers=2
+   RstbEntryLedger.KeptAcceptsCountOnlyAcceptsThatWereNotRolledBack
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   DECLARED_KILLER RB2 RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   DECLARED_KILLER RB2 RstbEntryLedger.KeptAcceptsCountOnlyAcceptsThatWereNotRolledBack
+MUT F1 rc=1 killers=1
+   Rf1RetryLadderSeam.AZeroMotionExhaustionReachesTheRegularizationRung
+   DECLARED_KILLER F1 Rf1RetryLadderSeam.AZeroMotionExhaustionReachesTheRegularizationRung
+MUT F2 rc=2 killers=2
+   Rf1RetryLadderSeam.AZeroMotionExhaustionReachesTheRegularizationRung
+   RstbRetryLadder.RegularizationFirstTakesR4AheadOfTheColdAndAlgebraRungs
+   DECLARED_KILLER F2 Rf1RetryLadderSeam.AZeroMotionExhaustionReachesTheRegularizationRung
+   DECLARED_KILLER F2 RstbRetryLadder.RegularizationFirstTakesR4AheadOfTheColdAndAlgebraRungs
+MUT F3 rc=1 killers=1
+   Rf1RetryLadderSeam.ANoMotionFailureAboveTheFloorIsTheSubproblemFailure
+   DECLARED_KILLER F3 Rf1RetryLadderSeam.ANoMotionFailureAboveTheFloorIsTheSubproblemFailure
+MUT B2a rc=1 killers=2
+   RstbBudgetSeam.ABudgetCutTakesTheReductionResume
+   RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit
+   DECLARED_KILLER B2a RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit
+MUT B2b rc=2 killers=3
+   Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit
+   RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit
+   SqpSolverRestorationExcursion.AWorkLimitBindingInsideTheSubSolvePropagates
+   DECLARED_KILLER B2b RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit
+   DECLARED_KILLER B2b Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit
+MUT B2c rc=1 killers=3
+   RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+   RstbBudget.OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry
+   RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft
+   DECLARED_KILLER B2c RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft
+   DECLARED_KILLER B2c RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+   DECLARED_KILLER B2c RstbBudget.OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry
+MUT B2d rc=1 killers=1
+   RstbBudget.TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly
+   DECLARED_KILLER B2d RstbBudget.TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly
+MUT B2r rc=1 killers=1
+   RstbBudgetSeam.ABudgetCutTakesTheReductionResume
+   DECLARED_KILLER B2r RstbBudgetSeam.ABudgetCutTakesTheReductionResume
+MUT B2z rc=1 killers=1
+   RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+   DECLARED_KILLER B2z RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+MUT B2s rc=1 killers=2
+   Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit
+   Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+   DECLARED_KILLER B2s Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit
+   DECLARED_KILLER B2s Rf1RestorationSeam.TheStallExitTakesTheReductionResume
+MUT B2x rc=0 killers=0
+MUT FR1 rc=1 killers=1
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   DECLARED_KILLER FR1 RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+MUT CAP1 rc=3 killers=12
+   RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt
+   RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+   RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   RstbEntrySeam.ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone
+   SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   SqpSolverRestorationEntries.ACapOfZeroRefusesTheFirstRequest
+   SqpSolverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne
+   SqpSolverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm
+   SqpSolverRestorationExcursion.ARefusedSecondRequestLeavesTheFirstEntrysRecord
+   SqpSolverRestoration.SecondRequestIsCappedAndReported
+   TraceMessagesSqp.ARefusedEntryWritesOneRefusalNamingTheRule
+   DECLARED_KILLER CAP1 RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   DECLARED_KILLER CAP1 RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+MUT RR1 rc=2 killers=6
+   RstbEntryLedger.ARetractionUndoesOnlyTheLatestAccept
+   RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   DECLARED_KILLER RR1 RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun
+MUT LAB1 rc=2 killers=2
+   Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+   RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+   DECLARED_KILLER LAB1 Rf1AcceptableLabel.OnlyTheFailureExitsAreLabelable
+   DECLARED_KILLER LAB1 RstbEntrySeam.TheRefusalAtAnAcceptablePointIsLabelled
+MUT CN1 rc=2 killers=7
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN1 RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+MUT CN2 rc=2 killers=4
+   RstbEntrySeam.AProductiveIntervalClearsTheRun
+   RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   DECLARED_KILLER CN2 RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+MUT CN3 rc=2 killers=5
+   Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit
+   RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+   RstbBudget.OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry
+   RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit
+   RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft
+   DECLARED_KILLER CN3 Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit
+MUT CN4 rc=2 killers=5
+   RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes
+   RstbBudget.OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry
+   RstbBudgetSeam.ABudgetCutTakesTheReductionResume
+   RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit
+   RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft
+   DECLARED_KILLER CN4 RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit
+MUT CN5 rc=2 killers=2
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN5 SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN5 RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+MUT CN5b rc=1 killers=2
+   RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN5b RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel
+   DECLARED_KILLER CN5b SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+MUT CN6 rc=2 killers=5
+   RstbEntrySeam.AnElasticRungAcceptIsProgress
+   RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule
+   RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive
+   RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+   SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN6 SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+   DECLARED_KILLER CN6 RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-25T15:11:05-05:00
+MUT_RC 0 2026-11-25T15:11:05-05:00

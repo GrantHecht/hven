@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..685d54a9c 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6440,7 +6440,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+     if (!allow_restoration_ || !below_entry_cap || !accepted_since_resume || !progress_admissible) {
+         // THE NO-PROGRESS REFUSAL (RST-B): below the cap, a request with no step accepted since
+         // the resume, or one the progress test refuses. The cap outranks it.
+-        const bool no_progress = allow_restoration_ && below_entry_cap;
++        const bool no_progress = false;
+         if (no_progress && !accepted_since_resume) {
+             ++st.out.counters.restoration_no_accept_refusals;
+         }

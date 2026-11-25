@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..9152dbc10 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6781,7 +6781,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+     // kRestorationWorkLimit, the caller's ceiling staying kWorkLimit.
+     const Index total_budget = detail::restoration_total_budget(
+         opts_.advanced.restoration_max_total_factorizations, st.out.counters.factorizations,
+-        st.out.counters.restoration_factorizations);
++        0);
+     bool phase_budget_cut = false;
+     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
+                                bool stop_on_qp_failure) -> SqpResult {

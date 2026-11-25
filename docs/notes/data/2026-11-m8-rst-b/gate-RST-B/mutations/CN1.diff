@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..a48c5c7d8 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -6421,7 +6421,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+         const detail::RestorationEntryVerdict progress =
+             st.resto.progress.judge(opts_.advanced.max_unproductive_restoration_entries);
+         if (progress.tested && !progress.productive) {
+-            ++st.out.counters.restoration_unproductive_entries;
+         }
+         if (!progress.admissible) {
+             ++st.out.counters.restoration_no_progress_requests;

@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..c73fc4d8d 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9367,8 +9367,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         // RST-B F1: a zero-motion exhaustion is a zero-motion termination too (the E2 elastic
+         // route above does not read it).
+         in.dependent_or_zero_motion = q.counters.dep_blocker_terminations > 0 ||
+-                                      q.counters.zero_motion_cap_hits > 0 ||
+-                                      q.counters.zero_motion_exhausted > 0;
++                                      q.counters.zero_motion_cap_hits > 0;
+         in.primal_regularization = opts_.qp.primal_regularization;
+         in.regularization_first = opts_.advanced.qp_retry_regularization_first;
+         return detail::choose_retry_rung(in);

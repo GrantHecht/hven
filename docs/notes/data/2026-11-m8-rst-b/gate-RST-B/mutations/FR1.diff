@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f61bafc8b..f95f5c1d1 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -7313,7 +7313,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
+     // kOptimal keeps its certificate, and a stopped or budget-spent sub-solve
+     // its own exit. The box must hold as it does for the feasible resume.
+     const double box_r = box_violation_l1(x_r, seam.lower(), seam.upper());
+-    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol;
++    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol &&
++                                 st.out.counters.restoration_factorizations < total_budget;
+     // A kOptimal SUB-SOLVE CLAIMS INFEASIBILITY ONLY BEYOND 2 * feas_tol (QC-1; the CERT-1
+     // arm of the switch below has the argument). Read here too, so "certifies nothing" means
+     // one thing in both places.
