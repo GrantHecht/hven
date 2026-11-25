@@ -1,0 +1,9 @@
+x - x*                   = -1.134071e-18   bound 1.0e-12   ok
+|grad L|                 =  6.091596e-12   bound 1.0e-03   ok
+feasibility max(0, c)    =  0.000000e+00   bound 1.0e-12   ok
+lambda >= 0 (-lambda)    = -1.000000e+06   bound 0.0e+00   ok
+|lambda c|               =  1.134071e-12   bound 1.0e-06   ok
+|f_reported - f*|        =  1.134090e-12   bound 1.0e-09   ok
+|f(x) - f*|              =  1.134071e-12   bound 1.0e-09   ok
+EXACT CHECK PASS
+[ b1gate ] S=0x1.e848p+19 eps=0x1.ad7f29abcaf48p-21 x=0x1.ad7f29abc8571p-21 lambda=0x1.e847fffffe528p+19 z=0x0p+0 f=-0x1.999999999667p-1
