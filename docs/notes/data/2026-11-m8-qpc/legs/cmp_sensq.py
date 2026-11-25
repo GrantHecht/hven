@@ -8,7 +8,9 @@
                                          difference outside the declared-mover rule, 0 otherwise.
   cmp_sensq.py vqp X.csv pinned.tsv   -- V-QP: every kOptimal (status 0) row re-checked from the grid's INDEPENDENT readings:
                                          d_rows <= 10 feas_tol, d_product_local (each term over its row's local dual scale,
-                                         settler C567) <= 100 feas_tol, d_off_working == 0, k_stationarity_beyond_rounding
+                                         settler C567) <= 100 feas_tol, d_off_working == 0, d_pslack_rel (the slack of
+                                         working rows / pinned bounds under a non-rounding-zero multiplier, settler C568)
+                                         <= 100 feas_tol, k_stationarity_beyond_rounding
                                          (qp_dump_kkt, rounding floor c_i u m_i) <= 10 opt_tol, k_sign <= opt_tol (the dump's
                                          own tolerances), and |f - f*| within pinned.tsv's per-cell tolerance (the pinning test's own bound). A NaN
                                          fails. The NORMWISE stationarity d_stationarity is a REPORTED column (printed per
@@ -23,7 +25,8 @@
                                          UNSCALED product d_product > 100 feas_tol, with d_rows/ftol, the worst term's kind
                                          and index, its slack in ftol (d_worst_rel / ftol), its multiplier over its local
                                          scale, and its local product in ftol; flags FOOTPRINT-SLACK where the slack exceeds
-                                         100 ftol. rc 0 always (a reading, not a verdict).
+                                         100 ftol; and every kOptimal row with d_pslack_rel > 100 ftol (M1-PRICED-SLACK,
+                                         the C568 slack test's subject; 0 expected at H). rc 0 always (a reading).
 """
 import csv
 import math
@@ -113,7 +116,7 @@ def vqp_failures(key, r, pinned):
     g = lambda c: float(r[c])
     ftol, otol = g("feas_tol"), g("opt_tol")
     checks = [("d_rows", g("d_rows"), 10 * ftol), ("d_product_local", g("d_product_local"), 100 * ftol),
-              ("d_off_working", g("d_off_working"), 0.0),
+              ("d_off_working", g("d_off_working"), 0.0), ("d_pslack_rel", g("d_pslack_rel"), 100 * ftol),
               ("k_stationarity_beyond_rounding", g("k_stationarity_beyond_rounding"), 10 * otol),
               ("k_sign", g("k_sign"), otol)]
     if key[0] in pinned:
@@ -147,13 +150,16 @@ def honest(rp, ap, pinned_path):
 
 def m1(xp):
     X = load(xp)
-    n_opt = n_hit = n_foot = n_foot_any = 0
+    n_opt = n_hit = n_foot = n_foot_any = n_pslack = 0
     for key, r in sorted(X.items()):
         if r["status"] != "0":
             continue
         n_opt += 1
         g = lambda c: float(r[c])
         ftol = g("feas_tol")
+        if g("d_pslack_rel") / ftol > 100.0 or g("d_pslack_rel") != g("d_pslack_rel"):
+            print(f"M1-PRICED-SLACK {key[0]} {key[1]} pslack/ftol={g('d_pslack_rel') / ftol:.3e}")
+            n_pslack += 1
         big_slack = g("d_slack_rel") / ftol
         if big_slack > 100.0:
             print(f"M1-SLACK {key[0]} {key[1]} term={r['d_slack_kind']}{r['d_slack_index']} slack/ftol={big_slack:.3e} "
@@ -172,7 +178,7 @@ def m1(xp):
               f"local={loc:.3e} mult/local={g('d_worst_mult') / loc if loc > 0 else float('nan'):.3e} "
               f"local_product/ftol={g('d_product_local') / ftol:.3e}{' FOOTPRINT-SLACK' if foot else ''}")
     print(f"M1 kOptimal={n_opt} unscaled>100ftol={n_hit} footprint_slack_on_worst_term(>100ftol)={n_foot} "
-          f"any_priced_term_slack>100ftol={n_foot_any}")
+          f"any_priced_term_slack>100ftol={n_foot_any} non_rounding_zero_slack>100ftol={n_pslack}")
     return 0
 
 

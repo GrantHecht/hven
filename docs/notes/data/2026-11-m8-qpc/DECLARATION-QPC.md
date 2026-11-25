@@ -50,7 +50,8 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
   gray-row returns, `detail::certificate_reading` is read on the point and multipliers about to be exported, from the
   QP's own data. Certified iff
   `rows <= 10 * feas_tol` AND `product <= 100 * feas_tol` (each term over its row's LOCAL dual scale, settler C567) AND
-  `stationarity_beyond_rounding <= 10 * opt_tol` (C553 Q3) AND `off_working == 0` (pre-freeze review S2) AND the
+  `stationarity_beyond_rounding <= 10 * opt_tol` (C553 Q3) AND `slack <= 100 * feas_tol` (settler C568) AND
+  `off_working == 0` (pre-freeze review S2) AND the
   exported x, lambda_e, lambda_i, z are finite; every reduction is NaN-sticky (review S8), so a NaN anywhere -- in the
   exported vectors or in the QP's data -- refuses; otherwise kNumericalError, `certificate_gate_refusals`.
   Norms and scalings (and why):
@@ -87,6 +88,16 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
     on the EXPORTED (x, lambda) so every term of the certificate is read last, from the QP's data, on what leaves the
     engine. The rounding floor is taken out because a normwise residual can sit beneath what double resolves where large
     terms cancel (SAWPATH's rung: terms of 2.4e13 summing to 3.6e2; the normwise draft refused it, section 7);
+  - slack (settler C568) = max over WORKING inequality rows and pinned bounds j whose multiplier is NOT ROUNDING-ZERO of
+    |residual_j| / row_scale_j, where rounding-zero means |multiplier_j| * ||a_j||inf <= 100 * u * s_j (s_j the local
+    dual scale above, u = eps/2; a pinned bound: ||a||inf = 1, s = t_i; a NaN multiplier counts as priced); 100 feas_tol.
+    Any product-type scaling lets a multiplier small against its own columns' stationarity terms excuse up to footprint
+    slack, and TRAIN-238 reaches it: HS101 sqp-qn certified three exits with its working inequality I2 held 471-578
+    feas_tol slack under lambda 100 / 1000 against s = 1.3e5 (row-local product 0.44-4.2 feas_tol). The slack test is in
+    row units on one side and local-scale units on the other, so it is invariant to the objective's scaling; the
+    rounding-zero exemption keeps weakly active rows whose multiplier double cannot resolve on their columns (CRESC4:
+    lambda ~ 1e-21 against s ~ 161, slack 9.4e6 / 6.5e7 feas_tol). Equality rows need none: the rows reading holds them
+    two-sided at 10 feas_tol. The row-local product test stays;
   - off_working = the largest |lambda_i,j| on a non-working row and |z_i| on a free variable; the pricing writes exact
     zeros there and no other reading looks at those entries, so a nonzero one would leave the engine unread: required
     exactly 0 (review S2);
@@ -98,15 +109,17 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
 
 **What C2 guarantees, and its limitation (stated, settler C567).** A kOptimal exit requires, on the exported (x,
 lambda, z) and the QP's data: (i) every row and bound within 10 feas_tol relative, (ii) every equality row, working row
-and pinned bound's residual*multiplier product within 100 feas_tol of its OWN columns' dual scale, (iii) free-block
+and pinned bound's residual*multiplier product within 100 feas_tol of its OWN columns' dual scale, (ii') every working
+row and pinned bound whose multiplier is not rounding-zero within 100 feas_tol (relative) of its bound, (iii) free-block
 stationarity beyond rounding within 10 opt_tol of the global stationarity scale (and normwise within 1x on the pass's
 point by the KKT-point test), (iv) no nonzero multiplier off the working set, (v) finite vectors and no NaN anywhere in
 the reading, and (vi) multiplier signs within opt_tol*scale (sign half). No term contains dual_mu or primal_delta, and
 the reading is computed after the last mutation of x and the multipliers. These are RELATIVE bounds, not a proof that
-the exported point is the QP's solution: (ii) lets a row priced at a small fraction of the gradient magnitude on its
-own columns stand off its row by up to 100 feas_tol * s_j / |multiplier_j| (relative), so the objective error a slack
-row can carry past (i)-(vi) is bounded by about 100 feas_tol * s_j * row_scale_j per row -- small against the local
-gradient terms, but not zero and not bounded by the footprint; and (iii)'s scale is global, as the upstream KKT-point
+the exported point is the QP's solution: (ii') bounds a priced working row's or pinned bound's slack by 100 feas_tol
+of its row scale, so the objective error a slack constraint carries past (i)-(vi) is at most about
+|multiplier_j| * 100 feas_tol * row_scale_j per constraint, and a rounding-zero multiplier carries at most
+100 u s_j / ||a_j||inf times its slack; (before C568, (ii) alone let a row priced at a small fraction of the gradient
+magnitude on its columns stand off by up to 100 feas_tol * s_j / |multiplier_j|, which HS101 reached); and (iii)'s scale is global, as the upstream KKT-point
 test's is, so a decoupled block with large gradient terms widens the stationarity tolerance of every free column
 (the analogue of the review's F-SLACK for stationarity; not reached by any fixture or development reading of this
 round, section 4). The round's evidence that no false certificate leaves under these bounds is empirical: the
@@ -245,7 +258,30 @@ the GATE, not of an arm's outcome).** At H (development build, Release), every c
 exceeds 100 feas_tol, on SENS-Q (the grid, `cmp_sensq.py m1`) and on TRAIN-238 member 0 (an env-gated, never-committed
 diagnostic print at the gate, `legs/` not involved), with its rows reading, the worst term's slack in feas_tol and its
 multiplier over its local scale; and every certified exit carrying a priced term with slack past 100 feas_tol
-(footprint-level). ⟨M1 reading⟩
+(footprint-level).
+  *Row-local gate (962dc1b6e, before C568):* SENS-Q 0 / 0 (both algebras). TRAIN-238 member 0: 14,177 certified / 50
+  refused exits; 230 certified with unscaled product > 100 feas_tol over 24 cells (worst slack <= 1 feas_tol in 209,
+  1-10 in 18); 5 with a priced term's slack > 100 feas_tol: CRESC4-default x2 (slack 9.4e6 / 6.5e7 feas_tol under
+  lambda 8.8e-22 / 5.7e-21, local scale 161: rounding-zero) and HS101-sqp-qn x3 (working inequality I2 471-578 feas_tol
+  slack under lambda 100 / 1000, local scale 1.3e5, row-local product 0.44-4.2 feas_tol: FOOTPRINT-LEVEL slack under a
+  certified exit) -> settler C568, the slack test (section 1).
+  *With the slack test (6f404ee99; diagnostic build bb97de24f, local, never pushed):* SENS-Q: N0 1 mover (PF1)
+  0 differences; V-QP 0 failures (the slack check d_pslack_rel included) under R and H, both algebras; V-HONEST 54 / 54,
+  0 exceptions; certified exits with slack > 100 feas_tol under a non-rounding-zero multiplier: 0. TRAIN-238 member 0:
+  12,698 certified / 51 refused; certified exits with a non-rounding-zero multiplier's slack > 100 feas_tol: **0**;
+  slack > 100 feas_tol under any nonzero multiplier: 2, both CRESC4's rounding-zero rows above (exempt, pslack 0).
+  Refusals by cell are unchanged but for HS101-sqp-qn (0 -> 1: its first footprint-slack exit, I2 578 feas_tol under
+  lambda 100); the only cell whose outcome moved is HS101-sqp-qn (section 7).
+  *hs025 / hs033 (both options) fail --assert-reference under H: PRE-EXISTING, not a QPC effect (settler C568).* R
+  (census TRAIN-238 H0 member 0, lane 7d2f9f37) and H end at BYTE-IDENTICAL point dumps (hven-bench --dump-point) with
+  identical status, iterations and objective in all four cells. Independent reading (exact rationals for HS33, 60-digit
+  decimal for HS25, from the published formulas): hs025's end point is the start (100, 12.5, 3), f 32.834999999663587,
+  projected gradient 2.0e-8 (6.1e-10 relative to |f|) -- the battery's documented trap (every exponential <= 1.5e-10 at
+  the start); its reference f* = 0 at (50, 25, 1.5) is exact (f 1.5e-118 in 60 digits). hs033's end point is (0, 0, 2),
+  a first-order KKT point (lambda_2 = 0.25, z = (11, 0), stationarity 0, complementarity 2.6e-11 / 4.4e-16) with the x2
+  bound weakly active and d'H_L d = -0.5 along d = (0, 1, 0) in the critical cone -- a saddle, not a minimizer; its
+  reference (0, sqrt2, sqrt2), f -4.5858, is a KKT point (lambda = 0.1768 on both rows, z1 = 11). Both are
+  local-point / reference issues of the engine at R, recorded, not caused by this round.
 ## 5. The ship rule (fixed here, before any row)
 
 ### 5.1 Currencies and cell rule
@@ -443,6 +479,8 @@ fixtures) fail, and every mover's new pin holds. Every mover is C2's; C1 moves n
 | SqpSolverRestorationSeed ...SeedOfferIsNotGated...DenseArm, ...ExhaustedLadderSite...DenseArm, ...AJacobianPoisonedCandidate...DenseArm | the dense arm's take rode a QP certified 477 feas_tol off its equality rows (the circle-line linearization is inconsistent; dual_mu's footprint held the rows), scaled product 909 feas_tol | correct new behaviour; declared moves: the dense arm now reads the kNever arm's route (no take in any mode or config -- Debug's ssn/ipm takes went too; the ladder's exhaustion; no k reaches the Jacobian screen -- that demonstration is lost on this model, stated; the screen's safety half and mutant M7's kill stay); the certified infeasibility answer unchanged |
 | SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce{,DenseArm,UnderTheDefaultPlusProbe} | the same refusal removes the take from (2, 2) on both arms; a 48-start scan shows the take on both arms at (3, 1.5) in Release with no refusal, but in Debug the route meets the refused certificate at 47 of 48 starts | declared moves: FIXTURE START (2, 2) -> (3, 1.5); the take and its counts (evals_full 28 -> 30, evals_values 36/37 -> 21; probe arm +1) asserted in RELEASE only, Debug records the route; the partition (the subject) asserted in both. **DECLARED LOST COVERAGE (pre-freeze review S3):** the in-place upgrade is exercised by the Release build alone (the 48-start scan found no Debug start that takes without meeting a refused certificate) |
 | SqpSolverAdaptiveMu.MuScheduleIsQuantizedAndMonotoneDenseArm (Debug only; a mover the first build's Release-only ctest could not see) | Debug's dense route met a QP certified 49 feas_tol off its equality row (ScaledRowModel, a = 1e-3; QP feas_tol 1e-9) | correct new behaviour; declared move: the dense arm's Debug decade drop is gone (mu held, as Release and kNever). **DECLARED LOST COVERAGE (pre-freeze review S5):** no arm of this test drops mu any more, so its "the loop refactorizes on a mu change" claim is vacuous on every build; the claim is not exercised by this fixture after QPC |
+| TRAIN-238 HS101 sqp-qn (development reading, member 0; the slack test's mover, settler C568) | the first footprint-slack exit (working inequality I2 578 feas_tol slack under lambda 100, local scale 1.3e5, row-local product 0.44 feas_tol) is refused by the slack test | correct new behaviour, and the downstream effect is a gain: R (census member 0) and the row-local H ended optimal at f 1809.7647657932057 in 270 majors / 11,826 factorizations / 278 f-evals; with the slack test optimal at the BIT-IDENTICAL f in 63 majors / 123 factorizations / 64 f-evals, stationarity 2.3e-7 (was 8.7e-7). Registered for QPD (C568): HS101-I2 is a walk-quality case -- the honest remedy is to finish the walk, not certify it |
+| SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused (NEW, review M3) | AJacobianPoisonedCandidate... no longer reaches the Jacobian screen at H (the h guard refuses first), so mutant M7 survived both arms; the separated restoration model's radius-floor candidate is TAKEN by the clean guard on every build, and poisoning the candidate's in-place derivative upgrade (the first sub-start Jacobian fetch below h(start)) makes the screen the only refuser | the screen is reached and refuses (seeded 0, the phase runs from the requesting iterate, no non-finite subproblem, kInfeasible) on both dense policies; Q41 (= M7) killed by it |
 | Threads.ZeroLeavesEveryFactorAtTheBackendDefault, Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration | the restoration leg's last walk QP is the same 477-feas_tol refusal, so no hot handle is emitted (the handle exists only after a kOptimal last walk solve) | correct new behaviour; the reference build now reads what Debug and Accelerate already did. **Pre-freeze review S4:** on the reference route (Release and Debug) the absence of the handle and the refusal are ASSERTED, so a route that flips back to a certified last solve fails the test (and the K0 read can be reinstated); off the reference route the K0 count is read when a handle exists. **DECLARED LOST COVERAGE:** the restoration route's parent K0 read is observed by no build on this model; the walk tier's K0 read on HS76 is unchanged |
 
 Development leg-C readings at the post-diagnosis tree (the code commit below; development, NOT evidence): Release 4264 of 4264, Debug 4264 of 4264 (1 skipped and 2 disabled by design in both).
@@ -452,7 +490,8 @@ Development leg-C readings at the post-diagnosis tree (the code commit below; de
 Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), run by `legs/mutations_qpc.sh` on
 `hven_qp_seam_tests` (`QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*`),
 `hven_qp_tests` (`EqpSolve*:EqpConvergedRefinement.*`), `hven_sqp_tests`
-(`B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*`) and
+(`B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*:`
+`SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused`) and
 `hven_sqp_seam_tests` (`SqpQpcFold.*`, the fold fixtures). The runner checks, before any build, that the table's ids equal
 the script's (`ID_PARITY_FAIL`) and that the ARGUED set below equals its own (`ARGUED_PARITY_FAIL`); after the run, that
 every killer named below for a must-kill id is among that id's observed killers (`KILLER_PARITY_FAIL`; `Suite.*` = any
@@ -495,6 +534,12 @@ test of the suite). Killers are named from the development dry run ⟨tree⟩; l
 | Q33 | the fold missing at the restoration-phase site | ⟨⟩ |
 | Q34 | the fold missing at the iteration-limit retry site | ⟨⟩ |
 | Q35 | the fold missing at the SOC re-solve site | ⟨⟩ |
+| Q36 | the slack disjunct dropped from the verdict (settler C568) | ⟨⟩ |
+| Q37 | the rounding-zero exemption dropped (every nonzero multiplier priced) | ⟨⟩ |
+| Q38 | the pinned bounds' slack not read | ⟨⟩ |
+| Q39 | the working rows' slack not read | ⟨⟩ |
+| Q40 | slack factor 100 -> 1000 | ⟨⟩ |
+| Q41 | the seed guard's Jacobian screen passes everything (`jacobian_values_finite` returns true; RS-6b-r2 mutant M7; review M3) | ⟨⟩ |
 
 ARGUED (the runner's set, parity-checked): Q17.
 

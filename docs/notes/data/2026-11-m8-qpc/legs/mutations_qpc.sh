@@ -41,8 +41,8 @@ TARGETS="hven_qp_seam_tests hven_qp_tests hven_sqp_tests hven_sqp_seam_tests"
 SEAM_FILTER='QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*'
 UNIT_FILTER='EqpSolve*:EqpConvergedRefinement.*'
 # The SQP fold of the two counters (Q18) is seen only through a driver: B1Gate's watchdog fixture asserts the folded
-# certificate_gate_refusals of its major-0 QP.
-SQP_FILTER='B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*'
+# certificate_gate_refusals of its major-0 QP. Q41 (the seed guard's Jacobian screen): the poisoned-seed fixture.
+SQP_FILTER='B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*:SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused'
 # The four other fold sites (Q32-Q35): the gate-seam fixtures of hven_sqp_seam_tests.
 SQP_SEAM_FILTER='SqpQpcFold.*'
 run_one() { local id=$1 r1 r2 r3 r4

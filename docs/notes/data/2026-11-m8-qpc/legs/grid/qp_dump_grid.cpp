@@ -27,6 +27,9 @@
 //     its relative residual/slack, |multiplier| and local dual scale (DECLARATION section 4, M1).
 //   d_slack_kind, d_slack_index, d_slack_rel, d_slack_mult, d_slack_local -- the same for the term with the largest
 //     RELATIVE residual/slack among those carrying a nonzero multiplier.
+//   d_pslack_rel -- the gate's SLACK reading (settler C568), recomputed: the largest relative residual/slack over
+//     working inequalities and pinned bounds whose multiplier is not rounding-zero, |mult| ||a||inf > 100 u s
+//     (s the local dual scale above, u = eps/2; a NaN multiplier is priced). Appended last.
 //   k_eq, k_ineq, k_box, k_stationarity, k_stationarity_beyond_rounding, k_sign, k_compl, k_scale --
 //     tests/qp/support/qp_dump.h's qp_dump_kkt (absolute primal terms, TR-aware);
 //   feas_tol, opt_tol -- the dump's own tolerances (the verdict thresholds' units).
@@ -230,6 +233,7 @@ struct DataHalf {
     char slack_kind = '-';
     long long slack_index = -1;
     double slack_rel = 0.0, slack_mult = 0.0, slack_local = 0.0;
+    double pslack_rel = 0.0;
 };
 
 DataHalf data_half(const QpDump &d, const QpSolution &s) {
@@ -262,7 +266,11 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
     for (Index i = 0; i < n; ++i) {
         t(i) = nmax(nmax(nmax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), have_z ? std::abs(s.z(i)) : 0.0);
     }
-    const auto term = [&](char kind, Index idx, double rel, double mult, double local) {
+    const auto term = [&](char kind, Index idx, double rel, double mult, double local, double ninf = 1.0) {
+        constexpr double kRoundingZero = 100.0 * 0.5 * std::numeric_limits<double>::epsilon();
+        if (kind != 'E' && !(mult * ninf <= kRoundingZero * local)) {
+            r.pslack_rel = nmax(r.pslack_rel, rel);
+        }
         const double unscaled = rel * mult;
         if (std::isnan(unscaled) || unscaled > r.product || (r.worst_kind == '-' && unscaled > 0.0)) {
             r.worst_kind = kind; r.worst_index = idx; r.worst_rel = rel; r.worst_mult = mult; r.worst_local = local;
@@ -273,12 +281,17 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
         r.product = nmax(r.product, unscaled);
         r.product_local = nmax(r.product_local, unscaled == 0.0 ? 0.0 : unscaled / local);
     };
+    const auto row_ninf = [&](const Eigen::MatrixXd &A, Index j) {
+        double ninf = 0.0;
+        for (Index i = 0; i < n; ++i) ninf = nmax(ninf, std::abs(A(j, i)));
+        return ninf;
+    };
     const auto row_local = [&](const Eigen::MatrixXd &A, Index j, double mult) {
-        double loc = 0.0, ninf = 0.0;
+        double loc = 0.0;
         for (Index i = 0; i < n; ++i) {
-            if (A(j, i) != 0.0) { loc = nmax(loc, t(i)); ninf = nmax(ninf, std::abs(A(j, i))); }
+            if (A(j, i) != 0.0) loc = nmax(loc, t(i));
         }
-        return nmax(loc, mult * ninf);
+        return nmax(loc, mult * row_ninf(A, j));
     };
     if (qp.me() > 0) {
         const Vec res = Ae * s.x - qp.be;
@@ -298,7 +311,7 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
             const bool active = static_cast<std::size_t>(j) < s.ineq_active.size() && s.ineq_active[static_cast<std::size_t>(j)];
             const double mult = have_li ? std::abs(s.lambda_i(j)) : 0.0;
             if (active) {
-                term('I', j, std::abs(res(j)) / rs, mult, row_local(Ai, j, mult));
+                term('I', j, std::abs(res(j)) / rs, mult, row_local(Ai, j, mult), row_ninf(Ai, j));
             } else {
                 r.off_working = nmax(r.off_working, mult);
             }
@@ -377,7 +390,7 @@ int main(int argc, char **argv) {
         h += ",converged_refinement_arms,certificate_gate_refusals,d_rows,d_product,d_product_local,d_stationarity,"
              "k_eq,k_ineq,k_box,k_stationarity,k_stationarity_beyond_rounding,k_sign,k_compl,k_scale,"
              "feas_tol,opt_tol,d_off_working,d_worst_kind,d_worst_index,d_worst_rel,d_worst_mult,d_worst_local,"
-             "d_slack_kind,d_slack_index,d_slack_rel,d_slack_mult,d_slack_local";
+             "d_slack_kind,d_slack_index,d_slack_rel,d_slack_mult,d_slack_local,d_pslack_rel";
         std::fprintf(out, "%s\n", h.c_str());
     }
     const char *base = std::strrchr(file.c_str(), '/');
@@ -401,7 +414,7 @@ int main(int argc, char **argv) {
         row += "," + decd(v);
     }
     row += std::string(",") + dh.slack_kind + "," + std::to_string(dh.slack_index);
-    for (const double v : {dh.slack_rel, dh.slack_mult, dh.slack_local}) {
+    for (const double v : {dh.slack_rel, dh.slack_mult, dh.slack_local, dh.pslack_rel}) {
         row += "," + decd(v);
     }
     std::fprintf(out, "%s\n", row.c_str());

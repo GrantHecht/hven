@@ -20,7 +20,7 @@ GATE = ("                            bool holds = detail::certificate_data_half_
 HOLDS = ("    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n"
          "           r.product <= kCertificateGateComplFactor * feas_tol &&\n"
          "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&\n"
-         "           r.off_working == 0.0;")
+         "           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;")
 STICKY = "    const auto smax = [](double acc, double v) { return detail::nan_sticky_max(acc, v); };"
 PLAIN = "    const auto smax = [](double acc, double v) { return v > acc ? v : acc; };"
 ARM = "            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {\n            ++counters.converged_refinement_arms;\n            eqp_refinement_ = EqpRefinement::kConverged;\n        }"
@@ -38,7 +38,7 @@ MUT = {
     "Q6": [(WH, HOLDS, "    return r.finite && !(r.rows > kCertificateGateRowFactor * feas_tol) &&\n"
                        "           !(r.product > kCertificateGateComplFactor * feas_tol) &&\n"
                        "           !(r.stationarity_beyond_rounding > kCertificateGateStationarityFactor * opt_tol) &&\n"
-                       "           !(r.off_working > 0.0);", 1)],
+                       "           !(r.slack > kCertificateGateSlackFactor * feas_tol) && !(r.off_working > 0.0);", 1)],
     "Q7": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
                "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kInfeasible;", 1)],
     "Q8": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
@@ -68,7 +68,7 @@ MUT = {
     # ---- C2, settler C553 Q3: stationarity re-read on the exported point; the finiteness guard ----
     "Q20": [(WH, HOLDS, "    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n"
                         "           r.product <= kCertificateGateComplFactor * feas_tol &&\n"
-                        "           r.off_working == 0.0;", 1)],
+                        "           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;", 1)],
     "Q21": [(WH, "    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n",
                  "    return r.rows <= kCertificateGateRowFactor * feas_tol &&\n", 1)],
     # ---- C2, the product's scale (C553 Q5 defect fix; settler C567 row-local scale) --------------
@@ -83,9 +83,8 @@ MUT = {
                  "                smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));\n",
                  "            (void)at;\n", 1)],
     # ---- C2, pre-freeze review S2 / S8 / S1 -------------------------------------------------------
-    "Q28": [(WH, "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&\n"
-                 "           r.off_working == 0.0;",
-                 "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol;", 1)],
+    "Q28": [(WH, "           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;",
+                 "           r.slack <= kCertificateGateSlackFactor * feas_tol;", 1)],
     "Q29": [(WH, STICKY, PLAIN, 1)],
     "Q30": [(WH, "        constexpr double kUnitRoundoff = 0.5 * std::numeric_limits<double>::epsilon();",
                  "        constexpr double kUnitRoundoff = std::numeric_limits<double>::epsilon();", 1)],
@@ -101,6 +100,19 @@ MUT = {
                 "        st.out.counters.certificate_gate_refusals += retried.counters.certificate_gate_refusals;\n", "", 1)],
     "Q35": [(S, "        st.out.counters.converged_refinement_arms += mj.qs_soc.counters.converged_refinement_arms;\n"
                 "        st.out.counters.certificate_gate_refusals += mj.qs_soc.counters.certificate_gate_refusals;\n", "", 1)],
+    # ---- C2, settler C568: the SLACK test ---------------------------------------------------------
+    "Q36": [(WH, "           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;",
+                 "           r.off_working == 0.0;", 1)],
+    "Q37": [(WH, "        return !(std::abs(mult) * norm_inf <= kRoundingZero * local_scale);",
+                 "        return !(std::abs(mult) * norm_inf <= 0.0 * kRoundingZero * local_scale);", 1)],
+    "Q38": [(WH, "            if (priced(z(i), 1.0, t(i))) {\n                out.slack = smax(out.slack, std::abs(x(i) - at) / row_scale);\n            }\n",
+                 "", 1)],
+    "Q39": [(WH, "            if (read_slack && priced(mult, norm_inf, local)) {\n                out.slack = smax(out.slack, std::abs(resid(j)) / row_scale);\n            }\n",
+                 "            (void)read_slack;\n", 1)],
+    "Q40": [(WH, "constexpr double kCertificateGateSlackFactor = 100.0;", "constexpr double kCertificateGateSlackFactor = 1000.0;", 1)],
+    # ---- the restoration seed guard's Jacobian screen (RS-6b-r2 mutant M7; review M3, settler C568) --
+    "Q41": [(S, "bool jacobian_values_finite(const NlpEval &ev) {\n",
+                "bool jacobian_values_finite(const NlpEval &ev) {\n    return true; // MUTANT Q41 (M7)\n", 1)],
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
