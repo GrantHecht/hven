@@ -80,4 +80,5 @@ hven_add_seam_executable(hven_sqp_seam_tests
     WHOLE_LIBRARY
     SOURCES
         seam/test_sqp_equality_basis_seams.cpp
-        seam/test_sqp_ladder_seams.cpp)
+        seam/test_sqp_ladder_seams.cpp
+        seam/test_sqp_qpc_fold_seams.cpp)
