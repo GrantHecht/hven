@@ -51,6 +51,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -5020,9 +5021,11 @@ TEST(RstbEntrySeam, ARolledBackAcceptIsNoRestorationProgress) {
         }
         EXPECT_EQ(sol.status, SolveStatus::kStalled);
         EXPECT_FALSE(sol.infeasibility_certified);
-        EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1) << "the interval's accepts were rolled back";
+        EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1)
+            << "the interval's accepts were rolled back";
         EXPECT_GE(sol.counters.restoration_entries, 1);
-        EXPECT_GE(sol.counters.restoration_unproductive_entries, 1) << "the interval fed the unproductive count";
+        EXPECT_GE(sol.counters.restoration_unproductive_entries, 1)
+            << "the interval fed the unproductive count";
         EXPECT_GE(sol.counters.restoration_no_progress_requests, 1);
     }
     EXPECT_GE(refused_k, 0) << "no k in [3, 40) reaches the refusal: the premise moved";
@@ -5073,8 +5076,90 @@ TEST(RstbEntrySeam, ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule) {
             << "the rolled-back accepts stay in the public counter";
         EXPECT_EQ(sol.counters.restoration_no_progress_requests, 0)
             << "the progress test is off: the refusal is the entry rule's";
+        EXPECT_EQ(sol.counters.restoration_no_accept_refusals, 1)
+            << "and counted as the entry rule's";
+        EXPECT_TRUE(std::isfinite(sol.counters.restoration_refusal_feasibility));
     }
     EXPECT_GE(refused_k, 0) << "no k in [3, 40) reaches the entry-rule refusal: the premise moved";
+}
+
+// RST-B B2 -- THE CUMULATIVE RESTORATION BUDGET ACROSS ENTRIES, on the steep valley (two
+// restoration entries, both resumed, both factorizing). The per-entry spend is MEASURED, not
+// pinned: F1 is the first phase's (the same solve with the entry cap at one, whose second request
+// is refused before its phase), F2 = the free run's total less F1. A configured budget B is then
+// placed so that only the cumulative reading cuts the second phase.
+namespace {
+SqpResult steep_valley_solve(std::optional<Index> budget, Index cap = 10) {
+    SteepRunawayValleyModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 300;
+    opts.advanced.max_restoration_entries = cap;
+    opts.advanced.restoration_max_total_factorizations = budget;
+    return SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
+}
+void print_budget_run(const char *tag, const SqpResult &r) {
+    std::printf("[ rstb ] %s: status=%s reason=%s entries=%ld resto_facts=%ld facts=%ld cuts=%ld "
+                "reduction_resumes=%ld h_out=%.3e feas_out=%.3e\n",
+                tag, std::string(to_string(r.status)).c_str(),
+                std::string(to_string(r.stop_reason)).c_str(),
+                static_cast<long>(r.counters.restoration_entries),
+                static_cast<long>(r.counters.restoration_factorizations),
+                static_cast<long>(r.counters.factorizations),
+                static_cast<long>(r.counters.restoration_budget_cuts),
+                static_cast<long>(r.counters.restoration_reduction_resumes),
+                r.counters.restoration_h_out, r.counters.restoration_feas_out);
+}
+struct ValleySpend {
+    Index f1 = 0;
+    Index f2 = 0;
+};
+ValleySpend measure_valley_spend() {
+    const SqpResult free_run = steep_valley_solve(std::nullopt);
+    const SqpResult first_only = steep_valley_solve(std::nullopt, 1);
+    print_budget_run("free", free_run);
+    print_budget_run("first-only", first_only);
+    EXPECT_EQ(free_run.counters.restoration_entries, 2) << "fixture premise: two entries";
+    EXPECT_EQ(free_run.counters.restoration_budget_cuts, 0) << "the derived budget never binds";
+    EXPECT_EQ(free_run.counters.restoration_refusal_feasibility,
+              std::numeric_limits<double>::infinity())
+        << "no request refused: absent";
+    EXPECT_EQ(first_only.counters.restoration_entries, 1);
+    ValleySpend s;
+    s.f1 = first_only.counters.restoration_factorizations;
+    s.f2 = free_run.counters.restoration_factorizations - s.f1;
+    return s;
+}
+} // namespace
+
+// The second entry is handed what is LEFT of the budget, B - F1, not B: with F1 < B and
+// F2 <= B < F1 + F2 the first phase runs whole and only the cumulative reading cuts the second.
+TEST(RstbBudget, TheSecondEntryGetsOnlyWhatTheFirstLeft) {
+    const ValleySpend s = measure_valley_spend();
+    ASSERT_GE(s.f1, 1) << "fixture premise: the first phase factorizes";
+    ASSERT_GE(s.f2, 2) << "fixture premise: the second phase factorizes more than once";
+    const Index budget = std::max(s.f1 + 1, s.f2);
+    ASSERT_LT(budget, s.f1 + s.f2);
+    const SqpResult cut = steep_valley_solve(budget);
+    print_budget_run("cumulative", cut);
+    EXPECT_EQ(cut.counters.restoration_entries, 2);
+    EXPECT_EQ(cut.counters.restoration_budget_cuts, 1) << "the second run only";
+    EXPECT_LT(cut.counters.restoration_factorizations, s.f1 + s.f2);
+    EXPECT_FALSE(cut.infeasibility_certified);
+}
+
+// A later entry with NOTHING left (B = F1): its phase is handed zero factorizations, is cut at
+// its first exit test, and spends none; the cut is counted.
+TEST(RstbBudget, ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes) {
+    const ValleySpend s = measure_valley_spend();
+    ASSERT_GE(s.f1, 1);
+    ASSERT_GE(s.f2, 1);
+    const SqpResult cut = steep_valley_solve(s.f1);
+    print_budget_run("zero-left", cut);
+    EXPECT_EQ(cut.counters.restoration_entries, 2);
+    EXPECT_EQ(cut.counters.restoration_budget_cuts, 1);
+    EXPECT_EQ(cut.counters.restoration_factorizations, s.f1) << "the second phase spent nothing";
+    EXPECT_FALSE(cut.infeasibility_certified);
 }
 
 TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {

@@ -402,7 +402,16 @@ one of those three therefore cannot silently miss the trace.
   subproblem's own step does not count -- whether serviced or refused.
   `restoration_no_progress_requests` counts the later requests the progress test
   across entries finds inadmissible (`SqpOptions::max_unproductive_restoration_entries`),
-  whether or not it refused them. None of the three folds: the sub-solve never restores.
+  whether or not it refused them. `restoration_budget_cuts` counts the phase runs the
+  cumulative restoration budget (`SqpOptions::restoration_max_total_factorizations`)
+  ended where it, not the caller's own ceiling, was the smaller bound, whether the entry
+  then resumed or ended the solve. `restoration_no_accept_refusals` counts the later
+  requests below the entry cap refused because no step accepted since the last resume was
+  kept (a rolled-back accept is not kept); the progress test may refuse the same request
+  too, so a `restoration_no_progress` exit with this counter at 0 is the progress test's.
+  `restoration_refusal_feasibility` is the convergence test's feasibility measure at the
+  request the solve refused under the entry cap, the entry rule or the progress test, and
+  is absent (`null`) when none was. None of these folds: the sub-solve never restores.
 
   **THE CURVATURE-SOURCE GROUP** (M7 QN stage 3, appended last: `eval_hess_calls`
   and thirteen `qn_*` fields; `qn_nonpd_seen` appended after them at the QN

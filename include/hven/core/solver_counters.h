@@ -860,8 +860,9 @@ struct SsnCounters {
 // Absence is `null`, never a value, and that needs a per-FIELD answer: a
 // counter's own doc says whether a reading is a value or a sentinel. These
 // predicates are that answer, carried IN the table so the serializer has no
-// special cases. Three fields are absent-capable: `ipqp_alpha_p_min` and
-// `ipqp_alpha_d_min` at `+infinity`, and `ipqp_tier_retired_after` at `0`.
+// special cases. Four fields are absent-capable: `ipqp_alpha_p_min`,
+// `ipqp_alpha_d_min` and `restoration_refusal_feasibility` at `+infinity`, and
+// `ipqp_tier_retired_after` at `0`.
 // `ipqp_final_inertia_read`'s `3` is NOT one -- it is a categorical outcome the
 // census depends on.
 inline bool counter_never_absent(Index) { return false; }
@@ -2571,6 +2572,20 @@ struct SqpCounters {
     /// SqpAdvancedOptions::max_unproductive_restoration_entries. Counted whether or not the
     /// request was refused (a request the entry cap refuses first is counted too).
     Index restoration_no_progress_requests = 0;
+    /// restoration_budget_cuts: restoration phase runs ended by the cumulative restoration
+    /// budget (SqpAdvancedOptions::restoration_max_total_factorizations) where it, not the
+    /// caller's own ceiling, was the smaller bound -- whether the entry then resumed or
+    /// ended the solve.
+    Index restoration_budget_cuts = 0;
+    /// restoration_no_accept_refusals: later restoration requests below the entry cap refused
+    /// because no step accepted since the last resume was kept (a rolled-back accept is not
+    /// kept). The progress test may find the same request inadmissible too.
+    Index restoration_no_accept_refusals = 0;
+    /// restoration_refusal_feasibility: the convergence test's feasibility measure (rows and
+    /// box, inf-norm, the measure CommonOptions::feasibility_tol gates) at the restoration
+    /// request the solve refused under the entry cap, the entry rule or the progress test;
+    /// +infinity (absent) when no request was refused there.
+    double restoration_refusal_feasibility = std::numeric_limits<double>::infinity();
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2705,7 +2720,10 @@ struct SqpCounters {
     X(soc_qp_iteration_limits, counter_never_absent)                                               \
     X(restoration_factorizations, counter_never_absent)                                            \
     X(restoration_unproductive_entries, counter_never_absent)                                      \
-    X(restoration_no_progress_requests, counter_never_absent)
+    X(restoration_no_progress_requests, counter_never_absent)                                      \
+    X(restoration_budget_cuts, counter_never_absent)                                               \
+    X(restoration_no_accept_refusals, counter_never_absent)                                        \
+    X(restoration_refusal_feasibility, counter_absent_at_pos_inf)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

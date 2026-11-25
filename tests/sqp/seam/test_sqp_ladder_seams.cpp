@@ -929,6 +929,10 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         // The second request is the first one tested: unproductive, within the tolerance.
         EXPECT_EQ(sol.counters.restoration_unproductive_entries, 1);
         EXPECT_EQ(sol.counters.restoration_no_progress_requests, 0);
+        // RST-B: below the cap the refusal is the entry rule's and is counted as such; the cap's
+        // own refusal is not. Either way the point it was refused at is recorded, here feasible.
+        EXPECT_EQ(sol.counters.restoration_no_accept_refusals, cap == 1 ? 0 : 1);
+        EXPECT_LE(sol.counters.restoration_refusal_feasibility, o.common.feasibility_tol);
     }
 }
 
@@ -2223,6 +2227,9 @@ TEST(RstbEntrySeam, FailureStepOnlyCyclesAreCountedAsUnproductive) {
     EXPECT_FALSE(sol.infeasibility_certified);
     // Each phase starts feasible on the line model and converges before it factorizes.
     EXPECT_EQ(sol.counters.restoration_factorizations, 0);
+    EXPECT_EQ(sol.counters.restoration_budget_cuts, 0);
+    EXPECT_EQ(sol.counters.restoration_no_accept_refusals, 0) << "a failure step was kept";
+    EXPECT_LE(sol.counters.restoration_refusal_feasibility, o.common.feasibility_tol);
 }
 
 // B1 (default 1): the same cycles are refused at the second unproductive re-entry -- the third
@@ -2237,11 +2244,15 @@ TEST(RstbEntrySeam, FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntr
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 2);
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, 2);
     EXPECT_EQ(sol.counters.restoration_no_progress_requests, 1);
+    EXPECT_EQ(sol.counters.restoration_no_accept_refusals, 0)
+        << "B1's refusal, not the entry rule's";
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
     EXPECT_FALSE(sol.infeasibility_certified);
     EXPECT_EQ(sol.message, "stalled: a restoration request was refused because the main loop made "
                            "no progress since the previous resume");
+    // The point the request was refused at, on the convergence test's measure (I9).
+    EXPECT_LE(sol.counters.restoration_refusal_feasibility, quiet().common.feasibility_tol);
 }
 
 // ... and under a tier wide enough to admit the point the refusal is labelled kAcceptable.
@@ -2300,6 +2311,28 @@ TEST(RstbEntrySeam, ToleranceZeroRefusesTheFirstReEntryAndALargeOneNone) {
     EXPECT_EQ(l.stop_reason, StopReason::kRestorationRefused);
 }
 
+// THE ENTRY CAP OUTRANKS THE NO-PROGRESS LABEL. At a cap of one the second request is refused by
+// the cap, by the entry rule (nothing accepted since the resume) and by the progress test (a
+// tolerance of 0) at once: the cap's label wins (numerical_error / restoration_refused); the
+// progress test still counts the request, and the entry rule's counter does not (the cap refused).
+TEST(RstbEntrySeam, TheEntryCapOutranksTheNoProgressLabel) {
+    const SeamReset guard;
+    EntryScript script;
+    script.accepts = {0, 0};
+    script.accepts_after = 0;
+    SqpOptions o = quiet();
+    o.advanced.max_restoration_entries = 1;
+    o.advanced.max_unproductive_restoration_entries = 0;
+    const SqpResult sol = scripted_entry_solve(script, o);
+    print_entries("cap-outranks", sol, script);
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(sol.stop_reason, StopReason::kRestorationRefused);
+    EXPECT_EQ(sol.counters.restoration_no_progress_requests, 1);
+    EXPECT_EQ(sol.counters.restoration_no_accept_refusals, 0);
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
 // B2: the cumulative budget, when it is the binding bound, cuts the phase and is labelled
 // kRestorationWorkLimit (kStalled); the caller's own ceiling, when smaller, stays kWorkLimit.
 TEST(RstbBudgetSeam, ACumulativeBudgetCutIsTheRestorationWorkLimit) {
@@ -2323,9 +2356,82 @@ TEST(RstbBudgetSeam, ACumulativeBudgetCutIsTheRestorationWorkLimit) {
                 static_cast<long>(sol.counters.restoration_factorizations));
     EXPECT_EQ(sol.counters.restoration_entries, 1);
     EXPECT_LE(sol.counters.restoration_factorizations, 2);
+    EXPECT_EQ(sol.counters.restoration_budget_cuts, 1) << "the cut is observable";
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
     EXPECT_FALSE(sol.infeasibility_certified);
+}
+
+// B2 AND THE REDUCTION RESUME: a budget cut is the phase's own stop, like the stall window's, so
+// the sufficient-reduction resume reads it. The same bouncing spread phase (h_in = 10, its points
+// at h ~ 1e-5), cut by a budget of 2 with the stall window off: with the reduction resume at 0.1
+// the cut phase's best point resumes and is counted, and the solve goes on.
+TEST(RstbBudgetSeam, ABudgetCutTakesTheReductionResume) {
+    const auto solve = [](double k) {
+        const SeamReset guard;
+        Seam::fail_walk_qps = 1000;
+        Seam::as_e2_termination = false;
+        Seam::forced_point = {1.0, 1.0};
+        SpreadMissModel model(kNoClaimMiss);
+        SqpOptions o = quiet();
+        o.common.max_iterations = 200;
+        o.trust_region_initial = 1.0;
+        o.trust_region_min = 0.75;
+        o.advanced.restoration_stall_factorizations = 1000000; // the window never fires
+        o.advanced.restoration_resume_reduction = k;
+        o.advanced.restoration_max_total_factorizations = 2;
+        return SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+    };
+    const SqpResult off = solve(0.0);
+    const SqpResult on = solve(0.1);
+    std::printf("[ rstb ] b2 reduction: off status=%d cuts=%ld | on status=%d reason=%d "
+                "entries=%ld cuts=%ld reduction_resumes=%ld majors=%ld\n",
+                static_cast<int>(off.status),
+                static_cast<long>(off.counters.restoration_budget_cuts),
+                static_cast<int>(on.status), static_cast<int>(on.stop_reason),
+                static_cast<long>(on.counters.restoration_entries),
+                static_cast<long>(on.counters.restoration_budget_cuts),
+                static_cast<long>(on.counters.restoration_reduction_resumes),
+                static_cast<long>(on.counters.major_iters));
+    ASSERT_EQ(off.stop_reason, StopReason::kRestorationWorkLimit);
+    ASSERT_EQ(off.counters.restoration_budget_cuts, 1);
+    EXPECT_GE(on.counters.restoration_budget_cuts, 1);
+    EXPECT_GE(on.counters.restoration_reduction_resumes, 1) << "the cut phase's point resumed";
+    EXPECT_LE(on.counters.restoration_h_out, 0.1 * on.counters.restoration_h_in);
+    EXPECT_GT(on.counters.major_iters, off.counters.major_iters) << "the solve went on";
+    EXPECT_FALSE(on.infeasibility_certified);
+}
+
+// B2 AT A FEASIBLE ENTRY POINT (declared behaviour): the budget never refuses a request. A phase
+// entered at a point the convergence test already calls feasible converges at its start without
+// factorizing, so it resumes -- and resets the radius -- whatever is left of the budget, even
+// none. Such re-entries are bounded by the entry cap and the progress test only. The line model
+// under failure-step-only cycles (every phase starts feasible): with a budget of 0 and the progress
+// test off the entry cap ends the solve after `max_restoration_entries` resumed entries, no cut is
+// counted and no restoration factorization spent; at the default tolerance the progress test
+// refuses at the third request, exactly as without a budget.
+TEST(RstbBudgetSeam, AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt) {
+    const SeamReset guard;
+    EntryScript cap_script;
+    cap_script.accepts = {0};
+    SqpOptions o = quiet();
+    o.advanced.max_unproductive_restoration_entries = 1000000;
+    o.advanced.restoration_max_total_factorizations = 0;
+    const SqpResult capped = scripted_entry_solve(cap_script, o);
+    print_entries("b2-zero-cap", capped, cap_script);
+    EXPECT_EQ(capped.counters.restoration_entries, o.advanced.max_restoration_entries);
+    EXPECT_EQ(cap_script.resumes, o.advanced.max_restoration_entries) << "every entry resumed";
+    EXPECT_EQ(capped.counters.restoration_budget_cuts, 0);
+    EXPECT_EQ(capped.counters.restoration_factorizations, 0);
+    EXPECT_EQ(capped.stop_reason, StopReason::kRestorationRefused) << "the cap's refusal";
+    EntryScript b1_script;
+    b1_script.accepts = {0};
+    SqpOptions d = quiet();
+    d.advanced.restoration_max_total_factorizations = 0;
+    const SqpResult b1 = scripted_entry_solve(b1_script, d);
+    EXPECT_EQ(b1.counters.restoration_entries, 2);
+    EXPECT_EQ(b1.counters.restoration_budget_cuts, 0);
+    EXPECT_EQ(b1.stop_reason, StopReason::kRestorationNoProgress);
 }
 
 TEST(RstbBudgetSeam, TheCallersSmallerCeilingStaysTheWorkLimit) {
@@ -2380,6 +2486,9 @@ TEST(RstbEntrySeam, AnElasticRungAcceptIsProgress) {
     EXPECT_EQ(sol.counters.restoration_entries, 2) << "the second request is productive";
     EXPECT_EQ(sol.counters.restoration_unproductive_entries, 1) << "the third is not";
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationNoProgress);
+    std::printf("[ rstb ] elastic: refusal_feasibility=%.3e\n",
+                sol.counters.restoration_refusal_feasibility);
+    EXPECT_TRUE(std::isfinite(sol.counters.restoration_refusal_feasibility));
 }
 
 } // namespace hven

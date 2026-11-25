@@ -461,9 +461,9 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // PF-4 appended `backend_symbolic_analyses` and `backend_symbolic_repeats`; 124 since M8
 // PF-2b appended the twelve `backend_solve*` tally counters; 125 since M8 PF-5 appended
 // `symbolic_analysis_reuses`; 133 since M8 RF-1 appended its eight after it; 136 since M8 RST-B
-// appended its three restoration counters.)
+// appended its three restoration counters; 139 since RST-B C562 appended three more.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 136 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 139 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -598,6 +598,9 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, restoration_factorizations);
     HVEN_EXPECT_SAME(a, b, restoration_unproductive_entries);
     HVEN_EXPECT_SAME(a, b, restoration_no_progress_requests);
+    HVEN_EXPECT_SAME(a, b, restoration_budget_cuts);
+    HVEN_EXPECT_SAME(a, b, restoration_no_accept_refusals);
+    HVEN_EXPECT_SAME(a, b, restoration_refusal_feasibility);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

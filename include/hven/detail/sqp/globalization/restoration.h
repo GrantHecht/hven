@@ -100,9 +100,12 @@ inline constexpr Index kRestorationTotalWorkFloor = 20000;
 inline constexpr Index kRestorationTotalWorkRatio = 4;
 
 /// @brief The cumulative restoration budget: @p configured when set, else
-///        max(kRestorationTotalWorkFloor, kRestorationTotalWorkRatio * @p main_factorizations).
-inline Index restoration_total_budget(const std::optional<Index> &configured,
-                                      Index main_factorizations) {
+///        max(kRestorationTotalWorkFloor, kRestorationTotalWorkRatio * the main loop's
+///        factorizations), the main loop's being @p factorizations (the solve's, restoration
+///        folded in) less @p restoration_factorizations (the phases' share of it).
+inline Index restoration_total_budget(const std::optional<Index> &configured, Index factorizations,
+                                      Index restoration_factorizations) {
+    const Index main_factorizations = factorizations - restoration_factorizations;
     return configured ? *configured
                       : std::max(kRestorationTotalWorkFloor,
                                  kRestorationTotalWorkRatio * main_factorizations);
@@ -123,8 +126,9 @@ struct RestorationEntryVerdict {
 /// and false for a failed subproblem's own step. `judge(max_unproductive)` reads one later
 /// request: productive iff a solved step was accepted since the last resume, which clears the
 /// run of unproductive requests; otherwise the run grows by one. A step accepted and then rolled
-/// back for a non-finite value is retracted with `retract_last_accept()` and counts as no progress. Admissible iff untested or the
-/// run is at most `max_unproductive`. A request before any resume is not tested.
+/// back for a non-finite value is retracted with `retract_last_accept()` and counts as no progress.
+/// Admissible iff untested or the run is at most `max_unproductive`. A request before any resume is
+/// not tested.
 class RestorationEntryLedger {
   public:
     void record_resume() {

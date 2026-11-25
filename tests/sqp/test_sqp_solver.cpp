@@ -13504,11 +13504,28 @@ TEST(RstbEntryLedger, TheOptionsShipAtOneUnsetAndOffAndRefuseANegativeValue) {
     o.advanced.restoration_max_total_factorizations = 0;
     EXPECT_NO_THROW(SqpSolver{o});
     // The derived budget: the floor, or the ratio times the main loop's factorizations.
-    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 10),
+    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 10, 0),
               hven::detail::kRestorationTotalWorkFloor);
-    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 100000),
+    EXPECT_EQ(hven::detail::restoration_total_budget(std::nullopt, 100000, 0),
               hven::detail::kRestorationTotalWorkRatio * 100000);
-    EXPECT_EQ(hven::detail::restoration_total_budget(Index{7}, 100000), 7);
+    EXPECT_EQ(hven::detail::restoration_total_budget(Index{7}, 100000, 0), 7);
+}
+
+// B2's DERIVATION BASE: the main loop's own factorizations -- the solve's total less what the
+// restoration phases already spent -- never the total. The committed ratio and floor are pinned
+// beside it (the declared parameter: changing either is a declared break).
+TEST(RstbBudget, TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly) {
+    using hven::detail::restoration_total_budget;
+    EXPECT_EQ(hven::detail::kRestorationTotalWorkRatio, 4);
+    EXPECT_EQ(hven::detail::kRestorationTotalWorkFloor, 20000);
+    // 100000 in all, 50000 of them restoration's: 4 x 50000, not 4 x 100000.
+    EXPECT_EQ(restoration_total_budget(std::nullopt, 100000, 50000), 200000);
+    // Above the floor only through the main loop's share: 30000 in all, 25000 restoration's.
+    EXPECT_EQ(restoration_total_budget(std::nullopt, 30000, 25000), 20000);
+    // At the ratio's edge: 4 x 5001 = 20004 > the floor.
+    EXPECT_EQ(restoration_total_budget(std::nullopt, 9001, 4000), 20004);
+    // A configured budget is used as given, whatever the counts.
+    EXPECT_EQ(restoration_total_budget(Index{0}, 100000, 50000), 0);
 }
 
 TEST(RstbEntryLedger, TheFirstRequestIsNeverTested) {

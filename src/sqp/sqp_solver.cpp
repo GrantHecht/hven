@@ -6441,6 +6441,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // THE NO-PROGRESS REFUSAL (RST-B): below the cap, a request with no step accepted since
         // the resume, or one the progress test refuses. The cap outranks it.
         const bool no_progress = allow_restoration_ && below_entry_cap;
+        if (no_progress && !accepted_since_resume) {
+            ++st.out.counters.restoration_no_accept_refusals;
+        }
+        if (allow_restoration_) {
+            st.out.counters.restoration_refusal_feasibility = mj.kkt.feasibility;
+        }
         emit_message([&] {
             MessageTraceEvent m = make_sqp_message(MessageKind::kRestorationRefused, iter);
             m.s = !allow_restoration_ ? "nested" : no_progress ? "no_progress" : "entry_rule";
@@ -6774,8 +6780,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // ceiling when that is smaller. A run it cut ends kWorkLimit; the parent spells that
     // kRestorationWorkLimit, the caller's ceiling staying kWorkLimit.
     const Index total_budget = detail::restoration_total_budget(
-        opts_.advanced.restoration_max_total_factorizations,
-        st.out.counters.factorizations - st.out.counters.restoration_factorizations);
+        opts_.advanced.restoration_max_total_factorizations, st.out.counters.factorizations,
+        st.out.counters.restoration_factorizations);
     bool phase_budget_cut = false;
     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
                                bool stop_on_qp_failure) -> SqpResult {
@@ -6978,6 +6984,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             phase_result.status == SolveStatus::kWorkLimit && sub.restoration_stall_fired_;
         phase_budget_cut =
             phase_result.status == SolveStatus::kWorkLimit && !phase_stalled && budget_binds;
+        if (phase_budget_cut) {
+            ++st.out.counters.restoration_budget_cuts;
+        }
         return phase_result;
     };
     SqpResult rs = run_phase(feasibility, ropts.common.max_iterations, regularize_on_failure);

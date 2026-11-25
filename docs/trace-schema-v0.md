@@ -928,6 +928,9 @@ group; `SqpOptions::hessian_mode`).
 | `restoration_factorizations` | integer | `SqpCounters::restoration_factorizations` | factorizations the restoration phases' sub-solves added to `factorizations` (M8 RST-B) |
 | `restoration_unproductive_entries` | integer | `SqpCounters::restoration_unproductive_entries` | later restoration requests with no step from a solved subproblem accepted since the previous resume, serviced or refused (M8 RST-B) |
 | `restoration_no_progress_requests` | integer | `SqpCounters::restoration_no_progress_requests` | later restoration requests the progress test across entries finds inadmissible, refused or not (M8 RST-B) |
+| `restoration_budget_cuts` | integer | `SqpCounters::restoration_budget_cuts` | restoration phase runs the cumulative restoration budget ended where it was the smaller bound, resumed or not (M8 RST-B) |
+| `restoration_no_accept_refusals` | integer | `SqpCounters::restoration_no_accept_refusals` | later restoration requests below the entry cap refused because no accepted step since the last resume was kept (M8 RST-B) |
+| `restoration_refusal_feasibility` | number or `null` | `SqpCounters::restoration_refusal_feasibility` | the convergence test's feasibility measure at the restoration request the solve refused (entry cap, entry rule or progress test); `null` when none was (M8 RST-B) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
