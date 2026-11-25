@@ -1778,6 +1778,9 @@ TEST(Rf1RestorationSeam, AStalledPhaseIsTheRestorationWorkLimit) {
     EXPECT_EQ(sol.counters.restoration_entries, 1);
     EXPECT_EQ(sol.status, SolveStatus::kStalled);
     EXPECT_EQ(sol.stop_reason, StopReason::kRestorationWorkLimit);
+    // RST-B (C577 M6): the stall window's stop shares B2's label but is not a B2 cut; the vacuity
+    // and attribution rules read this counter.
+    EXPECT_EQ(sol.counters.restoration_budget_cuts, 0) << "a stall-window stop is not a B2 cut";
     EXPECT_FALSE(sol.infeasibility_certified);
 }
 
@@ -1883,6 +1886,7 @@ TEST(Rf1RestorationSeam, TheStallExitTakesTheReductionResume) {
     EXPECT_EQ(off.status, SolveStatus::kStalled);
     EXPECT_EQ(off.stop_reason, StopReason::kRestorationWorkLimit);
     EXPECT_EQ(off.counters.restoration_reduction_resumes, 0);
+    EXPECT_EQ(off.counters.restoration_budget_cuts, 0) << "a stall-window stop is not a B2 cut";
     const SqpResult on = solve(0.1);
     EXPECT_EQ(on.counters.restoration_entries, 1);
     EXPECT_EQ(on.counters.restoration_reduction_resumes, 1);

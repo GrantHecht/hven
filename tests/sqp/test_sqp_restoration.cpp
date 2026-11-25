@@ -5166,9 +5166,10 @@ TEST(RstbBudget, ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes) {
 // only budget inside [F2, F1 + F2) is B = F2, where the per-entry reading would hand the second
 // phase exactly what it needs. This fixture -- the same valley family with a stronger pull, a
 // start further up the wall and a smaller first radius -- has F1 >= 2 (4 on the reference build),
-// so B = F2 + 2 lies strictly inside: the per-entry reading would hand the second phase B > F2
-// (the free run shows that phase completing in F2 with no ceiling at all), the cumulative one
-// B - F1 < F2. Measured, not pinned.
+// so B = F2 + 1 lies strictly inside: the cumulative reading hands the second phase B - F1 < F2
+// and cuts it; the per-entry reading would hand it B > F2. That second reading is OBSERVED, not
+// argued: the contrast run at B + F1 hands the second phase exactly B under the cumulative
+// reading, and it is not cut. Measured, not pinned.
 namespace {
 class TunableRunawayValleyModel : public RunawayValleyModel {
   public:
@@ -5238,8 +5239,8 @@ TEST(RstbBudget, OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry) {
     std::printf("[ rstb ] wide window: F1=%ld F2=%ld\n", static_cast<long>(f1),
                 static_cast<long>(f2));
     ASSERT_GE(f1, 2) << "fixture premise: the first phase factorizes at least twice";
-    ASSERT_GE(f2, 3) << "fixture premise: the second phase factorizes more than the margin";
-    const Index budget = f2 + 2;
+    ASSERT_GE(f2, 2) << "fixture premise: the second phase factorizes more than once";
+    const Index budget = f2 + 1;
     ASSERT_GT(budget, f1) << "the first phase runs whole";
     ASSERT_LT(budget, f1 + f2) << "strictly inside the window";
     const SqpResult cut = wide_window_valley_solve(budget);
@@ -5249,6 +5250,14 @@ TEST(RstbBudget, OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry) {
         << "the second phase, handed B - F1 < F2, is cut; handed B > F2 it would not be";
     EXPECT_LT(cut.counters.restoration_factorizations, f1 + f2);
     EXPECT_FALSE(cut.infeasibility_certified);
+    // THE CONTRAST: at B + F1 the second phase is handed B > F2 -- what the per-entry reading would
+    // hand it at B -- and it completes uncut: the free run's path.
+    const SqpResult contrast = wide_window_valley_solve(budget + f1);
+    print_budget_run("wide contrast", contrast);
+    EXPECT_EQ(contrast.counters.restoration_entries, 2);
+    EXPECT_EQ(contrast.counters.restoration_budget_cuts, 0) << "handed B > F2, nothing is cut";
+    EXPECT_EQ(contrast.counters.restoration_factorizations, f1 + f2);
+    EXPECT_EQ(contrast.status, free_run.status);
 }
 
 TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {
