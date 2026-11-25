@@ -115,7 +115,7 @@ radius-only placebo cannot move cells where the first radius never binds. This r
 before any row exists. The perturbation is applied in the HARNESS; **the binary under test is untouched** (no placebo
 arm of the library exists, no option is added for it).
 
-**HARNESS (pinned).** The ensemble harness is hven-bench branch `ens-reader` at **`eca19b8`** (the head at the builds; settler C552 named `37e24bb`, which `eca19b8` descends from, and C554/C556 added `set=` and the lane overrides; the settler restates the final pin;  the freeze records the harness sha and STOPS on mismatch). The census rows R's ensemble consists of
+**HARNESS (pinned).** The ensemble harness is hven-bench branch `ens-reader` at **`27c02687d9389ed43f3dbef27b4cbe389ca2b5d0`** (final `ens`, settler C558; lanes tree equal to the `eca19b8` the lanes were built at; settler C552 named `37e24bb`, which `eca19b8` descends from, and C554/C556 added `set=` and the lane overrides; the settler restates the final pin;  the freeze records the harness sha and STOPS on mismatch). The census rows R's ensemble consists of
 were produced by `ens` `6e42a30`; the `lanes/` tree is identical at `e4c1a1d`, `6e42a30` and `37e24bb`
 (`git rev-parse <c>:lanes` = `386d43a5d7d591ff869bcd1f1c9b77a6159c036f`). Rule: its `docs/ensemble-rule.md` (section
 "Binary arms and the declared-binaries file"); mechanism `tu/ens.py`, `tu/ens_members.py`; tests `tests/test_ens.py`.
