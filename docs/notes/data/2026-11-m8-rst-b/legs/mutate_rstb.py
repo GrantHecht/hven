@@ -57,6 +57,41 @@ MUT = {
     # B2b: the caller's ceiling spelled kRestorationWorkLimit
     "B2b": (S, "            budget_binds = budget_left < caller_left;\n",
                "            budget_binds = true;\n", 1),
+    # B2c: the cumulative subtraction across entries dropped (each entry gets the whole budget)
+    "B2c": (S, "            std::max<Index>(0, total_budget - st.out.counters.restoration_factorizations);\n",
+               "            std::max<Index>(0, total_budget);\n", 1),
+    # B2d: the derivation base read as the solve's total (restoration included), not the main loop's own
+    "B2d": (R, "    const Index main_factorizations = factorizations - restoration_factorizations;\n",
+               "    const Index main_factorizations = factorizations;\n", 1),
+    # B2r: the reduction resume no longer reads a budget cut
+    "B2r": (S, "         (rs.status == SolveStatus::kWorkLimit && (phase_stalled || phase_budget_cut)) ||\n",
+               "         (rs.status == SolveStatus::kWorkLimit && phase_stalled) ||\n", 1),
+    # B2z: a later entry with no budget left is handed no ceiling (zero read as none)
+    "B2z": (S, "        phase_opts.common.max_factorizations = budget_left;\n",
+               "        if (budget_left > 0) {\n            phase_opts.common.max_factorizations = budget_left;\n        }\n", 1),
+    # FR1: a spent budget forbids the feasible resume (B2 gating a feasible entry; the declared behaviour is that it does not)
+    "FR1": (S, "    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol;\n",
+               "    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol &&\n"
+               "                                 st.out.counters.restoration_factorizations < total_budget;\n", 1),
+    # CAP1: the entry cap no longer outranks the no-progress label
+    "CAP1": (S, "        const bool no_progress = allow_restoration_ && below_entry_cap;\n",
+                "        const bool no_progress = allow_restoration_;\n", 1),
+    # RR1: record_resume keeps the previous interval's solved flag
+    "RR1": (R, "        resumed_ = true;\n        solved_since_resume_ = false;\n",
+               "        resumed_ = true;\n", 1),
+    # LAB1: kRestorationNoProgress dropped from the labelable exits (the optimal+acceptable count)
+    "LAB1": (S, "                                               reason == StopReason::kRestorationWorkLimit ||\n"
+                "                                               reason == StopReason::kRestorationNoProgress);\n",
+                "                                               reason == StopReason::kRestorationWorkLimit);\n", 1),
+    # CN1..CN6: each RST-B counter increment dropped; CN5b: the entry rule's counter also counts the cap's refusal
+    "CN1": (S, "            ++st.out.counters.restoration_unproductive_entries;\n", "", 1),
+    "CN2": (S, "            ++st.out.counters.restoration_no_progress_requests;\n", "", 1),
+    "CN3": (S, "        st.out.counters.restoration_factorizations += phase.counters.factorizations;\n", "", 1),
+    "CN4": (S, "            ++st.out.counters.restoration_budget_cuts;\n", "", 1),
+    "CN5": (S, "            ++st.out.counters.restoration_no_accept_refusals;\n", "", 1),
+    "CN5b": (S, "        if (no_progress && !accepted_since_resume) {\n",
+                "        if (!accepted_since_resume) {\n", 1),
+    "CN6": (S, "            st.out.counters.restoration_refusal_feasibility = mj.kkt.feasibility;\n", "", 1),
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
