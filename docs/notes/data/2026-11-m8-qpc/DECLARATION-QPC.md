@@ -496,7 +496,7 @@ Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), 
 `hven_sqp_seam_tests` (`SqpQpcFold.*`, the fold fixtures). The runner checks, before any build, that the table's ids equal
 the script's (`ID_PARITY_FAIL`) and that the ARGUED set below equals its own (`ARGUED_PARITY_FAIL`); after the run, that
 every killer named below for a must-kill id is among that id's observed killers (`KILLER_PARITY_FAIL`; `Suite.*` = any
-test of the suite). Killers are named from the development dry run at 22cc157bd (2026-11-25, Release, worktree qpc-mut: control clean, every must-kill id killed, Q17 survived as argued; logs `qpc-mut/.scratch/mut-dry/`; the run's KILLER_PARITY_FAIL was the then-empty killer column, and the runner's parity block re-run on its killers against this table reads 40 checked, 0 failures); leg M is the evidence.
+test of the suite). Killers are named from the development dry run at 22cc157bd (2026-11-25, Release, worktree qpc-mut: control clean, every must-kill id killed, Q17 survived as argued; its scratch logs were deleted with that worktree after the table was filled, so the killers named below and the parity result are the record of it; the run's KILLER_PARITY_FAIL was the then-empty killer column, and the runner's parity block re-run on its killers against this table reads 40 checked, 0 failures); leg M is the evidence.
 
 | id | mutation | declared killer(s) |
 |---|---|---|
