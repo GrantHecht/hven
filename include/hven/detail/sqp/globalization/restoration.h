@@ -122,7 +122,8 @@ struct RestorationEntryVerdict {
 /// solved subproblem (a main QP that ended kOptimal, an optimal elastic rung, a SOC on either)
 /// and false for a failed subproblem's own step. `judge(max_unproductive)` reads one later
 /// request: productive iff a solved step was accepted since the last resume, which clears the
-/// run of unproductive requests; otherwise the run grows by one. Admissible iff untested or the
+/// run of unproductive requests; otherwise the run grows by one. A step accepted and then rolled
+/// back for a non-finite value is retracted with `retract_last_accept()` and counts as no progress. Admissible iff untested or the
 /// run is at most `max_unproductive`. A request before any resume is not tested.
 class RestorationEntryLedger {
   public:
@@ -132,10 +133,16 @@ class RestorationEntryLedger {
     }
 
     void note_accept(bool from_solved_subproblem) {
+        solved_before_last_accept_ = solved_since_resume_;
         if (from_solved_subproblem) {
             solved_since_resume_ = true;
         }
     }
+
+    /// Undo the latest `note_accept`: the step it credited was accepted and then rolled back
+    /// (its point is not finite), so it moved nothing and is no progress. One level, which is
+    /// all a rollback can reach -- it fires in the first major after the commit it reverses.
+    void retract_last_accept() { solved_since_resume_ = solved_before_last_accept_; }
 
     RestorationEntryVerdict judge(Index max_unproductive) {
         RestorationEntryVerdict v;
@@ -159,6 +166,7 @@ class RestorationEntryLedger {
   private:
     bool resumed_ = false;
     bool solved_since_resume_ = false;
+    bool solved_before_last_accept_ = false;
     Index unproductive_run_ = 0;
 };
 

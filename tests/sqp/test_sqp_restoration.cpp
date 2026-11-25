@@ -4903,7 +4903,7 @@ TEST(SqpSolverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
 // Algorithm 2: tau = (1 - kappa) h_restored + kappa tau_prev -- never the Eq. (9) reset.
 // (The recorder is a decorator, so the driver's FunnelStrategy-only hooks -- the
 // rejected-step retraction -- do not reach it; the figures below are this run's own.)
-class SteepRunawayValleyModel final : public RunawayValleyModel {
+class SteepRunawayValleyModel : public RunawayValleyModel {
   public:
     double eval_f(const Vec &x) const override {
         return -1.0 * x(1) - 0.01 * x(0) + 0.0005 * (x(0) * x(0) + x(1) * x(1));
@@ -4959,6 +4959,90 @@ TEST(SqpSolverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItF
     // The second re-base starts from the width the resumed loop carried to its next stall.
     EXPECT_LE(log.width_before_resume[1], log.width_after_resume[0]);
     EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "OBSERVED. MKL, clang++, Release.";
+}
+
+// THE STEEP VALLEY WITH ITS GRADIENT POISONED at the k-th DISTINCT point eval_grad is queried at
+// (ordinal-keyed, no driver knowledge): f and c stay finite there, so the step onto it is judged
+// and accepted, and the first major after the commit finds the gradient non-finite and rolls the
+// step back (M7 W2 R2-1).
+class SteepValleyGradPoisonedAtOrdinalModel final : public SteepRunawayValleyModel {
+  public:
+    explicit SteepValleyGradPoisonedAtOrdinalModel(Index k) : k_(k) {}
+    Vec eval_grad(const Vec &x) const override {
+        Vec g = SteepRunawayValleyModel::eval_grad(x);
+        Index ord = -1;
+        for (Index i = 0; i < static_cast<Index>(points_.size()); ++i) {
+            if (points_[i] == x) {
+                ord = i + 1;
+                break;
+            }
+        }
+        if (ord < 0) {
+            points_.push_back(x);
+            ord = static_cast<Index>(points_.size());
+        }
+        if (ord >= k_) {
+            g(0) = std::numeric_limits<double>::quiet_NaN();
+        }
+        return g;
+    }
+
+  private:
+    Index k_;
+    mutable std::vector<Vec> points_;
+};
+
+// A ROLLED-BACK ACCEPT IS NO RESTORATION PROGRESS (RST-B rider). With every gradient from the k-th
+// distinct point on non-finite, each step the loop accepts lands on a point the next major rolls
+// back, so no accepted step after a resume ever moves the iterate. At a tolerance of 0 the second
+// request must then find an unproductive interval and be refused: `kStalled` /
+// `kRestorationNoProgress`, with the rollbacks it followed counted. The credit the accept took at
+// its commit is withdrawn by the rollback; without that the interval reads as productive and the
+// request is serviced. k is build-arithmetic-dependent (the point at which the second request
+// meets a purely rolled-back interval), so the premise is existential over a sweep: SOME k
+// reaches the refusal, and every such solve is internally consistent.
+TEST(RstbEntrySeam, ARolledBackAcceptIsNoRestorationProgress) {
+    Index refused_k = -1;
+    for (Index k = 3; k < 40; ++k) {
+        SCOPED_TRACE(fmt::format("k = {}", k));
+        SteepValleyGradPoisonedAtOrdinalModel model(k);
+        SqpOptions opts;
+        opts.trust_region_initial = 8.0;
+        opts.common.max_iterations = 300;
+        opts.advanced.max_unproductive_restoration_entries = 0;
+        const SqpResult sol =
+            SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
+        if (sol.stop_reason != StopReason::kRestorationNoProgress) {
+            continue;
+        }
+        if (refused_k < 0) {
+            refused_k = k;
+        }
+        EXPECT_EQ(sol.status, SolveStatus::kStalled);
+        EXPECT_FALSE(sol.infeasibility_certified);
+        EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1) << "the interval's accepts were rolled back";
+        EXPECT_GE(sol.counters.restoration_entries, 1);
+        EXPECT_GE(sol.counters.restoration_unproductive_entries, 1) << "the interval fed the unproductive count";
+        EXPECT_GE(sol.counters.restoration_no_progress_requests, 1);
+    }
+    EXPECT_GE(refused_k, 0) << "no k in [3, 40) reaches the refusal: the premise moved";
+}
+
+// The same fixture at the DEFAULT tolerance of 1 counts the same unproductive interval but still
+// services the request -- the count, not the refusal, is what the rider moves there.
+TEST(RstbEntrySeam, ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance) {
+    bool counted = false;
+    for (Index k = 3; k < 40; ++k) {
+        SteepValleyGradPoisonedAtOrdinalModel model(k);
+        SqpOptions opts;
+        opts.trust_region_initial = 8.0;
+        opts.common.max_iterations = 300;
+        const SqpResult sol =
+            SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
+        counted = counted || (sol.counters.nonfinite_step_rollbacks >= 1 &&
+                              sol.counters.restoration_unproductive_entries >= 1);
+    }
+    EXPECT_TRUE(counted);
 }
 
 TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {

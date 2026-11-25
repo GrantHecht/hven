@@ -8168,6 +8168,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             return false;
         }
         ++st.out.counters.nonfinite_step_rollbacks;
+        // THE ROLLED-BACK ACCEPT IS NO PROGRESS (RST-B): the step to this point was credited
+        // to the restoration progress ledger at its commit; it moved nothing, so the credit
+        // is withdrawn and a later request judges the interval as if it had not been taken.
+        st.resto.progress.retract_last_accept();
         // COUNTED AS A REJECTED EVALUATION (M8 B5), in the model's own words when
         // it threw.
         note_evaluation_error(st.out.evaluation_errors, describe_nonfinite_point(st, iter) +

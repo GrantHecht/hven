@@ -13538,6 +13538,33 @@ TEST(RstbEntryLedger, FailureStepsAloneAreUnproductiveAndTheSecondRunIsRefusedAt
     EXPECT_EQ(ledger.unproductive_run(), 2);
 }
 
+TEST(RstbEntryLedger, ARetractedAcceptIsNoProgress) {
+    hven::detail::RestorationEntryLedger ledger;
+    (void)ledger.judge(0); // the first entry
+    ledger.record_resume();
+    ledger.note_accept(true);
+    ledger.retract_last_accept(); // accepted, then rolled back for a non-finite value
+    const hven::detail::RestorationEntryVerdict v = ledger.judge(0);
+    EXPECT_TRUE(v.tested);
+    EXPECT_FALSE(v.productive);
+    EXPECT_FALSE(v.admissible);
+    EXPECT_EQ(ledger.unproductive_run(), 1);
+}
+
+TEST(RstbEntryLedger, ARetractionUndoesOnlyTheLatestAccept) {
+    hven::detail::RestorationEntryLedger ledger;
+    (void)ledger.judge(5);
+    ledger.record_resume();
+    ledger.note_accept(true); // a real, kept accept
+    ledger.note_accept(true); // then one rolled back
+    ledger.retract_last_accept();
+    EXPECT_TRUE(ledger.judge(5).productive) << "the earlier solved accept still stands";
+    ledger.record_resume();
+    ledger.note_accept(false);
+    ledger.retract_last_accept();
+    EXPECT_FALSE(ledger.judge(5).productive);
+}
+
 TEST(RstbEntryLedger, ASolvedStepMakesTheIntervalProductiveAndClearsTheRun) {
     hven::detail::RestorationEntryLedger ledger;
     (void)ledger.judge(1);
