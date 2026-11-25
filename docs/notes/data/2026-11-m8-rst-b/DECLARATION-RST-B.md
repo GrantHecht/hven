@@ -27,8 +27,8 @@ member had been run on any corpus):
    with the by-name net >= 0 as a guard) was chosen after that null was seen. It is accepted provisionally (C565(1)); the
    pre-freeze re-review rules on it explicitly.
 2. **The 10-name benefit-side gate (section 9).** The threshold was set after the provisional benefit-side counts (12
-   names: 9 on T+CAP, 3 on partial NLP-46) were seen. It is met provisionally by 2 names; it is re-derived from the complete
-   census at the freeze and may then fail.
+   names: 9 on T+CAP, 3 on partial NLP-46) were seen. On the complete census (C576) the count is **14 names** (9 + 5),
+   so the gate is met by 4; the NLP-46 part was partial when the threshold was set.
 
 Both were fixed from R's rows alone; no arm outcome was known or knowable when they were set. They are disclosed because
 a criterion tuned against the baseline's own distribution is weaker than one fixed in advance, and a reader should weigh
@@ -69,7 +69,16 @@ cap keeping `numerical_error` / `restoration_refused` and outranking it; trace s
   `max(20000, rho x (factorizations - restoration_factorizations))` (the main loop's own; `restoration_total_budget`), each
   phase run gets `min(what is left, the caller's remaining ceiling)`; a cut is `stalled` / `restoration_work_limit` (the
   reduction resume reads it), the caller's ceiling stays `work_limit`. **rho = 4, fixed** (`kRestorationTotalWorkRatio`);
-  no data-driven choice is made in this round (C562 I3). The cap is soft by one major of the sub-solve.
+  no data-driven choice is made in this round (C562 I3).
+- **B2's overshoot bound (C576; a declared property, not redesigned here).** The phase sub-solve reads its factorization
+  ceiling at each major's exit test, before the next subproblem is built (the `work_exhausted` conjunction, on the
+  sub-solve's own count). A phase run therefore spends **at most the budget it was handed plus the factorizations of one
+  restoration major**, the one that crosses the line; every later phase run and entry is then handed 0 and stops before
+  factorizing (pinned by `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes`). One major is bounded by the
+  per-major QP limits, not by B2, and can be large: **observed, TU-2 A0 BRITGAS default, arm F2'+B1+B2, member 0
+  (smoke, P lane `afa3a040`): 24,417 restoration factorizations against a derived budget of 20,000** (the floor;
+  main-loop factorizations 2,679), 22% over, the solve ending `stalled` / `restoration_work_limit` at major 1 with 27,096
+  factorizations.
 - **Declared B2 behaviour at a feasible entry point (C562 I4).** B2 never refuses a request. A phase entered at a point the
   convergence test already calls feasible converges at its start without factorizing and resumes (and resets the radius)
   whatever is left of the budget, even none; such re-entries are bounded by the entry cap (`max_restoration_entries` = 10)
@@ -299,6 +308,7 @@ counters. **Predictions, scored hit or miss** (from the diagnosis; arm named):
 | PILOT 030 (DALLASM sqp-qn+kTier) | F+B1 | refused by B1 near major 6 (about 1052 factorizations), `stalled` / `restoration_no_progress`, member 0 |
 | PILOT 022 (BRITGAS kTier+kAnyAccepted) | F+B1 | refused by B1 near major 18 (about 104k factorizations), member 0 |
 | PILOT 025 (BRITGAS kAnyAccepted) and TU-2 A0 BRITGAS default | F+B1 | B1 inert (no B1 refusal; rows equal F's), member 0 |
+| TU-2 A0 BRITGAS default and NLP-46 BRITGAS default | K1, K2, K3 (each) | B2 cuts the FIRST restoration entry (`restoration_budget_cuts = 1`, `stalled` / `restoration_work_limit`, `major_iters <= 2`, factorizations about 25k-30k), not solved, in every member (C576). **Seen, not blind, for K3 on TU-2 A0 member 0** (the smoke above); blind for K1 and K2 and for every NLP-46 cell. On NLP-46, R solves this cell in 2 of 3 members (`optimal`, about 50 majors, 2 restoration entries; member 2 `dnf_wall`): a hit is a loss of about 2/3 in `sum p` for the family. It is not a robust loss (R is not 3/3), but it is more than the sum-p tolerance of 0.5 unless gains offset it. The bars decide whether it costs eligibility |
 | PILOT 025 | F2 | a long unsolved run (more majors and factorizations than R's, not solved), member 0 |
 | NLP-46 BRITGAS default, the members R loses by a restoration crawl | F+B1+B2 | the crawl ends earlier (`stalled`, B1 refusal or B2 cut) at lower factorizations; the solve is not recovered |
 | TRAIN MSS1 default | F+B1 | B1 refuses at the third request (entries <= 2 against R's up to 9); still failing; lower factorizations |
@@ -356,7 +366,7 @@ allowed as well.
 | F3 | floor label without the floor | `Rf1RetryLadderSeam.ANoMotionFailureAboveTheFloorIsTheSubproblemFailure` |
 | B2a | B2 cut spelled kWorkLimit | `RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit` |
 | B2b | caller's ceiling spelled kRestorationWorkLimit | `RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit`, `Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit` |
-| B2c | the cumulative subtraction across entries dropped | `RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft`, `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes` |
+| B2c | the cumulative subtraction across entries dropped | `RstbBudget.TheSecondEntryGetsOnlyWhatTheFirstLeft`, `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes`, `RstbBudget.OffTheWindowEdgeOnlyTheCumulativeReadingCutsTheSecondEntry` |
 | B2d | the derivation base read as the solve's total, not the main loop's | `RstbBudget.TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly` |
 | B2r | the reduction resume no longer reads a budget cut | `RstbBudgetSeam.ABudgetCutTakesTheReductionResume` |
 | B2z | a later entry with no budget left is handed no ceiling | `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes` |
@@ -431,7 +441,7 @@ is registered with QPD's STAB-E (C562).
 See the opening paragraph. The decision rule reads robust losses, the one-sided STABLE-SOLVED guard and cost on failing
 cells; no bar credits a candidate for a class-count improvement.
 
-## 9. Power, per mechanism, by problem name (C562 B1) -- PROVISIONAL counts
+## 9. Power, per mechanism, by problem name (C562 B1) -- counts on the complete census (C576)
 
 One power event per mechanism, counted by distinct problem NAME ((set, problem): corpus copies and bases collapse), with
 `tu/rstb_read.py power`:
@@ -452,24 +462,28 @@ One power event per mechanism, counted by distinct problem NAME ((set, problem):
 them (a "no robust loss" over few exercised names is weak evidence of safety and is reported as such). **Part (ii)'s
 benefit-side gate: B1's benefit-side count (any member) over T+CAP plus N must be at least 10 names**, else the cost of
 failure claim is exploratory and no part-(ii) candidate is eligible (3c). This threshold was set after the provisional
-counts below were seen; they are baseline-only (no arm row exists), so no arm outcome was known when it was set.
+counts (12 names) were seen; they are baseline-only (no arm row exists), so no arm outcome was known when it was set.
 
-**Provisional counts** (R = the census rows on disk on 2026-11-25; T+CAP complete, 6 x0 members, 714 cells, classes
-STABLE 535 / COST-UNSTABLE 104 / STATUS-UNSTABLE 75 / NOT-REACHED 0; NLP-46 PARTIAL, 26 of 46 cells, the 10 solo problems
-not yet run; re-derived from the complete census at the freeze):
+**Counts on the complete census** (C576, re-derived 2026-11-25 with `tu/rstb_read.py power` at rstb-harness `faad9e9`
+over store `/home/ghecht/Projects/hven-bench-ens/.scratch/census-m8/store`, arm H0). T+CAP: 6 x0 members, 714 cells,
+classes STABLE 535 / COST-UNSTABLE 104 / STATUS-UNSTABLE 75 / NOT-REACHED 0. NLP-46: 3 x0 members, 46 cells (the 10 solo
+problems run exclusive), classes STABLE 9 / COST-UNSTABLE 16 / STATUS-UNSTABLE 11 / NOT-REACHED 10. The 10 NOT-REACHED
+cells (BIGBANK sqp-qn, MSS2 default, MSS3, READING8, TAX213322, TAX53322 both bases) are exclusive-leg `dnf_wall` rows at
+300 s in every member. They count as failing but carry no counters, so no event can be read on them: an undercount, never
+an inflation. The provisional figures from partial NLP-46, kept for the record, were B1 3/3, F1 not read, `>=1` 6/6.
 
 | event | corpus | harm-side (any member) | benefit-side (member 0 / any) |
 |---|---|---|---|
 | `restoration_entries>=2` (B1) | T+CAP | 0 names | 6 / **9 names**: ALLINITC BT12 BT8 CRESC100 CRESC50 HS99EXP MESH MSS1 SPANHYD |
-| `restoration_entries>=2` (B1) | NLP-46 (partial) | 0 names | 3 / 3: NET3 STEENBRC STEENBRG |
+| `restoration_entries>=2` (B1) | NLP-46 | 0 names | 4 / **5 names**: MSS2 NET3 STEENBRC STEENBRG YORKNET |
 | `harness_qpsum_zero_motion_exhausted>0` (F1) | T+CAP | 3 names: HS101 HS103 HS108 | 8 / 9: CRESC100 CRESC50 HS61 HS99EXP LAKES MESH MSS1 NET1 SPANHYD |
-| `harness_qpsum_zero_motion_exhausted>0` (F1) | NLP-46 (partial) | 0 names | read at the freeze |
+| `harness_qpsum_zero_motion_exhausted>0` (F1) | NLP-46 | 0 names | 6 / 7: MSS2 NET3 STEENBRC STEENBRD STEENBRE STEENBRG YORKNET |
 | `restoration_entries>=1` | T+CAP | 8 names: CRESC4 DNIEPER HS101 HS74 HS75 HS89 HS91 WATER | 16 / 22 |
-| `restoration_entries>=1` | NLP-46 (partial) | 0 names | 6 / 6 |
+| `restoration_entries>=1` | NLP-46 | 0 names | 8 / 8 |
 | `restoration_factorizations>=20000` (B2) | -- | not computable from R rows | read on C' members |
 
 For comparison, the pre-freeze review's counts on the I19-2a store (H0 and P rows, solved, no stability filter): B1 3 names
-on TRAIN/CAP (CRESC100, CRESC4, HS101) and 2 on NLP-46 (BRITGAS, NET3); F1 8 and 7. Provisional B1 benefit-side total:
-9 + 3 = 12 names (gate 10: met provisionally). Harm-side power is far below 20 names for every mechanism: the round is
+on TRAIN/CAP (CRESC100, CRESC4, HS101) and 2 on NLP-46 (BRITGAS, NET3); F1 8 and 7. **Final B1 benefit-side total:
+9 + 5 = 14 names (any member; member 0: 6 + 4 = 10). The gate of 10 is MET.** (Provisional figure: 12.) Harm-side power is far below 20 names for every mechanism: the round is
 not powered to show safety on exercised cells beyond the robust-loss guard, which is why part (ii) needs a positive
 cost-of-failure claim and part (i) ships on tests and exact legs.
