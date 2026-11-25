@@ -184,9 +184,9 @@ The perturbation is applied in the HARNESS; the binary under test is untouched.
 
 **HARNESS (pinned).** Rows are produced by hven-bench `ens` at **`27c02687d9389ed43f3dbef27b4cbe389ca2b5d0`** (the census
 harness; lanes tree `4319ab15...`, which carries the RST-B option overrides requires-gated, C556). The RST-B readers and the
-TU-2 runner are on hven-bench branch **`rstb-harness` at `faad9e99f9a362e8120144e51e4150099c42e3e9`**, a descendant of `27c0268` that adds
+TU-2 runner are on hven-bench branch **`rstb-harness` at `911d0ebe0eeaf80ed115c983657a82ab6f040b48`**, a descendant of `27c0268` that adds
 `tu/rstb_read.py`, `scripts/rstb_cells.py` and `tests/test_rstb_read.py` and touches **no row-producing path**
-(`git diff --quiet 27c0268 faad9e99f9a362e8120144e51e4150099c42e3e9 -- lanes/ runners/ schema/ tu/ens_members.py` holds, so rows from either read
+(`git diff --quiet 27c0268 911d0ebe0eeaf80ed115c983657a82ab6f040b48 -- lanes/ runners/ schema/ tu/ens_members.py` holds, so rows from either read
 under `ens.py`'s harness-sha rule). The freeze records both shas and STOPS on mismatch. Rule: `docs/ensemble-rule.md`.
 The exception is TU-2: its rows are produced by `scripts/rstb_cells.py` itself (the lane binary and labels are the
 harness's; the runner, row format and KILL/alone handling are new). **Smoke (C565(2), 2026-11-25, P lane `afa3a040...`,
@@ -257,7 +257,8 @@ about 55-70%. One name could therefore deliver the whole cut. The reader prints 
 name's share of the base's summed factorizations on the unsolved-in-both cells, per seed and pooled; published with the
 results) and recomputes the reading with the **largest-contributing name removed** (largest = the largest pooled share of
 the base's sum), the ratio per seed and the null band both recomputed without it (R-only band without SPANHYD: `[0.8133,
-1.2296]`). A reading is **POSITIVE** only if it is POSITIVE both with and without that name. POSITIVE with it and not
+1.2296]`, floor 13; with it `[0.8231, 1.2150]`, floor 12; reader at rstb-harness `911d0eb`, lines `COF-CONTRIB`, `COF-CUT` and
+the final `COF arm vs base: VERDICT (full X; without NAME: Y)`). A reading is **POSITIVE** only if it is POSITIVE both with and without that name. POSITIVE with it and not
 without reads **"POSITIVE, single name"** and confers no eligibility. NEGATIVE and NEUTRAL are unchanged. This guard
 was added after the review had read the R-only concentration (no arm row exists) and is disclosed with the other post-hoc
 criteria at the top of this file.
@@ -319,7 +320,8 @@ The owner may veto shipping; no reading of the rows may promote a candidate the 
 
 **B2 vacuity rule (C562 I3).** On the F+B1+B2 rows of every member and corpus, list every cell with
 `restoration_budget_cuts >= 1` (`tu/rstb_read.py cuts --arm F+B1+B2`; every listed row reports `restoration_factorizations`
-beside `factorizations`, C577). If B2 binds on fewer than **3 distinct problem names**, B2 is an **argued backstop**, not a
+beside `factorizations`, C577; the reader stops if no row carries the column, so a run that never measured cuts cannot
+read as zero cuts). If B2 binds on fewer than **3 distinct problem names**, B2 is an **argued backstop**, not a
 measured default: it may ship inside K1-K3 (its argument is the bound), but no benefit is credited to it in any report, and
 the cost-of-failure claim is attributed to B1 alone. Any cell B2 cuts that F+B1 solves (strict) in the same member is listed.
 
