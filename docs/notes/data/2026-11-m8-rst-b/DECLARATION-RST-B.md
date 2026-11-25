@@ -142,7 +142,7 @@ objectives; wall-clock is never quoted. A deviation observed under a co-run is a
 
 | leg | instrument | bar |
 |---|---|---|
-| C | ctest Release and Debug at the P head (`legs/ctest.sh`) | "100% tests passed" in both; counts reported |
+| C | ctest Release and Debug at the branch head (`legs/ctest.sh`; the P library plus every later test commit) | "100% tests passed" in both; counts reported |
 | M | `legs/mutations_rstb.sh` with `legs/mutate_rstb.py`, control first | parity preflight passes (section 4); control clean; every must-kill id killed **by one of its declared killers** (automated, I5); `VERDICT MUTATIONS_AS_DECLARED` |
 | PE | the paired perturbation ensembles (section 3a) for every arm over T, CAP, N, P, U | R's ensemble = the census, frozen first; arms read per section 3a |
 | N0 | R vs C', **all six x0 members** (`scripts/compare_replay.py`, walk/ssn/ipm) | 0 path movers: byte-exact on every deterministic column but the C' counters, the status/stop_reason/message of a cell whose last event is the relabelled refusal; each relabel listed |
@@ -413,7 +413,7 @@ share one build, install and lane binary. The C' commit is unchanged by the C562
 |---|---|---|
 | H0 (= R) | `99712ec32` (lane `7d2f9f37...`, the census) | R rows |
 | C' | `46761076fbbdbc616a015ff4570b082443a454ab` | N0, C' rows |
-| P | the code head of `rst-b` (`34a3348dfe908185cc68762be0a9a9398a179486`; later commits are docs only; re-read at the freeze) | F, F2, F2', F+B1, F+B1+B2, F2+B1+B2, F2'+B1+B2 |
+| P | the code head of `rst-b` (`34a3348dfe908185cc68762be0a9a9398a179486`; later commits touch docs and tests only, `git diff --quiet 34a3348df HEAD -- src include` holding, so the installed library and lane are unchanged; re-read at the freeze) | F, F2, F2', F+B1, F+B1+B2, F2+B1+B2, F2'+B1+B2 |
 
 The `declare` lines are in `gate-RST-B/BINARIES.txt`; the reader checks `HVEN_PIN` equality for both prefixes, that
 `99712ec32` is an ancestor of each declared pin, and prints the `src/include` diff-stat. A new override key is checked with
