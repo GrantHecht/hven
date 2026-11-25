@@ -1002,3 +1002,217 @@ TEST(QpCertificateData, TheSlackReadsOnlyWorkingRowsAndPinnedBounds) {
         certificate_reading(eq, wse, xe, Vec::Constant(1, 999.5), Vec(0), Vec::Zero(2));
     EXPECT_EQ(re.slack, 0.0);
 }
+
+// THE EXEMPTION'S SCALE IS THE ROW'S OWN (pre-freeze re-review must 3a). A multiplier is
+// rounding-zero against ITS ROW's local scale s_j, never against a global one: a decoupled block
+// with large stationarity terms (x2 pinned under z2 = 1e8) must not make a small but resolvable
+// multiplier exempt on a row it does not touch. decoupled_ineq_qp(1, 1e8): the row x0 + x1 <= 1
+// binds at (0.5, 0.5) under lambda_i = 0.5. Presented: x = (0.45, 0.45, 0) -- 0.1 SLACK -- under
+// lambda_i = 1e-8. Every other reading passes it: rows 0 (slack side), product 0.1 * 1e-8 / 1
+// (local scale max(|g| = 1, |Hx| = 0.45, 1e-8) = 1), and the stationarity residual -0.55 over the
+// GLOBAL stationarity scale 1e8 (5.5e-9 <= 10 opt_tol: limitation (iii)). Against s_j = 1 the
+// multiplier is priced (1e-8 > 100 u), so the slack test refuses; against a global scale 1e8 it
+// would be rounding-zero (1e-8 <= 100 u 1e8 = 1.1e-6) and the point would certify. (1e8, not 1e9:
+// at 1e9 the natural walk certifies its unmoved start, TheGlobalStationarityScaleCertifiesAn...
+// below.)
+TEST(QpCertificateData, ADecoupledLargeDualCannotExemptASmallMultipliersSlack) {
+    DataSeamGuard guard;
+    constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
+    const double ftol = QpOptions{}.feasibility_tol;
+    const double otol = QpOptions{}.optimality_tol;
+    const double big = 1e8;
+    const double lam = 1e-8;
+    Vec xp(3);
+    xp << 0.45, 0.45, 0.0;
+    Vec zp(3);
+    zp << 0.0, 0.0, big;
+    {
+        // THE PREMISE, read directly: only the slack refuses, and only because s_j is local.
+        WorkingSet ws(3, 1);
+        ws.add_ineq(0);
+        ws.bound_state()[2] = BoundState::kAtLower;
+        const CertificateReading r = certificate_reading(decoupled_ineq_qp(1.0, big), ws, xp,
+                                                         Vec(0), Vec::Constant(1, lam), zp);
+        ASSERT_TRUE(r.finite);
+        ASSERT_EQ(r.rows, 0.0);
+        ASSERT_LE(r.product, 100.0 * ftol);
+        ASSERT_LE(r.stationarity_beyond_rounding, 10.0 * otol);
+        ASSERT_EQ(r.off_working, 0.0);
+        EXPECT_NEAR(r.slack, 0.1, 1e-15);
+        EXPECT_FALSE(certificate_data_half_holds(r, ftol, otol));
+        ASSERT_GT(lam, 100.0 * u * 1.0); // priced against the row's own scale
+        ASSERT_LE(lam, 100.0 * u * big); // rounding-zero against the global one
+    }
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        const QpSolution natural = engine.solve(decoupled_ineq_qp(1.0, big));
+        ASSERT_EQ(static_cast<int>(natural.status), static_cast<int>(QpStatus::kOptimal));
+        ASSERT_TRUE(natural.ineq_active[0]);
+        ASSERT_EQ(natural.bound_state[2], BoundState::kAtLower);
+        ASSERT_NEAR(natural.lambda_i(0), 0.5, 1e-9);
+        Cert::reset();
+        Cert::x = xp;
+        Cert::z = zp;
+        Cert::lambda_i = Vec::Constant(1, lam);
+        Cert::armed = true;
+        QpEngine presented{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        const QpSolution s = presented.solve(decoupled_ineq_qp(1.0, big));
+        Cert::armed = false;
+        expect_refused(s);
+    }
+}
+
+// THE EXEMPTION READS ||a_j||inf (must 3b): the test is |lambda_j| ||a_j||inf <= 100 u s_j, so a
+// row scaled by 1e6 prices a multiplier 1e6 times smaller. One column, min 1/2 x0^2 - 0.9 x0 s.t.
+// 1e6 x0 <= 1e6 (row scale max(1, 1e6, 1e6 * 0.9) = 1e6), read at its unconstrained minimizer
+// x0 = 0.9 -- 0.1 relative SLACK -- with the row WORKING. Column terms t_0 = max(|g| = 0.9, |Hx| =
+// 0.9, |a lambda|) = 0.9 = s_j. lambda = 1e-17: |lambda| ||a||inf = 1e-11 > 100 u 0.9 = 1e-14, so
+// it is priced and the slack refuses; read without ||a||inf (1e-17 <= 1e-14) it would be
+// rounding-zero. Either side of the threshold 100 u s_j / ||a||inf itself, too.
+TEST(QpCertificateData, TheExemptionReadsTheRowsInfinityNorm) {
+    constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
+    const double ftol = 1e-9;
+    const double otol = 1e-9;
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd::Identity(1, 1).sparseView();
+    qp.g = Vec::Constant(1, -0.9);
+    qp.Ae.resize(0, 1);
+    qp.be = Vec(0);
+    qp.Ai = Eigen::MatrixXd::Constant(1, 1, 1e6).sparseView();
+    qp.bi = Vec::Constant(1, 1e6);
+    qp.lower = Vec::Constant(1, -10.0);
+    qp.upper = Vec::Constant(1, 10.0);
+    WorkingSet ws(1, 1);
+    ws.add_ineq(0);
+    const Vec x = Vec::Constant(1, 0.9);
+    const auto read = [&](double lam) {
+        return certificate_reading(qp, ws, x, Vec(0), Vec::Constant(1, lam), Vec::Zero(1));
+    };
+    const CertificateReading r = read(1e-17);
+    ASSERT_EQ(r.rows, 0.0);
+    ASSERT_LE(r.product, 100.0 * ftol);
+    ASSERT_LE(r.stationarity_beyond_rounding, 10.0 * otol);
+    EXPECT_NEAR(r.slack, 0.1, 1e-15);
+    EXPECT_FALSE(certificate_data_half_holds(r, ftol, otol));
+    ASSERT_LE(1e-17, 100.0 * u * 0.9); // rounding-zero if ||a||inf were dropped
+    const double threshold = 100.0 * u * 0.9 / 1e6;
+    EXPECT_EQ(read(0.99 * threshold).slack, 0.0);
+    EXPECT_NEAR(read(1.01 * threshold).slack, 0.1, 1e-15);
+}
+
+// THE SLACK IS RELATIVE TO THE ROW SCALE (must 3c): |residual_j| / row_scale_j, the rows reading's
+// own scale. One column, min 1/2 x0^2 - 1010 x0 s.t. x0 <= 1000: optimum x0 = 1000 under lambda
+// = 10. Presented: x0 = 1000 - d with lambda = 10 + d, the exact KKT point of the row shifted by d;
+// row scale max(1, |b| = 1000, |a|_1 |x|inf) = 1000. d = 50 feas_tol * 1000 reads 50 feas_tol and
+// certifies (an absolute reading, 5e4 feas_tol, would refuse it); d = 150 feas_tol * 1000 refuses.
+TEST(QpCertificateData, TheSlackIsReadRelativeToTheRowScale) {
+    const double ftol = 1e-9;
+    const double otol = 1e-9;
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd::Identity(1, 1).sparseView();
+    qp.g = Vec::Constant(1, -1010.0);
+    qp.Ae.resize(0, 1);
+    qp.be = Vec(0);
+    qp.Ai = Eigen::MatrixXd::Constant(1, 1, 1.0).sparseView();
+    qp.bi = Vec::Constant(1, 1000.0);
+    qp.lower = Vec::Constant(1, -1e4);
+    qp.upper = Vec::Constant(1, 1e4);
+    WorkingSet ws(1, 1);
+    ws.add_ineq(0);
+    const auto read = [&](double d) {
+        return certificate_reading(qp, ws, Vec::Constant(1, 1000.0 - d), Vec(0),
+                                   Vec::Constant(1, 10.0 + d), Vec::Zero(1));
+    };
+    const CertificateReading in = read(50.0 * ftol * 1000.0);
+    EXPECT_NEAR(in.slack / ftol, 50.0, 1e-3);
+    ASSERT_EQ(in.rows, 0.0);
+    ASSERT_LE(in.product, 100.0 * ftol);
+    ASSERT_LE(in.stationarity_beyond_rounding, 10.0 * otol);
+    EXPECT_TRUE(certificate_data_half_holds(in, ftol, otol));
+    const CertificateReading out = read(150.0 * ftol * 1000.0);
+    EXPECT_NEAR(out.slack / ftol, 150.0, 1e-3);
+    EXPECT_FALSE(certificate_data_half_holds(out, ftol, otol));
+}
+
+// THE EXEMPTION'S SEMANTICS ON A NON-UNIFORM ROW, PINNED AS THEY ARE (must 4; settler C581: this
+// documents the current behaviour, it does not change it). The rounding-zero test compares
+// |lambda_j| ||a_j||inf with 100 u s_j, s_j = max over supp(a_j) of t_i: a MAX against a MAX. A row
+// touching a column with huge stationarity terms through a tiny coefficient therefore exempts a
+// multiplier that its OTHER columns resolve. The review's probe: x0 + 1e-12 x1 <= 1, x1 pinned at 0
+// with g1 = z1 = 1e12, x0 = 0.99 (0.01 relative slack = 1e7 feas_tol) under lambda = 0.01, g0 = -1
+// so column 0 is stationary. s_j = t_1 = 1e12, so lambda ||a||inf = 0.01 <= 100 u 1e12 = 0.011:
+// exempt, and the point CERTIFIES with the row 1e7 feas_tol slack. The same point with the coupling
+// exactly 0 (column 1 off the row's support) has s_j = 1, the multiplier is priced and the point is
+// REFUSED. The objective error the exemption admits is |lambda_j| * slack_j <= 100 u s_j /
+// ||a_j||inf * slack_j (here 1e-4): bounded by the largest column term on the row, not by the
+// columns that price it. Per-column pricing (priced iff max_i |lambda_j a_ji| / t_i > 100 u) is
+// registered for the degenerate-QP round; adopting it would flip the first expectation below.
+TEST(QpCertificateData, TheExemptionIsAMaxAgainstAMaxOnANonUniformRow) {
+    constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
+    const double ftol = 1e-9;
+    const double otol = 1e-9;
+    const auto probe = [](double coupling) {
+        QpProblem qp;
+        qp.H = Eigen::MatrixXd::Identity(2, 2).sparseView();
+        qp.g = Vec(2);
+        qp.g << -1.0, 1e12;
+        qp.Ae.resize(0, 2);
+        qp.be = Vec(0);
+        Eigen::MatrixXd A(1, 2);
+        A << 1.0, coupling;
+        qp.Ai = A.sparseView();
+        qp.bi = Vec::Constant(1, 1.0);
+        qp.lower = Vec(2);
+        qp.lower << -10.0, 0.0;
+        qp.upper = Vec::Constant(2, 10.0);
+        return qp;
+    };
+    WorkingSet ws(2, 1);
+    ws.add_ineq(0);
+    ws.bound_state()[1] = BoundState::kAtLower;
+    Vec x(2);
+    x << 0.99, 0.0;
+    Vec z(2);
+    z << 0.0, 1e12;
+    const Vec li = Vec::Constant(1, 0.01);
+    ASSERT_LE(0.01, 100.0 * u * 1e12);
+    const CertificateReading coupled = certificate_reading(probe(1e-12), ws, x, Vec(0), li, z);
+    EXPECT_EQ(coupled.rows, 0.0);
+    EXPECT_EQ(coupled.slack, 0.0); // exempt: s_j = t_1 = 1e12 through the 1e-12 coupling
+    EXPECT_LE(coupled.product, 100.0 * ftol);
+    EXPECT_TRUE(certificate_data_half_holds(coupled, ftol, otol))
+        << "the max/max exemption certifies the probe (documented; per-column pricing is "
+           "registered)";
+    const CertificateReading decoupled = certificate_reading(probe(0.0), ws, x, Vec(0), li, z);
+    EXPECT_NEAR(decoupled.slack, 0.01, 1e-15); // the row's relative slack, 1e7 feas_tol
+    EXPECT_FALSE(certificate_data_half_holds(decoupled, ftol, otol));
+}
+
+// LIMITATION (iii), ON A NATURAL WALK (settler C581: documented as it stands, not changed in this
+// round). The free-block stationarity the KKT-point test and the data half read is relative to a
+// GLOBAL scale max(1, ||Hx||, ||g||, ||A'lambda||), so a decoupled column with a large gradient
+// widens the tolerance of every free column. decoupled_ineq_qp(1, 1e9): the start x = 0 leaves the
+// free columns 0 and 1 with residual g = (-1, -1), 1 / 1e9 = 1e-9 relative -- within opt_tol -- so
+// the walk certifies a point whose objective is 0 against the optimum -0.75 (x = (0.5, 0.5)) with
+// x2 pinned under z2 = 1e9; at 1e8 (residual 1e-8 relative) it walks to the optimum. Column-local
+// stationarity (per free column, over its own terms) would read 1 there; it and per-column pricing
+// are registered for the degenerate-QP round (DECLARATION-QPC section 1, limitation (iii); leg M1R
+// measures how often certified exits fail it). Flipping this expectation is the point of that work.
+TEST(QpCertificateData, TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp) {
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        const QpSolution hidden = engine.solve(decoupled_ineq_qp(1.0, 1e9));
+        ASSERT_EQ(static_cast<int>(hidden.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_EQ(hidden.x(0), 0.0) << "x = " << hidden.x.transpose();
+        EXPECT_EQ(hidden.x(1), 0.0);
+        EXPECT_FALSE(hidden.ineq_active[0]);
+        QpEngine engine8{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        const QpSolution walked = engine8.solve(decoupled_ineq_qp(1.0, 1e8));
+        ASSERT_EQ(static_cast<int>(walked.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_NEAR(walked.x(0), 0.5, 1e-9);
+        EXPECT_NEAR(walked.x(1), 0.5, 1e-9);
+        EXPECT_TRUE(walked.ineq_active[0]);
+    }
+}

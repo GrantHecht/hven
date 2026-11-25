@@ -1115,11 +1115,16 @@ constexpr double kTerminalPolishComplFactor = 100.0;
 // a local scale of 1.3e5), so a working inequality row or pinned bound whose multiplier is NOT
 // ROUNDING-ZERO must also sit within kCertificateGateSlackFactor feas_tol of its bound, relative to
 // its row scale (CertificateReading::slack). Rounding-zero means |multiplier_j| ||a_j||inf <=
-// kCertificateGateRoundingZeroFactor * u * s_j, s_j the row-local scale and u = eps / 2: such a
-// multiplier prices nothing double resolves on the row's columns, so the row is weakly active and
-// its slack is no defect (CRESC4's lambda ~ 1e-21 against s ~ 161). Both sides are in row or
-// local-scale units, so the test is invariant to the objective's scaling. Equality rows need no
-// slack test: the rows reading holds them two-sided at 10 feas_tol.
+// kCertificateGateRoundingZeroFactor * u * s_j, s_j the row-local scale and u = eps / 2 (CRESC4's
+// lambda ~ 1e-21 against s ~ 161). It compares a max with a max, so on a non-uniform row a column
+// reached through a tiny coefficient can exempt a multiplier the row's other columns resolve; what
+// it bounds is |multiplier_j| slack_j <= 100 u s_j slack_j / ||a_j||inf (DECLARATION-QPC section
+// 1). Both sides are in row or local-scale units, so the test is invariant to the objective's
+// scaling. Equality rows need no slack test: the rows reading holds them two-sided at 10 feas_tol.
+//
+// UNREAD: z on a pinned column is read only for its sign, as a term of t_i and in that bound's
+// product and slack, never against the column's residual. The data is assumed finite: an Inf in g
+// on a pinned column makes the global stationarity scale infinite and that reading vacuous.
 constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
 constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
 constexpr double kCertificateGateStationarityFactor = 10.0;
