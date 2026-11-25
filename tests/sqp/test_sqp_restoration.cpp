@@ -2476,21 +2476,16 @@ TEST(SqpSolverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
 // candidate in all three modes in BOTH configs -- so EQ(1) is falsifiable.
 static void run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
     hven::linear::DensePolicy policy) {
-    // Dense arm (reference build): walk takes the candidate in both configs; ssn and ipm
-    // take it in Debug only.
-    const auto want_seeded = [policy](QpMode mode) -> Index {
-        if (policy != hven::linear::DensePolicy::kAuto) {
-            return 0;
-        }
-        if (mode == QpMode::kWalk) {
-            return 1;
-        }
-#ifdef NDEBUG
-        return 0;
-#else
-        return 1;
-#endif
-    };
+    // Dense arm (reference build): ssn and ipm took the candidate in Debug only, and the walk in
+    // both configs, until M8 QPC (declared; DECLARATION-QPC section 7): that route ran through a
+    // QP certified 477 feas_tol off its equality rows (the circle-line linearization is
+    // inconsistent; the rows were held inside dual_mu's footprint), which the certificate's data
+    // half refuses, and the dense walk now follows the kNever arm's route (no take; the same
+    // certified answer below).
+    // ...and in Debug the ssn and ipm modes' takes went the same way (the route passes the same
+    // refused certificate): the dense twin now reads 0 in every mode and config, as kNever does.
+    const auto want_seeded = [](QpMode) -> Index { return 0; };
+    (void)policy;
     (void)want_seeded; // read on the reference build only
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
@@ -2575,7 +2570,11 @@ TEST(SqpSolverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAn
 // elastic route's arm and not the radius floor's.
 static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
     hven::linear::DensePolicy policy) {
-    const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;
+    // M8 QPC (declared; DECLARATION-QPC section 7): the dense arm's take (1) rode a QP certified
+    // 477 feas_tol off its equality rows, which the certificate's data half refuses; the dense arm
+    // now reads the kNever arm's route: no take, and the site is the ladder's exhaustion.
+    const Index want_seeded = 0;
+    (void)policy;
     (void)want_seeded; // read on the reference build only
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
@@ -2606,10 +2605,8 @@ static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refu
             saw_restore = saw_restore || r.sqp->verdict.value_or(hven::StepVerdict::kReject) ==
                                              StepVerdict::kRestore;
         }
-        // Dense arm: the seed is taken and no row carries kRestore (the site is not the
-        // ladder's exhaustion).
-        EXPECT_EQ(policy != hven::linear::DensePolicy::kAuto, saw_restore)
-            << "the ladder's exhaustion, not the floor";
+        // Both arms (M8 QPC): no take, and a row carries kRestore (the ladder's exhaustion).
+        EXPECT_TRUE(saw_restore) << "the ladder's exhaustion, not the floor";
 #else
         {
             Index restore_rows = 0;
@@ -2828,17 +2825,17 @@ run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy
                         refused_at_k, refused_count));
 #endif
     } else {
-        // Dense arm: exactly ONE k reaches the Jacobian screen and sees it refuse the
-        // candidate (the existential premise is back, at a config-dependent k); the
-        // safety half (m7_signature false at every k) is asserted in the loop.
+        // Dense arm. Until M8 QPC exactly ONE k (16 Release, 17 Debug) reached the Jacobian screen
+        // and saw it refuse the candidate. RE-PREMISED (declared; DECLARATION-QPC section 7): that
+        // k's route ran through a QP certified 477 feas_tol off its equality rows, which the
+        // certificate's data half refuses; the dense arm now reads the kNever arm's route, where
+        // no k reaches the screen. The safety half (m7_signature false at every k, mutant M7
+        // killed) is asserted in the loop; the demonstration that the screen is REACHED is lost on
+        // this model in both arms, and is stated rather than hidden.
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_TRUE(found_refused_signature);
-        EXPECT_EQ(1, refused_count);
-#ifdef NDEBUG
-        EXPECT_EQ(16, refused_at_k);
-#else
-        EXPECT_EQ(17, refused_at_k);
-#endif
+        EXPECT_FALSE(found_refused_signature)
+            << "a k reached the Jacobian screen again (k = " << refused_at_k << ")";
+        EXPECT_EQ(-1, refused_at_k);
 #else
         hven::test_support::record_off_reference_route(
             "jacobian_screen_k", fmt::format("found={} refused_at_k={} refused_count={}",
@@ -3011,8 +3008,16 @@ TEST(SqpSolverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 // THE SEED'S EVALUATION IS COUNTED ONCE. A taken TRIAL candidate is an
 // UPGRADE of a query already charged values-only, so it is RECLASSIFIED
 // (--values, ++full) -- both halves are pinned separately below.
+// THE START (M8 QPC, declared; DECLARATION-QPC section 7): (2, 2) until QPC. From there the take
+// rode a QP certified 477 feas_tol off its equality rows (an inconsistent linearization held
+// inside dual_mu's footprint), which the certificate's data half refuses, and no take happens on
+// either arm; from (3, 1.5) the take happens on both arms with no refused certificate (measured on
+// a start scan of the reference build), so the in-place upgrade is still exercised.
+constexpr double kSeedCountS0 = 3.0;
+constexpr double kSeedCountS1 = 1.5;
+
 static void run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy policy) {
-    SeedCountingModel model(2.0, 2.0);
+    SeedCountingModel model(kSeedCountS0, kSeedCountS1);
     SqpOptions opts;
     opts.linear.dense_factorization = policy;
     // M7 W2 E2: the entry repair releases a seed pin dependent on the
@@ -3041,20 +3046,19 @@ static void run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::Dense
     // reference build's. The PARTITION identity below is pure bookkeeping -- every model query
     // is charged to exactly one of the two counters -- and holds on any route, so it stays
     // portable; with no take the in-place upgrade just is not exercised.
-#if HVEN_TEST_ROUTE_REFERENCE
+#if HVEN_TEST_ROUTE_REFERENCE && defined(NDEBUG)
     ASSERT_EQ(1, seeded_rows(sol)) << "fixture premise: a candidate was TAKEN";
     // `evals_values` is CONFIG-SPLIT (measured 36 Release / 35 Debug at E4 fix round 2;
     // the trajectory's length differs by one rejected trial between the configs, which
     // is what the pin this replaces already recorded as 41/40). `evals_full` is 28 in
     // both, and the PARTITION below is what the test is for.
-    EXPECT_EQ(28, sol.counters.evals_full);
-#ifdef NDEBUG
-    EXPECT_EQ(policy == hven::linear::DensePolicy::kAuto ? 37 : 36, sol.counters.evals_values)
-        << "evals_values was " << sol.counters.evals_values;
-#else
-    EXPECT_EQ(policy == hven::linear::DensePolicy::kAuto ? 36 : 35, sol.counters.evals_values)
-        << "evals_values was " << sol.counters.evals_values;
-#endif
+    // RE-DERIVED AT M8 QPC with the start (3, 1.5) (kSeedCountS0/S1; declared): evals_full 30,
+    // evals_values 21 on both arms. RELEASE ONLY from QPC: in Debug the route meets the refused
+    // certificate at every start of a 48-start scan but one, so no take happens there and the
+    // in-place upgrade is exercised by the Release build alone (Debug records the route below and
+    // still asserts the partition).
+    EXPECT_EQ(30, sol.counters.evals_full);
+    EXPECT_EQ(21, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
 #else
     hven::test_support::record_off_reference_route(
         "seed_eval_counted_once",
@@ -3093,18 +3097,18 @@ TEST(SqpSolverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDef
     opts.advanced.equality_basis = false;
     opts.common.max_iterations = 200;
     opts.qp.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
-    SeedCountingModel off_model(2.0, 2.0);
+    SeedCountingModel off_model(kSeedCountS0, kSeedCountS1);
     SqpOptions off = opts;
     off.column_scaling = SqpColumnScaling::kOff;
     const SqpResult a =
         SqpSolver(off).solve(hven::detail::problem_ref(off_model), (off_model).start_point());
-    SeedCountingModel model(2.0, 2.0);
+    SeedCountingModel model(kSeedCountS0, kSeedCountS1);
     const SqpResult b =
         SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_FALSE(b.scaling.columns_active) << "fixture premise: below the gate";
     // That a candidate was TAKEN is the route (see the sibling above); the probe's accounting
     // below is bookkeeping that holds with or without a take.
-#if HVEN_TEST_ROUTE_REFERENCE
+#if HVEN_TEST_ROUTE_REFERENCE && defined(NDEBUG) // Release only from M8 QPC (the sibling above)
     ASSERT_EQ(1, seeded_rows(b)) << "fixture premise: a candidate was TAKEN";
 #else
     hven::test_support::record_off_reference_route(

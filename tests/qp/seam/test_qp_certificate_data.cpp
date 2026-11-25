@@ -10,7 +10,8 @@
 // complementarity product 7e6x feas_tol, because the final working set is itself inconsistent at
 // 7.3e-8. The unregularized EQP of that working set reproduces the false point, so no face
 // re-solve catches it. The data half reads the exported point from the QP's own data -- rows
-// <= 10 feas_tol, product <= 100 feas_tol, relative to each row's scale -- and refuses the
+// <= 10 feas_tol relative to each row's scale, the residual x multiplier product over the dual
+// scale <= 100 feas_tol, free-block stationarity <= 10 opt_tol, finite vectors -- and refuses the
 // certificate (kNumericalError) otherwise.
 //
 // The false point is not reachable through a natural walk at m8 (the prototypes that produced it
@@ -179,8 +180,8 @@ constexpr double kQp7Oracle = -92397.26984847; // the pinned optimum (test_qp_im
 
 } // namespace
 
-// The rows' bound: 10 feas_tol at row scale 1. lambda_e = 0.5 keeps the product (d / 2) inside
-// 100 feas_tol for every d here, so the rows decide; the footprint excuse at R is
+// The rows' bound: 10 feas_tol at row scale 1. The scaled product (d / 2 over the dual scale 1) is
+// inside 100 feas_tol for every d here, so the rows decide; the footprint excuse at R is
 // max(feas_tol, min(1e-8 * 0.5, 1e-6)) = 5e-9, so R certified d = 1.01e-8 kOptimal through the gray
 // contract (a gray-zone exit).
 TEST(QpCertificateData, ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified) {
@@ -194,18 +195,65 @@ TEST(QpCertificateData, ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified) {
     }
 }
 
-// The product's bound: 100 feas_tol. With lambda_e = 999.5 a residual of 5 feas_tol (inside the
-// rows' bound and far inside R's 1e-6 excuse, which R certified without a gray return) is a
-// product of 5e-6: refused. At the boundary: 0.11 feas_tol is a product of 1.1e-7 (refused) and
-// 0.09 feas_tol one of 9e-8 (certified).
-TEST(QpCertificateData, AProductPastAHundredFeasTolIsRefused) {
+// THE PRODUCT IS READ AGAINST THE DUAL SCALE. On an equality row the scaled product is at most the
+// row reading (|lambda_e| <= ||Ae'lambda_e||inf here), so the rows decide; the product's own job is
+// the side the rows cannot see -- a working inequality held SLACK with a multiplier (below). Here:
+// line_qp(1000), lambda_e = 999.5, dual scale max(1, |Hx|, |g| = 1000, |A'lambda|) = 1000. A row 5
+// feas_tol off reads an unscaled product of 5e-6 (50x past 100 feas_tol: what the first QPC build
+// refused) and a scaled one of 5e-9: certified, as the same presentation is at c = 1 -- scaling the
+// objective by 1000 scales every multiplier by 1000 and must not change the verdict.
+TEST(QpCertificateData, TheProductIsReadAgainstTheDualScale) {
     DataSeamGuard guard;
     const double ftol = QpOptions{}.feasibility_tol;
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
-        expect_refused(present_line(1000.0, 5.0 * ftol, alg));
-        expect_refused(present_line(1000.0, 0.11 * ftol, alg));
-        expect_certified(present_line(1000.0, 0.09 * ftol, alg));
+        expect_certified(present_line(1000.0, 5.0 * ftol, alg));
+        expect_certified(present_line(1.0, 5.0 * ftol, alg));
+        expect_refused(present_line(1000.0, 10.1 * ftol, alg)); // the rows still decide
+    }
+}
+
+/// min 1/2|x|^2 - c (x0 + x1)  s.t.  x0 + x1 <= 1 (c > 0.5: binding). Optimum (0.5, 0.5),
+/// lambda_i = c - 0.5.
+QpProblem ineq_line_qp(double c) {
+    QpProblem qp = line_qp(c);
+    qp.Ai = qp.Ae;
+    qp.bi = qp.be;
+    qp.Ae.resize(0, 2);
+    qp.be = Vec(0);
+    return qp;
+}
+
+// A WORKING ROW HELD SLACK. x = (0.5 - d, 0.5) is d INSIDE the binding row x0 + x1 <= 1, so the
+// rows read 0 (a one-sided row is not violated by slack) and the point is a KKT point of the row
+// shifted by d, not of the QP: lambda_i = 999.5 prices a row that is not active. The scaled product
+// is d * 999.5 / 1000; free-block stationarity d / 1000 (0.11 opt_tol at most here). Bound 100
+// feas_tol: d = 110 feas_tol refused, d = 90 feas_tol certified. (The shape of the HS15 and B1Gate
+// refusals.)
+TEST(QpCertificateData, AWorkingRowSlackPastAHundredFeasTolIsRefused) {
+    DataSeamGuard guard;
+    const double ftol = QpOptions{}.feasibility_tol;
+    const auto present = [](double d, QpWorkingSetAlgebra alg) {
+        Cert::reset();
+        Cert::x = Vec(2);
+        Cert::x << 0.5 - d, 0.5;
+        Cert::z = Vec::Zero(2);
+        Cert::armed = true;
+        QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        QpSolution s = engine.solve(ineq_line_qp(1000.0));
+        Cert::armed = false;
+        return s;
+    };
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution far = present(110.0 * ftol, alg);
+        ASSERT_GE(Cert::presentations, 1);
+        EXPECT_EQ(static_cast<int>(far.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(far.counters.certificate_gate_refusals, 1);
+        const QpSolution near = present(90.0 * ftol, alg);
+        expect_certified(near);
+        ASSERT_EQ(near.lambda_i.size(), 1);
+        EXPECT_NEAR(near.lambda_i(0), 999.5, 1e-6);
     }
 }
 
@@ -223,13 +271,51 @@ TEST(QpCertificateData, ANanPointIsRefused) {
 TEST(QpCertificateData, TheVerdictRefusesNanAndReadsBothBoundsInclusively) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double ftol = 1e-9;
-    EXPECT_TRUE(certificate_data_half_holds(10.0 * ftol, 100.0 * ftol, ftol));
-    EXPECT_FALSE(certificate_data_half_holds(nan, 0.0, ftol));
-    EXPECT_FALSE(certificate_data_half_holds(0.0, nan, ftol));
-    EXPECT_FALSE(certificate_data_half_holds(10.01 * ftol, 0.0, ftol));
-    EXPECT_FALSE(certificate_data_half_holds(0.0, 100.1 * ftol, ftol));
+    const double otol = 1e-8; // distinct from ftol, so a disjunct read against the wrong one fails
+    EXPECT_TRUE(certificate_data_half_holds(10.0 * ftol, 100.0 * ftol, 10.0 * otol, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(nan, 0.0, 0.0, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, nan, 0.0, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, 0.0, nan, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(10.01 * ftol, 0.0, 0.0, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, 100.1 * ftol, 0.0, ftol, otol));
+    EXPECT_FALSE(certificate_data_half_holds(0.0, 0.0, 10.01 * otol, ftol, otol));
+    EXPECT_TRUE(certificate_data_half_holds(0.0, 0.0, 9.99 * otol, ftol, otol));
     EXPECT_EQ(kCertificateGateRowFactor, 10.0);
     EXPECT_EQ(kCertificateGateComplFactor, 100.0);
+    EXPECT_EQ(kCertificateGateStationarityFactor, 10.0);
+}
+
+// STATIONARITY, re-read on the EXPORTED point (settler C553 Q3). x = (0.5 + d, 0.5 - d) stays ON
+// the row x0 + x1 = 1 (rows 0, product 0), so only stationarity moves: with the walk's
+// lambda_e = c - 0.5 = 0.5 the free-block residual x + g + lambda_e a is (d, -d) against the scale
+// max(1, |Hx|, |g|, |A'lambda|) = 1, i.e. d relative. The KKT-point test read the walk's own
+// point before the seam presents this one, so the data half is the only reader of it. Bound:
+// 10 opt_tol.
+TEST(QpCertificateData, AnOffStationaryExportedPointIsRefused) {
+    DataSeamGuard guard;
+    const double otol = QpOptions{}.optimality_tol;
+    const auto present = [](double d, QpWorkingSetAlgebra alg) {
+        Cert::reset();
+        Cert::x = Vec(2);
+        Cert::x << 0.5 + d, 0.5 - d;
+        Cert::z = Vec::Zero(2);
+        Cert::armed = true;
+        QpEngine engine{opts_for(alg), 0, hven::linear::DensePolicy::kNever};
+        QpSolution s = engine.solve(line_qp(1.0));
+        Cert::armed = false;
+        return s;
+    };
+    for (const auto alg : kAlgebras) {
+        SCOPED_TRACE(static_cast<int>(alg));
+        const QpSolution far = present(10.1 * otol, alg);
+        expect_refused(far);
+        const QpSolution near = present(9.9 * otol, alg);
+        expect_certified(near);
+        // The certified answer is the presented point, and its residual is what the gate read.
+        ASSERT_EQ(near.x.size(), 2);
+        EXPECT_NEAR(near.x(0) + near.x(1), 1.0, 1e-15);
+        EXPECT_NEAR(std::abs(near.x(0) + near.lambda_e(0) - 1.0), 9.9 * otol, 1e-15);
+    }
 }
 
 // A BOUND, read the same way: x0 pinned at its lower bound 0 with z0 = 5e3. The bound half
@@ -345,7 +431,8 @@ TEST(QpCertificateData, Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused) {
 
 // THE NATURAL FIXTURES, unarmed: every kOptimal exit of the QC8 / SDL DALLASM dumps, both
 // algebras, meets the data half as recomputed here (independently of terminal_kkt). Measured at
-// m8 (P-1a deciders, D-4): no in-repo fixture exit exceeds either bound.
+// m8 (P-1a deciders, D-4): no in-repo fixture exit exceeds either bound. The product is read
+// UNSCALED here (stricter than the gate's dual-scaled reading).
 TEST(QpCertificateData, NaturalDallasmFixturesCertifyInsideTheDataHalf) {
     DataSeamGuard guard;
     const char *files[] = {"QC8_DALLASM_qp1.txt",     "QC8_DALLASM_qp7.txt",

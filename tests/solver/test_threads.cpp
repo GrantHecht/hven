@@ -722,7 +722,20 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     RecordProperty("threads_restoration_k0_read",
                    "UNOBSERVED on Accelerate: no hot handle on this knife-edge route");
 #else
-    EXPECT_EQ(driver_k0_num_threads(sol), 0);
+    // RE-PREMISED AT M8 QPC (declared; DECLARATION-QPC section 7): the hot handle exists only when
+    // the engine's LAST walk solve ended kOptimal (sqp_warm_state.h). On this knife-edge route
+    // that last solve is a QP certified 477 feas_tol off its equality rows (an inconsistent
+    // linearization, the rows held inside dual_mu's footprint), which the certificate's data half
+    // refuses -- so the reference build now ends, like Debug and Accelerate already did, with no
+    // handle. The K0 thread count of the walk tier is still read through the handle on HS76
+    // above; here it is read when a handle exists and the reason is asserted when none does.
+    if (SqpWarmAccess::state(sol.sqp_warm_start).hot != nullptr) {
+        EXPECT_EQ(driver_k0_num_threads(sol), 0);
+    } else {
+        EXPECT_GE(sol.counters.certificate_gate_refusals, 1);
+        RecordProperty("threads_restoration_k0_read",
+                       "no hot handle: the last walk QP was refused");
+    }
 #endif
     EXPECT_EQ(max_threads_now(), before);
 }
@@ -925,7 +938,14 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(restoring), restoring.start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
-    EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);
+    // RE-PREMISED AT M8 QPC (declared): see ZeroLeavesEveryFactorAtTheBackendDefault -- the last
+    // walk QP of this route is refused by the certificate's data half, so no hot handle is
+    // emitted; the parent K0 count is read when one is.
+    if (SqpWarmAccess::state(sol.sqp_warm_start).hot != nullptr) {
+        EXPECT_EQ(driver_k0_num_threads(sol), kAskedFor);
+    } else {
+        EXPECT_GE(sol.counters.certificate_gate_refusals, 1);
+    }
 
     EXPECT_EQ(mkl_get_max_threads(), kCallerOverride)
         << "hven's call-scoped thread count must restore the caller's own thread-local "

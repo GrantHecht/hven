@@ -490,14 +490,16 @@
 //    gray-row returns, on the point and multipliers about to be exported:
 //    detail::terminal_kkt read from the QP's own data -- no regularization footprint
 //    in it -- must show rows <= kCertificateGateRowFactor * feas_tol and the
-//    complementarity product <= kCertificateGateComplFactor * feas_tol (both relative
-//    to the rows' own scales; terminal_kkt states them); a NaN refuses. A refusal is
+//    complementarity product over the dual scale <= kCertificateGateComplFactor * feas_tol
+//    (rows relative to their own scales; terminal_kkt states them) and the free-block stationarity
+//    residual <= kCertificateGateStationarityFactor * opt_tol (relative to its scale);
+//    a NaN or a non-finite exported vector refuses. A refusal is
 //    kNumericalError: the point is a KKT point of the REGULARIZED face, not of the QP.
 //    WHY: every earlier row test (row_tolerance, the structural margin, the gray
 //    contract) excuses min(dual_mu*|lambda|, kInfeasibilityAbsorbTol) per row, and
 //    with |lambda| ~ 1e5 that excuse is the 1e-6 cap -- a working set that is itself
 //    inconsistent at 7e-8 was certified at f 0.015 off the optimum (QC8 DALLASM qp7
-//    under the P-1a prototypes: rows 72.9x, product 7e6x feas_tol; the
+//    under the P-1a prototypes: rows 72.9x feas_tol; the
 //    unregularized EQP of the final working set reproduces the false point, so no
 //    face re-solve can catch it). The data half removes the excuse from the
 //    certificate only; the walk's own tests keep it.
@@ -1070,19 +1072,37 @@ constexpr double kTerminalPolishComplFactor = 100.0;
 //
 // PRODUCT: kTerminalPolishComplFactor, i.e. 1e-07 at the defaults, one decade under
 // the drivers' kkt_tol: the worst |residual|/row_scale * |multiplier| over the
-// equality rows, the working rows and the pinned bounds. It is the quantity a
-// consumer's own KKT check sees (the B-1 term, mu*lambda^2, on a footprint), and on
-// an equality row it is the objective error the residual buys (qp7: 2e5 * 7.3e-8).
-// MEASURED (P-1a deciders, D-4, base build): 24 of 11,339 TRAIN kOptimal QP exits
-// exceed the row bound and 165 the product bound (the 24 among them); the
-// in-repo fixture set none.
+// equality rows, the working rows and the pinned bounds, DIVIDED BY THE DUAL SCALE
+// (TerminalKkt::dual_scale: free_block_stationarity's scale joined by ||z||inf). The
+// division makes the verdict invariant to the objective's scaling, as every other
+// certificate reading is: scaling f by s scales every multiplier and the dual scale by
+// s. Unscaled, the product refused rounding-level points of elastic rungs whose
+// penalty multipliers reach 1e8-1e11 (YORKNET's ladder: rows 5e-16, product 3e-7; HS15's
+// elastic rung at rho 2e8: rows 9e-14, product 9e-6). Scaled, a row's product is at most
+// its rows reading when its multiplier dominates the dual scale, so on an equality row
+// the rows bound decides; the product's own job is the side the rows cannot see -- a
+// working inequality or pinned bound held SLACK under a multiplier (a KKT point of the
+// shifted row, not of the QP). (The P-1a deciders' D-4 sizing -- 165 of 11,339 TRAIN
+// kOptimal exits past the product bound -- read the UNSCALED product.)
+//
+// STATIONARITY (M8 QPC): terminal_kkt's free-block stationarity residual BEYOND ROUNDING
+// (TerminalKkt::stationarity_beyond_rounding), relative to its own scale, within 10 opt_tol. The
+// KKT-point test certification is reached through reads it at 1x opt_tol, but on the pass's point
+// and before the polish and the gray returns; the data half re-reads it on the EXPORTED (x,
+// lambda), so every term of the certificate is read last, from the QP's data, on what leaves the
+// engine. A correct exit reads <= 1x; the decade above is rounding room for the re-read.
 constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
 constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
+constexpr double kCertificateGateStationarityFactor = 10.0;
 
-// THE CERTIFICATE'S DATA HALF's verdict on a terminal_kkt reading (NaN refuses).
-inline bool certificate_data_half_holds(double rows, double complementarity, double feas_tol) {
+// THE CERTIFICATE'S DATA HALF's verdict on a terminal_kkt reading. Every comparison is `<=`,
+// so a NaN reading refuses. terminal_kkt's rows and product are running maxima that DROP a NaN
+// term, so the caller also requires the exported vectors to be finite (run()'s certified exit).
+inline bool certificate_data_half_holds(double rows, double complementarity, double stationarity,
+                                        double feas_tol, double opt_tol) {
     return rows <= kCertificateGateRowFactor * feas_tol &&
-           complementarity <= kCertificateGateComplFactor * feas_tol;
+           complementarity <= kCertificateGateComplFactor * feas_tol &&
+           stationarity <= kCertificateGateStationarityFactor * opt_tol;
 }
 
 // THE ENTRY TEST's SECOND DISJUNCT (polish_footprint_open): the multiple of
@@ -1438,6 +1458,17 @@ struct TerminalKkt {
     double stationarity = 0.0;
     double rows = 0.0;
     double complementarity = 0.0;
+    // The dual scale: free_block_stationarity's scale max(1, ||Hx||, ||g||, ||Ae'lambda_e||,
+    // ||Ai'lambda_i||), joined by ||z||inf. Read by the certificate's data half only.
+    double dual_scale = 1.0;
+    // The free-block stationarity residual BEYOND ROUNDING, over the same scale: component i
+    // of Hx + g + Ae'lambda_e + Ai'lambda_i is a sum of c_i terms whose magnitudes add to m_i,
+    // so evaluating it in double can leave c_i * eps * m_i at an exact KKT point (Higham's
+    // gamma_n bound); this reads max_i max(0, |r_i| - c_i eps m_i) / scale, NaN-sticky (the
+    // measure of tests/qp/support/qp_dump.h's qp_dump_kkt). Read by the certificate's data
+    // half only: a normwise residual can sit below what double resolves where large terms
+    // cancel (SAWPATH's rung: terms of 2.4e13 summing to 3.6e2, floor 5e-3 absolute).
+    double stationarity_beyond_rounding = 0.0;
 
     bool all_finite() const {
         return std::isfinite(stationarity) && std::isfinite(rows) && std::isfinite(complementarity);
@@ -1450,6 +1481,44 @@ inline TerminalKkt terminal_kkt(const QpProblem &qp, const WorkingSet &ws, const
     double stat_scale = 1.0;
     const double stat = free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
     out.stationarity = stat / std::max(stat_scale, 1e-300);
+    out.dual_scale = std::max(stat_scale, z.size() > 0 ? z.lpNorm<Eigen::Infinity>() : 0.0);
+    {
+        // THE ROUNDING FLOOR of each free component (TerminalKkt::stationarity_beyond_rounding).
+        const Vec ones = Vec::Ones(qp.n());
+        const SpMatRM h_abs = qp.H.cwiseAbs();
+        const SpMatRM h_pat = h_abs.cwiseSign();
+        Vec r = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
+        Vec m = h_abs.selfadjointView<Eigen::Upper>() * x.cwiseAbs() + qp.g.cwiseAbs();
+        Vec c = h_pat.selfadjointView<Eigen::Upper>() * ones + Vec::Constant(qp.n(), 1.0);
+        if (qp.me() > 0) {
+            const SpMatRM a_abs = qp.Ae.cwiseAbs();
+            r += qp.Ae.transpose() * lambda_e;
+            m += a_abs.transpose() * lambda_e.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
+        }
+        if (qp.mi() > 0) {
+            const SpMatRM a_abs = qp.Ai.cwiseAbs();
+            r += qp.Ai.transpose() * lambda_i;
+            m += a_abs.transpose() * lambda_i.cwiseAbs();
+            c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
+        }
+        constexpr double kEps = std::numeric_limits<double>::epsilon();
+        double beyond = 0.0;
+        for (Index i = 0; i < qp.n(); ++i) {
+            if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+                continue;
+            }
+            const double excess = std::abs(r(i)) - c(i) * kEps * m(i);
+            if (std::isnan(excess)) { // NaN is sticky (free_block_stationarity's note)
+                beyond = excess;
+                break;
+            }
+            if (excess > beyond) {
+                beyond = excess;
+            }
+        }
+        out.stationarity_beyond_rounding = beyond / std::max(stat_scale, 1e-300);
+    }
 
     const double xmag = x.lpNorm<Eigen::Infinity>();
     if (qp.me() > 0) {

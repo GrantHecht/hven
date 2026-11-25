@@ -1451,17 +1451,39 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // with lambda_i = 1e+06 on a row 8e-07 slack: inside the walk's own row
     // tolerance, and a pinned 1e-07 radius cannot step past it.
     //
-    // WHAT HAPPENS NOW, MEASURED: every major repeats that zero step, the watchdog
-    // restores at major kWarmFullStepWindow + 1 (its subject is back), and the solve
-    // ends kIterationLimit at the cap. That is the honest status for a solve that cannot
-    // move; it is not a certificate.
+    // WHAT HAPPENED AT WX-R1 .. M8, MEASURED: every major repeated that zero step, the watchdog
+    // restored at major kWarmFullStepWindow + 1, and the solve ended kIterationLimit at the cap.
+    //
+    // RE-PREMISED AT M8 QPC (declared; DECLARATION-QPC section 7). That zero step was itself a
+    // FALSE QP certificate: the walk certified x = 0 with lambda_i = 1e6 on a working row 8e-07
+    // SLACK, a KKT point of the row shifted by 8e-7 and not of the QP (its scaled
+    // residual x multiplier product reads 8e-7, 800 feas_tol). The certificate's data half refuses
+    // it (kNumericalError, one certificate_gate_refusal at major 0); from major 1 the QPs certify
+    // the TR-limited step, the watchdog still restores the refused triple at major
+    // kWarmFullStepWindow (its subject is back, which is what this fixture provokes), and the walk
+    // then crosses to the TRUE optimum x* = eps and certifies it at major 13. The property pinned
+    // is unchanged and still observed: the restored, refused triple (x = 0, lambda = 1e6) is never
+    // the certified answer. The answer that IS certified is checked here independently of the
+    // solver's own residuals, from the model's data.
     const bool restored = std::any_of(sol.history.begin(), sol.history.end(),
                                       [](const IterationRecord &row) { return row.watchdog; });
     EXPECT_TRUE(restored) << "the watchdog must actually restore, or this pins nothing";
-    EXPECT_NE(SolveStatus::kOptimal, sol.status)
-        << "the triple the ingest gate refused must not be certified after the restore";
-    EXPECT_EQ(SolveStatus::kIterationLimit, sol.status);
-    EXPECT_GT(sol.convergence.complementarity, opts.common.optimality_tol);
+    EXPECT_GE(sol.counters.certificate_gate_refusals, 1) << "the zero step's false QP certificate";
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
+    ASSERT_EQ(sol.x.size(), 1);
+    ASSERT_EQ(sol.lambda.size(), 1);
+    EXPECT_GT(std::abs(sol.x(0)), 0.5 * model.x_star()) << "not the refused triple's x = 0";
+    // INDEPENDENT KKT CHECK from the model: grad L = -S + x + lambda (z = 0, the box is slack),
+    // c = x - eps <= 0, lambda * c = 0. Measured: x - x* = -1.1e-18, |grad L| 6.1e-12 (rel 6e-18),
+    // lambda c 1.1e-12, f - f* 1.1e-12.
+    const double x = sol.x(0), lam = sol.lambda(0);
+    EXPECT_NEAR(model.x_star(), x, 1e-12);
+    EXPECT_NEAR(model.f_star(), sol.f, 1e-9);
+    EXPECT_LE(std::abs(-kScale + x + lam - (sol.z.size() == 1 ? sol.z(0) : 0.0)), 1e-9 * kScale)
+        << "stationarity of the Lagrangian, recomputed";
+    EXPECT_LE(x - kEps, 1e-12) << "feasibility, recomputed";
+    EXPECT_GE(lam, 0.0) << "the multiplier's sign";
+    EXPECT_LE(std::abs(lam * (x - kEps)), opts.common.optimality_tol) << "complementarity";
 }
 
 // =====================================================================

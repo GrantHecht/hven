@@ -289,12 +289,22 @@ void expect_certified(const Walk &w) {
 } // namespace
 
 // rate 0.8: the residual halves within every run of kStagnationSteps, so no reading is taken.
-TEST(QpStagnationStop, AResidualContractingAtPointEightCertifiesWithoutAReading) {
+// RE-PREMISED AT M8 QPC (declared; DECLARATION-QPC section 7; renamed from
+// ...CertifiesWithoutAReading): the KKT-point test passes once |a lambda| < opt_tol, and with
+// a = 1e-6 that happens while the row is still 7.3e-7 (731 feas_tol) off -- a point the
+// certificate's data half refuses (kNumericalError, one refusal). What this fixture pins is the
+// stagnation rule's silence at rate 0.8, unchanged: no drop, no stop, no mu-free refine.
+TEST(QpStagnationStop, AResidualContractingAtPointEightTakesNoReading) {
     const Contracting c = contracting_row(0.8, 0.0);
     const Walk w = observed(c.qp, c.o);
     print_walk("rate 0.8", w);
     expect_contracts_at(w, 0.8);
-    expect_certified(w);
+    const QpSolution &s = w.solution;
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(s.counters.certificate_gate_refusals, 1);
+    EXPECT_EQ(s.counters.stagnation_stops, 0);
+    EXPECT_EQ(s.counters.stagnation_drops, 0);
+    EXPECT_EQ(count_actions(w, Action::kStagnationStop), 0);
     EXPECT_EQ(w.solution.counters.terminal_mu_refines, 0);
     EXPECT_EQ(count_actions(w, Action::kStagnationRefine), 0);
 }

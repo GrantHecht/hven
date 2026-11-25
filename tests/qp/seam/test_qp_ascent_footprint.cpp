@@ -580,7 +580,13 @@ TEST(QpWa1AscentFootprint, SyntheticRidePassedOverOutOfTheBudgetIsRefused) {
         }
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(w.solution.counters.ascent_footprint_ride_refusals, 1);
-        EXPECT_EQ(static_cast<int>(w.solution.status), static_cast<int>(QpStatus::kOptimal));
+        // RE-PREMISED AT M8 QPC (declared; DECLARATION-QPC section 7): the walk's final point sits
+        // 1.92e-8 (19.2 feas_tol at row scale 1) off a working row -- inside the mu = 1e-10 rung's
+        // footprint excuse, outside the certificate's data half (10 feas_tol) -- so the exit that
+        // was certified kOptimal is refused kNumericalError, once. The ride refusal this fixture
+        // is about is unchanged.
+        EXPECT_EQ(static_cast<int>(w.solution.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(w.solution.counters.certificate_gate_refusals, 1);
 #else
         hven::test_support::record_off_reference_route(
             std::string("wa1_synthetic_refused_") + alg_name(alg),

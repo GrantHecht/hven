@@ -1094,11 +1094,21 @@ void check_full_step_lever_on_the_sound_warm_arms() {
         EXPECT_GT(on.full_step_majors, 0) << name;
         EXPECT_EQ(0, off.full_step_majors) << name;
         EXPECT_LE(on.full_step_majors, on.majors) << name;
-        // NEUTRAL IN EVERY OBSERVED COUNT.
-        EXPECT_EQ(on.majors, off.majors) << name << corpus_table();
-        EXPECT_EQ(on.minors, off.minors) << name << corpus_table();
-        EXPECT_EQ(on.factorizations, off.factorizations) << name << corpus_table();
-        EXPECT_EQ(on.rejected, off.rejected) << name << corpus_table();
+        // NEUTRAL IN EVERY OBSERVED COUNT -- except HS15's (M8 QPC, declared; DECLARATION-QPC
+        // section 7): its warm arm's failing chain at p = 1 (the LICQ point, kTruncatedWarmArms)
+        // now meets QP certificates the data half refuses -- a working row of the near-degenerate
+        // constraint held SLACK under a multiplier (x ~ (4e-3, 4e-2): slack 1.8e-8 under lambda
+        // 896, and 2.2e-7 under lambda 1462; scaled products 680 and 13,100 feas_tol) -- and with
+        // the lever on, the full-step window's watchdog restores once on that chain (Release: on 49
+        // / 175 / 74 / 13, off 44 / 160 / 68 / 12 majors / minors / factorizations / rejected). The
+        // statuses, the stop point and every answer stay lever-independent (asserted below).
+        const bool counts_neutral = std::string(name) != "HS15";
+        if (counts_neutral) {
+            EXPECT_EQ(on.majors, off.majors) << name << corpus_table();
+            EXPECT_EQ(on.minors, off.minors) << name << corpus_table();
+            EXPECT_EQ(on.factorizations, off.factorizations) << name << corpus_table();
+            EXPECT_EQ(on.rejected, off.rejected) << name << corpus_table();
+        }
         EXPECT_EQ(on.n_warm, off.n_warm) << name << corpus_table();
         EXPECT_EQ(on.solves, off.solves) << name << corpus_table();
         EXPECT_EQ(on.status_failures, off.status_failures) << name << corpus_table();
@@ -1108,7 +1118,11 @@ void check_full_step_lever_on_the_sound_warm_arms() {
             << name << ": the ANSWER is lever-independent too" << corpus_table();
         // THE WATCHDOG NEVER FIRED ANYWHERE IN THE CORPUS -- the same reading
         // the Phase-4 battery got, now on nonconvex problems.
-        EXPECT_EQ(0, on.watchdog) << name;
+        if (counts_neutral) {
+            EXPECT_EQ(0, on.watchdog) << name;
+        } else {
+            EXPECT_LE(on.watchdog, 1) << name << ": the one restore on the failing chain";
+        }
         EXPECT_EQ(0, off.watchdog) << name;
     }
     // The engagement rates the note quotes, pinned so "the mode engaged" is a
@@ -1139,9 +1153,13 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // M8 kopt-1x r2: the first kopt-1x fix moved Release to 26 / 40 because its row measure read a
     // working inequality row two-sided (slack counted as a violation); the one-sided read restores
     // the earlier config split.
+    // M8 QPC (declared): Release 28 / 42 -> 26 / 40. HS10's warm chain met a QP certificate whose
+    // working row sat 0.29 SLACK under lambda 0.41 at x = (0.915, 1.0) -- not a KKT point of the QP
+    // (scaled product 2.4e-2) -- five times; the data half refuses it and the chain reads the Debug
+    // column's counts, with the same answers.
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+    EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
 #else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
@@ -1168,9 +1186,11 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // AND AN INTEL ONE READS 21/39 (Xeon 6975P-C, avx512, mkl_auto_branch=14; CI run 45064036804):
     // off the reference build the two Linux columns are both observed, so either is accepted
     // there and the pair is recorded; the reference build keeps 22/40 exactly.
+    // M8 QPC (declared): the reference build 22 / 40 -> 21 / 49 (the failing chain's refused QP
+    // certificates and the one watchdog restore, check_full_step_lever_on_the_sound_warm_arms).
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(40, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(49, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
 #elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
     {
         const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
@@ -1455,8 +1475,10 @@ void check_soc_costs_what_it_costs() {
     // corpus total is bit-identical to the base before kopt-1x.
     // RF-1 A+B2 (declared mover): Release 3355 -> 3406, all of it HS15's warm arms (the rungs and
     // the restoration of the failing chain at p = 1); Debug 3346 -> 3392.
+    // M8 QPC (declared): Release 3406 -> 3434, all of it HS15's and HS10's warm arms (the refused
+    // certificates above).
 #ifdef NDEBUG
-    EXPECT_EQ(3406, total_minors) << corpus_table();
+    EXPECT_EQ(3434, total_minors) << corpus_table();
 #else
     EXPECT_EQ(3392, total_minors) << corpus_table();
 #endif
@@ -1657,8 +1679,12 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // The off-reference Release lanes (macOS, Windows; CI run 44991274789) read Debug's 39; the
     // off-reference Linux Release runner of CI run 45036848180 reads the reference 40, and the
     // off-reference Intel runner of CI run 45064036804 reads 39: either, off the reference build.
+    // M8 QPC (declared): the reference build's held-off arm 40 -> 44 majors and the step arm
+    // 43 / 149 / 64 / 6 -> 42 / 142 / 58 / 4: the failing chain's refused certificates (a working
+    // row held slack under a multiplier near the LICQ point); the failure count, the stop point and
+    // the rescued branch are unchanged.
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(off.majors, 40);
+    EXPECT_EQ(off.majors, 44);
 #elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
 #else
@@ -1672,10 +1698,10 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
 #else
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(on.majors, 43);
-    EXPECT_EQ(on.minors, 149);
-    EXPECT_EQ(on.factorizations, 64);
-    EXPECT_EQ(on.rejected, 6);
+    EXPECT_EQ(on.majors, 42);
+    EXPECT_EQ(on.minors, 142);
+    EXPECT_EQ(on.factorizations, 58);
+    EXPECT_EQ(on.rejected, 4);
 #else
     EXPECT_EQ(on.majors, 42);
     EXPECT_EQ(on.minors, 142);

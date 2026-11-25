@@ -1983,8 +1983,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             // the exported point read from the QP's own data, no footprint.
                             const detail::TerminalKkt data =
                                 detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
-                            if (detail::certificate_data_half_holds(data.rows, data.complementarity,
-                                                                    eff_opts.feasibility_tol)) {
+                            const bool exported_finite = x.allFinite() && lambda_e.allFinite() &&
+                                                         lambda_i.allFinite() && z.allFinite();
+                            if (exported_finite &&
+                                detail::certificate_data_half_holds(
+                                    data.rows, data.complementarity / data.dual_scale,
+                                    data.stationarity_beyond_rounding, eff_opts.feasibility_tol,
+                                    eff_opts.optimality_tol)) {
                                 status = QpStatus::kOptimal;
                             } else {
                                 ++counters.certificate_gate_refusals;

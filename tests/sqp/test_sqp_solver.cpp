@@ -6802,13 +6802,12 @@ static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy 
                                              "claim above is live once more "
                                              "and this premise can be restored";
         } else {
-            // Dense arm: Release holds mu (no drop); Debug sees ONE decade drop, so the
-            // refactorization claim in the loop above is live there (and passes).
-#ifdef NDEBUG
-            EXPECT_FALSE(saw_decade_drop) << "mu moved on the dense arm in Release";
-#else
-            EXPECT_TRUE(saw_decade_drop) << "the dense arm no longer drops a decade in Debug";
-#endif
+            // Dense arm: Release holds mu (no drop). Debug saw ONE decade drop until M8 QPC
+            // (declared; DECLARATION-QPC section 7): that route ran through a Debug-only QP
+            // certified 49 feas_tol off its equality row (ScaledRowModel's a = 1e-3 row), which the
+            // certificate's data half refuses; Debug now holds mu as Release does. The loop's
+            // refactorization claim stays live for the next genuine change.
+            EXPECT_FALSE(saw_decade_drop) << "mu moved on the dense arm";
         }
     }
 }
