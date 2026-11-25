@@ -13,7 +13,7 @@ L=$(cd "$(dirname "$0")" && pwd)
 M="python3 $L/mutate_qpc.py"
 export MUT_TREE=$TREE MKL_NUM_THREADS=1 CCACHE_DISABLE=1 TMPDIR=$TREE/.scratch/tmp GIT_CEILING_DIRECTORIES=$TREE/.scratch/tmp
 mkdir -p "$TMPDIR"; OUT=$(realpath -m "$OUT"); mkdir -p "$OUT"
-ARGUED=""   # TODO(freeze): the dry run's argued set; must equal `mutate_qpc.py argued`
+ARGUED="Q14 Q17 Q21"   # the development dry run's survivors, argued in section 8; must equal `mutate_qpc.py argued`
 DECL_ARGUED=$($M argued)
 norm() { tr ' ' '\n' | sed '/^$/d' | sort | tr '\n' ' '; }
 if [ "$(echo "$ARGUED" | norm)" != "$(echo "$DECL_ARGUED" | norm)" ]; then
@@ -25,16 +25,20 @@ cd "$TREE" || exit 1
 git diff --quiet --ignore-submodules=all -- src include tests bench || { echo TREE_DIRTY_BEFORE; exit 2; }
 $M check > /dev/null || { echo "PREFLIGHT_DOES_NOT_APPLY"; $M restore; exit 2; }
 echo "PREFLIGHT every mutation applies and restores: [$IDS]"
-TARGETS="hven_qp_seam_tests hven_qp_tests"
+TARGETS="hven_qp_seam_tests hven_qp_tests hven_sqp_tests"
 SEAM_FILTER='QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*'
 UNIT_FILTER='EqpSolve*:EqpConvergedRefinement.*'
-run_one() { local id=$1 r1 r2
+# The SQP fold of the two counters (Q18) is seen only through a driver: B1Gate's watchdog fixture asserts the folded
+# certificate_gate_refusals of its major-0 QP.
+SQP_FILTER='B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers'
+run_one() { local id=$1 r1 r2 r3
   [ "$id" = control ] || $M "$id" > /dev/null || return 9
   [ "$id" = control ] || git diff -- src include > "$OUT/$id.diff"
   timeout 3600 ninja -C "$B" -j${BOX_LANE_JOBS:-4} $TARGETS > "$OUT/$id.build.log" 2>&1 || { echo "MUT $id BUILD_FAIL"; $M restore > /dev/null; return 8; }
   { timeout 2400 "$B/tests/qp/hven_qp_seam_tests" --gtest_filter="$SEAM_FILTER"; r1=$?
-    timeout 600 "$B/tests/qp/hven_qp_tests" --gtest_filter="$UNIT_FILTER"; r2=$?; } > "$OUT/$id.tests.log" 2>&1
-  local r=$((r1 + r2))
+    timeout 600 "$B/tests/qp/hven_qp_tests" --gtest_filter="$UNIT_FILTER"; r2=$?
+    timeout 600 "$B/tests/sqp/hven_sqp_tests" --gtest_filter="$SQP_FILTER"; r3=$?; } > "$OUT/$id.tests.log" 2>&1
+  local r=$((r1 + r2 + r3))
   grep -a "^\[  FAILED  \] [A-Za-z]" "$OUT/$id.tests.log" | sed 's/^.*\] //; s/ (.*//' | sort -u > "$OUT/$id.killers.txt"
   [ "$id" = control ] || $M restore > /dev/null
   echo "MUT $id rc=$r killers=$(wc -l < "$OUT/$id.killers.txt")"; sed 's/^/   /' "$OUT/$id.killers.txt"

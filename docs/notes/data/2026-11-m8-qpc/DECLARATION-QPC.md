@@ -119,7 +119,9 @@ target the single step aims at; every exit still passes the unchanged certificat
   `gate-QPC/`), so "C1 alone" is literally H with C2 removed, not a re-implementation; the counter schema is identical in
   all three arms (a reverted component's counter reads 0), so every reader and comparator runs unchanged. If a component
   ships alone, the shipping commit is the corresponding revert landed on `qpc` (its diff is the one the arm measured).
-  The branches are pushed but never merged as such.
+  The branches are pushed but never merged as such. Development commits: `qpc-c1` `e4660dd31` and `qpc-c2` `1ed77a336`,
+  both on the code commit `02407ea83` (the reverts are produced by a script kept with the legs, so they are re-made on the
+  final H at freeze and their shas entered in BINARIES.txt; `legs/make_arm.py`).
 * Every arm is (build, ensemble member); there are no runtime levers. Four installs: R (the census install, reused),
   H, H-C1, H-C2, each built by hven-bench `scripts/census_build.sh` (the census recipe: Release, no tests/bench, no LTO,
   sequential MKL, clang; `HVEN_PIN.txt` in the prefix), each with its lane binary `hven_bench_cell` built from
@@ -386,35 +388,38 @@ Development leg-C readings at the post-diagnosis tree (the code commit below; de
 
 Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), run by `legs/mutations_qpc.sh` on
 `hven_qp_seam_tests` (`QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*`) and
-`hven_qp_tests` (`EqpSolve*:EqpConvergedRefinement.*`). Killers are named from the development dry run ⟨pending⟩; the
-leg-M reading is the evidence.
+`hven_qp_tests` (`EqpSolve*:EqpConvergedRefinement.*`) and `hven_sqp_tests`
+(`B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, for the SQP fold). Killers are named from the
+development dry run (VERDICT MUTATION_SURVIVED on Q14, Q17, Q18, Q21 before the ARGUED set and the SQP binary were
+added; control clean; every other id killed); the leg-M reading is the evidence.
 
-| id | mutation | declared killer(s) |
+| id | mutation | declared killer(s) (development dry run, 2026-11-25, tree 7dbd9407b; leg M is the evidence) |
 |---|---|---|
-| Q1 | the data half never refuses | QpCertificateData.* (refused cases) |
-| Q2 | the data half reads rows only | QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused |
-| Q3 | the data half reads the product only | QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified |
-| Q4 | row factor 10 -> 100 | QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified |
-| Q5 | product factor 100 -> 1000 | QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused |
+| Q1 | the data half never refuses | QpCertificateData.{ABoundInside..., AnOffStationary..., ARowPastTenFeasTol..., AWorkingRowSlack..., Qc8DallasmQp7..., TheProductIsReadAgainstTheDualScale} |
+| Q2 | the data half reads rows only | QpCertificateData.{AnOffStationaryExportedPointIsRefused, AWorkingRowSlackPastAHundredFeasTolIsRefused, TheVerdictRefusesNanAndReadsBothBoundsInclusively} |
+| Q3 | the data half reads the product only | QpCertificateData.{ABoundInside..., AnOffStationary..., ARowPastTenFeasTol..., Qc8DallasmQp7..., TheProductIsRead..., TheVerdict...} |
+| Q4 | row factor 10 -> 100 | QpCertificateData.{ABoundInside..., Qc8DallasmQp7..., TheProductIsReadAgainstTheDualScale, TheVerdict...} |
+| Q5 | product factor 100 -> 1000 | QpCertificateData.{AWorkingRowSlackPastAHundredFeasTolIsRefused, TheVerdict...} |
 | Q6 | a NaN passes (comparisons inverted to !(>)) | QpCertificateData.TheVerdictRefusesNanAndReadsBothBoundsInclusively (ANanPointIsRefused cannot kill it: R already refuses a NaN point earlier, dev/R-tdd.txt) |
-| Q7 | a refusal exits kInfeasible | QpCertificateData.* (status) |
-| Q8 | a refusal is not counted | QpCertificateData.* (counter) |
-| Q9 | the data half ignores bounds (terminal_kkt's box loop) | QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused |
-| Q10 | the re-admission never arms | QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization |
-| Q11 | the rung kept beside the arming | QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization (dual_mu record, decreases) |
-| Q12 | converged mode ignored on the eliminated path | QpReleaseReadmission (refactorize), EqpConvergedRefinement.EliminatedPath* |
-| Q13 | converged mode ignored on the bordered path | EqpConvergedRefinement.UnborderedBorderedPath*, ⟨PF1 border⟩ |
-| Q14 | the strict-decrease keep rule dropped (every step kept) | ⟨dry run; else ARGUED⟩ |
+| Q7 | a refusal exits kInfeasible | QpCertificateData.* (status; 6 tests) |
+| Q8 | a refusal is not counted | QpCertificateData.* (counter; 6 tests) |
+| Q9 | the data half ignores bounds (terminal_kkt's box loop) | QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused, QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible |
+| Q10 | the re-admission never arms | QpReleaseReadmission.{F7PathCorruptedQp1SolvesAtItsOwnRegularization, TheConvergedRefinementIsPerSolve} |
+| Q11 | the rung kept beside the arming | QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization |
+| Q12 | converged mode ignored on the eliminated path | EqpConvergedRefinement.{EliminatedPath..., UnborderedBorderedPath...}, QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization |
+| Q13 | converged mode ignored on the bordered path | EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne |
+| Q14 | the strict-decrease keep rule dropped (every step kept) | ARGUED: every converged step on the fixtures contracts the residual (the multiplier error contracts by mu/(mu+s_i) per step, D-1), so a keep rule that only ever refuses a NON-decreasing step is never exercised; it is a guard against a diverging or NaN refinement, which no in-repo face produces. The survival is the expected one, not a coverage gap the round claims to close |
 | Q15 | the mode not reset at run() entry | QpReleaseReadmission.TheConvergedRefinementIsPerSolve |
-| Q16 | armed from pass 0 (global converged refinement, decider D-2) | YORKNET qp25 / ACOPR57 fixtures (D-2 moved them), ⟨dry run⟩ |
-| Q17 | arms counted more than once | QpReleaseReadmission (arms == 1) |
-| Q18 | the fold of the two counters missing at the main-QP site | ⟨F-FOLD if built; else ARGUED⟩ |
-| Q19 | the converged loop's step budget 10 -> 2 | ⟨dry run⟩ |
-| Q20 | the data half drops its stationarity disjunct (C553 Q3) | QpCertificateData.AnOffStationaryExportedPointIsRefused, QpCertificateData.TheVerdictRefusesNanAndReadsBothBoundsInclusively |
-| Q21 | the finiteness guard on the exported vectors dropped | ⟨dry run; else ARGUED⟩ |
-| Q22 | the product read UNSCALED (the dual-scale division dropped; the first QPC build) | QpCertificateData.TheProductIsReadAgainstTheDualScale |
+| Q16 | armed from pass 0 (global converged refinement, decider D-2) | QpCertificateSign.* (5 tests) and 8 more |
+| Q17 | arms counted more than once | ARGUED: after the first arming the mode is kConverged for the rest of the solve, so re-arming changes nothing but the counter, and on every fixture the converged refinement puts the released row on its bound so no SECOND re-admission occurs (PF1 reads arms = 1 with or without the guard). The counter's "0 or 1 per walk" contract is pinned where it can be observed (PF1 = 1); a fixture with two re-admissions after arming does not exist in the tree |
+| Q18 | the fold of the two counters missing at the main-QP site | B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (asserts the folded certificate_gate_refusals of its major-0 QP; the runner gained hven_sqp_tests with that filter after the dry run, where Q18 survived for want of an SQP binary) |
+| Q19 | the converged loop's step budget 10 -> 2 | EqpConvergedRefinement.{EliminatedPath..., UnborderedBorderedPath...} |
+| Q20 | the data half drops its stationarity disjunct (C553 Q3) | QpCertificateData.{AnOffStationaryExportedPointIsRefused, TheVerdictRefusesNanAndReadsBothBoundsInclusively} |
+| Q21 | the finiteness guard on the exported vectors dropped | ARGUED: every NaN presentation the seam can make (ANanPointIsRefused) is refused before the data half by the gray-row reading, so no fixture reaches the guard with a non-finite vector; the guard is the data half's own proof of "NaN refuses" (terminal_kkt's max reductions drop a NaN term) and is defence in depth, not a path a test can isolate without a seam inside terminal_kkt |
+| Q22 | the product read UNSCALED (the dual-scale division dropped; the first QPC build) | QpCertificateData.{AWorkingRowSlackPastAHundredFeasTolIsRefused, TheProductIsReadAgainstTheDualScale} |
 
-ARGUED (expected to survive; must equal the runner's set): ⟨filled after the dry run, each with its argument⟩.
+ARGUED (the runner's set, parity-checked): Q14, Q17, Q21. Q18's killer is to be confirmed by the extended runner
+(control + Q18) before freeze ⟨reading⟩.
 
 ## 9. Stops
 A pre-flight mismatch; any N0-N3 difference outside the declared-mover rule; an unreported error row; a false NLP

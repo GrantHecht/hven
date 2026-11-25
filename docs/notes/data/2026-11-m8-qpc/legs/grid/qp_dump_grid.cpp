@@ -262,10 +262,10 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
         r.rows = nmax(r.rows, std::max(below, above) / rs);
         const auto si = static_cast<std::size_t>(i);
         const bool tr_held = si < s.tr_active.size() && s.tr_active[si];
-        const bool at_bound = si < s.bound_state.size() && s.bound_state[si] != hven::detail::BoundState::kFree;
+        const bool at_bound = si < s.bound_state.size() && s.bound_state[si] != hven::BoundState::kFree;
         pinned[si] = tr_held || at_bound;
         if (at_bound && s.z.size() == n) {
-            const double at = s.bound_state[si] == hven::detail::BoundState::kAtUpper ? up(i) : lo(i);
+            const double at = s.bound_state[si] == hven::BoundState::kAtUpper ? up(i) : lo(i);
             r.product = nmax(r.product, std::abs(s.x(i) - at) / rs * std::abs(s.z(i)));
         }
     }
