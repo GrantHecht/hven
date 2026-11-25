@@ -1,0 +1,32 @@
+binary sha ok 617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b
+ALONE-RERUN H0 ACOPR118 default default
+box-lane: exclusive acquired 2026-11-25T00:01:19-05:00
+run_serial: cutest/ACOPR118/hven-sqp/default
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/H0/ACOPR118-default/results.csv
+rc 0
+ALONE-RERUN P ACOPR118 default default+trust_region_initial=1.000000000000001
+box-lane: exclusive acquired 2026-11-25T00:13:35-05:00
+run_serial: cutest/ACOPR118/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/P/ACOPR118-default/results.csv
+rc 0
+ALONE-RERUN H0 BRITGAS default default
+box-lane: exclusive acquired 2026-11-25T00:28:08-05:00
+run_serial: cutest/BRITGAS/hven-sqp/default
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/H0/BRITGAS-default/results.csv
+rc 0
+ALONE-RERUN P BRITGAS default default+trust_region_initial=1.000000000000001
+box-lane: exclusive acquired 2026-11-25T00:39:36-05:00
+run_serial: cutest/BRITGAS/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/P/BRITGAS-default/results.csv
+rc 0
+ALONE-RERUN H0 SAWPATH sqp-qn sqp-qn
+box-lane: exclusive acquired 2026-11-25T01:11:22-05:00
+run_serial: cutest/SAWPATH/hven-sqp/sqp-qn
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/H0/SAWPATH-sqp-qn/results.csv
+rc 0
+ALONE-RERUN P SAWPATH sqp-qn sqp-qn+trust_region_initial=1.000000000000001
+box-lane: exclusive acquired 2026-11-25T01:53:20-05:00
+run_serial: cutest/SAWPATH/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
+run_serial: 1 cells -> /home/ghecht/Projects/hven/.claude/worktrees/i19-addendum/docs/notes/data/2026-11-m8-i19-2a/gate-I19-2a/addendum/alone-rerun/P/SAWPATH-sqp-qn/results.csv
+rc 0
+DONE rc=0

@@ -1,0 +1,114 @@
+## 1a. P vs H0 moved rows by corpus (harness moved() test = 'moved'; outcome-level = status or majors or factorizations or eval_f or eval_jac differs)
+| corpus | cells | moved | bookkeeping-only | outcome-level | outcome-level % of cells | status changes (all) | majors changed, both optimal |
+|---|---|---|---|---|---|---|---|
+| TRAIN-238 | 238 | 198 | 161 | 37 | 15.5% | 2 | 8 of 210 |
+| CAP-238-1 | 238 | 193 | 158 | 35 | 14.7% | 1 | 8 of 209 |
+| CAP-238-01 | 238 | 120 | 106 | 14 | 5.9% | 3 | 4 of 209 |
+| NLP-46 | 46 | 36 | 9 | 27 | 58.7% | 4 | 8 of 21 |
+PILOT-62: see section 1c (rows carry only status/outcome/factorizations).
+
+## 1b. Status changes (H0 -> P) and what the bookkeeping-only rows differ in
+
+TRAIN-238 status changes:
+  CRESC50/sqp-qn: max_iter -> numerical_error  (majors 289->271, LA 4218->3869)
+  LAKES/default: numerical_error -> stalled  (majors 11->10, LA 6312->8132)
+TRAIN-238 bookkeeping-only rows (161): differing columns, count of rows (top 12): [('eqp_polish_steps', 151), ('backend_solve_rhs_polish', 130), ('backend_solves_polish', 130), ('border_refine_steps', 75), ('backend_solve_rhs_ordinary', 24), ('backend_solves_ordinary', 24), ('terminal_polish_adopted', 21), ('harness_qpsum_dep_test_solves', 19), ('backend_solves_detector', 19), ('backend_solve_rhs_detector', 19), ('harness_factorizations_total', 19), ('terminal_polish_solves', 19)]
+  all differing columns on bookkeeping-only rows: {'eqp_polish_steps': 151, 'backend_solve_rhs_polish': 130, 'backend_solves_polish': 130, 'border_refine_steps': 75, 'backend_solve_rhs_ordinary': 24, 'backend_solves_ordinary': 24, 'terminal_polish_adopted': 21, 'harness_qpsum_dep_test_solves': 19, 'backend_solves_detector': 19, 'backend_solve_rhs_detector': 19, 'harness_factorizations_total': 19, 'terminal_polish_solves': 19, 'dense_factorizations': 19, 'backend_solve_rhs_border_refine': 17, 'backend_solves_border_refine': 17, 'terminal_polish_rejected': 7, 'eqp_refine_iters': 6, 'harness_qpsum_dep_stall_admits': 6, 'harness_qpsum_dep_tests': 4, 'restoration_h_out': 4, 'qp_minor_iters': 3, 'harness_qpsum_ws_exchanges_bound': 3, 'harness_qpsum_dep_dependent': 3, 'harness_qpsum_ws_exchanges': 3, 'restoration_feas_out': 3, 'accepted_f_type': 2, 'accepted_h_type': 2, 'backend_solve_refine_polish': 2, 'backend_solve_refine_border_refine': 2, 'harness_qpsum_dep_grey_reread_dependent': 2, 'harness_qpsum_dep_grey_rereads': 2, 'harness_qpsum_dep_structural_first': 2, 'harness_qpsum_saddle_direction_solves': 1, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'harness_qpsum_ws_exchanges_shifted': 1, 'harness_qpsum_dep_passovers': 1, 'backend_solve_refine_ordinary': 1, 'eqb_max_gap': 1, 'restoration_f_out': 1, 'harness_qpsum_dep_implied_passovers': 1, 'active_set_delta_peak': 1}
+
+CAP-238-1 status changes:
+  CRESC50/sqp-qn: max_iter -> numerical_error  (majors 289->271, LA 4082->3822)
+CAP-238-1 bookkeeping-only rows (158): differing columns, count of rows (top 12): [('eqp_polish_steps', 147), ('backend_solve_rhs_polish', 131), ('backend_solves_polish', 131), ('border_refine_steps', 72), ('backend_solve_rhs_ordinary', 20), ('backend_solves_ordinary', 20), ('harness_qpsum_dep_test_solves', 18), ('backend_solves_detector', 18), ('backend_solve_rhs_detector', 18), ('terminal_polish_adopted', 16), ('backend_solve_rhs_border_refine', 15), ('backend_solves_border_refine', 15)]
+  all differing columns on bookkeeping-only rows: {'eqp_polish_steps': 147, 'backend_solve_rhs_polish': 131, 'backend_solves_polish': 131, 'border_refine_steps': 72, 'backend_solve_rhs_ordinary': 20, 'backend_solves_ordinary': 20, 'harness_qpsum_dep_test_solves': 18, 'backend_solves_detector': 18, 'backend_solve_rhs_detector': 18, 'terminal_polish_adopted': 16, 'backend_solve_rhs_border_refine': 15, 'backend_solves_border_refine': 15, 'harness_factorizations_total': 15, 'terminal_polish_solves': 15, 'dense_factorizations': 15, 'eqp_refine_iters': 6, 'harness_qpsum_dep_stall_admits': 6, 'terminal_polish_rejected': 6, 'restoration_h_out': 3, 'accepted_f_type': 3, 'accepted_h_type': 3, 'qp_minor_iters': 2, 'harness_qpsum_saddle_direction_solves': 2, 'harness_qpsum_dep_grey_reread_dependent': 2, 'harness_qpsum_dep_grey_rereads': 2, 'harness_qpsum_dep_structural_first': 2, 'backend_solve_refine_polish': 2, 'backend_solve_refine_border_refine': 2, 'restoration_feas_out': 2, 'harness_qpsum_dep_tests': 1, 'restoration_f_out': 1, 'harness_qpsum_ws_exchanges_bound': 1, 'harness_qpsum_dep_dependent': 1, 'harness_qpsum_ws_exchanges': 1, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'backend_solve_refine_ordinary': 1, 'eqb_max_gap': 1}
+
+CAP-238-01 status changes:
+  CRESC50/sqp-qn: numerical_error -> optimal  (majors 239->140, LA 1072->880)
+  DEMBO7/sqp-qn: stalled -> optimal  (majors 47->66, LA 1929->2723)
+  LAKES/default: numerical_error -> stalled  (majors 44->44, LA 15152->32739)
+CAP-238-01 bookkeeping-only rows (106): differing columns, count of rows (top 12): [('eqp_polish_steps', 103), ('backend_solve_rhs_polish', 76), ('backend_solves_polish', 76), ('border_refine_steps', 49), ('backend_solve_rhs_ordinary', 24), ('backend_solves_ordinary', 24), ('terminal_polish_adopted', 23), ('harness_factorizations_total', 22), ('terminal_polish_solves', 22), ('dense_factorizations', 21), ('backend_solve_rhs_border_refine', 19), ('backend_solves_border_refine', 19)]
+  all differing columns on bookkeeping-only rows: {'eqp_polish_steps': 103, 'backend_solve_rhs_polish': 76, 'backend_solves_polish': 76, 'border_refine_steps': 49, 'backend_solve_rhs_ordinary': 24, 'backend_solves_ordinary': 24, 'terminal_polish_adopted': 23, 'harness_factorizations_total': 22, 'terminal_polish_solves': 22, 'dense_factorizations': 21, 'backend_solve_rhs_border_refine': 19, 'backend_solves_border_refine': 19, 'harness_qpsum_dep_test_solves': 17, 'backend_solves_detector': 17, 'backend_solve_rhs_detector': 17, 'terminal_polish_rejected': 8, 'qp_minor_iters': 5, 'restoration_h_out': 4, 'backend_solve_refine_polish': 4, 'backend_solve_refine_border_refine': 4, 'restoration_feas_out': 3, 'backend_solve_refine_detector': 3, 'eqp_refine_iters': 3, 'harness_qpsum_ws_exchanges_bound': 3, 'harness_qpsum_dep_implied_passovers': 3, 'harness_qpsum_dep_tests': 3, 'harness_qpsum_dep_dependent': 3, 'harness_qpsum_ws_exchanges': 3, 'backend_solve_refine_ordinary': 3, 'harness_qpsum_dep_stall_admits': 2, 'active_set_delta_total': 2, 'eval_g': 2, 'harness_eval_g': 2, 'harness_qpsum_dep_grey_reread_dependent': 2, 'harness_qpsum_dep_grey_rereads': 2, 'backend_symbolic_analyses': 1, 'accepted_f_type': 1, 'accepted_h_type': 1, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'harness_qpsum_reentry_exemptions': 1, 'harness_qpsum_dep_structural_first': 1, 'harness_qpsum_dep_passovers': 1, 'active_set_delta_peak': 1}
+
+NLP-46 status changes:
+  ACOPR118/default: optimal -> acceptable  (majors 22->40, LA 14874->21957)
+  ACOPR118/sqp-qn: stalled -> null  (majors 154->0, LA 5463->0)
+  BRITGAS/default: optimal -> max_iter  (majors 50->1, LA 74805->28400)
+  SAWPATH/sqp-qn: optimal -> numerical_error  (majors 44->17, LA 47406->24108)
+NLP-46 bookkeeping-only rows (9): differing columns, count of rows (top 12): [('backend_solve_rhs_polish', 9), ('backend_solve_refine_polish', 9), ('border_refine_steps', 9), ('eqp_polish_steps', 9), ('backend_solves_polish', 9), ('backend_solve_rhs_ordinary', 5), ('harness_factorizations_total', 4), ('terminal_polish_solves', 4), ('backend_solves_ordinary', 4), ('backend_solve_rhs_border_refine', 4), ('backend_solves_border_refine', 4), ('backend_solve_refine_border_refine', 4)]
+  all differing columns on bookkeeping-only rows: {'backend_solve_rhs_polish': 9, 'backend_solve_refine_polish': 9, 'border_refine_steps': 9, 'eqp_polish_steps': 9, 'backend_solves_polish': 9, 'backend_solve_rhs_ordinary': 5, 'harness_factorizations_total': 4, 'terminal_polish_solves': 4, 'backend_solves_ordinary': 4, 'backend_solve_rhs_border_refine': 4, 'backend_solves_border_refine': 4, 'backend_solve_refine_border_refine': 4, 'backend_solve_refine_ordinary': 3, 'backend_symbolic_analyses': 3, 'terminal_polish_adopted': 3, 'backend_symbolic_repeats': 2, 'accepted_f_type': 2, 'accepted_h_type': 2, 'inertia_wrong_verdicts': 1, 'inertia_suspect_verdicts': 1, 'harness_qpsum_dep_stall_admits': 1, 'eqb_max_gap': 1, 'active_set_delta_peak': 1, 'eval_g': 1, 'harness_eval_g': 1, 'terminal_polish_rejected': 1, 'dense_factorizations': 1}
+
+## 1c. PILOT-62 (rows: problem,label,rc,status,outcome,factorizations,certified only)
+cells 62; moved on (status, outcome, factorizations): 60; status changed 17; outcome class changed 11; factorizations changed 60
+H0 outcomes {'optimal': 20, 'error': 32, 'dnf_budget': 10} | P outcomes {'optimal': 21, 'dnf_budget': 16, 'error': 25}
+H0 status {'optimal': 9, 'stalled': 3, 'max_iter': 10, 'acceptable': 11, 'numerical_error': 29} | P status {'optimal': 15, 'max_iter': 16, 'numerical_error': 24, 'acceptable': 6, 'stalled': 1}
+Bookkeeping-only vs outcome-level cannot be separated here (no counters rows); every moved pilot cell changed status or the factorization count, i.e. all 60 moved cells are outcome-level on the only columns recorded.
+pilot cells with status change: 17 of 62
+
+## 1b'. Bookkeeping-only rows that differ in a column OUTSIDE the refinement/polish/backend-ledger family
+TRAIN-238: 10 of 161 bookkeeping-only rows also differ in a non-refinement column: {'qp_minor_iters': 3, 'restoration_h_out': 4, 'restoration_feas_out': 3, 'accepted_f_type': 2, 'accepted_h_type': 2, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'eqb_max_gap': 1, 'restoration_f_out': 1, 'active_set_delta_peak': 1}
+CAP-238-1: 11 of 158 bookkeeping-only rows also differ in a non-refinement column: {'qp_minor_iters': 2, 'restoration_f_out': 1, 'restoration_h_out': 3, 'accepted_f_type': 3, 'accepted_h_type': 3, 'restoration_feas_out': 2, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'eqb_max_gap': 1}
+CAP-238-01: 12 of 106 bookkeeping-only rows also differ in a non-refinement column: {'restoration_feas_out': 3, 'qp_minor_iters': 5, 'restoration_h_out': 4, 'active_set_delta_total': 2, 'accepted_f_type': 1, 'accepted_h_type': 1, 'eval_g': 2, 'harness_eval_g': 2, 'qn_skipped_curvature': 1, 'qn_skipped_conditioning': 1, 'active_set_delta_peak': 1}
+NLP-46: 4 of 9 bookkeeping-only rows also differ in a non-refinement column: {'inertia_wrong_verdicts': 1, 'inertia_suspect_verdicts': 1, 'eqb_max_gap': 1, 'active_set_delta_peak': 1, 'accepted_f_type': 2, 'eval_g': 1, 'harness_eval_g': 1, 'accepted_h_type': 2}
+
+## 1d. Problem-name lists (outcome-level movers)
+
+TRAIN-238 (23 problems): ACOPP30, BT7, BURKEHAN, CRESC100, CRESC4, CRESC50, DEMBO7, HS101, HS108, HS117, HS22, HS56, HS88, HS99EXP, LAKES, MESH, MISTAKE, MSS1, NET1, OPTPRLOC, SPANHYD, WATER, hs022
+
+CAP-238-1 (22 problems): ACOPP30, BT7, CRESC100, CRESC4, CRESC50, DEMBO7, HS101, HS108, HS22, HS56, HS74, HS88, HS99EXP, LAKES, MESH, MISTAKE, MSS1, NET1, OPTPRLOC, SPANHYD, WATER, hs022
+
+CAP-238-01 (10 problems): CRESC100, CRESC4, CRESC50, DECONVC, DEMBO7, LAKES, MESH, NET1, SPANHYD, hs010
+
+NLP-46 (16 problems): ACOPP118, ACOPR118, ACOPR57, BIGBANK, BRITGAS, DALLASM, MSS2, NET3, SAWPATH, SMBANK, STEENBRB, STEENBRC, STEENBRD, STEENBRE, STEENBRG, YORKNET
+
+Union over TRAIN-238, CAP-238-1, CAP-238-01: 26 of 119 problem names (21.8%): ACOPP30, BT7, BURKEHAN, CRESC100, CRESC4, CRESC50, DECONVC, DEMBO7, HS101, HS108, HS117, HS22, HS56, HS74, HS88, HS99EXP, LAKES, MESH, MISTAKE, MSS1, NET1, OPTPRLOC, SPANHYD, WATER, hs010, hs022
+Cells TRAIN+CAP-1+CAP-01: 86 of 714 outcome-level (12.0%)
+
+## 1e. H0-counter association (H0 rows; outcome-level movers vs the rest = bookkeeping-only + unmoved)
+
+TRAIN-238: 238 cells, 37 outcome-level, 201 other
+| H0 event | outcome-level cells with event | share of outcome-level | other cells with event | share of other | P(outcome-level given event) | P(outcome-level given no event) |
+|---|---|---|---|---|---|---|
+| restoration entered (restoration_entries>0) | 24 | 65% | 14 | 7% | 24/38 | 13/200 |
+| qp_numerical_exits>0 | 14 | 38% | 4 | 2% | 14/18 | 23/220 |
+| eqp_residual_refusals>0 | 14 | 38% | 3 | 1% | 14/17 | 23/221 |
+| suspect_escalations>0 | 8 | 22% | 2 | 1% | 8/10 | 29/228 |
+| reject_funnel_ceiling>0 | 18 | 49% | 15 | 7% | 18/33 | 19/205 |
+median H0 majors: outcome-level 40, other 9
+
+CAP-238-1: 238 cells, 35 outcome-level, 203 other
+| H0 event | outcome-level cells with event | share of outcome-level | other cells with event | share of other | P(outcome-level given event) | P(outcome-level given no event) |
+|---|---|---|---|---|---|---|
+| restoration entered (restoration_entries>0) | 23 | 66% | 16 | 8% | 23/39 | 12/199 |
+| qp_numerical_exits>0 | 15 | 43% | 4 | 2% | 15/19 | 20/219 |
+| eqp_residual_refusals>0 | 12 | 34% | 6 | 3% | 12/18 | 23/220 |
+| suspect_escalations>0 | 8 | 23% | 2 | 1% | 8/10 | 27/228 |
+| reject_funnel_ceiling>0 | 14 | 40% | 14 | 7% | 14/28 | 21/210 |
+median H0 majors: outcome-level 46, other 9
+
+CAP-238-01: 238 cells, 14 outcome-level, 224 other
+| H0 event | outcome-level cells with event | share of outcome-level | other cells with event | share of other | P(outcome-level given event) | P(outcome-level given no event) |
+|---|---|---|---|---|---|---|
+| restoration entered (restoration_entries>0) | 11 | 79% | 25 | 11% | 11/36 | 3/202 |
+| qp_numerical_exits>0 | 6 | 43% | 6 | 3% | 6/12 | 8/226 |
+| eqp_residual_refusals>0 | 2 | 14% | 5 | 2% | 2/7 | 12/231 |
+| suspect_escalations>0 | 2 | 14% | 6 | 3% | 2/8 | 12/230 |
+| reject_funnel_ceiling>0 | 3 | 21% | 6 | 3% | 3/9 | 11/229 |
+median H0 majors: outcome-level 50, other 16
+
+NLP-46: 46 cells, 27 outcome-level, 19 other
+| H0 event | outcome-level cells with event | share of outcome-level | other cells with event | share of other | P(outcome-level given event) | P(outcome-level given no event) |
+|---|---|---|---|---|---|---|
+| restoration entered (restoration_entries>0) | 19 | 70% | 0 | 0% | 19/19 | 8/27 |
+| qp_numerical_exits>0 | 18 | 67% | 0 | 0% | 18/18 | 9/28 |
+| eqp_residual_refusals>0 | 12 | 44% | 0 | 0% | 12/12 | 15/34 |
+| suspect_escalations>0 | 15 | 56% | 0 | 0% | 15/15 | 12/31 |
+| reject_funnel_ceiling>0 | 5 | 19% | 1 | 5% | 5/6 | 22/40 |
+median H0 majors: outcome-level 64, other 0
+
+TRAIN+CAP-1+CAP-01 pooled: 714 cells, 86 outcome-level, 628 other
+| H0 event | outcome-level cells with event | share of outcome-level | other cells with event | share of other | P(outcome-level given event) | P(outcome-level given no event) |
+|---|---|---|---|---|---|---|
+| restoration entered (restoration_entries>0) | 58 | 67% | 55 | 9% | 58/113 | 28/601 |
+| qp_numerical_exits>0 | 35 | 41% | 14 | 2% | 35/49 | 51/665 |
+| eqp_residual_refusals>0 | 28 | 33% | 14 | 2% | 28/42 | 58/672 |
+| suspect_escalations>0 | 18 | 21% | 10 | 2% | 18/28 | 68/686 |
+| reject_funnel_ceiling>0 | 35 | 41% | 35 | 6% | 35/70 | 51/644 |
+median H0 majors: outcome-level 46, other 11

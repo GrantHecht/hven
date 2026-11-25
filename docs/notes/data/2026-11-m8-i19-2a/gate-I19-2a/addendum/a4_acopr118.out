@@ -1,0 +1,21 @@
+store-R      H0  NLP-46/H0/sqp-qn/nlp/exclusive-f8904901                      status=stalled      outcome=error      wall_s=178.29315300798044 iters=154  fact=5463   side=present
+store-H      H0  NLP-46/H0/sqp-qn/nlp/exclusive-f8904901                      status=stalled      outcome=error      wall_s=178.61885337485 iters=154  fact=5463   side=present
+store-H      P   NLP-46/P/sqp-qn/nlp/exclusive-11fdd1e1                       status=null         outcome=dnf_wall   wall_s=300.11028802907094 iters=null fact=null   side=absent
+store-H      C1  NLP-46/C1/sqp-qn/nlp/exclusive-78463afd                      status=null         outcome=dnf_wall   wall_s=300.036104649771 iters=null fact=null   side=absent
+
+wall cap (NLP-46): 300.0 s
+
+Tier assignment rows for ACOPR118/sqp-qn:
+  hven-sqp,nlp,ACOPR118,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+
+Raw results.csv rows including the superseded co-run legs (superseded.txt names the cell the exclusive leg replaced):
+  H0  exclusive-f8904901       status=stalled outcome=error wall_s=178.6 superseded=False
+  P   corun-62b0156f           status=null outcome=dnf_wall wall_s=300.1 superseded=True
+  P   exclusive-11fdd1e1       status=null outcome=dnf_wall wall_s=300.1 superseded=False
+  C1  corun-62b0156f           status=null outcome=dnf_wall wall_s=300.1 superseded=True
+  C1  exclusive-78463afd       status=null outcome=dnf_wall wall_s=300.0 superseded=False
+
+NLP-46 dnf_wall (no status) rows per arm (non-superseded rows):
+  H0  10: BIGBANK/sqp-qn, MSS2/default, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+  P   11: ACOPR118/sqp-qn, BIGBANK/sqp-qn, MSS2/default, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn
+  C1  12: ACOPR118/sqp-qn, BIGBANK/sqp-qn, MSS2/default, MSS3/default, MSS3/sqp-qn, READING8/default, READING8/sqp-qn, TAX213322/default, TAX213322/sqp-qn, TAX53322/default, TAX53322/sqp-qn, YORKNET/sqp-qn
