@@ -1,6 +1,6 @@
 # DECLARATION-RST-B -- SQP restoration and retry-ladder defect fixes, and per-solve restoration bounds (DRAFT)
 
-**UNFROZEN DRAFT (C562 rework).** Committed on branch `rst-b` for review only; not frozen, no leg has run. It is frozen
+**FROZEN at head `2e236ca751cda2ad917812ed550400667f5a1f36` (ruling C578).** Committed on branch `rst-b`; no leg has run. It is frozen
 by committing it, with every leg script it names (`legs/`) and the freeze files of section 3a, before any arm row; it is
 never edited afterwards; a failed or void leg chain gets a `-r2` file and this one is kept. Criteria are never changed
 after data. Precedent: `../2026-11-m8-rf1/DECLARATION-RF-1c.md`. Design and diagnosis: `.superpowers/rst-diag-2026-11-24.md`
