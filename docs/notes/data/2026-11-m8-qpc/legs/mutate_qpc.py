@@ -15,9 +15,14 @@ E = "include/hven/detail/qp/walk/eqp_solve.h"
 B = "include/hven/detail/qp/walk/bordered_eqp.h"
 S = "src/sqp/sqp_solver.cpp"
 
-GATE = ("                            if (detail::certificate_data_half_holds(data.rows, data.complementarity,\n"
-        "                                                                    eff_opts.feasibility_tol)) {")
-HOLDS = "    return rows <= kCertificateGateRowFactor * feas_tol &&\n           complementarity <= kCertificateGateComplFactor * feas_tol;"
+GATE = ("                            if (exported_finite &&\n"
+        "                                detail::certificate_data_half_holds(\n"
+        "                                    data.rows, data.complementarity / data.dual_scale,\n"
+        "                                    data.stationarity_beyond_rounding, eff_opts.feasibility_tol,\n"
+        "                                    eff_opts.optimality_tol)) {")
+HOLDS = ("    return rows <= kCertificateGateRowFactor * feas_tol &&\n"
+         "           complementarity <= kCertificateGateComplFactor * feas_tol &&\n"
+         "           stationarity <= kCertificateGateStationarityFactor * opt_tol;")
 ARM = "            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {\n            ++counters.converged_refinement_arms;\n            eqp_refinement_ = EqpRefinement::kConverged;\n        }"
 
 # id: [(file, old, new, expected occurrences), ...]
@@ -30,7 +35,7 @@ MUT = {
                 "constexpr double kCertificateGateRowFactor = 100.0;", 1)],
     "Q5": [(WH, "constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;",
                 "constexpr double kCertificateGateComplFactor = 1000.0;", 1)],
-    "Q6": [(WH, HOLDS, "    return !(rows > kCertificateGateRowFactor * feas_tol) &&\n           !(complementarity > kCertificateGateComplFactor * feas_tol);", 1)],
+    "Q6": [(WH, HOLDS, "    return !(rows > kCertificateGateRowFactor * feas_tol) &&\n           !(complementarity > kCertificateGateComplFactor * feas_tol) &&\n           !(stationarity > kCertificateGateStationarityFactor * opt_tol);", 1)],
     "Q7": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
                "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kInfeasible;", 1)],
     "Q8": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
@@ -56,6 +61,13 @@ MUT = {
     "Q19": [(E, "                    detail::kMaxBorderRefineSteps - 1,\n                    [&](const Vec &r) { return detail::solve_vec(kkt, r); }, residual_of);",
                 "                    1,\n                    [&](const Vec &r) { return detail::solve_vec(kkt, r); }, residual_of);", 1),
             (B, "            best, res, floor, detail::kMaxBorderRefineSteps - 1,", "            best, res, floor, 1,", 1)],
+    # ---- C2, settler C553 Q3: stationarity re-read on the exported point; the finiteness guard ----
+    "Q20": [(WH, HOLDS, "    return rows <= kCertificateGateRowFactor * feas_tol &&\n           complementarity <= kCertificateGateComplFactor * feas_tol;", 1)],
+    "Q21": [(W, "                            if (exported_finite &&\n                                detail::certificate_data_half_holds(",
+                "                            if (detail::certificate_data_half_holds(", 1)],
+    # ---- C2, the Q5 defect fix: the product read against the dual scale --------------------------
+    "Q22": [(W, "                                    data.rows, data.complementarity / data.dual_scale,\n",
+                "                                    data.rows, data.complementarity,\n", 1)],
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()

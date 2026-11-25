@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Leg N1 (DECLARATION-QPC section 6): corpus replay R vs H (27 cells x walk/ssn/ipm; base x1, head x3), compare_replay.py
-# byte-exact. QPC reading: a differing cell is a DECLARED MOVER only if its H row carries a non-zero
-# converged_refinement_arms or certificate_gate_refusals (TODO-HARNESS: the replay CSV must carry both columns; until it
-# does, every difference is a STOP).
+# byte-exact. The replay CSV does not carry the two QPC counters (bench_corpus.cpp prints a fixed column set, and adding
+# columns would break the byte-exact comparison against the base binary), so attribution is by the problem: a differing
+# cell is a DECLARED MOVER only if the same problem's H member-0 lane row in leg N2 (same driver, default options) carries
+# a non-zero converged_refinement_arms or certificate_gate_refusals; a differing cell whose problem has both counters 0
+# there, or has no lane row, STOPS. The base-vs-head-repeat (B1..B3) comparisons stay byte-exact.
 # usage: legN1.sh <head worktree> <base worktree> <out dir>    Run under: setsid box-lane -- bash legN1.sh ...
 set -o pipefail
 HW=$(realpath "$1"); BW=$(realpath "$2"); OUT=$(realpath -m "$3"); mkdir -p "$OUT"

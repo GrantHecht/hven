@@ -1,0 +1,7 @@
+# file	optimum	source (the test that pins it; every value is an oracle a test asserts, none is read from a round row)
+PF1_f7_n1000_path_corrupted_qp1.txt	-3.231904984786688e-03	tests/qp/seam/test_qp_release_readmission.cpp kPf1Optimum
+QC8_DALLASM_entry6.txt	-92396.9539668143	tests/qp/seam/test_qp_implied_blocker.cpp kEntry6Oracle
+QC8_DALLASM_qp1.txt	-125712.835806432	tests/qp/seam/test_qp_implied_blocker.cpp kQp1Oracle
+QC8_DALLASM_qp7.txt	-92397.2698484735	tests/qp/seam/test_qp_implied_blocker.cpp kQp7Oracle
+C11_YORKNET_qp1.txt	1696529.7293693814	tests/qp/seam/test_qp_rank_repair.cpp kYorknetQp1Oracle
+C11_SAWPATH_qp1.txt	-376.225617384	tests/qp/seam/test_qp_rank_repair.cpp kSawpathQp1Oracle
