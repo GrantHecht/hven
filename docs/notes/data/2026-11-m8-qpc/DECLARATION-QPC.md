@@ -495,51 +495,51 @@ Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), 
 `hven_sqp_seam_tests` (`SqpQpcFold.*`, the fold fixtures). The runner checks, before any build, that the table's ids equal
 the script's (`ID_PARITY_FAIL`) and that the ARGUED set below equals its own (`ARGUED_PARITY_FAIL`); after the run, that
 every killer named below for a must-kill id is among that id's observed killers (`KILLER_PARITY_FAIL`; `Suite.*` = any
-test of the suite). Killers are named from the development dry run ⟨tree⟩; leg M is the evidence.
+test of the suite). Killers are named from the development dry run at 22cc157bd (2026-11-25, Release, worktree qpc-mut: control clean, every must-kill id killed, Q17 survived as argued; logs `qpc-mut/.scratch/mut-dry/`; the run's KILLER_PARITY_FAIL was the then-empty killer column, and the runner's parity block re-run on its killers against this table reads 40 checked, 0 failures); leg M is the evidence.
 
 | id | mutation | declared killer(s) |
 |---|---|---|
-| Q1 | the data half never refuses | ⟨⟩ |
-| Q2 | the data half reads rows only | ⟨⟩ |
-| Q3 | the data half reads the product only | ⟨⟩ |
-| Q4 | row factor 10 -> 100 | ⟨⟩ |
-| Q5 | product factor 100 -> 1000 | ⟨⟩ |
-| Q6 | a NaN passes (comparisons written !(>)) | ⟨⟩ |
-| Q7 | a refusal exits kInfeasible | ⟨⟩ |
-| Q8 | a refusal is not counted | ⟨⟩ |
-| Q9 | the data half ignores the bounds' rows reading | ⟨⟩ |
-| Q10 | the re-admission never arms | ⟨⟩ |
-| Q11 | the rung kept beside the arming | ⟨⟩ |
-| Q12 | converged mode ignored on the eliminated path | ⟨⟩ |
-| Q13 | converged mode ignored on the bordered path | ⟨⟩ |
-| Q14 | the strict-decrease keep rule dropped (every step kept) | ⟨⟩ |
-| Q15 | the mode not reset at run() entry | ⟨⟩ |
-| Q16 | armed from pass 0 (global converged refinement, decider D-2) | ⟨⟩ |
+| Q1 | the data half never refuses | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused` (+9 more in the dry run) |
+| Q2 | the data half reads rows only | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, `QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.AMultiplierOffTheWorkingSetIsRefused` (+7 more in the dry run) |
+| Q3 | the data half reads the product only | `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale`, `QpCertificateData.AMultiplierOffTheWorkingSetIsRefused` (+6 more in the dry run) |
+| Q4 | row factor 10 -> 100 | `QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused`, `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q5 | product factor 100 -> 1000 | `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q6 | a NaN passes (comparisons written !(>)) | `QpCertificateData.TheReadingKeepsANanInTheProblemData`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q7 | a refusal exits kInfeasible | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused` (+9 more in the dry run) |
+| Q8 | a refusal is not counted | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused` (+14 more in the dry run) |
+| Q9 | the data half ignores the bounds' rows reading | `QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused`, `QpCertificateData.TheReadingKeepsANanInTheProblemData` |
+| Q10 | the re-admission never arms | `QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization`, `QpReleaseReadmission.TheConvergedRefinementIsPerSolve` |
+| Q11 | the rung kept beside the arming | `QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization` |
+| Q12 | converged mode ignored on the eliminated path | `EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint`, `EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne`, `QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization` |
+| Q13 | converged mode ignored on the bordered path | `EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne` |
+| Q14 | the strict-decrease keep rule dropped (every step kept) | `EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps` |
+| Q15 | the mode not reset at run() entry | `QpReleaseReadmission.TheConvergedRefinementIsPerSolve` |
+| Q16 | armed from pass 0 (global converged refinement, decider D-2) | `QpCertificateSign.*`, `QpQc8ImpliedBlocker.*` |
 | Q17 | arms counted more than once | ARGUED: after the first arming the mode is kConverged for the rest of the solve, so re-arming changes nothing but the counter, and on every fixture the converged refinement puts the released row on its bound so no SECOND re-admission occurs (PF1 reads arms = 1 with or without the guard). The counter's "0 or 1 per walk" contract is pinned where it can be observed (PF1 = 1); a fixture with two re-admissions after arming does not exist in the tree |
-| Q18 | the fold of the two counters missing at the main-QP site | ⟨⟩ |
-| Q19 | the converged loop's step budget 10 -> 2 | ⟨⟩ |
-| Q20 | the data half drops its stationarity disjunct (C553 Q3) | ⟨⟩ |
-| Q21 | the finiteness guard dropped from the verdict | ⟨⟩ |
-| Q22 | the product read UNSCALED (the local division dropped; the first QPC build) | ⟨⟩ |
-| Q23 | the local scale replaced by the GLOBAL one (every column's terms joined; the C553 build) | ⟨⟩ |
-| Q24 | |z_i| dropped from the column terms of the local scale | ⟨⟩ |
-| Q25 | the row's own join |lambda_j| ||a_j||inf dropped from its local scale | ⟨⟩ |
-| Q26 | stationarity read NORMWISE instead of beyond rounding | ⟨⟩ |
-| Q27 | the pinned-bound product term dropped | ⟨⟩ |
-| Q28 | the off-working-set reading dropped from the verdict (review S2) | ⟨⟩ |
-| Q29 | the reading's maxima made plain (NaN dropped; review S8) | ⟨⟩ |
-| Q30 | the rounding floor read with eps instead of u = eps/2 (review S1) | ⟨⟩ |
-| Q31 | both NaN defences dropped (Q21 + Q29) | ⟨⟩ |
-| Q32 | the fold missing at the elastic-rung site | ⟨⟩ |
-| Q33 | the fold missing at the restoration-phase site | ⟨⟩ |
-| Q34 | the fold missing at the iteration-limit retry site | ⟨⟩ |
-| Q35 | the fold missing at the SOC re-solve site | ⟨⟩ |
-| Q36 | the slack disjunct dropped from the verdict (settler C568) | ⟨⟩ |
-| Q37 | the rounding-zero exemption dropped (every nonzero multiplier priced) | ⟨⟩ |
-| Q38 | the pinned bounds' slack not read | ⟨⟩ |
-| Q39 | the working rows' slack not read | ⟨⟩ |
-| Q40 | slack factor 100 -> 1000 | ⟨⟩ |
-| Q41 | the seed guard's Jacobian screen passes everything (`jacobian_values_finite` returns true; RS-6b-r2 mutant M7; review M3) | ⟨⟩ |
+| Q18 | the fold of the two counters missing at the main-QP site | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, `SqpQpcFold.MainSubproblemRefusalsAreFoldedOnce` (+3 more in the dry run) |
+| Q19 | the converged loop's step budget 10 -> 2 | `EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint`, `EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne` |
+| Q20 | the data half drops its stationarity disjunct (C553 Q3) | `QpCertificateData.AnOffStationaryExportedPointIsRefused`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q21 | the finiteness guard dropped from the verdict | `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q22 | the product read UNSCALED (the local division dropped; the first QPC build) | `QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale`, `QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale` (+4 more in the dry run) |
+| Q23 | the local scale replaced by the GLOBAL one (every column's terms joined; the C553 build) | `QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale` |
+| Q24 | |z_i| dropped from the column terms of the local scale | `QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm` |
+| Q25 | the row's own join |lambda_j| ||a_j||inf dropped from its local scale | `QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm`, `QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused`, `QpQc8ImpliedBlocker.*` (+3 more in the dry run) |
+| Q26 | stationarity read NORMWISE instead of beyond rounding | `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively`, `SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung`, `SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness` |
+| Q27 | the pinned-bound product term dropped | `QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm` |
+| Q28 | the off-working-set reading dropped from the verdict (review S2) | `QpCertificateData.AMultiplierOffTheWorkingSetIsRefused`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q29 | the reading's maxima made plain (NaN dropped; review S8) | `QpCertificateData.TheReadingKeepsANanInTheProblemData` |
+| Q30 | the rounding floor read with eps instead of u = eps/2 (review S1) | `QpCertificateData.TheRoundingFloorIsTheUnitRoundoff` |
+| Q31 | both NaN defences dropped (Q21 + Q29) | `QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf`, `QpCertificateData.TheReadingKeepsANanInTheProblemData`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q32 | the fold missing at the elastic-rung site | `SqpQpcFold.ElasticRungRefusalsAreFoldedOnce`, `SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce` |
+| Q33 | the fold missing at the restoration-phase site | `SqpQpcFold.ElasticRungRefusalsAreFoldedOnce`, `SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce` |
+| Q34 | the fold missing at the iteration-limit retry site | `SqpQpcFold.CapRetryRefusalsAreFoldedOnce` |
+| Q35 | the fold missing at the SOC re-solve site | `SqpQpcFold.SocResolveRefusalsAreFoldedOnce` |
+| Q36 | the slack disjunct dropped from the verdict (settler C568) | `QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q37 | the rounding-zero exemption dropped (every nonzero multiplier priced) | `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack` |
+| Q38 | the pinned bounds' slack not read | `QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack` |
+| Q39 | the working rows' slack not read | `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused` |
+| Q40 | slack factor 100 -> 1000 | `QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q41 | the seed guard's Jacobian screen passes everything (`jacobian_values_finite` returns true; RS-6b-r2 mutant M7; review M3) | `SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused` |
 
 ARGUED (the runner's set, parity-checked): Q17.
 
