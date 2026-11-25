@@ -78,8 +78,14 @@ target the single step aims at; every exit still passes the unchanged certificat
 
 ## 2. Pin, binaries and the ensemble
 
-* **R** = origin/m8 `96789b9be` (the I19-2a evidence commit; code = I19-2a's R plus test-only commits).
-* **H** = ⟨sha⟩ = R + the QPC commits. `git diff R H -- src include` is exactly C1 + C2 + the counter folds.
+* **R (= H0, the baseline)** = origin/m8 `99712ec32` (settler C547; code-identical to `96789b9be`, the diff is TU-3
+  docs only). **R's ensemble rows ARE the rows of the baseline ensemble census of that pin** (hven-bench `ens`
+  `6e42a30`; lane binary sha256 `3155a0834e9e9e7748fe51b818acafc5fd3ff502bf86e1f58ef2bb165f995bc0`; store
+  `hven-bench-ens/.scratch/census-m8/store`), verified at freeze by the binary/pin identity check (the store's
+  recorded binary sha and pin must equal BINARIES.txt's R entry; a mismatch STOPS). No R ensemble leg is re-run.
+* **H** = ⟨sha⟩ = R + the QPC commits (branch `qpc`, rebased onto `99712ec32`). `git diff R H -- src include` is exactly
+  C1 + C2 + the counter folds. H is declared as a code-change arm through a BINARIES file the reader checks
+  (hven-bench `ens-reader`; flag TODO-HARNESS-ARMS).
 * Two installs/lane binaries (R, H); there are no runtime levers. Every arm is (binary, ensemble member).
 * **Ensemble (C539; review B4).** Each corpus cell runs as M+1 = 6 members per binary, paired by seed: member 0
   unperturbed; members 1-5 seeded. Perturbation entry points, applied in the harness (binaries untouched):
@@ -127,7 +133,7 @@ REACHES ends with a solver status (not a harness error). Cell files frozen by TO
 * **P-GATED.** SENS-Q cells gated in = cells where R shows any of: `dual_regularization_decreases > 0`, a kOptimal
   exit whose data-half reading fails, `optimal_row_gray_exits > 0`, or an exit the H data half refuses. Frozen as
   `cells/sens_q_gated.tsv` ⟨n⟩ from R and H member-0 readings before any ensemble leg.
-* **P-CLASS.** The R ensemble on TRAIN-238, TRAIN-K and NLP-46 run first; `cells/classes_R.tsv` and the null floors
+* **P-CLASS.** The R ensemble (the C547 census rows, plus any supplementary corpus) read first; `cells/classes_R.tsv` and the null floors
   committed before any H ensemble row.
 
 ## 5. The ship rule (fixed here, before any row)
@@ -197,7 +203,7 @@ observed is UNOBSERVED.
 | N2 | R vs H member 0 on TRAIN-238, TRAIN-K, NLP-46 co-run, PILOT-62 (TODO-HARNESS compare) | every row whose H counters `converged_refinement_arms` and `certificate_gate_refusals` are both 0 is identical to R on every column except `options_digest`, `wall_s` and the two declared H-only columns (counters/statuses exact; residual-class columns by the calibrated near-ulp gate). Any other difference STOPS. Attribution table of movers by counter |
 | N3 | CENSUS-57: H vs the baseline (CEN-R3) | 0 differences on cells with both counters 0; movers listed with counters; no cell loses a status |
 | M | mutations (section 8), control first (`legs/mutations_qpc.sh`, `legs/mutate_qpc.py`); the runner's ARGUED set is parsed from section 8 of this file and must EQUAL the script's (parity check, else `VERDICT ARGUED_PARITY_FAIL`) | control clean; every must-kill killed: `VERDICT MUTATIONS_AS_DECLARED` |
-| E-R | R ensemble, 6 members: TRAIN-238, TRAIN-K, NLP-46 (co-run tier; exclusive tier 3 members) | classes and floors frozen (P-CLASS) |
+| E-R | R ensemble = the C547 baseline census rows (not re-run); identity check against BINARIES.txt; any corpus the census lacks (TRAIN-K, PILOT-62) run as a supplementary R leg under the same harness commit | classes and floors frozen (P-CLASS) |
 | E-H | H ensemble, paired | 5.2 inputs |
 | Q | SENS-Q under R and H (single member) + the independent certificate recomputation (`legs/legQ.sh`) | V-QP; A-conditions; movers attributed |
 | P | PILOT-62 under R and H, 6 members | V2 |
