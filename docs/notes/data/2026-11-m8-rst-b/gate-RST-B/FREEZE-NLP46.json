@@ -1,0 +1,252 @@
+{
+ "baseline_digest": "c175d25ecf496a3eec247bc6155f7e5d2e504ba2974ae9f97b4cd95f845fc973",
+ "cells": 46,
+ "class_counts": {
+  "COST-UNSTABLE": 16,
+  "NOT-REACHED": 10,
+  "STABLE": 9,
+  "STATUS-UNSTABLE": 11
+ },
+ "class_counts_by_family": {
+  "nlp-q": {
+   "COST-UNSTABLE": 4,
+   "NOT-REACHED": 5,
+   "STABLE": 5,
+   "STATUS-UNSTABLE": 9
+  },
+  "nlp-x": {
+   "COST-UNSTABLE": 12,
+   "NOT-REACHED": 5,
+   "STABLE": 4,
+   "STATUS-UNSTABLE": 2
+  }
+ },
+ "classes": {
+  "NLP-46|nlp|ACOPP118|default": "COST-UNSTABLE",
+  "NLP-46|nlp|ACOPP118|sqp-qn": "COST-UNSTABLE",
+  "NLP-46|nlp|ACOPP57|default": "COST-UNSTABLE",
+  "NLP-46|nlp|ACOPP57|sqp-qn": "STABLE",
+  "NLP-46|nlp|ACOPR118|default": "COST-UNSTABLE",
+  "NLP-46|nlp|ACOPR118|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|ACOPR57|default": "STABLE",
+  "NLP-46|nlp|ACOPR57|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|BIGBANK|default": "STABLE",
+  "NLP-46|nlp|BIGBANK|sqp-qn": "NOT-REACHED",
+  "NLP-46|nlp|BRITGAS|default": "STATUS-UNSTABLE",
+  "NLP-46|nlp|BRITGAS|sqp-qn": "COST-UNSTABLE",
+  "NLP-46|nlp|DALLASM|default": "COST-UNSTABLE",
+  "NLP-46|nlp|DALLASM|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|MSS2|default": "NOT-REACHED",
+  "NLP-46|nlp|MSS2|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|MSS3|default": "NOT-REACHED",
+  "NLP-46|nlp|MSS3|sqp-qn": "NOT-REACHED",
+  "NLP-46|nlp|NET3|default": "COST-UNSTABLE",
+  "NLP-46|nlp|NET3|sqp-qn": "COST-UNSTABLE",
+  "NLP-46|nlp|READING6|default": "STATUS-UNSTABLE",
+  "NLP-46|nlp|READING6|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|READING8|default": "NOT-REACHED",
+  "NLP-46|nlp|READING8|sqp-qn": "NOT-REACHED",
+  "NLP-46|nlp|SAWPATH|default": "COST-UNSTABLE",
+  "NLP-46|nlp|SAWPATH|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|SMBANK|default": "STABLE",
+  "NLP-46|nlp|SMBANK|sqp-qn": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRB|default": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRB|sqp-qn": "STABLE",
+  "NLP-46|nlp|STEENBRC|default": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRC|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|STEENBRD|default": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRD|sqp-qn": "STABLE",
+  "NLP-46|nlp|STEENBRE|default": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRE|sqp-qn": "STABLE",
+  "NLP-46|nlp|STEENBRG|default": "COST-UNSTABLE",
+  "NLP-46|nlp|STEENBRG|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|TAX213322|default": "NOT-REACHED",
+  "NLP-46|nlp|TAX213322|sqp-qn": "NOT-REACHED",
+  "NLP-46|nlp|TAX53322|default": "NOT-REACHED",
+  "NLP-46|nlp|TAX53322|sqp-qn": "NOT-REACHED",
+  "NLP-46|nlp|YORKNET|default": "COST-UNSTABLE",
+  "NLP-46|nlp|YORKNET|sqp-qn": "STATUS-UNSTABLE",
+  "NLP-46|nlp|ZAMB2-8|default": "STABLE",
+  "NLP-46|nlp|ZAMB2-8|sqp-qn": "STABLE"
+ },
+ "created_utc": "2026-11-25T19:43:13Z",
+ "digest": "a5f92b10904d17e7bc804541b224e59cc2b22bb4b6b659af1d8180a8ff8b5423",
+ "format": "hven-bench-ens-freeze/2",
+ "git_commit": "0bc786791195e3d5afb8aa6dfae6f41f74b19ee8",
+ "kind": "x0",
+ "n_members": 3,
+ "null": {
+  "degenerate": false,
+  "floors": {
+   "nlp-q": {
+    "EV": 2,
+    "LA": 1,
+    "dist": {
+     "EV": [
+      -2,
+      -1,
+      0
+     ],
+     "LA": [
+      -1,
+      -1,
+      1
+     ],
+     "solved": [
+      -3,
+      0,
+      3
+     ]
+    },
+    "solved": 3
+   },
+   "nlp-x": {
+    "EV": 2,
+    "LA": 3,
+    "dist": {
+     "EV": [
+      -1,
+      0,
+      2
+     ],
+     "LA": [
+      -1,
+      2,
+      3
+     ],
+     "solved": [
+      -2,
+      -1,
+      -1
+     ]
+    },
+    "solved": 2
+   },
+   "pooled": {
+    "EV": 2,
+    "LA": 2,
+    "dist": {
+     "EV": [
+      -2,
+      -1,
+      1
+     ],
+     "LA": [
+      0,
+      1,
+      2
+     ],
+     "solved": [
+      -4,
+      -2,
+      2
+     ]
+    },
+    "solved": 4
+   }
+  },
+  "pairs": 3
+ },
+ "p_base": {
+  "NLP-46|nlp|ACOPP118|default": "1",
+  "NLP-46|nlp|ACOPP118|sqp-qn": "1",
+  "NLP-46|nlp|ACOPP57|default": "1",
+  "NLP-46|nlp|ACOPP57|sqp-qn": "1",
+  "NLP-46|nlp|ACOPR118|default": "1",
+  "NLP-46|nlp|ACOPR118|sqp-qn": "0",
+  "NLP-46|nlp|ACOPR57|default": "1",
+  "NLP-46|nlp|ACOPR57|sqp-qn": "1/3",
+  "NLP-46|nlp|BIGBANK|default": "1",
+  "NLP-46|nlp|BIGBANK|sqp-qn": "0",
+  "NLP-46|nlp|BRITGAS|default": "2/3",
+  "NLP-46|nlp|BRITGAS|sqp-qn": "1",
+  "NLP-46|nlp|DALLASM|default": "1",
+  "NLP-46|nlp|DALLASM|sqp-qn": "2/3",
+  "NLP-46|nlp|MSS2|default": "0",
+  "NLP-46|nlp|MSS2|sqp-qn": "0",
+  "NLP-46|nlp|MSS3|default": "0",
+  "NLP-46|nlp|MSS3|sqp-qn": "0",
+  "NLP-46|nlp|NET3|default": "1",
+  "NLP-46|nlp|NET3|sqp-qn": "0",
+  "NLP-46|nlp|READING6|default": "1/3",
+  "NLP-46|nlp|READING6|sqp-qn": "1/3",
+  "NLP-46|nlp|READING8|default": "0",
+  "NLP-46|nlp|READING8|sqp-qn": "0",
+  "NLP-46|nlp|SAWPATH|default": "1",
+  "NLP-46|nlp|SAWPATH|sqp-qn": "2/3",
+  "NLP-46|nlp|SMBANK|default": "1",
+  "NLP-46|nlp|SMBANK|sqp-qn": "0",
+  "NLP-46|nlp|STEENBRB|default": "1",
+  "NLP-46|nlp|STEENBRB|sqp-qn": "0",
+  "NLP-46|nlp|STEENBRC|default": "1",
+  "NLP-46|nlp|STEENBRC|sqp-qn": "0",
+  "NLP-46|nlp|STEENBRD|default": "1",
+  "NLP-46|nlp|STEENBRD|sqp-qn": "0",
+  "NLP-46|nlp|STEENBRE|default": "1",
+  "NLP-46|nlp|STEENBRE|sqp-qn": "0",
+  "NLP-46|nlp|STEENBRG|default": "1",
+  "NLP-46|nlp|STEENBRG|sqp-qn": "0",
+  "NLP-46|nlp|TAX213322|default": "0",
+  "NLP-46|nlp|TAX213322|sqp-qn": "0",
+  "NLP-46|nlp|TAX53322|default": "0",
+  "NLP-46|nlp|TAX53322|sqp-qn": "0",
+  "NLP-46|nlp|YORKNET|default": "0",
+  "NLP-46|nlp|YORKNET|sqp-qn": "0",
+  "NLP-46|nlp|ZAMB2-8|default": "1",
+  "NLP-46|nlp|ZAMB2-8|sqp-qn": "1"
+ },
+ "params": {
+  "dedup_names": true,
+  "kind": "x0",
+  "max_geomean": 0.97,
+  "max_unknown_objectives": 2,
+  "members": 2,
+  "pooled_minus_vetoes": true,
+  "robust_arm_max": "1/2",
+  "robust_base_min": "5/6",
+  "same_solution_rtol": 1e-06,
+  "sigma_p_slack": 0.5,
+  "tail_add": 20,
+  "tail_base_min": "5/6",
+  "tail_mult": 3,
+  "votes_den": 6,
+  "votes_num": 5,
+  "win_percent": 10
+ },
+ "provenance": {
+  "harness.sha": "27c02687d9389ed43f3dbef27b4cbe389ca2b5d0",
+  "harness.shas": [
+   "27c02687d9389ed43f3dbef27b4cbe389ca2b5d0"
+  ],
+  "hven.pin.compiler": "clang version 22.1.8 (Fedora 22.1.8-4.fc44)",
+  "hven.pin.sha": "99712ec324716e6d08ee0545a43d595ca15eec3f",
+  "lane.binary.sha256": "hven-sqp=7d2f9f376d6f9f82d554efc2a41a1e52a36769a061d02060c5a765d236c573ca",
+  "run.terms": {
+   "external.cutest": [
+    "2.7.1 (d76788ae042785ff6518378478057191ed884e53)"
+   ],
+   "external.sifdecode": [
+    "3.1.1 (979967c923241c136c35f17630cfdcf614e6df17)"
+   ],
+   "mkl.num_threads": [
+    "1"
+   ],
+   "run.corun.threads": [
+    "MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every child"
+   ],
+   "run.corun.tiering": [
+    "a cell co-runs iff its lane has no solver-side wall option (the hven lanes: SolveBudget counts iterations, not seconds, so the watchdog is the only clock) and it is not named solo; external lanes (ipopt, snopt) and --solo-problems cells run SOLO in a serial tier after the co-run tier; a co-run cell that ends dnf_wall or error is discarded and re-run SOLO, and only the solo row is reported"
+   ],
+   "run.corun.width": [
+    "4"
+   ]
+  }
+ },
+ "source": {
+  "arm": "H0",
+  "corpora": [
+   "NLP-46"
+  ],
+  "store": "/home/ghecht/Projects/hven-bench-rstb/.scratch/store-rstb"
+ }
+}
