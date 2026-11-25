@@ -4357,14 +4357,13 @@ struct SqpSolverImpl::SolveState {
     struct RestorationExit {
         // AT LEAST ONE RESTORATION PHASE HAS RUN in this solve.
         bool used = false;
-        // THE PHASES SERVICED SO FAR, and the main loop's accepted-step count at the
-        // last resume (M7 W2 RST): a later request is serviced only below
+        // THE PHASES SERVICED SO FAR (M7 W2 RST): a later request is serviced only below
         // `SqpOptions::max_restoration_entries` and only once the loop has accepted a
-        // step since that resume (`enter_restoration`).
+        // step since the last resume that was not rolled back (`progress.kept_accepts()`;
+        // `enter_restoration`).
         Index entries = 0;
-        Index accepted_at_resume = 0;
         // THE PROGRESS TEST ACROSS ENTRIES (RST-B): which accepted steps since the last resume
-        // came from solved subproblems.
+        // came from solved subproblems, and how many were kept.
         detail::RestorationEntryLedger progress;
         // Written by `enter_restoration` on the exits it decides, and read
         // only by the caller's two tagged restoration finish arms.
@@ -6437,7 +6436,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // once-per-solve rule refused every second request.
     const bool below_entry_cap = st.resto.entries < opts_.advanced.max_restoration_entries;
     const bool accepted_since_resume =
-        st.resto.entries == 0 || st.out.counters.steps_accepted > st.resto.accepted_at_resume;
+        st.resto.entries == 0 || st.resto.progress.kept_accepts() > 0;
     if (!allow_restoration_ || !below_entry_cap || !accepted_since_resume || !progress_admissible) {
         // THE NO-PROGRESS REFUSAL (RST-B): below the cap, a request with no step accepted since
         // the resume, or one the progress test refuses. The cap outranks it.
@@ -7374,7 +7373,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.strategy->resume_from_restoration(h_r);
         // THE ENTRY RULE'S MARK (M7 W2 RST): a later request needs a step accepted
         // after this point.
-        st.resto.accepted_at_resume = st.out.counters.steps_accepted;
         st.resto.progress.record_resume();
         st.full_step_funnel = nullptr;
         st.delta = restoration_restart_radius();

@@ -5045,6 +5045,38 @@ TEST(RstbEntrySeam, ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolera
     EXPECT_TRUE(counted);
 }
 
+// THE ENTRY RULE'S "ACCEPTED SINCE THE RESUME" EXCLUDES A ROLLED-BACK ACCEPT (RST-B). The progress
+// test is turned off here (a tolerance no run reaches), so the only gate left on a later request
+// is the entry rule: an interval whose accepts were all rolled back leaves nothing accepted since
+// the resume, and the request is refused as the no-progress refusal. The public `steps_accepted`
+// still counts those steps (a rollback does not decrement it), which is what the rule used to read.
+TEST(RstbEntrySeam, ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule) {
+    Index refused_k = -1;
+    for (Index k = 3; k < 40; ++k) {
+        SCOPED_TRACE(fmt::format("k = {}", k));
+        SteepValleyGradPoisonedAtOrdinalModel model(k);
+        SqpOptions opts;
+        opts.trust_region_initial = 8.0;
+        opts.common.max_iterations = 300;
+        opts.advanced.max_unproductive_restoration_entries = 1000000000;
+        const SqpResult sol =
+            SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
+        if (sol.stop_reason != StopReason::kRestorationNoProgress) {
+            continue;
+        }
+        if (refused_k < 0) {
+            refused_k = k;
+        }
+        EXPECT_EQ(sol.status, SolveStatus::kStalled);
+        EXPECT_GE(sol.counters.nonfinite_step_rollbacks, 1);
+        EXPECT_GE(sol.counters.steps_accepted, sol.counters.nonfinite_step_rollbacks)
+            << "the rolled-back accepts stay in the public counter";
+        EXPECT_EQ(sol.counters.restoration_no_progress_requests, 0)
+            << "the progress test is off: the refusal is the entry rule's";
+    }
+    EXPECT_GE(refused_k, 0) << "no k in [3, 40) reaches the entry-rule refusal: the premise moved";
+}
+
 TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {
     SqpOptions o;
     for (const Index bad : {Index{-1}, Index{-7}}) {

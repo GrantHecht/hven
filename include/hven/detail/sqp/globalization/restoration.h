@@ -130,19 +130,38 @@ class RestorationEntryLedger {
     void record_resume() {
         resumed_ = true;
         solved_since_resume_ = false;
+        kept_accepts_ = 0;
+        retractable_ = false;
     }
 
     void note_accept(bool from_solved_subproblem) {
         solved_before_last_accept_ = solved_since_resume_;
+        retractable_ = true;
+        ++kept_accepts_;
         if (from_solved_subproblem) {
             solved_since_resume_ = true;
         }
     }
 
     /// Undo the latest `note_accept`: the step it credited was accepted and then rolled back
-    /// (its point is not finite), so it moved nothing and is no progress. One level, which is
-    /// all a rollback can reach -- it fires in the first major after the commit it reverses.
-    void retract_last_accept() { solved_since_resume_ = solved_before_last_accept_; }
+    /// (its point is not finite), so it moved nothing and is no progress, for the progress test
+    /// AND for the entry rule's "a step was accepted since the resume" (`kept_accepts`). One
+    /// level, which is all a rollback can reach -- it fires in the first major after the commit
+    /// it reverses; a retraction with no accept pending since the last resume or retraction is
+    /// a no-op.
+    void retract_last_accept() {
+        if (!retractable_) {
+            return;
+        }
+        retractable_ = false;
+        solved_since_resume_ = solved_before_last_accept_;
+        --kept_accepts_;
+    }
+
+    /// Accepted steps since the last resume that were not rolled back. The public
+    /// `steps_accepted` counter is not decremented by a rollback; this is the count the
+    /// entry rule reads.
+    Index kept_accepts() const { return kept_accepts_; }
 
     RestorationEntryVerdict judge(Index max_unproductive) {
         RestorationEntryVerdict v;
@@ -167,6 +186,8 @@ class RestorationEntryLedger {
     bool resumed_ = false;
     bool solved_since_resume_ = false;
     bool solved_before_last_accept_ = false;
+    bool retractable_ = false;
+    Index kept_accepts_ = 0;
     Index unproductive_run_ = 0;
 };
 

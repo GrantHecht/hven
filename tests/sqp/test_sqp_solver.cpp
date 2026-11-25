@@ -13565,6 +13565,23 @@ TEST(RstbEntryLedger, ARetractionUndoesOnlyTheLatestAccept) {
     EXPECT_FALSE(ledger.judge(5).productive);
 }
 
+TEST(RstbEntryLedger, KeptAcceptsCountOnlyAcceptsThatWereNotRolledBack) {
+    hven::detail::RestorationEntryLedger ledger;
+    ledger.record_resume();
+    EXPECT_EQ(ledger.kept_accepts(), 0);
+    ledger.retract_last_accept(); // nothing pending: a no-op, never negative
+    EXPECT_EQ(ledger.kept_accepts(), 0);
+    ledger.note_accept(false);
+    ledger.note_accept(true);
+    EXPECT_EQ(ledger.kept_accepts(), 2);
+    ledger.retract_last_accept();
+    EXPECT_EQ(ledger.kept_accepts(), 1);
+    ledger.retract_last_accept(); // one level only: the second call has nothing to undo
+    EXPECT_EQ(ledger.kept_accepts(), 1);
+    ledger.record_resume();
+    EXPECT_EQ(ledger.kept_accepts(), 0);
+}
+
 TEST(RstbEntryLedger, ASolvedStepMakesTheIntervalProductiveAndClearsTheRun) {
     hven::detail::RestorationEntryLedger ledger;
     (void)ledger.judge(1);
