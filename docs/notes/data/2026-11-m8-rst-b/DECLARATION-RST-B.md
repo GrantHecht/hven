@@ -171,10 +171,18 @@ The perturbation is applied in the HARNESS; the binary under test is untouched.
 
 **HARNESS (pinned).** Rows are produced by hven-bench `ens` at **`27c02687d9389ed43f3dbef27b4cbe389ca2b5d0`** (the census
 harness; lanes tree `4319ab15...`, which carries the RST-B option overrides requires-gated, C556). The RST-B readers and the
-TU-2 runner are on hven-bench branch **`rstb-harness` at `bab378e4c368ef0e6ed8b8c97a0947b11fda5e92`**, a descendant of `27c0268` that adds
+TU-2 runner are on hven-bench branch **`rstb-harness` at `faad9e99f9a362e8120144e51e4150099c42e3e9`**, a descendant of `27c0268` that adds
 `tu/rstb_read.py`, `scripts/rstb_cells.py` and `tests/test_rstb_read.py` and touches **no row-producing path**
-(`git diff --quiet 27c0268 bab378e4c368ef0e6ed8b8c97a0947b11fda5e92 -- lanes/ runners/ schema/ tu/ens_members.py` holds, so rows from either read
+(`git diff --quiet 27c0268 faad9e99f9a362e8120144e51e4150099c42e3e9 -- lanes/ runners/ schema/ tu/ens_members.py` holds, so rows from either read
 under `ens.py`'s harness-sha rule). The freeze records both shas and STOPS on mismatch. Rule: `docs/ensemble-rule.md`.
+The exception is TU-2: its rows are produced by `scripts/rstb_cells.py` itself (the lane binary and labels are the
+harness's; the runner, row format and KILL/alone handling are new). **Smoke (C565(2), 2026-11-25, P lane `afa3a040...`,
+member 0):** one ordinary cell (NET3 default, arm F) and one KILL-row cell (BRITGAS default, arm F2'+B1+B2, forced to KILL
+with `run --kill-s 10`, then `alone` at 900 s, which replaced it and kept `rows.corun.csv`) each equal a hand-run lane
+invocation of the same cell (same label, budgets, pinned core, `MKL_NUM_THREADS=1`) on all 16 row fields (status, outcome,
+factorizations, certified, the 12 counters). Every merged label of the 7 P arms over the 48 TU-2 cells (336) is accepted
+by the lane's `--dump-options-only`, and the dump shows the RST-B override values applied. Smoke files:
+`hven-bench-rstb/.scratch/tu2-smoke/` (not evidence).
 
 **R's ensemble IS the baseline census (C547).** H0 = R. The census binary lacks the C' and C562 counters; comparisons read
 them as absent-in-R and use `restoration_entries`, `restoration_iters` and the existing columns for R.
