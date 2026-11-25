@@ -36,6 +36,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/types.h>
+#include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::detail::testing {
