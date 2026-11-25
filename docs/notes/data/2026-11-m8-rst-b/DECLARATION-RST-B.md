@@ -7,7 +7,7 @@ changed after data. Precedent: `../2026-11-m8-rf1/DECLARATION-RF-1c.md`. Design 
 
 **Pin (R): m8 `96789b9be`** (the I19-2a evidence commit; I19-2a shipped nothing, so R is that head with no
 default changed). The branch `rst-b` is rebased onto it (done: C' `7134445ff`, P `50393ebe6`, naming fix `3e4b2f87b`,
-rider `02c5a6408`; hashes are of the rebased branch and are re-read from `git log` at the freeze). If m8 moves
+rider `02c5a6408` + entry-rule `736c118a3`; hashes are of the rebased branch and are re-read from `git log` at the freeze). If m8 moves
 before the freeze the rebase is redone and the hashes here are re-stated in the frozen file; R is then the new
 head.
 
@@ -27,7 +27,7 @@ head.
   same path, same work.
 - Trace schema: one freeze-table row (new enum value, new stop reason, three trailing counter keys).
 
-**P -- path-moving** (commit `50393ebe6` + naming fix `3e4b2f87b` + rider `02c5a6408`):
+**P -- path-moving** (commit `50393ebe6` + naming fix `3e4b2f87b` + rider `02c5a6408` + entry-rule `736c118a3`):
 
 - **F1.** The R4 trigger also reads `zero_motion_exhausted`. The E2 elastic route is unchanged (registered).
 - **F2.** `advanced.qp_retry_regularization_first` (bool, default **false**): R4 ahead of R2/R3 after a
@@ -44,7 +44,11 @@ head.
   major rolls back because its point is non-finite (R2-1) was credited to the ledger at its commit; the rollback
   withdraws the credit (`RestorationEntryLedger::retract_last_accept`), so an interval whose only accepts were
   rolled back is unproductive and feeds `restoration_unproductive_entries` and the B1 refusal (and, through the
-  same counters, B2's reading) like any unproductive entry. Path: only a solve that both rolls back and has
+  same counters, B2's reading) like any unproductive entry. **The entry rule too (settler ruling C543):** the rule's
+  "a step accepted since the resume" reads the ledger's kept-accept count (`kept_accepts()`), which the same
+  retraction decrements; a request after an interval whose accepts were all rolled back is refused (`stalled` /
+  `restoration_no_progress`, below the cap). The public `steps_accepted` counter is NOT decremented and still counts
+  those steps. Path: only a solve that both rolls back and has
   re-entered restoration; every other path is bit-identical to the P commit.
 - **B2.** `advanced.restoration_max_total_factorizations` (`optional<Index>`, default **unset = derived, on**):
   at each entry `max(20000, rho x main-loop factorizations)`, `rho = kRestorationTotalWorkRatio` (restoration.h);
@@ -111,23 +115,45 @@ radius-only placebo cannot move cells where the first radius never binds. This r
 before any row exists. The perturbation is applied in the HARNESS; **the binary under test is untouched** (no placebo
 arm of the library exists, no option is added for it).
 
-**DEPENDENCY.** The ensemble harness (seeded perturbation, member runs, pairing by seed, class and floor computation,
-the vote and probability tables) is built separately on hven-bench branch `ens`. This declaration names its scripts
-`TODO-HARNESS-ENSEMBLE-RUN`, `TODO-HARNESS-CLASSES`, `TODO-HARNESS-TABLES`; the freeze is conditional on those names
-being replaced by real script paths and their shas being recorded in `gate-RST-B/BINARIES.txt`. Nothing here is run
-until they exist.
+**HARNESS (pinned).** The ensemble harness is hven-bench branch `ens` at **`e4c1a1d`** (rule: its
+`docs/ensemble-rule.md`; mechanism `tu/ens.py`, `tu/ens_members.py`; tests `tests/test_ens.py`). The freeze records the
+harness sha and STOPS on any mismatch, so this pin is the one the frozen file restates. Commands used by the round (the
+store `S` and paths are the frozen file's):
 
-**1. Members.** Six runs per cell (member 0 unperturbed, members 1-5 seeded) for the baseline R AND for every arm,
-**paired by seed**: member j of an arm and member j of R receive the identical perturbation. Three members (0, 1, 2)
-on NLP-46's exclusive tier. Seeds are fixed in the frozen file (`TODO-HARNESS-ENSEMBLE-RUN` holds the table).
+- baseline ensemble and arm members: `python3 tu/ens.py arms <arm> --m 5 --kind x0` lists the member arm names
+  (`<arm>@x1`..`@x5`); each runs through `tu/i19_run.py arm <name> --store S --binary <lane binary> ...`; the census
+  runner scripts `scripts/census_arm.sh <arm> <corpora> <phase>`, `scripts/census_chain.sh <logdir> <step>...`
+  (steps `arm:ARM:CORPORA:PHASE` and `pilots:ARM,...`) and `scripts/census_pilots.py run ...` (PILOT-62, several member
+  arms in one lane acquisition, one pinned core each) are the reference runners;
+- `python3 tu/ens.py freeze --store S --arm H0 --corpora TRAIN-238,CAP-238-1,CAP-238-01 --m 5 --kind x0 --out FREEZE.json`
+  (classes, `p_base`, floors, provenance, digests; committed before the first arm row);
+- `python3 tu/ens.py freeze --store S --arm H0 --corpora NLP-46 --out FREEZE-NLP46.json` (its own freeze);
+- `python3 tu/ens.py read --store S --base H0 --arm <arm> --freeze FREEZE.json` (the decision read, per arm);
+- `python3 tu/ens.py power --store S --arm H0 --freeze FREEZE.json --event "restoration_entries>=1"` (the power gate).
 
-**2. Perturbations** (both applied by the harness at the model boundary; two entry points):
-- *Primary:* a seeded relative perturbation of x0 of size about 2^-48 per component, **projected into the bounds**
-  (a component at a bound stays on it).
-- *Secondary:* `trust_region_initial = 1.0 +- k*1e-15`, k seeded (the existing option; harness override only).
-A member uses the primary on every cell; the secondary is the second family of members 3-5 (members 1-2 primary
-only, members 3-5 primary and secondary), so a radius-only effect is measured where it can act and not otherwise.
-The ensemble reports the two entry points' movements separately as well as pooled.
+`H0` is the harness's name for the baseline arm; here it is R. **TODO-HARNESS-ARMS:** RST-B's arms (F, F2, F2', F+B1,
+F+B1+B2) differ in BINARY and options, not in the I19 lever table; whether `tu/i19_cells.py`' arm registry needs those
+names (and `--binary` per arm) before the freeze is the harness author's to confirm and is a freeze precondition.
+
+**Plan for sharing with the baseline census.** A census of the m8 head is running from `ens` `e4c1a1d`. R's ensemble rows
+here are the census rows ONLY IF R's lane binary sha256 equals the census binary's (recorded in the census
+`BINARIES.txt` and in each row's `# lane.binary.sha256`; the freeze STOPS otherwise): the pin R (`96789b9be`) is not
+necessarily the census head, so the default is that R's ensemble is run anew from this round's R binary, and sharing is
+a declared saving only if the two shas are equal when the frozen file is written. The frozen file states which.
+
+**1. Members and the decision ensemble.** The DECISION ensemble is the `x0` kind: member 0 (unperturbed) plus x1..x5, six
+runs, for the baseline R AND for every arm, **paired by seed** (member `@xj` of an arm and of R receive the identical
+perturbation). NLP-46 is its OWN ensemble: member 0 plus x1, x2 (three runs), its own freeze, floors (3 baseline pairs)
+and votes (3 of 3), never pooled with TRAIN/CAP. Seeds are the harness's (`tu/ens_members.py`, splitmix64 on problem
+name and seed).
+
+**2. Perturbations** (applied by the harness in `hven_bench_cell`; the binary under test is untouched):
+- *Decision (`x0` kind):* x0_j += 2^-48 * c_j * max(1, |x0_j|), c_j in [-1, 1) seeded, clipped into the variable box;
+  only coordinates inside their box move.
+- *Secondary robustness REPORT (`tr` kind, members t1..t5):* `trust_region_initial` = base + sign * k * ulp(base),
+  k = ceil(seed/2), sign + for odd seeds and - for even; a perturbed value equal to the base is refused. The `tr`
+  ensemble is run only for R and the arm(s) the owner names, is read and reported as a separate ensemble (its class
+  counts and net signs), and is **not a decision input**: no bar of this round reads it.
 
 **3. Cell classes, from the BASELINE ensemble, frozen before any arm row exists.** `gate-RST-B/classes.txt` is
 written from R's ensemble alone and its sha recorded before the first arm row is read.
@@ -141,7 +167,7 @@ as stated in 5 and 6.
 
 **4. Null distribution.** The 15 pairs of baseline members give, per family and pooled, the distribution of net wins
 (per currency) and of solved-count differences under no change. `floor_f` = the largest absolute value in it
-(`TODO-HARNESS-TABLES`). Computed from R's ensemble alone, frozen with the classes.
+(`tu/ens.py freeze`). Computed from R's ensemble alone, frozen with the classes.
 
 **5. Cost.** `T_j` = net wins of arm member j against baseline member j, per seed j.
 - A pooled "+" requires `T_j > pooled floor` in at least 5 of 6 seeds, on one currency, with the median geomean at
@@ -166,7 +192,7 @@ and baseline members (median f). Otherwise the cell is scored in its own column,
 worse objective", and enters neither net.
 
 **9. Power gate (BEFORE the freeze).** The number of baseline-STABLE, solved cells that exercise restoration
-(`restoration_entries > 0` in R, from the C' counters on the R ensemble, per family and per currency) is stated in the
+(`restoration_entries >= 1` in member 0, in any member and in all members, as `tu/ens.py power` prints it, per family) is stated in the
 frozen file. If it is below 20 distinct problem names, the round is declared EXPLORATORY: its bars are read as
 reports, no arm is shipped on it, and the corpus is enriched (the 2-point restoration probes from the diagnosis, the
 DALLASM/YORKNET/BRITGAS shapes) before a confirmatory round. The expected count is not assumed here; the baseline
@@ -200,6 +226,7 @@ All must-kills (control first). Declared killers (other killers allowed as well)
 | F3 | floor label without the floor | `Rf1RetryLadderSeam.ANoMotionFailureAboveTheFloorIsTheSubproblemFailure` |
 | B2a | B2 cut spelled kWorkLimit | `RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit` |
 | RB1 | a rolled-back accept keeps its progress credit (the retraction dropped) | `RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress`, `RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance` (the ledger unit pins test `retract_last_accept` itself, not its call, and do not kill this mutation) |
+| RB2 | the entry rule still counts a rolled-back accept (kept-accept count not decremented) | `RstbEntrySeam.ARolledBackAcceptIsNotAnAcceptedStepForTheEntryRule`, `RstbEntryLedger.KeptAcceptsCountOnlyAcceptsThatWereNotRolledBack` |
 | B2b | caller's ceiling spelled kRestorationWorkLimit | `RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit`, `Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit` |
 
 **Argued survivors: none declared.** Every id above is a must-kill. The runner holds an `ARGUED` list that MUST equal
@@ -243,10 +270,10 @@ by a replay of the F+B1+B2 arm on the two binaries (leg N0r: 0 differences expec
 
 ## 6. Box time (one lane, estimates)
 
-Builds: 3 installs + harness rebuilds, about 1.5 h. C (Release + Debug ctest): about 1.5 h. M: 14 rebuild+run
+Builds: 3 installs + harness rebuilds, about 1.5 h. C (Release + Debug ctest): about 1.5 h. M: 15 rebuild+run
 cycles, about 2 h. T: 238 rows x 7 arms co-run two arms at a time on 4 cores, about 6-8 h. P: 62 cells x 7 arms,
 about 4 h (the 900 s kill dominates). U: 48 x 7, about 4 h at the 250k-factorization budget. N: 46 x 7, about
-2 h. N0 replay, S, CI: about 1.5 h. PE: six members for R and every arm (about 6x the single-pass legs; 3 on NLP-46 exclusive) -- the legs above are the single-pass figures and the ensemble multiplies the TRAIN/CAP-class legs, so the total is re-estimated when the harness exists and stated in the frozen file; the single-pass total is **about 22-25 lane-hours**, plus solo re-runs of candidate cells.
+2 h. N0 replay, S, CI: about 1.5 h. PE: six members for R and every arm (about 6x the single-pass legs; 3 on NLP-46 exclusive) -- the legs above are the single-pass figures and the ensemble multiplies the TRAIN/CAP-class legs, so the total is **re-estimated from the m8-head baseline census** (running from `ens` `e4c1a1d`; its per-leg box time is the instrument) when that census lands, and the frozen file states the figure and the census it came from (not yet available at this draft); the single-pass total is **about 22-25 lane-hours**, plus solo re-runs of candidate cells.
 
 ## 7. Not run
 

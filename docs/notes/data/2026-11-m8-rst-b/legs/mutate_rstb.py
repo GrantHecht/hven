@@ -39,6 +39,8 @@ MUT = {
     # RB1: a rolled-back accept keeps its progress credit
     "RB1": (S, "        st.resto.progress.retract_last_accept();\n",
                "", 1),
+    # RB2: a rolled-back accept still counts for the entry rule (the kept-accept count not decremented)
+    "RB2": (R, "        --kept_accepts_;\n", "", 1),
     # F1: the R4 trigger stops reading zero_motion_exhausted
     "F1": (S, "                                      q.counters.zero_motion_cap_hits > 0 ||\n"
               "                                      q.counters.zero_motion_exhausted > 0;\n",
