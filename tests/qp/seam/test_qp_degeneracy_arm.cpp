@@ -1304,9 +1304,28 @@ TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructura
             opts.dual_regularization = mu;
             const CertThresholds th = cert_thresholds(opts.feasibility_tol, mu, 5.0);
             ASSERT_GT(th.margin, 0.0);
+            // M8 QPC (declared re-premise): the BOUND HALF still tolerates both points, but the
+            // certificate's DATA HALF (walk_engine.h, section 5) now reads the exported point from
+            // the QP's data -- rows <= 10 feas_tol, |distance| * |z| <= 100 feas_tol -- and refuses
+            // them (the margin is 5e-7 / 1e-5 here, 500x / 10^4x feas_tol). A point inside BOTH
+            // halves (half the data half's own bound, 1e-8 at |z| = 5) still certifies kOptimal.
+            const double data_bound =
+                std::min(detail::kCertificateGateRowFactor * opts.feasibility_tol,
+                         detail::kCertificateGateComplFactor * opts.feasibility_tol / 5.0);
             for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
-                expect_certificate_verdict(qp, opts, side, 0.5 * th.margin, false, "inside");
-                expect_certificate_verdict(qp, opts, side, th.margin, false, "on-margin");
+                expect_certificate_verdict(qp, opts, side, 0.5 * data_bound, false, "inside-both");
+                for (const double v : {0.5 * th.margin, th.margin}) {
+                    SCOPED_TRACE(::testing::Message() << "bound-half-tolerated v=" << v);
+                    Vec x;
+                    Vec z;
+                    cert_presented(side, v, x, z);
+                    const QpSolution s = present_to_certificate(qp, opts, x, z);
+                    ASSERT_EQ(Cert::presentations, 1);
+                    EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
+                    EXPECT_EQ(s.counters.certificate_gate_refusals, 1);
+                    EXPECT_EQ(static_cast<int>(s.status),
+                              static_cast<int>(QpStatus::kNumericalError));
+                }
             }
         }
     }

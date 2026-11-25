@@ -232,8 +232,29 @@ Sm -> CI.
 | F-FOLD the SQP fold of the two counters (⟨SQP seam test, if built⟩) | n/a | 1 refusal folded |
 
 Re-derived pins (declared, each with its mechanism): `QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint`
-(asserted the rung; replaced by F-PF1 -- the rung no longer exists); ⟨every other ctest pin the leg-C development run
-moves, with mechanism⟩.
+(asserted the rung; replaced by F-PF1 -- the rung no longer exists); `QpWa1AscentFootprint.SyntheticRide...`'s
+`dual_regularization_decreases <= kMaxDualRegDecreases` (the constant is gone; the field is identically 0);
+`QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin` (re-premised: the bound half still
+tolerates both points, the data half refuses them, a point inside both halves certifies); the trace goldens (two
+appended keys).
+
+**Development leg-C reading at H (Release, 2026-11-25, NOT evidence): 4243 of 4262 pass.** Three failures are the
+trace goldens (fixed in the tree since). The other sixteen are EXACTLY the set the P-1a decider measured for the gate
+prototype (`dec/ctest/decGate.failures.txt`), each a consequence of C2 and each awaiting a settler ruling before it is
+re-pinned (open question Q5) -- none is re-pinned silently:
+
+| test | mechanism (first failing assertion) | class |
+|---|---|---|
+| QpDegeneracyArm.CertificateToleratesABoundViolation... | bound violation inside the bound half's margin, past the data half | premise contradicts C2 by design (re-premised in tree) |
+| QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused | the walk ends on a point 1.92e-8 (19 feas_tol) off its working row after the mu = 1e-10 rung; kOptimal -> kNumericalError | premise (QP level) |
+| QpStagnationStop.AResidualContractingAtPointEightCertifiesWithoutAReading | a residual contracting at 0.8 certified on the footprint; now refused | premise (QP level) ⟨reading to record⟩ |
+| HsSweepCorpus.Corpus, HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep | HS15 sweep: 1 status failure per KD/SOC arm; majors 40 -> 44 on the warm KD-off arm | REAL LOSS on a fixture; must be diagnosed before any ship (decider risk 3) |
+| SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness | the YORKNET major-0 elastic ladder's rung is no longer usable from (0, 0) | SQP path |
+| B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers | the solve now ends kOptimal where the test asserts the refused triple is not certified | SQP path; V2 check required (an NLP certificate) |
+| SqpSolverRestorationSeed.* (x6), JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration | restoration is no longer entered on the fixture, so no row takes a seed | SQP path; fixtures lose their premise |
+| Threads.ZeroLeavesEveryFactorAtTheBackendDefault, Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration | the warm hot-start handle is null (a QP exit that was kOptimal is now refused, so no hot cache is committed) | SQP path; fixture loses its premise |
+
+Debug leg C: ⟨not yet run⟩.
 
 ## 8. Mutations (must-kill unless marked ARGUED)
 
@@ -288,5 +309,8 @@ members ~6; NLP-46 exclusive tier 2 x 3 members ~4 (exclusive hours count double
   no; one candidate.) Component binaries (R+C1, R+C2) would cost 2 more ensemble legs.
 * **Q3** Should the data half also read stationarity (terminal_kkt's `stationarity`, e.g. <= 10 opt_tol) as a third
   disjunct? Not in the ruling; not measured by the deciders.
+* **Q5** The sixteen ctest movers of section 7: which are re-premised (new fixtures that keep each test's purpose),
+  which are re-pinned as declared correctness moves, and must the HS15 sweep loss be diagnosed (and fixed or accepted)
+  before freeze?
 * **Q4** The gate's product disjunct drives 141 of the 165 TRAIN refusals in the deciders; a separate lever for it is
   not possible after the API lock. Accept as one gate?
