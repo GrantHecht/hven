@@ -1,0 +1,56 @@
+ARM P lane=H corpora=NLP-46 phase=all start 2026-11-24T18:01:49-05:00 harness=56fa03fdf40acb38275f0a46058ddbd2da925f0e
+LEG NLP-46 P nlp/default corun: 17 cells
+box-lane: lane 0 acquired 2026-11-24T18:01:49-05:00
+run_serial: CO-RUN width 4 (17 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: cutest/ACOPP118/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/ACOPP57/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/ACOPR118/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 2]
+run_serial: cutest/ACOPR57/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: cutest/BIGBANK/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/DALLASM/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: cutest/NET3/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: cutest/READING6/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/SAWPATH/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/SMBANK/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRB/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRC/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/STEENBRD/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRE/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRG/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 2]
+run_serial: cutest/YORKNET/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/ZAMB2-8/hven-sqp/default+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: 17 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-H/NLP-46/P/default/nlp/corun-95a431c7/results.csv
+LEG NLP-46 P nlp/sqp-qn corun: 17 cells
+box-lane: lane 0 acquired 2026-11-24T18:03:38-05:00
+run_serial: CO-RUN width 4 (17 co-run cells, 0 solo-tier cells); core map pkg0/core0=cpu0,pkg0/core1=cpu1,pkg0/core2=cpu2,pkg0/core3=cpu3
+run_serial: cutest/ACOPP118/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/ACOPP57/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/ACOPR118/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 2]
+run_serial: cutest/ACOPR57/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: cutest/BRITGAS/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/DALLASM/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/MSS2/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 3]
+run_serial: cutest/NET3/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/READING6/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/SMBANK/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRB/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRC/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRD/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/STEENBRE/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/STEENBRG/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/YORKNET/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 1]
+run_serial: cutest/ZAMB2-8/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [cpu 0]
+run_serial: cutest/ACOPR118/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001 [solo]
+run_serial: 17 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-H/NLP-46/P/sqp-qn/nlp/corun-62b0156f/results.csv
+LEG NLP-46 P nlp/default exclusive: 6 cells
+box-lane: exclusive acquired 2026-11-24T19:06:59-05:00
+run_serial: cutest/BRITGAS/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: cutest/MSS2/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: cutest/MSS3/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: cutest/READING8/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: cutest/TAX213322/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: cutest/TAX53322/hven-sqp/default+trust_region_initial=1.000000000000001
+run_serial: 6 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-H/NLP-46/P/default/nlp/exclusive-1bf404ee/results.csv
+LEG NLP-46 P nlp/sqp-qn exclusive: 7 cells
+box-lane: exclusive acquired 2026-11-24T20:47:34-05:00
+run_serial: cutest/ACOPR118/hven-sqp/sqp-qn+trust_region_initial=1.000000000000001
