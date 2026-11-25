@@ -140,9 +140,10 @@ the I19 `options=` table; the harness (`eca19b8`) takes them as `set=key:value,.
 label so the loader's full-label check covers them, and its lane carries them requires-gated (section 5a has the lines).
 
 **R's ensemble IS the baseline census (settler ruling C547).** R's ensemble rows are the rows of the m8-head baseline
-census, not a fresh run: hven-bench `ens` `6e42a30` (the census harness; every census row carries
-`# harness.sha: 6e42a30...`), hven pin `99712ec324716e6d08ee0545a43d595ca15eec3f`, lane binary
-`3155a0834e9e9e7748fe51b818acafc5fd3ff502bf86e1f58ef2bb165f995bc0` (recorded in the census `BINARIES.txt` and in each
+census, not a fresh run: the census RERUN at hven-bench `ens` `27c0268` (settler C558/C559; the first census at `6e42a30`
+on the `e4c1a1d` lane `3155a083...` is superseded, because the lane change of C556 would make its rows and the arms'
+stop on `lanes/`), hven pin `99712ec324716e6d08ee0545a43d595ca15eec3f`, lane binary
+`7d2f9f376d6f9f82d554efc2a41a1e52a36769a061d02060c5a765d236c573ca` (recorded in the census `BINARIES.txt` and in each
 row's `# lane.binary.sha256`), store `/home/ghecht/Projects/hven-bench-ens/.scratch/census-m8/store`. The freeze verifies
 that identity (provenance equal across every baseline member; the arm builds against the same pin) and STOPS otherwise.
 The census binary is the m8 head WITHOUT C': its side files lack the C' counters (`restoration_unproductive_entries`,
@@ -269,7 +270,7 @@ sha filled from the builds, before any arm row, and re-checked at the end.
 
 | name | commit | used by |
 |---|---|---|
-| R | `99712ec32` (m8 pin = the census pin) | R rows = the census rows |
+| R | `99712ec32` (m8 pin = the census pin; lane `7d2f9f376d6f9f82d554efc2a41a1e52a36769a061d02060c5a765d236c573ca`) | R rows = the census rows |
 | C' | `46761076fbbdbc616a015ff4570b082443a454ab` | N0, C' rows |
 | P | `795504e49c82208d3c97039fbf68b0bda32a4689` (the code head of `rst-b`; later commits are docs only; re-read at the freeze) | arms F, F2, F2', F+B1, F+B1+B2 (overrides per section 2) |
 
@@ -277,7 +278,7 @@ The plan, with the builds made (C' and P installs and lanes built by `scripts/ce
 `eca19b8` under `box-lane`, on disk in the `rst-b` worktree's `.scratch/`; the `set=` syntax is the harness's, ensemble-rule.md
 at `eca19b8`; nothing below is a result):
 
-    declare H0   prefix=/home/ghecht/Projects/hven/.claude/worktrees/census/.scratch/install 99712ec324716e6d08ee0545a43d595ca15eec3f 3155a0834e9e9e7748fe51b818acafc5fd3ff502bf86e1f58ef2bb165f995bc0
+    declare H0   prefix=/home/ghecht/Projects/hven/.claude/worktrees/census/.scratch/install bin=/home/ghecht/Projects/hven-bench-ens/build-ens-27c0268/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 99712ec324716e6d08ee0545a43d595ca15eec3f 7d2f9f376d6f9f82d554efc2a41a1e52a36769a061d02060c5a765d236c573ca
     declare C'   options=H0 prefix=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/inst-C/install base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/lane-C/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 46761076fbbdbc616a015ff4570b082443a454ab 054aac010942a2e7648ebc0b48b590330d64cb2b12e7d655f0ad0fd145e88c7d
     declare F        options=H0 set=advanced.max_unproductive_restoration_entries:1000000000,advanced.restoration_max_total_factorizations:1000000000000 prefix=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/inst-P/install base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/lane-P/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 795504e49c82208d3c97039fbf68b0bda32a4689 fb25fbf53f2c6d5189452b221ee17114ff1389cd20a2b1e226ff764331a02321
     declare F2       options=H0 set=advanced.max_unproductive_restoration_entries:1000000000,advanced.restoration_max_total_factorizations:1000000000000,advanced.qp_retry_regularization_first:true prefix=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/inst-P/install base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/lane-P/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 795504e49c82208d3c97039fbf68b0bda32a4689 fb25fbf53f2c6d5189452b221ee17114ff1389cd20a2b1e226ff764331a02321
@@ -285,15 +286,13 @@ at `eca19b8`; nothing below is a result):
     declare F+B1     options=H0 set=advanced.restoration_max_total_factorizations:1000000000000 prefix=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/inst-P/install base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/lane-P/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 795504e49c82208d3c97039fbf68b0bda32a4689 fb25fbf53f2c6d5189452b221ee17114ff1389cd20a2b1e226ff764331a02321
     declare F+B1+B2  options=H0 prefix=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/inst-P/install base=99712ec324716e6d08ee0545a43d595ca15eec3f bin=/home/ghecht/Projects/hven/.claude/worktrees/rst-b/.scratch/lane-P/lanes/hven/hven_bench_cell lane_src=4319ab1512e2de6dbc385eb964be182f0af4eb70 795504e49c82208d3c97039fbf68b0bda32a4689 fb25fbf53f2c6d5189452b221ee17114ff1389cd20a2b1e226ff764331a02321
 
-The census install is the census lane's own and carries no `lane_src` (the baseline is exempt: its lane is the clean `e4c1a1d`
-build). Both new lanes were stamped `lane_src` `4319ab1512e2de6dbc385eb964be182f0af4eb70`. The five P arms share one build, one install and one lane binary.
+H0's lane is the NEW census lane built at `ens` `27c0268` against the census install (sha256 `7d2f9f37...`, `lane_src` `4319ab15...`, pin `99712ec32`; it reproduces the independently built `build-i19-RC` lane bit for bit); the earlier `3155a083...` lane (`e4c1a1d`, `lanes/` tree `386d43a5...`) is superseded and the census reruns on the new one, so R's rows and every arm's rows share one `lanes/` tree (settler C558/C559). The file is `gate-RST-B/BINARIES.txt`. Both new lanes were stamped `lane_src` `4319ab1512e2de6dbc385eb964be182f0af4eb70`. The five P arms share one build, one install and one lane binary.
 Install `HVEN_PIN.txt` pins were read after the builds and equal the declared pins.
 
 `lane_src=` is required because the lane binary links `libhven` statically, so each arm's binary sha256 differs from
-the census lane's (`3155a083...`); here the lane SOURCE also differs from the census lane's: the harness commit
-`eca19b8` added the RST-B option overrides to the lane (C556; `lanes/` tree `4319ab15...`, the census lane's was
-`386d43a5...`), requires-gated so a binary without them refuses an override. The harness requires `lane_src` for any arm
-whose binary differs from the baseline's and compares it. The five P arms share one build, one
+the census lane's (`7d2f9f37...`); the lane SOURCE is the same (`lanes/` tree `4319ab15...`, which carries the RST-B
+option overrides added at `eca19b8`, C556, requires-gated), so R's rows and every arm's rows share one tree. The harness
+requires `lane_src` for any arm whose binary differs from the baseline's and compares it. The five P arms share one build, one
 lane binary and one install; they differ only in the option overrides (`set=`, per section 2's table). The reader checks `HVEN_PIN` equality for both prefixes, ancestry of each
 declared pin from R (`99712ec32` is an ancestor of both), and prints the `src/include` diff-stat. Sequence: build C' and P
 installs and their lanes (`scripts/i19_build_install.sh`, `scripts/i19_build_lane.sh` stamp `<binary>.lane-src`), fill the
