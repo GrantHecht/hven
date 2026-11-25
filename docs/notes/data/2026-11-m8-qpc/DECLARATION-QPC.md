@@ -290,13 +290,15 @@ does not make, S3); the conditions are read from the reader's JSON (`--json`) fi
   ROW-LOCAL product (`d_product_local`, each term over its own columns' dual scale, exactly the gate's definition,
   section 1) <= 100 feas_tol; no nonzero multiplier off the working set (`d_off_working` = 0); `qp_dump_kkt`'s
   stationarity beyond rounding (floor c_i u m_i, u = eps/2) <= 10 opt_tol; signs <= opt_tol; and
-  |f - f*| <= 1e-9 max(1, |f*|) against `legs/pinned_optima.tsv` (PF1, QC8 entry6/qp1/qp7, C11 YORKNET qp1, C11 SAWPATH
-  qp1 -- every value a test already asserts). ZERO failures. The NORMWISE free-block stationarity (`d_stationarity`) and
+  |f - f*| within the pinning test's OWN bound against `legs/pinned_optima.tsv` (PF1, QC8 entry6/qp1/qp7, C11 YORKNET
+  qp1: 1e-9 max(1, |f*|); C11 SAWPATH qp1: 0.1 absolute -- its oracle is the value at a point 8e-4 off its rows, and
+  `test_qp_rank_repair.cpp` pins that band; the first draft's uniform 1e-9 failed SAWPATH under R and H alike, found by
+  running the grid before freeze, review M2). ZERO failures. The NORMWISE free-block stationarity (`d_stationarity`) and
   the UNSCALED product (`d_product`) are REPORTED columns, never verdicts: the gate reads neither (a normwise residual can
   sit beneath double's rounding floor where large terms cancel -- C11 SAWPATH qp1 reads ~502 opt_tol normwise at its
   certified, pinned exit -- and the unscaled product is not invariant to the objective's scaling, section 1). The pinned
   optima are the check that does not depend on the gate's own definitions: at the gate's bounds the admitted objective
-  error is about 100 feas_tol * s_j * row_scale_j per row (section 1), larger than the 1e-9 bar, so a pinned cell
+  error is about 100 feas_tol * s_j * row_scale_j per row (section 1), larger than the pinned bars, so a pinned cell
   certified inside the gate but off its optimum is a FALSE CERTIFICATE here. (The unregularized-EQP comparison of the
   earlier draft is dropped: it cannot see an inconsistent working set, D-4.) A false certificate under R is reported and
   not a stop (R is what this round fixes); under H it STOPS.

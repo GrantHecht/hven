@@ -10,7 +10,7 @@
                                          d_rows <= 10 feas_tol, d_product_local (each term over its row's local dual scale,
                                          settler C567) <= 100 feas_tol, d_off_working == 0, k_stationarity_beyond_rounding
                                          (qp_dump_kkt, rounding floor c_i u m_i) <= 10 opt_tol, k_sign <= opt_tol (the dump's
-                                         own tolerances), and |f - f*| <= 1e-9 max(1, |f*|) where pinned.tsv pins f*. A NaN
+                                         own tolerances), and |f - f*| within pinned.tsv's per-cell tolerance (the pinning test's own bound). A NaN
                                          fails. The NORMWISE stationarity d_stationarity is a REPORTED column (printed per
                                          kOptimal row as d_stat/otol), never a verdict: a normwise residual can sit beneath
                                          double's rounding floor where large terms cancel (C11 SAWPATH qp1 reads ~502 opt_tol
@@ -94,13 +94,17 @@ def vqp(xp, pinned_path):
 
 
 def load_pinned(pinned_path):
+    """file -> (f*, kind, t): kind 'rel' = |f - f*| <= t max(1, |f*|), 'abs' = |f - f*| <= t (the pinning test's bound)."""
     pinned = {}
     with open(pinned_path) as f:
         for ln in f:
             if ln.startswith("#") or not ln.strip():
                 continue
-            name, val = ln.split("\t")[:2]
-            pinned[name] = float(val)
+            name, val, tol = ln.rstrip("\n").split("\t")[:3]
+            kind, t = tol.split(":")
+            if kind not in ("rel", "abs"):
+                sys.exit(f"STOP: bad tolerance {tol!r} for {name} in {pinned_path}")
+            pinned[name] = (float(val), kind, float(t))
     return pinned
 
 
@@ -113,8 +117,8 @@ def vqp_failures(key, r, pinned):
               ("k_stationarity_beyond_rounding", g("k_stationarity_beyond_rounding"), 10 * otol),
               ("k_sign", g("k_sign"), otol)]
     if key[0] in pinned:
-        fs = pinned[key[0]]
-        checks.append(("objective_vs_pinned", abs(g("objective") - fs), 1e-9 * max(1.0, abs(fs))))
+        fs, kind, t = pinned[key[0]]
+        checks.append(("objective_vs_pinned", abs(g("objective") - fs), t * max(1.0, abs(fs)) if kind == "rel" else t))
     return [f"{n}={v:.3e}>{t:.3e}" for n, v, t in checks if not (v <= t)]  # NaN fails
 
 
