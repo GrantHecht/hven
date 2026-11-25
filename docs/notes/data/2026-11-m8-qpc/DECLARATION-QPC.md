@@ -153,8 +153,9 @@ target the single step aims at; every exit still passes the unchanged certificat
   `gate-QPC/`), so "C1 alone" is literally H with C2 removed, not a re-implementation; the counter schema is identical in
   all three arms (a reverted component's counter reads 0), so every reader and comparator runs unchanged. If a component
   ships alone, the shipping commit is the corresponding revert landed on `qpc` (its diff is the one the arm measured).
-  The branches are pushed but never merged as such. Development commits: `qpc-c1` `e4660dd31` and `qpc-c2` `1ed77a336`,
-  both on the code commit `02407ea83` (the reverts are produced by a script kept with the legs, so they are re-made on the
+  The branches are pushed but never merged as such. Development commits: `qpc-c1` `c889e3068` and `qpc-c2` `3545f6185`,
+  both on `bcf960b0b` (re-made after C568; the first pair, `e4660dd31` / `1ed77a336` on `02407ea83`, ran the section-7
+  attribution) (the reverts are produced by a script kept with the legs, so they are re-made on the
   final H at freeze and their shas entered in BINARIES.txt; `legs/make_arm.py`).
 * Every arm is (build, ensemble member); there are no runtime levers. Four installs: R (the census install, reused),
   H, H-C1, H-C2, each built by hven-bench `scripts/census_build.sh` (the census recipe: Release, no tests/bench, no LTO,
