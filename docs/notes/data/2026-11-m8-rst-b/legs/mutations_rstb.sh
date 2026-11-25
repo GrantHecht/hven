@@ -14,7 +14,7 @@ git diff --quiet --ignore-submodules=all -- src include tests || { echo TREE_DIR
 for m in $IDS; do python3 "$L/mutate_rstb.py" "$m" > /dev/null || { echo "PREFLIGHT_DOES_NOT_APPLY $m"; python3 "$L/mutate_rstb.py" restore; exit 2; }; python3 "$L/mutate_rstb.py" restore > /dev/null; done
 # PARITY PREFLIGHT (before any build): the runner's ARGUED list must equal the declaration table's argued-survivor
 # set, and the table's ids must equal mutate_rstb.py's. I19-2a's runner and table disagreed; this fails closed.
-ARGUED=""   # declared argued survivors (DECLARATION-RST-B.md section 4: none)
+ARGUED="B2x"   # declared argued survivors (DECLARATION-RST-B.md section 4: B2x, C577)
 DECL="$L/../DECLARATION-RST-B.md"
 python3 - "$DECL" "$L/mutate_rstb.py" "$ARGUED" "$OUT/declared_killers.tsv" <<'PY' || { echo PARITY_FAIL; exit 2; }
 import re, subprocess, sys

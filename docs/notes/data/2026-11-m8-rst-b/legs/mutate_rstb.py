@@ -69,6 +69,12 @@ MUT = {
     # B2z: a later entry with no budget left is handed no ceiling (zero read as none)
     "B2z": (S, "        phase_opts.common.max_factorizations = budget_left;\n",
                "        if (budget_left > 0) {\n            phase_opts.common.max_factorizations = budget_left;\n        }\n", 1),
+    # B2s (C577 M6): a stall-window stop counted as a B2 cut (the label is unchanged; only restoration_budget_cuts moves)
+    "B2s": (S, "            phase_result.status == SolveStatus::kWorkLimit && !phase_stalled && budget_binds;\n",
+               "            phase_result.status == SolveStatus::kWorkLimit && budget_binds;\n", 1),
+    # B2x (C577 should; ARGUED): the call site passes 0 for the restoration share, so the derived base is the solve's total
+    "B2x": (S, "        st.out.counters.restoration_factorizations);\n    bool phase_budget_cut = false;\n",
+               "        0);\n    bool phase_budget_cut = false;\n", 1),
     # FR1: a spent budget forbids the feasible resume (B2 gating a feasible entry; the declared behaviour is that it does not)
     "FR1": (S, "    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol;\n",
                "    const bool feasible_resume = kkt_r.feasibility <= opts_.common.feasibility_tol &&\n"

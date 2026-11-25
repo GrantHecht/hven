@@ -30,7 +30,11 @@ member had been run on any corpus):
    names: 9 on T+CAP, 3 on partial NLP-46) were seen. On the complete census (C576) the count is **14 names** (9 + 5),
    so the gate is met by 4; the NLP-46 part was partial when the threshold was set.
 
-Both were fixed from R's rows alone; no arm outcome was known or knowable when they were set. They are disclosed because
+3. **The cost-of-failure concentration guard (section 3b; C577 M3)** and **the STABLE-SOLVED floor from x0 split-halves
+   (section 3d; C577 M4, floor 2 names)** were set by the pre-freeze re-review after it had read the R-only census rows
+   (SPANHYD's 22-40% share; the split-half null).
+
+All of these were fixed from R's rows alone; no arm outcome was known or knowable when they were set. They are disclosed because
 a criterion tuned against the baseline's own distribution is weaker than one fixed in advance, and a reader should weigh
 them accordingly. Two further declared limits: **N1 is a proxy** (section 3), and **the PILOT-62 predictions are scored on
 status and factorizations only** (section 3e), because those are the only result columns PILOT-62 rows carry.
@@ -75,7 +79,7 @@ cap keeping `numerical_error` / `restoration_refused` and outranking it; trace s
   sub-solve's own count). A phase run therefore spends **at most the budget it was handed plus the factorizations of one
   restoration major**, the one that crosses the line; every later phase run and entry is then handed 0 and stops before
   factorizing (pinned by `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes`). One major is bounded by the
-  per-major QP limits, not by B2, and can be large: **observed, TU-2 A0 BRITGAS default, arm F2'+B1+B2, member 0
+  QP caps and retry rungs, not by B2, so **20,000 is not a hard cap** and the overshoot can be large: **observed, TU-2 A0 BRITGAS default, arm F2'+B1+B2, member 0
   (smoke, P lane `afa3a040`): 24,417 restoration factorizations against a derived budget of 20,000** (the floor;
   main-loop factorizations 2,679), 22% over, the solve ending `stalled` / `restoration_work_limit` at major 1 with 27,096
   factorizations.
@@ -147,10 +151,10 @@ objectives; wall-clock is never quoted. A deviation observed under a co-run is a
 | PE | the paired perturbation ensembles (section 3a) for every arm over T, CAP, N, P, U | R's ensemble = the census, frozen first; arms read per section 3a |
 | N0 | R vs C', **all six x0 members** (`scripts/compare_replay.py`, walk/ssn/ipm) | 0 path movers: byte-exact on every deterministic column but the C' counters, the status/stop_reason/message of a cell whose last event is the relabelled refusal; each relabel listed |
 | N1 | F vs C', every member, on the C' cells with `harness_qpsum_zero_motion_exhausted = 0`, `nonfinite_step_rollbacks = 0` and `restoration_entries = 0` (**a proxy**, C565(3); see below) | **0 differences** on every deterministic column but the C562 counters and F3 relabels (`trust_region_floor` -> `subproblem_failure`/`subproblem_iteration_limit`, listed) |
-| N2 | F+B1 vs F, every member, on F's cells with `restoration_no_progress_requests = 0` | **0 differences** (B1 is a truncation of F's path) |
+| N2 | F+B1 vs F, every member, on **F+B1's own** cells with `restoration_no_progress_requests = 0` (C577 M1: F runs B1 off, so the counter is identically 0 on F's rows and cannot select) | **0 differences** (no B1 refusal means F's path); the complement is B1's mover list, reported cell by cell |
 | N3 | F+B1+B2 vs F+B1, every member, on F+B1's cells with `restoration_factorizations < 20000` | **0 differences** (B2 cannot bind below its floor) |
-| N4 | F2+B1+B2 vs F2, every member, on F2's cells with `restoration_no_progress_requests = 0` and `restoration_factorizations < 20000` | **0 differences** |
-| N5 | F2'+B1+B2 vs F2', the same selection on F2' | **0 differences** |
+| N4 | F2+B1+B2 vs F2, every member, on **F2+B1+B2's own** cells with `restoration_no_progress_requests = 0` and `restoration_budget_cuts = 0` (C577 M1) | **0 differences** (no refusal and no cut means F2's path); the complement is the mover list |
+| N5 | F2'+B1+B2 vs F2', the same selection on **F2'+B1+B2's own** cells (C577 M1) | **0 differences**; the complement is the mover list |
 | N0r | F+B1+B2 on the P binary before the rider (`5375bfbf5`+naming) vs after, member 0 | 0 differences expected; any difference listed |
 | T | TRAIN-238 (119 hven-sqp roster cells x {default, sqp-qn}, CAP 300 s), every arm, 6 x0 members | per section 3a |
 | CAP | CAP-238-1 and CAP-238-01 (the same 119 problems at the two caps), every arm, 6 x0 members, one freeze with T | per section 3a |
@@ -222,8 +226,11 @@ truncation that turns a STATUS-UNSTABLE crawl into a consistent early stall read
 **5. Cost.** As `ens.py read`: `T_j` per seed; family "-" iff `T_j,f < -floor_f` in at least 5 of 6 seeds; pooled "-" the
 mirror; one vote per problem name. **A pooled "+" is not required of any candidate.**
 
-**6. Solved, as probabilities.** `p_cell` strict-optimal and optimal+acceptable. A ROBUST LOSS: R's `p >= 5/6` (3/3 on
-NLP-46) and the arm's `p <= 3/6` (0/3). Per family `sum p(arm) >= sum p(R) - 0.5`. Robust gains reported symmetrically.
+**6. Solved, as probabilities.** `p_cell` strict-optimal and optimal+acceptable. A ROBUST LOSS: the base's `p >= 5/6` (3/3 on
+NLP-46) and the arm's `p <= 1/2`, i.e. at most 3 of 6, and on NLP-46 0/3 or 1/3 (C577 M5; the reader's `robust_arm_max =
+1/2`, `tu/ens.py`). Per family `sum p(arm) >= sum p(base) - 0.5`, read on the T+CAP families and on N (P and U are read
+for robust loss through `p_cell`, not for sum p). Robust gains reported symmetrically. "The base" is R unless a bar says
+arm F (section 3c, C577 M2).
 
 **7. Tail guard.** On cells R solves in at least 5 of 6 members: the arm's median majors/EV/rejected_steps/
 reject_funnel_ceiling must not reach `max(R max + 20, 3 x R max)`.
@@ -241,7 +248,19 @@ name, corpus copies collapse) and the per-seed geomean. **Null** from R's 15 mem
 `[lo, hi]` with each pair taken in both orders (r and 1/r), and `floor` = the largest |net|.
 **POSITIVE** iff `ratio_j < lo` in at least 5 of 6 seeds (3 of 3 on NLP-46) AND the by-name net is >= 0 in as many (a few
 large cuts may not hide a by-name loss); **NEGATIVE** iff `ratio_j > hi` in at least 5 of 6 seeds OR net < -floor in as
-many; else NEUTRAL. Read on T+CAP (one ensemble) and on N.
+many; else NEUTRAL. Read on T+CAP (one ensemble) and on N. `infeasible` rows count as unsolved (0.5-1.5% of the summed
+factorizations, 11% in member 1 of the census).
+
+**Concentration guard (C577 M3; post-hoc, disclosed).** The summed statistic is concentrated: on the census T+CAP rows
+SPANHYD alone carries 22-40% of R's unsolved-in-both factorizations per member, and SPANHYD, LAKES and CRESC50 together
+about 55-70%. One name could therefore deliver the whole cut. The reader prints the **per-name contribution table** (each
+name's share of the base's summed factorizations on the unsolved-in-both cells, per seed and pooled; published with the
+results) and recomputes the reading with the **largest-contributing name removed** (largest = the largest pooled share of
+the base's sum), the ratio per seed and the null band both recomputed without it (R-only band without SPANHYD: `[0.8133,
+1.2296]`). A reading is **POSITIVE** only if it is POSITIVE both with and without that name. POSITIVE with it and not
+without reads **"POSITIVE, single name"** and confers no eligibility. NEGATIVE and NEUTRAL are unchanged. This guard
+was added after the review had read the R-only concentration (no arm row exists) and is disclosed with the other post-hoc
+criteria at the top of this file.
 
 Provisional null on the census T+CAP rows (2026-11-25): band `[0.8231, 1.2150]`, floor 12 names, 33-44 names unsolved in
 both per pair. The statistic was chosen after this null was seen and before any arm row exists: the by-name net alone
@@ -259,15 +278,34 @@ part-(ii) candidate its own N2-N5 legs); **no robust loss** (strict and optimal+
 (0 false certificates); **the one-sided STABLE-SOLVED guard PASS** (3d).
 
 **Part (ii) bars**, per candidate Kn (n = 1, 2, 3), in addition to part (i)'s: the sum-p condition per family; the tail
-guard; no pooled "-" and no family "-" (T+CAP and N); **cost of failure POSITIVE on T+CAP and not NEGATIVE on N** (3b); the
-**benefit-side power gate** of section 9 met for B1 (`restoration_entries>=2`). Pooled "+" is not required.
+guard; no pooled "-" and no family "-" (T+CAP and N); **cost of failure POSITIVE on T+CAP and not NEGATIVE on N** (3b,
+with its concentration guard); the **benefit-side power gate** of section 9 met for B1 (`restoration_entries>=2`). Pooled
+"+" is not required.
+
+**Every part-(ii) bar is read twice (C577 M2): against R, and against arm F (K0) as the base.** Part (i)'s effect could
+otherwise carry or mask part (ii): K1 could give up solves F gains and still sit within 0.5 of R, and a POSITIVE cost of
+failure against R could come entirely from F1/F3. Against F the bars are: no robust loss (base F; strict and
+optimal+acceptable, T+CAP, N, P, U), sum p per family at least F's minus 0.5 (T+CAP families and N), and **cost of
+failure POSITIVE against F** on T+CAP (not NEGATIVE on N), each with the same definitions as against R
+(`tu/rstb_read.py robust --base F --arm <Kn>`, `pcell --base F`, `cof --base F --arm <Kn>`). A candidate is eligible
+only if it passes both readings. **K0 vs R cost of failure is reported beside them** (never a bar).
+
+**Result sentence (pre-registered; C577).** For every candidate that passes the robust-loss bars the results state "no
+robust loss observed; exposure N names", where N is the harm-side exposure of the candidate's mechanisms read from **arm
+F's rows** (B1: names strict-optimal in every F member with `restoration_unproductive_entries >= 2` in some member; the
+R-row event of section 9 is a proxy). As section 9 says, harm-side power is far below 20 names for every mechanism:
+"no robust loss" over so few exercised names is weak evidence of safety, and the exact legs (N1-N5, whose complements
+enumerate every mover cell by cell) carry the safety claim.
 
 **Choice.**
 1. A part-(ii) candidate is ELIGIBLE iff it passes both sets of bars.
-2. If at least one is eligible: rank the eligible by **robust gains counted by problem name** (strict, union over T+CAP, N,
-   P and U), then by pooled `sum p` (strict, T+CAP). Candidates within **2 names** of the best robust-gain count are a tie,
-   resolved by the **smallest default change**, in this order: K1 (F+B1+B2), K2 (F2+B1+B2), K3 (F2'+B1+B2). The winner ships
-   as declared defaults.
+2. If at least one is eligible: rank the eligible by **robust gains counted by problem name** (strict, union over **T+CAP
+   and N only**; P and U run under non-default option variants, so their gains are reported, never ranked). Every
+   eligible candidate whose robust-gain count is **at least the best count minus 1** is in the tie (C577 M5; C562's "tie
+   margin < 2 names"), and the tie is resolved by the **smallest default change**, in this order: K1 (F+B1+B2), K2
+   (F2+B1+B2), K3 (F2'+B1+B2). (The pooled `sum p` key of the earlier draft is deleted: it could never decide, since
+   every exact tie is already inside the margin.) Robust gains are expected to be 0-3 names, so in practice the rule picks
+   K1 whenever K1 is eligible. The winner ships as declared defaults.
 3. If none is eligible: **part (i) ships alone** (K0) iff K0 passes part (i)'s bars. The shipped defaults are then B1 off
    and B2 off: the two options stay as **non-default, argued backstops** (their argument is the per-solve bound, not a
    measured benefit), set off by a one-line defaults commit whose rows must equal arm F's (leg N-ship below).
@@ -280,7 +318,8 @@ guard; no pooled "-" and no family "-" (T+CAP and N); **cost of failure POSITIVE
 The owner may veto shipping; no reading of the rows may promote a candidate the rule does not.
 
 **B2 vacuity rule (C562 I3).** On the F+B1+B2 rows of every member and corpus, list every cell with
-`restoration_budget_cuts >= 1`. If B2 binds on fewer than **3 distinct problem names**, B2 is an **argued backstop**, not a
+`restoration_budget_cuts >= 1` (`tu/rstb_read.py cuts --arm F+B1+B2`; every listed row reports `restoration_factorizations`
+beside `factorizations`, C577). If B2 binds on fewer than **3 distinct problem names**, B2 is an **argued backstop**, not a
 measured default: it may ship inside K1-K3 (its argument is the bound), but no benefit is credited to it in any report, and
 the cost-of-failure claim is attributed to B1 alone. Any cell B2 cuts that F+B1 solves (strict) in the same member is listed.
 
@@ -288,11 +327,16 @@ the cost-of-failure claim is attributed to B1 alone. Any cell B2 cuts that F+B1 
 
 `tu/rstb_read.py stability --base H0 --arm <Kn>`: the good class is **STABLE-SOLVED** (STABLE and strict-optimal in every
 member). Lost = names STABLE-SOLVED under R's x0 ensemble and not under the arm's; gained = the reverse; net = gained - lost
-(by problem name). **Null:** the same count between **R's x0 ensemble and R's `tr` ensemble** (the census runs both):
-floor = max(|net(x0 -> tr)|, lost(x0 -> tr)). **FAIL iff net < -floor.** Improvement is a claim, never a bar.
-Provisional (census, T+CAP): R-x0 97 STABLE-SOLVED names (508 cells), R-tr 105 (585); x0 -> tr loses 0 names and gains 8,
-so floor = 8. The `tr` perturbation is the gentler one (`sum p(1-p)` 1.42 against 7.75 for x0), so this floor is generous;
-it is the null the review named and is stated, not tuned. Reported
+(by problem name). **Name semantics:** a NAME counts as STABLE-SOLVED if ANY one of its cells is (69 of R's 97 names have
+all six cells in the class), so losing a name means losing every one of its cells. **Null (C577 M4): R's x0 ensemble split
+into halves**, member 0 plus x1..x5 split 3 vs 3 in all 10 distinct ways, each half's STABLE-SOLVED names computed on
+its own three members; floor = max over the splits of max(|net|, lost). **Floor = 2 names** on the census T+CAP rows (at
+most 1 name lost, largest net 2). It is R-only and an n=3 approximation of the 6-member ensemble, disclosed as such.
+**FAIL iff net < -2** (by name). Improvement is a claim, never a bar. **Cell-level net** is reported beside the name
+count for the arm and for every split (the splits lose 7-17 and gain 18-27 of about 525 cells). The earlier floor of 8
+came from R-x0 vs R-`tr` (97 names, 508 cells, against 105 and 585; x0 -> tr loses 0 names and gains 8; by cell 3 lost,
+80 gained). That gap is the strength difference between the two perturbation kinds, not sampling noise, so it is kept
+as a report line only. Reported
 beside it, unselected: STABLE-SOLVED counts, `sum p(1-p)` over every cell, and on always-solved cells the median and max of
 max/min factorizations, for R, R-tr and the arm.
 
@@ -370,6 +414,8 @@ allowed as well.
 | B2d | the derivation base read as the solve's total, not the main loop's | `RstbBudget.TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly` |
 | B2r | the reduction resume no longer reads a budget cut | `RstbBudgetSeam.ABudgetCutTakesTheReductionResume` |
 | B2z | a later entry with no budget left is handed no ceiling | `RstbBudget.ALaterEntryWithNoBudgetLeftIsCutBeforeItFactorizes` |
+| B2s | a stall-window stop counted as a B2 cut (`!phase_stalled` dropped; no label moves, only `restoration_budget_cuts`; C577 M6) | `Rf1RestorationSeam.AStalledPhaseIsTheRestorationWorkLimit`, `Rf1RestorationSeam.TheStallExitTakesTheReductionResume` |
+| B2x | the call site passes 0 for the restoration share (the derived base becomes the solve's total) | ARGUED: the share changes the derived budget only when 4 x the main loop's factorizations exceeds the 20,000 floor (more than 5,000 main-loop factorizations) after restoration has already spent; no test-scale fixture reaches that, and pinning it would need a seam inside the P library, which would move the measured binary. The helper's arithmetic is pinned by B2d (`RstbBudget.TheDerivedBudgetReadsTheMainLoopsFactorizationsOnly`); the call site is one reviewed line. Observed surviving the targeted suites (2026-11-25). |
 | FR1 | a spent budget forbids the feasible resume | `RstbBudgetSeam.AZeroBudgetDoesNotRefuseAFeasibleEntryAndTheCapAndProgressTestBoundIt` |
 | CAP1 | the entry cap no longer outranks the no-progress label | `RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel`, `RstbEntrySeam.FailureStepOnlyCyclesAreCountedAsUnproductive` |
 | RR1 | record_resume keeps the previous interval's solved flag | `RstbEntryLedger.ASolvedStepMakesTheIntervalProductiveAndClearsTheRun` |
@@ -382,7 +428,7 @@ allowed as well.
 | CN5b | the entry rule's counter also counts the cap's refusal | `RstbEntrySeam.TheEntryCapOutranksTheNoProgressLabel`, `SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap` |
 | CN6 | `restoration_refusal_feasibility` not recorded | `SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap`, `RstbEntrySeam.FailureStepOnlyCyclesAreRefusedAtTheSecondUnproductiveReEntry` |
 
-**Argued survivors: none declared.** The runner's `ARGUED` list must equal the table's argued set; a PARITY PREFLIGHT,
+**Argued survivors: B2x only** (C577 should; reason in its row). The runner's `ARGUED` list must equal the table's argued set; a PARITY PREFLIGHT,
 before any build, compares this table's ids with `mutate_rstb.py list`, requires a declared killer on every must-kill row,
 and writes the declared killers the per-mutation check reads; any difference aborts the leg (`PARITY_FAIL`).
 
@@ -421,7 +467,7 @@ the lane's `--dump-options-only` before the freeze (the four RST-B keys are lane
 
 ## 6. Box time
 
-Builds (P install and lane): about 1 h. C (Release + Debug ctest): about 1.5 h. M: 30 mutation cycles, about 4 h. The
+Builds (P install and lane): about 1 h. C (Release + Debug ctest): about 1.5 h. M: 32 mutation cycles (31 must-kills and the argued B2x), about 4.5 h. The
 ensemble legs: 8 arms (C' and seven P arms) x 6 x0 members over T+CAP (714 cells per member), N (46 x 3), P (62) and U (48),
 plus R's U members and the shipped candidate's `tr` members. The per-member box time is taken from the census logs
 (`census-m8/logs/`) at the freeze and the frozen file states the total and the census figures it came from; it is not
