@@ -83,6 +83,11 @@ cap keeping `numerical_error` / `restoration_refused` and outranking it; trace s
   (smoke, P lane `afa3a040`): 24,417 restoration factorizations against a derived budget of 20,000** (the floor;
   main-loop factorizations 2,679), 22% over, the solve ending `stalled` / `restoration_work_limit` at major 1 with 27,096
   factorizations.
+  **The option's own documentation says "soft" after the round, not in it (registered; C577 should, deviation stated).**
+  That description is a compiled string (`include/hven/detail/sqp/sqp_options_fields.h`) from which
+  `docs/options-reference.md` is generated and checked byte for byte (`OptionsReference.CheckedInFileIsCurrent`).
+  Changing it now would change the library and move the measured P binary, so it lands with the post-round merge. This
+  paragraph is the round's statement of the property.
 - **Declared B2 behaviour at a feasible entry point (C562 I4).** B2 never refuses a request. A phase entered at a point the
   convergence test already calls feasible converges at its start without factorizing and resumes (and resets the radius)
   whatever is left of the budget, even none; such re-entries are bounded by the entry cap (`max_restoration_entries` = 10)
