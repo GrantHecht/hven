@@ -1,0 +1,13 @@
+diff --git a/include/hven/sqp/sqp_options.h b/include/hven/sqp/sqp_options.h
+index 005247a90..fb6e6bf7a 100644
+--- a/include/hven/sqp/sqp_options.h
++++ b/include/hven/sqp/sqp_options.h
+@@ -462,7 +462,7 @@ struct SqpAdvancedOptions {
+     // shrinks a rejected step's radius further; none touches acceptance.
+ 
+     /// false: an acceptance through second-order correction never grows the radius.
+-    bool trust_region_growth_after_soc = true;
++    bool trust_region_growth_after_soc = false;
+ 
+     /// N >= 1: a growth reaching the smallest radius a grown step was rejected at is refused
+     /// until N acceptances pass without such a rejection. 0 is off. Must be >= 0.

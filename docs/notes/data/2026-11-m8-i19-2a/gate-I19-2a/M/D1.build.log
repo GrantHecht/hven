@@ -1,0 +1,349 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel'
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- MKL threading layer = intel
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- hven tests: MKL dispatch vendor=AuthenticAMD avx2=1 fma=1 avx512f=0 mkl_auto_branch=2 (MKL_CBWR_AUTO=2) -> REFERENCE (route pins asserted)
+-- hven tests: 204 test sources, each in exactly one executable or recorded absent
+-- Configuring done (2.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel
+[0/4] Re-checking globbed directories...
+[1/78] Building CXX object CMakeFiles/hven.dir/src/solver/result_message.cpp.o
+[2/78] Building CXX object CMakeFiles/hven.dir/src/solver/counters_dump.cpp.o
+[3/78] Building CXX object CMakeFiles/hven.dir/src/trace/console_trace_sink.cpp.o
+[4/78] Building CXX object CMakeFiles/hven.dir/src/trace/trace.cpp.o
+[5/78] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp/ipqp_engine.cpp.o
+[6/78] Building CXX object CMakeFiles/hven.dir/src/trace/json_lines_trace_sink.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IterationRecord>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IterationRecord>::operator bool<bool>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IterationRecord>::operator IpmIterationRow<hven::IpmIterationRow>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IterationRecord>::operator SqpIterationRow<hven::SqpIterationRow>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmIterationRow>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmIterationRow>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator hven::StepVerdict<hven::StepVerdict>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator hven::QpStatus<hven::QpStatus>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator bool<bool>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpIterationRow>::operator ElasticLadderRow<hven::ElasticLadderRow>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveBeginTraceEvent>::operator IpmSolveBeginInfo<hven::IpmSolveBeginInfo>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveBeginTraceEvent>::operator SqpSolveBeginInfo<hven::SqpSolveBeginInfo>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::MessageTraceEvent>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::MessageTraceEvent>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::MessageTraceEvent>::operator basic_string_view<std::basic_string_view<char>>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::MessageTraceEvent>::operator ElasticLadderRow<hven::ElasticLadderRow>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator hven::StopReason<hven::StopReason>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator basic_string_view<std::basic_string_view<char>>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator DeclaredDiagnosticsTrace<hven::DeclaredDiagnosticsTrace>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator WorkCounters<hven::WorkCounters>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator IpmSolveEndInfo<hven::IpmSolveEndInfo>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SolveEndTraceEvent>::operator SqpSolveEndInfo<hven::SqpSolveEndInfo>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmSolveEndInfo>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmPhaseReport>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/trace/json_lines_trace_sink.cpp:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmPhaseReport>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+27 warnings generated.
+[7/78] Building CXX object CMakeFiles/hven.dir/src/ipm/ipm_solver.cpp.o
+[8/78] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_option_enum_names.cpp.o
+[9/78] Building CXX object CMakeFiles/hven.dir/src/sqp/assembly_eval_seam.cpp.o
+[10/78] Building CXX object CMakeFiles/hven.dir/src/sqp/globalization/soc_elastic_restoration.cpp.o
+[11/78] Building CXX object CMakeFiles/hven.dir/src/sqp/continuation.cpp.o
+[12/78] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_print.cpp.o
+[13/78] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_options.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/src/sqp/sqp_options.cpp:77:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/solver/option_info_builder.h:12:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/options_registry.h:32:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/core/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+3 warnings generated.
+[14/78] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver_handle.cpp.o
+[15/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_best_iterate.cpp.o
+[16/78] Building CXX object CMakeFiles/hven.dir/src/sqp/sqp_solver.cpp.o
+[17/78] Linking CXX static library libhven.a
+[18/78] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[19/78] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[20/78] Linking CXX executable bench/hven_sqp_corpus
+[21/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_counters_dump.cpp.o
+[22/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_concurrency.cpp.o
+[23/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/solver/test_callback.cpp:570:67: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  570 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/model/nlp_model.h:85:7: note: 'eval_grad' has been explicitly marked deprecated here
+   85 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/solver/test_callback.cpp:570:85: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  570 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                                     ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/model/nlp_model.h:113:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  113 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/solver/test_callback.cpp:571:19: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  571 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/model/nlp_model.h:117:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  117 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/solver/test_callback.cpp:571:38: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  571 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/model/nlp_model.h:89:7: note: 'eval_ce' has been explicitly marked deprecated here
+   89 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/solver/test_callback.cpp:571:54: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  571 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/include/hven/detail/model/nlp_model.h:93:7: note: 'eval_ci' has been explicitly marked deprecated here
+   93 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[24/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_dense_auto.cpp.o
+[25/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_dense_arm_engines.cpp.o
+[26/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_exit_door_walk.cpp.o
+[27/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_evaluation_failure.cpp.o
+[28/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_limits.cpp.o
+[29/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_iteration_history.cpp.o
+[30/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_infinite_bound.cpp.o
+[31/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_options_dump.cpp.o
+[32/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_options.cpp.o
+[33/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_solve_overloads.cpp.o
+[34/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_stop_token.cpp.o
+[35/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_options_reference.cpp.o
+[36/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_solver_move.cpp.o
+[37/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_solve_result.cpp.o
+[38/78] Building CXX object tests/solver/CMakeFiles/hven_solver_tests.dir/test_threads.cpp.o
+[39/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_backend_analysis_tally.cpp.o
+[40/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+[41/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+[42/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_caller_step_limit_and_qp_dump.cpp.o
+[43/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+[44/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+[45/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_column_scaling.cpp.o
+[46/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+[47/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_witness_start.cpp.o
+[48/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+[49/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_i19_growth.cpp.o
+[50/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_hs_battery.cpp:240:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  240 |     switch (s) {
+      |             ^
+1 warning generated.
+[51/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_i19_radius_cycle.cpp.o
+[52/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[53/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis_driver.cpp.o
+[54/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+[55/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_iteration_telemetry.cpp.o
+[56/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+[57/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[58/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+[59/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[60/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[61/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[62/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_qn_mode.cpp.o
+[63/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+[64/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[65/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_messages_sqp.cpp.o
+[66/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_tu0_levers.cpp.o
+[67/78] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/test_i19_sens_grid.cpp.o
+[68/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_ingest_complementarity.cpp.o
+[69/78] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[70/78] Linking CXX executable tests/solver/hven_solver_tests
+[71/78] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/test_crossover_legs.cpp.o
+[72/78] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[73/78] Building CXX object tests/bench/CMakeFiles/hven_bench_tests.dir/test_corpus_cells.cpp.o
+[74/78] Linking CXX executable tests/sqp/hven_sqp_tests
+[75/78] Linking CXX executable tests/bench/hven_bench_tests

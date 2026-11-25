@@ -1,0 +1,24 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..ddb729628 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10298,6 +10298,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             }
+         }
+         gin.grown_radius = std::min(st.delta * kTrGrowFactor, opts_.trust_region_max);
++        if (opts_.advanced.trust_region_rejection_memory > 0) {
++            st.tr_memory.after_acceptance(opts_.advanced.trust_region_rejection_memory);
++        }
+         gin.rejection_cap = st.tr_memory.cap();
+         mj.growth = detail::trust_region_growth_decision(opts_.advanced, gin);
+         mj.row.trust_region_growth_refusal_reasons = mj.growth.refusal;
+@@ -10550,9 +10553,6 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
+             if (mj.growth.refusal != SqpTrustRegionGrowthRefusal::kNone) {
+                 ++st.out.counters.trust_region_growth_refusals;
+             }
+-            if (opts_.advanced.trust_region_rejection_memory > 0) {
+-                st.tr_memory.after_acceptance(opts_.advanced.trust_region_rejection_memory);
+-            }
+             // THE QN PAIR'S OLD HALF (M7 QN stage 3), taken before the commit moves the iterate.
+             Vec qn_x_old;
+             NlpEval qn_ev_old;

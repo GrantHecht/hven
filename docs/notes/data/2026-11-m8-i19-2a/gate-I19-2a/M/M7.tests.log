@@ -1,0 +1,563 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = I19*:Tu0*:SqpSolverNonfiniteRollback.*:SqpSolverQpFailure.*:IterationTelemetry.*:CallerStepLimit*
+[==========] Running 125 tests from 12 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from CallerStepLimit
+[ RUN      ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates
+[       OK ] CallerStepLimit.TheDefaultIsOffAndTheOptionValidates (0 ms)
+[ RUN      ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt
+[       OK ] CallerStepLimit.AlwaysScalingMovesAnAngleFarWithoutItAndWithinTheBoundWithIt (3 ms)
+[ RUN      ] CallerStepLimit.OffIsTheShippedSolveExactly
+[       OK ] CallerStepLimit.OffIsTheShippedSolveExactly (0 ms)
+[ RUN      ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo
+[       OK ] CallerStepLimit.TheLimitHoldsWithoutColumnScalingToo (0 ms)
+[ RUN      ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing
+[       OK ] CallerStepLimit.TheQpBoxIsTheCallerBoundOverTheColumnFactorAndAnInactiveLimitChangesNothing (0 ms)
+[----------] 5 tests from CallerStepLimit (5 ms total)
+
+[----------] 10 tests from CallerStepLimitSolve
+[ RUN      ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum
+[       OK ] CallerStepLimitSolve.AConvergingSolveKeepsEveryStepWithinTheLimitAndReachesTheSameOptimum (1 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited
+[       OK ] CallerStepLimitSolve.ALimitPinIsReportedFreeAndTheStepRegionLimited (0 ms)
+[ RUN      ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder
+[       OK ] CallerStepLimitSolve.ALimitThatMakesTheMainQpInfeasibleIsCarriedByTheElasticLadder (3 ms)
+[ RUN      ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox
+[       OK ] CallerStepLimitSolve.AVariableBeyondItsBoxByMoreThanTheLimitKeepsItsDeclaredBox (0 ms)
+[ RUN      ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit
+[       OK ] CallerStepLimitSolve.AFixedVariableStaysFixedUnderTheLimit (1 ms)
+[ RUN      ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit
+[       OK ] CallerStepLimitSolve.TheEqualityBasisReducedSubproblemKeepsTheLimit (2 ms)
+[ RUN      ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit
+[       OK ] CallerStepLimitSolve.TheSecondOrderCorrectionStepStaysWithinTheLimit (0 ms)
+[ RUN      ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit
+[       OK ] CallerStepLimitSolve.EveryElasticRungsBoxCarriesTheLimit (3 ms)
+[ RUN      ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits
+[       OK ] CallerStepLimitSolve.RestorationStepsStayWithinTheLimitInCallerUnits (29 ms)
+[ RUN      ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit
+[       OK ] CallerStepLimitSolve.TheIssueSeventeenModelEndToEndNeverStepsBeyondTheLimit (1 ms)
+[----------] 10 tests from CallerStepLimitSolve (45 ms total)
+
+[----------] 27 tests from I19GrowthRule
+[ RUN      ] I19GrowthRule.StepTypeRatioReadsTheViolationRatioOnAnHTypeStep
+[       OK ] I19GrowthRule.StepTypeRatioReadsTheViolationRatioOnAnHTypeStep (0 ms)
+[ RUN      ] I19GrowthRule.StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolationDecrease
+[       OK ] I19GrowthRule.StepTypeRatioGrowsAnHTypeStepThatDeliversItsPredictedViolationDecrease (0 ms)
+[ RUN      ] I19GrowthRule.StepTypeRatioKeepsTheObjectiveRatioOnAnFTypeStep
+[       OK ] I19GrowthRule.StepTypeRatioKeepsTheObjectiveRatioOnAnFTypeStep (0 ms)
+[ RUN      ] I19GrowthRule.StepTypeRatioRefusesWithoutALinearization
+[       OK ] I19GrowthRule.StepTypeRatioRefusesWithoutALinearization (0 ms)
+[ RUN      ] I19GrowthRule.StepTypeRatioRefusesANonPositivePredictedViolationDecrease
+[       OK ] I19GrowthRule.StepTypeRatioRefusesANonPositivePredictedViolationDecrease (0 ms)
+[ RUN      ] I19GrowthRule.NoGrowthAfterSocWhenTheLeverIsOff
+[       OK ] I19GrowthRule.NoGrowthAfterSocWhenTheLeverIsOff (0 ms)
+[ RUN      ] I19GrowthRule.RatioCeilingRefusesARatioAboveItAndNotAtIt
+[       OK ] I19GrowthRule.RatioCeilingRefusesARatioAboveItAndNotAtIt (0 ms)
+[ RUN      ] I19GrowthRule.RatioCeilingLeavesARatioFreeGrantAlone
+[       OK ] I19GrowthRule.RatioCeilingLeavesARatioFreeGrantAlone (0 ms)
+[ RUN      ] I19GrowthRule.RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilityStepAlone
+[       OK ] I19GrowthRule.RatioCeilingLeavesTheFeasibilityBranchOfRatioOrFeasibilityStepAlone (0 ms)
+[ RUN      ] I19GrowthRule.RatioCeilingReadsTheViolationRatioUnderStepTypeRatio
+[       OK ] I19GrowthRule.RatioCeilingReadsTheViolationRatioUnderStepTypeRatio (0 ms)
+[ RUN      ] I19GrowthRule.CapOnlyStepIsNotEligibleWhenCapPinsDoNotGrow
+[       OK ] I19GrowthRule.CapOnlyStepIsNotEligibleWhenCapPinsDoNotGrow (0 ms)
+[ RUN      ] I19GrowthRule.RadiusBoundStepStaysEligible
+[       OK ] I19GrowthRule.RadiusBoundStepStaysEligible (0 ms)
+[ RUN      ] I19GrowthRule.FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesTheWidth
+[       OK ] I19GrowthRule.FunnelHeadroomRefusesAGrowthWhosePredictedViolationLeavesTheWidth (0 ms)
+[ RUN      ] I19GrowthRule.FunnelHeadroomReadsTheUncorrectedTrialAfterSoc
+[       OK ] I19GrowthRule.FunnelHeadroomReadsTheUncorrectedTrialAfterSoc (0 ms)
+[ RUN      ] I19GrowthRule.FunnelHeadroomWithoutAWidthIsInert
+[       OK ] I19GrowthRule.FunnelHeadroomWithoutAWidthIsInert (0 ms)
+[ RUN      ] I19GrowthRule.MemoryRefusesAGrowthReachingTheRememberedRadius
+[       OK ] I19GrowthRule.MemoryRefusesAGrowthReachingTheRememberedRadius (0 ms)
+[ RUN      ] I19GrowthRule.MemoryRecordsOnlyARadiusThatCameFromAGrowth
+[       OK ] I19GrowthRule.MemoryRecordsOnlyARadiusThatCameFromAGrowth (0 ms)
+[ RUN      ] I19GrowthRule.MemoryClearsAfterNCleanAcceptancesAndTheNthCannotGrow
+[       OK ] I19GrowthRule.MemoryClearsAfterNCleanAcceptancesAndTheNthCannotGrow (0 ms)
+[ RUN      ] I19GrowthRule.ARejectionRestartsTheCleanCount
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_growth.cpp:315: Failure
+Expected equality of these values:
+  m.clean_acceptances()
+    Which is: 2
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_growth.cpp:318: Failure
+Expected equality of these values:
+  m.cap()
+    Which is: inf
+  2.0
+    Which is: 2
+two acceptances after the restart do not clear
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_growth.cpp:320: Failure
+Expected equality of these values:
+  m.clean_acceptances()
+    Which is: 1
+  2
+an unrecorded rejection restarts nothing
+
+[  FAILED  ] I19GrowthRule.ARejectionRestartsTheCleanCount (0 ms)
+[ RUN      ] I19GrowthRule.MemoryClearForgetsTheCapAndTheCount
+[       OK ] I19GrowthRule.MemoryClearForgetsTheCapAndTheCount (0 ms)
+[ RUN      ] I19GrowthRule.ShrinkToStepHalvesTheStepWhenTheRadiusDidNotHoldIt
+[       OK ] I19GrowthRule.ShrinkToStepHalvesTheStepWhenTheRadiusDidNotHoldIt (0 ms)
+[ RUN      ] I19GrowthRule.ShrinkToStepKeepsHalvingARadiusBoundStep
+[       OK ] I19GrowthRule.ShrinkToStepKeepsHalvingARadiusBoundStep (0 ms)
+[ RUN      ] I19GrowthRule.ShrinkToStepLeavesAFailedSubproblemsStepAlone
+[       OK ] I19GrowthRule.ShrinkToStepLeavesAFailedSubproblemsStepAlone (0 ms)
+[ RUN      ] I19GrowthRule.ShrinkToStepFloorTestReadsTheShrunkRadius
+[       OK ] I19GrowthRule.ShrinkToStepFloorTestReadsTheShrunkRadius (0 ms)
+[ RUN      ] I19GrowthRule.ShrinkOffIsTodaysArithmetic
+[       OK ] I19GrowthRule.ShrinkOffIsTodaysArithmetic (0 ms)
+[ RUN      ] I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid
+[       OK ] I19GrowthRule.DefaultLeversEqualTodaysRuleOnAGrid (0 ms)
+[ RUN      ] I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded
+[       OK ] I19GrowthRule.RefusalsAreReadAfterTheBaseRuleAndEveryRefusingLeverIsRecorded (0 ms)
+[----------] 27 tests from I19GrowthRule (0 ms total)
+
+[----------] 26 tests from I19RadiusCycle
+[ RUN      ] I19RadiusCycle.FCycDefaultReadingExact
+[       OK ] I19RadiusCycle.FCycDefaultReadingExact (2 ms)
+[ RUN      ] I19RadiusCycle.FCycDefaultReadingQn
+[       OK ] I19RadiusCycle.FCycDefaultReadingQn (2 ms)
+[ RUN      ] I19RadiusCycle.FCycEveryCycleIsFType
+[       OK ] I19RadiusCycle.FCycEveryCycleIsFType (2 ms)
+[ RUN      ] I19RadiusCycle.FHDefaultReadingExact
+[       OK ] I19RadiusCycle.FHDefaultReadingExact (1 ms)
+[ RUN      ] I19RadiusCycle.FHDefaultReadingQn
+[       OK ] I19RadiusCycle.FHDefaultReadingQn (2 ms)
+[ RUN      ] I19RadiusCycle.FHGrowsOnHTypeStepsWhoseViolationRose
+[       OK ] I19RadiusCycle.FHGrowsOnHTypeStepsWhoseViolationRose (1 ms)
+[ RUN      ] I19RadiusCycle.FSocDefaultReadingExact
+[       OK ] I19RadiusCycle.FSocDefaultReadingExact (2 ms)
+[ RUN      ] I19RadiusCycle.FSocDefaultReadingQn
+[       OK ] I19RadiusCycle.FSocDefaultReadingQn (3 ms)
+[ RUN      ] I19RadiusCycle.FSocGrowsOnSocRescuedAcceptancesAndIsThenRejected
+[       OK ] I19RadiusCycle.FSocGrowsOnSocRescuedAcceptancesAndIsThenRejected (3 ms)
+[ RUN      ] I19RadiusCycle.FCapDefaultReadingExact
+[       OK ] I19RadiusCycle.FCapDefaultReadingExact (4 ms)
+[ RUN      ] I19RadiusCycle.FCapDefaultReadingQn
+[       OK ] I19RadiusCycle.FCapDefaultReadingQn (4 ms)
+[ RUN      ] I19RadiusCycle.FCapGrowsOnCapOnlyStepsAndResolvesTheIdenticalQp
+[       OK ] I19RadiusCycle.FCapGrowsOnCapOnlyStepsAndResolvesTheIdenticalQp (8 ms)
+[ RUN      ] I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {34, 12, 10, 0, 7, 0, 0} pinned {32, 9, 13, 0, 5, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fcyc exact g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {38, 12, 10, 0, 8, 1, 0} pinned {35, 10, 13, 0, 5, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fcyc qn g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {27, 7, 10, 0, 5, 1, 0} pinned {26, 6, 11, 0, 4, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fh exact g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {29, 7, 10, 0, 5, 1, 0} pinned {28, 6, 11, 0, 4, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fh qn g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {30, 11, 8, 0, 5, 0, 0} pinned {29, 10, 9, 0, 4, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fsoc exact g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {30, 11, 8, 0, 5, 0, 0} pinned {29, 10, 9, 0, 4, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fsoc qn g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {123, 67, 3, 0, 2, 33, 114} pinned {123, 67, 6, 0, 2, 33, 112}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fcap exact g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {124, 67, 5, 0, 2, 33, 111} pinned {124, 67, 6, 0, 2, 33, 111}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fcap qn g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {20, 6, 4, 0, 3, 1, 0} pinned {19, 6, 4, 0, 2, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fhs exact g3
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:371: Failure
+Value of: got == c.pin
+  Actual: false
+Expected: true
+read {26, 7, 4, 0, 4, 1, 0} pinned {25, 6, 5, 0, 3, 0, 0}
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:359: fhs qn g3
+
+[  FAILED  ] I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities (142 ms)
+[ RUN      ] I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:410: Failure
+Expected: (2 * e.signature(with)) < (e.signature(base)), actual: 16 vs 16
+at least halved
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:404: g3 q
+
+[  FAILED  ] I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors (49 ms)
+[ RUN      ] I19RadiusCycle.TheRatioCeilingReachesTheDriver
+[       OK ] I19RadiusCycle.TheRatioCeilingReachesTheDriver (2 ms)
+[ RUN      ] I19RadiusCycle.TheRefusalBitsNameTheRefusingLever
+[       OK ] I19RadiusCycle.TheRefusalBitsNameTheRefusingLever (18 ms)
+[ RUN      ] I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved
+[       OK ] I19RadiusCycle.RemedyLeversAtDefaultLeaveTheFixturesUnmoved (32 ms)
+[ RUN      ] I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:541: Failure
+Expected equality of these values:
+  radii(r, want.size())
+    Which is: { 1, 2, 1, 1, 1, 2, 4, 8 }
+  want
+    Which is: { 1, 2, 1, 1, 1, 1, 2, 4 }
+
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:543: Failure
+Expected equality of these values:
+  r.counters.trust_region_growth_refusals
+    Which is: 2
+  3
+
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass (0 ms)
+[ RUN      ] I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:553: Failure
+Expected equality of these values:
+  radii(r, want.size())
+    Which is: { 1, 2, 4, 2, 2, 4 }
+  want
+    Which is: { 1, 2, 4, 2, 2, 2 }
+
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne (0 ms)
+[ RUN      ] I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+/home/ghecht/Projects/hven/.claude/worktrees/i19-2a/tests/sqp/test_i19_radius_cycle.cpp:561: Failure
+Expected equality of these values:
+  radii(r, want.size())
+    Which is: { 1, 2, 1, 0.5, 1, 1, 2, 4 }
+  want
+    Which is: { 1, 2, 1, 0.5, 1, 1, 1, 2 }
+
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet (0 ms)
+[ RUN      ] I19RadiusCycle.ScriptedMemoryIsClearedAtARestorationResume
+[       OK ] I19RadiusCycle.ScriptedMemoryIsClearedAtARestorationResume (1 ms)
+[ RUN      ] I19RadiusCycle.ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone
+[       OK ] I19RadiusCycle.ShrinkToStepSetsTheRadiusFromTheRejectedStepAlone (10 ms)
+[ RUN      ] I19RadiusCycle.AMixedStepStaysGrowthEligibleWithoutCapPinGrowth
+[       OK ] I19RadiusCycle.AMixedStepStaysGrowthEligibleWithoutCapPinGrowth (0 ms)
+[ RUN      ] I19RadiusCycle.OnElasticMajorsTheRadiusAndTheCapStaySeparated
+[       OK ] I19RadiusCycle.OnElasticMajorsTheRadiusAndTheCapStaySeparated (3 ms)
+[ RUN      ] I19RadiusCycle.ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep
+[       OK ] I19RadiusCycle.ARejectionCrossingTheRadiusFloorIsNotAShrinkToTheStep (1 ms)
+[ RUN      ] I19RadiusCycle.AStopPollExitCountsThePushedRowsRefusal
+[       OK ] I19RadiusCycle.AStopPollExitCountsThePushedRowsRefusal (19 ms)
+[----------] 26 tests from I19RadiusCycle (323 ms total)
+
+[----------] 15 tests from IterationTelemetry
+[ RUN      ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation
+[       OK ] IterationTelemetry.PredDfAndTheTrialPointAgreeWithAnIndependentRecomputation (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep
+[       OK ] IterationTelemetry.HLinIsTheLinearizedViolationOfANonlinearRowAtTheStep (0 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn
+[       OK ] IterationTelemetry.TrialDiagnosticsOnAnInequalityRowAreTheModelsOwn (1 ms)
+[ RUN      ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[       OK ] IterationTelemetry.TrialDiagnosticsAreInCallerUnitsWhenRowAndObjectiveScalingAreActive (1 ms)
+[ RUN      ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive
+[       OK ] IterationTelemetry.PredDfIsInCallerUnitsWhenRowAndObjectiveScalingAreActive (0 ms)
+[ RUN      ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction
+[       OK ] IterationTelemetry.HLinIsNullUnderAnEqualityBasisReduction (0 ms)
+[ RUN      ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere
+[       OK ] IterationTelemetry.TheSocPointIsReportedOnTheRescuedRowAndOnlyThere (0 ms)
+[ RUN      ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding
+[       OK ] IterationTelemetry.ACapPinIsCapBindingAndNotTrBinding (0 ms)
+[ RUN      ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding
+[       OK ] IterationTelemetry.TheRadiusIsTrBindingAndNotCapBinding (0 ms)
+[ RUN      ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep
+[       OK ] IterationTelemetry.NeitherFlagIsSetWhenNothingLimitsTheStep (0 ms)
+[ RUN      ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters
+[       OK ] IterationTelemetry.RowWorkTotalsReconcileWithTheSolvesCounters (0 ms)
+[ RUN      ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare
+[       OK ] IterationTelemetry.ALadderRowsTotalsDominateItsLastRungAndItsOwnShare (0 ms)
+[ RUN      ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut
+[       OK ] IterationTelemetry.ARestorationPhasesRowsCarryTheWorkTheParentLeavesOut (0 ms)
+[ RUN      ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost
+[       OK ] IterationTelemetry.SocPointIsReportedOnARowWhereTheCorrectionWasTriedAndLost (1 ms)
+[ RUN      ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve
+[       OK ] IterationTelemetry.TheRowClockIsMonotoneAndInsideTheSolve (0 ms)
+[----------] 15 tests from IterationTelemetry (7 ms total)
+
+[----------] 14 tests from SqpSolverQpFailure
+[ RUN      ] SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox
+[       OK ] SqpSolverQpFailure.RetryabilityIsFinitenessAndTheBox (0 ms)
+[ RUN      ] SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting
+[       OK ] SqpSolverQpFailure.QpNumericalErrorShrinksInsteadOfAborting (1 ms)
+[ RUN      ] SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure
+[       OK ] SqpSolverQpFailure.TheSaddleExitLeavesTheTwinSaddleWithoutAFailure (1 ms)
+[ RUN      ] SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver
+[       OK ] SqpSolverQpFailure.SuspectEscalationsAggregateToTheDriver (12 ms)
+[ RUN      ] SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne
+[       OK ] SqpSolverQpFailure.TheRungsRescueTheTwinSaddleAtABudgetOfOne (2 ms)
+[ RUN      ] SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves
+[       OK ] SqpSolverQpFailure.TheShippedBudgetRoutesMoreAndThisFixtureThenSolves (2 ms)
+[ RUN      ] SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath
+[       OK ] SqpSolverQpFailure.QpMaxIterTakesTheSameShrinkRetryPath (0 ms)
+[ RUN      ] SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers
+[       OK ] SqpSolverQpFailure.TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultipliers (0 ms)
+[ RUN      ] SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep
+[       OK ] SqpSolverQpFailure.TheFailedSaddleStepIsTakenAsAnHStep (0 ms)
+[ RUN      ] SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall
+[       OK ] SqpSolverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall (0 ms)
+[ RUN      ] SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded
+[ w1 ] bound rounding status=0 majors=14 x0=1e-16 x1=0.994861768914 projections=1 nonfinite=0
+[       OK ] SqpSolverQpFailure.AnIterateOutsideItsBoxByRoundingIsProjectedNotEnded (0 ms)
+[ RUN      ] SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates
+[       OK ] SqpSolverQpFailure.RepeatedQpMaxIterStillPropagates (0 ms)
+[ RUN      ] SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate
+[       OK ] SqpSolverQpFailure.RoutedFailuresCountTowardTheRestorationGate (0 ms)
+[ RUN      ] SqpSolverQpFailure.TheShrinkRungHalvesTheRadiusUnderShrinkToStep
+[       OK ] SqpSolverQpFailure.TheShrinkRungHalvesTheRadiusUnderShrinkToStep (0 ms)
+[----------] 14 tests from SqpSolverQpFailure (22 ms total)
+
+[----------] 11 tests from SqpSolverNonfiniteRollback
+[ RUN      ] SqpSolverNonfiniteRollback.AnAcceptedStepOntoAnInfiniteHessianIsRolledBack
+[ r2-1 ] hessian status=0 majors=14 x0=0.999999767527 rollbacks=4 nonfinite=0
+[       OK ] SqpSolverNonfiniteRollback.AnAcceptedStepOntoAnInfiniteHessianIsRolledBack (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.AnAcceptedStepOntoAnInfiniteGradientIsRolledBack
+[ r2-1 ] gradient status=0 majors=14 x0=0.989999691852 rollbacks=4
+[       OK ] SqpSolverNonfiniteRollback.AnAcceptedStepOntoAnInfiniteGradientIsRolledBack (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.NoRollbackIsTakenAcrossTheRadiusFloor
+[       OK ] SqpSolverNonfiniteRollback.NoRollbackIsTakenAcrossTheRadiusFloor (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.TheRollbackHalvesTheRadiusEvenUnderShrinkToStep
+[       OK ] SqpSolverNonfiniteRollback.TheRollbackHalvesTheRadiusEvenUnderShrinkToStep (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted
+[       OK ] SqpSolverNonfiniteRollback.AGrowthTheRollbackUndidIsNotCounted (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.TheMemoryRecordsARolledBackRadiusAGrowthSet
+[       OK ] SqpSolverNonfiniteRollback.TheMemoryRecordsARolledBackRadiusAGrowthSet (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.TheFunnelWidthIsPutBackAfterAnHTypeRollback
+[       OK ] SqpSolverNonfiniteRollback.TheFunnelWidthIsPutBackAfterAnHTypeRollback (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.RollbackRowsCarryTheFlagAndNoOtherRowDoes
+[       OK ] SqpSolverNonfiniteRollback.RollbackRowsCarryTheFlagAndNoOtherRowDoes (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.TheBudgetBestIsNotARolledBackPoint
+[       OK ] SqpSolverNonfiniteRollback.TheBudgetBestIsNotARolledBackPoint (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.NoRollbackIsTakenInTheFullStepMode
+[       OK ] SqpSolverNonfiniteRollback.NoRollbackIsTakenInTheFullStepMode (0 ms)
+[ RUN      ] SqpSolverNonfiniteRollback.AWatchdogRestoreInvalidatesTheSnapshot
+[       OK ] SqpSolverNonfiniteRollback.AWatchdogRestoreInvalidatesTheSnapshot (0 ms)
+[----------] 11 tests from SqpSolverNonfiniteRollback (2 ms total)
+
+[----------] 5 tests from Tu0TrustRegionGrowth
+[ RUN      ] Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule
+[       OK ] Tu0TrustRegionGrowth.TheRatioArmIsTodaysRule (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep
+[       OK ] Tu0TrustRegionGrowth.TheFeasibilityArmAlsoGrowsOnAnAcceptedHTypeStep (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll
+[       OK ] Tu0TrustRegionGrowth.TheAnyAcceptedArmNeedsNoRatioAtAll (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards
+[       OK ] Tu0TrustRegionGrowth.EveryArmKeepsTodaysGuards (0 ms)
+[ RUN      ] Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius
+[       OK ] Tu0TrustRegionGrowth.TheArmReachesTheDriverAndMovesTheRadius (1 ms)
+[----------] 5 tests from Tu0TrustRegionGrowth (1 ms total)
+
+[----------] 4 tests from Tu0RowScalingPowerOfTwo
+[ RUN      ] Tu0RowScalingPowerOfTwo.OffIsTheUnroundedRule
+[       OK ] Tu0RowScalingPowerOfTwo.OffIsTheUnroundedRule (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo
+[       OK ] Tu0RowScalingPowerOfTwo.OnRoundsEachRowFactorToTheNearestPowerOfTwo (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp
+[       OK ] Tu0RowScalingPowerOfTwo.TheRoundedFactorStaysInsideTheClamp (0 ms)
+[ RUN      ] Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors
+[       OK ] Tu0RowScalingPowerOfTwo.TheOptionReachesTheDriversInstalledFactors (0 ms)
+[----------] 4 tests from Tu0RowScalingPowerOfTwo (0 ms total)
+
+[----------] 3 tests from Tu0AdaptiveDualRegularizationMax
+[ RUN      ] Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade
+[       OK ] Tu0AdaptiveDualRegularizationMax.TheFirstMajorsMuIsTheCeilingQuantizedToADecade (3 ms)
+[ RUN      ] Tu0AdaptiveDualRegularizationMax.ALaterMajorsMuCanExceedTheOldCeilingOnlyWhenTheOptionRaisesIt
+[       OK ] Tu0AdaptiveDualRegularizationMax.ALaterMajorsMuCanExceedTheOldCeilingOnlyWhenTheOptionRaisesIt (1 ms)
+[ RUN      ] Tu0AdaptiveDualRegularizationMax.ItBoundsEveryMajorsMuFromAbove
+[       OK ] Tu0AdaptiveDualRegularizationMax.ItBoundsEveryMajorsMuFromAbove (0 ms)
+[----------] 3 tests from Tu0AdaptiveDualRegularizationMax (5 ms total)
+
+[----------] 3 tests from Tu0SsnLevers
+[ RUN      ] Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine
+[       OK ] Tu0SsnLevers.TheLmSigmaCoefficientAndExponentReachTheEngine (1 ms)
+[ RUN      ] Tu0SsnLevers.TheUncertainToleranceReachesTheEngine
+[       OK ] Tu0SsnLevers.TheUncertainToleranceReachesTheEngine (1 ms)
+[ RUN      ] Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine
+[       OK ] Tu0SsnLevers.TheFarkasResidualToleranceReachesTheEngine (4 ms)
+[----------] 3 tests from Tu0SsnLevers (7 ms total)
+
+[----------] 2 tests from Tu0SchurBorder
+[ RUN      ] Tu0SchurBorder.ZeroIsAValidSettingAndTheSolveStillConverges
+[       OK ] Tu0SchurBorder.ZeroIsAValidSettingAndTheSolveStillConverges (0 ms)
+[ RUN      ] Tu0SchurBorder.ZeroAlsoSolvesAnInequalityConstrainedProblemInTheRefactorizeAlgebraToo
+[       OK ] Tu0SchurBorder.ZeroAlsoSolvesAnInequalityConstrainedProblemInTheRefactorizeAlgebraToo (0 ms)
+[----------] 2 tests from Tu0SchurBorder (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 125 tests from 12 test suites ran. (423 ms total)
+[  PASSED  ] 119 tests.
+[  FAILED  ] 6 tests, listed below:
+[  FAILED  ] I19GrowthRule.ARejectionRestartsTheCleanCount
+[  FAILED  ] I19RadiusCycle.EveryLeverOnEveryFixtureReadsItsPinAndKeepsTheIdentities
+[  FAILED  ] I19RadiusCycle.EachLeverReducesItsFixturesSignatureAtNoExtraMajors
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryRefusesTheRejectedRadiusUntilNAcceptancesPass
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryRecordsTheRejectedRadiusNotTheShrunkOne
+[  FAILED  ] I19RadiusCycle.ScriptedMemoryIgnoresARejectionAtARadiusNoGrowthSet
+
+ 6 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Options.*:OptionsDump*
+[==========] Running 42 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from Options
+[ RUN      ] Options.IpmValidateRefusesWhatSettingsValidateRefused
+[       OK ] Options.IpmValidateRefusesWhatSettingsValidateRefused (0 ms)
+[ RUN      ] Options.WorkerOptionsPreparesEitherEngineTheSameWay
+[       OK ] Options.WorkerOptionsPreparesEitherEngineTheSameWay (0 ms)
+[ RUN      ] Options.CommonDefaultsAreEachEnginesOwn
+[       OK ] Options.CommonDefaultsAreEachEnginesOwn (0 ms)
+[ RUN      ] Options.IpmSetOptionsIsTransactional
+[       OK ] Options.IpmSetOptionsIsTransactional (0 ms)
+[ RUN      ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve
+[       OK ] Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve (4 ms)
+[ RUN      ] Options.IpmSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.IpmSetOptionsDuringASolveThrowsLogicError (0 ms)
+[ RUN      ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (0 ms)
+[ RUN      ] Options.PresetsReturnFullValues
+[       OK ] Options.PresetsReturnFullValues (0 ms)
+[ RUN      ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames
+[       OK ] Options.AnUnknownIpmPresetIsRefusedAndListsTheValidNames (0 ms)
+[ RUN      ] Options.SqpCommonDefaultsAreTheStructsOwn
+[       OK ] Options.SqpCommonDefaultsAreTheStructsOwn (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused
+[       OK ] Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused (0 ms)
+[ RUN      ] Options.SqpPresetsReturnFullValues
+[       OK ] Options.SqpPresetsReturnFullValues (0 ms)
+[ RUN      ] Options.SqpSetOptionsIsTransactional
+[       OK ] Options.SqpSetOptionsIsTransactional (0 ms)
+[ RUN      ] Options.SqpSetOptionsDuringASolveThrowsLogicError
+[       OK ] Options.SqpSetOptionsDuringASolveThrowsLogicError (0 ms)
+[ RUN      ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve
+[       OK ] Options.SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve (0 ms)
+[ RUN      ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence
+[       OK ] Options.SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence (1 ms)
+[ RUN      ] Options.TheOptionsFingerprintCoversEveryQpOptionsField
+[       OK ] Options.TheOptionsFingerprintCoversEveryQpOptionsField (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheQpBlocksIllFormedFields
+[       OK ] Options.SqpValidateRefusesTheQpBlocksIllFormedFields (0 ms)
+[ RUN      ] Options.SqpValidateRefusesTheTuningLeversOutOfRange
+[       OK ] Options.SqpValidateRefusesTheTuningLeversOutOfRange (0 ms)
+[ RUN      ] Options.SqpTheTuningLeversDefaultToTheirOldConstants
+[       OK ] Options.SqpTheTuningLeversDefaultToTheirOldConstants (0 ms)
+[----------] 20 tests from Options (10 ms total)
+
+[----------] 16 tests from OptionsDump
+[ RUN      ] OptionsDump.IpmDumpsOneLinePerField
+[       OK ] OptionsDump.IpmDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsOneLinePerField
+[       OK ] OptionsDump.SqpDumpsOneLinePerField (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheCommonDefaults
+[       OK ] OptionsDump.SqpDumpsTheCommonDefaults (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly
+[       OK ] OptionsDump.SqpDumpsEveryI19LeverAndThePlaceboRadiusDistinctly (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheTu0LeversAtTheirOldConstants
+[       OK ] OptionsDump.SqpDumpsTheTu0LeversAtTheirOldConstants (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheEqualityBasisOn
+[       OK ] OptionsDump.SqpDumpsTheEqualityBasisOn (0 ms)
+[ RUN      ] OptionsDump.SqpDumpsTheStartPointProjectionOn
+[       OK ] OptionsDump.SqpDumpsTheStartPointProjectionOn (0 ms)
+[ RUN      ] OptionsDump.EnumsPrintEnumeratorNames
+[       OK ] OptionsDump.EnumsPrintEnumeratorNames (0 ms)
+[ RUN      ] OptionsDump.IpmDumpHeadIsVerbatim
+[       OK ] OptionsDump.IpmDumpHeadIsVerbatim (0 ms)
+[ RUN      ] OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames
+[       OK ] OptionsDump.TheTerminationTolerancesPrintUnderTheStationarityAndComplementarityNames (0 ms)
+[ RUN      ] OptionsDump.EngagedLimitsPrintTheirValues
+[       OK ] OptionsDump.EngagedLimitsPrintTheirValues (0 ms)
+[ RUN      ] OptionsDump.IsDeterministic
+[       OK ] OptionsDump.IsDeterministic (0 ms)
+[ RUN      ] OptionsDump.NoTrailingWhitespace
+[       OK ] OptionsDump.NoTrailingWhitespace (0 ms)
+[ RUN      ] OptionsDump.APoisonedStreamProducesTheSameBytes
+[       OK ] OptionsDump.APoisonedStreamProducesTheSameBytes (0 ms)
+[ RUN      ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing
+[       OK ] OptionsDump.WritesIntoAStreamTheCallerIsAlreadyUsing (0 ms)
+[ RUN      ] OptionsDump.ReadsTheValueItWasGiven
+[       OK ] OptionsDump.ReadsTheValueItWasGiven (0 ms)
+[----------] 16 tests from OptionsDump (0 ms total)
+
+[----------] 6 tests from OptionsDumpFixtures
+[ RUN      ] OptionsDumpFixtures.IpmDefaultsMatchTheHandWrittenDump
+[       OK ] OptionsDumpFixtures.IpmDefaultsMatchTheHandWrittenDump (0 ms)
+[ RUN      ] OptionsDumpFixtures.EveryIpmPresetMatchesTheHandWrittenDump
+[       OK ] OptionsDumpFixtures.EveryIpmPresetMatchesTheHandWrittenDump (0 ms)
+[ RUN      ] OptionsDumpFixtures.TheIpmAllFieldsPerturbedValueMatchesTheHandWrittenDump
+[       OK ] OptionsDumpFixtures.TheIpmAllFieldsPerturbedValueMatchesTheHandWrittenDump (0 ms)
+[ RUN      ] OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump
+[       OK ] OptionsDumpFixtures.SqpDefaultsMatchTheHandWrittenDump (0 ms)
+[ RUN      ] OptionsDumpFixtures.TheSqpAllFieldsPerturbedValueMatchesTheHandWrittenDump
+[       OK ] OptionsDumpFixtures.TheSqpAllFieldsPerturbedValueMatchesTheHandWrittenDump (0 ms)
+[ RUN      ] OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine
+[       OK ] OptionsDumpFixtures.NoLineOfAPerturbedDumpEqualsTheDefaultsLine (0 ms)
+[----------] 6 tests from OptionsDumpFixtures (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 42 tests from 3 test suites ran. (11 ms total)
+[  PASSED  ] 42 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/i19-2a/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = I19*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from I19SensGrid
+[ RUN      ] I19SensGrid.ParsesACellFile
+[       OK ] I19SensGrid.ParsesACellFile (0 ms)
+[ RUN      ] I19SensGrid.RefusesAMalformedCellFile
+[       OK ] I19SensGrid.RefusesAMalformedCellFile (0 ms)
+[ RUN      ] I19SensGrid.EveryDeclaredKeyReachesItsOptionAndNothingElseIsAccepted
+[       OK ] I19SensGrid.EveryDeclaredKeyReachesItsOptionAndNothingElseIsAccepted (0 ms)
+[ RUN      ] I19SensGrid.TheBaseSelectsTheHessianModeAndTheCellItsCap
+[       OK ] I19SensGrid.TheBaseSelectsTheHessianModeAndTheCellItsCap (0 ms)
+[ RUN      ] I19SensGrid.TheFrozenCellFileParsesAndEveryCellBuilds
+[       OK ] I19SensGrid.TheFrozenCellFileParsesAndEveryCellBuilds (0 ms)
+[ RUN      ] I19SensGrid.TheSensfixCellsRunTheFourFixturesAtTheirPinnedParameters
+[       OK ] I19SensGrid.TheSensfixCellsRunTheFourFixturesAtTheirPinnedParameters (35 ms)
+[ RUN      ] I19SensGrid.ACellSolvesAndItsRowMatchesTheHeader
+[       OK ] I19SensGrid.ACellSolvesAndItsRowMatchesTheHeader (0 ms)
+[----------] 7 tests from I19SensGrid (36 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (36 ms total)
+[  PASSED  ] 7 tests.

@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..756abfdf0 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10192,7 +10192,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             ++st.out.counters.trust_region_unbound_rejections;
+         }
+         if (opts_.advanced.trust_region_rejection_memory > 0) {
+-            st.tr_memory.record_rejection(st.delta, mj.radius_from_growth);
++            st.tr_memory.record_rejection(st.delta, true);
+         }
+         const detail::TrustRegionShrink shrink = detail::trust_region_rejection_shrink(
+             opts_.advanced.trust_region_shrink_to_step, mj.row.radius_binding, mj.failure_step,

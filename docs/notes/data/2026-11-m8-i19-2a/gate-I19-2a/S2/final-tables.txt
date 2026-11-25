@@ -1,0 +1,63 @@
+STAGE-2 SELECTION (i19_rule.stage2_arm_set): arms ['H0', 'P', 'C1'] ; C1 candidate=False ; K=none ; passing stage-1 arms: none
+
+COVERAGE (H0 rows per touched site; 864 H0 cells incl. NLP-46):
+  growth                 trust_region_growths           hit  617 of  854 rows  HIT
+  judged_reject          rejected_steps                 hit  224 of  854 rows  HIT
+  floor_test             trust_region_floor_exits       hit    6 of  854 rows  HIT
+  soc_applied            soc_applied                    hit   96 of  854 rows  HIT
+  nonfinite_rollback     nonfinite_step_rollbacks       hit    1 of  854 rows  HIT
+  restoration_sub_solve  restoration_entries            hit  132 of  854 rows  HIT
+  cap_binding            step_limit_binding_majors      hit  360 of  854 rows  HIT
+
+H0 default-path values of the six new counters (sum over H0 rows, side column present):
+  trust_region_growths                   rows  854 sum       6081 max      135
+  trust_region_growth_refusals           rows  854 sum          0 max        0
+  trust_region_shrinks_to_step           rows  854 sum          0 max        0
+  trust_region_grown_step_rejections     rows  854 sum       1206 max      117
+  trust_region_unbound_rejections        rows  854 sum       1174 max       77
+  step_limit_binding_majors              rows  854 sum       4092 max      234
+
+CONFOUNDED block (BRITGAS, DALLASM, YORKNET), per arm, over TRAIN/CAP/SENS/NLP-46:
+  P   cells=6 status-changed=1 restoration H0=7 X=5  X_R1_violations=0
+  G1  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G2  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G3  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G4  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G5  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G6  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  G7  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  C1  cells=6 status-changed=2 restoration H0=7 X=8  X_R1_violations=1
+  C2  cells=0 status-changed=0 restoration H0=0 X=0  X_R1_violations=0
+  P itself: R1 violations on the confounded cells: 0 (P trips R1 there: no); status changes 1
+
+CAP precheck (H0 cells with step_limit_binding_majors > 0) per CAP family:
+  cap01-q   114 of 119 cells cap-binding
+  cap01-x   113 of 119 cells cap-binding
+  cap1-q     31 of 119 cells cap-binding
+  cap1-x     52 of 119 cells cap-binding
+
+SENS-P H0 precheck (growth and rejection both > 0) per family:
+  sens-q       0 of  24 cells
+  sens-x       0 of  24 cells
+  senscap-q    1 of  24 cells
+  senscap-x    0 of  24 cells
+  sensfix-q    4 of   4 cells
+  sensfix-x    4 of   4 cells
+
+H0 solved counts per family (strict/acc):
+  cap01-q    cells 119 strict 104 acc 104
+  cap01-x    cells 119 strict 105 acc 105
+  cap1-q     cells 119 strict 105 acc 105
+  cap1-x     cells 119 strict 104 acc 104
+  hs-q       cells  22 strict  22 acc  22
+  hs-x       cells  22 strict  22 acc  22
+  nlp-q      cells  23 strict   7 acc   8
+  nlp-x      cells  23 strict  17 acc  17
+  sd-q       cells  97 strict  83 acc  83
+  sd-x       cells  97 strict  83 acc  83
+  sens-q     cells  24 strict  24 acc  24
+  sens-x     cells  24 strict  24 acc  24
+  senscap-q  cells  24 strict  23 acc  23
+  senscap-x  cells  24 strict  24 acc  24
+  sensfix-q  cells   4 strict   4 acc   4
+  sensfix-x  cells   4 strict   4 acc   4

@@ -1,0 +1,47 @@
+LEG B 2026-11-24T12:23:24-05:00 -- verification of the pre-freeze builds (BINARIES.txt); builds ran before the freeze (install-R/H, lane-R/H logs copied here)
+I19 lane R afb65b8040a59f2064cff467f705210b5cb9a4f3 0ce064c995ac761b78544c561f75f1b7890ed0e082e546ea208b6f8a114f2b38
+I19 lane H 91787d329a06ae99770879762804a1babf316cbe 617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b
+I19 grid H 91787d329a06ae99770879762804a1babf316cbe 12d3d2ac8ab78cb0ddb8bff5b20955157bbe61c0d44b636a41ec6179aefc0e3a
+0ce064c995ac761b78544c561f75f1b7890ed0e082e546ea208b6f8a114f2b38  /home/ghecht/Projects/hven-bench-i19/build-i19-R/lanes/hven/hven_bench_cell
+617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b  /home/ghecht/Projects/hven-bench-i19/build-i19-H/lanes/hven/hven_bench_cell
+12d3d2ac8ab78cb0ddb8bff5b20955157bbe61c0d44b636a41ec6179aefc0e3a  /home/ghecht/Projects/hven-bench-i19/.hven/hven_sqp_i19_grid-91787d329a06
+== install-R
+ing files: 100% (297366/297366)Updating files: 100% (297366/297366), done.
+HEAD is now at afb65b804 docs(m8): RESULTS-TU-2 addendum -- settler ruling (defaults unchanged), independent review findings, V3 supersession, the BRITGAS/NET3 cause, default-event instrument list
+i19_build_install: afb65b8040a59f2064cff467f705210b5cb9a4f3 -> /home/ghecht/Projects/hven-bench-i19/.hven/install-afb65b8040a5
+== install-H
+ns typed by the public SqpTrustRegionGrowthRefusal; options trust_region_growth_on_step_limit, trust_region_growth_ratio_max, trust_region_growth_funnel_guard and the enumerator kRatioByStepType; the codename out of public headers; names only, the lever-off path unchanged
+i19_build_install: 91787d329a06ae99770879762804a1babf316cbe -> /home/ghecht/Projects/hven-bench-i19/.hven/install-91787d329a06
+== lane-R
+[40/41] Building CXX object lanes/hven/CMakeFiles/hven_bench_cell.dir/hven_bench_cell.cpp.o
+[41/41] Linking CXX executable lanes/hven/hven_bench_cell
+0ce064c995ac761b78544c561f75f1b7890ed0e082e546ea208b6f8a114f2b38  /home/ghecht/Projects/hven-bench-i19/build-i19-R/lanes/hven/hven_bench_cell
+== lane-H
+[40/41] Building CXX object lanes/hven/CMakeFiles/hven_bench_cell.dir/hven_bench_cell.cpp.o
+[41/41] Linking CXX executable lanes/hven/hven_bench_cell
+617241550fc016e235e95a46667f3273aee66fba6f1af8841cb7af8f633bc72b  /home/ghecht/Projects/hven-bench-i19/build-i19-H/lanes/hven/hven_bench_cell
+== build-afb65b8040a5 logs
+[86/87] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[87/87] Linking CXX executable examples/hven_example_10_first_derivatives_only
+-- Installing: /home/ghecht/Projects/hven-bench-i19/.hven/install-afb65b8040a5/lib64/cmake/hven/hvenConfig.cmake
+-- Installing: /home/ghecht/Projects/hven-bench-i19/.hven/install-afb65b8040a5/lib64/cmake/hven/hvenConfigVersion.cmake
+== build-91787d329a06 logs
+[86/87] Linking CXX executable examples/hven_example_09_callbacks_and_stop
+[87/87] Linking CXX executable examples/hven_example_10_first_derivatives_only
+-- Installing: /home/ghecht/Projects/hven-bench-i19/.hven/install-91787d329a06/lib64/cmake/hven/hvenConfig.cmake
+-- Installing: /home/ghecht/Projects/hven-bench-i19/.hven/install-91787d329a06/lib64/cmake/hven/hvenConfigVersion.cmake
+HVEN_PIN_SHA 91787d329a06ae99770879762804a1babf316cbe
+HVEN_PIN_BRANCH (no branch)
+HVEN_PIN_DATE 2026-11-24
+HVEN_BUILT_UTC 2026-11-24T17:08:21Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF -DHVEN_MKL_THREADING=sequential
+HVEN_PIN_SHA afb65b8040a59f2064cff467f705210b5cb9a4f3
+HVEN_PIN_BRANCH (no branch)
+HVEN_PIN_DATE 2026-11-24
+HVEN_BUILT_UTC 2026-11-24T17:08:21Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF -DHVEN_MKL_THREADING=sequential
+LEG B end 2026-11-24T12:23:25-05:00

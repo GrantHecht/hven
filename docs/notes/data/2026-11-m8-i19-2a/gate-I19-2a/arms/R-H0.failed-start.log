@@ -1,0 +1,74 @@
+ARM H0 lane=R corpora=TRAIN-238,CAP-238-1,CAP-238-01,NLP-46 phase=all start 2026-11-24T12:41:01-05:00 harness=56fa03fdf40acb38275f0a46058ddbd2da925f0e
+LEG TRAIN-238 H0 hs/default corun: 22 cells
+box-lane: lane 1 acquired 2026-11-24T12:43:06-05:00
+run_serial: CO-RUN width 4 (22 co-run cells, 0 solo-tier cells); core map pkg0/core4=cpu4,pkg0/core5=cpu5,pkg0/core6=cpu6,pkg0/core7=cpu7
+run_serial: hs/hs003/hven-sqp/default [cpu 4]
+run_serial: hs/hs005/hven-sqp/default [cpu 5]
+run_serial: hs/hs006/hven-sqp/default [cpu 6]
+run_serial: hs/hs007/hven-sqp/default [cpu 7]
+run_serial: hs/hs010/hven-sqp/default [cpu 5]
+run_serial: hs/hs011/hven-sqp/default [cpu 4]
+run_serial: hs/hs012/hven-sqp/default [cpu 7]
+run_serial: hs/hs014/hven-sqp/default [cpu 6]
+run_serial: hs/hs022/hven-sqp/default [cpu 4]
+run_serial: hs/hs025/hven-sqp/default [cpu 7]
+run_serial: hs/hs026/hven-sqp/default [cpu 6]
+run_serial: hs/hs027/hven-sqp/default [cpu 5]
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs028/hven-sqp/default [cpu 7]
+run_serial: hs/hs030/hven-sqp/default [cpu 4]
+run_serial: hs/hs033/hven-sqp/default [cpu 5]
+run_serial: hs/hs035/hven-sqp/default [cpu 6]
+run_serial: hs/hs039/hven-sqp/default [cpu 7]
+run_serial: hs/hs043/hven-sqp/default [cpu 4]
+hven_bench_cell: hven-sqp/hs033 converged to -3.9999999999737859, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs045/hven-sqp/default [cpu 5]
+run_serial: hs/hs077/hven-sqp/default [cpu 6]
+run_serial: hs/hs079/hven-sqp/default [cpu 7]
+run_serial: hs/hs071/hven-sqp/default [cpu 5]
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/default
+run_serial: REFERENCE FAILURE hs/hs033/hven-sqp/default
+run_serial: 22 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-R/TRAIN-238/H0/default/hs/corun-2e049a41/results.csv
+LEG TRAIN-238 H0 hs/sqp-qn corun: 22 cells
+box-lane: lane 1 acquired 2026-11-24T12:43:06-05:00
+run_serial: CO-RUN width 4 (22 co-run cells, 0 solo-tier cells); core map pkg0/core4=cpu4,pkg0/core5=cpu5,pkg0/core6=cpu6,pkg0/core7=cpu7
+run_serial: hs/hs003/hven-sqp/sqp-qn [cpu 4]
+run_serial: hs/hs005/hven-sqp/sqp-qn [cpu 5]
+run_serial: hs/hs006/hven-sqp/sqp-qn [cpu 6]
+run_serial: hs/hs007/hven-sqp/sqp-qn [cpu 7]
+run_serial: hs/hs010/hven-sqp/sqp-qn [cpu 4]
+run_serial: hs/hs011/hven-sqp/sqp-qn [cpu 5]
+run_serial: hs/hs012/hven-sqp/sqp-qn [cpu 6]
+run_serial: hs/hs014/hven-sqp/sqp-qn [cpu 7]
+run_serial: hs/hs022/hven-sqp/sqp-qn [cpu 6]
+run_serial: hs/hs025/hven-sqp/sqp-qn [cpu 5]
+run_serial: hs/hs026/hven-sqp/sqp-qn [cpu 7]
+run_serial: hs/hs027/hven-sqp/sqp-qn [cpu 4]
+run_serial: hs/hs028/hven-sqp/sqp-qn [cpu 6]
+hven_bench_cell: hven-sqp/hs025 converged to 32.834999999663594, reference 0 (|err| = 3.283e+01 > 1.000e-06)
+run_serial: hs/hs030/hven-sqp/sqp-qn [cpu 5]
+run_serial: hs/hs033/hven-sqp/sqp-qn [cpu 7]
+run_serial: hs/hs035/hven-sqp/sqp-qn [cpu 4]
+run_serial: hs/hs039/hven-sqp/sqp-qn [cpu 6]
+run_serial: hs/hs043/hven-sqp/sqp-qn [cpu 5]
+hven_bench_cell: hven-sqp/hs033 converged to -3.9999999999999996, reference -4.5857864376269051 (|err| = 5.858e-01 > 4.586e-06)
+run_serial: hs/hs045/hven-sqp/sqp-qn [cpu 7]
+run_serial: hs/hs077/hven-sqp/sqp-qn [cpu 4]
+run_serial: hs/hs079/hven-sqp/sqp-qn [cpu 5]
+run_serial: hs/hs071/hven-sqp/sqp-qn [cpu 6]
+run_serial: REFERENCE FAILURE hs/hs025/hven-sqp/sqp-qn
+run_serial: REFERENCE FAILURE hs/hs033/hven-sqp/sqp-qn
+run_serial: 22 cells -> /home/ghecht/Projects/hven-bench-i19/.scratch/i19-2a/store-R/TRAIN-238/H0/sqp-qn/hs/corun-2e049a41/results.csv
+LEG TRAIN-238 H0 sd/default corun: 97 cells
+box-lane: lane 1 acquired 2026-11-24T12:43:07-05:00
+Traceback (most recent call last):
+  File "/home/ghecht/Projects/hven-bench-i19/runners/run_serial.py", line 1146, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/ghecht/Projects/hven-bench-i19/runners/run_serial.py", line 1013, in main
+    digest = sha256_file(os.path.join(_HARNESS_ROOT, entry["source"]))
+  File "/home/ghecht/Projects/hven-bench-i19/runners/run_serial.py", line 354, in sha256_file
+    with open(path, "rb") as handle:
+         ~~~~^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/ghecht/Projects/hven-bench-i19/sets/cutest/sif/ACOPP30.SIF'
+ARM H0 lane=R end 2026-11-24T12:43:07-05:00 rc=3

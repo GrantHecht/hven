@@ -1,0 +1,4 @@
+2026-11-24T20:49:29-05:00
+N2: 822 cells, 0 difference(s), H-only columns ['step_limit_binding_majors', 'trust_region_grown_step_rejections', 'trust_region_growth_refusals', 'trust_region_growths', 'trust_region_shrinks_to_step', 'trust_region_unbound_rejections'], undeclared []
+rc=0
+2026-11-24T20:49:29-05:00

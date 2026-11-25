@@ -1,0 +1,15 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..0a96dde7d 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -10196,7 +10196,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+         }
+         const detail::TrustRegionShrink shrink = detail::trust_region_rejection_shrink(
+             opts_.advanced.trust_region_shrink_to_step, mj.row.radius_binding, mj.failure_step,
+-            st.delta, opts_.qp.trust_region_radius, mj.row.step_norm, opts_.trust_region_min,
++            st.delta, opts_.qp.trust_region_radius,
++            mj.qs_soc.x.size() > 0 ? mj.qs_soc.x.lpNorm<Eigen::Infinity>() : mj.row.step_norm,
++            opts_.trust_region_min,
+             opts_.trust_region_max);
+         // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
+         // trigger in trust-region form. The shrink is NOT taken and

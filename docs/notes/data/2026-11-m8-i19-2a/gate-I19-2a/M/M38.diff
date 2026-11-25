@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index f9040ed7e..4f3d0b363 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8193,9 +8193,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+             --st.out.counters.trust_region_growths;
+         }
+         // A step taken at a grown radius and rolled back is a grown radius rejected.
+-        if (st.rollback.radius_from_growth) {
+-            ++st.out.counters.trust_region_grown_step_rejections;
+-        }
+         st.rejections_at_iterate = st.rollback.rejections_at_iterate + 1;
+         st.counted_run_at_iterate = st.rollback.counted_run_at_iterate;
+         st.subproblem_is_stale = true;
