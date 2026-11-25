@@ -7,7 +7,7 @@ changed after data. Precedent: `../2026-11-m8-rf1/DECLARATION-RF-1c.md`. Design 
 
 **Pin (R): m8 `96789b9be`** (the I19-2a evidence commit; I19-2a shipped nothing, so R is that head with no
 default changed). The branch `rst-b` is rebased onto it (done: C' `7134445ff`, P `50393ebe6`, naming fix `3e4b2f87b`,
-rider `<RIDER>`; hashes are of the rebased branch and are re-read from `git log` at the freeze). If m8 moves
+rider `02c5a6408`; hashes are of the rebased branch and are re-read from `git log` at the freeze). If m8 moves
 before the freeze the rebase is redone and the hashes here are re-stated in the frozen file; R is then the new
 head.
 
@@ -27,7 +27,7 @@ head.
   same path, same work.
 - Trace schema: one freeze-table row (new enum value, new stop reason, three trailing counter keys).
 
-**P -- path-moving** (commit `50393ebe6` + naming fix `3e4b2f87b` + rider `<RIDER>`):
+**P -- path-moving** (commit `50393ebe6` + naming fix `3e4b2f87b` + rider `02c5a6408`):
 
 - **F1.** The R4 trigger also reads `zero_motion_exhausted`. The E2 elastic route is unchanged (registered).
 - **F2.** `advanced.qp_retry_regularization_first` (bool, default **false**): R4 ahead of R2/R3 after a
@@ -199,7 +199,7 @@ All must-kills (control first). Declared killers (other killers allowed as well)
 | F2 | regularization-first ignored | `Rf1RetryLadderSeam.AZeroMotionExhaustionReachesTheRegularizationRung`, `RstbRetryLadder.RegularizationFirstTakesR4AheadOfTheColdAndAlgebraRungs` (unit, if F2 is in `choose_retry_rung`) |
 | F3 | floor label without the floor | `Rf1RetryLadderSeam.ANoMotionFailureAboveTheFloorIsTheSubproblemFailure` |
 | B2a | B2 cut spelled kWorkLimit | `RstbBudgetSeam.ACumulativeBudgetCutIsTheRestorationWorkLimit` |
-| RB1 | a rolled-back accept keeps its progress credit (the retraction dropped) | `RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress`, `RstbEntryLedger.ARetractedAcceptIsNoProgress` |
+| RB1 | a rolled-back accept keeps its progress credit (the retraction dropped) | `RstbEntrySeam.ARolledBackAcceptIsNoRestorationProgress`, `RstbEntrySeam.ARolledBackAcceptFeedsTheUnproductiveCountAtTheDefaultTolerance` (the ledger unit pins test `retract_last_accept` itself, not its call, and do not kill this mutation) |
 | B2b | caller's ceiling spelled kRestorationWorkLimit | `RstbBudgetSeam.TheCallersSmallerCeilingStaysTheWorkLimit`, `Rf1RestorationSeam.TheCallersCeilingInsideThePhaseStaysTheWorkLimit` |
 
 **Argued survivors: none declared.** Every id above is a must-kill. The runner holds an `ARGUED` list that MUST equal
