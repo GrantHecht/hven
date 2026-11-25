@@ -47,10 +47,12 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
   SqpCounters `converged_refinement_arms` (0 or 1 per walk). `dual_regularization_decreases` is identically 0
   (kept as that invariant; the API is locked).
 * **C2 (the certificate's data half).** At the walk's one certified exit, after the bound and sign halves and the
-  gray-row returns, `detail::terminal_kkt` is read on the point and multipliers about to be exported, from the QP's
-  own data. Certified iff
-  `rows <= 10 * feas_tol` AND `product / dual_scale <= 100 * feas_tol` AND `stationarity <= 10 * opt_tol` (C553 Q3) AND the
-  exported x, lambda_e, lambda_i, z are finite (NaN refuses); otherwise kNumericalError, `certificate_gate_refusals`.
+  gray-row returns, `detail::certificate_reading` is read on the point and multipliers about to be exported, from the
+  QP's own data. Certified iff
+  `rows <= 10 * feas_tol` AND `product <= 100 * feas_tol` (each term over its row's LOCAL dual scale, settler C567) AND
+  `stationarity_beyond_rounding <= 10 * opt_tol` (C553 Q3) AND `off_working == 0` (pre-freeze review S2) AND the
+  exported x, lambda_e, lambda_i, z are finite; every reduction is NaN-sticky (review S8), so a NaN anywhere -- in the
+  exported vectors or in the QP's data -- refuses; otherwise kNumericalError, `certificate_gate_refusals`.
   Norms and scalings (and why):
   - rows = max over equality rows |a_j x - b_j|, inequality rows max(0, a_j x - b_j) and bounds
     max(l_i - x_i, x_i - u_i), each divided by its row scale max(1, |b_j|, ||a_j||_1 ||x||inf) (bounds:
@@ -58,40 +60,59 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
     every row test of the engine already reads so the gate is invariant to row scaling and to ||x||;
     10 = kInfeasibilityMarginFactor, the walk's own structural margin: the gate asks the exported point exactly what
     the classifier asks a footprint-free violation;
-  - product = max over equality rows (rel. residual * |lambda_e,j|), working rows (|rel. slack| * |lambda_i,j|) and
-    pinned bounds (|rel. distance| * |z_i|), DIVIDED BY THE DUAL SCALE max(1, ||Hx||, ||g||, ||Ae'lambda_e||,
-    ||Ai'lambda_i||, ||z||) (the stationarity scale joined by ||z||); 100 = kTerminalPolishComplFactor, 1e-7 at the
-    defaults, a decade under the drivers' kkt_tol. **Changed from the first QPC build (a defect found by the C553 Q5
-    diagnosis, section 7):** the unscaled product is not invariant to the objective's scaling (scale f by s and every
-    multiplier, so the product, scales by s) and it refused ROUNDING-LEVEL points whose multipliers are elastic
-    penalties: YORKNET's major-0 ladder rungs (rows 5.2e-16, product 3.0e-7, dual scale 1.6e11), HS15's cold elastic rung
-    at rho 2e8 (rows 9.1e-14, product 9.1e-6), the circle-line elastic QP (rows 1.2e-11, product 3.0e-7). Scaled,
-    those read 1.9e-18, 4.6e-14, 6.4e-13 and certify. With a row's multiplier dominating the dual scale its scaled
-    product is at most its rows reading, so on an equality row the rows bound (10x) decides; the product's own job is
-    the side the rows cannot see: a working inequality or a pinned bound held SLACK under a multiplier, i.e. a KKT point
-    of the shifted row and not of the QP (B1Gate's QP: slack 8e-7 under lambda 1e6, scaled 800 feas_tol; HS15's warm
-    rungs 680 and 13,100 feas_tol). qp7's false point is refused by its rows (72.9x); its scaled product reads 44.5x.
-  - stationarity (C553 Q3) = terminal_kkt's free-block residual ||(Hx + g + Ae'lambda_e + Ai'lambda_i)_free||inf over
-    max(1, ||Hx||, ||g||, ||Ae'lambda_e||, ||Ai'lambda_i||) (free = not pinned at a bound); 10 opt_tol. The
-    KKT-point test certification is reached through reads the same residual at 1x opt_tol, but on the pass's point and
-    BEFORE the terminal polish and the gray returns; the data half re-reads it on the EXPORTED (x, lambda) so every term
-    of the certificate is read last, from the QP's data, on what leaves the engine (self-contained). 10 is the ruling's
-    figure: a correct exit reads <= 1x (the KKT-point test; an adopted polish keeps it at max(before,
-    kTerminalPolishStatFactor * opt_tol)), so the decade above 1x is rounding room for the re-read and the disjunct
-    refuses only a point moved off stationarity after the test (a gray return, a reverted polish, the seam);
-  - finiteness: terminal_kkt's rows and product are running std::max reductions, which DROP a NaN term, so the gate
-    also requires the four exported vectors to be finite (`allFinite`).
+  - product = max over equality rows, working inequality rows and pinned bounds j of
+    (|residual_j| / row_scale_j) * |multiplier_j| / s_j, where s_j is j's **LOCAL dual scale**: with
+    t_i = max(|g_i|, |(Hx)_i|, |(Ae'lambda_e + Ai'lambda_i)_i|, |z_i|) the stationarity-term magnitudes of column i,
+    s_j = max(max over i in supp(a_j) of t_i, |multiplier_j| * ||a_j||inf) for a row, and s_i = t_i for a pinned bound
+    (its own column; the join is |z_i|, already in t_i); a zero numerator reads 0. 100 = kTerminalPolishComplFactor,
+    1e-7 at the defaults, a decade under the drivers' kkt_tol. **History (each a defect found before freeze):** (1) the
+    first QPC build read the product UNSCALED, which is not invariant to the objective's scaling and refused
+    rounding-level elastic-rung points (YORKNET's major-0 ladder: rows 5.2e-16, product 3.0e-7; HS15's cold elastic rung
+    at rho 2e8: rows 9.1e-14, product 9.1e-6; the circle-line elastic QP: rows 1.2e-11, product 3.0e-7); (2) the C553
+    follow-up divided by a GLOBAL dual scale max(1, ||Hx||, ||g||, ||A'lambda||, ||z||), which the pre-freeze review
+    showed a decoupled block can switch off (F-SLACK plus one variable pinned under z = 1e9: a working row 0.1 slack
+    certified at an objective error of ~100 on |f*| ~ 1000; settler C567). The local scale is invariant to the
+    objective's scaling (every term scales with f) and reads only the columns row j touches, so a block that does not
+    touch row j cannot inflate it. When row j's own multiplier dominates s_j the reading is at most
+    rel_j / ||a_j||inf -- the row's relative slack -- which is the side the rows reading cannot see: a working
+    inequality or a pinned bound held SLACK under a multiplier, a KKT point of the shifted row and not of the QP
+    (B1Gate's QP: slack 8e-7 under lambda 1e6, ⟨B1⟩ feas_tol; HS15's warm rungs ⟨HS15⟩ feas_tol). qp7's false point is
+    refused by its rows (72.9x).
+  - stationarity (C553 Q3) = the free-block residual (Hx + g + Ae'lambda_e + Ai'lambda_i)_free read BEYOND ROUNDING:
+    component i sums c_i terms of total magnitude m_i, so an exact KKT point can read c_i u m_i in double (Higham's
+    gamma bound, unit roundoff u = eps/2, review S1); the reading is max_i max(0, |r_i| - c_i u m_i) over the GLOBAL
+    stationarity scale max(1, ||Hx||, ||g||, ||Ae'lambda_e||, ||Ai'lambda_i||) (free = not pinned at a bound);
+    10 opt_tol. The KKT-point test certification is reached through reads the normwise residual at 1x opt_tol on the
+    same scale, but on the pass's point and BEFORE the terminal polish and the gray returns; the data half re-reads it
+    on the EXPORTED (x, lambda) so every term of the certificate is read last, from the QP's data, on what leaves the
+    engine. The rounding floor is taken out because a normwise residual can sit beneath what double resolves where large
+    terms cancel (SAWPATH's rung: terms of 2.4e13 summing to 3.6e2; the normwise draft refused it, section 7);
+  - off_working = the largest |lambda_i,j| on a non-working row and |z_i| on a free variable; the pricing writes exact
+    zeros there and no other reading looks at those entries, so a nonzero one would leave the engine unread: required
+    exactly 0 (review S2);
+  - finiteness and NaN: the four exported vectors must be finite, and every running maximum in the reading is
+    NaN-sticky (`nan_sticky_max`), so a NaN in the QP's data (b, bounds, g) reaches the verdict too (review S8; a
+    `std::max` reduction drops a NaN term).
   The walk's own tests keep the footprint excuse; only the certificate loses it. Signs are NOT re-read by the data
   half: they are the sign half's, unchanged.
 
-**Why C2 cannot certify a false point (by construction).** A kOptimal exit now requires, on the exported (x,
-lambda, z) and the QP's data: (i) every row and bound within 10 feas_tol relative (data half), (ii) the worst
-residual*multiplier product within 1e-7 of the dual scale (data half), (iii) free-block stationarity within 10 opt_tol relative
-(data half, C553 Q3; and within 1x on the pass's point by the KKT-point test certification is reached through), (iv)
-finite exported vectors (data half) and (v) multiplier signs within opt_tol*scale (sign half). No term of (i)-(v) contains dual_mu or primal_delta, every comparison is written so
-NaN fails, and terminal_kkt is computed after the last mutation of x and the multipliers. A "false certificate" in this
-round's legs is therefore a kOptimal exit failing (i)-(v) as recomputed by INDEPENDENT code (`qp_dump_kkt`-class
-recomputation on SENS-Q; `tu/stationarity.py` on NLP rows) or an objective off a pinned optimum.
+**What C2 guarantees, and its limitation (stated, settler C567).** A kOptimal exit requires, on the exported (x,
+lambda, z) and the QP's data: (i) every row and bound within 10 feas_tol relative, (ii) every equality row, working row
+and pinned bound's residual*multiplier product within 100 feas_tol of its OWN columns' dual scale, (iii) free-block
+stationarity beyond rounding within 10 opt_tol of the global stationarity scale (and normwise within 1x on the pass's
+point by the KKT-point test), (iv) no nonzero multiplier off the working set, (v) finite vectors and no NaN anywhere in
+the reading, and (vi) multiplier signs within opt_tol*scale (sign half). No term contains dual_mu or primal_delta, and
+the reading is computed after the last mutation of x and the multipliers. These are RELATIVE bounds, not a proof that
+the exported point is the QP's solution: (ii) lets a row priced at a small fraction of the gradient magnitude on its
+own columns stand off its row by up to 100 feas_tol * s_j / |multiplier_j| (relative), so the objective error a slack
+row can carry past (i)-(vi) is bounded by about 100 feas_tol * s_j * row_scale_j per row -- small against the local
+gradient terms, but not zero and not bounded by the footprint; and (iii)'s scale is global, as the upstream KKT-point
+test's is, so a decoupled block with large gradient terms widens the stationarity tolerance of every free column
+(the analogue of the review's F-SLACK for stationarity; not reached by any fixture or development reading of this
+round, section 4). The round's evidence that no false certificate leaves under these bounds is empirical: the
+development reading of section 4 (M1) and leg Q's independent recomputation on SENS-Q. A "false certificate" in this
+round's legs is a kOptimal exit failing (i)-(vi) as recomputed by INDEPENDENT code (`qp_dump_kkt`-class recomputation
+on SENS-Q; `tu/stationarity.py` on NLP rows) or an objective off a pinned optimum.
 
 **Why C1 cannot certify anything.** It changes only which answer an EQP solve returns, toward the same proximal
 target the single step aims at; every exit still passes the unchanged certificate plus C2.
@@ -189,29 +210,42 @@ is not a harness corpus (its label is not in the spec), the census has no R rows
 change after the census; the CAP corpora, which the census carries, replace it as guard corpora. SENS-Q's cell list is
 the fixture directory's file list at H, committed as `cells/sens_q_cells.txt` with its sha256 in `cells/SHA256SUMS`.
 
-## 4. Pre-freeze gates (development readings, recorded here before freeze, never round rows)
+## 4. Gates read before the arm ensembles (rules fixed here; VALUES recorded in a gate file, never in this file)
+
+**Freeze order (pre-freeze review M4; settler C567).** (1) This declaration is frozen and committed with every bar,
+leg script and cell list it names (`cells/sens_q_cells.txt`); nothing in it is filled afterwards. (2) Leg E-R: the census
+H0 member directories are copied into the QPC store (`cells/H0-copy.sha256`), the baseline certificate leg runs, both
+`ens.py freeze` files are written and committed (P-CLASS). Precondition: the census NLP-46 tier is complete. (3) Only
+then are the arms' member-0 rows read (leg N2, then P-POWER and P-GATED), and the P readings are recorded in
+`gate-QPC/P-GATES.md` (committed before any E-A row) -- so no arm row is seen before R's classes are frozen, and no
+declaration placeholder is filled from a row.
 
 * **P-POWER (review B4.9).** From each arm's member-0 development run (QPC, QPC-C1, QPC-C2; one lane, co-run) against
   the FROZEN R classes: the number of R-STABLE cells strict-optimal in every R member on which the arm's member-0 side
   file shows `converged_refinement_arms > 0` (C1 exercised) and `certificate_gate_refusals > 0` (C2 exercised), per
   family and per corpus; and the same on SENS-Q and CENSUS-57. (`ens.py power` cannot count these: its event column must
   exist in the BASELINE rows, and R has no QPC counters; `legs/qpc_ens_extra.py power` counts them from the frozen
-  classes and the arm side files, with the reader's loaders.) These member-0 rows are development readings and are NOT reused as
-  ensemble rows: the ensemble legs run every member afresh after the freeze.
-  Development priors (P-1a deciders, not this round's binaries): C1 fired on 0 of 238 TRAIN rows; C2 refused 194 QP
-  exits in 21 TRAIN rows (SPANHYD x2, HS99EXP, BT7, OPTPRLOC, LEWISPOL, WATER, HS74, HS75, LAKES, HS89, HS91, LOOTSMA,
-  MESH, ALLINITC.never ...), most of them in the review's chaotic set.
+  classes and the arm side files, with the reader's loaders.) These member-0 rows are development readings and are NOT
+  reused as ensemble rows: the ensemble legs run every member afresh.
   **Rule:** a component with fewer than 10 R-STABLE solved exercised cells in the live corpora (TRAIN-238 + CAP + NLP-46) is
   declared **corpus-EXPLORATORY**: no cost or solved GAIN may be claimed for it from those corpora; its ship case rests
-  on the no-harm conditions (5.2 S1, S3, R1, V-QP, V2) plus its fixtures (A-conditions) and SENS-Q. Expected: C1
-  corpus-exploratory (its evidence is SENS-Q's gated cells, CENSUS-57 and A1); C2 ⟨n⟩.
+  on the no-harm conditions (5.2 S1, S3, R1, V-QP, V-HONEST, V2) plus its fixtures (A-conditions) and SENS-Q. The
+  recorded counts go to `gate-QPC/P-GATES.md`, never here. (The P-1a deciders' priors -- C1 fired on 0 of 238 TRAIN rows;
+  C2 refused 194 QP exits in 21 TRAIN rows -- were read for the UNSCALED gate prototype and do not describe this gate.)
 * **P-GATED.** SENS-Q cells gated in = cells where R shows any of: `dual_regularization_decreases > 0`, a kOptimal
   exit whose data-half reading fails, `optimal_row_gray_exits > 0`, or an exit the H data half refuses. Frozen as
-  `cells/sens_q_gated.tsv` ⟨n⟩ from R and H member-0 readings before any ensemble leg.
+  `cells/sens_q_gated.tsv` from R and H member-0 grid readings, recorded with P-POWER in the gate file before any
+  ensemble leg.
 * **P-CLASS.** The R ensemble (the C547 census rows, copied into the QPC store, section 2) read first by `ens.py freeze`;
   `cells/FREEZE-TRAIN.json`, `cells/FREEZE-NLP46.json` (classes, floors, p_base, digests) committed before any arm
   ensemble row.
 
+**M1's development reading (pre-freeze review M1; settler C567; recorded here because it is a pre-freeze reading of
+the GATE, not of an arm's outcome).** At H (development build, Release), every certified QP exit whose UNSCALED product
+exceeds 100 feas_tol, on SENS-Q (the grid, `cmp_sensq.py m1`) and on TRAIN-238 member 0 (an env-gated, never-committed
+diagnostic print at the gate, `legs/` not involved), with its rows reading, the worst term's slack in feas_tol and its
+multiplier over its local scale; and every certified exit carrying a priced term with slack past 100 feas_tol
+(footprint-level). ⟨M1 reading⟩
 ## 5. The ship rule (fixed here, before any row)
 
 ### 5.1 Currencies and cell rule
@@ -219,7 +253,10 @@ the fixture directory's file list at H, committed as `cells/sens_q_cells.txt` wi
 numbers are the instrument's own. **QM** = `qp_minor_iters` (the QP-side work this round touches) is REPORTED beside them
 per arm (the median over seeds of the pooled geomean of (arm+1)/(R+1) on same-solution cells, by
 `legs/qpc_ens_extra.py qm`), never a ship bar: the reader has no QM currency and a second instrument
-would be a second ship rule. Guards, never currencies: majors, restoration entries, `qp_numerical_exits`,
+would be a second ship rule. **Refine-step work is REPORTED (pre-freeze review S7):** C1's extra mu-free steps and C2's
+re-read cost no factorization and no evaluation, so LA and EV cannot see them; per arm, the summed deltas against R of
+`eqp_refine_steps`, `border_refine_steps`, `eqp_refine_iters` and `verdict_refine_steps` on SENS-Q (the grid) and on the
+same-solution cells of the member-0 side files (`legs/qpc_ens_extra.py qm`) are reported beside QM, never a bar. Guards, never currencies: majors, restoration entries, `qp_numerical_exits`,
 `eqp_residual_refusals`. Cell rule: a WIN in a
 currency iff `10*lower <= 9*higher` (integers); LOSS symmetrically; else TIE. **Same-solution condition (B4.8):** a
 cell counts toward cost only if |f_H - f_R| <= 1e-6 max(1, |f_R|) in that member; otherwise it is scored "different
@@ -248,13 +285,28 @@ does not make, S3); the conditions are read from the reader's JSON (`--json`) fi
   reader's tail columns; LA and QM tails are reported). Cells R does not solve are never tail-guarded; GAINED cells are
   listed beside lost cells.
 * **V-QP Zero false QP certificates.** Every kOptimal exit on SENS-Q under the arm is re-checked by independent code
-  (`legs/cmp_sensq.py vqp` over the grid's readings): data-half rows <= 10 feas_tol, product <= 100 feas_tol,
-  free-block stationarity <= 10 opt_tol (all recomputed from QpSolution against the dump's effective box), the
-  rounding-aware stationarity of `qp_dump_kkt` <= 10 opt_tol, signs <= opt_tol, and |f - f*| <= 1e-9 max(1, |f*|)
-  against `legs/pinned_optima.tsv` (PF1, QC8 entry6/qp1/qp7, C11 YORKNET qp1, C11 SAWPATH qp1 -- every value a test
-  already asserts). ZERO failures. (The unregularized-EQP comparison of the earlier draft is dropped: it cannot see an
-  inconsistent working set, D-4, and the grid does not compute it.) A false certificate under R is reported and not a stop
-  (R is what this round fixes); under H it STOPS.
+  (`legs/cmp_sensq.py vqp` over the grid's readings, all recomputed from QpSolution against the dump's effective box by
+  code that shares nothing with `certificate_reading` but its definitions): data-half rows <= 10 feas_tol; the
+  ROW-LOCAL product (`d_product_local`, each term over its own columns' dual scale, exactly the gate's definition,
+  section 1) <= 100 feas_tol; no nonzero multiplier off the working set (`d_off_working` = 0); `qp_dump_kkt`'s
+  stationarity beyond rounding (floor c_i u m_i, u = eps/2) <= 10 opt_tol; signs <= opt_tol; and
+  |f - f*| <= 1e-9 max(1, |f*|) against `legs/pinned_optima.tsv` (PF1, QC8 entry6/qp1/qp7, C11 YORKNET qp1, C11 SAWPATH
+  qp1 -- every value a test already asserts). ZERO failures. The NORMWISE free-block stationarity (`d_stationarity`) and
+  the UNSCALED product (`d_product`) are REPORTED columns, never verdicts: the gate reads neither (a normwise residual can
+  sit beneath double's rounding floor where large terms cancel -- C11 SAWPATH qp1 reads ~502 opt_tol normwise at its
+  certified, pinned exit -- and the unscaled product is not invariant to the objective's scaling, section 1). The pinned
+  optima are the check that does not depend on the gate's own definitions: at the gate's bounds the admitted objective
+  error is about 100 feas_tol * s_j * row_scale_j per row (section 1), larger than the 1e-9 bar, so a pinned cell
+  certified inside the gate but off its optimum is a FALSE CERTIFICATE here. (The unregularized-EQP comparison of the
+  earlier draft is dropped: it cannot see an inconsistent working set, D-4.) A false certificate under R is reported and
+  not a stop (R is what this round fixes); under H it STOPS.
+* **V-HONEST No honest certificate refused (pre-freeze review M7; GATES).** On SENS-Q, a cell whose R exit is kOptimal
+  AND passes every V-QP check above (an honest R certificate, read by the arm's own stricter definitions) must end kOptimal
+  under the arm too, on both algebras, with |f_A - f_R| <= 1e-9 max(1, |f_R|). ZERO exceptions (`legs/cmp_sensq.py
+  honest R.csv A.csv`); every exception is listed with both statuses and readings. WHY: C2 can only refuse, so its harm
+  is a refused honest point; C1 changes which answer an EQP returns, so its harm is a different (or no) certificate on a
+  cell R certified correctly; C1's solo ship case rests on SENS-Q, and without this bar nothing would stop an arm turning
+  a correct R certificate into kNumericalError or kIterationLimit there.
 * **V2 Zero false NLP certificates** on every row of every leg, every binary, every member (the reader's certificate
   leg, `i19_run.py certs --binaries`, `tu/stationarity.py`; an arm member's false certificate FAILS that arm,
   `V2_no_false_certificates`). One under an R member STOPS the freeze (the reader's rule; a defect outside this round).
@@ -266,7 +318,10 @@ does not make, S3); the conditions are read from the reader's JSON (`--json`) fi
 * **V-STAB (I1; GATES in the no-worsening direction, C553 Q1).** The arm's classes from its OWN ensemble (the same
   class rule the freeze applies to R, computed by `legs/qpc_ens_extra.py vstab` with the reader's `load_ensemble` + `classes_of`). Per
   corpus (TRAIN-238, CAP-238-1, CAP-238-01, NLP-46): the number of distinct PROBLEM NAMES with at least one
-  STATUS-UNSTABLE cell under the arm must be <= R's number + 2, else the arm does not ship. Everything else -- the class
+  STATUS-UNSTABLE cell under the arm must be <= R's number + 2, else the arm does not ship; AND (pre-freeze review S6, the
+  guard against the perverse direction -- a corpus can leave STATUS-UNSTABLE by failing everywhere) the number of distinct
+  PROBLEM NAMES with at least one STABLE cell strict-optimal in every member must be >= R's number - 2, else the arm does
+  not ship. Everything else -- the class
   counts per family and pooled, the R-class x arm-class transition table, COST-UNSTABLE -- is reported. Directional
   expectation (stated): C2 converts false-kOptimal QP exits into kNumericalError, which routes the SQP through its
   failure ladder, so STATUS-UNSTABLE may rise on cells with `certificate_gate_refusals > 0`.
@@ -327,8 +382,10 @@ lane, SMT siblings idle; `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`; counters, status
 informational, never quoted. A cap/kill cell, or a deviation that decides a bar, is re-run ALONE under the serial rule
 before it is called one.
 
-Order: B -> C -> N0 -> N1 -> N2 -> N3 -> M -> P-POWER/P-GATED (recorded) -> E-R (classes frozen, committed) -> E-A (QPC,
-then QPC-C1, then QPC-C2) -> Q -> P -> D -> Sm -> CI.
+Order (section 4's freeze order): freeze this file -> B -> C -> N0 -> N1 -> N3 -> M -> E-R (census copy, baseline
+certificates, class freeze, commit) -> N2 (the first leg that reads an arm's TRAIN/CAP/NLP-46 member-0 rows) ->
+P-POWER / P-GATED (recorded in `gate-QPC/P-GATES.md`, committed) -> E-A (QPC, then QPC-C1, then QPC-C2) -> Q -> P -> D ->
+Sm -> CI.
 
 ## 7. Fixtures (in-repo; readings at R recorded before the fix commit)
 
@@ -391,39 +448,53 @@ Development leg-C readings at the post-diagnosis tree (the code commit below; de
 ## 8. Mutations (must-kill unless marked ARGUED)
 
 Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), run by `legs/mutations_qpc.sh` on
-`hven_qp_seam_tests` (`QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*`) and
-`hven_qp_tests` (`EqpSolve*:EqpConvergedRefinement.*`) and `hven_sqp_tests`
-(`B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers`, for the SQP fold). Killers are named from the
-development dry run (VERDICT MUTATION_SURVIVED on Q14, Q17, Q18, Q21 before the ARGUED set and the SQP binary were
-added; control clean; every other id killed); the leg-M reading is the evidence.
+`hven_qp_seam_tests` (`QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*`),
+`hven_qp_tests` (`EqpSolve*:EqpConvergedRefinement.*`), `hven_sqp_tests`
+(`B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*`) and
+`hven_sqp_seam_tests` (`SqpQpcFold.*`, the fold fixtures). The runner checks, before any build, that the table's ids equal
+the script's (`ID_PARITY_FAIL`) and that the ARGUED set below equals its own (`ARGUED_PARITY_FAIL`); after the run, that
+every killer named below for a must-kill id is among that id's observed killers (`KILLER_PARITY_FAIL`; `Suite.*` = any
+test of the suite). Killers are named from the development dry run ⟨tree⟩; leg M is the evidence.
 
-| id | mutation | declared killer(s) (development dry run, 2026-11-25, tree 7dbd9407b; leg M is the evidence) |
+| id | mutation | declared killer(s) |
 |---|---|---|
-| Q1 | the data half never refuses | QpCertificateData.{ABoundInside..., AnOffStationary..., ARowPastTenFeasTol..., AWorkingRowSlack..., Qc8DallasmQp7..., TheProductIsReadAgainstTheDualScale} |
-| Q2 | the data half reads rows only | QpCertificateData.{AnOffStationaryExportedPointIsRefused, AWorkingRowSlackPastAHundredFeasTolIsRefused, TheVerdictRefusesNanAndReadsBothBoundsInclusively} |
-| Q3 | the data half reads the product only | QpCertificateData.{ABoundInside..., AnOffStationary..., ARowPastTenFeasTol..., Qc8DallasmQp7..., TheProductIsRead..., TheVerdict...} |
-| Q4 | row factor 10 -> 100 | QpCertificateData.{ABoundInside..., Qc8DallasmQp7..., TheProductIsReadAgainstTheDualScale, TheVerdict...} |
-| Q5 | product factor 100 -> 1000 | QpCertificateData.{AWorkingRowSlackPastAHundredFeasTolIsRefused, TheVerdict...} |
-| Q6 | a NaN passes (comparisons inverted to !(>)) | QpCertificateData.TheVerdictRefusesNanAndReadsBothBoundsInclusively (ANanPointIsRefused cannot kill it: R already refuses a NaN point earlier, dev/R-tdd.txt) |
-| Q7 | a refusal exits kInfeasible | QpCertificateData.* (status; 6 tests) |
-| Q8 | a refusal is not counted | QpCertificateData.* (counter; 6 tests) |
-| Q9 | the data half ignores bounds (terminal_kkt's box loop) | QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused, QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible |
-| Q10 | the re-admission never arms | QpReleaseReadmission.{F7PathCorruptedQp1SolvesAtItsOwnRegularization, TheConvergedRefinementIsPerSolve} |
-| Q11 | the rung kept beside the arming | QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization |
-| Q12 | converged mode ignored on the eliminated path | EqpConvergedRefinement.{EliminatedPath..., UnborderedBorderedPath...}, QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization |
-| Q13 | converged mode ignored on the bordered path | EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne |
-| Q14 | the strict-decrease keep rule dropped (every step kept) | ARGUED: every converged step on the fixtures contracts the residual (the multiplier error contracts by mu/(mu+s_i) per step, D-1), so a keep rule that only ever refuses a NON-decreasing step is never exercised; it is a guard against a diverging or NaN refinement, which no in-repo face produces. The survival is the expected one, not a coverage gap the round claims to close |
-| Q15 | the mode not reset at run() entry | QpReleaseReadmission.TheConvergedRefinementIsPerSolve |
-| Q16 | armed from pass 0 (global converged refinement, decider D-2) | QpCertificateSign.* (5 tests) and 8 more |
+| Q1 | the data half never refuses | ⟨⟩ |
+| Q2 | the data half reads rows only | ⟨⟩ |
+| Q3 | the data half reads the product only | ⟨⟩ |
+| Q4 | row factor 10 -> 100 | ⟨⟩ |
+| Q5 | product factor 100 -> 1000 | ⟨⟩ |
+| Q6 | a NaN passes (comparisons written !(>)) | ⟨⟩ |
+| Q7 | a refusal exits kInfeasible | ⟨⟩ |
+| Q8 | a refusal is not counted | ⟨⟩ |
+| Q9 | the data half ignores the bounds' rows reading | ⟨⟩ |
+| Q10 | the re-admission never arms | ⟨⟩ |
+| Q11 | the rung kept beside the arming | ⟨⟩ |
+| Q12 | converged mode ignored on the eliminated path | ⟨⟩ |
+| Q13 | converged mode ignored on the bordered path | ⟨⟩ |
+| Q14 | the strict-decrease keep rule dropped (every step kept) | ⟨⟩ |
+| Q15 | the mode not reset at run() entry | ⟨⟩ |
+| Q16 | armed from pass 0 (global converged refinement, decider D-2) | ⟨⟩ |
 | Q17 | arms counted more than once | ARGUED: after the first arming the mode is kConverged for the rest of the solve, so re-arming changes nothing but the counter, and on every fixture the converged refinement puts the released row on its bound so no SECOND re-admission occurs (PF1 reads arms = 1 with or without the guard). The counter's "0 or 1 per walk" contract is pinned where it can be observed (PF1 = 1); a fixture with two re-admissions after arming does not exist in the tree |
-| Q18 | the fold of the two counters missing at the main-QP site | B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (asserts the folded certificate_gate_refusals of its major-0 QP; the runner gained hven_sqp_tests with that filter after the dry run, where Q18 survived for want of an SQP binary) |
-| Q19 | the converged loop's step budget 10 -> 2 | EqpConvergedRefinement.{EliminatedPath..., UnborderedBorderedPath...} |
-| Q20 | the data half drops its stationarity disjunct (C553 Q3) | QpCertificateData.{AnOffStationaryExportedPointIsRefused, TheVerdictRefusesNanAndReadsBothBoundsInclusively} |
-| Q21 | the finiteness guard on the exported vectors dropped | ARGUED: every NaN presentation the seam can make (ANanPointIsRefused) is refused before the data half by the gray-row reading, so no fixture reaches the guard with a non-finite vector; the guard is the data half's own proof of "NaN refuses" (terminal_kkt's max reductions drop a NaN term) and is defence in depth, not a path a test can isolate without a seam inside terminal_kkt |
-| Q22 | the product read UNSCALED (the dual-scale division dropped; the first QPC build) | QpCertificateData.{AWorkingRowSlackPastAHundredFeasTolIsRefused, TheProductIsReadAgainstTheDualScale} |
+| Q18 | the fold of the two counters missing at the main-QP site | ⟨⟩ |
+| Q19 | the converged loop's step budget 10 -> 2 | ⟨⟩ |
+| Q20 | the data half drops its stationarity disjunct (C553 Q3) | ⟨⟩ |
+| Q21 | the finiteness guard dropped from the verdict | ⟨⟩ |
+| Q22 | the product read UNSCALED (the local division dropped; the first QPC build) | ⟨⟩ |
+| Q23 | the local scale replaced by the GLOBAL one (every column's terms joined; the C553 build) | ⟨⟩ |
+| Q24 | |z_i| dropped from the column terms of the local scale | ⟨⟩ |
+| Q25 | the row's own join |lambda_j| ||a_j||inf dropped from its local scale | ⟨⟩ |
+| Q26 | stationarity read NORMWISE instead of beyond rounding | ⟨⟩ |
+| Q27 | the pinned-bound product term dropped | ⟨⟩ |
+| Q28 | the off-working-set reading dropped from the verdict (review S2) | ⟨⟩ |
+| Q29 | the reading's maxima made plain (NaN dropped; review S8) | ⟨⟩ |
+| Q30 | the rounding floor read with eps instead of u = eps/2 (review S1) | ⟨⟩ |
+| Q31 | both NaN defences dropped (Q21 + Q29) | ⟨⟩ |
+| Q32 | the fold missing at the elastic-rung site | ⟨⟩ |
+| Q33 | the fold missing at the restoration-phase site | ⟨⟩ |
+| Q34 | the fold missing at the iteration-limit retry site | ⟨⟩ |
+| Q35 | the fold missing at the SOC re-solve site | ⟨⟩ |
 
-ARGUED (the runner's set, parity-checked): Q14, Q17, Q21. Q18 confirmed by the extended runner (development, tree
-08805d8ba, control + Q18): control clean, Q18 killed by B1Gate.TheWatchdogRestore..., VERDICT MUTATIONS_AS_DECLARED.
+ARGUED (the runner's set, parity-checked): Q17.
 
 ## 9. Stops
 A pre-flight mismatch; any N0-N3 difference outside the declared-mover rule; an unreported error row; a false NLP

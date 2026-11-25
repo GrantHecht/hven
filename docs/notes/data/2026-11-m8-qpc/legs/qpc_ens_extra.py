@@ -9,12 +9,15 @@ class rule (hven-bench ens 27c02687), never with re-implemented ones.
   qpc_ens_extra.py vstab <bench> <store> <BINARIES> <freeze.json> <arm> [--m M] [--kind x0]
       V-STAB (section 5.2, C553 Q1): the arm's classes from its OWN ensemble (ens.load_ensemble + ens.classes_of, the rule
       the freeze applied to R); per corpus the number of distinct problem NAMES with >= 1 STATUS-UNSTABLE cell, arm vs the
-      frozen R classes. GATE: arm <= R + 2 in every corpus. rc 0 pass, 1 fail. Also prints the class counts per family and
-      the R-class x arm-class transition table (reported).
+      frozen R classes. GATE: arm <= R + 2 in every corpus; AND (review S6) the number of distinct problem NAMES with >= 1
+      STABLE cell strict-optimal in every member: arm >= R - 2 in every corpus. rc 0 pass, 1 fail. Also prints the class
+      counts per family and the R-class x arm-class transition table (reported).
   qpc_ens_extra.py qm <bench> <store> <BINARIES> <freeze.json> <arm> [--m M] [--kind x0]
       Reported: per seed the pooled geomean of (QM_arm+1)/(QM_R+1) on cells strict-optimal in both and the same solution
       (one term per problem name, the reader's same-solution rule and dedup), the median over seeds; and the S1 robust-loss
-      count on the optimal+acceptable reading (p_R >= robust_base_min and p_arm <= robust_arm_max, the reader's params).
+      count on the optimal+acceptable reading (p_R >= robust_base_min and p_arm <= robust_arm_max, the reader's params);
+      and (review S7) per seed the summed arm - R deltas of eqp_refine_steps, border_refine_steps, eqp_refine_iters and
+      verdict_refine_steps over the same same-solution cells (a column absent from the rows is printed ABSENT).
 """
 import argparse
 import collections
@@ -85,6 +88,17 @@ def main():
             ok &= verdict == "PASS"
             print("VSTAB %-11s R=%3d arm=%3d (bound R+2) %s  new=%s gone=%s" % (corpus, len(nr), len(na), verdict,
                                                                                 sorted(na - nr), sorted(nr - na)))
+        # S6: STABLE-SOLVED problem names (>= 1 STABLE cell strict-optimal in every member), arm >= R - 2.
+        solved_a = {ens.ckey(c) for c in arm_ens.ids if all(i19_rule.is_strict(r) for r in arm_ens.recs(c))}
+        for corpus in corpora:
+            sr = {k.split("|")[2] for k, v in classes_r.items()
+                  if k.startswith(corpus + "|") and v == ens.STABLE and Fraction(p_base.get(k, "0")) == 1}
+            sa = {k.split("|")[2] for k, v in classes_a.items()
+                  if k.startswith(corpus + "|") and v == ens.STABLE and k in solved_a}
+            verdict = "PASS" if len(sa) >= len(sr) - 2 else "FAIL"
+            ok &= verdict == "PASS"
+            print("STABLE-SOLVED %-11s R=%3d arm=%3d (bound R-2) %s  lost=%s gained=%s" % (corpus, len(sr), len(sa), verdict,
+                                                                                       sorted(sr - sa), sorted(sa - sr)))
         trans = collections.Counter((classes_r.get(k), v) for k, v in classes_a.items())
         for (r, x), n in sorted(trans.items(), key=str):
             print("TRANSITION R=%s arm=%s %d" % (r, x, n))
@@ -107,6 +121,15 @@ def main():
         g = math.exp(sum(terms) / len(terms)) if terms else 1.0
         geos.append(g)
         print("QM seed %d terms=%d geomean=%.4f" % (j, len(terms), g))
+        same = [c for cs in groups.values() for c in cs]
+        for rc in ("eqp_refine_steps", "border_refine_steps", "eqp_refine_iters", "verdict_refine_steps"):
+            vals = [(i19_rule.col(h[c], rc), i19_rule.col(x[c], rc)) for c in same]
+            if any(v in (None, "", "null") for pair in vals for v in pair):
+                print("REFINE seed %d %s ABSENT" % (j, rc))
+                continue
+            print("REFINE seed %d %s R=%d arm=%d delta=%+d (reported)" % (
+                j, rc, sum(int(float(a)) for a, _ in vals), sum(int(float(b)) for _, b in vals),
+                sum(int(float(b)) - int(float(a)) for a, b in vals)))
     print("QM median geomean %.4f (reported)" % statistics.median(geos))
     lost = []
     for cid in ids:

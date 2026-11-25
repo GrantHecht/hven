@@ -11,13 +11,22 @@
 // Columns: file, algebra, status, objective (hexfloat and %.17g), a 64-bit FNV-1a hash of the x
 // hexfloats (x_fnv), every counter, then two INDEPENDENT readings of the returned point, neither
 // taken from the engine:
-//   d_rows, d_product, d_dual_scale, d_stationarity -- the certificate's data half recomputed from QpSolution
-//     (rows relative to max(1,|b|,||a||_1||x||inf), bounds against the dump's EFFECTIVE box -- real
-//     bounds intersected with the trust region about the clamped seed -- relative to
-//     max(1,|bound|,||x||inf); product over equalities, rows flagged ineq_active and pinned bounds;
-//     free-block stationarity Hx+g+Ae'le+Ai'li over the columns neither pinned nor TR-held, over
-//     max(1,|Hx|,|g|,|Ae'le|,|Ai'li|); the dual scale = that scale joined by ||z||inf, which the
-//     gate divides the product by). NaN-sticky.
+//   d_rows, d_product, d_product_local, d_stationarity -- the certificate's data half recomputed from
+//     QpSolution (rows relative to max(1,|b|,||a||_1||x||inf), bounds against the dump's EFFECTIVE box --
+//     real bounds intersected with the trust region about the clamped seed -- relative to
+//     max(1,|bound|,||x||inf); d_product = the UNSCALED product over equalities, rows flagged
+//     ineq_active and pinned bounds (reported); d_product_local = each term over its row's LOCAL dual
+//     scale, max over the row's support of max(|g_i|,|(Hx)_i|,|(Ae'le+Ai'li)_i|,|z_i|) joined by
+//     |mult| ||a||inf, a pinned bound's over its own column (settler C567; the gate's product);
+//     d_stationarity = the NORMWISE free-block stationarity Hx+g+Ae'le+Ai'li over the columns neither
+//     pinned nor TR-held, over max(1,|Hx|,|g|,|Ae'le|,|Ai'li|) -- REPORTED, never a verdict: the gate
+//     reads it beyond rounding, k_stationarity_beyond_rounding below). NaN-sticky.
+//   d_off_working -- the largest |lambda_i| on a row not flagged ineq_active and |z| on a free column.
+//   d_worst_kind, d_worst_index, d_worst_rel, d_worst_mult, d_worst_local -- the term carrying the
+//     largest UNSCALED product (E equality, I working inequality, B pinned bound, - none): its index,
+//     its relative residual/slack, |multiplier| and local dual scale (DECLARATION section 4, M1).
+//   d_slack_kind, d_slack_index, d_slack_rel, d_slack_mult, d_slack_local -- the same for the term with the largest
+//     RELATIVE residual/slack among those carrying a nonzero multiplier.
 //   k_eq, k_ineq, k_box, k_stationarity, k_stationarity_beyond_rounding, k_sign, k_compl, k_scale --
 //     tests/qp/support/qp_dump.h's qp_dump_kkt (absolute primal terms, TR-aware);
 //   feas_tol, opt_tol -- the dump's own tolerances (the verdict thresholds' units).
@@ -33,7 +42,7 @@
 #include <string>
 #include <utility>
 
-#include "qp/support/qp_dump.h" // from the hven tree's tests/ (identical at 99712ec32 and qpc)
+#include "qp/support/qp_dump.h" // from the QPC tree's tests/ for EVERY grid (legs/legB.sh)
 
 namespace {
 
@@ -214,7 +223,13 @@ std::uint64_t x_hash(const Vec &x) {
 double nmax(double a, double b) { return (std::isnan(a) || std::isnan(b)) ? std::numeric_limits<double>::quiet_NaN() : std::max(a, b); }
 
 struct DataHalf {
-    double rows = 0.0, product = 0.0, stationarity = 0.0, dual_scale = 1.0;
+    double rows = 0.0, product = 0.0, product_local = 0.0, stationarity = 0.0, off_working = 0.0;
+    char worst_kind = '-';
+    long long worst_index = -1;
+    double worst_rel = 0.0, worst_mult = 0.0, worst_local = 0.0;
+    char slack_kind = '-';
+    long long slack_index = -1;
+    double slack_rel = 0.0, slack_mult = 0.0, slack_local = 0.0;
 };
 
 DataHalf data_half(const QpDump &d, const QpSolution &s) {
@@ -234,23 +249,58 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
     }
     const double xmag = s.x.lpNorm<Eigen::Infinity>();
     const bool have_le = s.lambda_e.size() == qp.me(), have_li = s.lambda_i.size() == qp.mi();
+    const bool have_z = s.z.size() == n;
+    // Column stationarity terms, from DENSE copies (an independent path from the engine's sparse one).
+    const Eigen::MatrixXd Hu(qp.H), Ae(qp.Ae), Ai(qp.Ai);
+    const Eigen::MatrixXd Hf = Eigen::MatrixXd(Hu.triangularView<Eigen::Upper>()) +
+                               Eigen::MatrixXd(Hu.triangularView<Eigen::StrictlyUpper>()).transpose();
+    const Vec hx = Hf * s.x;
+    Vec atl = Vec::Zero(n);
+    if (qp.me() > 0 && have_le) atl += Ae.transpose() * s.lambda_e;
+    if (qp.mi() > 0 && have_li) atl += Ai.transpose() * s.lambda_i;
+    Vec t(n);
+    for (Index i = 0; i < n; ++i) {
+        t(i) = nmax(nmax(nmax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), have_z ? std::abs(s.z(i)) : 0.0);
+    }
+    const auto term = [&](char kind, Index idx, double rel, double mult, double local) {
+        const double unscaled = rel * mult;
+        if (std::isnan(unscaled) || unscaled > r.product || (r.worst_kind == '-' && unscaled > 0.0)) {
+            r.worst_kind = kind; r.worst_index = idx; r.worst_rel = rel; r.worst_mult = mult; r.worst_local = local;
+        }
+        if (mult > 0.0 && (std::isnan(rel) || rel > r.slack_rel)) {
+            r.slack_kind = kind; r.slack_index = idx; r.slack_rel = rel; r.slack_mult = mult; r.slack_local = local;
+        }
+        r.product = nmax(r.product, unscaled);
+        r.product_local = nmax(r.product_local, unscaled == 0.0 ? 0.0 : unscaled / local);
+    };
+    const auto row_local = [&](const Eigen::MatrixXd &A, Index j, double mult) {
+        double loc = 0.0, ninf = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (A(j, i) != 0.0) { loc = nmax(loc, t(i)); ninf = nmax(ninf, std::abs(A(j, i))); }
+        }
+        return nmax(loc, mult * ninf);
+    };
     if (qp.me() > 0) {
-        const Vec res = qp.Ae * s.x - qp.be;
+        const Vec res = Ae * s.x - qp.be;
         for (Index j = 0; j < qp.me(); ++j) {
-            const double rs = std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
+            const double rs = std::max({1.0, std::abs(qp.be(j)), Ae.row(j).cwiseAbs().sum() * xmag});
             const double rel = std::abs(res(j)) / rs;
             r.rows = nmax(r.rows, rel);
-            r.product = nmax(r.product, rel * (have_le ? std::abs(s.lambda_e(j)) : 0.0));
+            const double mult = have_le ? std::abs(s.lambda_e(j)) : 0.0;
+            term('E', j, rel, mult, row_local(Ae, j, mult));
         }
     }
     if (qp.mi() > 0) {
-        const Vec res = qp.Ai * s.x - qp.bi;
+        const Vec res = Ai * s.x - qp.bi;
         for (Index j = 0; j < qp.mi(); ++j) {
-            const double rs = std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
+            const double rs = std::max({1.0, std::abs(qp.bi(j)), Ai.row(j).cwiseAbs().sum() * xmag});
             r.rows = nmax(r.rows, std::max(0.0, res(j)) / rs + (std::isnan(res(j)) ? res(j) : 0.0));
             const bool active = static_cast<std::size_t>(j) < s.ineq_active.size() && s.ineq_active[static_cast<std::size_t>(j)];
+            const double mult = have_li ? std::abs(s.lambda_i(j)) : 0.0;
             if (active) {
-                r.product = nmax(r.product, std::abs(res(j)) / rs * (have_li ? std::abs(s.lambda_i(j)) : 0.0));
+                term('I', j, std::abs(res(j)) / rs, mult, row_local(Ai, j, mult));
+            } else {
+                r.off_working = nmax(r.off_working, mult);
             }
         }
     }
@@ -264,24 +314,17 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
         const bool tr_held = si < s.tr_active.size() && s.tr_active[si];
         const bool at_bound = si < s.bound_state.size() && s.bound_state[si] != hven::BoundState::kFree;
         pinned[si] = tr_held || at_bound;
-        if (at_bound && s.z.size() == n) {
+        if (at_bound && have_z) {
             const double at = s.bound_state[si] == hven::BoundState::kAtUpper ? up(i) : lo(i);
-            r.product = nmax(r.product, std::abs(s.x(i) - at) / rs * std::abs(s.z(i)));
+            term('B', i, std::abs(s.x(i) - at) / rs, std::abs(s.z(i)), t(i));
+        } else if (!at_bound && have_z) {
+            r.off_working = nmax(r.off_working, std::abs(s.z(i)));
         }
     }
-    const Vec hx = qp.H.selfadjointView<Eigen::Upper>() * s.x;
-    Vec g = hx + qp.g;
+    Vec g = hx + qp.g + atl;
     double scale = std::max({1.0, hx.lpNorm<Eigen::Infinity>(), qp.g.lpNorm<Eigen::Infinity>()});
-    if (qp.me() > 0 && have_le) {
-        const Vec t = qp.Ae.transpose() * s.lambda_e;
-        g += t;
-        scale = std::max(scale, t.lpNorm<Eigen::Infinity>());
-    }
-    if (qp.mi() > 0 && have_li) {
-        const Vec t = qp.Ai.transpose() * s.lambda_i;
-        g += t;
-        scale = std::max(scale, t.lpNorm<Eigen::Infinity>());
-    }
+    if (qp.me() > 0 && have_le) scale = std::max(scale, (Ae.transpose() * s.lambda_e).lpNorm<Eigen::Infinity>());
+    if (qp.mi() > 0 && have_li) scale = std::max(scale, (Ai.transpose() * s.lambda_i).lpNorm<Eigen::Infinity>());
     double worst = 0.0;
     for (Index i = 0; i < n; ++i) {
         if (!pinned[static_cast<std::size_t>(i)]) {
@@ -289,7 +332,6 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
         }
     }
     r.stationarity = worst / scale;
-    r.dual_scale = std::max(scale, s.z.size() == n ? s.z.lpNorm<Eigen::Infinity>() : 0.0);
     return r;
 }
 
@@ -332,9 +374,10 @@ int main(int argc, char **argv) {
 #define HVEN_QPC_HDR(name) h += "," #name;
         HVEN_QPC_GRID_R_FIELDS(HVEN_QPC_HDR)
 #undef HVEN_QPC_HDR
-        h += ",converged_refinement_arms,certificate_gate_refusals,d_rows,d_product,d_dual_scale,d_stationarity,"
+        h += ",converged_refinement_arms,certificate_gate_refusals,d_rows,d_product,d_product_local,d_stationarity,"
              "k_eq,k_ineq,k_box,k_stationarity,k_stationarity_beyond_rounding,k_sign,k_compl,k_scale,"
-             "feas_tol,opt_tol";
+             "feas_tol,opt_tol,d_off_working,d_worst_kind,d_worst_index,d_worst_rel,d_worst_mult,d_worst_local,"
+             "d_slack_kind,d_slack_index,d_slack_rel,d_slack_mult,d_slack_local";
         std::fprintf(out, "%s\n", h.c_str());
     }
     const char *base = std::strrchr(file.c_str(), '/');
@@ -348,9 +391,17 @@ int main(int argc, char **argv) {
 #undef HVEN_QPC_VAL
     row += "," + opt_count(converged_refinement_arms_of(s.counters)) + "," +
            opt_count(certificate_gate_refusals_of(s.counters));
-    for (const double v : {dh.rows, dh.product, dh.dual_scale, dh.stationarity, k.eq, k.ineq, k.box, k.stationarity,
-                           k.stationarity_beyond_rounding, k.sign, k.complementarity, k.scale,
-                           d.opts.feasibility_tol, d.opts.optimality_tol}) {
+    for (const double v : {dh.rows, dh.product, dh.product_local, dh.stationarity, k.eq, k.ineq, k.box,
+                           k.stationarity, k.stationarity_beyond_rounding, k.sign, k.complementarity, k.scale,
+                           d.opts.feasibility_tol, d.opts.optimality_tol, dh.off_working}) {
+        row += "," + decd(v);
+    }
+    row += std::string(",") + dh.worst_kind + "," + std::to_string(dh.worst_index);
+    for (const double v : {dh.worst_rel, dh.worst_mult, dh.worst_local}) {
+        row += "," + decd(v);
+    }
+    row += std::string(",") + dh.slack_kind + "," + std::to_string(dh.slack_index);
+    for (const double v : {dh.slack_rel, dh.slack_mult, dh.slack_local}) {
         row += "," + decd(v);
     }
     std::fprintf(out, "%s\n", row.c_str());

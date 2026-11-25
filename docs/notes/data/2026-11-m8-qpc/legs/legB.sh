@@ -4,7 +4,9 @@
 #   e.g.   legB.sh ~/Projects/hven-bench-<checkout at 27c02687> <scratch> gate-QPC/B QPC=<qpc sha> QPC-C1=<qpc-c1 sha> QPC-C2=<qpc-c2 sha>
 # For each arm: a detached hven worktree at the sha (<scratch>/<arm>/src), scripts/census_build.sh (install
 # <scratch>/<arm>/install, lane build <scratch>/<arm>/lane), legs/build_grid.sh (<scratch>/<arm>/grid). The R grid is built
-# against the census install. Prints one `declare` line per arm and one `QPC grid` tag line per grid; the caller pastes
+# against the census install. EVERY grid (R's and each arm's) compiles the SAME test-support source: the QPC arm's tree
+# (<scratch>/QPC/src/tests -- qp_dump.h differs between R and H, so a grid built from its own tree would differ by source,
+# not by library); the QPC arm must therefore be among the ARM=SHA arguments. Prints one `declare` line per arm and one `QPC grid` tag line per grid; the caller pastes
 # them into BINARIES.txt (with the H0 declare line of section 2) before any leg reads it.
 # Run under: ~/.local/bin/box-lane -- bash legB.sh ...
 set -euo pipefail
@@ -17,8 +19,7 @@ mkdir -p "$SCR" "$OUT"
 [ "$(git -C "$BENCH" rev-parse HEAD)" = "$(git -C "$BENCH" rev-parse 27c02687d9389ed43f3dbef27b4cbe389ca2b5d0)" ] || { echo "BENCH_NOT_AT_27c02687d9389ed43f3dbef27b4cbe389ca2b5d0"; exit 2; }
 [ "$(git -C "$BENCH" rev-parse HEAD:lanes)" = "$LANE_SRC" ] || { echo "LANES_TREE_MISMATCH"; exit 2; }
 grep -q "^HVEN_PIN_SHA $R_PIN" "$R_INST/HVEN_PIN.txt" || { echo "R_INSTALL_PIN_MISMATCH"; exit 2; }
-rg=$(bash "$HERE/build_grid.sh" "$R_INST" "$HVEN" "$SCR/R-grid" | cut -d' ' -f1)
-echo "QPC grid R $R_PIN $rg" | tee -a "$OUT/binaries-lines.txt"
+printf '%s\n' "$@" | grep -q '^QPC=' || { echo "QPC_ARM_REQUIRED (the grids' common test-support tree)"; exit 2; }
 for spec in "$@"; do
   arm=${spec%%=*}; sha=$(git -C "$HVEN" rev-parse "${spec#*=}")
   d=$SCR/$arm; mkdir -p "$d"
@@ -32,8 +33,14 @@ for spec in "$@"; do
   [ "$(cat "$d/lane/lanes/hven/hven_bench_cell.lane-src")" = "$LANE_SRC" ] || { echo "LANE_SRC_DIFFERS $arm"; exit 2; }
   ls=$(sha256sum "$d/lane/lanes/hven/hven_bench_cell" | cut -d' ' -f1)
   echo "declare $arm options=H0 prefix=$d/install base=$R_PIN bin=$d/lane/lanes/hven/hven_bench_cell lane_src=$LANE_SRC $sha $ls" | tee -a "$OUT/binaries-lines.txt"
-  gs=$(bash "$HERE/build_grid.sh" "$d/install" "$d/src" "$d/grid" | cut -d' ' -f1)
-  echo "QPC grid $arm $sha $gs" | tee -a "$OUT/binaries-lines.txt"
   git -C "$HVEN" diff --stat "$R_PIN" "$sha" -- src include > "$OUT/diffstat-$arm.txt"
+done
+TT=$SCR/QPC/src
+rg=$(bash "$HERE/build_grid.sh" "$R_INST" "$TT" "$SCR/R-grid" | cut -d' ' -f1)
+echo "QPC grid R $R_PIN $rg" | tee -a "$OUT/binaries-lines.txt"
+for spec in "$@"; do
+  arm=${spec%%=*}; sha=$(git -C "$HVEN" rev-parse "${spec#*=}"); d=$SCR/$arm
+  gs=$(bash "$HERE/build_grid.sh" "$d/install" "$TT" "$d/grid" | cut -d' ' -f1)
+  echo "QPC grid $arm $sha $gs" | tee -a "$OUT/binaries-lines.txt"
 done
 echo "LEG B done $(date -Is)"

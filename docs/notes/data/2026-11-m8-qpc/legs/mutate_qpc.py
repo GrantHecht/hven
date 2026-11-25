@@ -15,33 +15,37 @@ E = "include/hven/detail/qp/walk/eqp_solve.h"
 B = "include/hven/detail/qp/walk/bordered_eqp.h"
 S = "src/sqp/sqp_solver.cpp"
 
-GATE = ("                            if (exported_finite &&\n"
-        "                                detail::certificate_data_half_holds(\n"
-        "                                    data.rows, data.complementarity / data.dual_scale,\n"
-        "                                    data.stationarity_beyond_rounding, eff_opts.feasibility_tol,\n"
-        "                                    eff_opts.optimality_tol)) {")
-HOLDS = ("    return rows <= kCertificateGateRowFactor * feas_tol &&\n"
-         "           complementarity <= kCertificateGateComplFactor * feas_tol &&\n"
-         "           stationarity <= kCertificateGateStationarityFactor * opt_tol;")
+GATE = ("                            bool holds = detail::certificate_data_half_holds(\n"
+        "                                data, eff_opts.feasibility_tol, eff_opts.optimality_tol);")
+HOLDS = ("    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n"
+         "           r.product <= kCertificateGateComplFactor * feas_tol &&\n"
+         "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&\n"
+         "           r.off_working == 0.0;")
+STICKY = "    const auto smax = [](double acc, double v) { return detail::nan_sticky_max(acc, v); };"
+PLAIN = "    const auto smax = [](double acc, double v) { return v > acc ? v : acc; };"
 ARM = "            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {\n            ++counters.converged_refinement_arms;\n            eqp_refinement_ = EqpRefinement::kConverged;\n        }"
 
 # id: [(file, old, new, expected occurrences), ...]
 MUT = {
     # ---- C2: the certificate's data half ---------------------------------------------------------
-    "Q1": [(W, GATE, "                            if (true) {", 1)],
-    "Q2": [(WH, HOLDS, "    return rows <= kCertificateGateRowFactor * feas_tol;", 1)],
-    "Q3": [(WH, HOLDS, "    return complementarity <= kCertificateGateComplFactor * feas_tol;", 1)],
+    "Q1": [(W, GATE, "                            bool holds = true;", 1)],
+    "Q2": [(WH, HOLDS, "    return r.rows <= kCertificateGateRowFactor * feas_tol;", 1)],
+    "Q3": [(WH, HOLDS, "    return r.product <= kCertificateGateComplFactor * feas_tol;", 1)],
     "Q4": [(WH, "constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;",
                 "constexpr double kCertificateGateRowFactor = 100.0;", 1)],
     "Q5": [(WH, "constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;",
                 "constexpr double kCertificateGateComplFactor = 1000.0;", 1)],
-    "Q6": [(WH, HOLDS, "    return !(rows > kCertificateGateRowFactor * feas_tol) &&\n           !(complementarity > kCertificateGateComplFactor * feas_tol) &&\n           !(stationarity > kCertificateGateStationarityFactor * opt_tol);", 1)],
+    "Q6": [(WH, HOLDS, "    return r.finite && !(r.rows > kCertificateGateRowFactor * feas_tol) &&\n"
+                       "           !(r.product > kCertificateGateComplFactor * feas_tol) &&\n"
+                       "           !(r.stationarity_beyond_rounding > kCertificateGateStationarityFactor * opt_tol) &&\n"
+                       "           !(r.off_working > 0.0);", 1)],
     "Q7": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
                "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kInfeasible;", 1)],
     "Q8": [(W, "                                ++counters.certificate_gate_refusals;\n                                status = QpStatus::kNumericalError;",
                "                                status = QpStatus::kNumericalError;", 1)],
-    "Q9": [(WH, "        out.rows = std::max(out.rows, std::max(below, above) / row_scale);\n        const BoundState st",
-                "        const BoundState st", 1)],
+    "Q9": [(WH, "        out.rows = smax(out.rows, std::isnan(below) || std::isnan(above)\n"
+                "                                      ? std::numeric_limits<double>::quiet_NaN()\n"
+                "                                      : viol / row_scale);\n", "", 1)],
     # ---- C1: the converged refinement at the release re-admission --------------------------------
     "Q10": [(W, ARM, "            false) {\n        }", 1)],
     "Q11": [(W, "            ++counters.converged_refinement_arms;\n            eqp_refinement_ = EqpRefinement::kConverged;\n",
@@ -62,12 +66,41 @@ MUT = {
                 "                    1,\n                    [&](const Vec &r) { return detail::solve_vec(kkt, r); }, residual_of);", 1),
             (B, "            best, res, floor, detail::kMaxBorderRefineSteps - 1,", "            best, res, floor, 1,", 1)],
     # ---- C2, settler C553 Q3: stationarity re-read on the exported point; the finiteness guard ----
-    "Q20": [(WH, HOLDS, "    return rows <= kCertificateGateRowFactor * feas_tol &&\n           complementarity <= kCertificateGateComplFactor * feas_tol;", 1)],
-    "Q21": [(W, "                            if (exported_finite &&\n                                detail::certificate_data_half_holds(",
-                "                            if (detail::certificate_data_half_holds(", 1)],
-    # ---- C2, the Q5 defect fix: the product read against the dual scale --------------------------
-    "Q22": [(W, "                                    data.rows, data.complementarity / data.dual_scale,\n",
-                "                                    data.rows, data.complementarity,\n", 1)],
+    "Q20": [(WH, HOLDS, "    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n"
+                        "           r.product <= kCertificateGateComplFactor * feas_tol &&\n"
+                        "           r.off_working == 0.0;", 1)],
+    "Q21": [(WH, "    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n",
+                 "    return r.rows <= kCertificateGateRowFactor * feas_tol &&\n", 1)],
+    # ---- C2, the product's scale (C553 Q5 defect fix; settler C567 row-local scale) --------------
+    "Q22": [(WH, "        return num / std::max(local_scale, std::numeric_limits<double>::min());",
+                 "        return num;", 1)],
+    "Q23": [(WH, "std::abs(atl(i))), std::abs(z(i)));\n    }\n", "std::abs(atl(i))), std::abs(z(i)));\n    }\n    t.setConstant(t.maxCoeff());\n", 1)],
+    "Q24": [(WH, "std::abs(atl(i))), std::abs(z(i)));\n    }\n", "std::abs(atl(i))), 0.0);\n    }\n", 1)],
+    "Q25": [(WH, "            local = smax(local, std::abs(mult) * norm_inf);\n", "", 1)],
+    "Q26": [(WH, "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&\n",
+                 "           r.stationarity <= kCertificateGateStationarityFactor * opt_tol &&\n", 1)],
+    "Q27": [(WH, "            out.product =\n"
+                 "                smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));\n",
+                 "            (void)at;\n", 1)],
+    # ---- C2, pre-freeze review S2 / S8 / S1 -------------------------------------------------------
+    "Q28": [(WH, "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&\n"
+                 "           r.off_working == 0.0;",
+                 "           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol;", 1)],
+    "Q29": [(WH, STICKY, PLAIN, 1)],
+    "Q30": [(WH, "        constexpr double kUnitRoundoff = 0.5 * std::numeric_limits<double>::epsilon();",
+                 "        constexpr double kUnitRoundoff = std::numeric_limits<double>::epsilon();", 1)],
+    "Q31": [(WH, STICKY, PLAIN, 1),
+            (WH, "    return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&\n",
+                 "    return r.rows <= kCertificateGateRowFactor * feas_tol &&\n", 1)],
+    # ---- the SQP folds of the two counters at the four sites besides the main QP (Q18) ------------
+    "Q32": [(S, "        out.converged_refinement_arms += qs_e.counters.converged_refinement_arms;\n"
+                "        out.certificate_gate_refusals += qs_e.counters.certificate_gate_refusals;\n", "", 1)],
+    "Q33": [(S, "        st.out.counters.converged_refinement_arms += phase.counters.converged_refinement_arms;\n"
+                "        st.out.counters.certificate_gate_refusals += phase.counters.certificate_gate_refusals;\n", "", 1)],
+    "Q34": [(S, "        st.out.counters.converged_refinement_arms += retried.counters.converged_refinement_arms;\n"
+                "        st.out.counters.certificate_gate_refusals += retried.counters.certificate_gate_refusals;\n", "", 1)],
+    "Q35": [(S, "        st.out.counters.converged_refinement_arms += mj.qs_soc.counters.converged_refinement_arms;\n"
+                "        st.out.counters.certificate_gate_refusals += mj.qs_soc.counters.certificate_gate_refusals;\n", "", 1)],
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
