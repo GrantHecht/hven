@@ -1,0 +1,9 @@
+ include/hven/core/solver_counters.h            |  32 ++-
+ include/hven/detail/qp/walk/bordered_eqp.h     |  45 +++-
+ include/hven/detail/qp/walk/certificate_seam.h |  62 ++++-
+ include/hven/detail/qp/walk/eqp_solve.h        |  70 +++++-
+ include/hven/detail/qp/walk/walk_engine.h      | 329 +++++++++++++++++++++++--
+ include/hven/detail/sqp/sqp_major_row.h        |   2 +-
+ src/qp/walk/walk_engine.cpp                    |  36 +--
+ src/sqp/sqp_solver.cpp                         |  12 +-
+ 8 files changed, 532 insertions(+), 56 deletions(-)
