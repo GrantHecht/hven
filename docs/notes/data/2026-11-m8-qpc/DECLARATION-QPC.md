@@ -2,9 +2,10 @@
 
 > **STATUS: UNFROZEN DRAFT (2026-11-25, after settler rulings C553, C566-C568 and C581).** Not a pre-registration yet.
 > The Fable pre-freeze review and its scoped re-review are done (C567, C581); the freeze is the settler's, and it is
-> HELD by C581's STOP rule: the development run of leg M1R found certified QP exits that fail column-local
-> stationarity at 10 opt_tol while the global test passes (section 4), so whether column-local stationarity and
-> per-column pricing fold into QPC is the settler's decision before any freeze. No placeholder remains; the `<...>`
+> HELD by C581's STOP rule, which fired: the development run of leg M1R found certified QP exits that fail
+> column-local stationarity at 10 opt_tol while the global test passes (section 4). RULING (settler C582): the GATE IS
+> UNCHANGED and this round's scope is the data half (C1, C2); the stationarity half is the follow-on round QPC-S. This
+> round claims no zero false QP certificates beyond the data half (limitation (iii)). No placeholder remains; the `<...>`
 > fields of the BINARIES.txt template (section 2) are written by leg B. The harness is hven-bench `ens` `27c02687`
 > (section 2; settler C559). No leg of this file has run as a leg (leg M1R's development run is not its leg run).
 
@@ -146,8 +147,11 @@ of leg M1R (section 4) counts, on TRAIN-238 member 0, 1,512 of 12,698 certified 
 column-local stationarity at 10 opt_tol, 148 of them (16 cells) on a column whose ABSOLUTE excess also exceeds 10
 opt_tol -- up to a free column left 13.3 off stationary under a global scale of 1.6e10 (HS74 / HS75 sqp-qn) -- and on
 SENS-Q 76 of 108 (4 with such a column, the two YORKNET dumps A0 qp3 and RDV qp5 on both algebras). Column-local
-stationarity and per-column pricing are the remedy; whether they fold into this round is the settler's (C581 STOP
-rule). Three further limitations, stated (pre-freeze re-review should 3 and should 5): (vii) the slack test can REFUSE
+stationarity and per-column pricing are the remedy; they do NOT fold into this round (settler C582: the gate is
+unchanged, scope = the data half) and are the follow-on round QPC-S. M1R column-local numbers (development run): 1,512
+certified verdicts in 54 cells, of which 148 hidden verdicts in 16 cells, plus 4 hidden on SENS-Q; the natural-walk case
+is `decoupled_ineq_qp(1,1e9)`. No claim of zero false QP certificates is made beyond the data half; NLP-level
+certificates remain guarded by the outer KKT test. Three further limitations, stated (pre-freeze re-review should 3 and should 5): (vii) the slack test can REFUSE
 a point that is optimal to within rounding -- a weakly active working row held slack under a small multiplier that is
 not rounding-zero (ineq_line_qp(0.25) at its optimum with the row working under lambda 1e-12: product and
 stationarity pass, slack 0.5 refuses); the error is in the safe direction (kNumericalError, an SQP route change, never
