@@ -1160,6 +1160,12 @@ void check_full_step_lever_on_the_sound_warm_arms() {
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#elif defined(NDEBUG)
+    // macOS (Accelerate) Release, observed on CI run 45765039669 after M8 QPC: 27 / 41 (the
+    // Debug column's 26 / 40 before it). Counts only: the lever-independence, the statuses and
+    // the answers are asserted above and held.
+    EXPECT_EQ(27, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(41, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
 #else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
@@ -1191,16 +1197,23 @@ void check_full_step_lever_on_the_sound_warm_arms() {
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(49, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
-#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
+#elif defined(NDEBUG) && !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     {
+        // Off the reference build (MKL: the Linux runners of other CPUs, Windows): recorded, not
+        // pinned. The pre-QPC pairs (22 / 40, 21 / 39) are stale, and the post-QPC columns are
+        // observed only for Windows (CI run 45765039669: 21 / 46, its failing chain restoring once
+        // under the lever as the reference's does), so no pair is asserted; the corpus's portable
+        // contract (statuses, answers, the lever-independence of both) is asserted above.
         const auto &hs15 = problem("HS15").cell[kArmWarm][kOn][kOn];
         hven::test_support::record_off_reference_route(
             "HsSweepCorpus.hs15_warm_on_on",
             fmt::format("full_step_majors={} majors={}", hs15.full_step_majors, hs15.majors));
-        EXPECT_TRUE((hs15.full_step_majors == 22 && hs15.majors == 40) ||
-                    (hs15.full_step_majors == 21 && hs15.majors == 39))
-            << hs15.full_step_majors << "/" << hs15.majors;
+        EXPECT_GT(hs15.full_step_majors, 0);
     }
+#elif defined(NDEBUG)
+    // macOS (Accelerate) Release, observed on CI run 45765039669 after M8 QPC: 22 / 49.
+    EXPECT_EQ(22, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(49, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
 #else
     EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(39, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
@@ -1685,8 +1698,16 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // the rescued branch are unchanged.
 #if defined(NDEBUG) && HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(off.majors, 44);
-#elif defined(NDEBUG) && defined(__linux__) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_TRUE(off.majors == 40 || off.majors == 39) << off.majors;
+#elif defined(NDEBUG) && !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    // Off the reference build (MKL): recorded, not pinned -- the pre-QPC pair {40, 39} is stale
+    // and Windows reads 41 (CI run 45765039669), a value this lane's other CPUs have not shown.
+    hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_held_off",
+                                                   fmt::format("majors={}", off.majors));
+    EXPECT_GT(off.majors, 0);
+#elif defined(NDEBUG)
+    // macOS (Accelerate) Release, observed on CI run 45765039669 after M8 QPC: 44, the
+    // reference build's column.
+    EXPECT_EQ(off.majors, 44);
 #else
     EXPECT_EQ(off.majors, 39);
 #endif
@@ -1702,6 +1723,13 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     EXPECT_EQ(on.minors, 142);
     EXPECT_EQ(on.factorizations, 58);
     EXPECT_EQ(on.rejected, 4);
+#elif defined(NDEBUG)
+    // macOS (Accelerate) Release, observed on CI run 45765039669: the step arm did not move
+    // under M8 QPC there (43 / 149 / 64 / 6, the reference's pre-QPC column).
+    EXPECT_EQ(on.majors, 43);
+    EXPECT_EQ(on.minors, 149);
+    EXPECT_EQ(on.factorizations, 64);
+    EXPECT_EQ(on.rejected, 6);
 #else
     EXPECT_EQ(on.majors, 42);
     EXPECT_EQ(on.minors, 142);
