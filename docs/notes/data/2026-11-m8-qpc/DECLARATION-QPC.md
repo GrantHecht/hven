@@ -1,12 +1,10 @@
 # DECLARATION-QPC -- the SQP walk QP's correctness round: converged refinement at the release re-admission, and the certificate's data half
 
-> **STATUS: UNFROZEN DRAFT (2026-11-25, after settler rulings C553, C566-C568 and C581).** Not a pre-registration yet.
-> The Fable pre-freeze review and its scoped re-review are done (C567, C581); the freeze is the settler's, and it is
-> HELD by C581's STOP rule, which fired: the development run of leg M1R found certified QP exits that fail
-> column-local stationarity at 10 opt_tol while the global test passes (section 4). RULING (settler C582): the GATE IS
-> UNCHANGED and this round's scope is the data half (C1, C2); the stationarity half is the follow-on round QPC-S. This
-> round claims no zero false QP certificates beyond the data half (limitation (iii)). No placeholder remains; the `<...>`
-> fields of the BINARIES.txt template (section 2) are written by leg B. The harness is hven-bench `ens` `27c02687`
+> **STATUS: FROZEN (2026-11-26), at branch head 7b0125001 (code head f0ba4e101), by settler ruling C583.** Pre-registration:
+> this file is never edited from this commit on; deviations go in `gate-QPC/DEVIATIONS.md`, a correction is a successor
+> `DECLARATION-QPC-r2.md` committed before any row it governs. The ruling history it was frozen under: C553, C566-C568,
+> C581 (STOP rule fired), C582 (gate unchanged, scope = the data half C1/C2; stationarity half = round QPC-S), C583
+> (pre-freeze verified; freeze order E-R -> N2 -> P-GATES.md, then the legs). The harness is hven-bench `ens` `27c02687`
 > (section 2; settler C559). No leg of this file has run as a leg (leg M1R's development run is not its leg run).
 
 Task: M8 QPC, the SQP QP-subproblem correctness round that replaces the deferred P-1a dual-centring round. Once frozen,
