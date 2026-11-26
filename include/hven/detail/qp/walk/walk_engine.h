@@ -1286,6 +1286,7 @@ constexpr Index kMaxSuspectEscalations = 3;
 // (section 4b); the exit's gates guard it. (The release re-admission took the same rung, at most
 // twice, until M8 QPC replaced it by the converged refinement.)
 constexpr double kDualRegDecreaseFactor = 1e-2;
+constexpr Index kMaxDualRegDecreases = 2; // QPC-C2 arm: the release re-admission's rung restored
 
 // --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
 //

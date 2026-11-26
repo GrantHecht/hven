@@ -3225,12 +3225,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
         // THE RELEASE RE-ADMISSION (walk_engine.h, Degeneracy): the refresh just re-admitted the
         // row the previous pass released, so the residual the row was released with was dual_mu's
-        // footprint. Every EQP solve from here on converges its mu-free refinement (eqp_solve.h),
-        // at the same dual_mu and on the same factor state; once per solve.
+        // footprint. QPC-C2 ARM (C1 reverted, the round's component arm; never shipped as such):
+        // R's dual_mu rung, one decade pair down and the factor state discarded, at most twice.
         if (released_row_out && in_working(ws, dropped.idx) &&
-            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {
-            ++counters.converged_refinement_arms;
-            eqp_refinement_ = EqpRefinement::kConverged;
+            counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
+            eff_opts.dual_regularization > 0.0) {
+            ++counters.dual_regularization_decreases;
+            eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
+            discard_factor_state();
         }
         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
             standstill_steps = standstill_steps_in + 1;
