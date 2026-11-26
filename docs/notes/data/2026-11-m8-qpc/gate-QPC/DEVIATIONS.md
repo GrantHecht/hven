@@ -69,7 +69,7 @@ Written at launch (2026-11-26) by the freeze agent. Each item says what the decl
     | E-R (census copy verified, certificates, tiers, freezes) | complete (9e78f4a37, `ER.done`) | kept; it ran before any arm row, and still does |
     | N0 x3 (SENS-Q neutrality) | complete: 67 cells, differences=0, committed 9c5ca8398 (`N0.done`); run dirs byte-identical to the committed copies | kept |
     | Q x3 (V-QP, V-HONEST) | complete: failures=0, exceptions=0, same commit | kept |
-    | member-0 development runs x3 (DEV store, driverX) | NOT STARTED: each of the three arm processes had planned its `hs` leg and was queued on box-lane (log: only the "LEG ... 22 cells" line, no lane acquired); the only residue was three `leg.json` stubs in the DEV store | stubs (`qpc-m0dev-store/TRAIN-238/QPC`, `QPC-C1`, `QPC-C2`) moved aside; leg runs whole. `diff -rq` of the DEV store against the ensemble store now shows only the empty TRAIN-238 arm dirs absent, as at E-R |
+    | member-0 development runs x3 (DEV store, driverX) | NOT STARTED: each of the three arm processes had planned its `hs` leg and was queued on box-lane (log: only the "LEG ... 22 cells" line, no lane acquired); the only residue was three `leg.json` stubs in the DEV store | stubs (`qpc-m0dev-store/TRAIN-238/QPC`, `QPC-C1`, `QPC-C2`) moved aside; leg runs whole. `diff -rq` of the DEV store against the ensemble store is now empty, as at E-R |
     | N2, P-GATES | not started | planned afresh |
     | driverY: C (ctest Rel+Dbg) | NOT STARTED (queued on box-lane since 03:24, lane never acquired; `Y-C.log` empty; no `gate-QPC/C`, no `R-src`) | empty log moved aside; leg runs whole |
     | driverY: N1, N3H/N3R/N3, M, M1R, SmG, SmC | not started | planned afresh |
