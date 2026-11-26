@@ -1,0 +1,51 @@
+# tier assignment (DECLARATION-TU-2.md section 7); written once, before any candidate leg
+# store: /home/ghecht/Projects/hven-bench-qpc/.scratch/qpc-store
+# baseline cells: 46
+# arm: H0 (I19-2a)
+lane,problem_set,problem,base_label,tier,reason
+hven-sqp,nlp,ACOPP118,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ACOPP118,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ACOPP57,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ACOPP57,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ACOPR118,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,ACOPR118,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,ACOPR57,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ACOPR57,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,BIGBANK,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,BIGBANK,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,nlp,BRITGAS,default,exclusive,baseline reached with exclusive wall_s 179.6 > 100
+hven-sqp,nlp,BRITGAS,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,DALLASM,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,DALLASM,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,MSS2,default,exclusive,baseline dnf_wall
+hven-sqp,nlp,MSS2,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,MSS3,default,exclusive,baseline dnf_wall
+hven-sqp,nlp,MSS3,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,nlp,NET3,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,NET3,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,READING6,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,READING6,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,READING8,default,exclusive,baseline dnf_wall
+hven-sqp,nlp,READING8,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,nlp,SAWPATH,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,SAWPATH,sqp-qn,exclusive,baseline reached with exclusive wall_s 166.4 > 100
+hven-sqp,nlp,SMBANK,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,SMBANK,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRB,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRB,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRC,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRC,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRD,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRD,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRE,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRE,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRG,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,STEENBRG,sqp-qn,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,TAX213322,default,exclusive,baseline dnf_wall
+hven-sqp,nlp,TAX213322,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,nlp,TAX53322,default,exclusive,baseline dnf_wall
+hven-sqp,nlp,TAX53322,sqp-qn,exclusive,baseline dnf_wall
+hven-sqp,nlp,YORKNET,default,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,YORKNET,sqp-qn,corun,"baseline measured exclusive, within 100 s or not a reach"
+hven-sqp,nlp,ZAMB2-8,default,corun,baseline co-run row (wall not read)
+hven-sqp,nlp,ZAMB2-8,sqp-qn,corun,baseline co-run row (wall not read)

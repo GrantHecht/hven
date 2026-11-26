@@ -1,0 +1,1 @@
+FROZEN /home/ghecht/Projects/hven/.claude/worktrees/qpc/docs/notes/data/2026-11-m8-qpc/cells/FREEZE-TRAIN.json: 714 cells, 6 members, classes {'STABLE': 535, 'COST-UNSTABLE': 104, 'STATUS-UNSTABLE': 75, 'NOT-REACHED': 0}, null pairs 15

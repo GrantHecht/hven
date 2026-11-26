@@ -1,0 +1,1 @@
+FROZEN /home/ghecht/Projects/hven/.claude/worktrees/qpc/docs/notes/data/2026-11-m8-qpc/cells/FREEZE-NLP46.json: 46 cells, 3 members, classes {'STABLE': 9, 'COST-UNSTABLE': 16, 'STATUS-UNSTABLE': 11, 'NOT-REACHED': 10}, null pairs 3
