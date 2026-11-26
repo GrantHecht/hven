@@ -1980,22 +1980,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                 }
                                 ++counters.optimal_row_gray_exits;
                             }
-                            // THE CERTIFICATE'S DATA HALF (walk_engine.h, section 5; M8 QPC):
-                            // the exported point read from the QP's own data, no footprint.
-                            const detail::CertificateReading data =
-                                detail::certificate_reading(qp, ws, x, lambda_e, lambda_i, z);
-                            bool holds = detail::certificate_data_half_holds(
-                                data, eff_opts.feasibility_tol, eff_opts.optimality_tol);
-#ifdef HVEN_TESTING
-                            // Gate seam: counts every verdict; an armed fixture forces a refusal.
-                            holds = detail::testing::qp_certificate_gate_verdict(holds);
-#endif
-                            if (holds) {
-                                status = QpStatus::kOptimal;
-                            } else {
-                                ++counters.certificate_gate_refusals;
-                                status = QpStatus::kNumericalError;
-                            }
+                            // QPC-C1 ARM (C2 reverted, the round's component arm; never shipped as
+                            // such): no data half, R's certified exit.
+                            status = QpStatus::kOptimal;
                         }
                     }
                 }
