@@ -56,3 +56,31 @@ Written at launch (2026-11-26) by the freeze agent. Each item says what the decl
      makes the endpoint VOID. D runs LAST (launched by the last finisher of the bar legs; `driverD.sh`). The pdiv tools' hard-coded cwd is hven-bench-pdiv (data lookup);
      they are used unchanged. If any D step cannot run it is recorded NOT RUN with the reason, here and in `gate-QPC/D/`.
 10. **CI.** Dispatched once at code f0ba4e101 (run 45765039669); see STATE.md.
+11. **Power outage 2026-11-26 ~10:04 EST (declared interruption, not a protocol change).** The box lost power and rebooted (boot 10:03:35); every
+    process died, including driverX (pid 715440) and driverY (pid 773052). Recovered by a recovery agent at 10:12-10:20; the code (f0ba4e101), the frozen
+    declaration (ff371b35e) and the harness were not touched. Rule applied: a complete leg is kept; a partial leg re-runs whole with its partial outputs
+    moved (never deleted) to `.scratch/qpcrun/run1-outage/` (dev-store stubs under `dev-store/`, the stale `Y.forked` sentinel under `markers/`, copies of
+    the pre-outage driver logs and pid files under `logs/` and `pids/`).
+    **Leg-by-leg state at the outage** (no E-A row of any arm existed; no ensemble-store row of an arm existed):
+    | leg | state | disposition |
+    |---|---|---|
+    | B (three installs, lanes, four grids) | complete 03:24 (`B.done`, "LEG B done") | kept; the three lane sha256 re-verified against BINARIES.txt (QPC 24033940.., QPC-C1 163fbd1a.., QPC-C2 a4de64d0..) |
+    | BINARIES / cells commit | complete (bab732cfa, `BIN.done`) | kept |
+    | E-R (census copy verified, certificates, tiers, freezes) | complete (9e78f4a37, `ER.done`) | kept; it ran before any arm row, and still does |
+    | N0 x3 (SENS-Q neutrality) | complete: 67 cells, differences=0, committed 9c5ca8398 (`N0.done`); run dirs byte-identical to the committed copies | kept |
+    | Q x3 (V-QP, V-HONEST) | complete: failures=0, exceptions=0, same commit | kept |
+    | member-0 development runs x3 (DEV store, driverX) | NOT STARTED: each of the three arm processes had planned its `hs` leg and was queued on box-lane (log: only the "LEG ... 22 cells" line, no lane acquired); the only residue was three `leg.json` stubs in the DEV store | stubs (`qpc-m0dev-store/TRAIN-238/QPC`, `QPC-C1`, `QPC-C2`) moved aside; leg runs whole. `diff -rq` of the DEV store against the ensemble store now shows only the empty TRAIN-238 arm dirs absent, as at E-R |
+    | N2, P-GATES | not started | planned afresh |
+    | driverY: C (ctest Rel+Dbg) | NOT STARTED (queued on box-lane since 03:24, lane never acquired; `Y-C.log` empty; no `gate-QPC/C`, no `R-src`) | empty log moved aside; leg runs whole |
+    | driverY: N1, N3H/N3R/N3, M, M1R, SmG, SmC | not started | planned afresh |
+    | driverEA x3 (E-A) | not started (no `EA-*.forked`, no marker) | forked by driverX after P-GATES as designed |
+    | driverD (V-PDIV) | not started (no `D.launch` sentinel) | launched last by the last finisher, as designed |
+    **A defect shared with RST-B, found at the inventory and repaired before relaunch.** `hven-bench-qpc` had no `sets/cutest/sif/` (the CUTEst instances
+    are fetched and git-ignored, never committed); every TRAIN-238 `sd` leg (member-0 development runs, E-A) would have crashed on
+    `FileNotFoundError .../sets/cutest/sif/ACOPP30.SIF`, as the RST-B round's legs did on 2026-11-25. `sets/cutest/sif/` copied from `hven-bench-ens` (same pin)
+    and proven by `scripts/fetch_cutest_sif.py --verify` ("rule re-applied at ebbc673b87f5 -- 35 problems, matching the pin; 0 fetched, 35 already the pinned
+    bytes"). No code or row-path change. The leg B grids/installs/N0/Q legs did not need CUTEst.
+    **Relaunch.** The stale `Y.forked` sentinel (which would have made driverX skip forking driverY) was moved to `run1-outage/markers/`; the markers
+    `B.done BIN.done ER.done N0.done` were left. `driverX.sh` relaunched unchanged at 10:16 (setsid, log `.scratch/qpcrun/logs/driverX.log`); it forked
+    driverY.sh itself at once and started the three member-0 development runs. Real pids (argv `bash .../driverX.sh` / `driverY.sh`): driverX 72984,
+    driverY 72991 (`driverX.pid`, `driverY.pid`). QPC queues on box-lane behind the RST-B round's relaunched steps and other agents' lane jobs, as before.
