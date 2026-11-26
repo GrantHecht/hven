@@ -23,3 +23,10 @@ gcommit() { # gcommit "<message>" path...
   glock git -C $W add -- "$@" && glock git -C $W commit -q -m "$msg" && glock git -C $W push -q origin qpc
 }
 stop() { echo "STOP $(date -Is) $*" | tee -a $RUN/STOP.txt; exit 3; }
+# D (V-PDIV) runs LAST: the last finisher of {driverY, driverEA x3} launches it (atomic mkdir, no polling, no waiting).
+maybe_launch_D() {
+  for f in Y.ALLDONE EA-QPC.ALLDONE EA-QPC-C1.ALLDONE EA-QPC-C2.ALLDONE; do [ -f $RUN/$f ] || return 0; done
+  mkdir $RUN/D.launch 2>/dev/null || return 0
+  setsid nohup bash $G/gate-QPC/chain/driverD.sh > $RUN/logs/driverD.log 2>&1 < /dev/null &
+  echo $! > $RUN/driverD.pid
+}

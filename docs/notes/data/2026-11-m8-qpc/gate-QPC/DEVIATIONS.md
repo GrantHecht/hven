@@ -27,12 +27,32 @@ Written at launch (2026-11-26) by the freeze agent. Each item says what the decl
 8. **P-GATED / SENS-Q P-POWER script.** The declaration freezes the definition (section 4) but names no script for `cells/sens_q_gated.tsv`;
    `gate-QPC/chain/p_gates.py` computes it from leg N0's CSVs using `cmp_sensq.vqp_failures` as the "data-half reading fails" test (that function
    includes the pinned-optimum check, the only data-half reading the declared code has).
-9. **NOT RUN, no script exists (needs a ruling; nothing was improvised):**
-   * **N3** (CENSUS-57 H vs the baseline, CEN-R3): no leg script in `legs/`. `scripts/run_walk_census.sh` + `census_compare.py` exist, but the
-     declaration's baseline `bench/baselines/2026-10-m7-close-corpus/` predates R (99712ec32); whether R itself still matches it is not stated.
-   * **P** (PILOT-62 under each arm): the pinned harness's `i19_run.py pilot` and `scripts/census_pilots.py` plan the pilot through `plan_pilot`
-     without registering declared binary arms (`STOP: no arm QPCT in the spec` reproduced with a dry stand-in), so they cannot run QPC / QPC-C1 / QPC-C2.
-     RST-B's `rstb_pilots.py` (harness branch rstb-harness 6ff0dd4, not 27c02687) registers them. Running it means using a script from another harness commit.
-   * **D** (V-PDIV): needs the local `qpc-pdiv` build and the pdiv worktree's tools; no script in `legs/`.
-   * **CI**: triggered separately (see STATE.md).
-   CENSUS-57 P-POWER depends on N3 and is therefore not computed.
+9. **Settler rulings C584 on the three gaps (carried out; supersedes the first-draft "NOT RUN" list).**
+   * **N3 (CENSUS-57), ruling C584(1).** Run as declared: H against the M7-close baseline `bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv`
+     (CEN-R3) with the repo's `scripts/run_walk_census.sh` + `scripts/census_compare.py` (exact 13-column criterion, comparator's own, no residual gate),
+     whole leg under `box-lane --exclusive` (deadline-status cells solo, the script's own T1/T2/T3 tiering from the frozen baseline). ALSO run for R
+     (99712ec32) on the same baseline. The corpus runner is `hven_sqp_corpus` (the replay/census binary), built from the qpc tree for H and from the N1
+     base tree (`.scratch/qpcrun/R-src` at 99712ec32) for R, both Release/SAFER_FAST as leg N1 builds them; the census LANE binary 7d2f9f37 (hven_bench_cell)
+     is a different program and cannot run CENSUS-57, so "R" here is the R source's corpus binary (sha256 printed in each leg log). A mismatch that R shows
+     too is PRE-EXISTING and listed on its own; only an H-only mismatch counts against N3: on a cell whose own side line (`HVEN_BENCH_QPC_SIDE`) has both
+     counters 0 it FAILS the bar (it must still be re-run ALONE, CLAUDE.md section 7, before it is called one), with a non-zero counter it is a declared
+     mover. CENSUS-57 P-POWER = cells with converged_refinement_arms > 0 / certificate_gate_refusals > 0 under H (`gate-QPC/chain/n3_report.py`);
+     it is NOT in P-GATES.md (that file is committed before the legs that produce it): it is in `gate-QPC/leg-N3.log`. Legs N3H, N3R, N3 in driverY after N1.
+   * **P (PILOT-62), ruling C584(2).** `hven-bench-qpc/scripts/qpc_pilots.py` is `rstb_pilots.py` (hven-bench rstb-harness 6ff0dd4) copied with only its
+     docstring first line changed (a copy is committed as `gate-QPC/chain/qpc_pilots.py`): it registers the declared binary arms
+     (`i19_cells.register_binary_arms`) and then runs `census_pilots.main` unchanged. PROOF: (a) `git -C hven-bench-qpc diff 27c02687 -- tu runners lanes schema
+     sets scripts/census_pilots.py` is empty (0 lines; the only new file is scripts/qpc_pilots.py, untracked); (b) `i19_run.plan_pilot` for H0, H0@x1 and H0@t3
+     (full plan JSON: cells, labels, argv) is byte-identical with and without the registration (24284 / 32846 / 30986 bytes). The pilot leg per arm (6 members:
+     member 0 + x1..x5; at most 4 arms per box-lane acquisition; tag = the arm's own declare line, `--tag "declare <arm> "`), then each member's KILL rows alone,
+     then the certificate leg (explicit arm names), all in driverEA before the readers.
+   * **D (V-PDIV), ruling C584(3); reported, never a bar, no claim rests on it.** The declaration (section 5.2) names the three commits explicitly:
+     `a70c79e34`, `1b3b5e06d`, `c3b4b8f1d` (the pdiv branch has two later QPD-diagnostic commits, 964ea80ec and 10f0b4699, which are NOT meant). The local branch
+     `qpc-pdiv` (worktree `.scratch/qpcrun/pdiv-src`, never pushed) = H f0ba4e101 + those three, cherry-picked cleanly (no conflict): 18b6c1c48, 976f7def1, 5eb7eb24d.
+     R's side = 99712ec32 + the same three = pdiv commit c3b4b8f1d; its existing install `hven-bench-pdiv/.hven/install-c3b4b8f1ded9` (pin verified) is reused
+     read-only. Both lanes are built with this harness's `scripts/i19_build_lane.sh` (ens 27c02687, tags PDQ / PDR3) rather than the pdiv study's i19 harness 56fa03f,
+     so the control compares like with like; the sample runs through the pdiv worktree's own `runcells.py` (tasks1.tsv + tasks2.tsv) and its `qpflip.py`, `harm.py`,
+     `cmp.py`. The reproduction control (`chain/d_control.py`, the study's own verify.py rule: status, iterations, factorizations, eval_f, eval_jac, objective on every
+     H0 task) compares each diagnostic build to its non-diagnostic counterpart's member-0 rows in the QPC store (R: census H0; QPC: the E-A member-0 rows); a failure
+     makes the endpoint VOID. D runs LAST (launched by the last finisher of the bar legs; `driverD.sh`). The pdiv tools' hard-coded cwd is hven-bench-pdiv (data lookup);
+     they are used unchanged. If any D step cannot run it is recorded NOT RUN with the reason, here and in `gate-QPC/D/`.
+10. **CI.** Dispatched once at code f0ba4e101 (run 45765039669); see STATE.md.

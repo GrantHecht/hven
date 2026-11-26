@@ -23,6 +23,20 @@ run_member $A $ALL,NLP-46
 for s in 1 2; do run_member $A@x$s $ALL,NLP-46; done
 for s in 3 4 5; do run_member $A@x$s $ALL; done
 for s in 1 2 3 4 5; do run_member $A@t$s TRAIN-238; done
+# P (PILOT-62, C584(2)): the 6 members of the arm (member 0 + x1..x5), via the arm-registering wrapper (scripts/qpc_pilots.py = rstb_pilots.py ported,
+# no row-path change; proof in DEVIATIONS.md), at most 4 arms per box-lane acquisition, then the KILL rows alone.
+if [ ! -f $RUN/EA-$A-pilot.done ]; then
+  export CENSUS_HVEN_PREFIX=$(arm_inst $A)
+  DEC=/home/ghecht/Projects/hven-bench-ens/.scratch/h3/decoded
+  for grp in "$A $A@x1 $A@x2 $A@x3" "$A@x4 $A@x5"; do
+    echo "== pilots $grp $(date -Is)"
+    $PY $HB/scripts/qpc_pilots.py run $grp --store $STORE --binary $(arm_lane $A) --binaries $BIN --tag "declare $A " --decoded $DEC >> $RUN/logs/EA-$A-pilot.log 2>&1 || stop "pilot run ($grp) failed: see $RUN/logs/EA-$A-pilot.log"
+  done
+  for m in $A $A@x1 $A@x2 $A@x3 $A@x4 $A@x5; do
+    $PY $HB/scripts/qpc_pilots.py alone $m --store $STORE --binary $(arm_lane $A) --binaries $BIN --tag "declare $A " --decoded $DEC >> $RUN/logs/EA-$A-pilot.log 2>&1 || stop "pilot alone ($m) failed"
+  done
+  touch $RUN/EA-$A-pilot.done
+fi
 # certificate leg (V2): a false certificate under the arm FAILS the arm (reported by the reader), but the leg itself stops on one
 if [ ! -f $RUN/EA-$A-certs.done ]; then
   echo "== certs $A $(date -Is)"
@@ -44,3 +58,4 @@ for f in TRAIN NLP46; do
 done
 echo "EA $A done $(date -Is) (readers: see $R/read-$A-rc.txt if present)"
 touch $RUN/EA-$A.ALLDONE
+maybe_launch_D
