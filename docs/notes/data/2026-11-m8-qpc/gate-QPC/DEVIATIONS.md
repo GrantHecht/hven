@@ -84,3 +84,29 @@ Written at launch (2026-11-26) by the freeze agent. Each item says what the decl
     `B.done BIN.done ER.done N0.done` were left. `driverX.sh` relaunched unchanged at 10:16 (setsid, log `.scratch/qpcrun/logs/driverX.log`); it forked
     driverY.sh itself at once and started the three member-0 development runs. Real pids (argv `bash .../driverX.sh` / `driverY.sh`): driverX 72984,
     driverY 72991 (`driverX.pid`, `driverY.pid`). QPC queues on box-lane behind the RST-B round's relaunched steps and other agents' lane jobs, as before.
+12. **Two environment stops after the 2026-11-26 outage relaunch (11:44 and 13:07); diagnosed, environment repaired, frozen code and declaration untouched.**
+    **Leg C passed.** `Y-C.log` (11:22:55 to 11:44:34, lane 1, -j4, head 65de1e2de): Release ctest 100% passed, 0 failed, 4288/4288; Debug ctest 100% passed, 0 failed,
+    4288/4288. This equals the pre-freeze reading (4288/4288 both, DECLARATION section 7) exactly. `QpCertificateData` 27/27, `QpReleaseReadmission` 3/3,
+    `EqpConvergedRefinement` 4/4 green in both builds. Skips/disabled are the known ones (FailByDesignControl, six YORKNET/ACOPP118 skips in Debug, two disabled
+    EqpRefinementAb). Evidence: `gate-QPC/C/`, `gate-QPC/leg-C.log`.
+    **Stop 1 (driverX, 11:44, member-0 development runs rc=3).** All three arms refused at `run_serial` ("the harness tree is DIRTY ... ?? scripts/qpc_pilots.py"). Cause:
+    `hven-bench-qpc/scripts/qpc_pilots.py` is the ported P glue of item 9 (ruling C584(2)), created 01:01, untracked by design at the time (identical to the committed
+    copy `gate-QPC/chain/qpc_pilots.py`; diff empty), and the harness refuses any row run from a dirty tree. The refusal fired before any cell and before any row: the only
+    residue was three `corun-2e049a41.leg.json` plan stubs under `qpc-m0dev-store/TRAIN-238/<arm>/`, moved to `.scratch/qpcrun/run1-outage/stop-2026-11-26/dev-store-TRAIN-238/`
+    (a partial leg re-runs whole). Fix: the glue is the harness's own script, so it was committed in `hven-bench-qpc` (explicit pathspec, no trailer):
+    **harness head 27c02687 -> e806548** (also branch `qpc-harness-glue` there so the commit is not orphaned), the only change `scripts/qpc_pilots.py` (added). The declaration pins
+    harness `27c02687`; this is a mechanical amendment of the pin, and it is within the harness's own rule: `ens.py check_harness_shas` (I-a) lets shas differ iff no
+    ROW_PRODUCING_PATHS (`lanes/ runners/ schema/ tu/ens_members.py`) differs, and `git diff --name-only 27c02687 e806548 -- lanes/ runners/ schema/ tu/ens_members.py`
+    is empty (0 paths). Arm rows from here on stamp `harness.sha e806548`; the census R rows and the N0/Q-era work stamp `27c02687`; the reader's merge accepts both.
+    Legs already run stay valid: N0 x3 and Q x3 (9c5ca8398) are `legN0.sh`/`legQ.sh`, which call the grid binaries and `legs/` scripts only, never `scripts/qpc_pilots.py`
+    and never `run_serial`/`i19_run` (nothing of the harness tree is read by them beyond what is unchanged); leg B built from `census_build.sh`/`lanes/`, unchanged.
+    The E-R freeze files are ensemble-class files from census rows stamped 27c02687 and are unaffected.
+    **Stop 2 (driverY, 13:07, leg N1 BASE_CONFIGURE_FAIL, base 99712ec32).** Real cause (`gate-QPC/N1-stop-configure/base-configure.log`): `CMake Error at CMakeLists.txt:215:
+    Bundled eigen not found at dep/eigen/`. driverY creates the base tree `.scratch/qpcrun/R-src` with `git worktree add --detach` at 11:44, after leg C; a fresh worktree has
+    EMPTY submodule directories (`dep/eigen`, `dep/fmt`), and N1 configures the base tree in place (the leg-B trees got theirs when they were built, 03:17). Not an outage
+    artifact; the pre-reboot plan would have hit it too (R-src did not exist at 03:24 either). Fix (environment only): `dep/eigen` and `dep/fmt` of R-src populated from
+    the qpc worktree's checked-out submodules (same pins: gitlinks `bc3b3987` eigen, `407c905e` fmt, equal in the tree of 99712ec32); their `.git` files re-pointed at the
+    qpc worktree's module dirs, as the B trees do; `git -C R-src submodule status` clean, `git status` clean, no frozen file touched. The leg N1 failure commit
+    (584695130) stands as the record of the stop. The run1 stop evidence (stop markers, logs, pids) is in `.scratch/qpcrun/run1-outage/stop-2026-11-26/`.
+    **Relaunch.** Moved aside: `STOP.txt`, `Y-N1.failed`, `dev-m0-*.rc`, the stale `driverX.pid`/`driverY.pid`, and `Y.forked` (so driverX forks driverY itself, as in
+    item 11); kept: `B.done BIN.done ER.done N0.done Y-C.done`. driverX/driverY relaunched unchanged; real pids are in the commit that follows (`driverX.pid`, `driverY.pid`).

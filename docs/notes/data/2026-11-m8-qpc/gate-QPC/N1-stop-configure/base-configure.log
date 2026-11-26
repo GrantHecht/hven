@@ -1,0 +1,15 @@
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+CMake Error at CMakeLists.txt:215 (message):
+  Bundled eigen not found at dep/eigen/.  Run: git submodule update --init
+  dep/eigen
+
+
+-- Configuring incomplete, errors occurred!
