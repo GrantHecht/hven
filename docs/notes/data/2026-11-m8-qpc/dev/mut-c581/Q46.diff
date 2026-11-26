@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..a4dacffa5 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1602,7 +1602,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+     // A multiplier is PRICED unless |mult| ||a||inf <= 100 u s (a NaN one is priced).
+     const auto priced = [](double mult, double norm_inf, double local_scale) {
+         constexpr double kRoundingZero =
+-            kCertificateGateRoundingZeroFactor * 0.5 * std::numeric_limits<double>::epsilon();
++            kCertificateGateRoundingZeroFactor * std::numeric_limits<double>::epsilon();
+         return !(std::abs(mult) * norm_inf <= kRoundingZero * local_scale);
+     };
+     out.finite = x.allFinite() && lambda_e.allFinite() && lambda_i.allFinite() && z.allFinite();

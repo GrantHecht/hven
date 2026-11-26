@@ -1,0 +1,19 @@
+box-lane: lane 1 acquired 2026-11-25T18:13:22-05:00
+LEG M1R start 2026-11-25T18:13:22-05:00 H=ac224ca5c8a1b577a0c1d41f354de6833f2d1d2c harness=27c02687d9389ed43f3dbef27b4cbe389ca2b5d0 lane=1 phys=[4 5 6 7]
+M1R diagnostic commit 19a5b3b2eeede0e41f1f7de19ead1a6fb62dabbf = H + legs/m1r/m1r_diag.patch (sha256 6874167810bfac48716c9460233787124998dfcc9ff9d9081d2adbf357aa506c)
+ 1 file changed, 143 insertions(+)
+lane 070aad38db86168dc8334b0a8c3acf1084744e8c23acf824b7ab4fba9f9e7ecf
+grid 481671d7d9c2a5d455583c1ed7b0250f410d766ca9def64ba9d9a9caca3e8978
+== SENS-Q 2026-11-25T18:15:34-05:00
+SENS-Q refactorize rows=67
+V-QP(M1R build) refactorize rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+SENS-Q border rows=67
+V-QP(M1R build) border rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+== TRAIN-238 member 0 2026-11-25T18:19:36-05:00
+M1R TRAIN-238 m0 cells=238 ok=234 reference=4 error=0 wall=0
+TRAIN-238 m0 verdicts=12749 certified=12698 refused=51 cells_with_a_verdict=232
+TRAIN-238 m0 certified with colstat > 10 opt_tol: 1512 in 54 cells
+SENS-Q verdicts=108 certified=108 refused=0 cells_with_a_verdict=108
+SENS-Q certified with colstat > 10 opt_tol: 76 in 76 cells
+M1R STOP-RULE STOP: certified verdicts failing column-local stationarity at 10 opt_tol while the global test passes: TRAIN-238 m0 1512, SENS-Q 76 (of which with a HIDDEN column: TRAIN-238 m0 148, SENS-Q 4)
+LEG M1R end 2026-11-25T18:20:02-05:00

@@ -1,0 +1,24 @@
+box-lane: lane 1 acquired 2026-11-25T18:26:02-05:00
+FOREGROUND_START 2026-11-25T18:26:02-05:00 tree=/home/ghecht/Projects/hven/.claude/worktrees/qpc head=f0ba4e101d33826758f1cefb1d41b0a64f228ff7 argued=[Q17]
+PREFLIGHT every mutation applies and restores: [Q42 Q43 Q44 Q45 Q46 Q47]
+MUT control rc=0 killers=0
+MUT Q42 rc=1 killers=2
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+MUT Q43 rc=1 killers=1
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+MUT Q44 rc=1 killers=2
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+MUT Q45 rc=1 killers=3
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q46 rc=1 killers=2
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+MUT Q47 rc=1 killers=1
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+KILLER_PARITY checked=6 failures=0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-25T19:12:56-05:00

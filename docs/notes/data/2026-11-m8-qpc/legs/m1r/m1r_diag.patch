@@ -1,0 +1,175 @@
+From 19a5b3b2eeede0e41f1f7de19ead1a6fb62dabbf Mon Sep 17 00:00:00 2001
+From: Grant Hecht <grantrhecht@icloud.com>
+Date: Wed, 25 Nov 2026 18:12:00 -0500
+Subject: [PATCH] DIAGNOSTIC ONLY (QPC leg M1R: env-gated HVEN_QPC_M1 print at
+ the data-half verdict, per-disjunct flags + column-local stationarity) --
+ never on qpc, never pushed
+
+---
+ src/qp/walk/walk_engine.cpp | 143 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 143 insertions(+)
+
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 67744b7b5..daa9c35f8 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -32,6 +32,8 @@
+ // re-derivation.
+ 
+ #include <bit>
++#include <cstdio>
++#include <cstdlib>
+ #include <exception>
+ #include <optional>
+ #include <utility>
+@@ -1986,6 +1988,147 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                                 detail::certificate_reading(qp, ws, x, lambda_e, lambda_i, z);
+                             bool holds = detail::certificate_data_half_holds(
+                                 data, eff_opts.feasibility_tol, eff_opts.optimality_tol);
++                            // QPC LEG M1R DIAGNOSTIC (DECLARATION-QPC section 6, leg M1R; env-gated, never on
++                            // qpc, never pushed): one line per data-half verdict on stderr.
++                            if (std::getenv("HVEN_QPC_M1") != nullptr) {
++                                const double ftol = eff_opts.feasibility_tol;
++                                const double otol = eff_opts.optimality_tol;
++                                constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
++                                const auto nmx = [](double a, double b) {
++                                    return (std::isnan(a) || std::isnan(b)) ? std::numeric_limits<double>::quiet_NaN()
++                                                                            : std::max(a, b);
++                                };
++                                const Vec hx = qp.H.selfadjointView<Eigen::Upper>() * x;
++                                Vec atl = Vec::Zero(n);
++                                if (qp.me() > 0) atl += qp.Ae.transpose() * lambda_e;
++                                if (qp.mi() > 0) atl += qp.Ai.transpose() * lambda_i;
++                                Vec t(n);
++                                for (Index i = 0; i < n; ++i)
++                                    t(i) = nmx(nmx(nmx(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))),
++                                               std::abs(z(i)));
++                                // COLUMN-LOCAL stationarity beyond rounding: per free column i,
++                                // max(0, |r_i| - c_i u m_i) / t_i (r = Hx + g + A'lambda; c_i terms of total
++                                // magnitude m_i, as certificate_reading's global reading).
++                                const SpMatRM h_abs = qp.H.cwiseAbs();
++                                const SpMatRM h_pat = h_abs.cwiseSign();
++                                const Vec rr = hx + qp.g + atl;
++                                Vec mm = h_abs.selfadjointView<Eigen::Upper>() * x.cwiseAbs() + qp.g.cwiseAbs();
++                                Vec cc = h_pat.selfadjointView<Eigen::Upper>() * Vec::Ones(n) + Vec::Constant(n, 1.0);
++                                if (qp.me() > 0) {
++                                    const SpMatRM a_abs = qp.Ae.cwiseAbs();
++                                    mm += a_abs.transpose() * lambda_e.cwiseAbs();
++                                    cc += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.me());
++                                }
++                                if (qp.mi() > 0) {
++                                    const SpMatRM a_abs = qp.Ai.cwiseAbs();
++                                    mm += a_abs.transpose() * lambda_i.cwiseAbs();
++                                    cc += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
++                                }
++                                double col_worst = 0.0, col_t = 0.0, col_r = 0.0;
++                                long col_i = -1;
++                                Index n_free = 0;
++                                // HIDDEN columns: past 10 opt_tol column-locally AND with an absolute excess past
++                                // 10 opt_tol, i.e. past the global test even at its floor scale 1 -- the columns a
++                                // global scale above 1 is what lets through (limitation (iii) proper).
++                                double hid_worst = 0.0, hid_t = 0.0, hid_r = 0.0;
++                                long hid_i = -1;
++                                Index n_colfail = 0, n_hidden = 0;
++                                double gscale = 1.0;
++                                (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, gscale);
++                                for (Index i = 0; i < n; ++i) {
++                                    if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) continue;
++                                    ++n_free;
++                                    const double num = std::max(0.0, std::abs(rr(i)) - cc(i) * u * mm(i));
++                                    double v = 0.0;
++                                    if (std::isnan(rr(i)) || std::isnan(t(i))) {
++                                        v = std::numeric_limits<double>::quiet_NaN();
++                                    } else if (num > 0.0) {
++                                        v = t(i) > 0.0 ? num / t(i) : std::numeric_limits<double>::infinity();
++                                    }
++                                    if (!std::isnan(col_worst) && (std::isnan(v) || v > col_worst)) {
++                                        col_worst = v; col_i = static_cast<long>(i); col_t = t(i); col_r = rr(i);
++                                    }
++                                    if (!(v <= 10.0 * otol)) {
++                                        ++n_colfail;
++                                        if (!(num <= 10.0 * otol)) {
++                                            ++n_hidden;
++                                            if (!std::isnan(hid_worst) && (std::isnan(v) || v > hid_worst)) {
++                                                hid_worst = v; hid_i = static_cast<long>(i); hid_t = t(i); hid_r = rr(i);
++                                            }
++                                        }
++                                    }
++                                }
++                                struct Term { char k = '-'; Index i = -1; double rel = 0, mult = 0, loc = 0; };
++                                Term worst, smax;
++                                double unscaled = 0.0;
++                                const double xmag = x.lpNorm<Eigen::Infinity>();
++                                const auto consider = [&](char k, Index i, double rel, double mult, double loc) {
++                                    if (rel * mult > unscaled) { unscaled = rel * mult; worst = {k, i, rel, mult, loc}; }
++                                    if (mult > 0.0 && rel > smax.rel) smax = {k, i, rel, mult, loc};
++                                };
++                                const auto rowloc = [&](const Eigen::SparseMatrix<double, Eigen::RowMajor> &A, Index j,
++                                                        double mult) {
++                                    double loc = 0.0, ni = 0.0, n1 = 0.0;
++                                    for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(A, j); it; ++it) {
++                                        loc = std::max(loc, t(it.col()));
++                                        ni = std::max(ni, std::abs(it.value()));
++                                        n1 += std::abs(it.value());
++                                    }
++                                    return std::make_pair(std::max(loc, mult * ni), n1);
++                                };
++                                if (qp.me() > 0) {
++                                    const Vec r = qp.Ae * x - qp.be;
++                                    for (Index j = 0; j < qp.me(); ++j) {
++                                        const auto [loc, n1] = rowloc(qp.Ae, j, std::abs(lambda_e(j)));
++                                        const double rs = std::max({1.0, std::abs(qp.be(j)), n1 * xmag});
++                                        consider('E', j, std::abs(r(j)) / rs, std::abs(lambda_e(j)), loc);
++                                    }
++                                }
++                                if (qp.mi() > 0) {
++                                    const Vec r = qp.Ai * x - qp.bi;
++                                    const auto &aw = ws.active_ineq();
++                                    for (Index j = 0; j < qp.mi(); ++j) {
++                                        if (!std::binary_search(aw.begin(), aw.end(), j)) continue;
++                                        const auto [loc, n1] = rowloc(qp.Ai, j, std::abs(lambda_i(j)));
++                                        const double rs = std::max({1.0, std::abs(qp.bi(j)), n1 * xmag});
++                                        consider('I', j, std::abs(r(j)) / rs, std::abs(lambda_i(j)), loc);
++                                    }
++                                }
++                                for (Index i = 0; i < n; ++i) {
++                                    const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
++                                    if (st == BoundState::kFree) continue;
++                                    const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
++                                    const double rs = std::max({1.0, std::abs(at), xmag});
++                                    consider('B', i, std::abs(x(i) - at) / rs, std::abs(z(i)), t(i));
++                                }
++                                // Per-disjunct verdicts, exactly certificate_data_half_holds's comparisons.
++                                const int f_fin = data.finite ? 0 : 1;
++                                const int f_rows = data.rows <= detail::kCertificateGateRowFactor * ftol ? 0 : 1;
++                                const int f_prod = data.product <= detail::kCertificateGateComplFactor * ftol ? 0 : 1;
++                                const int f_stat =
++                                    data.stationarity_beyond_rounding <= detail::kCertificateGateStationarityFactor * otol
++                                        ? 0 : 1;
++                                const int f_slack = data.slack <= detail::kCertificateGateSlackFactor * ftol ? 0 : 1;
++                                const int f_offw = data.off_working == 0.0 ? 0 : 1;
++                                std::fprintf(stderr,
++                                             "[m1r] holds=%d fail=%d%d%d%d%d%d n=%ld nfree=%ld me=%ld mi=%ld "
++                                             "rows/ftol=%.4e local/ftol=%.4e stat/otol=%.4e slack/ftol=%.4e offw=%.4e "
++                                             "normstat/otol=%.4e colstat/otol=%.4e colstat_col=%ld colstat_t=%.4e "
++                                             "colstat_r=%.4e colfail=%ld colhidden=%ld hidstat/otol=%.4e hid_col=%ld hid_t=%.4e hid_r=%.4e "
++                                             "gscale=%.4e unscaled/ftol=%.4e "
++                                             "worst=%c%ld wslack/ftol=%.4e wmult=%.4e wlocal=%.4e "
++                                             "slackmax=%c%ld sslack/ftol=%.4e smult=%.4e slocal=%.4e\n",
++                                             holds ? 1 : 0, f_fin, f_rows, f_prod, f_stat, f_slack, f_offw,
++                                             static_cast<long>(n), static_cast<long>(n_free),
++                                             static_cast<long>(qp.me()), static_cast<long>(qp.mi()), data.rows / ftol,
++                                             data.product / ftol, data.stationarity_beyond_rounding / otol,
++                                             data.slack / ftol, data.off_working, data.stationarity / otol,
++                                             col_worst / otol, col_i, col_t, col_r, static_cast<long>(n_colfail),
++                                             static_cast<long>(n_hidden), hid_worst / otol, hid_i, hid_t, hid_r, gscale,
++                                             unscaled / ftol, worst.k,
++                                             static_cast<long>(worst.i), worst.rel / ftol, worst.mult, worst.loc,
++                                             smax.k, static_cast<long>(smax.i), smax.rel / ftol, smax.mult, smax.loc);
++                            }
+ #ifdef HVEN_TESTING
+                             // Gate seam: counts every verdict; an armed fixture forces a refusal.
+                             holds = detail::testing::qp_certificate_gate_verdict(holds);
+-- 
+2.56.0
+

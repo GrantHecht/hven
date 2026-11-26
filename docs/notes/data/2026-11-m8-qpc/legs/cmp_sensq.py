@@ -16,11 +16,22 @@
                                          fails. The NORMWISE stationarity d_stationarity is a REPORTED column (printed per
                                          kOptimal row as d_stat/otol), never a verdict: a normwise residual can sit beneath
                                          double's rounding floor where large terms cancel (C11 SAWPATH qp1 reads ~502 opt_tol
-                                         at its certified exit, test_elastic_witness_start.cpp). rc 1 if any kOptimal row
+                                         at its certified exit, test_elastic_witness_start.cpp). The COLUMN-LOCAL
+                                         stationarity d_colstat (per free column, beyond rounding, over the column's own
+                                         largest stationarity term; settler C581) is likewise REPORTED, never a verdict:
+                                         printed per kOptimal row as colstat/otol and counted past 10 opt_tol
+                                         (COLSTAT lines; `colstat>10otol=` in the summary), and the same restricted to
+                                         columns whose absolute excess also exceeds 10 opt_tol (d_colstat_hidden: past the
+                                         global test even at its floor scale 1; `HIDDEN`, `hidden>10otol=`). rc 1 if any kOptimal row
                                          fails, 0 otherwise. Prints every failing row.
   cmp_sensq.py honest R.csv A.csv pinned.tsv
                                       -- V-HONEST (section 5.2): every R kOptimal row that passes every V-QP check must be
                                          kOptimal in A with |f_A - f_R| <= 1e-9 max(1, |f_R|). rc 1 on any exception.
+                                         Because "honest" is read by the arm's own gate definitions, every R kOptimal row
+                                         excluded ONLY by d_pslack_rel and/or d_product_local (the gate's slack and
+                                         row-local product, which the arm defines) is printed as HONEST-EXCLUDED-BY-GATE-DEF
+                                         with both statuses and readings, and counted in the summary (pre-freeze
+                                         re-review should 2: the circularity is shown, not hidden). Reported, not a bar.
   cmp_sensq.py m1 X.csv               -- the M1 development reading (DECLARATION section 4): every kOptimal row whose
                                          UNSCALED product d_product > 100 feas_tol, with d_rows/ftol, the worst term's kind
                                          and index, its slack in ftol (d_worst_rel / ftol), its multiplier over its local
@@ -77,7 +88,7 @@ def n0(rp, hp):
 def vqp(xp, pinned_path):
     X = load(xp)
     pinned = load_pinned(pinned_path)
-    fails, n_opt = [], 0
+    fails, n_opt, n_col, n_hid = [], 0, 0, 0
     for key, r in sorted(X.items()):
         if r["status"] != "0":
             continue
@@ -86,14 +97,28 @@ def vqp(xp, pinned_path):
         otol = g("opt_tol")
         print(f"REPORT {key[0]} {key[1]} d_stat/otol={g('d_stationarity') / otol:.3e} "
               f"k_beyond/otol={g('k_stationarity_beyond_rounding') / otol:.3e} "
-              f"unscaled_product/ftol={g('d_product') / g('feas_tol'):.3e}")
+              f"unscaled_product/ftol={g('d_product') / g('feas_tol'):.3e} "
+              f"colstat/otol={colstat_of(r) / otol:.3e} colstat_hidden/otol={colstat_of(r, True) / otol:.3e}")
+        if not (colstat_of(r) <= 10 * otol):
+            n_col += 1
+            hidden = not (colstat_of(r, True) <= 10 * otol)
+            n_hid += hidden
+            print(f"COLSTAT {key[0]} {key[1]} colstat/otol={colstat_of(r) / otol:.3e} "
+                  f"colstat_hidden/otol={colstat_of(r, True) / otol:.3e}{' HIDDEN' if hidden else ''} "
+                  f"k_beyond/otol={g('k_stationarity_beyond_rounding') / otol:.3e} (reported, not a verdict)")
         why = vqp_failures(key, r, pinned)
         if why:
             fails.append(f"FALSE-CERTIFICATE {key[0]} {key[1]} " + " ".join(why))
     for x in fails:
         print(x)
-    print(f"V-QP kOptimal={n_opt} pinned_present={sum(1 for k in X if k[0] in pinned)} failures={len(fails)}")
+    print(f"V-QP kOptimal={n_opt} pinned_present={sum(1 for k in X if k[0] in pinned)} failures={len(fails)} "
+          f"colstat>10otol={n_col} hidden>10otol={n_hid} (reported)")
     return 1 if fails else 0
+
+
+def colstat_of(r, hidden=False):
+    """d_colstat, or d_colstat_hidden (absent from a CSV written before the column existed: NaN, printed as such)."""
+    return float(r.get("d_colstat_hidden" if hidden else "d_colstat", "nan"))
 
 
 def load_pinned(pinned_path):
@@ -128,9 +153,18 @@ def vqp_failures(key, r, pinned):
 def honest(rp, ap, pinned_path):
     """V-HONEST: an R kOptimal row passing every V-QP check must stay kOptimal under the arm, same objective."""
     R, A, pinned = load(rp), load(ap), load_pinned(pinned_path)
-    n_honest, bad = 0, []
+    n_honest, bad, n_gate_def = 0, [], 0
+    gate_def = ("d_pslack_rel", "d_product_local")
     for key, r in sorted(R.items()):
-        if r["status"] != "0" or vqp_failures(key, r, pinned):
+        if r["status"] != "0":
+            continue
+        why = vqp_failures(key, r, pinned)
+        if why and all(w.split("=", 1)[0] in gate_def for w in why):
+            n_gate_def += 1
+            a = A.get(key, {})
+            print(f"HONEST-EXCLUDED-BY-GATE-DEF {key[0]} {key[1]} R: {' '.join(why)} | A status={a.get('status')} "
+                  f"f R={r['objective']} A={a.get('objective')} gate={a.get('certificate_gate_refusals')}")
+        if why:
             continue
         n_honest += 1
         a = A.get(key)
@@ -144,7 +178,7 @@ def honest(rp, ap, pinned_path):
                        f"A={a['objective']} gate={a.get('certificate_gate_refusals')} arms={a.get('converged_refinement_arms')}")
     for b in bad:
         print(b)
-    print(f"V-HONEST honest_R={n_honest} exceptions={len(bad)}")
+    print(f"V-HONEST honest_R={n_honest} exceptions={len(bad)} excluded_only_by_gate_definitions={n_gate_def} (reported)")
     return 1 if bad else 0
 
 

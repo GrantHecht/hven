@@ -29,7 +29,15 @@
 //     RELATIVE residual/slack among those carrying a nonzero multiplier.
 //   d_pslack_rel -- the gate's SLACK reading (settler C568), recomputed: the largest relative residual/slack over
 //     working inequalities and pinned bounds whose multiplier is not rounding-zero, |mult| ||a||inf > 100 u s
-//     (s the local dual scale above, u = eps/2; a NaN multiplier is priced). Appended last.
+//     (s the local dual scale above, u = eps/2; a NaN multiplier is priced).
+//   d_colstat -- COLUMN-LOCAL stationarity beyond rounding (settler C581; REPORTED, never a verdict): over the columns
+//     neither pinned nor TR-held, max_i max(0, |r_i| - c_i u m_i) / t_i with r = Hx + g + Ae'le + Ai'li, c_i the
+//     term count of component i (g_i plus the nonzeros of column i of H, Ae, Ai), m_i the sum of the terms'
+//     magnitudes, u = eps/2, and t_i = max(|g_i|, |(Hx)_i|, |(Ae'le + Ai'li)_i|, |z_i|) the column's own largest
+//     stationarity term (a nonzero excess over t_i = 0 reads +inf). Dense, independent of the engine.
+//   d_colstat_hidden -- the same over the columns whose ABSOLUTE excess max(0, |r_i| - c_i u m_i) also exceeds
+//     10 opt_tol, i.e. columns past the gate's global stationarity test even at its floor scale 1: the ones a global scale
+//     above 1 is what lets through (limitation (iii) proper; REPORTED). Appended last.
 //   k_eq, k_ineq, k_box, k_stationarity, k_stationarity_beyond_rounding, k_sign, k_compl, k_scale --
 //     tests/qp/support/qp_dump.h's qp_dump_kkt (absolute primal terms, TR-aware);
 //   feas_tol, opt_tol -- the dump's own tolerances (the verdict thresholds' units).
@@ -234,6 +242,8 @@ struct DataHalf {
     long long slack_index = -1;
     double slack_rel = 0.0, slack_mult = 0.0, slack_local = 0.0;
     double pslack_rel = 0.0;
+    double colstat = 0.0;
+    double colstat_hidden = 0.0;
 };
 
 DataHalf data_half(const QpDump &d, const QpSolution &s) {
@@ -345,6 +355,48 @@ DataHalf data_half(const QpDump &d, const QpSolution &s) {
         }
     }
     r.stationarity = worst / scale;
+    // Column-local stationarity beyond rounding (d_colstat; see the header).
+    constexpr double u = 0.5 * std::numeric_limits<double>::epsilon();
+    for (Index i = 0; i < n; ++i) {
+        if (pinned[static_cast<std::size_t>(i)]) {
+            continue;
+        }
+        double m = std::abs(qp.g(i));
+        double c = 1.0;
+        for (Index k = 0; k < n; ++k) {
+            if (Hf(k, i) != 0.0) {
+                m += std::abs(Hf(k, i)) * std::abs(s.x(k));
+                c += 1.0;
+            }
+        }
+        if (qp.me() > 0 && have_le) {
+            for (Index j = 0; j < qp.me(); ++j) {
+                if (Ae(j, i) != 0.0) {
+                    m += std::abs(Ae(j, i)) * std::abs(s.lambda_e(j));
+                    c += 1.0;
+                }
+            }
+        }
+        if (qp.mi() > 0 && have_li) {
+            for (Index j = 0; j < qp.mi(); ++j) {
+                if (Ai(j, i) != 0.0) {
+                    m += std::abs(Ai(j, i)) * std::abs(s.lambda_i(j));
+                    c += 1.0;
+                }
+            }
+        }
+        const double excess = std::abs(g(i)) - c * u * m;
+        double v = 0.0;
+        if (std::isnan(excess) || std::isnan(t(i))) {
+            v = std::numeric_limits<double>::quiet_NaN();
+        } else if (excess > 0.0) {
+            v = t(i) > 0.0 ? excess / t(i) : std::numeric_limits<double>::infinity();
+        }
+        r.colstat = nmax(r.colstat, v);
+        if (!(excess <= 10.0 * d.opts.optimality_tol)) {
+            r.colstat_hidden = nmax(r.colstat_hidden, v);
+        }
+    }
     return r;
 }
 
@@ -390,7 +442,7 @@ int main(int argc, char **argv) {
         h += ",converged_refinement_arms,certificate_gate_refusals,d_rows,d_product,d_product_local,d_stationarity,"
              "k_eq,k_ineq,k_box,k_stationarity,k_stationarity_beyond_rounding,k_sign,k_compl,k_scale,"
              "feas_tol,opt_tol,d_off_working,d_worst_kind,d_worst_index,d_worst_rel,d_worst_mult,d_worst_local,"
-             "d_slack_kind,d_slack_index,d_slack_rel,d_slack_mult,d_slack_local,d_pslack_rel";
+             "d_slack_kind,d_slack_index,d_slack_rel,d_slack_mult,d_slack_local,d_pslack_rel,d_colstat,d_colstat_hidden";
         std::fprintf(out, "%s\n", h.c_str());
     }
     const char *base = std::strrchr(file.c_str(), '/');
@@ -414,7 +466,8 @@ int main(int argc, char **argv) {
         row += "," + decd(v);
     }
     row += std::string(",") + dh.slack_kind + "," + std::to_string(dh.slack_index);
-    for (const double v : {dh.slack_rel, dh.slack_mult, dh.slack_local, dh.pslack_rel}) {
+    for (const double v : {dh.slack_rel, dh.slack_mult, dh.slack_local, dh.pslack_rel, dh.colstat,
+                           dh.colstat_hidden}) {
         row += "," + decd(v);
     }
     std::fprintf(out, "%s\n", row.c_str());

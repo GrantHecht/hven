@@ -113,6 +113,23 @@ MUT = {
     # ---- the restoration seed guard's Jacobian screen (RS-6b-r2 mutant M7; review M3, settler C568) --
     "Q41": [(S, "bool jacobian_values_finite(const NlpEval &ev) {\n",
                 "bool jacobian_values_finite(const NlpEval &ev) {\n    return true; // MUTANT Q41 (M7)\n", 1)],
+    # ---- C2, the slack test's exemption and row units (pre-freeze re-review must 3; settler C581) -----
+    "Q42": [(WH, "            if (read_slack && priced(mult, norm_inf, local)) {",
+                 "            if (read_slack && priced(mult, norm_inf, t.maxCoeff())) {", 1),
+            (WH, "            if (priced(z(i), 1.0, t(i))) {", "            if (priced(z(i), 1.0, t.maxCoeff())) {", 1)],
+    "Q43": [(WH, "            if (read_slack && priced(mult, norm_inf, local)) {",
+                 "            if (read_slack && priced(mult, 1.0, local)) {", 1)],
+    "Q44": [(WH, "                out.slack = smax(out.slack, std::abs(resid(j)) / row_scale);",
+                 "                out.slack = smax(out.slack, std::abs(resid(j)));", 1)],
+    "Q45": [(WH, "constexpr double kCertificateGateRoundingZeroFactor = 100.0;",
+                 "constexpr double kCertificateGateRoundingZeroFactor = 1e4;", 1)],
+    "Q46": [(WH, "            kCertificateGateRoundingZeroFactor * 0.5 * std::numeric_limits<double>::epsilon();",
+                 "            kCertificateGateRoundingZeroFactor * std::numeric_limits<double>::epsilon();", 1)],
+    # ---- B1Gate's ORIGINAL mutant (pre-freeze review M6; re-review should 6): the NLP complementarity conjunct dropped
+    #      from the SQP convergence test, against the re-premised fixture ----------------------------------------------
+    "Q47": [(S, "                   mj.kkt.feasibility <= opts_.common.feasibility_tol &&\n"
+                "                   mj.kkt.complementarity <= opts_.common.optimality_tol;",
+                "                   mj.kkt.feasibility <= opts_.common.feasibility_tol; // MUTANT Q47 (B1)", 1)],
 }
 
 ROOT = os.environ.get("MUT_TREE") or subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()

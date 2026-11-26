@@ -1,8 +1,12 @@
 # DECLARATION-QPC -- the SQP walk QP's correctness round: converged refinement at the release re-admission, and the certificate's data half
 
-> **STATUS: UNFROZEN DRAFT (2026-11-25, after settler rulings C553).** Not a pre-registration yet. Values marked ⟨...⟩
-> are filled before freeze from development readings or the harness, never from a round row. The harness is hven-bench
-> `ens` `27c02687` (section 2; settler C559). A Fable review comes before freeze. No leg of this file has run.
+> **STATUS: UNFROZEN DRAFT (2026-11-25, after settler rulings C553, C566-C568 and C581).** Not a pre-registration yet.
+> The Fable pre-freeze review and its scoped re-review are done (C567, C581); the freeze is the settler's, and it is
+> HELD by C581's STOP rule: the development run of leg M1R found certified QP exits that fail column-local
+> stationarity at 10 opt_tol while the global test passes (section 4), so whether column-local stationarity and
+> per-column pricing fold into QPC is the settler's decision before any freeze. No placeholder remains; the `<...>`
+> fields of the BINARIES.txt template (section 2) are written by leg B. The harness is hven-bench `ens` `27c02687`
+> (section 2; settler C559). No leg of this file has run as a leg (leg M1R's development run is not its leg run).
 
 Task: M8 QPC, the SQP QP-subproblem correctness round that replaces the deferred P-1a dual-centring round. Once frozen,
 this file is committed with every leg script it names (`legs/`), the frozen cell lists (`cells/`), the harness pin and
@@ -35,7 +39,7 @@ qp7 kOptimal at f = -92397.2848 against the optimum -92397.2698: one equality ro
 product 7.0e6x feas_tol. The unregularized EQP of the final working set REPRODUCES the false point (the set is itself
 inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have passed it (D-4).
 
-**The change** (code head ⟨sha⟩ on R; commits ⟨list⟩), unconditional, no option added (the public API is locked):
+**The change** (code head f0ba4e101 on R; code commits d4e3adca8, 02407ea83, 962dc1b6e, 6f404ee99, 2c283c438, f0ba4e101 -- the last two touch include/ in a test-seam header and comments only), unconditional, no option added (the public API is locked):
 
 * **C1 (D-2T).** At the first release re-admission of a solve, `eqp_refinement_` becomes `kConverged` for the rest
   of that solve: every EQP solve (eliminated `solve_eqp`, bordered `solve_bordered_eqp` and the verdict-site
@@ -77,7 +81,8 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
     touch row j cannot inflate it. When row j's own multiplier dominates s_j the reading is at most
     rel_j / ||a_j||inf -- the row's relative slack -- which is the side the rows reading cannot see: a working
     inequality or a pinned bound held SLACK under a multiplier, a KKT point of the shifted row and not of the QP
-    (B1Gate's QP: slack 8e-7 under lambda 1e6, local scale max(|g| = 1e6, |A'lambda| = 1e6, |lambda| ||a||inf = 1e6) = 1e6, so 8e-7 = 800 feas_tol; HS15's warm rungs ⟨HS15⟩ feas_tol). qp7's false point is
+    (B1Gate's QP: slack 8e-7 under lambda 1e6, local scale max(|g| = 1e6, |A'lambda| = 1e6, |lambda| ||a||inf = 1e6) = 1e6, so 8e-7 = 800 feas_tol; HS15's warm-chain refusals are listed in section 7 with the readings of the C553
+    global-scale build that diagnosed them -- they were not re-taken under the row-local gate). qp7's false point is
     refused by its rows (72.9x).
   - stationarity (C553 Q3) = the free-block residual (Hx + g + Ae'lambda_e + Ai'lambda_i)_free read BEYOND ROUNDING:
     component i sums c_i terms of total magnitude m_i, so an exact KKT point can read c_i u m_i in double (Higham's
@@ -95,9 +100,22 @@ inconsistent at 7.3e-8, rank 299/300), so the EQP oracle P-1a planned would have
     slack, and TRAIN-238 reaches it: HS101 sqp-qn certified three exits with its working inequality I2 held 471-578
     feas_tol slack under lambda 100 / 1000 against s = 1.3e5 (row-local product 0.44-4.2 feas_tol). The slack test is in
     row units on one side and local-scale units on the other, so it is invariant to the objective's scaling; the
-    rounding-zero exemption keeps weakly active rows whose multiplier double cannot resolve on their columns (CRESC4:
-    lambda ~ 1e-21 against s ~ 161, slack 9.4e6 / 6.5e7 feas_tol). Equality rows need none: the rows reading holds them
-    two-sided at 10 feas_tol. The row-local product test stays;
+    rounding-zero exemption keeps weakly active rows whose multiplier is rounding-level against their local scale
+    (CRESC4: lambda ~ 1e-21 against s ~ 161, slack 9.4e6 / 6.5e7 feas_tol). **What the exemption guarantees (pre-freeze
+    re-review must 4; the earlier wording here and in walk_engine.h was wrong for non-uniform rows):** it compares a MAX
+    with a MAX -- |multiplier_j| ||a_j||inf against 100 u times the LARGEST column term on the row's support -- so on a
+    row with uniform coefficients and column terms an exempt multiplier prices nothing double resolves on any of the
+    row's columns, but on a non-uniform row a column reached through a tiny coefficient can carry s_j and exempt a
+    multiplier the row's other columns resolve. The review's probe: x0 + 1e-12 x1 <= 1, x1 pinned with g1 = z1 = 1e12,
+    x0 = 0.99, lambda = 0.01 -- exempt (0.01 <= 100 u 1e12 = 0.011), so the point CERTIFIES with the row 1e7 feas_tol
+    slack; with the coupling 0 the same point is refused (fixture
+    `QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow`, which pins this behaviour as it is). The true
+    guarantee is an objective-error bound: an exempt multiplier carries |multiplier_j| * slack_j <= 100 u s_j /
+    ||a_j||inf * slack_j, i.e. bounded by the largest stationarity term on the row, not by the columns that price it.
+    Per-column pricing (priced iff max_i |multiplier_j a_ji| / t_i > 100 u) is the remedy, and it is REGISTERED for the
+    degenerate-QP round (QPD) with the column-local stationarity reading (settler C581): on elastic rungs it newly
+    prices some multipliers, so it needs its own TRAIN reading. Equality rows need no slack test: the rows reading holds
+    them two-sided at 10 feas_tol. The row-local product test stays;
   - off_working = the largest |lambda_i,j| on a non-working row and |z_i| on a free variable; the pricing writes exact
     zeros there and no other reading looks at those entries, so a nonzero one would leave the engine unread: required
     exactly 0 (review S2);
@@ -121,9 +139,25 @@ of its row scale, so the objective error a slack constraint carries past (i)-(vi
 100 u s_j / ||a_j||inf times its slack; (before C568, (ii) alone let a row priced at a small fraction of the gradient
 magnitude on its columns stand off by up to 100 feas_tol * s_j / |multiplier_j|, which HS101 reached); and (iii)'s scale is global, as the upstream KKT-point
 test's is, so a decoupled block with large gradient terms widens the stationarity tolerance of every free column
-(the analogue of the review's F-SLACK for stationarity; not reached by any fixture or development reading of this
-round, section 4). The round's evidence that no false certificate leaves under these bounds is empirical: the
-development reading of section 4 (M1) and leg Q's independent recomputation on SENS-Q. A "false certificate" in this
+(the analogue of the review's F-SLACK for stationarity). **(iii) IS REACHED (settler C581, measured):** the fixture
+`QpCertificateData.TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp` shows a natural walk certifying its
+unmoved start (objective 0 against the optimum -0.75) because one decoupled column has g = 1e9; and the development run
+of leg M1R (section 4) counts, on TRAIN-238 member 0, 1,512 of 12,698 certified verdicts (54 cells) failing
+column-local stationarity at 10 opt_tol, 148 of them (16 cells) on a column whose ABSOLUTE excess also exceeds 10
+opt_tol -- up to a free column left 13.3 off stationary under a global scale of 1.6e10 (HS74 / HS75 sqp-qn) -- and on
+SENS-Q 76 of 108 (4 with such a column, the two YORKNET dumps A0 qp3 and RDV qp5 on both algebras). Column-local
+stationarity and per-column pricing are the remedy; whether they fold into this round is the settler's (C581 STOP
+rule). Three further limitations, stated (pre-freeze re-review should 3 and should 5): (vii) the slack test can REFUSE
+a point that is optimal to within rounding -- a weakly active working row held slack under a small multiplier that is
+not rounding-zero (ineq_line_qp(0.25) at its optimum with the row working under lambda 1e-12: product and
+stationarity pass, slack 0.5 refuses); the error is in the safe direction (kNumericalError, an SQP route change, never
+a false certificate) and V-HONEST measures it on SENS-Q, the M1R refusal histogram on TRAIN-238; (viii) z on a pinned
+column is read only for its sign, as a term of t_i and in that bound's product and slack, never against the column's
+residual (g + Hx + A'lambda)_i; (ix) the QP data is assumed finite: an Inf in g on a pinned column makes the global
+stationarity scale infinite and the stationarity reading vacuous (an Inf on a free column reads NaN and refuses). The
+round's evidence that no false certificate leaves under these bounds is empirical: leg M1R (the gate's own readings at
+every would-be certified exit, TRAIN-238 member 0 and SENS-Q, raw output and per-disjunct histogram) and leg Q's
+independent recomputation on SENS-Q. A "false certificate" in this
 round's legs is a kOptimal exit failing (i)-(vi) as recomputed by INDEPENDENT code (`qp_dump_kkt`-class recomputation
 on SENS-Q; `tu/stationarity.py` on NLP rows) or an objective off a pinned optimum.
 
@@ -138,7 +172,7 @@ target the single step aims at; every exit still passes the unchanged certificat
   `7d2f9f376d6f9f82d554efc2a41a1e52a36769a061d02060c5a765d236c573ca`; store
   `hven-bench-ens/.scratch/census-m8/store`), verified at freeze by the binary/pin identity check (the store's
   recorded binary sha and pin must equal BINARIES.txt's R entry; a mismatch STOPS). No R ensemble leg is re-run.
-* **H** (arm name `QPC`) = ⟨sha⟩ = R + the QPC commits (branch `qpc`, based on `99712ec32`). `git diff R H -- src
+* **H** (arm name `QPC`) = the code head of branch `qpc` at freeze (f0ba4e101 at this draft; a later code commit is entered here before the freeze, never after) = R + the QPC commits (branch `qpc`, based on `99712ec32`). `git diff R H -- src
   include` is exactly C1 + C2 + the counter folds.
 * **Component arms (C553 Q2): `QPC-C1` (C1 only) and `QPC-C2` (C2 only)**, so that either component can ship alone.
   Mechanism: two dev branches off the H commit, each carrying ONE commit that reverts the other component in place:
@@ -231,8 +265,18 @@ leg script and cell list it names (`cells/sens_q_cells.txt`); nothing in it is f
 H0 member directories are copied into the QPC store (`cells/H0-copy.sha256`), the baseline certificate leg runs, both
 `ens.py freeze` files are written and committed (P-CLASS). Precondition: the census NLP-46 tier is complete. (3) Only
 then are the arms' member-0 rows read (leg N2, then P-POWER and P-GATED), and the P readings are recorded in
-`gate-QPC/P-GATES.md` (committed before any E-A row) -- so no arm row is seen before R's classes are frozen, and no
-declaration placeholder is filled from a row.
+`gate-QPC/P-GATES.md` (committed before any E-A row), and no declaration placeholder is filled from a row.
+**The exception, stated (pre-freeze re-review must 2; the earlier "no arm row is seen before R's classes are frozen" was
+false):** H-equivalent DEVELOPMENT builds have already run TRAIN-238 member 0 -- the M1 readings of section 4 (the
+row-local build 962dc1b6e and the slack-test build 6f404ee99, each plus an env-gated print) and the development run of
+leg M1R -- and their outcomes are in this file (section 4: verdict counts, refusals by cell, the hs025 / hs033 and
+HS101 sqp-qn outcomes; section 7: HS101 sqp-qn). What keeps the bars honest regardless: (1) the class freeze is
+MECHANICAL -- `ens.py freeze` reads R's census rows only, with the reader's own floors and no parameter chosen here, so
+nothing an arm row showed can move a class; (2) the ship conditions S1, S2, S3, R1 and V-STAB (section 5.2) are
+TEXTUALLY UNCHANGED since 9e8a73f01, the draft committed before the first TRAIN-238 reading of an H-equivalent build
+(C568's reading at 962dc1b6e), checked byte-for-byte per condition; (3) no S3 net-win claim rests on HS101 sqp-qn (or
+on any cell read in development): this round claims no net win (S3 is "only if made"), and the HS101 outcome is
+recorded as a mechanism, not as evidence for a ship condition.
 
 * **P-POWER (review B4.9).** From each arm's member-0 development run (QPC, QPC-C1, QPC-C2; one lane, co-run) against
   the FROZEN R classes: the number of R-STABLE cells strict-optimal in every R member on which the arm's member-0 side
@@ -273,6 +317,30 @@ multiplier over its local scale; and every certified exit carrying a priced term
   slack > 100 feas_tol under any nonzero multiplier: 2, both CRESC4's rounding-zero rows above (exempt, pslack 0).
   Refusals by cell are unchanged but for HS101-sqp-qn (0 -> 1: its first footprint-slack exit, I2 578 feas_tol under
   lambda 100); the only cell whose outcome moved is HS101-sqp-qn (section 7).
+  *Leg M1R, development run (settler C581; re-review must 1; `legs/legM1R.sh` at ac224ca5c, whose src and include
+  differ from the code head f0ba4e101 by comments only; diagnostic commit 19a5b3b2e = H + `legs/m1r/m1r_diag.patch`; Release, census recipe, lane 1 of the box,
+  co-run 4 pinned physical cores, MKL_NUM_THREADS=1; raw output, summary and run log in `dev/m1r/`, train-raw.tgz
+  sha256 d9de2276..., sensq-raw.tgz fc69e9e8...):* this is the reading the evidence sentence of section 1 cites; the
+  readings above are its history. TRAIN-238 member 0: 238 cells (234 rc 0, 4 --assert-reference: hs025 / hs033, the
+  pre-existing cells below), 12,749 data-half verdicts, 12,698 certified / 51 refused -- identical to the C568 reading.
+  **Per-disjunct refusal histogram** (a refusal can fail several): rows 45 (sole 24), product 24 (sole 3), stationarity 2
+  (sole 0), slack 5 (sole 1), off-working 0, finite 0; patterns rows 24, rows+product 18, product 3, product+slack 2,
+  slack 1, rows+stationarity 1, rows+stationarity+slack 1, rows+product+slack 1. SENS-Q (both algebras): 108 verdicts,
+  all certified; V-QP 0 failures on both grid CSVs. **Column-local stationarity** (per free column i,
+  max(0, |r_i| - c_i u m_i) / t_i with t_i = max(|g_i|, |(Hx)_i|, |(A'lambda)_i|, |z_i|), u = eps/2; reported, never a
+  verdict) on CERTIFIED verdicts, which all pass the global test: TRAIN-238 m0 **1,512 of 12,698 past 10 opt_tol, in 54
+  cells**; SENS-Q **76 of 108** (the grid's independent d_colstat agrees: 38 of 54 per algebra). Most (1,364 TRAIN, 72
+  SENS-Q) fail only on TINY columns, whose absolute excess is within 10 opt_tol, so the global test would pass them even at
+  its floor scale 1 (mostly one uncancelled term with t_i down to 1e-50, ratio 1-2); **148 TRAIN verdicts in 16 cells and 4 SENS-Q verdicts have a HIDDEN
+  column** -- column-locally past 10 opt_tol with an absolute excess past 10 opt_tol, i.e. past the global test even at
+  its floor scale 1, let through only because the global scale exceeds 1: sd-HS99EXP-sqp-qn 77, sd-WATER-default 22,
+  sd-WATER-sqp-qn 9, sd-HS101-default 8, sd-SPANHYD-default 7, sd-LAKES-default 5, sd-NET1-default 5, sd-HS74-sqp-qn 3,
+  sd-HS75-sqp-qn 3, sd-HS103-sqp-qn 2, sd-LAKES-sqp-qn 2, and one each in sd-DNIEPER-sqp-qn, sd-HS101-sqp-qn,
+  sd-HS99EXP-default, sd-LAUNCH-sqp-qn, sd-NET1-sqp-qn; SENS-Q A0_YORKNET_qp3 and RDV_YORKNET_qp5 (both algebras; RDV
+  qp5 has 80 such columns at |r_i| = t_i = 4.2e-8 under a global scale 1.1e3). The largest absolute: HS74 / HS75 sqp-qn,
+  a free column with |r_i| = t_i = 13.3 under a global scale 1.6e10 (global reading 0.83 opt_tol). **C581 STOP RULE:
+  STOP** -- the counts and cells go to the settler, who decides whether column-local stationarity and per-column pricing
+  (should 1) fold into QPC; nothing in this file's gate is changed by this reading.
   *hs025 / hs033 (both options) fail --assert-reference under H: PRE-EXISTING, not a QPC effect (settler C568).* R
   (census TRAIN-238 H0 member 0, lane 7d2f9f37) and H end at BYTE-IDENTICAL point dumps (hven-bench --dump-point) with
   identical status, iterations and objective in all four cells. Independent reading (exact rationals for HS33, 60-digit
@@ -345,7 +413,11 @@ does not make, S3); the conditions are read from the reader's JSON (`--json`) fi
   honest R.csv A.csv`); every exception is listed with both statuses and readings. WHY: C2 can only refuse, so its harm
   is a refused honest point; C1 changes which answer an EQP returns, so its harm is a different (or no) certificate on a
   cell R certified correctly; C1's solo ship case rests on SENS-Q, and without this bar nothing would stop an arm turning
-  a correct R certificate into kNumericalError or kIterationLimit there.
+  a correct R certificate into kNumericalError or kIterationLimit there. **Circularity, shown (pre-freeze re-review
+  should 2):** "honest" is read by the arm's own gate definitions, so the comparator also prints every R kOptimal row
+  excluded ONLY by `d_pslack_rel` and/or `d_product_local` (`HONEST-EXCLUDED-BY-GATE-DEF`, both statuses and readings;
+  counted in its summary line, reported). On the C568 development grids (R and H, both algebras) that count is 0: all 54
+  R kOptimal rows per algebra pass every V-QP check.
 * **V2 Zero false NLP certificates** on every row of every leg, every binary, every member (the reader's certificate
   leg, `i19_run.py certs --binaries`, `tu/stationarity.py`; an arm member's false certificate FAILS that arm,
   `V2_no_false_certificates`). One under an R member STOPS the freeze (the reader's rule; a defect outside this round).
@@ -407,6 +479,7 @@ observed is UNOBSERVED.
 | N2 | each arm's member 0 vs the census H0 rows on TRAIN-238, CAP-238-1, CAP-238-01, NLP-46 (`legs/n2_qpc.py`, built on the reader's `cell_table` / `compare_arm_rows`) | every cell whose arm side row shows both QPC counters 0 is identical to H0 on every row column except `options_digest`, `wall_s` and on every side column present in both (counters/statuses exact; measure columns by the schema's near-ulp gate); the only arm-only columns are the two QPC counters; any other difference STOPS; movers listed with counters |
 | N3 | CENSUS-57: H vs the baseline (CEN-R3) | 0 differences on cells with both counters 0; movers listed with counters; no cell loses a status |
 | M | mutations (section 8), control first (`legs/mutations_qpc.sh`, `legs/mutate_qpc.py`); the runner's ARGUED set is parsed from section 8 of this file and must EQUAL the script's (parity check, else `VERDICT ARGUED_PARITY_FAIL`) | control clean; every must-kill killed: `VERDICT MUTATIONS_AS_DECLARED` |
+| M1R | the gate's own reading at every would-be certified exit, at H (`legs/legM1R.sh`; the diagnostic print reaches H by the V-PDIV mechanism: a local commit = H + `legs/m1r/m1r_diag.patch` applied by `git am --committer-date-is-author-date`, never on `qpc`, never pushed; census-recipe install + lane, grid against it): SENS-Q (67 dumps x 2 algebras, 900 s kill) and TRAIN-238 member 0 (`legs/m1r/run_m1r_train.py`: the harness's cells and per-cell argv, co-run one process per pinned physical core); `legs/m1r/m1r_summary.py` | REPORTED: verdict counts, the per-disjunct refusal histogram, column-local stationarity (all and HIDDEN), raw output committed; the STOP-RULE line (C581) read before the freeze |
 | E-R | R ensemble = the census rows (hven-bench `ens` `27c02687`, the C559 restart, not re-run), copied byte-for-byte into the QPC store; baseline certificate leg; `ens.py freeze` x2 | freeze files committed (P-CLASS); identity checks of the reader pass |
 | E-A | each arm's ensemble (TRAIN-238, CAP-238-1, CAP-238-01: x0 members 1-5 + member 0; NLP-46: x1, x2 + member 0; TRAIN-238 `@t1..5` reported), then `i19_run.py certs --binaries BINARIES.txt`, then `ens.py read` per arm and ensemble | 5.2 inputs (S1, S2, R1, V2 from the reader JSON; V-STAB from the arm's own classes) |
 | Q | SENS-Q verdicts on N0's CSVs (`legs/legQ.sh`, `cmp_sensq.py vqp`, `legs/pinned_optima.tsv`) | V-QP zero under each arm; A-conditions; R's failures reported |
@@ -421,7 +494,7 @@ lane, SMT siblings idle; `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`; counters, status
 informational, never quoted. A cap/kill cell, or a deviation that decides a bar, is re-run ALONE under the serial rule
 before it is called one.
 
-Order (section 4's freeze order): freeze this file -> B -> C -> N0 -> N1 -> N3 -> M -> E-R (census copy, baseline
+Order (section 4's freeze order): freeze this file -> B -> C -> N0 -> N1 -> N3 -> M -> M1R -> E-R (census copy, baseline
 certificates, class freeze, commit) -> N2 (the first leg that reads an arm's TRAIN/CAP/NLP-46 member-0 rows) ->
 P-POWER / P-GATED (recorded in `gate-QPC/P-GATES.md`, committed) -> E-A (QPC, then QPC-C1, then QPC-C2) -> Q -> P -> D ->
 Sm -> CI.
@@ -439,7 +512,7 @@ Sm -> CI.
 | F-NAT the DALLASM QC8/SDL fixtures, independent recomputation | inside: worst product 41.3 feas_tol (entry6 refactorize), worst rows 1e-3 feas_tol | inside |
 | F-CONV converged mode on a near-dependent face, eliminated and unbordered-bordered (`EqpConvergedRefinement.*`) | n/a (new API) | row miss 1.11e-5 (model, 0 / 1 steps) -> 2.89e-7 (converged, 9 / 10 steps), eliminated / unbordered |
 | F-RESET the refinement mode does not survive a solve (`QpReleaseReadmission.TheConvergedRefinementIsPerSolve`) | n/a | bit-identical to a fresh engine |
-| F-FOLD the SQP fold of the two counters (⟨SQP seam test, if built⟩) | n/a | 1 refusal folded |
+| F-FOLD the SQP fold of the two counters at its five sites (`SqpQpcFold.*`, `hven_sqp_seam_tests`, through the gate seam's forced refusal; 0351d3209) | n/a | each site's refusals folded exactly once (Q18, Q32-Q35 killed by their site fixtures) |
 
 Re-derived pins (declared, each with its mechanism): `QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint`
 (asserted the rung; replaced by F-PF1 -- the rung no longer exists); `QpWa1AscentFootprint.SyntheticRide...`'s
@@ -463,7 +536,12 @@ rounding floor). **Re-confirmed on the component-arm builds of section 2** (deve
 built in each arm's own tree, Release): on `qpc-c1` (C1 only, `e4660dd31`) exactly the C2-dependent re-pins fail -- the
 re-premised movers and the `QpCertificateData.*` fixtures -- and nothing else; on `qpc-c2` (C2 only, `1ed77a336`) only
 `QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization` and `.TheConvergedRefinementIsPerSolve` (C1's own
-fixtures) fail, and every mover's new pin holds. Every mover is C2's; C1 moves none.
+fixtures) fail, and every mover's new pin holds. Every mover is C2's; C1 moves none. (That attribution pair was built
+on 02407ea83, the C553 gate -- before the row-local scale (C567) and the slack test (C568). The current pair,
+`qpc-c1` `c889e3068` / `qpc-c2` `3545f6185` on bcf960b0b, differs from H only by the two reverts and docs; re-review
+should 7 -- the `QpCertificateData.*` and `QpReleaseReadmission.*` suites on each arm build, both arms compiled -- is
+NOT yet run: it waits on the settler's decision on the C581 STOP (section 4), which may move the gate; the arms are
+re-made on the final H by `legs/make_arm.py` before it runs.)
 
 | test | mechanism (readings from the data half at the refused exit) | verdict |
 |---|---|---|
@@ -484,7 +562,10 @@ fixtures) fail, and every mover's new pin holds. Every mover is C2's; C1 moves n
 | SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused (NEW, review M3) | AJacobianPoisonedCandidate... no longer reaches the Jacobian screen at H (the h guard refuses first), so mutant M7 survived both arms; the separated restoration model's radius-floor candidate is TAKEN by the clean guard on every build, and poisoning the candidate's in-place derivative upgrade (the first sub-start Jacobian fetch below h(start)) makes the screen the only refuser | the screen is reached and refuses (seeded 0, the phase runs from the requesting iterate, no non-finite subproblem, kInfeasible) on both dense policies; Q41 (= M7) killed by it |
 | Threads.ZeroLeavesEveryFactorAtTheBackendDefault, Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration | the restoration leg's last walk QP is the same 477-feas_tol refusal, so no hot handle is emitted (the handle exists only after a kOptimal last walk solve) | correct new behaviour; the reference build now reads what Debug and Accelerate already did. **Pre-freeze review S4:** on the reference route (Release and Debug) the absence of the handle and the refusal are ASSERTED, so a route that flips back to a certified last solve fails the test (and the K0 read can be reinstated); off the reference route the K0 count is read when a handle exists. **DECLARED LOST COVERAGE:** the restoration route's parent K0 read is observed by no build on this model; the walk tier's K0 read on HS76 is unchanged |
 
-Development leg-C readings at the post-diagnosis tree (the code commit below; development, NOT evidence): Release 4264 of 4264, Debug 4264 of 4264 (1 skipped and 2 disabled by design in both).
+Development leg-C readings (development, NOT evidence): at 02407ea83 Release 4264 of 4264 and Debug 4264 of 4264; at
+22cc157bd (the slack test and the M3 / fold fixtures) Release 4283 of 4283 and Debug 4283 of 4283 (1 skipped and 2
+disabled by design in each). Not yet re-read at f0ba4e101 (five more fixtures; comment-only include change): held with
+the dry run behind the C581 STOP decision.
 
 ## 8. Mutations (must-kill unless marked ARGUED)
 
@@ -496,7 +577,7 @@ Applied by `legs/mutate_qpc.py <id>` on the Release tree (anchors pre-checked), 
 `hven_sqp_seam_tests` (`SqpQpcFold.*`, the fold fixtures). The runner checks, before any build, that the table's ids equal
 the script's (`ID_PARITY_FAIL`) and that the ARGUED set below equals its own (`ARGUED_PARITY_FAIL`); after the run, that
 every killer named below for a must-kill id is among that id's observed killers (`KILLER_PARITY_FAIL`; `Suite.*` = any
-test of the suite). Killers are named from the development dry run at 22cc157bd (2026-11-25, Release, worktree qpc-mut: control clean, every must-kill id killed, Q17 survived as argued; its scratch logs were deleted with that worktree after the table was filled, so the killers named below and the parity result are the record of it; the run's KILLER_PARITY_FAIL was the then-empty killer column, and the runner's parity block re-run on its killers against this table reads 40 checked, 0 failures); leg M is the evidence.
+test of the suite). Killers for Q1-Q41 were filled from the development dry run at 22cc157bd (2026-11-25, Release, worktree qpc-mut: control clean, every must-kill id killed, Q17 survived as argued). Its scratch logs were lost with that worktree (removed with --force after the table was filled; re-review should 8: acceptable, stated), so the killers named below and the parity result are its record: the run's KILLER_PARITY_FAIL was the then-empty killer column, and the runner's parity block re-run on its killers against this table reads 40 checked, 0 failures. Killers for Q42-Q47 are from a targeted development run at f0ba4e101 (control + Q42-Q47; logs kept in `dev/mut-c581/`). The full dry run at the final code head (every id, killer parity) is held with leg C behind the C581 STOP decision; leg M is the evidence.
 
 | id | mutation | declared killer(s) |
 |---|---|---|
@@ -541,6 +622,12 @@ test of the suite). Killers are named from the development dry run at 22cc157bd 
 | Q39 | the working rows' slack not read | `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused` |
 | Q40 | slack factor 100 -> 1000 | `QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
 | Q41 | the seed guard's Jacobian screen passes everything (`jacobian_values_finite` returns true; RS-6b-r2 mutant M7; review M3) | `SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused` |
+| Q42 | the rounding-zero exemption read against a GLOBAL scale (max_i t_i) instead of the row's local s_j (re-review must 3a) | `QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack`, `QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow` |
+| Q43 | ||a_j||inf dropped from the exemption (re-review must 3b) | `QpCertificateData.TheExemptionReadsTheRowsInfinityNorm` |
+| Q44 | a working row's slack read absolute, not over its row scale (re-review must 3c) | `QpCertificateData.TheSlackIsReadRelativeToTheRowScale`, `QpCertificateData.TheExemptionReadsTheRowsInfinityNorm` |
+| Q45 | rounding-zero factor 100 -> 1e4 | `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack`, `QpCertificateData.TheExemptionReadsTheRowsInfinityNorm`, `QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively` |
+| Q46 | the exemption's unit roundoff read as eps instead of u = eps/2 | `QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack`, `QpCertificateData.TheExemptionReadsTheRowsInfinityNorm` |
+| Q47 | B1Gate's ORIGINAL mutant: the NLP complementarity conjunct dropped from the SQP convergence test (pre-freeze review M6; re-review should 6) | `B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers` |
 
 ARGUED (the runner's set, parity-checked): Q17.
 
@@ -558,19 +645,15 @@ folds). Accelerate and Windows (CI only). P-1a's centring arms (deferred; C522).
 R costs nothing new (the census rows). Three arms (QPC, QPC-C1, QPC-C2), each: TRAIN-238 + CAP-238-1 + CAP-238-01 x 6
 members (+ TRAIN-238 @t1..5 reported) co-run ~1.5 lane-h; NLP-46 x 3 members: co-run ~3, exclusive tier ~2 (exclusive
 hours count double); PILOT-62 x 6 ~1.5; certificate leg ~0.5. Per arm ~9-10 lane-h, so ~28-30 for the three. Plus:
-builds (three installs + lanes + four grids) ~1.2; ctest Release + Debug ~1.0; mutations 21 x ~3 min ~1.1; SENS-Q 4 grids
-x 2 algebras ~2 (PF1 dominates); census + replay ~1.5; smoke 0.1. About ⟨34-38⟩ lane-hours +-30%; elapsed 3-5 days,
+builds (three installs + lanes + four grids) ~1.2; ctest Release + Debug ~1.0; mutations 47 x ~3 min ~2.4; leg M1R ~0.3; SENS-Q 4 grids
+x 2 algebras ~2 (PF1 dominates); census + replay ~1.5; smoke 0.1. About 36-40 lane-hours +-30%; elapsed 3-5 days,
 dominated by NLP-46's exclusive tier. All three arms are run whatever QPC's read shows: the component reads are
 reported even under case 1 of 5.3, so the attribution of every movement is on the record.
 
 ## Open questions for the settler (before freeze)
 
-Answered by C553 and folded in: Q1 (V-STAB gates, no-worsening, 5.2), Q2 (component arms, 2 and 5.3), Q3 (stationarity
-in the data half, 1 and 8), Q4 (one combined gate accepted), Q5 (every ctest mover diagnosed, section 7).
-
-* **Q6** The S2 currencies are now the reader's LA and EV (the draft had QM and LA; QM is reported). Accept, or should QM
-  stay a bar through a second instrument?
-* **Q7** TRAIN-K (never-default) is dropped as not a harness corpus (section 3); CAP-238-1/CAP-238-01 take its guard
-  role. Accept, or add it to the spec (a spec change after the census, needing an R supplementary leg)?
-* (Q8, answered by C566 and superseded by review S10: N1 now attributes a replay difference by the cell's own side-file
-  counters.)
+None open. Answered and folded in: by C553, Q1 (V-STAB gates, no-worsening, 5.2), Q2 (component arms, 2 and 5.3), Q3
+(stationarity in the data half, 1 and 8), Q4 (one combined gate accepted), Q5 (every ctest mover diagnosed, section 7);
+by C566, Q6 (S2 gated on LA + EV, QM reported only: accepted -- the reader cannot score QM and LA carries the QP's
+factorization work), Q7 (TRAIN-K dropped, CAP-238-1 / CAP-238-01 as the guard corpora: accepted) and Q8 (superseded by
+review S10: N1 attributes a replay difference by the cell's own side-file counters).

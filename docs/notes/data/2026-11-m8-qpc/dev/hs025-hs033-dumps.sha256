@@ -1,0 +1,22 @@
+# QPC pre-freeze re-review should 4: sha256 of the hs025/hs033 point dumps behind DECLARATION-QPC section 4 (the PRE-EXISTING
+# --assert-reference failures, settler C568). Taken 2026-11-25 by hven-bench (ens 27c02687) hven_bench_cell --lane hven-sqp
+# --problem P --options B --budget-iters 0 --budget-facts 10000 --dump-point <P>-<B>-<side>.pt (the .scratch/m1re/reread.sh step).
+# side R = the census lane binary (sha256 7d2f9f37..., hven 99712ec32); side H = the C568 diagnostic lane (hven bb97de24f =
+# 2c283c438 + an env-gated print, unset here). R and H dumps are byte-identical in every cell (equal sha256 below).
+3507ae14f726948d4ec99dcb7c7d0632a92a8387c342895147d9ebac57219ef4  hs025-default-H.pt
+3507ae14f726948d4ec99dcb7c7d0632a92a8387c342895147d9ebac57219ef4  hs025-default-R.pt
+3507ae14f726948d4ec99dcb7c7d0632a92a8387c342895147d9ebac57219ef4  hs025-sqp-qn-H.pt
+3507ae14f726948d4ec99dcb7c7d0632a92a8387c342895147d9ebac57219ef4  hs025-sqp-qn-R.pt
+d11135eec9a3d29d7e1b16665215f0e98afdef7d3f5f8ae934ecde97064163a2  hs033-default-H.pt
+d11135eec9a3d29d7e1b16665215f0e98afdef7d3f5f8ae934ecde97064163a2  hs033-default-R.pt
+b4dd51dcc96d24a48b23a33d32cb25118dbd7e94a1693f397fe0e3497aafcf9c  hs033-sqp-qn-H.pt
+b4dd51dcc96d24a48b23a33d32cb25118dbd7e94a1693f397fe0e3497aafcf9c  hs033-sqp-qn-R.pt
+# status / iterations / objective per run:
+# hs025-default-H: status=optimal iterations=0 objective=32.834999999663594 
+# hs025-default-R: status=optimal iterations=0 objective=32.834999999663594 
+# hs025-sqp-qn-H: status=optimal iterations=0 objective=32.834999999663594 
+# hs025-sqp-qn-R: status=optimal iterations=0 objective=32.834999999663594 
+# hs033-default-H: status=optimal iterations=4 objective=-3.9999999999737859 
+# hs033-default-R: status=optimal iterations=4 objective=-3.9999999999737859 
+# hs033-sqp-qn-H: status=optimal iterations=6 objective=-3.9999999999999996 
+# hs033-sqp-qn-R: status=optimal iterations=6 objective=-3.9999999999999996 
