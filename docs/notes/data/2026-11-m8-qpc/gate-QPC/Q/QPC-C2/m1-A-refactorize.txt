@@ -1,0 +1,1 @@
+M1 kOptimal=54 unscaled>100ftol=0 footprint_slack_on_worst_term(>100ftol)=0 any_priced_term_slack>100ftol=0 non_rounding_zero_slack>100ftol=0

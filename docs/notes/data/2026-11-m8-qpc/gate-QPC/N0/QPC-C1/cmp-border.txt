@@ -1,0 +1,2 @@
+MOVER PF1_f7_n1000_path_corrupted_qp1.txt border status R=0 H=0 arms=1 gate=0 minors R=4758 H=4756 f R=-0.0032319049847866804 H=-0.00323190498478668
+N0 cells=67 movers=1 differences=0

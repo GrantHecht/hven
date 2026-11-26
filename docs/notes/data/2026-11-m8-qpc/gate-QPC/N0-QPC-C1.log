@@ -1,0 +1,10 @@
+box-lane: lane 1 acquired 2026-11-26T03:38:08-05:00
+LEG N0 start 2026-11-26T03:38:08-05:00 H=f0ba4e101d33826758f1cefb1d41b0a64f228ff7 Rgrid=f023051f5bf0ed890b88d9b6b6f27e303da31cf44bea22f99641ff8861e76113 armgrid=d6707769409a87cbaaf562448e89dba46d58323d279ffb3d1d8596eaa3f0792f
+R refactorize rows=67
+R border rows=67
+A refactorize rows=67
+A border rows=67
+N0 refactorize rc=0: N0 cells=67 movers=1 differences=0
+N0 border rc=0: N0 cells=67 movers=1 differences=0
+N0 worst=0
+LEG N0 end 2026-11-26T03:45:50-05:00

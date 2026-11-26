@@ -1,0 +1,9 @@
+V-QP R refactorize rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+V-QP R border rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+V-QP A refactorize rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+V-QP A border rc=0: V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
+V-HONEST refactorize rc=0: V-HONEST honest_R=54 exceptions=0 excluded_only_by_gate_definitions=0 (reported)
+M1 A refactorize: M1 kOptimal=54 unscaled>100ftol=0 footprint_slack_on_worst_term(>100ftol)=0 any_priced_term_slack>100ftol=0 non_rounding_zero_slack>100ftol=0
+V-HONEST border rc=0: V-HONEST honest_R=54 exceptions=0 excluded_only_by_gate_definitions=0 (reported)
+M1 A border: M1 kOptimal=54 unscaled>100ftol=0 footprint_slack_on_worst_term(>100ftol)=0 any_priced_term_slack>100ftol=0 non_rounding_zero_slack>100ftol=0
+Q worst(arm)=0

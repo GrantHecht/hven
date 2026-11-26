@@ -1,0 +1,93 @@
+REPORT A0_YORKNET_qp3.txt refactorize d_stat/otol=3.140e-01 k_beyond/otol=1.570e-01 unscaled_product/ftol=6.585e-08 colstat/otol=1.000e+09 colstat_hidden/otol=3.335e+08
+COLSTAT A0_YORKNET_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=3.335e+08 HIDDEN k_beyond/otol=1.570e-01 (reported, not a verdict)
+REPORT ACOPP118_f81_qp0.txt refactorize d_stat/otol=4.851e-05 k_beyond/otol=1.589e-16 unscaled_product/ftol=6.382e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPP118_f81_qp0.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.589e-16 (reported, not a verdict)
+REPORT ACOPP118_f81_qp1.txt refactorize d_stat/otol=3.465e-05 k_beyond/otol=5.142e-12 unscaled_product/ftol=8.980e-03 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPP118_f81_qp1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=5.142e-12 (reported, not a verdict)
+REPORT ACOPP118_f81_qp3.txt refactorize d_stat/otol=5.046e-05 k_beyond/otol=2.785e-16 unscaled_product/ftol=1.845e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPP118_f81_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.785e-16 (reported, not a verdict)
+REPORT ACOPP57_def-qp0.txt refactorize d_stat/otol=1.551e-05 k_beyond/otol=9.792e-11 unscaled_product/ftol=9.537e+00 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPP57_def-qp0.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=9.792e-11 (reported, not a verdict)
+REPORT ACOPR118_e4_qp5.txt refactorize d_stat/otol=2.787e-05 k_beyond/otol=2.919e-15 unscaled_product/ftol=3.920e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_e4_qp5.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.919e-15 (reported, not a verdict)
+REPORT ACOPR118_e4_qp6.txt refactorize d_stat/otol=3.162e-05 k_beyond/otol=2.602e-11 unscaled_product/ftol=6.230e-02 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_e4_qp6.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.602e-11 (reported, not a verdict)
+REPORT ACOPR118_f81_qp3.txt refactorize d_stat/otol=3.550e-05 k_beyond/otol=2.629e-11 unscaled_product/ftol=3.233e-02 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_f81_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.629e-11 (reported, not a verdict)
+REPORT ACOPR118_f81_qp4.txt refactorize d_stat/otol=3.811e-05 k_beyond/otol=3.163e-15 unscaled_product/ftol=4.344e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_f81_qp4.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=3.163e-15 (reported, not a verdict)
+REPORT ACOPR118_f81_qp5.txt refactorize d_stat/otol=2.135e-05 k_beyond/otol=2.629e-11 unscaled_product/ftol=1.145e-01 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_f81_qp5.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.629e-11 (reported, not a verdict)
+REPORT ACOPR118_f81_qp6.txt refactorize d_stat/otol=2.785e-05 k_beyond/otol=2.629e-11 unscaled_product/ftol=1.146e-01 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR118_f81_qp6.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.629e-11 (reported, not a verdict)
+REPORT ACOPR57_def-qp0.txt refactorize d_stat/otol=2.793e-05 k_beyond/otol=1.749e-16 unscaled_product/ftol=3.269e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR57_def-qp0.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.749e-16 (reported, not a verdict)
+REPORT ACOPR57_def-qp1.txt refactorize d_stat/otol=1.966e-05 k_beyond/otol=2.269e-09 unscaled_product/ftol=1.446e+01 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR57_def-qp1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.269e-09 (reported, not a verdict)
+REPORT ACOPR57_def-qp4.txt refactorize d_stat/otol=5.847e-08 k_beyond/otol=4.323e-16 unscaled_product/ftol=1.933e-07 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT ACOPR57_def-qp4.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=4.323e-16 (reported, not a verdict)
+REPORT BPS_ACOPP57_entry1.txt refactorize d_stat/otol=1.596e-05 k_beyond/otol=1.578e-14 unscaled_product/ftol=3.064e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT BPS_ACOPP57_entry1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.578e-14 (reported, not a verdict)
+REPORT BPS_ACOPR118_entry9.txt refactorize d_stat/otol=5.497e-05 k_beyond/otol=2.432e-11 unscaled_product/ftol=3.412e-02 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT BPS_ACOPR118_entry9.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.432e-11 (reported, not a verdict)
+REPORT BPS_ACOPR118_qp26.txt refactorize d_stat/otol=5.681e-05 k_beyond/otol=3.127e-15 unscaled_product/ftol=5.329e-04 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT BPS_ACOPR118_qp26.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=3.127e-15 (reported, not a verdict)
+REPORT C10_BRITGAS_qp2.txt refactorize d_stat/otol=3.280e-01 k_beyond/otol=2.177e-01 unscaled_product/ftol=5.800e-08 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_BRITGAS_qp2.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.177e-01 (reported, not a verdict)
+REPORT C10_BRITGAS_qp3.txt refactorize d_stat/otol=1.107e-07 k_beyond/otol=1.455e-08 unscaled_product/ftol=4.934e-08 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_BRITGAS_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.455e-08 (reported, not a verdict)
+REPORT C10_BRITGAS_qp4.txt refactorize d_stat/otol=1.107e-07 k_beyond/otol=3.105e-09 unscaled_product/ftol=4.037e-08 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_BRITGAS_qp4.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=3.105e-09 (reported, not a verdict)
+REPORT C10_STEENBRB_qp2.txt refactorize d_stat/otol=3.418e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=1.372e-05 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT C10_STEENBRB_qp3.txt refactorize d_stat/otol=5.008e-13 k_beyond/otol=5.008e-13 unscaled_product/ftol=3.009e-28 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=5.008e-13 (reported, not a verdict)
+REPORT C10_STEENBRB_qp4.txt refactorize d_stat/otol=6.617e-14 k_beyond/otol=6.617e-14 unscaled_product/ftol=1.102e-31 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp4.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=6.617e-14 (reported, not a verdict)
+REPORT C10_STEENBRB_qp5.txt refactorize d_stat/otol=1.281e-11 k_beyond/otol=1.281e-11 unscaled_product/ftol=8.442e-27 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp5.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.281e-11 (reported, not a verdict)
+REPORT C10_STEENBRB_qp6.txt refactorize d_stat/otol=2.123e-12 k_beyond/otol=2.123e-12 unscaled_product/ftol=2.033e-27 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp6.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.123e-12 (reported, not a verdict)
+REPORT C10_STEENBRB_qp7.txt refactorize d_stat/otol=3.891e-13 k_beyond/otol=3.891e-13 unscaled_product/ftol=1.204e-27 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp7.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=3.891e-13 (reported, not a verdict)
+REPORT C10_STEENBRB_qp8.txt refactorize d_stat/otol=8.338e-13 k_beyond/otol=8.338e-13 unscaled_product/ftol=8.409e-27 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C10_STEENBRB_qp8.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=8.338e-13 (reported, not a verdict)
+REPORT C10_STEENBRD_qp1.txt refactorize d_stat/otol=5.002e-08 k_beyond/otol=0.000e+00 unscaled_product/ftol=5.202e-05 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT C10_STEENBRE_qp1.txt refactorize d_stat/otol=3.752e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=1.316e-05 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT C11_BRITGAS_qp1.txt refactorize d_stat/otol=7.105e-08 k_beyond/otol=1.247e-16 unscaled_product/ftol=4.805e-06 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C11_BRITGAS_qp1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.247e-16 (reported, not a verdict)
+REPORT C11_SAWPATH_qp1.txt refactorize d_stat/otol=5.364e+00 k_beyond/otol=1.508e-11 unscaled_product/ftol=1.648e-07 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT C11_SAWPATH_qp1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.508e-11 (reported, not a verdict)
+REPORT C11_YORKNET_qp1.txt refactorize d_stat/otol=1.128e-08 k_beyond/otol=0.000e+00 unscaled_product/ftol=7.189e-02 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT Cs_STEENBRB_qp3.txt refactorize d_stat/otol=6.186e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=1.071e-08 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT Cs_STEENBRB_qp4.txt refactorize d_stat/otol=6.186e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=4.329e-09 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT Cs_STEENBRB_qp5.txt refactorize d_stat/otol=6.186e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=2.297e-09 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT Cs_STEENBRB_qp6.txt refactorize d_stat/otol=6.186e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=9.747e-10 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT I18_qp_m137.txt refactorize d_stat/otol=1.090e-04 k_beyond/otol=0.000e+00 unscaled_product/ftol=1.550e-01 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT PF1_f7_n1000_path_corrupted_qp1.txt refactorize d_stat/otol=2.060e-09 k_beyond/otol=0.000e+00 unscaled_product/ftol=2.038e-10 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT QC8_DALLASM_entry6.txt refactorize d_stat/otol=1.827e-07 k_beyond/otol=0.000e+00 unscaled_product/ftol=4.129e+01 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT QC8_DALLASM_qp1.txt refactorize d_stat/otol=8.132e-08 k_beyond/otol=0.000e+00 unscaled_product/ftol=1.152e-02 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT QC8_DALLASM_qp7.txt refactorize d_stat/otol=1.624e-07 k_beyond/otol=0.000e+00 unscaled_product/ftol=9.772e+00 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT R2_Cs_STEENBRB_qp1.txt refactorize d_stat/otol=1.355e-11 k_beyond/otol=0.000e+00 unscaled_product/ftol=2.059e-12 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT R2_Cs_STEENBRB_qp2.txt refactorize d_stat/otol=5.306e-01 k_beyond/otol=5.306e-01 unscaled_product/ftol=1.666e-14 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT R2_Cs_STEENBRB_qp2.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=5.306e-01 (reported, not a verdict)
+REPORT R2_Cs_STEENBRB_qp3.txt refactorize d_stat/otol=9.488e-01 k_beyond/otol=9.488e-01 unscaled_product/ftol=3.883e-14 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT R2_Cs_STEENBRB_qp3.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=9.488e-01 (reported, not a verdict)
+REPORT R2_Cs_STEENBRB_qp4.txt refactorize d_stat/otol=9.917e-01 k_beyond/otol=9.917e-01 unscaled_product/ftol=6.868e-15 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT R2_Cs_STEENBRB_qp4.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=9.917e-01 (reported, not a verdict)
+REPORT RDV_YORKNET_qp5.txt refactorize d_stat/otol=9.237e-02 k_beyond/otol=4.618e-02 unscaled_product/ftol=4.893e-08 colstat/otol=1.000e+09 colstat_hidden/otol=1.000e+09
+COLSTAT RDV_YORKNET_qp5.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=1.000e+09 HIDDEN k_beyond/otol=4.618e-02 (reported, not a verdict)
+REPORT SDL_YORKNET_qp29.txt refactorize d_stat/otol=7.578e-04 k_beyond/otol=7.578e-04 unscaled_product/ftol=4.591e-09 colstat/otol=1.644e+09 colstat_hidden/otol=0.000e+00
+COLSTAT SDL_YORKNET_qp29.txt refactorize colstat/otol=1.644e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=7.578e-04 (reported, not a verdict)
+REPORT SDL_YORKNET_qp30.txt refactorize d_stat/otol=4.754e-04 k_beyond/otol=4.754e-04 unscaled_product/ftol=7.431e-09 colstat/otol=1.703e+09 colstat_hidden/otol=0.000e+00
+COLSTAT SDL_YORKNET_qp30.txt refactorize colstat/otol=1.703e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=4.754e-04 (reported, not a verdict)
+REPORT SEQ4_LAKES_qp0.txt refactorize d_stat/otol=1.962e-08 k_beyond/otol=0.000e+00 unscaled_product/ftol=3.193e-03 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT SNX_BRITGAS_resto_qp4.txt refactorize d_stat/otol=9.809e-01 k_beyond/otol=6.833e-01 unscaled_product/ftol=4.222e-08 colstat/otol=1.749e+09 colstat_hidden/otol=0.000e+00
+COLSTAT SNX_BRITGAS_resto_qp4.txt refactorize colstat/otol=1.749e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=6.833e-01 (reported, not a verdict)
+REPORT STEENBRB_def-qp0.txt refactorize d_stat/otol=4.320e-08 k_beyond/otol=0.000e+00 unscaled_product/ftol=4.281e-05 colstat/otol=0.000e+00 colstat_hidden/otol=0.000e+00
+REPORT YORKNET_def-qp1.txt refactorize d_stat/otol=2.295e-09 k_beyond/otol=2.365e-19 unscaled_product/ftol=1.605e-07 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT YORKNET_def-qp1.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=2.365e-19 (reported, not a verdict)
+REPORT YRK_YORKNET_qp25.txt refactorize d_stat/otol=1.532e-07 k_beyond/otol=1.529e-07 unscaled_product/ftol=3.306e-01 colstat/otol=1.925e+09 colstat_hidden/otol=0.000e+00
+COLSTAT YRK_YORKNET_qp25.txt refactorize colstat/otol=1.925e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=1.529e-07 (reported, not a verdict)
+REPORT YRK_YORKNET_qp26.txt refactorize d_stat/otol=4.660e-05 k_beyond/otol=4.660e-05 unscaled_product/ftol=5.744e-10 colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00
+COLSTAT YRK_YORKNET_qp26.txt refactorize colstat/otol=1.000e+09 colstat_hidden/otol=0.000e+00 k_beyond/otol=4.660e-05 (reported, not a verdict)
+V-QP kOptimal=54 pinned_present=6 failures=0 colstat>10otol=38 hidden>10otol=2 (reported)
