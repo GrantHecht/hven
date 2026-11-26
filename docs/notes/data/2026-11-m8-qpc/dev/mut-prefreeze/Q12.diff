@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index 070aad01e..fea27d270 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -722,7 +722,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+         if (!kkt.dense_shifted) {
+             const Vec y_model = y;
+             y = y + detail::solve_vec(kkt, residual_of(y));
+-            if (refinement == EqpRefinement::kConverged && opts.dual_regularization > 0.0) {
++            if (false) {
+                 // THE CONVERGED REFINEMENT (header section), in place of the accuracy stop.
+                 Vec res = residual_of(y);
+                 accuracy_steps += refine_until_converged(

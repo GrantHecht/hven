@@ -1,0 +1,865 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = B1Gate.*:SqpSolverRestorationSeed.*:SqpElasticWitnessStart.*:HsSweepCorpus.*
+[==========] Running 50 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from SqpElasticWitnessStart
+[ RUN      ] SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness
+[ p1e ] YORKNET rung1 before: status=0 minors=614 facts=603 off_rows=4.67848e-13 | witness: start_off=0.000e+00 pins seeded=4 kept=4 | after: status=0 minors=300 facts=283 f=1696529.72937 slack_l1=17090.3 (witness 51001) eq=2.27e-13 box=0.00e+00 stat=4.30e-17 sign=0.00e+00 comp=4.50e-15
+[       OK ] SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness (1444 ms)
+[ RUN      ] SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+[ p1e ] SAWPATH rung1 before: status=0 minors=43 facts=52 off_rows=2.40696e-13 | witness: start_off=0.000e+00 pins seeded=0 kept=0 | after: status=0 minors=32 facts=42 f=-376.163994774 slack_l1=2.56738 (witness 3.55954) eq=2.41e-13 box=0.00e+00 stat=5.02e-07 sign=0.00e+00 comp=0.00e+00
+[       OK ] SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness (346 ms)
+[ RUN      ] SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness
+[ p1e ] YORKNET ladder arm=0 (witness 0, last 0): usable=1 closed=0 reduced=1 status=0 slack_l1=17032 (witness 51001) rungs=7 minors=678 facts=841 fallbacks=0
+[ p1e ] YORKNET ladder arm=1 (witness 1, last 0): usable=1 closed=0 reduced=1 status=0 slack_l1=17032 (witness 51001) rungs=7 minors=338 facts=418 fallbacks=0
+[ p1e ] YORKNET ladder arm=2 (witness 1, last 1): usable=1 closed=0 reduced=1 status=0 slack_l1=17032 (witness 51001) rungs=7 minors=338 facts=418 fallbacks=0
+[       OK ] SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness (2461 ms)
+[ RUN      ] SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung
+[ p1e ] SAWPATH ladder arm=0 (witness 0, last 0): usable=0 closed=0 reduced=0 status=3 slack_l1=0 (witness 3.55954) rungs=2 minors=45 facts=54 fallbacks=0
+[ p1e ] SAWPATH ladder arm=1 (witness 1, last 0): usable=0 closed=0 reduced=0 status=3 slack_l1=0 (witness 3.55954) rungs=2 minors=34 facts=44 fallbacks=0
+[ p1e ] SAWPATH ladder arm=2 (witness 1, last 1): usable=1 closed=0 reduced=1 status=0 slack_l1=2.56738 (witness 3.55954) rungs=2 minors=34 facts=44 fallbacks=1
+[ p1e ] SAWPATH rung 2: status=3 minors=2 blk_term=1 cert_rej=0 ws_count_violations=0 dep_tests=174 dep_dependent=174 pins=7 n=585 me=578
+[       OK ] SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung (1120 ms)
+[----------] 4 tests from SqpElasticWitnessStart (5373 ms total)
+
+[----------] 2 tests from HsSweepCorpus
+[ RUN      ] HsSweepCorpus.Corpus
+
+prob   arm   KD   SOC  solves majors minors fact   acc/rej  soc a/i/r/n   elas a/e  restor fsMaj  wd  lvl c/w/h fail
+HS10   cold  on   on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  on   off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  on   7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   cold  off  off  7      96     1284   152    96/0     0/0/0/0       56/336    0      0      0   7/0/0    0
+HS10   warm  on   on   7      40     232    48     39/1     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  on   off  7      40     232    48     39/1     0/0/0/0       8/48      0      26     0   1/6/0    0
+HS10   warm  off  on   7      40     232    48     39/1     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS10   warm  off  off  7      40     232    48     39/1     0/0/0/0       8/48      0      0      0   1/6/0    0
+HS15   cold  on   on   7      86     1075   184    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  on   off  7      86     1070   184    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   cold  off  on   7      86     1075   184    70/16    0/0/2/2       48/288    0      0      0   7/0/0    0
+HS15   cold  off  off  7      86     1070   184    70/16    0/0/0/0       48/288    0      0      0   7/0/0    0
+HS15   warm  on   on   8      49     175    74     33/13    0/0/0/0       4/6       0      21     1   4/4/0    1
+HS15   warm  on   off  8      49     175    74     33/13    0/0/0/0       4/6       0      21     1   4/4/0    1
+HS15   warm  off  on   8      44     160    68     29/12    0/0/0/0       4/6       0      0      0   4/4/0    1
+HS15   warm  off  off  8      44     160    68     29/12    0/0/0/0       4/6       0      0      0   4/4/0    1
+HS26   cold  on   on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  on   off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  on   5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   cold  off  off  5      88     190    88     88/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS26   warm  on   on   5      30     62     30     30/0     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS26   warm  on   off  5      30     62     30     30/0     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS26   warm  off  on   5      30     62     30     30/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS26   warm  off  off  5      30     62     30     30/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   cold  on   on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  on   off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  on   5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   cold  off  off  5      22     84     54     22/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS33   warm  on   on   5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  on   off  5      16     52     38     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS33   warm  off  on   5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS33   warm  off  off  5      16     52     38     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   cold  on   on   5      28     59     30     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  on   off  5      28     59     30     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  on   5      28     59     30     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   cold  off  off  5      28     59     30     28/0     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS40   warm  on   on   5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  on   off  5      16     32     16     16/0     0/0/0/0       0/0       0      12     0   1/4/0    0
+HS40   warm  off  on   5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS40   warm  off  off  5      16     32     16     16/0     0/0/0/0       0/0       0      0      0   1/4/0    0
+HS77   cold  on   on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  on   off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   cold  off  on   5      56     134    55     48/8     0/0/5/5       0/0       0      0      0   5/0/0    0
+HS77   cold  off  off  5      56     121    52     48/8     0/0/0/0       0/0       0      0      0   5/0/0    0
+HS77   warm  on   on   5      25     55     23     23/2     0/0/2/2       0/0       0      13     0   1/4/0    0
+HS77   warm  on   off  5      25     51     23     23/2     0/0/0/0       0/0       0      13     0   1/4/0    0
+HS77   warm  off  on   5      25     55     23     23/2     0/0/2/2       0/0       0      0      0   1/4/0    0
+HS77   warm  off  off  5      25     51     23     23/2     0/0/0/0       0/0       0      0      0   1/4/0    0
+
+[       OK ] HsSweepCorpus.Corpus (269 ms)
+[ RUN      ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep
+[       OK ] HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep (3 ms)
+[----------] 2 tests from HsSweepCorpus (273 ms total)
+
+[----------] 21 tests from SqpSolverRestorationSeed
+[ RUN      ] SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer
+[       OK ] SqpSolverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer (13 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken
+[       OK ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken (29 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm
+[       OK ] SqpSolverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm (7 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne
+[       OK ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne (59 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm
+[       OK ] SqpSolverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm (11 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer
+[       OK ] SqpSolverRestorationSeed.TheIndependentWorkingSetReachesTheSameCertifiedAnswer (9 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt
+[       OK ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt (89 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm
+[       OK ] SqpSolverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm (30 ms)
+[ RUN      ] SqpSolverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel
+[       OK ] SqpSolverRestorationSeed.AWorseElasticCandidateIsRefusedOnTheSameModel (1 ms)
+[ RUN      ] SqpSolverRestorationSeed.AZeroElasticStepIsNotACandidate
+[       OK ] SqpSolverRestorationSeed.AZeroElasticStepIsNotACandidate (1 ms)
+[ RUN      ] SqpSolverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused
+[       OK ] SqpSolverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (6 ms)
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (481 ms)
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm (189 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt
+[       OK ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt (2 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm
+[       OK ] SqpSolverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm (5 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[       OK ] SqpSolverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (1 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (41 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceDenseArm (4 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe
+[       OK ] SqpSolverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnceUnderTheDefaultPlusProbe (9 ms)
+[ RUN      ] SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption
+[       OK ] SqpSolverRestorationSeed.TheElasticSiteOfferIsGatedByTheOption (28 ms)
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused (2 ms)
+[----------] 21 tests from SqpSolverRestorationSeed (1027 ms total)
+
+[----------] 23 tests from B1Gate
+[ RUN      ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP
+[       OK ] B1Gate.TheMinimalModelMovesNoGatedQuantityWithP (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPoint (0 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPrice (0 ms)
+[ RUN      ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize
+[       OK ] B1Gate.ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize (0 ms)
+[ RUN      ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath
+[       OK ] B1Gate.ReviewSphereContinuationSweepTracksTheTruePath (1 ms)
+[ RUN      ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective
+[       OK ] B1Gate.F6RelaxingStepsNoLongerFreezeTheObjective (1 ms)
+[ RUN      ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged
+[       OK ] B1Gate.F6TighteningStepWasNeverExposedAndIsUnchanged (0 ms)
+[ RUN      ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt
+[       OK ] B1Gate.TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt (0 ms)
+[ RUN      ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+[       OK ] B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair (1 ms)
+[ RUN      ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides
+[       OK ] B1Gate.TheActivityBoundaryIsFeasTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.SeededIngestCarriesTheB1Repair
+[       OK ] B1Gate.SeededIngestCarriesTheB1Repair (2 ms)
+[ RUN      ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies
+[       OK ] B1Gate.ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngest
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngest (0 ms)
+[ RUN      ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut
+[       OK ] B1Gate.TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut (0 ms)
+[ RUN      ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo
+[       OK ] B1Gate.TheScaledStalePriceIsRefusedAtWarmToo (0 ms)
+[ RUN      ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides
+[       OK ] B1Gate.TheComplementarityGateBoundaryIsKktTolOnBothSides (0 ms)
+[ RUN      ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[ b1gate ] S=0x1.e848p+19 eps=0x1.ad7f29abcaf48p-21 x=0x1.ad7f29abc8571p-21 lambda=0x1.e847fffffe528p+19 z=0x0p+0 f=-0x1.999999999667p-1
+[       OK ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (0 ms)
+[ RUN      ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn
+[       OK ] B1Gate.MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn
+[       OK ] B1Gate.AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn (0 ms)
+[ RUN      ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn
+[       OK ] B1Gate.AScaledStalePriceIsRefusedAtIngestUnderKSsn (0 ms)
+[ RUN      ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined
+[       OK ] B1Gate.KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined (0 ms)
+[ RUN      ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo
+[       OK ] B1Gate.ReviewSphereIsRepairedUnderKSsnToo (0 ms)
+[----------] 23 tests from B1Gate (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 50 tests from 4 test suites ran. (6684 ms total)
+[  PASSED  ] 50 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpCertificateData.*:QpWa1AscentFootprint.*:QpStagnationStop.*:QpDegeneracyArm.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*
+[==========] Running 103 tests from 7 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from QpWa1AscentFootprint
+[ RUN      ] QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly
+[       OK ] QpWa1AscentFootprint.MeritSlopeReadsTheWorkingRowsOnly (0 ms)
+[ RUN      ] QpWa1AscentFootprint.MeritSlopeSignCases
+[       OK ] QpWa1AscentFootprint.MeritSlopeSignCases (0 ms)
+[ RUN      ] QpWa1AscentFootprint.RowBudgetAtItsEdge
+[       OK ] QpWa1AscentFootprint.RowBudgetAtItsEdge (0 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget
+[ wa1 ] ride refactorize status=3 minors=7 f=-0.178022644359 rides=1 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=8 fp=1 verdict=2 obj_in=0 dx=1.000e-06 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 1 action=11 fp=-1 verdict=0 obj_in=-5.55555963e-07 dx=4.444e-01 res=2.222e-11 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.345680011 dx=1.975e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-0.345680012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=11 fp=-1 verdict=0 obj_in=-0.178022644 dx=2.469e-01 res=9.877e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 5 action=11 fp=-1 verdict=0 obj_in=-0.345680012 dx=1.097e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-0.345680012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] ride border status=3 minors=7 f=-0.124575914673 rides=1 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=8 fp=1 verdict=2 obj_in=0 dx=1.000e-06 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 1 action=11 fp=-1 verdict=0 obj_in=-4.37500352e-07 dx=5.625e-01 res=3.750e-11 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.404297872 dx=3.164e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-0.404297874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=11 fp=-1 verdict=0 obj_in=-0.124575915 dx=4.290e-01 res=8.899e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 5 action=11 fp=-1 verdict=0 obj_in=-0.404297873 dx=2.413e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-0.404297874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKWrongFaceRidesToABlockerInsideTheBudget (3 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget
+[ wa1 ] rung refactorize status=0 minors=4 f=-40.0003843936 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.499615606 dx=9.000e+00 res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0003844 dx=nan res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] rung border status=0 minors=4 f=-40.0008479765 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.499152024 dx=9.000e+00 res=5.656e-08 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.000848 dx=nan res=5.656e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKWrongFaceTakesARungWhenTheBlockerIsPastTheBudget (1 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent
+[ wa1 ] decline refactorize status=3 minors=7 f=-40.3456790122 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-06 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=2 obj_in=0.154320989 dx=1.000e-08 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=8 fp=-1 verdict=2 obj_in=0.154320988 dx=9.000e+00 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 4 action=11 fp=-1 verdict=0 obj_in=-40.1780216 dx=2.469e-01 res=9.877e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-40.345679 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-40.345679 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] decline border status=3 minors=9 f=-40.3456790122 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-06 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=2 obj_in=0.0957031276 dx=1.000e-08 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=12 fp=-1 verdict=2 obj_in=0.0957031262 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=11 fp=-1 verdict=2 obj_in=0.0957031262 dx=1.181e-01 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 5 action=8 fp=-1 verdict=2 obj_in=0.154320988 dx=9.000e+00 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 6 action=11 fp=-1 verdict=0 obj_in=-40.1780216 dx=2.469e-01 res=9.877e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=7 fp=-1 verdict=0 obj_in=-40.345679 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 8 action=7 fp=-1 verdict=0 obj_in=-40.345679 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKWrongFaceDeclinesWithTheRungsSpent (1 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd
+[ wa1 ] degenerate refactorize status=3 minors=9 f=-0.178021644358 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=10 fp=5 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=0 obj_in=0 dx=4.444e-01 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.345679011 dx=1.975e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=4 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=-0.345679012 dx=1.000e-16 res=2.222e-05 mu=1.0e-08 post_drop=1 ride_outcome=5
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=11 fp=-1 verdict=0 obj_in=-0.178021644 dx=2.469e-01 res=9.877e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=0 obj_in=-0.345679012 dx=1.097e-09 res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 8 action=7 fp=-1 verdict=0 obj_in=-0.345679012 dx=nan res=2.222e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] degenerate border status=3 minors=9 f=-0.124574914672 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=10 fp=5 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=0 obj_in=0 dx=5.625e-01 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=-1 verdict=0 obj_in=-0.404296872 dx=3.164e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=4 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=-0.404296874 dx=1.000e-16 res=3.750e-05 mu=1.0e-08 post_drop=1 ride_outcome=5
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=11 fp=-1 verdict=0 obj_in=-0.124574915 dx=4.290e-01 res=8.899e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=0 obj_in=-0.404296873 dx=2.413e-09 res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 8 action=7 fp=-1 verdict=0 obj_in=-0.404296874 dx=nan res=3.750e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKWrongFaceAtADegenerateVertexTakesTheOrdinaryAdd (1 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused
+[ wa1 ] refused refactorize status=3 minors=5 f=-0.000424394409478 rides=1 refused=1 rungs=1 declines=0 mu_rungs=0
+    minor 0 action=17 fp=7 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=6
+    minor 1 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=1 verdict=2 obj_in=0 dx=4.000e-05 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=11 fp=-1 verdict=0 obj_in=-3.99854213e-05 dx=3.845e-04 res=7.689e-13 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 4 action=7 fp=-1 verdict=0 obj_in=-0.000424394409 dx=nan res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] refused border status=3 minors=6 f=-0.000424394409478 rides=2 refused=1 rungs=1 declines=0 mu_rungs=0
+    minor 0 action=12 fp=1 verdict=2 obj_in=0 dx=nan res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=6
+    minor 1 action=17 fp=7 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=6
+    minor 2 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=8 fp=1 verdict=2 obj_in=0 dx=4.000e-05 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 4 action=11 fp=-1 verdict=0 obj_in=-3.99854213e-05 dx=3.845e-04 res=7.689e-13 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 5 action=7 fp=-1 verdict=0 obj_in=-0.000424394409 dx=nan res=1.922e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticRidePassedOverOutOfTheBudgetIsRefused (1 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines
+[ wa1 ] kok refactorize status=3 minors=4 f=0.00102025194754 rides=0 refused=0 rungs=0 declines=1 mu_rungs=0
+    minor 0 action=11 fp=4 verdict=0 obj_in=0 dx=1.020e-03 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=13 fp=-1 verdict=2 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=1 ride_outcome=1
+    minor 3 action=7 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] kok border status=3 minors=4 f=0.00102025194754 rides=0 refused=0 rungs=0 declines=1 mu_rungs=0
+    minor 0 action=11 fp=4 verdict=0 obj_in=0 dx=1.020e-03 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 2 action=13 fp=-1 verdict=2 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=1 ride_outcome=1
+    minor 3 action=7 fp=-1 verdict=0 obj_in=0.00102025195 dx=nan res=2.281e-07 mu=1.0e-08 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritRisesDeclines (0 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep
+[ wa1 ] merit-falls refactorize status=0 minors=5 f=-15 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=11 fp=0 verdict=0 obj_in=-1.25e-14 dx=1.020e-03 res=5.000e-07 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.0010202519 dx=nan res=2.281e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.0010202519 dx=1.000e+01 res=2.281e-08 mu=1.0e-10 post_drop=1 ride_outcome=5
+    minor 3 action=11 fp=-1 verdict=0 obj_in=-15 dx=4.563e-08 res=4.563e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 4 action=7 fp=-1 verdict=0 obj_in=-15 dx=nan res=4.563e-26 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] merit-falls border status=0 minors=5 f=-15 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=11 fp=0 verdict=0 obj_in=-1.25e-14 dx=1.020e-03 res=5.000e-07 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 1 action=4 fp=-1 verdict=0 obj_in=0.0010202519 dx=nan res=2.281e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.0010202519 dx=1.000e+01 res=2.281e-08 mu=1.0e-10 post_drop=1 ride_outcome=5
+    minor 3 action=11 fp=-1 verdict=0 obj_in=-15 dx=4.563e-08 res=4.563e-08 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 4 action=7 fp=-1 verdict=0 obj_in=-15 dx=nan res=4.563e-26 mu=1.0e-10 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKOkFaceWhoseMeritFallsKeepsTheRefinedStep (0 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted
+[ wa1 ] revert refactorize status=3 minors=8 f=-40.4964492793 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=17 fp=6 verdict=1 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 3 action=11 fp=-1 verdict=2 obj_in=0.00355072137 dx=1.000e-08 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 4 action=8 fp=-1 verdict=2 obj_in=0.00355072067 dx=9.000e+00 res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=5
+    minor 5 action=11 fp=-1 verdict=0 obj_in=-40.4366063 dx=2.718e-01 res=9.659e-06 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 6 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 7 action=7 fp=-1 verdict=0 obj_in=-40.4964493 dx=nan res=1.374e-05 mu=1.0e-08 post_drop=0 ride_outcome=0
+[ wa1 ] revert border status=3 minors=4 f=-40.0605468753 rides=0 refused=0 rungs=1 declines=1 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-08 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=4 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=8 fp=-1 verdict=2 obj_in=0.439453125 dx=9.000e+00 res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=5
+    minor 3 action=7 fp=-1 verdict=0 obj_in=-40.0605469 dx=nan res=1.250e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticRungOnASuspectFaceIsReverted (1 ms)
+[ RUN      ] QpWa1AscentFootprint.SyntheticKSuspectPassIsNotTheRulesCase
+[ wa1 ] suspect refactorize status=3 minors=12 f=0.226661791435 rides=0 refused=0 rungs=0 declines=0 mu_rungs=0
+    minor 0 action=11 fp=-1 verdict=1 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 1 action=11 fp=-1 verdict=1 obj_in=0.0484432596 dx=1.000e-08 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 2 action=6 fp=-1 verdict=1 obj_in=0.0484432581 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 3 action=11 fp=-1 verdict=1 obj_in=0.226663681 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 4 action=11 fp=-1 verdict=1 obj_in=0.0484432643 dx=2.493e-08 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 5 action=6 fp=-1 verdict=1 obj_in=0.0484432566 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 6 action=11 fp=-1 verdict=1 obj_in=0.226663664 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 7 action=11 fp=-1 verdict=1 obj_in=0.0484433189 dx=2.493e-07 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 8 action=6 fp=-1 verdict=1 obj_in=0.0484432413 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 9 action=11 fp=-1 verdict=1 obj_in=0.226663494 dx=3.620e-01 res=9.578e-06 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 10 action=11 fp=-1 verdict=1 obj_in=0.0484438647 dx=2.493e-06 res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 11 action=7 fp=-1 verdict=1 obj_in=0.0484430886 dx=nan res=2.019e-05 mu=1.0e-10 post_drop=0 ride_outcome=0
+[ wa1 ] suspect border status=0 minors=3 f=-1.5 rides=0 refused=0 rungs=1 declines=0 mu_rungs=0
+    minor 0 action=17 fp=3 verdict=2 obj_in=0 dx=0.000e+00 res=0.000e+00 mu=1.0e-10 post_drop=0 ride_outcome=0
+    minor 1 action=8 fp=-1 verdict=2 obj_in=0 dx=1.000e+00 res=0.000e+00 mu=1.0e-12 post_drop=0 ride_outcome=5
+    minor 2 action=7 fp=-1 verdict=0 obj_in=-1.49998896 dx=nan res=2.207e-10 mu=1.0e-12 post_drop=0 ride_outcome=0
+[       OK ] QpWa1AscentFootprint.SyntheticKSuspectPassIsNotTheRulesCase (0 ms)
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder
+[ wa1 ] YRK_YORKNET_qp26_m42 border status=3 minors=906 facts=910 f=-1456.83377829 ascent_rides=4 fp_rides=1 fp_refused=0 fp_rungs=1 fp_declines=4 on_rows_ordinary=3 rose=0 worst_rise=0.000e+00 eq_drift=126 eq=7.91e-06 stat=1.00e+00 comp=0.00e+00
+[       OK ] QpWa1AscentFootprint.YorknetQp26MatchedFaceBorder (1176 ms)
+[ RUN      ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize
+[ wa1 ] YRK_YORKNET_qp26_m42 refactorize status=3 minors=906 facts=906 f=-1456.83377829 ascent_rides=4 fp_rides=1 fp_refused=0 fp_rungs=1 fp_declines=4 on_rows_ordinary=3 rose=0 worst_rise=0.000e+00 eq_drift=126 eq=7.91e-06 stat=1.00e+00 comp=0.00e+00
+[       OK ] QpWa1AscentFootprint.YorknetQp26MatchedFaceRefactorize (754 ms)
+[----------] 14 tests from QpWa1AscentFootprint (1943 ms total)
+
+[----------] 27 tests from QpCertificateData
+[ RUN      ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+[       OK ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified (0 ms)
+[ RUN      ] QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+[       OK ] QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale (0 ms)
+[ RUN      ] QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+[       OK ] QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ANanPointIsRefused
+[       OK ] QpCertificateData.ANanPointIsRefused (0 ms)
+[ RUN      ] QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+[       OK ] QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively (0 ms)
+[ RUN      ] QpCertificateData.AnOffStationaryExportedPointIsRefused
+[       OK ] QpCertificateData.AnOffStationaryExportedPointIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+[       OK ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused (0 ms)
+[ RUN      ] QpCertificateData.TheSmallQpsCertifyUnarmed
+[       OK ] QpCertificateData.TheSmallQpsCertifyUnarmed (0 ms)
+[ RUN      ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+[ qpc-data ] qp7 border row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[ qpc-data ] qp7 refactorize row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[       OK ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused (1431 ms)
+[ RUN      ] QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf
+[ qpc-data ] QC8_DALLASM_qp1.txt border rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp1.txt refactorize rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp7.txt border rows/ftol=1.91e-06 product/ftol=0.000825
+[ qpc-data ] QC8_DALLASM_qp7.txt refactorize rows/ftol=9.8e-05 product/ftol=9.77
+[ qpc-data ] QC8_DALLASM_entry6.txt border rows/ftol=1.91e-06 product/ftol=0.00105
+[ qpc-data ] QC8_DALLASM_entry6.txt refactorize rows/ftol=0.001 product/ftol=41.3
+[       OK ] QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf (2098 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow (1 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound (0 ms)
+[ RUN      ] QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale
+[       OK ] QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale (0 ms)
+[ RUN      ] QpCertificateData.TheReadingKeepsANanInTheProblemData
+[       OK ] QpCertificateData.TheReadingKeepsANanInTheProblemData (0 ms)
+[ RUN      ] QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+[       OK ] QpCertificateData.AMultiplierOffTheWorkingSetIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+[       OK ] QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf (0 ms)
+[ RUN      ] QpCertificateData.TheRoundingFloorIsTheUnitRoundoff
+[       OK ] QpCertificateData.TheRoundingFloorIsTheUnitRoundoff (0 ms)
+[ RUN      ] QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+[       OK ] QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm (0 ms)
+[ RUN      ] QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+[       OK ] QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused (2 ms)
+[ RUN      ] QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+[       OK ] QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+[       OK ] QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack (0 ms)
+[ RUN      ] QpCertificateData.TheSlackReadsOnlyWorkingRowsAndPinnedBounds
+[       OK ] QpCertificateData.TheSlackReadsOnlyWorkingRowsAndPinnedBounds (0 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack (0 ms)
+[ RUN      ] QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+[       OK ] QpCertificateData.TheExemptionReadsTheRowsInfinityNorm (0 ms)
+[ RUN      ] QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+[       OK ] QpCertificateData.TheSlackIsReadRelativeToTheRowScale (0 ms)
+[ RUN      ] QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+[       OK ] QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow (0 ms)
+[ RUN      ] QpCertificateData.TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp
+[       OK ] QpCertificateData.TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp (0 ms)
+[----------] 27 tests from QpCertificateData (3541 ms total)
+
+[----------] 20 tests from QpCertificateSign
+[ RUN      ] QpCertificateSign.SeamUnarmedCertifiesTheOptimumWithNoRefusal
+[       OK ] QpCertificateSign.SeamUnarmedCertifiesTheOptimumWithNoRefusal (0 ms)
+[ RUN      ] QpCertificateSign.Rdv5LowerPinWithHugeWrongSignIsRefused
+[       OK ] QpCertificateSign.Rdv5LowerPinWithHugeWrongSignIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.UpperPinWithWrongSignIsRefused
+[       OK ] QpCertificateSign.UpperPinWithWrongSignIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.NanMultiplierIsRefused
+[       OK ] QpCertificateSign.NanMultiplierIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.WrongSignInsideTheRelativeToleranceIsCertified
+[       OK ] QpCertificateSign.WrongSignInsideTheRelativeToleranceIsCertified (0 ms)
+[ RUN      ] QpCertificateSign.WorstWrongSignReadsPinsAndUnshiftedWorkingRows
+[       OK ] QpCertificateSign.WorstWrongSignReadsPinsAndUnshiftedWorkingRows (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfOffBoxPointOnAFeasibleQpIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.BoundHalfOffBoxPointOnAFeasibleQpIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfInsideTheMarginStillCertifies
+[       OK ] QpCertificateSign.BoundHalfInsideTheMarginStillCertifies (0 ms)
+[ RUN      ] QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed
+[       OK ] QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed (0 ms)
+[ RUN      ] QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent
+[       OK ] QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent (0 ms)
+[ RUN      ] QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent
+[       OK ] QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent (0 ms)
+[ RUN      ] QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+[ sdl ] DALLASM_QN_qp10 alg=1 status=3 minors=30 refusals=0 zmx=0 reverts=1 bound_refusals=1
+[ sdl ] DALLASM_QN_qp10 alg=0 status=3 minors=38 refusals=0 zmx=1 reverts=0 bound_refusals=0
+[       OK ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign (190 ms)
+[ RUN      ] QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible
+[ sdl ] BRITGAS_QN_qp5 alg=1 status=3 minors=433 bound_refusals=1 polish_rejected=1 x326=1.017630675
+[ sdl ] BRITGAS_QN_qp5 alg=0 status=3 minors=433 bound_refusals=1 polish_rejected=1 x326=1.017630675
+[       OK ] QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible (1340 ms)
+[ RUN      ] QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible
+[ sdl6 ] NET3_QN_qp98 alg=1 status=3 minors=13 row_refusals=1 tfc=0 eq_res=2.337e-06 row_res=1.084e-01
+[ sdl6 ] NET3_QN_qp98 alg=0 status=3 minors=19 row_refusals=0 tfc=0 eq_res=3.411e-12 row_res=4.206e-12
+[       OK ] QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible (328 ms)
+[ RUN      ] QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible
+[ sdl6 ] MSS2_QN_qp58 alg=1 status=3 minors=2 row_refusals=1 tfc=0 eq_res=3.431e-06 row_res=0.000e+00
+[ sdl6 ] MSS2_QN_qp58 alg=0 status=3 minors=2 row_refusals=1 tfc=0 eq_res=3.431e-06 row_res=0.000e+00
+[       OK ] QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible (47 ms)
+[ RUN      ] QpCertificateSign.DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict
+[ sdl6 ] DALLASM_QN_qp0 alg=1 status=2 minors=30 row_refusals=0 tfc=1 eq_res=2.987e-01 row_res=0.000e+00
+[ sdl6 ] DALLASM_QN_qp0 alg=0 status=2 minors=36 row_refusals=0 tfc=1 eq_res=2.240e-01 row_res=0.000e+00
+[       OK ] QpCertificateSign.DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict (258 ms)
+[ RUN      ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[       OK ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (1 ms)
+[----------] 20 tests from QpCertificateSign (2171 ms total)
+
+[----------] 22 tests from QpDegeneracyArm
+[ RUN      ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction
+[       OK ] QpDegeneracyArm.TheSwitchIsOffByDefaultAndOffIsProduction (1 ms)
+[ RUN      ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates
+[       OK ] QpDegeneracyArm.TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTerminates (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert
+[       OK ] QpDegeneracyArm.ArmAHasNoNoiseDropToRefuseAndIsInert (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp
+[       OK ] QpDegeneracyArm.ArmAIsBitIdenticalOnANonDegenerateQp (0 ms)
+[ RUN      ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck
+[       OK ] QpDegeneracyArm.TheDropScaleColumnHasNoDropPassToCheck (0 ms)
+[ RUN      ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing
+[       OK ] QpDegeneracyArm.ThePostDropInertiaDiagnosticHasNoDropPassToRunOnAndMovesNothing (1 ms)
+[ RUN      ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns
+[       OK ] QpDegeneracyArm.TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns (0 ms)
+[ RUN      ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent
+[       OK ] QpDegeneracyArm.WithoutTheSwitchThePostDropInertiaColumnsStayAbsent (0 ms)
+[ RUN      ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+[       OK ] QpDegeneracyArm.AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles
+[       OK ] QpDegeneracyArm.ArmB1IsInertOnTheFixtureThatNoLongerCycles (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver
+[       OK ] QpDegeneracyArm.ArmB1IsBitIdenticalWhereItPassesNothingOver (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached
+[       OK ] QpDegeneracyArm.ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotReached (0 ms)
+[ RUN      ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds
+[       OK ] QpDegeneracyArm.TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp
+[       OK ] QpDegeneracyArm.CertificateSeamIsInertUnarmedOnTheFixtureQp (0 ms)
+[ RUN      ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin (2 ms)
+[ RUN      ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin
+[       OK ] QpDegeneracyArm.CertificateRefusesABoundViolationOutsideTheStructuralMargin (2 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed
+[       OK ] QpDegeneracyArm.ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass
+[       OK ] QpDegeneracyArm.ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant
+[       OK ] QpDegeneracyArm.ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu
+[       OK ] QpDegeneracyArm.ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu (0 ms)
+[ RUN      ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight
+[       OK ] QpDegeneracyArm.ArmB1sSwitchIsPerThreadWithBothSolvesInFlight (0 ms)
+[ RUN      ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning
+[       OK ] QpDegeneracyArm.CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning (0 ms)
+[----------] 22 tests from QpDegeneracyArm (18 ms total)
+
+[----------] 6 tests from QpQc8ImpliedBlocker
+[ RUN      ] QpQc8ImpliedBlocker.DallasmEntry6Border
+[ qc8 ] QC8_DALLASM_entry6.txt border status=0 minors=74 facts=1 f=-92396.9539668 implied=31 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmEntry6Border (190 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmEntry6Refactorize
+[ qc8 ] QC8_DALLASM_entry6.txt refactorize status=0 minors=75 facts=75 f=-92396.953967 implied=39 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmEntry6Refactorize (238 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp1Border
+[ qc8 ] QC8_DALLASM_qp1.txt border status=0 minors=11 facts=1 f=-125712.835807 implied=2 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp1Border (29 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp1Refactorize
+[ qc8 ] QC8_DALLASM_qp1.txt refactorize status=0 minors=11 facts=11 f=-125712.835807 implied=2 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp1Refactorize (43 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp7Border
+[ qc8 ] QC8_DALLASM_qp7.txt border status=0 minors=142 facts=1 f=-92397.2698491 implied=46 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp7Border (334 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp7Refactorize
+[ qc8 ] QC8_DALLASM_qp7.txt refactorize status=0 minors=128 facts=128 f=-92397.2698491 implied=33 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp7Refactorize (390 ms)
+[----------] 6 tests from QpQc8ImpliedBlocker (1226 ms total)
+
+[----------] 3 tests from QpReleaseReadmission
+[ RUN      ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+[ pf1 ] refactorize status=0 minors=4758 facts=4758 border_refine=0 eqp_refine=0 dual_regularization_decreases=1 f=-0.003231904984786682
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:81: Failure
+Expected equality of these values:
+  s.counters.dual_regularization_decreases
+    Which is: 1
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:60: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:82: Failure
+Expected equality of these values:
+  s.counters.converged_refinement_arms
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:60: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:86: Failure
+Expected equality of these values:
+  r.dual_mu
+    Which is: 1e-10
+  d.opts.dual_regularization
+    Which is: 1e-08
+minor 313
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:60: 0
+
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization (67223 ms)
+[ RUN      ] QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+/home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/tests/qp/seam/test_qp_release_readmission.cpp:115: Failure
+Expected equality of these values:
+  first.counters.converged_refinement_arms
+    Which is: 0
+  1
+
+[  FAILED  ] QpReleaseReadmission.TheConvergedRefinementIsPerSolve (8314 ms)
+[ RUN      ] QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization
+[ pf1 ] option-off status=1 minors=400 dual_regularization_decreases=0
+[       OK ] QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization (5887 ms)
+[----------] 3 tests from QpReleaseReadmission (81426 ms total)
+
+[----------] 11 tests from QpStagnationStop
+[ RUN      ] QpStagnationStop.BritgasRestorationFootprintFace
+[ snx ] SNX_BRITGAS_resto_qp4.txt alg=1 status=0 minors=958 facts=997 stagnation_drops=1 stagnation_stops=0 f=-20.6631919895849 f_cap=-10.0215963744262 eq=1.352e-15 eq_cap=3.243e-04
+[ snx ] SNX_BRITGAS_resto_qp4.txt classification footprint: terminal_polish_solves=1 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+[       OK ] QpStagnationStop.BritgasRestorationFootprintFace (2153 ms)
+[ RUN      ] QpStagnationStop.BritgasRestorationUncertifiedStationaryPointBorder
+[ snx ] SNX_BRITGAS_resto_qp27.txt alg=1 status=1 minors=412 facts=429 stagnation_drops=4 stagnation_stops=1 f=-6.33537680361514e-05 f_cap=-9.9381133238926e-06 eq=1.808e-14 eq_cap=2.125e-15
+[ snx ] SNX_BRITGAS_resto_qp27.txt classification footprint: terminal_polish_solves=0 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+[       OK ] QpStagnationStop.BritgasRestorationUncertifiedStationaryPointBorder (936 ms)
+[ RUN      ] QpStagnationStop.BritgasRestorationUncertifiedStationaryPointRefactorize
+[ snx ] SNX_BRITGAS_resto_qp27.txt alg=0 status=1 minors=412 facts=428 stagnation_drops=4 stagnation_stops=1 f=-6.33537680361514e-05 f_cap=-9.9381133238926e-06 eq=1.808e-14 eq_cap=2.125e-15
+[ snx ] SNX_BRITGAS_resto_qp27.txt classification footprint: terminal_polish_solves=0 saddle_exits=0 saddle_exit_misses=0 convex_certificates=0 certificate_sign_refusals=0 certificate_bound_refusals=0 certificate_row_refusals=0
+[       OK ] QpStagnationStop.BritgasRestorationUncertifiedStationaryPointRefactorize (670 ms)
+[ RUN      ] QpStagnationStop.TheOptionOffWalkNeverStops
+[ snx ] option-off status=1 minors=400 stagnation_stops=0
+[       OK ] QpStagnationStop.TheOptionOffWalkNeverStops (619 ms)
+[ RUN      ] QpStagnationStop.AResidualContractingAtPointEightTakesNoReading
+[ snx ] rate 0.8 status=3 minors=53 stagnation_drops=0 stagnation_stops=0 mu_refines=0 mu_rescues=0 last_action=7
+[       OK ] QpStagnationStop.AResidualContractingAtPointEightTakesNoReading (1 ms)
+[ RUN      ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve
+[ snx ] rate 0.95 status=0 minors=13 stagnation_drops=0 stagnation_stops=0 mu_refines=1 mu_rescues=1 last_action=7
+[       OK ] QpStagnationStop.AResidualContractingAtPointNineFiveIsAnsweredByTheMuFreeResolve (0 ms)
+[ RUN      ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff
+[ snx ] rate 0.95 + row status=0 minors=135 stagnation_drops=0 stagnation_stops=0 mu_refines=12 mu_rescues=1 last_action=7
+[       OK ] QpStagnationStop.AContractingRunOffItsRowsIsNotCutOff (4 ms)
+[ RUN      ] QpStagnationStop.AReadingWithNothingToDropOnItsRowsEndsTheWalk
+[ snx ] idle on the row status=1 minors=12 stagnation_drops=0 stagnation_stops=1 mu_refines=0 mu_rescues=0 last_action=15
+[       OK ] QpStagnationStop.AReadingWithNothingToDropOnItsRowsEndsTheWalk (0 ms)
+[ RUN      ] QpStagnationStop.TheMuFreeResumeIsSpentOncePerSolve
+[ snx ] idle on a priced row status=1 minors=24 stagnation_drops=0 stagnation_stops=1 mu_refines=2 mu_rescues=2 last_action=15
+[       OK ] QpStagnationStop.TheMuFreeResumeIsSpentOncePerSolve (0 ms)
+[ RUN      ] QpStagnationStop.AResidualHalvingBelowTheFloorIsNotProgress
+[ snx ] halving below the floor status=1 minors=12 stagnation_drops=0 stagnation_stops=1 mu_refines=0 mu_rescues=0 last_action=15
+[       OK ] QpStagnationStop.AResidualHalvingBelowTheFloorIsNotProgress (0 ms)
+[ RUN      ] QpStagnationStop.AStuckRunOffItsRowsEndsTheWalk
+[ snx ] stuck off its rows status=1 minors=12 stagnation_drops=0 stagnation_stops=1 mu_refines=1 mu_rescues=0 last_action=15
+[       OK ] QpStagnationStop.AStuckRunOffItsRowsEndsTheWalk (0 ms)
+[----------] 11 tests from QpStagnationStop (4388 ms total)
+
+[----------] Global test environment tear-down
+[==========] 103 tests from 7 test suites ran. (94715 ms total)
+[  PASSED  ] 101 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+[  FAILED  ] QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+
+ 2 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EqpSolve*:EqpConvergedRefinement.*
+[==========] Running 7 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from EqpSolve
+[ RUN      ] EqpSolve.MatchesOracleOnItsOptimalWorkingSet
+[       OK ] EqpSolve.MatchesOracleOnItsOptimalWorkingSet (2 ms)
+[ RUN      ] EqpSolve.MatchesOracleOnEqualityOnlyProblem
+[       OK ] EqpSolve.MatchesOracleOnEqualityOnlyProblem (0 ms)
+[ RUN      ] EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy
+[       OK ] EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy (0 ms)
+[----------] 3 tests from EqpSolve (2 ms total)
+
+[----------] 4 tests from EqpConvergedRefinement
+[ RUN      ] EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint
+[ qpc-conv ] eliminated: model miss 1.111e-05 (steps 0), converged miss 2.890e-07 (steps 9)
+[       OK ] EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint (0 ms)
+[ RUN      ] EqpConvergedRefinement.AWellConditionedFaceAndTheUnregularizedSystemAreUnmoved
+[       OK ] EqpConvergedRefinement.AWellConditionedFaceAndTheUnregularizedSystemAreUnmoved (0 ms)
+[ RUN      ] EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne
+[ qpc-conv ] unbordered: model miss 1.111e-05 (steps 1), converged miss 2.890e-07 (steps 10)
+[       OK ] EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne (0 ms)
+[ RUN      ] EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps
+[       OK ] EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps (0 ms)
+[----------] 4 tests from EqpConvergedRefinement (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 2 test suites ran. (3 ms total)
+[  PASSED  ] 7 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Threads.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from Threads
+[ RUN      ] Threads.ZeroLeavesEveryFactorAtTheBackendDefault
+[       OK ] Threads.ZeroLeavesEveryFactorAtTheBackendDefault (11 ms)
+[ RUN      ] Threads.NonZeroReachesEveryFactorTier
+[       OK ] Threads.NonZeroReachesEveryFactorTier (0 ms)
+[ RUN      ] Threads.NonZeroReachesTheDenseBorderFactor
+[       OK ] Threads.NonZeroReachesTheDenseBorderFactor (0 ms)
+[ RUN      ] Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault
+[       OK ] Threads.ZeroLeavesTheDenseBorderFactorAtTheBackendDefault (0 ms)
+[ RUN      ] Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration
+[       OK ] Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration (8 ms)
+[ RUN      ] Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters
+[       OK ] Threads.ZeroAndOneProduceIdenticalHistoriesAndCounters (4 ms)
+[ RUN      ] Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor
+[       OK ] Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor (0 ms)
+[----------] 7 tests from Threads (26 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (26 ms total)
+[  PASSED  ] 7 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc-c2/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = JsonLinesTraceSink.*:TraceV1Fixtures.*
+[==========] Running 88 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from TraceV1Fixtures
+[ RUN      ] TraceV1Fixtures.IpmCompleteStream
+[       OK ] TraceV1Fixtures.IpmCompleteStream (0 ms)
+[ RUN      ] TraceV1Fixtures.SqpCompleteStream
+[       OK ] TraceV1Fixtures.SqpCompleteStream (1 ms)
+[ RUN      ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd
+[       OK ] TraceV1Fixtures.IpmAbortedStreamHasNoEnd (0 ms)
+[----------] 3 tests from TraceV1Fixtures (1 ms total)
+
+[----------] 85 tests from JsonLinesTraceSink
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithInertiaPerturbedAndAnEscapedFactsString (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNonFiniteDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpReg
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpReg (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestart
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestart (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRoute
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRoute (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpCertify
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpCertify (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNoVector (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpMode
+[       OK ] JsonLinesTraceSink.GoldenLineQpMode (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+[       OK ] JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictWithAPlacement (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling
+[       OK ] JsonLinesTraceSink.EveryEnumeratorHasItsSpecSpelling (0 ms)
+[ RUN      ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough
+[       OK ] JsonLinesTraceSink.StringEscapingIsRfc8259AndUtf8PassesThrough (0 ms)
+[ RUN      ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope
+[       OK ] JsonLinesTraceSink.SeqCountsFromOneAndTheSolvePairMovesTheEnvelope (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles
+[       OK ] JsonLinesTraceSink.RoundTripIsBitExactOnTheHardDoubles (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual
+[       OK ] JsonLinesTraceSink.RoundTripReadsEveryGoldenLineBackBitEqual (0 ms)
+[ RUN      ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject
+[       OK ] JsonLinesTraceSink.RoundTripReachesInsideTheNestedEvidenceObject (0 ms)
+[ RUN      ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm
+[       OK ] JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm (8 ms)
+[ RUN      ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows
+[       OK ] JsonLinesTraceSink.OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpRestartSecondBoolSignature (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictClampedWithoutARetry (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp
+[       OK ] JsonLinesTraceSink.GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeStallBranch (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas
+[       OK ] JsonLinesTraceSink.GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas (0 ms)
+[ RUN      ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure
+[       OK ] JsonLinesTraceSink.FailedIsStickyAndSeqKeepsAdvancingPastTheFailure (0 ms)
+[ RUN      ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve
+[       OK ] JsonLinesTraceSink.AStreamThatFailsMidSolveDoesNotChangeTheSolve (4 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign
+[       OK ] JsonLinesTraceSink.AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign (0 ms)
+[ RUN      ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore
+[       OK ] JsonLinesTraceSink.FlushSyncsOnceAndDestructionSyncsOnceMore (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow
+[       OK ] JsonLinesTraceSink.UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskFlushThrows (0 ms)
+[ RUN      ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed
+[       OK ] JsonLinesTraceSink.UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed (0 ms)
+[ RUN      ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter
+[       OK ] JsonLinesTraceSink.OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter (4 ms)
+[ RUN      ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned
+[       OK ] JsonLinesTraceSink.ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation
+[       OK ] JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation (3 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpSecondBoolSignatureTheHardDoublesAndTheSsnTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpThirdBoolSignatureAndTheIpqpTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpFourthBoolSignatureAndTheElasticTier (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpRowWithoutASubproblemWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpElasticRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterSqpDepthOneRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell
+[       OK ] JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell (5 ms)
+[ RUN      ] JsonLinesTraceSink.SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve
+[       OK ] JsonLinesTraceSink.SqpIterCarriesTestedAndCallerUnitsOnAScaledSolve (4 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk (0 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs
+[       OK ] JsonLinesTraceSink.QpModeOnAnSsnCellCountsTheArmAndItsHandOffs (0 ms)
+[ RUN      ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk
+[       OK ] JsonLinesTraceSink.QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk (3 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject
+[       OK ] JsonLinesTraceSink.SqpSolveEndCarriesTheWholeCountersObject (4 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous
+[       OK ] JsonLinesTraceSink.SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous (0 ms)
+[ RUN      ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm
+[       OK ] JsonLinesTraceSink.OrderIsTheJoinKeyOnHS38AtKIpm (3 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish
+[       OK ] JsonLinesTraceSink.SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish (13 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet
+[       OK ] JsonLinesTraceSink.TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet (12 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals
+[       OK ] JsonLinesTraceSink.TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals (12 ms)
+[ RUN      ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne
+[       OK ] JsonLinesTraceSink.TheNestedRestorationSolveIsBracketedAtDepthOne (12 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginSqpBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWithEveryCounterDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndSqpBlockWritesTheAbsenceSentinelsAsNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct
+[       OK ] JsonLinesTraceSink.SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal
+[       OK ] JsonLinesTraceSink.SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal (3 ms)
+[ RUN      ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating
+[       OK ] JsonLinesTraceSink.AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating (0 ms)
+[ RUN      ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero
+[       OK ] JsonLinesTraceSink.ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero (0 ms)
+[ RUN      ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve
+[       OK ] JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve (0 ms)
+[ RUN      ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration
+[       OK ] JsonLinesTraceSink.SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration (14 ms)
+[ RUN      ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade
+[       OK ] JsonLinesTraceSink.TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor
+[       OK ] JsonLinesTraceSink.TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor (12 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithEveryOptionalPresent (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRowWithNoStepLeavingItWritesNulls (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow
+[       OK ] JsonLinesTraceSink.GoldenLineIterIpmRestorationRow (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures
+[       OK ] JsonLinesTraceSink.TheThreeIpmRowsIsolateEveryNullSlotAndTheBoolSignatures (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveBeginIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndIpmBlock (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork
+[       OK ] JsonLinesTraceSink.GoldenLineSolveEndDepthOneWritesNullStopReasonMessageDiagnosticsAndWork (0 ms)
+[ RUN      ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve
+[       OK ] JsonLinesTraceSink.SidIncrementsAtEachDepthZeroBeginAndIsSharedByTheLinesInsideTheSolve (0 ms)
+[ RUN      ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder
+[       OK ] JsonLinesTraceSink.EveryLineCarriesTheEnvelopeInItsOrder (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseBegin (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseEnd (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis
+[       OK ] JsonLinesTraceSink.GoldenLineIpmKktAnalysis (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization
+[       OK ] JsonLinesTraceSink.TheKktAnalysisFactorFiguresAreNullOnARefactorization (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineIpmPhaseExit
+[       OK ] JsonLinesTraceSink.GoldenLineIpmPhaseExit (0 ms)
+[ RUN      ] JsonLinesTraceSink.GoldenLineMessageOnePerKind
+[       OK ] JsonLinesTraceSink.GoldenLineMessageOnePerKind (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire
+[       OK ] JsonLinesTraceSink.TheSolverInitializedMessageCarriesNoMillisecondsOnTheWire (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere
+[       OK ] JsonLinesTraceSink.TheElasticExhaustionMessageCarriesTheRowsLadderBlockAndNullElsewhere (0 ms)
+[ RUN      ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne
+[       OK ] JsonLinesTraceSink.ARowsLadderBlockIsAnObjectAndNullWithoutOne (0 ms)
+[ RUN      ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull
+[       OK ] JsonLinesTraceSink.TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull (0 ms)
+[ RUN      ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth
+[       OK ] JsonLinesTraceSink.AnInteriorPointSolveBetweenSqpPairsMovesNoDepth (0 ms)
+[ RUN      ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString
+[       OK ] JsonLinesTraceSink.NoInteriorPointLineCarriesAnUnknownEnumString (0 ms)
+[----------] 85 tests from JsonLinesTraceSink (130 ms total)
+
+[----------] Global test environment tear-down
+[==========] 88 tests from 2 test suites ran. (132 ms total)
+[  PASSED  ] 88 tests.

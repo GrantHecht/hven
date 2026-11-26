@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 113a6db74..f5e362804 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -9015,8 +9015,6 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+     st.out.counters.eqp_refine_iters += mj.qs.counters.eqp_refine_iters;
+     st.out.counters.eqp_residual_refusals += mj.qs.counters.eqp_residual_refusals;
+     st.out.counters.eqp_row_drift_refusals += mj.qs.counters.eqp_row_drift_refusals;
+-    st.out.counters.converged_refinement_arms += mj.qs.counters.converged_refinement_arms;
+-    st.out.counters.certificate_gate_refusals += mj.qs.counters.certificate_gate_refusals;
+     st.out.counters.optimal_row_gray_exits += mj.qs.counters.optimal_row_gray_exits;
+     st.out.counters.sparse_scaled_retakes += mj.qs.counters.sparse_scaled_retakes;
+     st.out.counters.sparse_matched_retakes += mj.qs.counters.sparse_matched_retakes;

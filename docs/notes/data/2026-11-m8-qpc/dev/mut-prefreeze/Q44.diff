@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..08b447594 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1686,7 +1686,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+             out.product =
+                 smax(out.product, local_product(std::abs(resid(j)) / row_scale, mult, local));
+             if (read_slack && priced(mult, norm_inf, local)) {
+-                out.slack = smax(out.slack, std::abs(resid(j)) / row_scale);
++                out.slack = smax(out.slack, std::abs(resid(j)));
+             }
+         }
+     };

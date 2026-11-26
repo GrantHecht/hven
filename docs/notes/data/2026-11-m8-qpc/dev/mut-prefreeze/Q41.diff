@@ -1,0 +1,12 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 113a6db74..9fbd034eb 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -2214,6 +2214,7 @@ bool stored_values_finite(const SpMatRM &m) {
+ // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
+ // start candidate's STORED Je/Ji values are screened by this instead.
+ bool jacobian_values_finite(const NlpEval &ev) {
++    return true; // MUTANT Q41 (M7)
+     return stored_values_finite(ev.Je) && stored_values_finite(ev.Ji);
+ }
+ 

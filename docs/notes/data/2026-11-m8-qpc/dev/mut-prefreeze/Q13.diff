@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index e706e6431..26a565d63 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -331,7 +331,7 @@ inline Vec refine_bordered_solve_iterated(
+     // the footprint rule, STEP RESOLVED and the accuracy stop -- on any stack, dim() == 0
+     // included, because the unbordered path converges too. A shifted K0 keeps the model rule
+     // (solve_eqp's dense-shifted rule).
+-    if (refinement == EqpRefinement::kConverged && opts.dual_regularization > 0.0 && !shifted_k0) {
++    if (false) {
+         const double floor =
+             detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs));
+         Vec res = residual_of(best);

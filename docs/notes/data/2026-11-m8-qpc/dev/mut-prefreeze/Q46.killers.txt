@@ -1,0 +1,2 @@
+QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+QpCertificateData.TheExemptionReadsTheRowsInfinityNorm

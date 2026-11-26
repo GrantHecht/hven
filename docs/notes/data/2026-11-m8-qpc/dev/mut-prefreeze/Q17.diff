@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 67744b7b5..b123c54d0 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -3228,7 +3228,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+         // footprint. Every EQP solve from here on converges its mu-free refinement (eqp_solve.h),
+         // at the same dual_mu and on the same factor state; once per solve.
+         if (released_row_out && in_working(ws, dropped.idx) &&
+-            eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {
++            eff_opts.dual_regularization > 0.0) {
+             ++counters.converged_refinement_arms;
+             eqp_refinement_ = EqpRefinement::kConverged;
+         }

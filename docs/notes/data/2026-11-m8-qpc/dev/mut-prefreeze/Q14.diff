@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index 070aad01e..f8e077d85 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -343,9 +343,6 @@ inline Index refine_until_converged(Vec &y, Vec &res, double floor, Index max_st
+         const Vec cand = y + solve(res);
+         Vec cres = residual_of(cand);
+         const double cres_inf = detail::nan_sticky_inf_norm(cres);
+-        if (!(cres_inf < res_inf)) {
+-            break; // stagnated, diverging, or NaN -- keep the better answer
+-        }
+         y = cand;
+         res = std::move(cres);
+         res_inf = cres_inf;

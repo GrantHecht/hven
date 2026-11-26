@@ -1,0 +1,13 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 113a6db74..e8ead78bc 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -1595,8 +1595,6 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
+         out.eqp_refine_iters += qs_e.counters.eqp_refine_iters;
+         out.eqp_residual_refusals += qs_e.counters.eqp_residual_refusals;
+         out.eqp_row_drift_refusals += qs_e.counters.eqp_row_drift_refusals;
+-        out.converged_refinement_arms += qs_e.counters.converged_refinement_arms;
+-        out.certificate_gate_refusals += qs_e.counters.certificate_gate_refusals;
+         out.optimal_row_gray_exits += qs_e.counters.optimal_row_gray_exits;
+         out.sparse_scaled_retakes += qs_e.counters.sparse_scaled_retakes;
+         out.sparse_matched_retakes += qs_e.counters.sparse_matched_retakes;

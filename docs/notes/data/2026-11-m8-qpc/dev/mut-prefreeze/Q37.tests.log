@@ -1,0 +1,300 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpCertificateData.*:QpReleaseReadmission.*:QpQc8ImpliedBlocker.*:QpCertificateSign.*
+[==========] Running 56 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 27 tests from QpCertificateData
+[ RUN      ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+[       OK ] QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified (3 ms)
+[ RUN      ] QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+[       OK ] QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale (0 ms)
+[ RUN      ] QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+[       OK ] QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ANanPointIsRefused
+[       OK ] QpCertificateData.ANanPointIsRefused (0 ms)
+[ RUN      ] QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+[       OK ] QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively (0 ms)
+[ RUN      ] QpCertificateData.AnOffStationaryExportedPointIsRefused
+[       OK ] QpCertificateData.AnOffStationaryExportedPointIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+[       OK ] QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused (0 ms)
+[ RUN      ] QpCertificateData.TheSmallQpsCertifyUnarmed
+[       OK ] QpCertificateData.TheSmallQpsCertifyUnarmed (0 ms)
+[ RUN      ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+[ qpc-data ] qp7 border row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[ qpc-data ] qp7 refactorize row 103 lambda -99759.8 rs 1 |move| 7.29e-08
+[       OK ] QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused (1445 ms)
+[ RUN      ] QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf
+[ qpc-data ] QC8_DALLASM_qp1.txt border rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp1.txt refactorize rows/ftol=9.93e-07 product/ftol=0.0115
+[ qpc-data ] QC8_DALLASM_qp7.txt border rows/ftol=1.91e-06 product/ftol=0.000825
+[ qpc-data ] QC8_DALLASM_qp7.txt refactorize rows/ftol=9.8e-05 product/ftol=9.77
+[ qpc-data ] QC8_DALLASM_entry6.txt border rows/ftol=1.91e-06 product/ftol=0.00105
+[ qpc-data ] QC8_DALLASM_entry6.txt refactorize rows/ftol=0.001 product/ftol=41.3
+[       OK ] QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf (2099 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow (1 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound (0 ms)
+[ RUN      ] QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale
+[       OK ] QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale (0 ms)
+[ RUN      ] QpCertificateData.TheReadingKeepsANanInTheProblemData
+[       OK ] QpCertificateData.TheReadingKeepsANanInTheProblemData (0 ms)
+[ RUN      ] QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+[       OK ] QpCertificateData.AMultiplierOffTheWorkingSetIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+[       OK ] QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf (0 ms)
+[ RUN      ] QpCertificateData.TheRoundingFloorIsTheUnitRoundoff
+[       OK ] QpCertificateData.TheRoundingFloorIsTheUnitRoundoff (0 ms)
+[ RUN      ] QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+[       OK ] QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm (0 ms)
+[ RUN      ] QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+[       OK ] QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused (2 ms)
+[ RUN      ] QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+[       OK ] QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused (0 ms)
+[ RUN      ] QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:954: Failure
+Expected equality of these values:
+  zero.slack
+    Which is: 0.5
+  0.0
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:955: Failure
+Value of: certificate_data_half_holds(zero, ftol, otol)
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:962: Failure
+Expected equality of these values:
+  read(0.99 * 100.0 * u * 0.25).slack
+    Which is: 0.5
+  0.0
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:977: Failure
+Expected equality of these values:
+  read(1e-21).slack
+    Which is: 0.5
+  0.0
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:978: Failure
+Value of: certificate_data_half_holds(read(1e-21), ftol, otol)
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack (0 ms)
+[ RUN      ] QpCertificateData.TheSlackReadsOnlyWorkingRowsAndPinnedBounds
+[       OK ] QpCertificateData.TheSlackReadsOnlyWorkingRowsAndPinnedBounds (0 ms)
+[ RUN      ] QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+[       OK ] QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack (0 ms)
+[ RUN      ] QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:1100: Failure
+Expected equality of these values:
+  read(0.99 * threshold).slack
+    Which is: 0.1
+  0.0
+    Which is: 0
+
+[  FAILED  ] QpCertificateData.TheExemptionReadsTheRowsInfinityNorm (0 ms)
+[ RUN      ] QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+[       OK ] QpCertificateData.TheSlackIsReadRelativeToTheRowScale (0 ms)
+[ RUN      ] QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:1182: Failure
+Expected equality of these values:
+  coupled.slack
+    Which is: 0.010000000000000009
+  0.0
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/qpc/tests/qp/seam/test_qp_certificate_data.cpp:1184: Failure
+Value of: certificate_data_half_holds(coupled, ftol, otol)
+  Actual: false
+Expected: true
+the max/max exemption certifies the probe (documented; per-column pricing is registered)
+
+[  FAILED  ] QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow (0 ms)
+[ RUN      ] QpCertificateData.TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp
+[       OK ] QpCertificateData.TheGlobalStationarityScaleCertifiesAnUnmovedStartOnADecoupledQp (0 ms)
+[----------] 27 tests from QpCertificateData (3558 ms total)
+
+[----------] 20 tests from QpCertificateSign
+[ RUN      ] QpCertificateSign.SeamUnarmedCertifiesTheOptimumWithNoRefusal
+[       OK ] QpCertificateSign.SeamUnarmedCertifiesTheOptimumWithNoRefusal (0 ms)
+[ RUN      ] QpCertificateSign.Rdv5LowerPinWithHugeWrongSignIsRefused
+[       OK ] QpCertificateSign.Rdv5LowerPinWithHugeWrongSignIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.UpperPinWithWrongSignIsRefused
+[       OK ] QpCertificateSign.UpperPinWithWrongSignIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.NanMultiplierIsRefused
+[       OK ] QpCertificateSign.NanMultiplierIsRefused (0 ms)
+[ RUN      ] QpCertificateSign.WrongSignInsideTheRelativeToleranceIsCertified
+[       OK ] QpCertificateSign.WrongSignInsideTheRelativeToleranceIsCertified (0 ms)
+[ RUN      ] QpCertificateSign.WorstWrongSignReadsPinsAndUnshiftedWorkingRows
+[       OK ] QpCertificateSign.WorstWrongSignReadsPinsAndUnshiftedWorkingRows (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfOffBoxPointOnAFeasibleQpIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.BoundHalfOffBoxPointOnAFeasibleQpIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.BoundHalfInsideTheMarginStillCertifies
+[       OK ] QpCertificateSign.BoundHalfInsideTheMarginStillCertifies (0 ms)
+[ RUN      ] QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed
+[       OK ] QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed (0 ms)
+[ RUN      ] QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent
+[       OK ] QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent (0 ms)
+[ RUN      ] QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent
+[       OK ] QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent (0 ms)
+[ RUN      ] QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible
+[       OK ] QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible (0 ms)
+[ RUN      ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+[ sdl ] DALLASM_QN_qp10 alg=1 status=3 minors=30 refusals=0 zmx=0 reverts=1 bound_refusals=1
+[ sdl ] DALLASM_QN_qp10 alg=0 status=3 minors=38 refusals=0 zmx=1 reverts=0 bound_refusals=0
+[       OK ] QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign (192 ms)
+[ RUN      ] QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible
+[ sdl ] BRITGAS_QN_qp5 alg=1 status=3 minors=433 bound_refusals=1 polish_rejected=1 x326=1.017630675
+[ sdl ] BRITGAS_QN_qp5 alg=0 status=3 minors=433 bound_refusals=1 polish_rejected=1 x326=1.017630675
+[       OK ] QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible (1350 ms)
+[ RUN      ] QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible
+[ sdl6 ] NET3_QN_qp98 alg=1 status=3 minors=13 row_refusals=1 tfc=0 eq_res=2.337e-06 row_res=1.084e-01
+[ sdl6 ] NET3_QN_qp98 alg=0 status=3 minors=19 row_refusals=0 tfc=0 eq_res=3.411e-12 row_res=4.206e-12
+[       OK ] QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible (325 ms)
+[ RUN      ] QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible
+[ sdl6 ] MSS2_QN_qp58 alg=1 status=3 minors=2 row_refusals=1 tfc=0 eq_res=3.431e-06 row_res=0.000e+00
+[ sdl6 ] MSS2_QN_qp58 alg=0 status=3 minors=2 row_refusals=1 tfc=0 eq_res=3.431e-06 row_res=0.000e+00
+[       OK ] QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible (45 ms)
+[ RUN      ] QpCertificateSign.DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict
+[ sdl6 ] DALLASM_QN_qp0 alg=1 status=2 minors=30 row_refusals=0 tfc=1 eq_res=2.987e-01 row_res=0.000e+00
+[ sdl6 ] DALLASM_QN_qp0 alg=0 status=2 minors=36 row_refusals=0 tfc=1 eq_res=2.240e-01 row_res=0.000e+00
+[       OK ] QpCertificateSign.DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict (261 ms)
+[ RUN      ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[       OK ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (1 ms)
+[----------] 20 tests from QpCertificateSign (2181 ms total)
+
+[----------] 6 tests from QpQc8ImpliedBlocker
+[ RUN      ] QpQc8ImpliedBlocker.DallasmEntry6Border
+[ qc8 ] QC8_DALLASM_entry6.txt border status=0 minors=74 facts=1 f=-92396.9539668 implied=31 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmEntry6Border (188 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmEntry6Refactorize
+[ qc8 ] QC8_DALLASM_entry6.txt refactorize status=0 minors=75 facts=75 f=-92396.953967 implied=39 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmEntry6Refactorize (242 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp1Border
+[ qc8 ] QC8_DALLASM_qp1.txt border status=0 minors=11 facts=1 f=-125712.835807 implied=2 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp1Border (30 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp1Refactorize
+[ qc8 ] QC8_DALLASM_qp1.txt refactorize status=0 minors=11 facts=11 f=-125712.835807 implied=2 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp1Refactorize (44 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp7Border
+[ qc8 ] QC8_DALLASM_qp7.txt border status=0 minors=142 facts=1 f=-92397.2698491 implied=46 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp7Border (333 ms)
+[ RUN      ] QpQc8ImpliedBlocker.DallasmQp7Refactorize
+[ qc8 ] QC8_DALLASM_qp7.txt refactorize status=0 minors=128 facts=128 f=-92397.2698491 implied=33 blkterm=0
+[       OK ] QpQc8ImpliedBlocker.DallasmQp7Refactorize (395 ms)
+[----------] 6 tests from QpQc8ImpliedBlocker (1234 ms total)
+
+[----------] 3 tests from QpReleaseReadmission
+[ RUN      ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+[ pf1 ] refactorize status=0 minors=4756 facts=4756 border_refine=0 eqp_refine=7563 dual_regularization_decreases=0 f=-0.003231904984786683
+[ pf1 ] border status=0 minors=4756 facts=3585 border_refine=1234 eqp_refine=7513 dual_regularization_decreases=0 f=-0.003231904984786682
+[       OK ] QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization (152430 ms)
+[ RUN      ] QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+[       OK ] QpReleaseReadmission.TheConvergedRefinementIsPerSolve (10039 ms)
+[ RUN      ] QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization
+[ pf1 ] option-off status=1 minors=400 dual_regularization_decreases=0
+[       OK ] QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization (5815 ms)
+[----------] 3 tests from QpReleaseReadmission (168285 ms total)
+
+[----------] Global test environment tear-down
+[==========] 56 tests from 4 test suites ran. (175260 ms total)
+[  PASSED  ] 53 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+[  FAILED  ] QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+[  FAILED  ] QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+
+ 3 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EqpSolve*:EqpConvergedRefinement.*
+[==========] Running 7 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from EqpSolve
+[ RUN      ] EqpSolve.MatchesOracleOnItsOptimalWorkingSet
+[       OK ] EqpSolve.MatchesOracleOnItsOptimalWorkingSet (2 ms)
+[ RUN      ] EqpSolve.MatchesOracleOnEqualityOnlyProblem
+[       OK ] EqpSolve.MatchesOracleOnEqualityOnlyProblem (0 ms)
+[ RUN      ] EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy
+[       OK ] EqpSolve.FixedVariableWithEqualityRefinementImprovesAccuracy (0 ms)
+[----------] 3 tests from EqpSolve (2 ms total)
+
+[----------] 4 tests from EqpConvergedRefinement
+[ RUN      ] EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint
+[ qpc-conv ] eliminated: model miss 1.111e-05 (steps 0), converged miss 2.890e-07 (steps 9)
+[       OK ] EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint (0 ms)
+[ RUN      ] EqpConvergedRefinement.AWellConditionedFaceAndTheUnregularizedSystemAreUnmoved
+[       OK ] EqpConvergedRefinement.AWellConditionedFaceAndTheUnregularizedSystemAreUnmoved (0 ms)
+[ RUN      ] EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne
+[ qpc-conv ] unbordered: model miss 1.111e-05 (steps 1), converged miss 2.890e-07 (steps 10)
+[       OK ] EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne (0 ms)
+[ RUN      ] EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps
+[       OK ] EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps (0 ms)
+[----------] 4 tests from EqpConvergedRefinement (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 2 test suites ran. (3 ms total)
+[  PASSED  ] 7 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers:SqpElasticWitnessStart.Sawpath*:SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused
+[==========] Running 4 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from SqpElasticWitnessStart
+[ RUN      ] SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+[ p1e ] SAWPATH rung1 before: status=0 minors=43 facts=52 off_rows=2.40696e-13 | witness: start_off=0.000e+00 pins seeded=0 kept=0 | after: status=0 minors=32 facts=42 f=-376.163994774 slack_l1=2.56738 (witness 3.55954) eq=2.41e-13 box=0.00e+00 stat=5.02e-07 sign=0.00e+00 comp=0.00e+00
+[       OK ] SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness (357 ms)
+[ RUN      ] SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung
+[ p1e ] SAWPATH ladder arm=0 (witness 0, last 0): usable=0 closed=0 reduced=0 status=3 slack_l1=0 (witness 3.55954) rungs=2 minors=45 facts=54 fallbacks=0
+[ p1e ] SAWPATH ladder arm=1 (witness 1, last 0): usable=0 closed=0 reduced=0 status=3 slack_l1=0 (witness 3.55954) rungs=2 minors=34 facts=44 fallbacks=0
+[ p1e ] SAWPATH ladder arm=2 (witness 1, last 1): usable=1 closed=0 reduced=1 status=0 slack_l1=2.56738 (witness 3.55954) rungs=2 minors=34 facts=44 fallbacks=1
+[ p1e ] SAWPATH rung 2: status=3 minors=2 blk_term=1 cert_rej=0 ws_count_violations=0 dep_tests=174 dep_dependent=174 pins=7 n=585 me=578
+[       OK ] SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung (1118 ms)
+[----------] 2 tests from SqpElasticWitnessStart (1475 ms total)
+
+[----------] 1 test from SqpSolverRestorationSeed
+[ RUN      ] SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused
+[       OK ] SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused (2 ms)
+[----------] 1 test from SqpSolverRestorationSeed (2 ms total)
+
+[----------] 1 test from B1Gate
+[ RUN      ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+[ b1gate ] S=0x1.e848p+19 eps=0x1.ad7f29abcaf48p-21 x=0x1.ad7f29abc8571p-21 lambda=0x1.e847fffffe528p+19 z=0x0p+0 f=-0x1.999999999667p-1
+[       OK ] B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers (0 ms)
+[----------] 1 test from B1Gate (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 3 test suites ran. (1478 ms total)
+[  PASSED  ] 4 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/build-rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpQpcFold.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from SqpQpcFold
+[ RUN      ] SqpQpcFold.MainSubproblemRefusalsAreFoldedOnce
+[ qpc-fold ] BoxPull: unarmed reads 1 status 0 | armed runs 2 | dispatch 5/6 elastic 0/0 soc 0/0 retry 0/0 restoration 0/0 (refused/solves) unattributed 0
+[       OK ] SqpQpcFold.MainSubproblemRefusalsAreFoldedOnce (2 ms)
+[ RUN      ] SqpQpcFold.SocResolveRefusalsAreFoldedOnce
+[ qpc-fold ] Maratos: unarmed reads 5 status 0 | armed runs 6 | dispatch 34/54 elastic 0/0 soc 1/6 retry 0/0 restoration 0/0 (refused/solves) unattributed 0
+[       OK ] SqpQpcFold.SocResolveRefusalsAreFoldedOnce (2 ms)
+[ RUN      ] SqpQpcFold.CapRetryRefusalsAreFoldedOnce
+[ qpc-fold ] BoxPullCapped: unarmed reads 1 status 0 | armed runs 2 | dispatch 0/7 elastic 0/0 soc 0/0 retry 5/7 restoration 0/0 (refused/solves) unattributed 0
+[       OK ] SqpQpcFold.CapRetryRefusalsAreFoldedOnce (1 ms)
+[ RUN      ] SqpQpcFold.ElasticRungRefusalsAreFoldedOnce
+[ qpc-fold ] InconsistentBounded: unarmed reads 15 status 3 | armed runs 16 | dispatch 0/24 elastic 15/120 soc 0/0 retry 0/0 restoration 6/21 (refused/solves) unattributed 0
+[       OK ] SqpQpcFold.ElasticRungRefusalsAreFoldedOnce (7 ms)
+[ RUN      ] SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce
+[ qpc-fold ] InconsistentBounded: unarmed reads 15 status 3 | armed runs 16 | dispatch 0/24 elastic 15/120 soc 0/0 retry 0/0 restoration 6/21 (refused/solves) unattributed 0
+[ qpc-fold ] InconsistentLinearization: unarmed reads 8 status 0 | armed runs 9 | dispatch 1/10 elastic 8/36 soc 0/0 retry 0/0 restoration 4/11 (refused/solves) unattributed 0
+[       OK ] SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce (10 ms)
+[----------] 5 tests from SqpQpcFold (24 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (25 ms total)
+[  PASSED  ] 5 tests.

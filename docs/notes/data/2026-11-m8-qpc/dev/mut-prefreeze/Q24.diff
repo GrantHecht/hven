@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..16ed16c0e 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1622,7 +1622,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+     Vec t(n);
+     for (Index i = 0; i < n; ++i) {
+         t(i) =
+-            smax(smax(smax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), std::abs(z(i)));
++            smax(smax(smax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), 0.0);
+     }
+ 
+     // Stationarity, normwise and beyond rounding, over free_block_stationarity's scale.

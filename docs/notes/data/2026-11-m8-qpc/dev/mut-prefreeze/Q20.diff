@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..02ddfed02 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1735,7 +1735,6 @@ inline bool certificate_data_half_holds(const CertificateReading &r, double feas
+                                         double opt_tol) {
+     return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&
+            r.product <= kCertificateGateComplFactor * feas_tol &&
+-           r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&
+            r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;
+ }
+ 

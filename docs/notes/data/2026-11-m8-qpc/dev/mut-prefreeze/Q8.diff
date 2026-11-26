@@ -1,0 +1,12 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 67744b7b5..73f1930db 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -1993,7 +1993,6 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                             if (holds) {
+                                 status = QpStatus::kOptimal;
+                             } else {
+-                                ++counters.certificate_gate_refusals;
+                                 status = QpStatus::kNumericalError;
+                             }
+                         }

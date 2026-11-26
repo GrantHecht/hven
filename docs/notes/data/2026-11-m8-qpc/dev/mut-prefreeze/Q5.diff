@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..32eb8075c 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1126,7 +1126,7 @@ constexpr double kTerminalPolishComplFactor = 100.0;
+ // product and slack, never against the column's residual. The data is assumed finite: an Inf in g
+ // on a pinned column makes the global stationarity scale infinite and that reading vacuous.
+ constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
+-constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
++constexpr double kCertificateGateComplFactor = 1000.0;
+ constexpr double kCertificateGateStationarityFactor = 10.0;
+ constexpr double kCertificateGateSlackFactor = 100.0;
+ constexpr double kCertificateGateRoundingZeroFactor = 100.0;

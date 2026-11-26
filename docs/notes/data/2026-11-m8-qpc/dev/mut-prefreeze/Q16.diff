@@ -1,0 +1,13 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 67744b7b5..0b4b6abab 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -390,7 +390,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+                          const std::shared_ptr<const HotState> &hot) const {
+     // THE RELEASE RE-ADMISSION's refinement (walk_engine.h, Degeneracy) is per solve: kModel
+     // from here, and back to kModel on every way out of this call, a throw included.
+-    eqp_refinement_ = EqpRefinement::kModel;
++    eqp_refinement_ = EqpRefinement::kConverged;
+     struct RefinementReset {
+         EqpRefinement &mode;
+         ~RefinementReset() { mode = EqpRefinement::kModel; }
