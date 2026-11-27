@@ -1,0 +1,3 @@
+box-lane: lane 0 acquired 2026-11-27T14:45:06-05:00
+LEG M1R start 2026-11-27T14:45:06-05:00 H=f0ba4e101d33826758f1cefb1d41b0a64f228ff7 harness=e80654847013a53f5d5676b03a495811e2cc2907 lane=0 phys=[0 1 2 3]
+STOP: harness not at 27c02687
