@@ -5,8 +5,10 @@
 # usage: driverEA.sh <QPC|QPC-C1|QPC-C2>      Resumable: each member leaves $RUN/EA-<arm>-<member>.done.
 set -o pipefail
 source "$(dirname "$0")/env.sh"
+source "$(dirname "$0")/r2_checks.sh"   # DECLARATION-QPC-r2 r2-3
 A=${1:?arm}; mkdir -p $RUN/logs $G/gate-QPC/reads
 cd $HB || exit 1
+r2_check_decoded     # r2-3(a)
 echo "EA $A start $(date -Is) pid=$$"
 run_member() { # run_member <member arm name> <corpora>
   local m=$1 c=$2 tag; tag=${m//@/_}
@@ -16,6 +18,7 @@ run_member() { # run_member <member arm name> <corpora>
     --corpora $c --phase all >> $RUN/logs/EA-$tag.log 2>&1; local rc=$?
   echo "== $m rc=$rc $(date -Is)"
   [ $rc -eq 0 ] || stop "E-A $m rc=$rc (see $RUN/logs/EA-$tag.log)"
+  r2_check_exceptions $STORE $m     # r2-3(b)
   touch $RUN/EA-$tag.done
 }
 ALL=TRAIN-238,CAP-238-1,CAP-238-01
@@ -27,7 +30,7 @@ for s in 1 2 3 4 5; do run_member $A@t$s TRAIN-238; done
 # no row-path change; proof in DEVIATIONS.md), at most 4 arms per box-lane acquisition, then the KILL rows alone.
 if [ ! -f $RUN/EA-$A-pilot.done ]; then
   export CENSUS_HVEN_PREFIX=$(arm_inst $A)
-  DEC=/home/ghecht/Projects/hven-bench-ens/.scratch/h3/decoded
+  DEC=$HB/.scratch/h3/decoded     # r2-2: the byte-identical copy (cells/decoded-copy.sha256)
   for grp in "$A $A@x1 $A@x2 $A@x3" "$A@x4 $A@x5"; do
     echo "== pilots $grp $(date -Is)"
     $PY $HB/scripts/qpc_pilots.py run $grp --store $STORE --binary $(arm_lane $A) --binaries $BIN --tag "declare $A " --decoded $DEC >> $RUN/logs/EA-$A-pilot.log 2>&1 || stop "pilot run ($grp) failed: see $RUN/logs/EA-$A-pilot.log"

@@ -6,6 +6,7 @@
 # Every solver leg takes its own box-lane acquisition (i19_run.py calls box-lane itself).  A STOP writes $RUN/STOP.txt, exits 3.
 set -o pipefail
 source "$(dirname "$0")/env.sh"
+source "$(dirname "$0")/r2_checks.sh"   # DECLARATION-QPC-r2 r2-3
 mkdir -p $RUN/logs $G/cells $G/gate-QPC
 cd $HB || exit 1
 echo "X start $(date -Is) pid=$$"
@@ -117,6 +118,7 @@ fi
 # ---- member-0 development runs (DEV store), one process tree per arm, then N2
 if [ ! -f $RUN/DEV.done ]; then
   step "member-0 development runs"
+  r2_check_decoded     # r2-3(a)
   pids=""
   for a in QPC QPC-C1 QPC-C2; do
     ( $PY $HB/tu/i19_run.py arm $a --store $DEV --binary $(arm_lane $a) --hven-sha $(arm_pin $a) --hven-prefix $(arm_inst $a) --binaries $BIN \
@@ -125,6 +127,7 @@ if [ ! -f $RUN/DEV.done ]; then
   done
   wait $pids
   for a in QPC QPC-C1 QPC-C2; do [ "$(cat $RUN/dev-m0-$a.rc)" = 0 ] || stop "member-0 development run $a rc=$(cat $RUN/dev-m0-$a.rc) (see $RUN/logs/dev-m0-$a.log)"; done
+  r2_check_exceptions $DEV QPC QPC-C1 QPC-C2     # r2-3(b)
   touch $RUN/DEV.done
 fi
 if [ ! -f $RUN/N2.done ]; then

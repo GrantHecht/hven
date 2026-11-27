@@ -4,6 +4,7 @@
 # early leg that produces TRAIN-238 member-0 rows), Sm (install smoke, both front ends).  Each its own box-lane acquisition.
 set -o pipefail
 source "$(dirname "$0")/env.sh"
+source "$(dirname "$0")/r2_checks.sh"   # DECLARATION-QPC-r2 r2-3
 mkdir -p $RUN/logs $G/gate-QPC
 cd $W || exit 1
 echo "Y start $(date -Is) pid=$$"
@@ -33,7 +34,8 @@ leg N3H ~/.local/bin/box-lane --exclusive -- bash -c "$(declare -f n3run); W=$W;
 leg N3R ~/.local/bin/box-lane --exclusive -- bash -c "$(declare -f n3run); W=$W; n3run R $RUN/R-src/.scratch/build-rel/bench/hven_sqp_corpus $G/gate-QPC/N3/R"
 leg N3  python3 $G/gate-QPC/chain/n3_report.py $G/gate-QPC/N3/H $G/gate-QPC/N3/R
 leg M   ~/.local/bin/box-lane -- bash $G/legs/mutations_qpc.sh $G/gate-QPC/M $W $W/.scratch/build-rel
-leg M1R ~/.local/bin/box-lane -- bash $G/legs/legM1R.sh $H_PIN $HB $RUN/m1r-work $G/gate-QPC/M1R
+r2_check_decoded     # r2-3(a)
+leg M1R ~/.local/bin/box-lane -- bash $G/legs/legM1R-r2.sh $H_PIN $HB $RUN/m1r-work $G/gate-QPC/M1R
 export HVEN_INSTALL_SMOKE_WORKDIR=$RUN/smoke-gcc
 leg SmG ~/.local/bin/box-lane -- bash $W/scripts/check_install_smoke.sh
 export HVEN_INSTALL_SMOKE_WORKDIR=$RUN/smoke-clang

@@ -110,3 +110,13 @@ Written at launch (2026-11-26) by the freeze agent. Each item says what the decl
     (584695130) stands as the record of the stop. The run1 stop evidence (stop markers, logs, pids) is in `.scratch/qpcrun/run1-outage/stop-2026-11-26/`.
     **Relaunch.** Moved aside: `STOP.txt`, `Y-N1.failed`, `dev-m0-*.rc`, the stale `driverX.pid`/`driverY.pid`, and `Y.forked` (so driverX forks driverY itself, as in
     item 11); kept: `B.done BIN.done ER.done N0.done Y-C.done`. driverX/driverY relaunched unchanged; real pids are in the commit that follows (`driverX.pid`, `driverY.pid`).
+
+13. **DECLARATION-QPC-r2 runner glue (appended 2026-11-27; the declaration is `DECLARATION-QPC-r2.md`, committed before any row it governs).**
+    Answers the two 2026-11-27 STOPs (M1R rc=2: literal harness pin 27c02687 in `legs/legM1R.sh`; N2 QPC: `hven-bench-qpc` had no `.scratch/h3/decoded/`, so every
+    CUTEst cell of the run-1 member-0 development runs was an `error` row). Glue carried out here: (i) `chain/r2_checks.sh` (new): `r2_check_decoded` (r2-3(a), reads
+    `cells/decoded-required.txt`) and `r2_check_exceptions` (r2-3(b)); (ii) `legs/legM1R-r2.sh` (new; legM1R.sh stays frozen): harness e806548, r2-3(a), r2-3(c); (iii) `driverY.sh`
+    runs `legM1R-r2.sh` and r2-3(a) before M1R; (iv) `driverX.sh` runs r2-3(a) before the member-0 development runs and r2-3(b) after their wait; (v) `driverEA.sh` runs r2-3(a)
+    at start, r2-3(b) after every member run, and its pilot legs read the byte-identical `hven-bench-qpc/.scratch/h3/decoded` copy (was the ens path; same bytes, manifest
+    `cells/decoded-copy.sha256`). Run-1 arm directories of the development store were MOVED to `.scratch/qpcrun/run1-nodecode/dev-store/` (`diff -rq $DEV $STORE` empty), and
+    `STOP.txt`, `Y-M1R.failed`, `DEV.done`, `dev-m0-*.rc` and the run-1 dev/M1R logs to `.scratch/qpcrun/run1-nodecode/markers/`. Kept: markers `B BIN ER N0 Y-C Y-N1 Y-N3 Y-N3H Y-N3R Y-M`
+    (their evidence is committed). `Y.forked` stays, so driverY is launched by hand (unchanged script apart from the above) alongside driverX; it resumes at M1R.
