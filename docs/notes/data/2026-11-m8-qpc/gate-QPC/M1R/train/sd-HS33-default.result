@@ -1,0 +1,1 @@
+rc=0 verdict=ok argv=/home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/qpcrun/m1r-work/lane/lanes/hven/hven_bench_cell --lane hven-sqp --problem HS33 --options default --budget-iters 0 --options-dump /home/ghecht/Projects/hven/.claude/worktrees/qpc/docs/notes/data/2026-11-m8-qpc/gate-QPC/M1R/train/sd-HS33-default.dump --assert-reference
