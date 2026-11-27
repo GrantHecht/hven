@@ -1,0 +1,26 @@
+diff --git a/include/hven/detail/qp/walk/bordered_eqp.h b/include/hven/detail/qp/walk/bordered_eqp.h
+index e706e6431..b4a2e254e 100644
+--- a/include/hven/detail/qp/walk/bordered_eqp.h
++++ b/include/hven/detail/qp/walk/bordered_eqp.h
+@@ -336,7 +336,7 @@ inline Vec refine_bordered_solve_iterated(
+             detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs));
+         Vec res = residual_of(best);
+         steps += refine_until_converged(
+-            best, res, floor, detail::kMaxBorderRefineSteps - 1,
++            best, res, floor, 1,
+             [&](const Vec &r) { return schur.solve(r); }, residual_of);
+         if (steps_out != nullptr) {
+             *steps_out = steps;
+diff --git a/include/hven/detail/qp/walk/eqp_solve.h b/include/hven/detail/qp/walk/eqp_solve.h
+index 070aad01e..b1efdfe2a 100644
+--- a/include/hven/detail/qp/walk/eqp_solve.h
++++ b/include/hven/detail/qp/walk/eqp_solve.h
+@@ -728,7 +728,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec
+                 accuracy_steps += refine_until_converged(
+                     y, res,
+                     detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs)),
+-                    detail::kMaxBorderRefineSteps - 1,
++                    1,
+                     [&](const Vec &r) { return detail::solve_vec(kkt, r); }, residual_of);
+             } else if (opts.independent_working_set) {
+                 accuracy_steps += refine_to_accuracy(y_model, y);

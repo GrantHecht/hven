@@ -1,0 +1,4 @@
+attached observers: callback=off trace=off
+running f7_n20000_path_activity (N=20000, path, activity, engine walk, wall budget 3600s per phase)...
+  -> dnf_budget at the 3600s deadline
+wrote 1 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/qpc/docs/notes/data/2026-11-m8-qpc/gate-QPC/N3/H/run/rows/f7_n20000_path_activity.csv.part

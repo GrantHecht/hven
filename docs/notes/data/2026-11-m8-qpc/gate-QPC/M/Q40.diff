@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..d8521ebb0 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1128,7 +1128,7 @@ constexpr double kTerminalPolishComplFactor = 100.0;
+ constexpr double kCertificateGateRowFactor = kInfeasibilityMarginFactor;
+ constexpr double kCertificateGateComplFactor = kTerminalPolishComplFactor;
+ constexpr double kCertificateGateStationarityFactor = 10.0;
+-constexpr double kCertificateGateSlackFactor = 100.0;
++constexpr double kCertificateGateSlackFactor = 1000.0;
+ constexpr double kCertificateGateRoundingZeroFactor = 100.0;
+ 
+ // THE CERTIFICATE'S DATA HALF's verdict on a certificate_reading (defined below terminal_kkt).

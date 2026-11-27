@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..8e9261442 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1682,7 +1682,6 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+         // std::max above drops a NaN residual; the sticky max below keeps it.
+         out.rows = smax(out.rows, std::isnan(resid(j)) ? resid(j) : viol / row_scale);
+         if (read_product) {
+-            local = smax(local, std::abs(mult) * norm_inf);
+             out.product =
+                 smax(out.product, local_product(std::abs(resid(j)) / row_scale, mult, local));
+             if (read_slack && priced(mult, norm_inf, local)) {

@@ -1,0 +1,14 @@
+diff --git a/src/sqp/sqp_solver.cpp b/src/sqp/sqp_solver.cpp
+index 113a6db74..d1683e85b 100644
+--- a/src/sqp/sqp_solver.cpp
++++ b/src/sqp/sqp_solver.cpp
+@@ -8560,8 +8560,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState
+     // both met at a point that is
+     // not a KKT point. The tolerance is kkt_tol, absolute, as for stationarity.
+     mj.converged = mj.kkt.stationarity <= opts_.common.optimality_tol &&
+-                   mj.kkt.feasibility <= opts_.common.feasibility_tol &&
+-                   mj.kkt.complementarity <= opts_.common.optimality_tol;
++                   mj.kkt.feasibility <= opts_.common.feasibility_tol; // MUTANT Q47 (B1)
+     // THE CALLER-UNIT FEASIBILITY GUARD (M7 W2 SCL). On a scaled solve the test
+     // above reads the ENGINE's residuals: a row shrunk by its factor s_j < 1 passes
+     // at |c_j| <= feas_tol / s_j, and a box violation is read in units of d_j. A

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..20989818d 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1646,7 +1646,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+             m += a_abs.transpose() * lambda_i.cwiseAbs();
+             c += SpMatRM(a_abs.cwiseSign()).transpose() * Vec::Ones(qp.mi());
+         }
+-        constexpr double kUnitRoundoff = 0.5 * std::numeric_limits<double>::epsilon();
++        constexpr double kUnitRoundoff = std::numeric_limits<double>::epsilon();
+         double beyond = 0.0;
+         for (Index i = 0; i < n; ++i) {
+             if (bs[static_cast<std::size_t>(i)] != BoundState::kFree) {

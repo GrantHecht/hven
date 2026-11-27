@@ -1,0 +1,12 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..951bffc47 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1624,6 +1624,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+         t(i) =
+             smax(smax(smax(std::abs(qp.g(i)), std::abs(hx(i))), std::abs(atl(i))), std::abs(z(i)));
+     }
++    t.setConstant(t.maxCoeff());
+ 
+     // Stationarity, normwise and beyond rounding, over free_block_stationarity's scale.
+     double stat_scale = 1.0;

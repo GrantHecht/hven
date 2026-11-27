@@ -1,0 +1,2 @@
+QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow

@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..773705eff 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1736,7 +1736,7 @@ inline bool certificate_data_half_holds(const CertificateReading &r, double feas
+     return r.finite && r.rows <= kCertificateGateRowFactor * feas_tol &&
+            r.product <= kCertificateGateComplFactor * feas_tol &&
+            r.stationarity_beyond_rounding <= kCertificateGateStationarityFactor * opt_tol &&
+-           r.slack <= kCertificateGateSlackFactor * feas_tol && r.off_working == 0.0;
++           r.slack <= kCertificateGateSlackFactor * feas_tol;
+ }
+ 
+ // --- Negative-curvature ride (see the header contract's section 4c) ---

@@ -1,0 +1,8 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-26T17:11:08-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/qpc/.scratch/qpcrun/R-src/.scratch/build-rel/bench/hven_sqp_corpus sha256 9f5be89a1b810138a09f8016045b3a77fb6c865a7643125883544e2954c306ee
+run walk rc=0
+run ssn rc=0
+run ipm rc=0
+worst=0
+FOREGROUND_END 2026-11-26T17:16:41-05:00

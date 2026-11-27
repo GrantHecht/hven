@@ -1,0 +1,19 @@
+MISMATCH f7_n1000_path_corrupted
+  base : f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12
+  fresh: f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,3587,4760,0,3,3585;1;1,8.700220720e-12
+MISMATCH f7_n5000_path_physics
+  base : f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,33,5370,0,2,18;15,1.003657379e-09
+  fresh: f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,37,5559,0,2,18;19,9.261751366e-10
+MISMATCH f7_n5000_path_activity
+  base : f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,174,8214,0,2,159;15,2.723824945e-09
+  fresh: f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,178,8404,0,2,159;19,2.723824779e-09
+MISMATCH f7_n800_path_neutral
+  base : f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,9637,10822,0,4,1;9634;1;1,1.874361777e-10
+  fresh: f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,9637,10822,0,4,1;9634;1;1,1.874360667e-10
+MISMATCH f7_n800_path_corrupted
+  base : f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,2310,0,3,12;1;1,8.379087355e-12
+  fresh: f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,2310,0,3,12;1;1,8.378704685e-12
+MISMATCH f7_n800_path_warm
+  base : f7_n800_path_warm,F7,800,path,warm,1,Optimal,2,6,0,2,1;1,4.212493723e-10
+  fresh: f7_n800_path_warm,F7,800,path,warm,1,Optimal,2,6,0,2,1;1,4.212493600e-10
+57 baseline cells, 57 fresh cells, 6 mismatches

@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..67b6fbc1f 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1713,9 +1713,6 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+         const double bound = below >= above ? qp.lower(i) : qp.upper(i);
+         const double row_scale = std::max({1.0, std::abs(bound), xmag});
+         const double viol = std::max({0.0, below, above});
+-        out.rows = smax(out.rows, std::isnan(below) || std::isnan(above)
+-                                      ? std::numeric_limits<double>::quiet_NaN()
+-                                      : viol / row_scale);
+         const BoundState st = bs[static_cast<std::size_t>(i)];
+         if (st != BoundState::kFree) {
+             const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);

@@ -1,0 +1,14 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..9c6c8f38e 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1719,8 +1719,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+         const BoundState st = bs[static_cast<std::size_t>(i)];
+         if (st != BoundState::kFree) {
+             const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+-            out.product =
+-                smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));
++            (void)at;
+             if (priced(z(i), 1.0, t(i))) {
+                 out.slack = smax(out.slack, std::abs(x(i) - at) / row_scale);
+             }

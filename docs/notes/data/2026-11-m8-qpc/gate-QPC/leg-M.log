@@ -1,0 +1,243 @@
+box-lane: lane 1 acquired 2026-11-27T09:27:05-05:00
+FOREGROUND_START 2026-11-27T09:27:05-05:00 tree=/home/ghecht/Projects/hven/.claude/worktrees/qpc head=e93fc44804055638016eb2ae311d7805591e0ab9 argued=[Q17]
+PREFLIGHT every mutation applies and restores: [Q1 Q2 Q3 Q4 Q5 Q6 Q7 Q8 Q9 Q10 Q11 Q12 Q13 Q14 Q15 Q16 Q17 Q18 Q19 Q20 Q21 Q22 Q23 Q24 Q25 Q26 Q27 Q28 Q29 Q30 Q31 Q32 Q33 Q34 Q35 Q36 Q37 Q38 Q39 Q40 Q41 Q42 Q43 Q44 Q45 Q46 Q47]
+MUT control rc=0 killers=0
+MUT Q1 rc=2 killers=14
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+   QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+MUT Q2 rc=2 killers=15
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q3 rc=1 killers=13
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q4 rc=1 killers=4
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q5 rc=1 killers=1
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q6 rc=1 killers=2
+   QpCertificateData.TheReadingKeepsANanInTheProblemData
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q7 rc=2 killers=14
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+   QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+MUT Q8 rc=3 killers=19
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARowPastTenFeasTolIsRefusedAndOneInsideIsCertified
+   QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+   SqpQpcFold.CapRetryRefusalsAreFoldedOnce
+   SqpQpcFold.ElasticRungRefusalsAreFoldedOnce
+   SqpQpcFold.MainSubproblemRefusalsAreFoldedOnce
+   SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce
+   SqpQpcFold.SocResolveRefusalsAreFoldedOnce
+MUT Q9 rc=1 killers=2
+   QpCertificateData.ABoundInsideTheFootprintExcuseButPastTheDataHalfIsRefused
+   QpCertificateData.TheReadingKeepsANanInTheProblemData
+MUT Q10 rc=1 killers=2
+   QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+   QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+MUT Q11 rc=1 killers=1
+   QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+MUT Q12 rc=2 killers=3
+   EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint
+   EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne
+   QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+MUT Q13 rc=1 killers=1
+   EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne
+MUT Q14 rc=1 killers=1
+   EqpConvergedRefinement.TheLoopKeepsOnlyStrictlyDecreasingSteps
+MUT Q15 rc=1 killers=1
+   QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+MUT Q16 rc=1 killers=13
+   QpCertificateSign.BritgasQnSubproblemOffBoxLeakIsNotInfeasible
+   QpCertificateSign.DallasmQnSubproblemIsNotCertifiedWithAWrongSign
+   QpCertificateSign.IncumbentFailingTheSignHalfIsNumericalErrorNotInfeasible
+   QpCertificateSign.IncumbentOffItsBoxIsNumericalErrorNotInfeasible
+   QpCertificateSign.Mss2QnSubproblemMuFootprintIsNotInfeasible
+   QpCertificateSign.PolishedPointOffItsBoxFallsBackToACertifiedIncumbent
+   QpCertificateSign.PolishedSignFlipFallsBackToACertifiedIncumbent
+   QpCertificateSign.PolishPremiseTheTerminalPolishIsAdoptedUnarmed
+   QpQc8ImpliedBlocker.DallasmQp1Border
+   QpQc8ImpliedBlocker.DallasmQp1Refactorize
+   QpQc8ImpliedBlocker.DallasmQp7Border
+   QpReleaseReadmission.F7PathCorruptedQp1SolvesAtItsOwnRegularization
+   QpReleaseReadmission.TheConvergedRefinementIsPerSolve
+MUT Q17 rc=0 killers=0
+SURVIVED_AS_ARGUED Q17
+MUT Q18 rc=2 killers=5
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+   SqpQpcFold.ElasticRungRefusalsAreFoldedOnce
+   SqpQpcFold.MainSubproblemRefusalsAreFoldedOnce
+   SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce
+   SqpQpcFold.SocResolveRefusalsAreFoldedOnce
+MUT Q19 rc=1 killers=2
+   EqpConvergedRefinement.EliminatedPathConvergesWhereTheModelStepLeavesTheFootprint
+   EqpConvergedRefinement.UnborderedBorderedPathConvergesLikeTheEliminatedOne
+MUT Q20 rc=1 killers=2
+   QpCertificateData.AnOffStationaryExportedPointIsRefused
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q21 rc=1 killers=1
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q22 rc=1 killers=10
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackPinnedBound
+   QpCertificateData.ADecoupledLargeDualCannotHideASlackWorkingRow
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.AWorkingRowSlackPastAHundredFeasTolIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+   QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+   QpCertificateData.TheProductIsReadAgainstTheRowsLocalScale
+   QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+MUT Q23 rc=1 killers=3
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+   QpCertificateData.TheReadingDividesEachProductByItsOwnColumnsScale
+MUT Q24 rc=1 killers=1
+   QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+MUT Q25 rc=1 killers=7
+   QpCertificateData.NaturalDallasmFixturesCertifyInsideTheDataHalf
+   QpCertificateData.Qc8DallasmQp7TheP1aFalseCertificateShapeIsRefused
+   QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+   QpQc8ImpliedBlocker.DallasmEntry6Refactorize
+   QpQc8ImpliedBlocker.DallasmQp1Border
+   QpQc8ImpliedBlocker.DallasmQp1Refactorize
+   QpQc8ImpliedBlocker.DallasmQp7Refactorize
+MUT Q26 rc=2 killers=3
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+   SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung
+   SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+MUT Q27 rc=1 killers=1
+   QpCertificateData.TheLocalScaleJoinsTheBoundMultiplierAndTheRowsOwnTerm
+MUT Q28 rc=1 killers=2
+   QpCertificateData.AMultiplierOffTheWorkingSetIsRefused
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q29 rc=1 killers=1
+   QpCertificateData.TheReadingKeepsANanInTheProblemData
+MUT Q30 rc=1 killers=1
+   QpCertificateData.TheRoundingFloorIsTheUnitRoundoff
+MUT Q31 rc=1 killers=3
+   QpCertificateData.ANanExportedMultiplierIsRefusedByTheDataHalf
+   QpCertificateData.TheReadingKeepsANanInTheProblemData
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q32 rc=1 killers=2
+   SqpQpcFold.ElasticRungRefusalsAreFoldedOnce
+   SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce
+MUT Q33 rc=1 killers=2
+   SqpQpcFold.ElasticRungRefusalsAreFoldedOnce
+   SqpQpcFold.RestorationPhaseRefusalsAreFoldedOnce
+MUT Q34 rc=1 killers=1
+   SqpQpcFold.CapRetryRefusalsAreFoldedOnce
+MUT Q35 rc=1 killers=1
+   SqpQpcFold.SocResolveRefusalsAreFoldedOnce
+MUT Q36 rc=1 killers=7
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q37 rc=1 killers=3
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+MUT Q38 rc=1 killers=2
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+MUT Q39 rc=1 killers=6
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+MUT Q40 rc=1 killers=4
+   QpCertificateData.APinnedBoundSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.AWorkingRowSlackUnderASmallMultiplierIsRefused
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q41 rc=1 killers=1
+   SqpSolverRestorationSeed.AJacobianPoisonedSeedCandidateReachesTheScreenAndIsRefused
+MUT Q42 rc=1 killers=2
+   QpCertificateData.ADecoupledLargeDualCannotExemptASmallMultipliersSlack
+   QpCertificateData.TheExemptionIsAMaxAgainstAMaxOnANonUniformRow
+MUT Q43 rc=1 killers=1
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+MUT Q44 rc=1 killers=2
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheSlackIsReadRelativeToTheRowScale
+MUT Q45 rc=1 killers=3
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+   QpCertificateData.TheVerdictRefusesNanAndReadsEveryBoundInclusively
+MUT Q46 rc=1 killers=2
+   QpCertificateData.ARoundingZeroMultiplierExemptsItsSlack
+   QpCertificateData.TheExemptionReadsTheRowsInfinityNorm
+MUT Q47 rc=1 killers=1
+   B1Gate.TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers
+KILLER_PARITY checked=46 failures=0
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-27T14:12:53-05:00

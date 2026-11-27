@@ -1,3 +1,20 @@
-box-lane: lane 1 acquired 2026-11-26T13:07:25-05:00
-LEG N1 start 2026-11-26T13:07:25-05:00 head=65de1e2dee1c1a55c9d011464ff199c63b2532d5 base=99712ec324716e6d08ee0545a43d595ca15eec3f
-BASE_CONFIGURE_FAIL
+box-lane: lane 1 acquired 2026-11-26T17:09:27-05:00
+LEG N1 start 2026-11-26T17:09:27-05:00 head=e93fc44804055638016eb2ae311d7805591e0ab9 base=99712ec324716e6d08ee0545a43d595ca15eec3f
+replay A rc=0
+replay B1 rc=0
+replay B2 rc=0
+replay B3 rc=0
+compare walk B1 rc=0: === N1-walk-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare walk B2 rc=0: === N1-walk-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare walk B3 rc=0: === N1-walk-B3 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B1 rc=0: === N1-ssn-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B2 rc=0: === N1-ssn-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare ssn B3 rc=0: === N1-ssn-B3 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B1 rc=0: === N1-ipm-B1 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B2 rc=0: === N1-ipm-B2 === cells compared: 27  columns compared: 75  differences: 0
+compare ipm B3 rc=0: === N1-ipm-B3 === cells compared: 27  columns compared: 75  differences: 0
+side walk lines=27 nonzero=0
+side ssn lines=27 nonzero=0
+side ipm lines=27 nonzero=0
+N1 worst=0 (mover attribution: a compare_replay difference is a declared mover iff its side line is non-zero)
+LEG N1 end 2026-11-26T17:33:14-05:00

@@ -1,0 +1,7 @@
+R vs baseline: 57 baseline cells, 57 fresh cells, 7 mismatches
+H vs baseline: 57 baseline cells, 57 fresh cells, 6 mismatches
+PRE-EXISTING (R shows it too, 6): ['f7_n1000_path_corrupted', 'f7_n5000_path_activity', 'f7_n5000_path_physics', 'f7_n800_path_corrupted', 'f7_n800_path_neutral', 'f7_n800_path_warm']
+R-only mismatches (1): ['f7_n2000_path_corrupted']
+side lines: 44 cells; C1 exercised 2, C2 exercised 0
+POWER CENSUS-57: C1_exercised=2 C2_exercised=0 (of 44 cells)
+N3 PASS: 0 H-only differences on both-counters-0 cells

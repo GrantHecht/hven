@@ -1,0 +1,13 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..c8018af68 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1664,7 +1664,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+         if (num == 0.0) {
+             return 0.0;
+         }
+-        return num / std::max(local_scale, std::numeric_limits<double>::min());
++        return num;
+     };
+     const auto row_reading = [&](const Eigen::SparseMatrix<double, Eigen::RowMajor> &A,
+                                  const Vec &b, const Vec &resid, Index j, double mult,

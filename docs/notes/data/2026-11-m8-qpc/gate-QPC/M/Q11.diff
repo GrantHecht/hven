@@ -1,0 +1,14 @@
+diff --git a/src/qp/walk/walk_engine.cpp b/src/qp/walk/walk_engine.cpp
+index 67744b7b5..8f7aaeb47 100644
+--- a/src/qp/walk/walk_engine.cpp
++++ b/src/qp/walk/walk_engine.cpp
+@@ -3231,6 +3231,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+             eqp_refinement_ == EqpRefinement::kModel && eff_opts.dual_regularization > 0.0) {
+             ++counters.converged_refinement_arms;
+             eqp_refinement_ = EqpRefinement::kConverged;
++            ++counters.dual_regularization_decreases;
++            eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
++            discard_factor_state();
+         }
+         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
+             standstill_steps = standstill_steps_in + 1;

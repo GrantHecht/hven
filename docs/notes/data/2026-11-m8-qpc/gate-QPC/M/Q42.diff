@@ -1,0 +1,22 @@
+diff --git a/include/hven/detail/qp/walk/walk_engine.h b/include/hven/detail/qp/walk/walk_engine.h
+index f0eff57e6..7b344253e 100644
+--- a/include/hven/detail/qp/walk/walk_engine.h
++++ b/include/hven/detail/qp/walk/walk_engine.h
+@@ -1685,7 +1685,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+             local = smax(local, std::abs(mult) * norm_inf);
+             out.product =
+                 smax(out.product, local_product(std::abs(resid(j)) / row_scale, mult, local));
+-            if (read_slack && priced(mult, norm_inf, local)) {
++            if (read_slack && priced(mult, norm_inf, t.maxCoeff())) {
+                 out.slack = smax(out.slack, std::abs(resid(j)) / row_scale);
+             }
+         }
+@@ -1721,7 +1721,7 @@ inline CertificateReading certificate_reading(const QpProblem &qp, const Working
+             const double at = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+             out.product =
+                 smax(out.product, local_product(std::abs(x(i) - at) / row_scale, z(i), t(i)));
+-            if (priced(z(i), 1.0, t(i))) {
++            if (priced(z(i), 1.0, t.maxCoeff())) {
+                 out.slack = smax(out.slack, std::abs(x(i) - at) / row_scale);
+             }
+         } else {
